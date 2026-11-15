@@ -13,7 +13,7 @@ test('QML identity labels are provided by verified presenter state, never raw is
   assert.match(header, /Q_PROPERTY\(QString accountIdentityBadge READ accountIdentityBadge NOTIFY authenticationStateChanged\)/);
   assert.match(bridge, /bool PresentationBridge::nativeCustodyAccount\(\) const noexcept[\s\S]*?return m_isAuthenticated/);
   assert.match(bridge, /QString PresentationBridge::accountIdentityBadge\(\) const/);
-  assert.match(shell, /nativeAccount: presentationBridge.nativeCustodyAccount/);
+  assert.match(shell, /nativeAccount:\s*presentationBridge.nativeCustodyAccount/);
   assert.match(shell, /text: presentationBridge.accountIdentityBadge/);
   assert.doesNotMatch(shell, /"hypersnap:native-registry"/);
   assert.doesNotMatch(profile, /"hypersnap:native-registry"/);
