@@ -5,6 +5,11 @@ import Farcaster.Client
 Popup {
     id: control
 
+    // Explicit workspace source, never the Overlay itself (which contains
+    // transient popups and would recurse through ShaderEffectSource).
+    // Parent-owned dialogs automatically capture their safe parent surface.
+    property Item blurSourceItem: parent && parent !== Overlay.overlay ? parent : null
+
     modal: true
     focus: true
     padding: Theme.space4
@@ -12,25 +17,18 @@ Popup {
     y: parent ? Math.round(Math.max(0, (parent.height - height) / 2)) : 0
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-    Overlay.modal: Rectangle {
-        color: Theme.overlay
-
-        // A modal must be an input boundary, not only a visual dimmer. Without
-        // this shield, unhandled pointer events can fall through the overlay and
-        // trigger controls or external links in the page behind the popup.
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.AllButtons
-            hoverEnabled: true
-            preventStealing: true
-            onPressed: function(mouse) {
-                mouse.accepted = true
+    // Same frosted, input-blocking backdrop as GenyDrawer. Respect a caller's
+    // NoAutoClose policy: wallet approval must never be rejected by tapping
+    // its dimmed background.
+    Overlay.modal: DrawerBackdrop {
+        sourceItem: control.blurSourceItem
+        snapshotBlurOnBrowser: true
+        active: control.visible
+        addScrim: true
+        blockInput: true
+        onBackgroundTapped: {
+            if (control.closePolicy & Popup.CloseOnPressOutside)
                 control.close()
-            }
-            onReleased: function(mouse) { mouse.accepted = true }
-            onClicked: function(mouse) { mouse.accepted = true }
-            onDoubleClicked: function(mouse) { mouse.accepted = true }
-            onWheel: function(wheel) { wheel.accepted = true }
         }
     }
 

@@ -4793,6 +4793,14 @@ Company | https://company.com</translation>
             <source>Play emoji once when visible, then keep them still to save energy.</source>
             <translation>Play emoji once when visible, then keep them still to save energy.</translation>
         </message>
+        <message id="genycaster.settings.neon_effects">
+            <source>Neon edge lighting</source>
+            <translation>Neon edge lighting</translation>
+        </message>
+        <message id="genycaster.settings.neon_effects_description">
+            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
+            <translation>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>Reduce motion</translation>

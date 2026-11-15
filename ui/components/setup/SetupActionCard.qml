@@ -83,6 +83,15 @@ Button {
         curveDepth: Theme.curveContainer
         elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone
 
+        NeonHalo {
+            anchors.fill: parent
+            ambient: root.networkShowcase && root.selected
+            interactive: root.accountShowcase || root.networkShowcase
+            activity: root.busy
+            cornerRadius: parent.curveDepth
+            borderInset: parent.borderWidth / 2
+        }
+
         Behavior on fillColor {
             ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
         }

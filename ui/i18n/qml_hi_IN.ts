@@ -4772,6 +4772,14 @@ Company | https://company.com</source>
             <source>Play emoji once when visible, then keep them still to save energy.</source>
             <translation>इमोजी दिखाई देने पर एक बार चलें और ऊर्जा बचाने के लिए फिर स्थिर रहें।</translation>
         </message>
+        <message id="genycaster.settings.neon_effects">
+            <source>Neon edge lighting</source>
+            <translation>नियॉन किनारा प्रकाश</translation>
+        </message>
+        <message id="genycaster.settings.neon_effects_description">
+            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
+            <translation>कार्ड और संवादों पर हल्की GPU चमक; ऊर्जा बचत मोड में बंद रहती है।</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>मोशन कम करें</translation>

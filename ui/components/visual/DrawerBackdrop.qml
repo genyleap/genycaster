@@ -14,13 +14,28 @@ Item {
     // Dismiss exactly once per open, even if both handlers receive the gesture.
     property bool outsideDismissConsumed: false
     readonly property bool useBrowserSnapshot: root.browserRenderer && root.snapshotBlurOnBrowser
-    onActiveChanged: {
-        if (root.active) {
-            root.outsideDismissConsumed = false
-            if (root.useBrowserSnapshot && root.sourceItem)
-                Qt.callLater(() => capture.scheduleUpdate())
-        }
+    // The native renderer uses the reference two-pass Gaussian rather than
+    // the platform-dependent MultiEffect blur. Browser keeps its proven
+    // reduced-resolution snapshot fallback for WebGL/Canvas compatibility.
+    readonly property bool nativeGaussian: !root.browserRenderer && root.active
+                                            && root.sourceItem !== null
+    readonly property real gaussianAmount: 1.0
+    function refreshSnapshot() {
+        if (!root.active || !root.sourceItem)
+            return
+        Qt.callLater(() => {
+            if (root.active && root.sourceItem)
+                capture.scheduleUpdate()
+        })
     }
+    onActiveChanged: {
+        if (root.active)
+            root.outsideDismissConsumed = false
+        root.refreshSnapshot()
+    }
+    onSourceItemChanged: root.refreshSnapshot()
+    onWidthChanged: root.refreshSnapshot()
+    onHeightChanged: root.refreshSnapshot()
     signal backgroundTapped()
     function requestOutsideDismiss() {
         if (!root.active || !root.blockInput || root.outsideDismissConsumed)
@@ -39,6 +54,11 @@ Item {
                                             : 0.90
     readonly property real blurStrength: renderingController.profile === "efficiency"
                                          || renderingController.effectiveQuality === "efficiency" ? 0.46 : 0.58
+    // Native captures preserve device-pixel detail on Retina/HiDPI screens.
+    // Freeze after admission and cap the longest texture edge for mobile GPUs.
+    readonly property real nativeCaptureScale: Math.min(
+        Math.max(1, Screen.devicePixelRatio) * root.captureScale,
+        4096 / Math.max(1, root.width, root.height))
 
     anchors.fill: parent
     visible: root.active
@@ -48,15 +68,19 @@ Item {
         visible: false
         // One texture snapshot on browser search open, never a live feed
         // repaint during each WebGL scroll frame.
-        live: root.active && root.sourceItem !== null && !root.browserRenderer
+        // Freeze background after opening: a modal should not re-render the
+        // entire animated feed through two Gaussian passes every frame.
+        live: false
         recursive: false
-        hideSource: root.active && root.sourceItem !== null && !root.browserRenderer
+        hideSource: root.nativeGaussian
         sourceItem: root.sourceItem
         textureSize: Qt.size(
             root.browserRenderer && !root.useBrowserSnapshot ? 1
-                : Math.max(1, Math.round(root.width * (root.useBrowserSnapshot ? 0.48 : root.captureScale))),
+                : Math.max(1, Math.round(root.width * (root.browserRenderer
+                                  ? 0.48 : root.nativeCaptureScale))),
             root.browserRenderer && !root.useBrowserSnapshot ? 1
-                : Math.max(1, Math.round(root.height * (root.useBrowserSnapshot ? 0.48 : root.captureScale))))
+                : Math.max(1, Math.round(root.height * (root.browserRenderer
+                                  ? 0.48 : root.nativeCaptureScale))))
         sourceRect: {
             if (!root.sourceItem || root.width <= 0 || root.height <= 0)
                 return Qt.rect(0, 0, 1, 1)
@@ -65,10 +89,39 @@ Item {
         }
     }
 
+    // Separable Gaussian from the supplied UI Kit. Hidden horizontal pass is
+    // captured into a single intermediate texture; only the vertical output
+    // is visible. Never capture Window.contentItem/Overlay here.
+    ShaderEffect {
+        id: horizontalPass
+        width: root.width
+        height: root.height
+        visible: false
+        property var source: capture
+        property vector2d sampleStep: Qt.vector2d(
+            root.gaussianAmount * 0.5 / Math.max(1, width), 0)
+        fragmentShader: "qrc:/genycaster/effects/gaussian.frag.qsb"
+    }
+    ShaderEffectSource {
+        id: intermediate
+        sourceItem: horizontalPass
+        visible: false
+        live: root.nativeGaussian
+        textureSize: capture.textureSize
+        smooth: true
+    }
+    ShaderEffect {
+        anchors.fill: parent
+        visible: root.nativeGaussian
+        property var source: intermediate
+        property vector2d sampleStep: Qt.vector2d(
+            0, root.gaussianAmount * 0.5 / Math.max(1, height))
+        fragmentShader: "qrc:/genycaster/effects/gaussian.frag.qsb"
+    }
+
     MultiEffect {
         anchors.fill: parent
-        visible: root.active && root.sourceItem !== null
-                 && (!root.browserRenderer || root.useBrowserSnapshot)
+        visible: root.active && root.useBrowserSnapshot && root.sourceItem !== null
         source: capture
         blurEnabled: true
         blur: root.blurStrength

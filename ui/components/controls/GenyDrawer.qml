@@ -90,9 +90,10 @@ Drawer {
     // surface itself. Qt creates these components underneath visible popups.
     Overlay.modal: DrawerBackdrop {
         sourceItem: control.blurSourceItem
+        snapshotBlurOnBrowser: true
         active: control.position > 0
         opacity: control.position
-        addScrim: control.dimBackground
+        addScrim: control.dimBackground || control.blurSourceItem !== null
         blockInput: true
         onBackgroundTapped: control.close()
 
@@ -104,9 +105,10 @@ Drawer {
 
     Overlay.modeless: DrawerBackdrop {
         sourceItem: control.blurSourceItem
+        snapshotBlurOnBrowser: true
         active: control.position > 0
         opacity: control.position
-        addScrim: control.dimBackground
+        addScrim: control.dimBackground || control.blurSourceItem !== null
         blockInput: false
     }
 

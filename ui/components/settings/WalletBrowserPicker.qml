@@ -43,16 +43,16 @@ Item {
 
         // A click outside the chooser must not close the Mini App or silently
         // reject a pending wallet request.
-        Overlay.modal: Rectangle {
-            color: Theme.overlay
-            MouseArea {
-                anchors.fill: parent
-                acceptedButtons: Qt.AllButtons
-                onPressed: mouse => { mouse.accepted = true }
-                onReleased: mouse => { mouse.accepted = true }
-                onClicked: mouse => { mouse.accepted = true }
-                onWheel: wheel => { wheel.accepted = true }
-            }
+        Overlay.modal: DrawerBackdrop {
+            // The host hides its native Mini App surface during approval.
+            // Capture only the trusted workspace, never Window.contentItem.
+            sourceItem: picker.parent && picker.parent !== Overlay.overlay
+                        ? picker.parent : null
+            snapshotBlurOnBrowser: true
+            active: dialog.visible
+            addScrim: true
+            blockInput: true
+            // Intentionally no onBackgroundTapped: this dialog is NoAutoClose.
         }
 
         Shortcut {

@@ -503,3 +503,45 @@ tests before replacing a JavaScript helper; check desktop/compact/RTL behavior,
 native/WASM runtime and package resource aliases; benchmark hot paths; and
 delete the old JS function only after the C++ implementation has matching
 semantics. No goal of "zero JavaScript" is appropriate for a declarative UI.
+
+
+## Frosted overlays and Neon surfaces — November 2026
+
+The user-supplied **Genyleap Hub Neon UI Kit v0.4.5** is a visual
+reference, not an alternative product theme module. GenyCaster retains its
+own `Theme`, superellipse renderer, typography, accent and layout policies.
+
+- `DrawerBackdrop` owns the shared frosted overlay for `GenyDrawer`,
+  `GenyModal` and `GenyAdaptiveDialog`. The native renderer uses the
+  UI Kit's **two-pass Gaussian** shader; the capture is frozen after opening
+  instead of continuously replaying the underlying feed. The snapshot scales
+  with device-pixel ratio but caps its longest edge at 4096 pixels.
+- WebAssembly uses a deliberately lower-resolution, on-demand MultiEffect
+  snapshot to avoid expensive full-screen GPU passes on the browser's main
+  thread. Missing or unsupported texture capture keeps the scrim rather than
+  silently turning a popup into a non-modal surface.
+- `sourceItem` must reference the **workspace behind the popup**, never
+  `Window.contentItem`, `Overlay.overlay`, or the popup itself. Callers
+  directly hosted on Overlay must supply the real workspace explicitly.
+  Changing the source hierarchy requires a recursion/hidden-content audit.
+- The shared `PopupSurface` and the account/network setup cards use the
+  UI Kit-inspired Neon edge shader. Hover is passive; activity orbits only
+  for genuine busy state. Reduced Motion removes the orbit, and the
+  persisted `Appearance → Neon edge lighting` preference can disable
+  decorative shader output. Energy-saving mode suspends Neon regardless
+  of the saved preference. No per-feed-row permanent animation is allowed.
+- Wallet approval retains `NoAutoClose` and does not treat background taps
+  as cancellation. Full-screen media viewers intentionally retain their
+  dark, high-contrast presentation instead of blurring the media.
+- GLSL sources are compiled offline with the official Qt 6.12 `qsb` tool.
+  Portable, versioned `.qsb` shader variants are checked in and bundled via
+  `qt_add_resources` so every release job does not need ShaderTools installed.
+  The resource paths are `/genycaster/effects/gaussian.frag.qsb` and
+  `/genycaster/effects/neon.frag.qsb` on **all configured targets**.
+
+Verification: `tests/wasm/neon_surface_contract.test.mjs`, Qt 6.12
+CMake configure and individual qsb compilation. These source/build checks
+do **not** establish native rendering quality: opening multiple nested
+drawers, mixed DPR, light/dark, Persian/Arabic RTL, keyboard and touch
+dismissal, Windows/macOS/Linux/Android/WASM GPU performance and reduced
+motion still require real device smoke tests.

@@ -61,16 +61,15 @@ Popup {
     height: Math.min(parent ? Math.max(360, parent.height - root.safeMargin * 2) : 520, 520)
     background: PopupSurface {}
 
-    Overlay.modal: Rectangle {
-        color: "transparent"
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.AllButtons
-            hoverEnabled: true
-            preventStealing: true
-            onClicked: root.close()
-            onWheel: function(wheel) { wheel.accepted = true }
-        }
+    Overlay.modal: DrawerBackdrop {
+        // This anchored picker blurs only its owning workspace. The overlay
+        // itself must never become the capture input.
+        sourceItem: root.parent && root.parent !== Overlay.overlay ? root.parent : null
+        snapshotBlurOnBrowser: true
+        active: root.visible
+        addScrim: true
+        blockInput: true
+        onBackgroundTapped: root.close()
     }
 
     function reposition() {

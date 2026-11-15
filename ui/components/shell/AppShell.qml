@@ -35,6 +35,7 @@ Item {
         id: interactionAuthorizationDialog
         objectName: "interactionAuthorizationExplanation"
         parent: Overlay.overlay
+        blurSourceItem: shellContent
         readonly property bool nativeAccount:
             presentationBridge.accountIdentityIssuer === "hypersnap:native-registry"
         property bool enteringNativeWords: false

@@ -1604,6 +1604,46 @@ GenyDrawer {
                         }
                     }
 
+                    // GPU edge reflections are optional and independent from
+                    // reduced motion. Energy-saving mode suspends the shader.
+                    Superellipse {
+                        Layout.fillWidth: true
+                        implicitHeight: neonEffectsRow.implicitHeight + Theme.space3 * 2
+                        fillColor: Theme.surfaceMuted
+                        curveDepth: Theme.curveContainer
+                        RowLayout {
+                            id: neonEffectsRow
+                            anchors.fill: parent
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space3
+                            layoutDirection: Theme.uiDirection
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space1
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.settings.neon_effects")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeLabelSize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.settings.neon_effects_description")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.Wrap
+                                }
+                            }
+                            GenySwitch {
+                                checked: Theme.neonPreferences.enabled
+                                onToggled: Theme.setNeonEnabled(checked)
+                                Accessible.name: qsTrId("genycaster.settings.neon_effects")
+                                Accessible.description: qsTrId("genycaster.settings.neon_effects_description")
+                            }
+                        }
+                    }
+
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space2

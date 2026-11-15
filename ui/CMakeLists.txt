@@ -23,6 +23,7 @@ set(farcasterQmlFiles
     components/media/EmbedPreview.qml
     components/feed/DeveloperPost.qml
     components/visual/DrawerBackdrop.qml
+    components/visual/NeonHalo.qml
     components/content/Avatar.qml
     components/media/AudioPreview.qml
     components/navigation/BottomNavButton.qml
@@ -1473,6 +1474,19 @@ qt_add_qml_module(genycaster
         wasm/setup-mist.svg
         wasm/genycaster-wordmark.svg
         wasm/genycaster-wordmark-dark.svg
+)
+
+# The source GLSL lives alongside portable Qt 6.12 QSB variants, matching
+# the project's existing setup_glass_g shader packaging. Do not require the
+# host ShaderTools add-on in every Android/iOS/Linux/macOS release job.
+# Regenerate both .qsb files from the adjacent .frag sources using Qt 6.12 qsb
+# (--glsl 100es,120,150 --hlsl 50 --msl 12) whenever the GLSL changes.
+qt_add_resources(genycaster genycaster_surface_effects
+    PREFIX "/genycaster/effects"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+    FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/gaussian.frag.qsb"
+        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/neon.frag.qsb"
 )
 
 target_include_directories(genycaster

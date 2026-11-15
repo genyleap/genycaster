@@ -86,6 +86,7 @@ Item {
         // application, rather than replacing it with a flat dark scrim.
         Overlay.modal: DrawerBackdrop {
             sourceItem: control.blurSourceItem
+            snapshotBlurOnBrowser: true
             active: desktopDialog.opened
             addScrim: control.dimBackground
             blockInput: true
