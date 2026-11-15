@@ -20,7 +20,6 @@ export module farcaster.application.registration_plan;
 
 export namespace farcaster::application::registration_plan {
 
-
 /**
  * Registration identity namespaces, not interchangeable read API profiles.
  * A native HyperSnap FID does not imply an on-chain Farcaster IdRegistry FID.
