@@ -1,5 +1,6 @@
 import QtQuick
 import Farcaster.Client
+import "NeonGeometry.js" as NeonGeometry
 
 // Ported from the user-supplied Neon UI Kit v0.4.5 geometry/interaction
 // contract. The effect and the retained GenyCaster QSG surface use the same
@@ -40,111 +41,18 @@ Item {
         blocking: false
     }
 
-    // The Kit's analytic closest-point projection: four straight segments
-    // and four n=power Lamé corner arcs. Minimization happens on pointer
-    // updates, never in the fragment shader.
-    function unitCorner(t, power) {
-        const diagonal = Math.pow(0.5, 1 / power);
-        if (t <= 0.5) {
-            const x = t * 2 * diagonal;
-            return {
-                x: x,
-                y: -Math.pow(Math.max(0, 1 - Math.pow(x, power)), 1 / power)
-            };
-        }
-        const y = (1 - t) * 2 * diagonal;
-        return {
-            x: Math.pow(Math.max(0, 1 - Math.pow(y, power)), 1 / power),
-            y: -y
-        };
-    }
-
-    function nearestBorderPoint(px, py, w, h, radius, power) {
-        const width = Math.max(0, w);
-        const height = Math.max(0, h);
-        if (width <= 0 || height <= 0 || !Number.isFinite(px) || !Number.isFinite(py))
-            return {
-                x: width / 2,
-                y: height / 2,
-                distance: Infinity
-            };
-        const r = Math.min(Math.max(0, radius), width / 2, height / 2);
-        const exponent = Math.max(2, power);
-        const clamp = (v, low, high) => Math.max(low, Math.min(high, v));
-        let nearestX = 0;
-        let nearestY = 0;
-        let bestSq = Infinity;
-        function consider(x, y) {
-            const dx = px - x;
-            const dy = py - y;
-            const squared = dx * dx + dy * dy;
-            if (squared < bestSq) {
-                bestSq = squared;
-                nearestX = x;
-                nearestY = y;
-            }
-        }
-        consider(clamp(px, r, width - r), 0);
-        consider(width, clamp(py, r, height - r));
-        consider(clamp(px, r, width - r), height);
-        consider(0, clamp(py, r, height - r));
-        if (r > 0) {
-            const corners = [[r, r, -1, -1], [width - r, r, 1, -1], [width - r, height - r, 1, 1], [r, height - r, -1, 1]];
-            const fraction = (Math.sqrt(5) - 1) * 0.5;
-            for (const corner of corners) {
-                const cx = corner[0];
-                const cy = corner[1];
-                const sx = corner[2];
-                const sy = corner[3];
-                const dx = px - clamp(px, cx + Math.min(0, sx * r), cx + Math.max(0, sx * r));
-                const dy = py - clamp(py, cy + Math.min(0, sy * r), cy + Math.max(0, sy * r));
-                if (dx * dx + dy * dy >= bestSq)
-                    continue;
-                function distSq(parameter) {
-                    const p = unitCorner(parameter, exponent);
-                    const xx = px - (cx + sx * r * p.x);
-                    const yy = py - (cy - sy * r * p.y);
-                    return xx * xx + yy * yy;
-                }
-                let lower = 0;
-                let upper = 1;
-                let first = upper - fraction * (upper - lower);
-                let second = lower + fraction * (upper - lower);
-                let firstDistance = distSq(first);
-                let secondDistance = distSq(second);
-                for (let step = 0; step < 18; ++step) {
-                    if (firstDistance > secondDistance) {
-                        lower = first;
-                        first = second;
-                        firstDistance = secondDistance;
-                        second = lower + fraction * (upper - lower);
-                        secondDistance = distSq(second);
-                    } else {
-                        upper = second;
-                        second = first;
-                        secondDistance = firstDistance;
-                        first = upper - fraction * (upper - lower);
-                        firstDistance = distSq(first);
-                    }
-                }
-                const p = unitCorner((lower + upper) * 0.5, exponent);
-                consider(cx + sx * r * p.x, cy - sy * r * p.y);
-            }
-        }
-        return {
-            x: nearestX,
-            y: nearestY,
-            distance: Math.sqrt(bestSq)
-        };
-    }
-
+    // Geometry now comes from the Kit's exact shared arc-length library.
+    // Keep it outside the transient QML object so no stale function closures
+    // are retained when a feed delegate or drawer is destroyed.
     // Retain the last pointer sample when leaving hover so the light fades
     // at the point of exit instead of jumping to the middle of the control.
     property point sampledPointer: Qt.point(width / 2, height / 2)
     property real sampledStrength: 0
     property real sampledSteady: 0
     property real activityPhase: 0
-    readonly property int orbitDuration: Math.round(Math.max(1800, Math.min(9000, 1000 * (2 * (Math.max(0, width - 2 * cornerRadius) + Math.max(0, height - 2 * cornerRadius)) + 7.04 * cornerRadius) / Theme.neonOrbitSpeed)))
+    readonly property int orbitDuration: Math.round(Math.max(1800, Math.min(9000,
+        1000 * NeonGeometry.borderLength(width - 2 * inset, height - 2 * inset,
+                                         cornerRadius, cornerPower) / Theme.neonOrbitSpeed)))
     NumberAnimation on activityPhase {
         from: 0
         to: 1
@@ -153,56 +61,14 @@ Item {
         running: root.activityActive && root.visible && Theme.neonMotionEnabled
         easing.type: Easing.Linear
     }
-    function orbitPoint(progress) {
-        const w = Math.max(1, width);
-        const h = Math.max(1, height);
-        const r = Math.max(0, Math.min(cornerRadius, w / 2, h / 2));
-        const straightH = w - 2 * r;
-        const straightV = h - 2 * r;
-        const quarter = 1.76 * r;
-        const perimeter = Math.max(1, 2 * (straightH + straightV + 2 * quarter));
-        let d = ((progress % 1) + 1) % 1 * perimeter;
-        const e = 2 / Math.max(2, cornerPower);
-        const power = x => Math.pow(Math.max(0, x), e);
-        if (d <= straightH)
-            return Qt.point(r + d, 0);
-        d -= straightH;
-        if (quarter > 0 && d <= quarter) {
-            const t = d / quarter * Math.PI / 2;
-            return Qt.point(w - r + r * power(Math.sin(t)), r - r * power(Math.cos(t)));
-        }
-        d -= quarter;
-        if (d <= straightV)
-            return Qt.point(w, r + d);
-        d -= straightV;
-        if (quarter > 0 && d <= quarter) {
-            const t = d / quarter * Math.PI / 2;
-            return Qt.point(w - r + r * power(Math.cos(t)), h - r + r * power(Math.sin(t)));
-        }
-        d -= quarter;
-        if (d <= straightH)
-            return Qt.point(w - r - d, h);
-        d -= straightH;
-        if (quarter > 0 && d <= quarter) {
-            const t = d / quarter * Math.PI / 2;
-            return Qt.point(r - r * power(Math.sin(t)), h - r + r * power(Math.cos(t)));
-        }
-        d -= quarter;
-        if (d <= straightV)
-            return Qt.point(0, h - r - d);
-        d -= straightV;
-        if (quarter > 0) {
-            const t = Math.min(1, d / quarter) * Math.PI / 2;
-            return Qt.point(r - r * power(Math.cos(t)), r - r * power(Math.sin(t)));
-        }
-        return Qt.point(0, 0);
-    }
     function samplePointer() {
         if (activityActive && Theme.neonMotionEnabled) {
-            sampledPointer = orbitPoint(activityPhase);
+            const point = NeonGeometry.borderPoint(activityPhase,
+                width - 2 * inset, height - 2 * inset, cornerRadius, cornerPower)
+            sampledPointer = Qt.point(point.x + inset, point.y + inset);
             sampledStrength = Math.max(0, Math.min(1, activityStrength));
             sampledSteady = 0;
-        } else if (tracking) {
+        } else if (tracking && Number.isFinite(pointerX) && Number.isFinite(pointerY)) {
             sampledPointer = Qt.point(active ? pointerX : pointerHandler.point.position.x, active ? pointerY : pointerHandler.point.position.y);
             sampledStrength = Math.max(0, Math.min(1, strength));
             sampledSteady = 0;
@@ -212,20 +78,20 @@ Item {
         }
     }
 
-    onActivityPhaseChanged: Qt.callLater(samplePointer)
-    onActivityActiveChanged: Qt.callLater(samplePointer)
-    onAmbientActiveChanged: Qt.callLater(samplePointer)
-    onStrengthChanged: Qt.callLater(samplePointer)
-    onActivityStrengthChanged: Qt.callLater(samplePointer)
-    onAmbientStrengthChanged: Qt.callLater(samplePointer)
-    onTrackingChanged: Qt.callLater(samplePointer)
-    onPointerXChanged: Qt.callLater(samplePointer)
-    onPointerYChanged: Qt.callLater(samplePointer)
-    onWidthChanged: Qt.callLater(samplePointer)
-    onHeightChanged: Qt.callLater(samplePointer)
-    Component.onCompleted: Qt.callLater(samplePointer)
+    onActivityPhaseChanged: samplePointer()
+    onActivityActiveChanged: samplePointer()
+    onAmbientActiveChanged: samplePointer()
+    onStrengthChanged: samplePointer()
+    onActivityStrengthChanged: samplePointer()
+    onAmbientStrengthChanged: samplePointer()
+    onTrackingChanged: samplePointer()
+    onPointerXChanged: samplePointer()
+    onPointerYChanged: samplePointer()
+    onWidthChanged: samplePointer()
+    onHeightChanged: samplePointer()
+    Component.onCompleted: samplePointer()
 
-    readonly property var edgePoint: nearestBorderPoint(sampledPointer.x - inset, sampledPointer.y - inset, Math.max(0, width - 2 * inset), Math.max(0, height - 2 * inset), cornerRadius, cornerPower)
+    readonly property var edgePoint: NeonGeometry.nearestBorderPoint(sampledPointer.x - inset, sampledPointer.y - inset, Math.max(0, width - 2 * inset), Math.max(0, height - 2 * inset), cornerRadius, cornerPower)
 
     property real envelope: responding ? 1 : 0
     Behavior on envelope {

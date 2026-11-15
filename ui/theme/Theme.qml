@@ -34,7 +34,12 @@ QtObject {
     readonly property real neonOrbitSpeed: 260
     readonly property real neonLightLuminance: 0.96
     readonly property real neonDarkLuminance: 0.10
+    // GenyHub Kit's separate selection/hover timelines: no stale hover trail
+    // when sweeping across adjacent tabs or menu entries.
     readonly property int materialSurfaceDuration: reduceMotion ? 0 : 105
+    readonly property int materialHoverInDuration: reduceMotion ? 0 : 100
+    readonly property int materialHoverOutDuration: reduceMotion ? 0 : 55
+    readonly property int materialSelectionDuration: reduceMotion ? 0 : 145
     readonly property int neonSurfaceDuration: neonMotionEnabled ? 105 : 0
     readonly property int neonEnterDuration: neonMotionEnabled ? 100 : 0
     readonly property int neonExitDuration: neonMotionEnabled ? 90 : 0

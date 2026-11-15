@@ -1448,6 +1448,9 @@ if(ANDROID)
 endif()
 
 set_source_files_properties("components/composer/ProCastPolicy.js" PROPERTIES QT_RESOURCE_ALIAS "components/ProCastPolicy.js")
+# NeonHalo and its geometry library share the flattened QML resource folder.
+# This preserves the relative JS import after qmlcachegen and on WASM.
+set_source_files_properties("components/visual/NeonGeometry.js" PROPERTIES QT_RESOURCE_ALIAS "components/NeonGeometry.js")
 
 qt_add_qml_module(genycaster
     URI Farcaster.Client
@@ -1459,6 +1462,7 @@ qt_add_qml_module(genycaster
     QML_FILES
         ${farcasterQmlFiles}
         components/composer/ProCastPolicy.js
+        components/visual/NeonGeometry.js
     SOURCES
         render/stroke.cpp
         render/stroke.hpp

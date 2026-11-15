@@ -129,6 +129,27 @@ Rectangle {
         curveDepth: Theme.shapeSurface
     }
 
+    // GenyHub's common pointer field: glints continue smoothly across gaps
+    // between destinations instead of snapping off at each button boundary.
+    HoverHandler {
+        id: sidebarPointer
+        enabled: Theme.neonEnabled && root.visible
+        blocking: false
+    }
+    NeonHalo {
+        anchors.fill: navigationSurface
+        active: sidebarPointer.hovered
+        hoverCapable: true
+        pointerX: navigationSurface.mapFromItem(
+            root, sidebarPointer.point.position.x, sidebarPointer.point.position.y).x
+        pointerY: navigationSurface.mapFromItem(
+            root, sidebarPointer.point.position.x, sidebarPointer.point.position.y).y
+        cornerRadius: navigationSurface.curveDepth
+        borderInset: navigationSurface.borderWidth / 2
+        strength: Theme.neonPanelStrength
+        reach: 185
+    }
+
     ColumnLayout {
         anchors.fill: navigationSurface
         anchors.margins: Theme.space3
@@ -233,6 +254,11 @@ Rectangle {
                 NavItem {
                     objectName: "sidebarAction-following"
                     Layout.fillWidth: true
+                    sharedPointerActive: sidebarPointer.hovered
+                    sharedPointerX: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).x
+                    sharedPointerY: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).y
                     text: qsTrId("genycaster.side_nav.home")
                     iconGlyph: Theme.iconHome
                     selected: root.shellRoute === "" && root.activeView === "feed" && root.primaryDestination === "home"
@@ -241,6 +267,11 @@ Rectangle {
                 NavItem {
                     objectName: "sidebarAction-trending"
                     Layout.fillWidth: true
+                    sharedPointerActive: sidebarPointer.hovered
+                    sharedPointerX: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).x
+                    sharedPointerY: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).y
                     text: qsTrId("genycaster.side_nav.explorer")
                     iconGlyph: Theme.iconExplore
                     selected: root.shellRoute === "" && root.activeView === "feed" && root.primaryDestination === "explorer"
@@ -249,6 +280,11 @@ Rectangle {
                 NavItem {
                     objectName: "sidebarAction-apps"
                     Layout.fillWidth: true
+                    sharedPointerActive: sidebarPointer.hovered
+                    sharedPointerX: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).x
+                    sharedPointerY: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).y
                     text: qsTrId("genycaster.apps.title")
                     iconGlyph: Theme.iconApps
                     selected: root.shellRoute === "apps"
@@ -257,6 +293,11 @@ Rectangle {
                 NavItem {
                     objectName: "sidebarAction-channels"
                     Layout.fillWidth: true
+                    sharedPointerActive: sidebarPointer.hovered
+                    sharedPointerX: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).x
+                    sharedPointerY: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).y
                     text: qsTrId("genycaster.side_nav.channels")
                     iconGlyph: Theme.iconGlobe
                     selected: root.shellRoute === "channels"
@@ -265,6 +306,11 @@ Rectangle {
                 NavItem {
                     objectName: "sidebarAction-notifications"
                     Layout.fillWidth: true
+                    sharedPointerActive: sidebarPointer.hovered
+                    sharedPointerX: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).x
+                    sharedPointerY: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).y
                     text: qsTrId("genycaster.side_nav.notifications")
                     iconGlyph: Theme.iconNotification
                     badgeText: root.notificationUnreadCount > 0 && root.shellRoute !== "notifications"
@@ -276,6 +322,11 @@ Rectangle {
                 NavItem {
                     objectName: "sidebarAction-bookmarks"
                     Layout.fillWidth: true
+                    sharedPointerActive: sidebarPointer.hovered
+                    sharedPointerX: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).x
+                    sharedPointerY: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).y
                     text: qsTrId("genycaster.side_nav.bookmarks")
                     iconGlyph: Theme.iconBookmark
                     selected: root.shellRoute === "bookmarks"
@@ -284,6 +335,11 @@ Rectangle {
                 NavItem {
                     objectName: "sidebarAction-profile"
                     Layout.fillWidth: true
+                    sharedPointerActive: sidebarPointer.hovered
+                    sharedPointerX: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).x
+                    sharedPointerY: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).y
                     text: qsTrId("genycaster.side_nav.profile")
                     iconGlyph: Theme.iconProfile
                     selected: root.shellRoute === "" && root.activeView === "profile"
@@ -292,6 +348,11 @@ Rectangle {
                 NavItem {
                     objectName: "sidebarAction-settings"
                     Layout.fillWidth: true
+                    sharedPointerActive: sidebarPointer.hovered
+                    sharedPointerX: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).x
+                    sharedPointerY: mapFromItem(root, sidebarPointer.point.position.x,
+                                                sidebarPointer.point.position.y).y
                     text: qsTrId("genycaster.settings.title")
                     iconGlyph: Theme.iconSettings
                     onClicked: root.settingsRequested()

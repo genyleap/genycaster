@@ -7,6 +7,8 @@ const read = path => readFileSync(path, 'utf8');
 test('Neon Kit shaders are compiled for the Qt resource module', () => {
     const cmake = read('ui/CMakeLists.txt');
     assert.match(cmake, /qt_add_resources\(genycaster genycaster_surface_effects/);
+    assert.match(cmake, /components\/visual\/NeonGeometry\.js/);
+    assert.match(cmake, /QT_RESOURCE_ALIAS "components\/NeonGeometry\.js"/);
     assert.match(cmake, /PREFIX "\/genycaster\/effects"/);
     for (const effect of ['gaussian', 'neon'])
         assert.match(cmake, new RegExp('shaders/' + effect + '\\.frag\\.qsb'));
@@ -64,7 +66,9 @@ test('Neon is a persistent, power-aware, reduced-motion aware user preference', 
     assert.match(settings, /onToggled: Theme\.setNeonEnabled\(checked\)/);
     assert.match(plate, /NeonSurface \{/);
     assert.match(material, /sourceComponent: NeonHalo \{/);
-    assert.match(statePlate, /NeonSurface \{/);
+    // GenyHub's selection plates are crisp; only interactive surfaces glow.
+    assert.doesNotMatch(statePlate, /NeonSurface \{/);
+    assert.match(statePlate, /borderWidth: plate\.focused \? 2/);
     assert.match(halo, /running: root\.activityActive && root\.visible && Theme\.neonMotionEnabled/);
     assert.match(halo, /readonly property bool tracking: Theme\.neonEnabled && \(active \|\| hovered\)/);
     assert.match(halo, /blocking: false/);
@@ -121,13 +125,31 @@ test('Neon is present on visible common controls, selected tabs and dashboard ca
     assert.match(combo, /ambientNeon: control\.popup\.visible/);
     assert.match(switchControl, /ambientNeon: control\.checked/);
     const halo = read('ui/components/visual/NeonHalo.qml');
-    assert.match(halo, /function nearestBorderPoint\(/);
-    assert.match(halo, /for \(let step = 0; step < 18; \+\+step\)/);
+    const geometry = read('ui/components/visual/NeonGeometry.js');
+    const sidebar = read('ui/components/navigation/SideNavigation.qml');
+    assert.match(halo, /import "NeonGeometry\.js" as NeonGeometry/);
+    assert.match(halo, /NeonGeometry\.borderLength\(/);
+    assert.match(halo, /NeonGeometry\.borderPoint\(/);
+    assert.match(halo, /NeonGeometry\.nearestBorderPoint\(/);
+    assert.match(geometry, /function nearestBorderPoint\(/);
+    assert.match(geometry, /for \(let step = 0; step < 18; \+\+step\)/);
+    assert.match(geometry, /function cornerTable\(/);
+    assert.match(geometry, /function borderPoint\(/);
     assert.match(halo, /property point sampledPointer/);
-    assert.match(halo, /Qt\.callLater\(samplePointer\)/);
+    assert.match(halo, /onActivityPhaseChanged: samplePointer\(\)/);
+    assert.match(halo, /Component\.onCompleted: samplePointer\(\)/);
+    assert.doesNotMatch(halo, /Qt\.callLater/);
+    assert.doesNotMatch(halo, /function orbitPoint\(/);
+    assert.match(sidebar, /id: sidebarPointer/);
+    assert.match(sidebar, /strength: Theme\.neonPanelStrength/);
+    assert.match(sidebar, /sharedPointerActive: sidebarPointer\.hovered/);
+    assert.match(desktopNav, /sharedStrength:/);
+    assert.match(desktopNav, /NeonHalo \{/);
+    assert.match(desktopNav, /hoverCapable: true/);
+    assert.match(plate, /duration: plate\.hovered \? Theme\.materialHoverInDuration/);
     const shader = read('ui/shaders/neon.frag');
-    assert.match(shader, /small inwards/);
-    assert.match(shader, /mix\(localized, 0\.57, steadyActivity\)/);
+    assert.match(shader, /one logical pixel core/);
+    assert.match(shader, /mix\(localized, 0\.32, steadyActivity\)/);
 });
 
 test('Neon activity never shadows public busy state on data components', () => {

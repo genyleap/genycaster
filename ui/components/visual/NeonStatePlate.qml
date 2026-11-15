@@ -1,8 +1,9 @@
 import QtQuick
 import Farcaster.Client
 
-// Selection, hover and pressed layers follow the Neon UI Kit v0.4.5:
-// stable geometry; independent opacity transitions; focus drawn on top.
+// Faithful Genyleap Neon UI Kit state plate: selected, hover, and pressed
+// are independent opacity layers. Neon is NOT painted here: tabs and menu
+// rows should have crisp material transitions, not permanent luminous borders.
 Item {
     id: plate
     property bool selected: false
@@ -11,24 +12,22 @@ Item {
     property bool focused: false
     property bool outlined: false
     property bool animatePaint: true
-    property bool neonOnSelection: true
     property color selectedFill: Theme.primarySurface
     property color hoverFill: Theme.surfaceHover
     property color pressedFill: Theme.surfacePressed
     property color outlineColor: Theme.borderMuted
     property real cornerRadius: Theme.curveControl
-    property real pointerX: width / 2
-    property real pointerY: height / 2
 
     Superellipse {
         anchors.fill: parent
         curveDepth: plate.cornerRadius
         fillColor: plate.selectedFill
+        borderWidth: 0
         opacity: plate.selected ? 1 : 0
         Behavior on opacity {
             enabled: plate.animatePaint && !Theme.reduceMotion
             NumberAnimation {
-                duration: Theme.motionFast
+                duration: Theme.materialSelectionDuration
                 easing.type: Easing.OutCubic
             }
         }
@@ -37,11 +36,13 @@ Item {
         anchors.fill: parent
         curveDepth: plate.cornerRadius
         fillColor: plate.hoverFill
+        borderWidth: 0
         opacity: plate.hovered && !plate.pressed ? (plate.selected ? 0.23 : 1) : 0
         Behavior on opacity {
             enabled: plate.animatePaint && !Theme.reduceMotion
             NumberAnimation {
-                duration: Theme.motionFast
+                duration: plate.hovered ? Theme.materialHoverInDuration
+                                        : Theme.materialHoverOutDuration
                 easing.type: Easing.OutCubic
             }
         }
@@ -50,22 +51,15 @@ Item {
         anchors.fill: parent
         curveDepth: plate.cornerRadius
         fillColor: plate.pressedFill
+        borderWidth: 0
         opacity: plate.pressed ? 1 : 0
     }
-    // Keyboard focus remains legible even when decorative Neon is disabled.
-    NeonSurface {
+    // Keyboard focus remains visible even with the Neon preference disabled.
+    Superellipse {
         anchors.fill: parent
         fillColor: "transparent"
         borderWidth: plate.focused ? 2 : plate.outlined ? 1 : 0
         borderColor: plate.focused ? Theme.focus : plate.outlineColor
         curveDepth: plate.cornerRadius
-        ambientNeon: plate.neonOnSelection && plate.selected
-        interactive: plate.hovered
-        externalHovered: plate.hovered
-        externalPointerX: plate.pointerX
-        externalPointerY: plate.pointerY
-        neonStrength: Theme.neonControlStrength
-        neonColor: plate.selected ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.34) : "transparent"
-        animatePaint: false
     }
 }

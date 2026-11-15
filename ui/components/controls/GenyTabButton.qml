@@ -17,11 +17,6 @@ Button {
     implicitHeight: 40
     implicitWidth: Math.max(control.minimumWidth, contentItem.implicitWidth + Theme.space4)
     hoverEnabled: true
-    HoverHandler {
-        id: tabPointer
-        enabled: Theme.neonEnabled
-        blocking: false
-    }
     containmentMask: background
     flat: true
     scale: control.down ? 0.988 : 1.0
@@ -73,15 +68,13 @@ Button {
 
     background: NeonStatePlate {
         selected: control.segmented && control.selected
-        hovered: control.segmented && control.hovered
+        hovered: control.segmented && control.hovered && !control.selected
         pressed: control.segmented && control.down
         focused: Theme.keyboardFocusVisible(control)
         selectedFill: Theme.surfaceRaised
         hoverFill: Theme.surfaceHover
         pressedFill: Theme.surfacePressed
         cornerRadius: Theme.curveControl
-        pointerX: tabPointer.hovered ? tabPointer.point.position.x : width / 2
-        pointerY: tabPointer.hovered ? tabPointer.point.position.y : height / 2
 
         Superellipse {
             visible: !control.segmented && control.showSelectionIndicator

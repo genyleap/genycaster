@@ -572,3 +572,48 @@ These results do **not** establish full native rendering quality: opening
 multiple nested drawers, mixed DPR, light/dark, Persian/Arabic RTL,
 keyboard and touch dismissal, Windows/macOS/Linux/Android/WASM GPU
 performance and reduced motion still require real device smoke tests.
+
+### GenyHub Kit hover parity and QML lifetime repair — 2026-11-15
+
+The first port was not behaviorally equivalent to the attached Kit. The
+repair follows source files from genyleap-hub-neon-uikit-v0.4.5-source.zip,
+not a screenshot or attempts to amplify an already-visible glow:
+
+- `NeonGeometry.js` uses the Kit's arc-length table and closest-point
+  projection and is registered as `components/NeonGeometry.js` in the
+  flattened `Farcaster.Client` QML module. The old approximate `orbitPoint`
+  implementation and QML-local corner minimizer are retired.
+- `NeonHalo.qml` samples **synchronously** in property change handlers.
+  `Qt.callLater(samplePointer)` is forbidden in transient delegates: those
+  QML items can die before the callback runs, producing `invalid context`
+  and `orbitPoint ... is not a function` errors. The active NumberAnimation
+  is destroyed together with the Halo.
+- `NeonStatePlate` matches the Kit: separate selection/hover/pressed/focus
+  plates, independent short opacity transitions, **no permanent Neon**
+  on TabButton and ComboBox menu rows. The Sidebar navigation items instead
+  have a separate `NeonHalo`, as in the reference app.
+- `SideNavigation` has a shared passive pointer across the whole Sidebar.
+  Each `NavItem` maps that pointer to its own space and uses the same
+  95-logical-pixel proximity envelope as GenyHub. This keeps reflections
+  continuous across gaps between adjacent rows.
+- Ordinary enabled `ActionButton`s keep their Neon interactivity stable
+  when hovered becomes false. Previously the loader unloaded immediately
+  on mouse exit, cutting off the fade-out.
+- The fragment shader returns to the Kit's one-logical-pixel antialiased
+  edge and 0.32 stationary rim. Custom wider/thicker borders from the first
+  port did not match the GenyHub visual language.
+
+**Verification:** Node geometry and surface contract tests; Qt 6.12 QML
+resource-path and cache compilation; Linux Qt Quick test destroying and
+recreating an active NeonHalo every 16 ms without runtime warnings;
+and real mouse-event checks on a sample interactive surface.
+With the reference shader, top-left pointer testing measured
+259897 (left strip) vs 209355 (right strip); top-right pointer
+testing measured 209379 (left strip) vs 278152 (right strip).
+The pointer tests were separate Qt processes: a second synthetic
+QTest mouse-move crashed the Xvfb harness even with Neon disabled.
+These results are not validation of the full macOS application.
+
+Texture-mipmap warnings, HTTP authentication failures, and shutdown
+incubation messages are independent of this Neon repair until separately
+traced to a common cause.

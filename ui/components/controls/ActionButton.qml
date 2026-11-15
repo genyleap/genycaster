@@ -273,9 +273,10 @@ Button {
     }
 
     background: NeonSurface {
+        // Keep the Kit's hover-capable halo instantiated for the lifetime of
+        // an enabled button. Binding interactivity to hovered unloaded the
+        // ShaderEffect on mouse exit and snapped the fade away.
         interactive: control.enabled && !control.destructive
-                     && (control.prominent || control.selected || control.positive
-                         || (control.hovered && !control.quiet))
         ambientNeon: control.prominent || control.selected || control.positive
         neonBusy: control.busy
         inverted: control.prominent || control.positive || control.destructiveFilled
