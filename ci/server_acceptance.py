@@ -94,6 +94,9 @@ def main() -> int:
             errors.append(name)
 
     if args.strict_design:
+        if not execute("Cross-platform Release feature parity",
+                       ("python3", "ci/verify_release_feature_contract.py", "--strict")):
+            errors.append("Cross-platform Release feature parity")
         if not execute("Full UI design audit", ("python3", "ci/check_ui_design.py")):
             errors.append("Full UI design audit")
 
