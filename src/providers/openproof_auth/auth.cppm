@@ -76,6 +76,7 @@ public:
 
     /** Exact issuer-bound SIWE challenge; must be signed by its address. */
     [[nodiscard]] virtual std::string_view challengeMessage() const noexcept = 0;
+
     /** Verify and consume the challenge; returns the authoritative OPP subject. */
     [[nodiscard]] virtual foundation::result::Result<VerifiedWalletEnrollment>
     complete(std::string signature) = 0;
