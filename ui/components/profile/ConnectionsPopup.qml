@@ -444,9 +444,9 @@ GenyDrawer {
                                     Layout.preferredWidth: Theme.scaleUi(42)
                                     Layout.preferredHeight: Theme.scaleUi(42)
                                     radius: Theme.curveCompact
-                                    color: "#FFFFFF"
+                                    color: Theme.connectionIconBackground
                                     border.width: 1
-                                    border.color: "#E8EAEE"
+                                    border.color: Theme.connectionIconBorder
 
                                     Image {
                                         anchors.centerIn: parent
