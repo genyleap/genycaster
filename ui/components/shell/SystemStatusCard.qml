@@ -3,8 +3,12 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-Superellipse {
+NeonSurface {
     id: root
+    interactive: true
+    ambientNeon: true
+    neonBusy: root.busy && !root.runtimeReady
+    neonStrength: Theme.neonPanelStrength
 
     property string statusText: ""
     property string errorText: ""

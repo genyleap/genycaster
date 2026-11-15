@@ -861,8 +861,15 @@ Item {
                 width: list.width - list.leftMargin - list.rightMargin
                 implicitHeight: content.implicitHeight + (root.compact ? 34 : 42)
 
-                Superellipse {
+                NeonSurface {
                     anchors.fill: parent
+                    interactive: !list.moving
+                    deferredNeon: true
+                    ambientNeon: false
+                    neonStrength: Theme.neonControlStrength
+                    externalHovered: rowHover.hovered
+                    externalPointerX: rowHover.point.position.x - x
+                    externalPointerY: rowHover.point.position.y - y
                     anchors.leftMargin: root.compact ? Theme.space1 : Theme.space2
                     anchors.rightMargin: anchors.leftMargin
                     anchors.topMargin: Theme.space1

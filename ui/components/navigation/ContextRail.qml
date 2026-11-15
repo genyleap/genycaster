@@ -123,8 +123,11 @@ Item {
         return suggestedComponent
     }
 
-    component WidgetCard: Superellipse {
+    component WidgetCard: NeonSurface {
         id: card
+        interactive: true
+        ambientNeon: true
+        neonStrength: Theme.neonPanelStrength
         property string headerText: ""
         property string headerDetail: ""
         property string headerIcon: ""
@@ -352,8 +355,13 @@ Item {
                     // repeated reflow when the browser resizes the visual viewport.
                     // Keep each face stable; only the face itself animates.
 
-                    Superellipse {
+                    NeonSurface {
                         id: assetFront
+                        interactive: true
+                        ambientNeon: true
+                        neonStrength: Theme.neonCardStrength
+                        neonColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                           Theme.accent.b, 0.20)
                         anchors.fill: parent
                         fillColor: Theme.primarySurface
                         borderWidth: Theme.strokeHairline

@@ -441,8 +441,12 @@ Item {
                     { id: "native", icon: Theme.iconLeaf, title: qsTrId("genycaster.apps.native") }
                 ]
 
-                delegate: Superellipse {
+                delegate: NeonSurface {
                     id: destinationCard
+                    interactive: true
+                    deferredNeon: true
+                    ambientNeon: false
+                    neonStrength: Theme.neonControlStrength
                     required property var modelData
                     readonly property string destinationId: String(modelData.id)
                     readonly property bool selected: destinationId === "native"
@@ -1161,6 +1165,17 @@ Item {
                                         anchors.fill: parent
                                         anchors.leftMargin: Theme.space3
                                         anchors.rightMargin: Theme.space3
+
+                                        NeonSurface {
+                                            anchors.fill: parent
+                                            interactive: true
+                                            deferredNeon: true
+                                            ambientNeon: false
+                                            fillColor: "transparent"
+                                            borderWidth: 0
+                                            curveDepth: Theme.curveContainer
+                                            neonStrength: Theme.neonControlStrength
+                                        }
 
                                         Rectangle {
                                             anchors.left: parent.left

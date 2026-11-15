@@ -3,8 +3,15 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-Superellipse {
+NeonSurface {
     id: root
+    // GenyHub NeonCard material: a quiet rim until pointer approaches.
+    interactive: true
+    ambientNeon: true
+    neonStrength: Theme.neonCardStrength
+    externalHovered: composerHover.hovered
+    externalPointerX: composerHover.point.position.x
+    externalPointerY: composerHover.point.position.y
 
     property string avatarUrl: ""
     property string displayName: ""

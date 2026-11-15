@@ -4,8 +4,11 @@ import Farcaster.Client
 
 // Height derives from actual localized text, rather than forcing three rows
 // into a fixed 120px card at every font scale.
-Superellipse {
+NeonSurface {
     id: root
+    interactive: true
+    ambientNeon: true
+    neonStrength: Theme.neonCardStrength
     property string caption: ""
     property string value: "—"
     property string description: ""

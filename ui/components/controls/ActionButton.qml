@@ -277,6 +277,11 @@ Button {
         // an enabled button. Binding interactivity to hovered unloaded the
         // ShaderEffect on mouse exit and snapped the fade away.
         interactive: control.enabled && !control.destructive
+        // Hundreds of quiet Cast-action buttons may coexist in a feed.
+        // Preserve the Kit's hover reflection but allocate GPU material
+        // only during entry/exit rather than one shader per idle button.
+        deferredNeon: control.quiet && !control.selected && !control.prominent
+                      && !control.positive
         ambientNeon: control.prominent || control.selected || control.positive
         neonBusy: control.busy
         inverted: control.prominent || control.positive || control.destructiveFilled

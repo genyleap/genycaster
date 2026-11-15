@@ -2,8 +2,11 @@ import QtQuick
 import QtQuick.Layouts
 import Farcaster.Client
 
-Superellipse {
+NeonSurface {
     id: root
+    interactive: true
+    ambientNeon: true
+    neonStrength: Theme.neonCardStrength
     property var series: []
     property string startLabel: ""
     property string endLabel: ""

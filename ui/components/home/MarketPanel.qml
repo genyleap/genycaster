@@ -235,7 +235,10 @@ ColumnLayout {
         columnSpacing: Theme.space3
         rowSpacing: Theme.space3
 
-        Superellipse {
+        NeonSurface {
+            interactive: true
+            ambientNeon: true
+            neonStrength: Theme.neonCardStrength
             Layout.row: 0
             Layout.column: 0
             Layout.minimumWidth: 0
@@ -298,7 +301,10 @@ ColumnLayout {
             change: root.hasBenchmark ? Number(root.benchmark.change_24h_percent) : 0
         }
 
-        Superellipse {
+        NeonSurface {
+            interactive: true
+            ambientNeon: true
+            neonStrength: Theme.neonCardStrength
             Layout.row: 1
             Layout.column: 0
             Layout.minimumWidth: 0
@@ -343,7 +349,10 @@ ColumnLayout {
             }
         }
 
-        Superellipse {
+        NeonSurface {
+            interactive: true
+            ambientNeon: true
+            neonStrength: Theme.neonCardStrength
             Layout.row: root.wideLayout ? 1 : 3
             Layout.column: root.wideLayout ? 1 : 0
             Layout.minimumWidth: 0

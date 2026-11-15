@@ -429,14 +429,29 @@ Item {
             // Long URLs, nested quotes and external previews must stay inside
             // their own card when Magazine columns become narrow.
             clip: root.magazineCard
+            HoverHandler {
+                id: magazineCardPointer
+                enabled: root.magazineCard && !root.scrollMoving && Theme.neonEnabled
+                blocking: false
+            }
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             implicitHeight: messageContent.implicitHeight + (root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4) * 2
 
             // All feed families share one soft superellipse surface. Keeping
             // the wrapper outside media Loaders preserves delegate reuse.
-            Superellipse {
+            NeonSurface {
                 anchors.fill: parent
+                // Virtualized feed cards create the shader only on demand;
+                // keep long lists cheap and avoid animation during flicking.
+                interactive: root.magazineCard && !root.scrollMoving
+                // Magazine Casts are genuine cards, not unbounded list rows.
+                // Their quiet static perimeter follows the Kit's NeonCard.
+                ambientNeon: root.magazineCard
+                externalHovered: magazineCardPointer.hovered
+                externalPointerX: magazineCardPointer.point.position.x
+                externalPointerY: magazineCardPointer.point.position.y
+                neonStrength: Theme.neonCardStrength
                 fillColor: root.magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
                 borderWidth: 0
                 borderColor: "transparent"

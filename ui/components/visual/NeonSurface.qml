@@ -10,6 +10,9 @@ Superellipse {
 
     property bool interactive: false
     property bool ambientNeon: false
+    // Virtualized Cast cards defer the GPU shader until actual pointer entry,
+    // then keep it alive through the exit fade, unlike dashboard cards.
+    property bool deferredNeon: false
     // Activity belongs to the material; never shadow the consumer's public
     // `busy` property (e.g. FeedPulseCard's data-loading state).
     property bool neonBusy: false
@@ -26,6 +29,14 @@ Superellipse {
     property color neonColor: "transparent"
 
     readonly property bool pointerActive: interactive && (externalHovered || pointer.hovered)
+    property real hoverLifetime: pointerActive ? 1 : 0
+    Behavior on hoverLifetime {
+        enabled: material.deferredNeon && Theme.neonMotionEnabled
+        NumberAnimation {
+            duration: material.pointerActive ? Theme.neonEnterDuration : Theme.neonExitDuration
+            easing.type: Easing.OutCubic
+        }
+    }
     // Unlike the first Neon integration, the material is the sole owner of
     // both paint transitions and rim instantiation. Dense plain rows never
     // allocate ShaderEffects unless they explicitly opt into Neon.
@@ -54,7 +65,11 @@ Superellipse {
 
     Loader {
         anchors.fill: parent
-        active: material.visible && Theme.neonEnabled && (material.ambientNeon || material.interactive || material.neonBusy)
+        active: material.visible && Theme.neonEnabled
+                && (material.ambientNeon || material.neonBusy
+                    || (material.interactive && (!material.deferredNeon
+                                                || material.pointerActive
+                                                || material.hoverLifetime > 0.001)))
         sourceComponent: NeonHalo {
             anchors.fill: parent
             active: material.pointerActive

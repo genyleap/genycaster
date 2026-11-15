@@ -466,8 +466,14 @@ Flickable {
             Repeater {
             id: savedCastRepeater
             model: root.sortedRows
-            delegate: Superellipse {
+            delegate: NeonSurface {
                 id: bookmarkCard
+                // Saved Casts are a potentially large grid: allocate the
+                // hover shader only when a card is actually inspected.
+                interactive: true
+                deferredNeon: true
+                ambientNeon: false
+                neonStrength: Theme.neonCardStrength
                 required property var modelData
                 // Stable explicit cell geometry, measured from the viewport,
                 // not from the grid's own derived width.

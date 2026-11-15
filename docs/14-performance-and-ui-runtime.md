@@ -617,3 +617,48 @@ These results are not validation of the full macOS application.
 Texture-mipmap warnings, HTTP authentication failures, and shutdown
 incubation messages are independent of this Neon repair until separately
 traced to a common cause.
+
+### 2026-11-15 real-desktop video: boxed-surface coverage
+
+The 36.78-second, 3120x1944/60fps user-supplied desktop screen recording
+`2026-11-15 11-53-46.mp4` shows *missing material ownership*, not a
+global failure of the QSB fragment shader. The Dashboard shortcuts,
+composer and most right-rail cards (0–11 seconds), Explorer magazine
+casts (12–24 seconds), and Appearance controls (26–36 seconds) largely
+painted plain Superellipse borders. The focused composer in the video
+showed a full static blue outline, not the Kit's localized pointer glint.
+
+The corrective coverage is deliberately semantic, not a global replacement
+of every QSG Superellipse (which would decorate avatars, data dots,
+loading skeletons, dividers and pressed indicators incorrectly):
+
+- Dashboard: shortcut Repeater, both desktop/mobile composer surfaces,
+  activity card and Explorer launcher use NeonSurface. The shortcut's
+  existing MouseArea supplies local hover coordinates explicitly.
+- Context rail: WidgetCard owns one quiet Kit-style ambient perimeter for
+  calendar, assets, feed and market widgets; the asset face also has an
+  independent material without disturbing its flip animation.
+- Explorer: Magazine Cast cards use a low-strength ambient rim and a
+  passive message-surface HoverHandler, while timeline posts continue
+  using their existing non-card background and media layout.
+- Stats and markets: named KPI, trend, engagement, breakdown and
+  insight cards now use the shared material without altering plots.
+- Appearance: color-accent box, scale controls, motion/power settings,
+  range/toggle cards and grouped mobile settings are Kit panels.
+- Peripheral cards: status, profile trust, Bookmarks, notifications and
+  desktop Mini App store rows also provide material interaction.
+
+**GPU budget:** primary and contextual cards use stationary ambient
+reflections. Repeated quiet action buttons, saved Casts, notifications
+and the Mini App store use `deferredNeon` to allocate a shader only
+while hovered. A retained `hoverLifetime` continues through the
+exit fade; inactive normal timeline Casts allocate no halo.
+Functionality, semantics, translations, focus policies, responsive
+layout geometry and user-controlled Neon preferences are unchanged.
+
+`tests/wasm/neon_video_surface_coverage.test.mjs` guards all three
+recorded scenes and the list virtualization policy; it runs in the
+lightweight CI gate. `qmlcachegen` of the touched components and
+Qt Quick/Xvfb screenshots with an overlaid MouseArea verify source
+compatibility and real pointer glints, but do not substitute for an
+end-to-end macOS UI test, particularly under Metal and HiDPI.

@@ -7,8 +7,11 @@ import Farcaster.Client
 // The upper line chart has independent visible axes: likes (primary) and
 // recasts/received replies (secondary). It never pretends to know the exact
 // time when an interaction occurred.
-Superellipse {
+NeonSurface {
     id: root
+    interactive: true
+    ambientNeon: true
+    neonStrength: Theme.neonCardStrength
     objectName: "statsEngagementBreakdown"
 
     property var metrics: ({})

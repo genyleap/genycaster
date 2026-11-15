@@ -290,8 +290,11 @@ ColumnLayout {
     // A true locked state, not a decorative blur over account data. The
     // server-side subscription remains authoritative; this surface neither
     // fetches premium metrics nor accepts refresh/share while locked.
-    Superellipse {
+    NeonSurface {
         id: premiumStatsGate
+        interactive: true
+        ambientNeon: true
+        neonStrength: Theme.neonCardStrength
         objectName: "statsProUpgradeGate"
         visible: !root.proUnlocked
         Layout.fillWidth: true
@@ -481,7 +484,10 @@ ColumnLayout {
         Layout.fillWidth: true
     }
 
-    Superellipse {
+    NeonSurface {
+        interactive: true
+        ambientNeon: true
+        neonStrength: Theme.neonPanelStrength
         visible: root.proUnlocked && root.section === "social"
             && (root.fetchState === "error" || root.fetchState === "idle")
         Layout.fillWidth: true

@@ -3,8 +3,11 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-Superellipse {
+NeonSurface {
     id: root
+    interactive: true
+    ambientNeon: true
+    neonStrength: Theme.neonCardStrength
     objectName: "statsPublishingChart"
     property var bars: []
     property int periodDays: 30

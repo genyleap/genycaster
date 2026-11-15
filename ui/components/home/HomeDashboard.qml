@@ -200,8 +200,14 @@ Item {
                             ? qsTrId("genycaster.pro.get_pro")
                             : qsTrId("genycaster.pro.check_status"), glyph: Theme.iconSpark }
                 ]
-                delegate: Superellipse {
+                delegate: NeonSurface {
                     id: shortcut
+                    interactive: !locked && !root.compact
+                    ambientNeon: true
+                    neonStrength: Theme.neonCardStrength
+                    externalHovered: actionMouse.containsMouse && !root.compact
+                    externalPointerX: actionMouse.mouseX
+                    externalPointerY: actionMouse.mouseY
                     required property var modelData
                     objectName: "homeShortcut_" + modelData.destination
                     Layout.fillWidth: true
@@ -280,8 +286,11 @@ Item {
 
     // Replaces the promotional GENY carousel with an actionable, live inbox
     // entry. No fabricated prices, counters, or automatic animation loops.
-    component HomeActivityCard: Superellipse {
+    component HomeActivityCard: NeonSurface {
         id: activityCard
+        interactive: true
+        ambientNeon: true
+        neonStrength: Theme.neonCardStrength
         objectName: "homeActivityCard"
         Layout.fillWidth: true
         Layout.leftMargin: root.compact ? Theme.space3 : 0
@@ -478,9 +487,13 @@ Item {
                     }
                 }
 
-                Superellipse {
+                NeonSurface {
                     visible: root.activeTab === "overview"
                     id: desktopComposerSurface
+                    interactive: true
+                    ambientNeon: true
+                    neonStrength: Theme.neonCardStrength
+                    focused: desktopDraftEditor.activeFocus
                     Layout.alignment: Qt.AlignHCenter
                     Layout.fillWidth: true
                     Layout.maximumWidth: root.homeContentMaxWidth
@@ -658,8 +671,11 @@ HomeActivityCard {
 
             // A single aligned launcher: composing starts in the dedicated
             // full-screen editor, never in a cramped inline keyboard state.
-            Superellipse {
+            NeonSurface {
                 id: mobileComposerSurface
+                ambientNeon: true
+                interactive: true
+                neonStrength: Theme.neonControlStrength
                 objectName: "homeComposerLauncher"
                 visible: root.activeTab === "overview"
                 Layout.fillWidth: true

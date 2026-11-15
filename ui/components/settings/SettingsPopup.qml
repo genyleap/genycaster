@@ -210,8 +210,11 @@ GenyDrawer {
         return "crypto/ethereum"
     }
 
-    component ReadRangeCard: Superellipse {
+    component ReadRangeCard: NeonSurface {
         id: rangeCard
+        interactive: true
+        ambientNeon: true
+        neonStrength: Theme.neonPanelStrength
 
         property string titleText: ""
         property string descriptionText: ""
@@ -320,8 +323,11 @@ GenyDrawer {
         }
     }
 
-    component ReadToggleCard: Superellipse {
+    component ReadToggleCard: NeonSurface {
         id: toggleCard
+        interactive: true
+        ambientNeon: true
+        neonStrength: Theme.neonPanelStrength
 
         property string titleText: ""
         property string descriptionText: ""
@@ -399,13 +405,16 @@ GenyDrawer {
             font.weight: Theme.weightDemiBold
         }
 
-        Rectangle {
+        NeonSurface {
             Layout.fillWidth: true
             implicitHeight: groupRows.implicitHeight
-            radius: Theme.space4
-            color: Theme.surfaceMuted
-            border.width: Theme.strokeHairline
-            border.color: Theme.borderSubtle
+            curveDepth: Theme.space4
+            fillColor: Theme.surfaceMuted
+            borderWidth: Theme.strokeHairline
+            borderColor: Theme.borderSubtle
+            interactive: true
+            ambientNeon: true
+            neonStrength: Theme.neonPanelStrength
             clip: true
 
             ColumnLayout {
@@ -533,8 +542,11 @@ GenyDrawer {
         }
     }
 
-    component SettingsProfileCard: Superellipse {
+    component SettingsProfileCard: NeonSurface {
             objectName: "settingsProfileCard"
+            interactive: true
+            ambientNeon: true
+            neonStrength: Theme.neonCardStrength
             visible: presentationBridge.isAuthenticated
             Layout.fillWidth: true
             Layout.preferredHeight: visible ? 82 : 0
@@ -1202,7 +1214,10 @@ GenyDrawer {
                             }
                         }
 
-                        Superellipse {
+                        NeonSurface {
+                            interactive: true
+                            ambientNeon: true
+                            neonStrength: Theme.neonCardStrength
                             Layout.fillWidth: true
                             implicitHeight: customColorContent.implicitHeight + Theme.space3 * 2
                             fillColor: appearanceController.colorThemeId === "custom" ? Theme.surfaceSelected : Theme.surfaceMuted
@@ -1253,7 +1268,10 @@ GenyDrawer {
                                     }
                                 }
 
-                                Superellipse {
+                                NeonSurface {
+                                    interactive: true
+                                    ambientNeon: true
+                                    neonStrength: Theme.neonPanelStrength
                                     Layout.fillWidth: true
                                     implicitHeight: 54
                                     fillColor: Theme.primarySurface
@@ -1452,7 +1470,10 @@ GenyDrawer {
                     }
                     // Power Save is colocated with Reduce Motion so mobile and
                     // desktop share one discoverable animation preference group.
-                    Superellipse {
+                    NeonSurface {
+                        interactive: true
+                        ambientNeon: true
+                        neonStrength: Theme.neonPanelStrength
                         Layout.fillWidth: true
                         implicitHeight: energyRow.implicitHeight + Theme.space3 * 2
                         fillColor: Theme.surfaceMuted
@@ -1489,7 +1510,10 @@ GenyDrawer {
                         }
                     }
 
-                    Superellipse {
+                    NeonSurface {
+                        interactive: true
+                        ambientNeon: true
+                        neonStrength: Theme.neonPanelStrength
                         Layout.fillWidth: true
                         implicitHeight: avatarMotionRow.implicitHeight + Theme.space3 * 2
                         fillColor: Theme.surfaceMuted
@@ -1529,7 +1553,10 @@ GenyDrawer {
                     // Persisted device preference for inline animated emoji. This
                     // switch controls both Lottie and sprite playback, unlike
                     // the separate avatar-GIF preference above.
-                    Superellipse {
+                    NeonSurface {
+                        interactive: true
+                        ambientNeon: true
+                        neonStrength: Theme.neonPanelStrength
                         Layout.fillWidth: true
                         implicitHeight: emojiMotionRow.implicitHeight + Theme.space3 * 2
                         fillColor: Theme.surfaceMuted
@@ -1566,7 +1593,10 @@ GenyDrawer {
                         }
                     }
 
-                    Superellipse {
+                    NeonSurface {
+                        interactive: true
+                        ambientNeon: true
+                        neonStrength: Theme.neonPanelStrength
                         Layout.fillWidth: true
                         implicitHeight: reduceMotionRow.implicitHeight + Theme.space3 * 2
                         fillColor: Theme.surfaceMuted
@@ -1606,7 +1636,10 @@ GenyDrawer {
 
                     // GPU edge reflections are optional and independent from
                     // reduced motion. Energy-saving mode suspends the shader.
-                    Superellipse {
+                    NeonSurface {
+                        interactive: true
+                        ambientNeon: true
+                        neonStrength: Theme.neonPanelStrength
                         Layout.fillWidth: true
                         implicitHeight: neonEffectsRow.implicitHeight + Theme.space3 * 2
                         fillColor: Theme.surfaceMuted
