@@ -8,6 +8,8 @@ import pathlib
 import re
 import sys
 
+from source_comments import without_comments
+
 ROOT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
 SRC = ROOT / "src"
 
@@ -334,7 +336,7 @@ for path in ROOT.rglob("*"):
 
         # Concrete vendor/backend names are allowed only inside provider adapters.
         if (
-            PROVIDER_SEMANTICS.search(text)
+            PROVIDER_SEMANTICS.search(without_comments(text))
             and not rel.startswith("src/providers/")
             and not rel.startswith("tests/providers/")
             and rel not in {
@@ -346,7 +348,7 @@ for path in ROOT.rglob("*"):
             add(path, "vendor/flagship-backend semantic leaked outside provider adapter boundary")
 
     if path.suffix == ".qml":
-        if PROVIDER_SEMANTICS.search(text) and rel not in PROVIDER_SELECTION_QML:
+        if PROVIDER_SEMANTICS.search(without_comments(text)) and rel not in PROVIDER_SELECTION_QML:
             add(path, "provider/backend semantic leaked into QML")
         if QML_IO.search(text):
             add(path, "QML must not own network, websocket, or database I/O")
