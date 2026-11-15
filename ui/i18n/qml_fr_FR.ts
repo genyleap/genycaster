@@ -1582,8 +1582,8 @@ Entreprise | https://company.com</translation>
             <translation>Entreprise · déploiement supervisé</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>Serveur → Installation → Sync → Connexion</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>Serveur · Installation · Sync · Connexion</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>
