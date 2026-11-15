@@ -253,7 +253,7 @@ test('WalletConnect is offered without injected extensions and returns real sign
    '0xsigned-from-wallet');
  assert.deepEqual(origins,['https://mini.example']);
  assert.equal(connected,1);
- assert.deepEqual(seen,['eth_requestAccounts','eth_accounts','personal_sign']);
+ assert.deepEqual(seen,['eth_requestAccounts','eth_accounts','eth_accounts','personal_sign']);
  wallet.dispose();
  registry.dispose();
  assert.ok([...handlers.values()].every(set=>set.size===0));
@@ -447,8 +447,8 @@ test('every sensitive request receives a separate host confirmation and can be d
  assert.deepEqual(requests.map(r=>r.method),
    ['personal_sign','personal_sign','personal_sign']);
  assert.ok(requests.every(r=>r.origin==='https://one.example'));
- assert.deepEqual(calls,['eth_requestAccounts','eth_accounts','personal_sign',
-   'eth_accounts','eth_accounts','personal_sign']);
+ assert.deepEqual(calls,['eth_requestAccounts','eth_accounts','eth_accounts','personal_sign',
+   'eth_accounts','eth_accounts','eth_accounts','personal_sign']);
  for(const method of ['eth_sign','eth_sendRawTransaction','wallet_unknownAction']){
    await assert.rejects(app.provider.request({method,params:[]}),e=>e.code===4200);
  }
@@ -530,4 +530,65 @@ test('silent account rotation is rejected even without an accountsChanged event'
    '0xsigned');
  assert.equal(signCalls,1);
  app.dispose();
+});
+
+test('one Mini App wallet grant never reveals secondary accounts, including events',async()=>{
+  const {provider}=fakeWallet();
+  const primary='0xAa00000000000000000000000000000000000001';
+  const secondary='0xBb00000000000000000000000000000000000002';
+  const original=provider.request.bind(provider);
+  provider.request=payload=>(
+    payload.method==='eth_requestAccounts'||payload.method==='eth_accounts'
+      ? Promise.resolve([primary,secondary]) : original(payload));
+  const app=createMiniAppEthereumProvider('https://primary.example',provider,()=>true);
+  const notifications=[];
+  app.provider.on('accountsChanged',accounts=>notifications.push(accounts));
+  assert.deepEqual(await app.provider.request({method:'eth_requestAccounts'}),[primary]);
+  assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[primary]);
+  provider.emit('accountsChanged',[primary,secondary]);
+  assert.deepEqual(notifications,[[primary]]);
+  app.dispose();
+});
+
+test('an account rotated during the host signing dialog is refused before wallet submission',async()=>{
+  const primary='0x0000000000000000000000000000000000000001';
+  const second='0x0000000000000000000000000000000000000002';
+  let active=primary;
+  let signatures=0;
+  let approvals=0;
+  const injected={
+    async request({method}){
+      if(method==='eth_requestAccounts'||method==='eth_accounts')return [active];
+      if(method==='personal_sign'){signatures++;return '0xunexpected';}
+      return '0x1';
+    },
+    on(){},removeListener(){}
+  };
+  const app=createMiniAppEthereumProvider('https://first.example',injected,
+    ()=>true,undefined,async()=>{
+      approvals++;
+      active=second; // No accountsChanged event: provider silently switches.
+      return true;
+    });
+  await app.provider.request({method:'eth_requestAccounts'});
+  await assert.rejects(app.provider.request({method:'personal_sign',params:['0x12']}),
+    error=>error.code===4100);
+  assert.equal(approvals,1);
+  assert.equal(signatures,0);
+  assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[]);
+  app.dispose();
+});
+
+test('a disconnect while signing approval is visible invalidates the original grant',async()=>{
+  const {provider,calls}=fakeWallet();
+  const app=createMiniAppEthereumProvider('https://example.org',provider,
+    ()=>true,undefined,async()=>{
+      provider.emit('disconnect',{code:4900});
+      return true;
+    });
+  await app.provider.request({method:'eth_requestAccounts'});
+  await assert.rejects(app.provider.request({method:'personal_sign',params:['0x12']}),
+    error=>error.code===4100);
+  assert.equal(calls.includes('personal_sign'),false);
+  app.dispose();
 });
