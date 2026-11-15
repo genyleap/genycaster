@@ -110,6 +110,7 @@ struct RuntimeConfiguration final {
     std::filesystem::path databasePath{};
     farcaster::transport::qtnetwork::ProxyPolicy networkProxyPolicy{};
     std::optional<std::string> providerBaseUrl{};
+
     /** HyperSnap shard-0 identity/write node used by native onboarding.
      * Independent of the indexed reader and Farcaster write provider. */
     std::optional<std::string> hyperSnapNativeNodeBaseUrl{};
