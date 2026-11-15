@@ -162,13 +162,14 @@ test('Back navigation never duplicates the HyperSnap pending warning in red', ()
   const back=setup.slice(setup.indexOf('function previousStep()'),
                          setup.indexOf('function actionText()'));
   const pending=back.slice(back.indexOf('if (nativeRegistrationPublisher.pending)'),
-                           back.indexOf('switchStep(0)') + 'switchStep(0)'.length);
+                           back.indexOf('stageScroll.contentY = 0') + 'stageScroll.contentY = 0'.length);
   assert.match(pending,/nativeRegistrationPublisher\.stopPolling\(\)/);
   assert.match(pending,/nativeRegistrationPreparation\.cancel\(\)/);
   assert.match(pending,/registrationError = ""/);
   assert.match(pending,/choosingRegistrationProvider = false/);
   assert.match(pending,/accountIntent = ""/);
-  assert.match(pending,/switchStep\(0\)/);
+  assert.match(pending,/stageScroll\.contentY = 0/);
+  assert.doesNotMatch(pending,/switchStep\(0\)/);
   assert.doesNotMatch(pending,/registrationError\s*=\s*qsTrId\(/);
   assert.doesNotMatch(pending,/nativeRegistrationPublisher\.submitPrepared\(\)/);
   assert.doesNotMatch(pending,/nativeCustodyWallet\.discard\(\)/);
@@ -504,8 +505,37 @@ test('desktop account keeps editorial cards while enabling registration provider
   assert.match(card,/property bool accountShowcase: false/);
   assert.match(card,/property bool setupEmphasis: false/);
   assert.match(card,/id: editorialAccountCard/);
-  assert.match(card,/LayoutMirroring\.enabled: false/);
-  assert.match(card,/x: Theme\.rtl \? parent\.width - width : 0/);
+  assert.match(card,/property bool networkShowcase: false/);
+  assert.match(card,/preferredSize: 36/);
+  assert.match(card,/preferredSize: 40/);
+  assert.match(card,/id: networkCardRow/);
+  assert.match(account,/networkShowcase: true/);
+  assert.match(account,/iconGlyph: "quilibrium\/hypersnap"/);
+  assert.match(account,/iconGlyph: "brands\/farcaster"/);
+});
+
+test('Setup returns through nested choices without losing custody and adapts recovery layout', () => {
+  const setup=source('ui/components/setup/InitialSetup.qml');
+  const back=setup.slice(setup.indexOf('function previousStep()'),setup.indexOf('function actionText()'));
+  assert.match(back,/if \(currentStep === 3 && choosingRegistrationProvider\)/);
+  assert.match(back,/choosingRegistrationProvider = false/);
+  assert.match(back,/stageScroll\.contentY = 0/);
+  assert.doesNotMatch(back,/nativeCustodyWallet\.discard\(\)/);
+  assert.match(back,/if \(currentStep === 4 && showRecovery\)/);
+  assert.match(setup,/columns: root\.width < 360 \? 1 : 2/);
+  assert.match(setup,/columns: root\.phone \? 2 : 4/);
+  assert.match(setup,/String\(wordField\.index \+ 1\)\.padStart\(2, "0"\)/);
+  assert.match(setup,/nativeRecoveryGrid\.completeWordCount/);
+  const card=source('ui/components/setup/SetupActionCard.qml');
+  assert.match(card,/layoutDirection: Theme\.uiDirection/);
+  assert.match(card,/id: networkCardRow/);
+  for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                        'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const translation=source('ui/i18n/qml_'+locale+'.ts');
+    assert.match(translation,/<source>Create a new identity with a wallet you control\.<\/source>/);
+    assert.match(translation,/<source>Native FID · self-custody wallet<\/source>/);
+    assert.match(translation,/<source>FID on Optimism · registered via Neynar<\/source>/);
+  }
 });
 
 test('shared marker geometry maintains a common vertical center for pill and eight dots', () => {
@@ -835,24 +865,24 @@ test('existing HyperSnap FID continues only after independent custody verificati
   const existing=ui.slice(ui.indexOf('objectName: "nativeAccountLookupPanel"'),
                           ui.indexOf('objectName: "nativeRegistrationProofPanel"'));
   assert.match(existing,/objectName: "setupContinueExistingNativeFid"/);
-  assert.match(existing,/nativeRegistrationPublisher\\.confirmExistingAccount\\(\\)/);
-  assert.match(existing,/nativeRegistrationPublisher\\.verifyingExisting/);
-  assert.match(existing,/nativeRegistrationPublisher\\.existingVerificationFailed/);
-  assert.doesNotMatch(existing,/submitPrepared\\(\\)|takeProof\\(/);
-  assert.match(ui,/nativeRegistrationStatus\\.existingNativeFid\\.length === 0/);
+  assert.match(existing,/nativeRegistrationPublisher\.confirmExistingAccount\(\)/);
+  assert.match(existing,/nativeRegistrationPublisher\.verifyingExisting/);
+  assert.match(existing,/nativeRegistrationPublisher\.existingVerificationFailed/);
+  assert.doesNotMatch(existing,/submitPrepared\(\)|takeProof\(/);
+  assert.match(ui,/nativeRegistrationStatus\.existingNativeFid\.length === 0/);
   assert.match(status,/verifiedExistingFidForCustody/);
-  assert.match(status,/m_lookupAddress == address\\.toLower\\(\\)/);
-  assert.match(pubHeader,/Q_INVOKABLE bool confirmExistingAccount\\(\\)/);
+  assert.match(status,/m_lookupAddress == address\.toLower\(\)/);
+  assert.match(pubHeader,/Q_INVOKABLE bool confirmExistingAccount\(\)/);
   const verifier=publisher.slice(publisher.indexOf('bool HyperSnapRegistrationPublisher::confirmExistingAccount()'),
                                  publisher.indexOf('bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()'));
-  assert.match(verifier,/m_pending \\|\\| m_submitted/);
-  assert.match(verifier,/m_ports\\.backupVerified\\(\\)/);
-  assert.match(verifier,/m_ports\\.existingFidForCustody\\(custody\\)/);
-  assert.match(verifier,/m_transport\\.lookupByCustody\\(custody/);
-  assert.match(verifier,/result\\.fid == expected/);
-  assert.match(verifier,/onConfirmed\\(result\\.fid, generation\\)/);
-  assert.doesNotMatch(verifier,/submit\\(|saveRetryJournal|takeProof/);
-  assert.match(main,/nativeRegistrationStatus\\.verifiedExistingFidForCustody\\(address\\)/);
+  assert.match(verifier,/m_pending \|\| m_submitted/);
+  assert.match(verifier,/m_ports\.backupVerified\(\)/);
+  assert.match(verifier,/m_ports\.existingFidForCustody\(custody\)/);
+  assert.match(verifier,/m_transport\.lookupByCustody\(custody/);
+  assert.match(verifier,/result\.fid == expected/);
+  assert.match(verifier,/onConfirmed\(result\.fid, generation\)/);
+  assert.doesNotMatch(verifier,/submit\(|saveRetryJournal|takeProof/);
+  assert.match(main,/nativeRegistrationStatus\.verifiedExistingFidForCustody\(address\)/);
   assert.match(runtime,/nativeAccountConfirmed/);
   assert.match(runtime,/NativeCustodySignerAccess::forConfirmedNativeFid/);
 });

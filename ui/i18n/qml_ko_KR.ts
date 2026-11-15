@@ -5661,16 +5661,16 @@ Company | https://company.com</source>
             <translation>HyperSnap과 Farcaster는 별도의 FID 등록부를 사용합니다. 네트워크 선택만으로 계정이 생성되지는 않습니다.</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
-            <translation>HyperSnap 네이티브 FID: 로컬 지갑, 작업 증명 및 EIP-712.</translation>
+            <source>Native FID · self-custody wallet</source>
+            <translation>네이티브 FID · 자체 관리 지갑</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Farcaster (via Neynar)</source>
             <translation>Farcaster (Neynar 경유)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
-            <translation>Optimism 상의 Farcaster FID: 로컬 지갑과 보안 Neynar 등록 서비스.</translation>
+            <source>FID on Optimism · registered via Neynar</source>
+            <translation>Optimism FID · Neynar를 통한 등록</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
             <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
@@ -6185,8 +6185,8 @@ Company | https://company.com</source>
             <translation>이미 소유한 Farcaster 신원을 연결하세요.</translation>
         </message>
         <message id="genycaster.setup.new_profile_body">
-            <source>Register a new Farcaster identity in a compatible app.</source>
-            <translation>호환 앱에서 새 Farcaster 신원을 등록하세요.</translation>
+            <source>Create a new identity with a wallet you control.</source>
+            <translation>직접 관리하는 지갑으로 새 계정을 만드세요.</translation>
         </message>
         <message id="genycaster.setup.registration_handoff">
             <source>Continue in a compatible registration app, then come back to link your profile.</source>

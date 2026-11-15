@@ -24,6 +24,7 @@ Button {
     property bool onboardingStyle: false
     property bool neutralPrimary: false
     property bool accountShowcase: false
+    property bool networkShowcase: false
     property bool setupEmphasis: false
     // Disabled feature choice: muted card with a localized availability
     // badge. Keeps the status visible without implying the card is clickable.
@@ -31,12 +32,15 @@ Button {
 
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
-    implicitHeight: Math.max(accountShowcase ? 168 : compactCard ? 62 : onboardingStyle ? 78 : 96,
+    implicitHeight: Math.max(accountShowcase ? 182 : networkShowcase ? 120
+                             : compactCard ? 62 : onboardingStyle ? 78 : 96,
                              contentItem.implicitHeight + topPadding + bottomPadding)
     leftPadding: Theme.space4
     rightPadding: Theme.space4
-    topPadding: compactCard || onboardingStyle ? Theme.space3 : Theme.space4
-    bottomPadding: compactCard || onboardingStyle ? Theme.space3 : Theme.space4
+    topPadding: compactCard || (onboardingStyle && !accountShowcase && !networkShowcase)
+                ? Theme.space3 : Theme.space4
+    bottomPadding: compactCard || (onboardingStyle && !accountShowcase && !networkShowcase)
+                   ? Theme.space3 : Theme.space4
 
     Accessible.name: title
     Accessible.description: subtitle + (root.unavailable
@@ -85,11 +89,12 @@ Button {
     }
 
     contentItem: Item {
-        implicitHeight: root.accountShowcase ? 138 : standardCardRow.implicitHeight
+        implicitHeight: root.accountShowcase ? 150
+                        : root.networkShowcase ? 88 : standardCardRow.implicitHeight
         RowLayout {
             id: standardCardRow
             anchors.fill: parent
-            visible: !root.accountShowcase
+            visible: !root.accountShowcase && !root.networkShowcase
             spacing: Theme.space3
             layoutDirection: Theme.uiDirection
 
@@ -179,55 +184,52 @@ Button {
             preferredSize: Theme.iconSizeSmall
         }
         }
+        // Large account choices: an unmistakable leading icon and a concise
+        // title/description group; no disconnected miniature glyphs.
         ColumnLayout {
             id: editorialAccountCard
             anchors.fill: parent
             visible: root.accountShowcase
             spacing: Theme.space2
-            // Explicit leading-edge positioning avoids the double reversal
-            // caused by LayoutMirroring + Qt.AlignRight on RTL languages.
-            LayoutMirroring.enabled: false
-            LayoutMirroring.childrenInherit: false
+            layoutDirection: Theme.uiDirection
 
-            Item {
+            RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 30
-                Icon {
-                    visible: root.iconGlyph.length > 0
-                    text: root.iconGlyph
-                    color: root.unavailable ? Theme.inkMuted
-                           : root.setupEmphasis ? "#FCFCFE" : Theme.ink
-                    preferredSize: 27
-                    x: Theme.rtl ? parent.width - width : 0
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-                Rectangle {
-                    id: unavailableBadge
-                    visible: root.unavailable
-                    width: unavailableText.implicitWidth + 20
-                    height: 24
-                    radius: 9
-                    x: Theme.rtl ? 0 : parent.width - width
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: Theme.dark ? "#3B2C20" : "#FFF1E4"
-                    border.width: 1
-                    border.color: Theme.dark ? "#765234" : "#F2D3B6"
-                    DirectionAwareLabel {
-                        id: unavailableText
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+                Superellipse {
+                    Layout.preferredWidth: 58
+                    Layout.preferredHeight: 58
+                    fillColor: root.hovered ? Theme.surfaceHover : Theme.surfaceMuted
+                    borderWidth: 0
+                    curveDepth: Theme.curveContainer
+                    Icon {
                         anchors.centerIn: parent
-                        text: qsTrId("genycaster.setup.temporarily_unavailable")
-                        color: Theme.dark ? "#F2B77C" : "#B3631D"
-                        font.pixelSize: 11
-                        font.weight: Theme.weightDemiBold
+                        text: root.iconGlyph
+                        color: root.foreground
+                        preferredSize: 36
                     }
                 }
+                Item { Layout.fillWidth: true }
+                DirectionAwareLabel {
+                    visible: root.unavailable
+                    text: qsTrId("genycaster.setup.temporarily_unavailable")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+                Icon {
+                    visible: root.showChevron && !root.unavailable
+                    text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                    preferredSize: Theme.iconSizeSmall
+                    color: root.hovered ? Theme.ink : Theme.inkMuted
+                }
             }
-            Item { Layout.preferredHeight: 1 }
+            Item { Layout.preferredHeight: Theme.space1 }
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: root.title
                 color: root.foreground
-                font.pixelSize: Math.max(Theme.typeLabelSize, 17)
+                font.pixelSize: Math.max(Theme.typeLabelSize, 18)
                 font.weight: Theme.weightBold
                 horizontalAlignment: Theme.textStartAlignment
                 wrapMode: Text.WordWrap
@@ -243,6 +245,65 @@ Button {
                 maximumLineCount: 3
             }
             Item { Layout.fillHeight: true }
+        }
+
+        // Protocol identity must be recognizable before the descriptive text.
+        // Official Genyleap icon assets are resolved through Theme.iconSource.
+        RowLayout {
+            id: networkCardRow
+            anchors.fill: parent
+            visible: root.networkShowcase
+            spacing: Theme.space3
+            layoutDirection: Theme.uiDirection
+            Superellipse {
+                Layout.preferredWidth: 64
+                Layout.preferredHeight: 64
+                fillColor: root.selected ? Theme.surfaceHover : Theme.surfaceMuted
+                borderWidth: root.selected ? Theme.strokeStandard : 0
+                borderColor: root.selected ? Theme.accent : Theme.borderMuted
+                curveDepth: Theme.curveContainer
+                Icon {
+                    anchors.centerIn: parent
+                    text: root.iconGlyph
+                    preferredSize: 40
+                    color: root.foreground
+                }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space1
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.title
+                    color: root.foreground
+                    font.pixelSize: Math.max(Theme.typeLabelSize, 17)
+                    font.weight: Theme.weightDemiBold
+                    horizontalAlignment: Theme.textStartAlignment
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.subtitle
+                    color: root.secondaryForeground
+                    font.pixelSize: Theme.typeCaptionSize
+                    horizontalAlignment: Theme.textStartAlignment
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                }
+            }
+            Icon {
+                visible: root.selected && root.showSelectionMark
+                text: Theme.iconCheck
+                color: Theme.accent
+                preferredSize: Theme.iconSize
+            }
+            Icon {
+                visible: !root.selected && root.showChevron
+                text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                color: Theme.inkSubtle
+                preferredSize: Theme.iconSizeSmall
+            }
         }
     }
 }

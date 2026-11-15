@@ -14,8 +14,8 @@ ColumnLayout {
     property bool storyboardStyle: false
     property bool compactDesktopStyle: false
     property int maximumTextWidth: 620
-    readonly property int iconSize: storyboardStyle ? (compactDesktopStyle ? 32 : 36) : 24
-    spacing: storyboardStyle ? Theme.space3 : Theme.space2
+    readonly property int iconSize: storyboardStyle ? (compactDesktopStyle ? 38 : 42) : 24
+    spacing: Theme.space2
 
     Icon {
         visible: root.showIcon
@@ -25,7 +25,7 @@ ColumnLayout {
         Layout.preferredWidth: root.showIcon ? root.iconSize : 0
         Layout.preferredHeight: root.showIcon ? root.iconSize : 0
         Layout.alignment: root.centered ? Qt.AlignHCenter : Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
-        Layout.bottomMargin: root.storyboardStyle ? Theme.space2 : 0
+        Layout.bottomMargin: root.storyboardStyle ? Theme.space1 : 0
         Accessible.name: root.title
     }
 
@@ -36,7 +36,7 @@ ColumnLayout {
         color: Theme.ink
         font.family: Theme.fontFamilyForText(text)
         font.pixelSize: root.storyboardStyle
-                        ? (root.compactDesktopStyle ? 26 : 31)
+                        ? (root.compactDesktopStyle ? 28 : 30)
                         : Math.min(34, Math.max(27, Theme.typeTitle2Size))
         font.weight: Theme.weightBold
         lineHeight: Theme.typeTitle2LineHeight

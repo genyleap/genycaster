@@ -288,8 +288,8 @@ Item {
                 return
             }
             if (nativeRegistrationPublisher.pending) {
-                // Back navigates to Welcome, without deleting custody words
-                // or claiming an in-flight network write was cancelled.
+                // Leave any submitted registration journal intact; going back
+                // one visual choice cannot cancel an irreversible write.
                 nativeRegistrationPublisher.stopPolling()
             } else {
                 nativeRegistrationPublisher.clear()
@@ -297,13 +297,13 @@ Item {
             }
             nativeRegistrationPreparation.cancel()
             nativeRegistrationStatus.clearExistingLookup()
-            // Wallet replacement is deliberately a separate confirmed action.
-            // Back alone must never destroy a verified recovery phrase.
+            // Back is a navigation action, never a wallet replacement.
             confirmWalletReplacement = false
             choosingRegistrationProvider = false
             registrationError = ""
             accountIntent = ""
-            switchStep(0)
+            // The network picker is a nested view of step 3, not Welcome.
+            stageScroll.contentY = 0
             return
         }
         if (currentStep === 0) {
@@ -314,6 +314,11 @@ Item {
             resumingRegistration = false
             showRecovery = false
             switchStep(3)
+            return
+        }
+        if (currentStep === 4 && showRecovery) {
+            showRecovery = false
+            stageScroll.contentY = 0
             return
         }
         if (currentStep === 5 && (authenticationInProgress || recoverySubmitPending)) {
@@ -1296,7 +1301,7 @@ Item {
                       : qsTrId("genycaster.setup.design_account_description")
                 centered: !root.phone
             }
-            Item { Layout.preferredHeight: Theme.space4 }
+            Item { Layout.preferredHeight: Theme.space2 }
             GridLayout {
                 visible: !root.choosingRegistrationProvider
                 Layout.fillWidth: true
@@ -1316,6 +1321,7 @@ Item {
                     onClicked: {
                         root.accountIntent = "new"
                         root.choosingRegistrationProvider = true
+                        stageScroll.contentY = 0
                         root.confirmWalletReplacement = false
                         root.registrationError = ""
                         nativeRegistrationStatus.refresh()
@@ -1358,9 +1364,10 @@ Item {
                         objectName: "setupRegisterHyperSnap"
                         Layout.fillWidth: true
                         onboardingStyle: true
+                        networkShowcase: true
                         title: qsTrId("genycaster.settings.hypersnap_label")
                         subtitle: qsTrId("genycaster.setup.registration_hypersnap_description")
-                        iconGlyph: Theme.iconGlobe
+                        iconGlyph: "quilibrium/hypersnap"
                         selected: root.registrationProviderId === "hypersnap-v2"
                         enabled: !neynarRegistration.pending
                                  && neynarRegistration.phase !== "reserved"
@@ -1378,9 +1385,10 @@ Item {
                         objectName: "setupRegisterNeynar"
                         Layout.fillWidth: true
                         onboardingStyle: true
+                        networkShowcase: true
                         title: qsTrId("genycaster.setup.registration_neynar_label")
                         subtitle: qsTrId("genycaster.setup.registration_neynar_description")
-                        iconGlyph: Theme.iconLink
+                        iconGlyph: "brands/farcaster"
                         selected: root.registrationProviderId === "farcaster-snapchain"
                         enabled: !nativeRegistrationPublisher.pending
                                  && !neynarRegistration.pending
@@ -2149,7 +2157,7 @@ Item {
                 subtitle: qsTrId("genycaster.setup.design_signin_description")
                 centered: !root.phone
             }
-            Item { Layout.preferredHeight: Theme.space4 }
+            Item { Layout.preferredHeight: Theme.space2 }
             // Local custody recovery is the preferred existing-account route.
             // Keep it first, with clear visual emphasis; the two external
             // identity methods are secondary alternatives.
@@ -2175,15 +2183,20 @@ Item {
             ColumnLayout {
                 visible: root.showRecovery && !root.browserReadOnly && !root.authenticated
                 Layout.fillWidth: true
-                spacing: Theme.space2
-                RowLayout {
+                Layout.topMargin: Theme.space2
+                spacing: Theme.space3
+                GridLayout {
                     Layout.fillWidth: true
-                    spacing: Theme.space2
+                    columns: root.width < 360 ? 1 : 2
+                    rowSpacing: Theme.space2
+                    columnSpacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
                     ActionButton {
                         objectName: "setupRecoverHyperSnap"
                         Layout.fillWidth: true
                         compact: true
                         selected: root.recoveryProtocol === "hypersnap-v2"
+                        iconGlyph: "quilibrium/hypersnap"
                         text: qsTrId("genycaster.settings.hypersnap_label")
                         onClicked: root.recoveryProtocol = "hypersnap-v2"
                     }
@@ -2192,6 +2205,7 @@ Item {
                         Layout.fillWidth: true
                         compact: true
                         selected: root.recoveryProtocol === "farcaster-snapchain"
+                        iconGlyph: "brands/farcaster"
                         text: qsTrId("genycaster.settings.farcaster_label")
                         onClicked: root.recoveryProtocol = "farcaster-snapchain"
                     }
@@ -2205,12 +2219,26 @@ Item {
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.WordWrap
                 }
-                DirectionAwareLabel {
+                RowLayout {
                     Layout.fillWidth: true
-                    text: qsTrId("genycaster.setup.native_recovery_placeholder")
-                    color: Theme.inkMuted
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.WordWrap
+                    spacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.native_recovery_placeholder")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightDemiBold
+                        wrapMode: Text.WordWrap
+                        horizontalAlignment: Theme.textStartAlignment
+                    }
+                    DirectionAwareLabel {
+                        text: LocaleFormat.localizeDigits(nativeRecoveryGrid.completeWordCount
+                                                          + " / 24")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightMedium
+                    }
                 }
                 Item {
                     id: nativeRecoveryGrid
@@ -2285,7 +2313,7 @@ Item {
                                 objectName: "nativeRecoveryWord" + (index + 1)
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: root.phone ? 100 : 112
-                                implicitHeight: 48
+                                implicitHeight: root.phone ? 54 : 52
                                 maximumLength: 4095
                                 echoMode: revealWords.checked ? TextInput.Normal : TextInput.Password
                                 inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
@@ -2293,16 +2321,28 @@ Item {
                                 horizontalAlignment: TextInput.AlignLeft
                                 color: Theme.ink
                                 font.pixelSize: 15
-                                leftPadding: Theme.space3
+                                leftPadding: Theme.space6 + Theme.space3
                                 rightPadding: Theme.space2
-                                placeholderText: String(index + 1).padStart(2, "0")
+                                placeholderText: ""
                                 Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
                                                  + " " + (index + 1)
                                 background: Superellipse {
-                                    fillColor: Theme.surface
+                                    fillColor: wordField.activeFocus
+                                               ? Theme.surfaceHover : Theme.surface
                                     borderWidth: wordField.activeFocus ? 2 : Theme.strokeStandard
                                     borderColor: wordField.activeFocus ? Theme.focus : Theme.borderMuted
                                     curveDepth: Theme.curveControl
+                                    // Unlike placeholder numbers, these remain visible
+                                    // after entry and while the words are concealed.
+                                    DirectionAwareLabel {
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: Theme.space3
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: String(wordField.index + 1).padStart(2, "0")
+                                        color: wordField.activeFocus ? Theme.ink : Theme.inkSubtle
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        font.weight: Theme.weightMedium
+                                    }
                                 }
                                 onTextChanged: nativeRecoveryGrid.refreshCompletion()
                                 onTextEdited: {
@@ -2329,8 +2369,14 @@ Item {
                 // The full labels remain tap targets without selected cards.
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Layout.topMargin: Theme.space2
-                    spacing: 2
+                    Layout.topMargin: Theme.space3
+                    spacing: Theme.space1
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Theme.strokeStandard
+                        Layout.bottomMargin: Theme.space1
+                        color: Theme.borderMuted
+                    }
                     GenyCheckRow {
                         id: revealWords
                         objectName: "nativeRecoveryRevealWords"

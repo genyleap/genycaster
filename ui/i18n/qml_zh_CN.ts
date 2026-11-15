@@ -5661,16 +5661,16 @@ Company | https://company.com</source>
             <translation>HyperSnap 和 Farcaster 使用不同的 FID 注册表。仅选择网络不会创建账户。</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
-            <translation>HyperSnap 原生 FID：本地钱包、工作量证明和 EIP-712。</translation>
+            <source>Native FID · self-custody wallet</source>
+            <translation>原生 FID · 自托管钱包</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Farcaster (via Neynar)</source>
             <translation>Farcaster（通过 Neynar）</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
-            <translation>Optimism 上的 Farcaster FID：本地钱包和安全的 Neynar 注册服务。</translation>
+            <source>FID on Optimism · registered via Neynar</source>
+            <translation>Optimism 上的 FID · 通过 Neynar 注册</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
             <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
@@ -6185,8 +6185,8 @@ Company | https://company.com</source>
             <translation>连接你已有的 Farcaster 身份。</translation>
         </message>
         <message id="genycaster.setup.new_profile_body">
-            <source>Register a new Farcaster identity in a compatible app.</source>
-            <translation>在兼容的应用中注册新的 Farcaster 身份。</translation>
+            <source>Create a new identity with a wallet you control.</source>
+            <translation>使用由你自己掌控的钱包创建新身份。</translation>
         </message>
         <message id="genycaster.setup.registration_handoff">
             <source>Continue in a compatible registration app, then come back to link your profile.</source>

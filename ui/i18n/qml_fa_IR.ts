@@ -5686,16 +5686,16 @@ Company | https://company.com</source>
             <translation>رجیستری‌های FID در هایپراسنپ و فارکستر مستقل‌اند. انتخاب شبکه به‌تنهایی حساب ایجاد نمی‌کند.</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
-            <translation>FID بومی هایپراسنپ: کیف پول شخصی، اثبات کار و امضای EIP-712.</translation>
+            <source>Native FID · self-custody wallet</source>
+            <translation>شناسهٔ بومی · کیف پول شخصی</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Farcaster (via Neynar)</source>
             <translation>فارکستر (از طریق نینار)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
-            <translation>FID فارکستر روی آپتیمیسم: کیف پول شخصی و سرویس امن ثبت‌نام نینار.</translation>
+            <source>FID on Optimism · registered via Neynar</source>
+            <translation>شناسه روی آپتیمیسم · ثبت‌نام با نینار</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
             <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
@@ -6210,8 +6210,8 @@ Company | https://company.com</source>
             <translation>هویت فارکستر فعلی خودتان را متصل کنید.</translation>
         </message>
         <message id="genycaster.setup.new_profile_body">
-            <source>Register a new Farcaster identity in a compatible app.</source>
-            <translation>در یک برنامه سازگار، هویت فارکستر جدید بسازید.</translation>
+            <source>Create a new identity with a wallet you control.</source>
+            <translation>با کیف پولی که کنترلش دست خودتان است، هویت جدیدی بسازید.</translation>
         </message>
         <message id="genycaster.setup.registration_handoff">
             <source>Continue in a compatible registration app, then come back to link your profile.</source>

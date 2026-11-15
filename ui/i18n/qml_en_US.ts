@@ -5686,16 +5686,16 @@ Company | https://company.com</translation>
             <translation>HyperSnap and Farcaster have separate FID registries. Selecting a network does not create an account.</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
-            <translation>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</translation>
+            <source>Native FID · self-custody wallet</source>
+            <translation>Native FID · self-custody wallet</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Farcaster (via Neynar)</source>
             <translation>Farcaster (via Neynar)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
-            <translation>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</translation>
+            <source>FID on Optimism · registered via Neynar</source>
+            <translation>FID on Optimism · registered via Neynar</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
             <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
@@ -6210,8 +6210,8 @@ Company | https://company.com</translation>
             <translation>Connect the Farcaster identity you already own.</translation>
         </message>
         <message id="genycaster.setup.new_profile_body">
-            <source>Register a new Farcaster identity in a compatible app.</source>
-            <translation>Register a new Farcaster identity in a compatible app.</translation>
+            <source>Create a new identity with a wallet you control.</source>
+            <translation>Create a new identity with a wallet you control.</translation>
         </message>
         <message id="genycaster.setup.registration_handoff">
             <source>Continue in a compatible registration app, then come back to link your profile.</source>

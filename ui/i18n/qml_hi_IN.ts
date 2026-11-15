@@ -5661,16 +5661,16 @@ Company | https://company.com</source>
             <translation>HyperSnap और Farcaster की FID रजिस्ट्रियाँ अलग हैं। नेटवर्क चुनने से खाता नहीं बनता।</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
-            <translation>HyperSnap नेटिव FID: स्थानीय वॉलेट, प्रूफ ऑफ वर्क और EIP-712।</translation>
+            <source>Native FID · self-custody wallet</source>
+            <translation>नेटिव FID · स्व-नियंत्रित वॉलेट</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Farcaster (via Neynar)</source>
             <translation>Farcaster (Neynar के माध्यम से)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
-            <translation>Optimism पर Farcaster FID: स्थानीय वॉलेट और सुरक्षित Neynar पंजीकरण सेवा।</translation>
+            <source>FID on Optimism · registered via Neynar</source>
+            <translation>Optimism पर FID · Neynar से पंजीकरण</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
             <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
@@ -6185,8 +6185,8 @@ Company | https://company.com</source>
             <translation>अपनी मौजूदा Farcaster पहचान कनेक्ट करें।</translation>
         </message>
         <message id="genycaster.setup.new_profile_body">
-            <source>Register a new Farcaster identity in a compatible app.</source>
-            <translation>किसी संगत ऐप में नई Farcaster पहचान पंजीकृत करें।</translation>
+            <source>Create a new identity with a wallet you control.</source>
+            <translation>अपने नियंत्रण वाले वॉलेट से नई पहचान बनाएँ।</translation>
         </message>
         <message id="genycaster.setup.registration_handoff">
             <source>Continue in a compatible registration app, then come back to link your profile.</source>

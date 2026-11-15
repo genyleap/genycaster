@@ -5661,16 +5661,16 @@ Company | https://company.com</source>
             <translation>HyperSnap と Farcaster の FID 登録簿は別々です。ネットワークを選んだだけではアカウントは作成されません。</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
-            <translation>HyperSnap ネイティブ FID：ローカルウォレット、PoW、EIP-712。</translation>
+            <source>Native FID · self-custody wallet</source>
+            <translation>ネイティブ FID · 自己管理ウォレット</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Farcaster (via Neynar)</source>
             <translation>Farcaster（Neynar 経由）</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
-            <translation>Optimism 上の Farcaster FID：ローカルウォレットと安全な Neynar 登録サービス。</translation>
+            <source>FID on Optimism · registered via Neynar</source>
+            <translation>Optimism の FID · Neynar 経由で登録</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
             <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
@@ -6185,8 +6185,8 @@ Company | https://company.com</source>
             <translation>所有している Farcaster ID を連携してください。</translation>
         </message>
         <message id="genycaster.setup.new_profile_body">
-            <source>Register a new Farcaster identity in a compatible app.</source>
-            <translation>対応アプリで新しい Farcaster ID を登録してください。</translation>
+            <source>Create a new identity with a wallet you control.</source>
+            <translation>自分で管理するウォレットで新しい ID を作成します。</translation>
         </message>
         <message id="genycaster.setup.registration_handoff">
             <source>Continue in a compatible registration app, then come back to link your profile.</source>
