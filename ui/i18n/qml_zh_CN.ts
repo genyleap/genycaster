@@ -1068,6 +1068,34 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>发布于</translation>
         </message>
+        <message id="genycaster.profile.network_description">
+            <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
+            <translation>已签名的个人资料将发布到所选协议。用户名需单独注册。</translation>
+        </message>
+        <message id="genycaster.profile.network_confirmed">
+            <source>Profile changes were confirmed by the protocol. Refreshing…</source>
+            <translation>协议已确认资料更改。正在刷新…</translation>
+        </message>
+        <message id="genycaster.profile.username_unset">
+            <source>No username assigned</source>
+            <translation>尚未设置用户名</translation>
+        </message>
+        <message id="genycaster.profile.username_separate">
+            <source>Username requires a verified name claim and is not changed with the display name.</source>
+            <translation>用户名需要经过验证的所有权证明，更改显示名称不会更改用户名。</translation>
+        </message>
+        <message id="genycaster.profile.publish_changes">
+            <source>Publish profile changes</source>
+            <translation>发布个人资料更改</translation>
+        </message>
+        <message id="genycaster.profile.signer_permissions_required">
+            <source>A verified signer with profile-edit permission is required to publish changes.</source>
+            <translation>发布更改需要拥有资料编辑权限的已验证签名者。</translation>
+        </message>
+        <message id="genycaster.profile.no_changes">
+            <source>No profile changes to publish.</source>
+            <translation>没有需要发布的个人资料更改。</translation>
+        </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
             <translation>Farcaster 个人资料</translation>

@@ -179,6 +179,36 @@ void acceptsExactProtoJsonNativeFid()
     assert(invalid.error().code == foundation::error::ErrorCode::ProtocolFailure);
 }
 
+void userDataAddSubmitsAndReconcilesByExactHash()
+{
+    constexpr auto fid = 4294967296ULL;
+    auto update = operation();
+    update.kind = domain::write::OperationKind::UpdateProfile;
+    update.author = domain::identity::Fid{fid};
+    update.optimisticCast.reset();
+    update.messageBytes = envelopeWithFid(fid);
+    constexpr auto accepted = R"json({"hash":"0x00112233445566778899aabbccddeeff00112233","data":{"type":"MESSAGE_TYPE_USER_DATA_ADD","fid":"4294967296"}})json";
+    constexpr auto found = R"json({"messages":[{"hash":"0x00112233445566778899aabbccddeeff00112233","data":{"type":"MESSAGE_TYPE_USER_DATA_ADD","fid":"4294967296"}}]})json";
+    FakeTransport http{};
+    http.postReplies.push_back({.statusCode = 200U, .body = accepted});
+    http.getReplies.push_back({.statusCode = 200U, .body = found});
+    auto submitter = provider::snapchain::write::makeSubmitter(
+        http, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
+    assert(submitter->submit(update));
+    const auto reconciled = submitter->reconcile(update);
+    assert(reconciled && *reconciled == capability::write::ConfirmationState::Confirmed);
+    assert(http.gets.front().url == "https://hypersnap.test/v1/userDataByFid?fid=4294967296");
+
+    // Another signed UserData value is not proof that this write landed.
+    FakeTransport other{};
+    other.getReplies.push_back({.statusCode = 200U,
+        .body = R"json({"messages":[{"hash":"0xffffffffffffffffffffffffffffffffffffffff","data":{"type":"MESSAGE_TYPE_USER_DATA_ADD","fid":"4294967296"}}]})json"});
+    auto otherSubmitter = provider::snapchain::write::makeSubmitter(
+        other, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
+    const auto absent = otherSubmitter->reconcile(update);
+    assert(absent && *absent == capability::write::ConfirmationState::Absent);
+}
+
 void invalidCanonicalAuthorFailsBeforePosting()
 {
     auto wrong = operation();
@@ -594,6 +624,7 @@ int main()
     explicitAuthorizationHeaderIsForwarded();
     submitUsesCanonicalBinaryEndpoint();
     acceptsExactProtoJsonNativeFid();
+    userDataAddSubmitsAndReconcilesByExactHash();
     invalidCanonicalAuthorFailsBeforePosting();
     unknownFidProvidesNetworkSpecificDiagnostic();
     nativeUnknownFidIsDiagnosedWithoutCrossNetworkRetry();

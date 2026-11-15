@@ -30,6 +30,7 @@ import farcaster.foundation.time;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
 import farcaster.domain.session;
+import farcaster.domain.write;
 import farcaster.local.write;
 import farcaster.application.executor;
 import farcaster.capability.write_authority;
@@ -50,6 +51,7 @@ enum class OperationKind : std::uint8_t {
     Unfollow,
     Block,
     Unblock,
+    UpdateProfile,
 };
 
 /** @brief Application-facing target snapshot for one social mutation. */
@@ -191,6 +193,13 @@ public:
         std::optional<domain::session::ClientSession> session,
         domain::identity::Fid target,
         bool isBlocked,
+        Observer observer);
+
+    /** @brief Writes one public profile field through signed, durable UserDataAdd. */
+    [[nodiscard]] foundation::result::Status updateProfileField(
+        std::optional<domain::session::ClientSession> session,
+        domain::write::ProfileField field,
+        std::string value,
         Observer observer);
 
     /** @brief Processes due pending records after startup/network/signer recovery. */

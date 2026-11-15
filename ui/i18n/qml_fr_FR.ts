@@ -1069,6 +1069,34 @@ Entreprise | https://company.com</translation>
             <source>in</source>
             <translation>dans</translation>
         </message>
+        <message id="genycaster.profile.network_description">
+            <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
+            <translation>Les informations de profil signées sont publiées sur le protocole sélectionné. Le nom d’utilisateur est enregistré séparément.</translation>
+        </message>
+        <message id="genycaster.profile.network_confirmed">
+            <source>Profile changes were confirmed by the protocol. Refreshing…</source>
+            <translation>Les modifications du profil ont été confirmées par le protocole. Actualisation…</translation>
+        </message>
+        <message id="genycaster.profile.username_unset">
+            <source>No username assigned</source>
+            <translation>Aucun nom d’utilisateur défini</translation>
+        </message>
+        <message id="genycaster.profile.username_separate">
+            <source>Username requires a verified name claim and is not changed with the display name.</source>
+            <translation>Le nom d’utilisateur nécessite une preuve de propriété vérifiée et ne change pas avec le nom affiché.</translation>
+        </message>
+        <message id="genycaster.profile.publish_changes">
+            <source>Publish profile changes</source>
+            <translation>Publier les modifications du profil</translation>
+        </message>
+        <message id="genycaster.profile.signer_permissions_required">
+            <source>A verified signer with profile-edit permission is required to publish changes.</source>
+            <translation>Un signataire vérifié autorisé à modifier le profil est nécessaire pour publier les changements.</translation>
+        </message>
+        <message id="genycaster.profile.no_changes">
+            <source>No profile changes to publish.</source>
+            <translation>Aucune modification du profil à publier.</translation>
+        </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
             <translation>Profil Farcaster</translation>

@@ -324,8 +324,43 @@ void invalidIntentFailsBeforeSigning()
 
 } // namespace
 
+void profileFieldsAreSignedUserDataNotUsernames()
+{
+    auto codec = protocol::write::makeCanonicalWriteCodec();
+    const domain::signer::PublicKey key{
+        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"};
+    const auto input = domain::write::ProfileFieldIntent{
+        .author = domain::identity::Fid{4294967296ULL},
+        .field = domain::write::ProfileField::DisplayName,
+        .value = "A real display name",
+        .createdAt = fixtureTime(),
+    };
+    const auto prepared = codec->prepareProfileField(input, key);
+    assert(prepared);
+    assert(prepared->author.value == 4294967296ULL);
+    assert(prepared->kind == domain::write::OperationKind::UpdateProfile);
+    assert(!prepared->target.cast && !prepared->target.fid);
+    assert(!prepared->optimisticCast);
+    assert(prepared->idempotencyKey.value == hex(prepared->hashBytes));
+    // MessageData.type = 11 (UserDataAdd), body = field 12.
+    assert(prepared->dataBytes.size() >= 2U);
+    assert(static_cast<unsigned char>(prepared->dataBytes[0]) == 0x08U);
+    assert(static_cast<unsigned char>(prepared->dataBytes[1]) == 0x0BU);
+    assert(prepared->dataBytes.find(static_cast<char>(0x62)) != std::string::npos);
+    auto cleared = input;
+    cleared.value.clear();
+    assert(codec->prepareProfileField(cleared, key));
+    auto forbidden = input;
+    forbidden.field = static_cast<domain::write::ProfileField>(6U); // username proof required
+    assert(!codec->prepareProfileField(forbidden, key));
+    auto overflow = input;
+    overflow.value.assign(33U, 'a');
+    assert(!codec->prepareProfileField(overflow, key));
+}
+
 int main()
 {
+    profileFieldsAreSignedUserDataNotUsernames();
     canonicalIdentityMatchesProtocolHash();
     socialOperationsUseCanonicalTargetsAndKinds();
     removeCastRequiresTheAuthenticatedOwner();

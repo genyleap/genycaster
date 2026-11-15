@@ -1069,6 +1069,34 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>در</translation>
         </message>
+        <message id="genycaster.profile.network_description">
+            <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
+            <translation>جزئیات امضاشدهٔ پروفایل در پروتکل انتخاب‌شده منتشر می‌شوند. نام کاربری جداگانه ثبت می‌شود.</translation>
+        </message>
+        <message id="genycaster.profile.network_confirmed">
+            <source>Profile changes were confirmed by the protocol. Refreshing…</source>
+            <translation>تغییرات پروفایل در پروتکل تأیید شدند. در حال تازه‌سازی…</translation>
+        </message>
+        <message id="genycaster.profile.username_unset">
+            <source>No username assigned</source>
+            <translation>هنوز نام کاربری تعیین نشده است</translation>
+        </message>
+        <message id="genycaster.profile.username_separate">
+            <source>Username requires a verified name claim and is not changed with the display name.</source>
+            <translation>نام کاربری به تأیید مالکیت نام نیاز دارد و با تغییر نام نمایشی عوض نمی‌شود.</translation>
+        </message>
+        <message id="genycaster.profile.publish_changes">
+            <source>Publish profile changes</source>
+            <translation>انتشار تغییرات پروفایل</translation>
+        </message>
+        <message id="genycaster.profile.signer_permissions_required">
+            <source>A verified signer with profile-edit permission is required to publish changes.</source>
+            <translation>برای انتشار تغییرات، امضاکنندهٔ تأییدشده با مجوز ویرایش پروفایل لازم است.</translation>
+        </message>
+        <message id="genycaster.profile.no_changes">
+            <source>No profile changes to publish.</source>
+            <translation>تغییری برای انتشار در پروفایل وجود ندارد.</translation>
+        </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
             <translation>پروفایل فارکستر</translation>

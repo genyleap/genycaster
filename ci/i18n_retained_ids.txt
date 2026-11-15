@@ -3,6 +3,12 @@
 # profile migrations. New unreferenced IDs must be reviewed explicitly.
 # Generated from the current UI source ID references on 07 Nov 2026.
 # Additional legacy IDs retained for already-cached clients after November UI updates.
+# The protocol-neutral profile editor replaced these Farcaster-only labels;
+# old installations may still request them while updating.
+genycaster.profile.protocol_write_failed
+genycaster.profile.saving_to_farcaster
+genycaster.profile.update_farcaster
+genycaster.side_nav.genycaster
 genycaster.channels.read_note
 genycaster.home.geny_token_slide_one
 genycaster.home.geny_token_slide_two

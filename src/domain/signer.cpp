@@ -17,6 +17,9 @@ std::vector<Scope> standardSocialScopes()
         Scope::ReactionRemove,
         Scope::LinkAdd,
         Scope::LinkRemove,
+        // Profile metadata is a normal UserDataAdd write. UsernameProof
+        // is intentionally excluded: it requires a separate ownership flow.
+        Scope::UserDataAdd,
     };
 }
 

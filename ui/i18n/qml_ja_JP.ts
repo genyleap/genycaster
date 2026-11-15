@@ -1068,6 +1068,34 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>投稿先</translation>
         </message>
+        <message id="genycaster.profile.network_description">
+            <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
+            <translation>署名済みのプロフィール情報は選択したプロトコルに公開されます。ユーザー名は別途登録します。</translation>
+        </message>
+        <message id="genycaster.profile.network_confirmed">
+            <source>Profile changes were confirmed by the protocol. Refreshing…</source>
+            <translation>プロフィールの変更がプロトコルで確認されました。更新中…</translation>
+        </message>
+        <message id="genycaster.profile.username_unset">
+            <source>No username assigned</source>
+            <translation>ユーザー名は未設定です</translation>
+        </message>
+        <message id="genycaster.profile.username_separate">
+            <source>Username requires a verified name claim and is not changed with the display name.</source>
+            <translation>ユーザー名には所有権の確認が必要で、表示名を変更しても変わりません。</translation>
+        </message>
+        <message id="genycaster.profile.publish_changes">
+            <source>Publish profile changes</source>
+            <translation>プロフィールの変更を公開</translation>
+        </message>
+        <message id="genycaster.profile.signer_permissions_required">
+            <source>A verified signer with profile-edit permission is required to publish changes.</source>
+            <translation>変更を公開するには、プロフィール編集権限を持つ検証済み署名者が必要です。</translation>
+        </message>
+        <message id="genycaster.profile.no_changes">
+            <source>No profile changes to publish.</source>
+            <translation>公開するプロフィールの変更はありません。</translation>
+        </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
             <translation>Farcaster プロフィール</translation>

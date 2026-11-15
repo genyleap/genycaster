@@ -1068,6 +1068,34 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>em</translation>
         </message>
+        <message id="genycaster.profile.network_description">
+            <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
+            <translation>Os dados assinados do perfil são publicados no protocolo selecionado. O nome de usuário é registrado separadamente.</translation>
+        </message>
+        <message id="genycaster.profile.network_confirmed">
+            <source>Profile changes were confirmed by the protocol. Refreshing…</source>
+            <translation>As alterações do perfil foram confirmadas pelo protocolo. Atualizando…</translation>
+        </message>
+        <message id="genycaster.profile.username_unset">
+            <source>No username assigned</source>
+            <translation>Nenhum nome de usuário definido</translation>
+        </message>
+        <message id="genycaster.profile.username_separate">
+            <source>Username requires a verified name claim and is not changed with the display name.</source>
+            <translation>O nome de usuário exige comprovação de titularidade e não muda com o nome de exibição.</translation>
+        </message>
+        <message id="genycaster.profile.publish_changes">
+            <source>Publish profile changes</source>
+            <translation>Publicar alterações do perfil</translation>
+        </message>
+        <message id="genycaster.profile.signer_permissions_required">
+            <source>A verified signer with profile-edit permission is required to publish changes.</source>
+            <translation>É necessário um signatário verificado com permissão de edição do perfil para publicar alterações.</translation>
+        </message>
+        <message id="genycaster.profile.no_changes">
+            <source>No profile changes to publish.</source>
+            <translation>Não há alterações do perfil para publicar.</translation>
+        </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
             <translation>Perfil do Farcaster</translation>

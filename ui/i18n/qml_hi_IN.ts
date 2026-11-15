@@ -1068,6 +1068,34 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>में</translation>
         </message>
+        <message id="genycaster.profile.network_description">
+            <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
+            <translation>हस्ताक्षरित प्रोफ़ाइल विवरण चयनित प्रोटोकॉल पर प्रकाशित होते हैं। उपयोगकर्ता नाम अलग से पंजीकृत होता है।</translation>
+        </message>
+        <message id="genycaster.profile.network_confirmed">
+            <source>Profile changes were confirmed by the protocol. Refreshing…</source>
+            <translation>प्रोटोकॉल ने प्रोफ़ाइल परिवर्तन की पुष्टि कर दी है। रीफ़्रेश हो रहा है…</translation>
+        </message>
+        <message id="genycaster.profile.username_unset">
+            <source>No username assigned</source>
+            <translation>उपयोगकर्ता नाम निर्धारित नहीं है</translation>
+        </message>
+        <message id="genycaster.profile.username_separate">
+            <source>Username requires a verified name claim and is not changed with the display name.</source>
+            <translation>उपयोगकर्ता नाम के लिए सत्यापित स्वामित्व प्रमाण आवश्यक है; प्रदर्शन नाम बदलने से यह नहीं बदलता।</translation>
+        </message>
+        <message id="genycaster.profile.publish_changes">
+            <source>Publish profile changes</source>
+            <translation>प्रोफ़ाइल परिवर्तन प्रकाशित करें</translation>
+        </message>
+        <message id="genycaster.profile.signer_permissions_required">
+            <source>A verified signer with profile-edit permission is required to publish changes.</source>
+            <translation>परिवर्तन प्रकाशित करने के लिए प्रोफ़ाइल संपादन अनुमति वाला सत्यापित हस्ताक्षरकर्ता आवश्यक है।</translation>
+        </message>
+        <message id="genycaster.profile.no_changes">
+            <source>No profile changes to publish.</source>
+            <translation>प्रकाशित करने के लिए कोई प्रोफ़ाइल परिवर्तन नहीं है।</translation>
+        </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
             <translation>Farcaster प्रोफ़ाइल</translation>

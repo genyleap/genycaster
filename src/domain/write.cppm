@@ -40,6 +40,7 @@ enum class OperationKind : std::uint8_t {
     Unfollow,
     Block,
     Unblock,
+    UpdateProfile,
 };
 
 /** @brief Stable client-owned idempotency key derived from the canonical message hash. */
@@ -68,6 +69,7 @@ struct OperationTarget final {
     case OperationKind::Block: return Scope::LinkAdd;
     case OperationKind::Unfollow:
     case OperationKind::Unblock: return Scope::LinkRemove;
+    case OperationKind::UpdateProfile: return Scope::UserDataAdd;
     }
     return Scope::CastAdd;
 }
@@ -86,6 +88,23 @@ struct PublishCastIntent final {
     std::vector<std::uint32_t> mentionPositions{};
     std::optional<domain::cast::CastReference> parent{};
     std::optional<std::string> parentUrl{};
+    foundation::time::Timestamp createdAt{};
+};
+
+/** @brief UserData fields; USERNAME is intentionally separate and needs ownership proof. */
+enum class ProfileField : std::uint32_t {
+    Avatar = 1U,
+    DisplayName = 2U,
+    Bio = 3U,
+    Website = 5U,
+    Banner = 10U,
+};
+
+/** @brief Canonical single-field UserDataAdd intent. */
+struct ProfileFieldIntent final {
+    domain::identity::Fid author{};
+    ProfileField field{ProfileField::DisplayName};
+    std::string value{};
     foundation::time::Timestamp createdAt{};
 };
 

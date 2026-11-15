@@ -497,6 +497,7 @@ FROM cast_embed_items WHERE cast_id = ? ORDER BY position ASC;
     case OperationKind::Unfollow: return "unfollow";
     case OperationKind::Block: return "block";
     case OperationKind::Unblock: return "unblock";
+    case OperationKind::UpdateProfile: return "update-profile";
     }
     return "publish-cast";
 }
@@ -515,6 +516,7 @@ FROM cast_embed_items WHERE cast_id = ? ORDER BY position ASC;
     if (text == "unfollow") return OperationKind::Unfollow;
     if (text == "block") return OperationKind::Block;
     if (text == "unblock") return OperationKind::Unblock;
+    if (text == "update-profile") return OperationKind::UpdateProfile;
     return std::unexpected(storageFailure("Write outbox contains an unsupported operation kind."));
 }
 
@@ -562,6 +564,13 @@ FROM cast_embed_items WHERE cast_id = ? ORDER BY position ASC;
     const bool hasFidTarget = operation.target.fid.has_value();
     const bool hasOptimisticCast = operation.optimisticCast.has_value();
     switch (operation.kind) {
+    case OperationKind::UpdateProfile:
+        if (hasOptimisticCast || hasCastTarget || hasFidTarget) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Profile updates must have no social or cast target."));
+        }
+        return {};
     case OperationKind::PublishCast:
         if (!hasOptimisticCast || hasCastTarget || hasFidTarget ||
             operation.optimisticCast->id.value.empty() ||

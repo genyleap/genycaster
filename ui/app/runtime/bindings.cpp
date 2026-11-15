@@ -1424,6 +1424,7 @@ void applySignerState(PresentationBridge& bridge, application::signer::SignerSta
     case OperationKind::Unfollow: return QStringLiteral("unfollow");
     case OperationKind::Block: return QStringLiteral("block");
     case OperationKind::Unblock: return QStringLiteral("unblock");
+    case OperationKind::UpdateProfile: return QStringLiteral("update-profile");
     }
     return QStringLiteral("protocol-write");
 }
@@ -1445,6 +1446,7 @@ void applySignerState(PresentationBridge& bridge, application::signer::SignerSta
     case OperationKind::Unfollow: return qtTrId("genycaster.runtime.unfollow");
     case OperationKind::Block: return QStringLiteral("block");
     case OperationKind::Unblock: return QStringLiteral("unblock");
+    case OperationKind::UpdateProfile: return qtTrId("genycaster.profile.edit_profile");
     }
     return qtTrId("genycaster.runtime.protocol_write");
 }
@@ -4471,15 +4473,101 @@ void connectRuntime(
             browserSigner->start(QStringLiteral("profile"),
                 QString::number(bridge.accountFid()), payload);
 #else
-            // Native profile mutations require the same durable outbox path
-            // as other writes. Do not silently pretend that local settings
-            // are a successful Farcaster UserDataAdd.
-            Q_UNUSED(runtime);
-            Q_UNUSED(changes);
-            bridge.applyWriteState(QStringLiteral("blocked"), false, {},
-                qtTrId("genycaster.profile.protocol_native_unavailable"));
-            emit bridge.protocolProfileWriteCompleted(false,
-                qtTrId("genycaster.profile.protocol_native_unavailable"));
+            // Profile fields are independent signed UserDataAdd operations.
+            // Username registration is deliberately absent: it requires its
+            // own ownership proof and is NOT an editable display-name field.
+            if (!runtime->writeService) {
+                emit bridge.protocolProfileWriteCompleted(false,
+                    runtime->writeSetupError
+                        ? QString::fromStdString(runtime->writeSetupError->message)
+                        : qtTrId("genycaster.profile.protocol_native_unavailable"));
+                return;
+            }
+            using Field = domain::write::ProfileField;
+            const std::array<std::pair<QString, Field>, 5> fields{{
+                {QStringLiteral("display"), Field::DisplayName},
+                {QStringLiteral("bio"), Field::Bio},
+                {QStringLiteral("url"), Field::Website},
+                {QStringLiteral("pfp"), Field::Avatar},
+                {QStringLiteral("banner"), Field::Banner},
+            }};
+            std::vector<std::pair<Field, std::string>> mutations{};
+            for (const auto& [key, field] : fields) {
+                if (changes.contains(key)) {
+                    mutations.emplace_back(field,
+                        changes.value(key).toString().toUtf8().toStdString());
+                }
+            }
+            if (mutations.empty()) {
+                emit bridge.protocolProfileWriteCompleted(false,
+                    qtTrId("genycaster.profile.no_protocol_changes"));
+                return;
+            }
+            struct ProfileWriteBatch final {
+                std::size_t remaining{};
+                std::vector<bool> completed{};
+                bool reported{false};
+            };
+            auto batch = std::make_shared<ProfileWriteBatch>();
+            batch->remaining = mutations.size();
+            batch->completed.resize(mutations.size(), false);
+            const auto accountFid = bridge.accountFid();
+            const auto session = runtime->currentSessionSnapshot();
+            // All result aggregation is performed on the owning Qt thread.
+            // Never deliver a stale completion to a different signed-in FID.
+            for (std::size_t index = 0; index < mutations.size(); ++index) {
+                const auto& [field, value] = mutations[index];
+                const auto observer = [pointer = QPointer<PresentationBridge>{&bridge},
+                                       batch, accountFid, index](
+                                           application::write::WriteState state) {
+                    using Phase = application::write::WritePhase;
+                    const auto phase = state.phase;
+                    const bool finished = phase == Phase::Confirmed || phase == Phase::Failed
+                        || phase == Phase::Blocked || phase == Phase::RetryScheduled
+                        || (phase == Phase::Queued && state.error.has_value());
+                    if (!finished || !pointer) return;
+                    const QString error = state.error
+                        ? QString::fromStdString(state.error->message)
+                        : qtTrId("genycaster.profile.save_retry_notice");
+                    QMetaObject::invokeMethod(pointer,
+                        [pointer, batch, accountFid, index, phase, error] {
+                            if (!pointer || !pointer->isAuthenticated()
+                                || pointer->accountFid() != accountFid
+                                || batch->reported || batch->completed[index]) return;
+                            if (phase != Phase::Confirmed) {
+                                batch->reported = true;
+                                emit pointer->protocolProfileWriteCompleted(false, error);
+                                return;
+                            }
+                            batch->completed[index] = true;
+                            if (--batch->remaining == 0) {
+                                batch->reported = true;
+                                emit pointer->protocolProfileWriteCompleted(true, {});
+                                QTimer::singleShot(1100, pointer, [pointer, accountFid] {
+                                    if (pointer && pointer->isAuthenticated()
+                                        && pointer->accountFid() == accountFid) {
+                                        pointer->openMyProfile();
+                                    }
+                                });
+                            }
+                        }, Qt::QueuedConnection);
+                };
+                const auto scheduled = runtime->writeService->updateProfileField(
+                    session, field, value, observer);
+                if (!scheduled) {
+                    const QString error = QString::fromStdString(scheduled.error().message);
+                    QMetaObject::invokeMethod(&bridge,
+                        [pointer = QPointer<PresentationBridge>{&bridge},
+                         batch, accountFid, error] {
+                            if (!pointer || !pointer->isAuthenticated()
+                                || pointer->accountFid() != accountFid
+                                || batch->reported) return;
+                            batch->reported = true;
+                            emit pointer->protocolProfileWriteCompleted(false, error);
+                        }, Qt::QueuedConnection);
+                    break;
+                }
+            }
 #endif
         });
 

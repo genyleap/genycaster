@@ -91,6 +91,16 @@ struct FollowInput final {
     Network network{Network::Mainnet};
 };
 
+/** @brief Signed UserDataAdd for a single profile field (never a username proof). */
+struct UserDataInput final {
+    domain::identity::Fid fid{};
+    domain::signer::PublicKey publicKey{};
+    domain::write::ProfileField field{domain::write::ProfileField::DisplayName};
+    std::string value{};
+    std::uint32_t timestamp{};
+    Network network{Network::Mainnet};
+};
+
 /** @brief Exact KEY_ADD payload fields before protobuf envelope signing. */
 struct KeyAddInput final {
     domain::identity::Fid fid{};
@@ -166,6 +176,10 @@ struct UnsignedMessage final {
 /** @brief Builds canonical protobuf MessageData for LINK_ADD/LINK_REMOVE follow. */
 [[nodiscard]] foundation::result::Result<UnsignedMessage> encodeFollow(
     const FollowInput& input);
+
+/** @brief Builds the standard UserDataAdd MessageData for a profile field. */
+[[nodiscard]] foundation::result::Result<UnsignedMessage> encodeUserDataAdd(
+    const UserDataInput& input);
 
 /** @brief Builds canonical protobuf MessageData for a custody-authorized KEY_ADD. */
 [[nodiscard]] foundation::result::Result<UnsignedMessage> encodeKeyAdd(

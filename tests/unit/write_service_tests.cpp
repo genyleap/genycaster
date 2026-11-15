@@ -94,6 +94,7 @@ public:
         case domain::signer::Scope::ReactionRemove:
         case domain::signer::Scope::LinkAdd:
         case domain::signer::Scope::LinkRemove:
+        case domain::signer::Scope::UserDataAdd:
             return true;
         default:
             return false;
@@ -567,6 +568,35 @@ void successfulPublishSubmitsAndConfirms()
     assert(submitter.submitCalls == 1U);
     assert(submitter.reconcileCalls == 0U);
     assert(authority.confirmedWriteCalls == 1U);
+}
+
+void profileFieldsUseTheScopedDurableOutbox()
+{
+    DatabaseFixture database{};
+    InlineExecutor executor{};
+    FakeAuthority authority{};
+    FakeSubmitter submitter{};
+    auto codec = protocol::write::makeCanonicalWriteCodec();
+    auto outbox = storage::write::openOutboxStore(database.path);
+    assert(codec && outbox);
+    application::write::WriteService service{
+        executor, authority, *codec, **outbox, &submitter, testPolicy()};
+    std::vector<application::write::WriteState> states{};
+    const auto status = service.updateProfileField(
+        activeSession(), domain::write::ProfileField::DisplayName,
+        "My display name", [&states](application::write::WriteState state) {
+            states.push_back(std::move(state));
+        });
+    assert(status && !states.empty());
+    assert(states.back().phase == application::write::WritePhase::Confirmed);
+    assert(states.back().record);
+    assert(states.back().record->kind == application::write::OperationKind::UpdateProfile);
+    assert(authority.lastScope == domain::signer::Scope::UserDataAdd);
+    assert(submitter.submitCalls == 1U);
+    const auto stored = (*outbox)->find(domain::write::IdempotencyKey{
+        states.back().record->idempotencyKey});
+    assert(stored && *stored);
+    assert((*stored)->operation.kind == domain::write::OperationKind::UpdateProfile);
 }
 
 void socialWritesUseExactScopesAndDurableTargets()
@@ -1106,6 +1136,7 @@ int main()
     offlineThreadPersistsParentChainAndDependencies();
     failedThreadParentBlocksChildrenWithoutNetworkSubmission();
     socialWritesUseExactScopesAndDurableTargets();
+    profileFieldsUseTheScopedDurableOutbox();
     removeCastUsesCastRemoveAndRejectsForeignOwnership();
     invalidReplyParentFailsBeforeSigningOrEnqueue();
     replyRestartUsesExactStoredEnvelopeWithoutResigning();

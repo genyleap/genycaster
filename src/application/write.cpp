@@ -152,6 +152,7 @@ namespace {
     case DomainKind::Unfollow: return OperationKind::Unfollow;
     case DomainKind::Block: return OperationKind::Block;
     case DomainKind::Unblock: return OperationKind::Unblock;
+    case DomainKind::UpdateProfile: return OperationKind::UpdateProfile;
     }
     return OperationKind::PublishCast;
 }
@@ -836,6 +837,45 @@ foundation::result::Status WriteService::setBlocked(
             if (!prepared) {
                 observer(WriteState{.phase = WritePhase::Failed,
                                     .error = std::move(prepared.error())});
+                return;
+            }
+            m_impl->enqueuePrepared(session, std::move(*prepared), observer);
+        });
+}
+
+foundation::result::Status WriteService::updateProfileField(
+    std::optional<domain::session::ClientSession> session,
+    const domain::write::ProfileField field,
+    std::string value,
+    Observer observer)
+{
+    if (!observer) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Profile field mutation requires a write-state observer."));
+    }
+    if (auto valid = validatePolicy(m_impl->policy); !valid) {
+        return valid;
+    }
+    return m_impl->executor.post(
+        [this, session = std::move(session), field, value = std::move(value),
+         observer = std::move(observer)]() mutable {
+            auto signer = m_impl->currentAuthority(session, domain::signer::Scope::UserDataAdd);
+            if (!signer) {
+                observer(WriteState{.phase = WritePhase::Blocked,
+                    .error = std::move(signer.error())});
+                return;
+            }
+            auto prepared = m_impl->codec.prepareProfileField(
+                domain::write::ProfileFieldIntent{
+                    .author = session->fid,
+                    .field = field,
+                    .value = std::move(value),
+                    .createdAt = foundation::time::now(),
+                }, *signer);
+            if (!prepared) {
+                observer(WriteState{.phase = WritePhase::Failed,
+                    .error = std::move(prepared.error())});
                 return;
             }
             m_impl->enqueuePrepared(session, std::move(*prepared), observer);

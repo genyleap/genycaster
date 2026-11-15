@@ -236,14 +236,28 @@ Item {
             mediaUpload.clear()
         }
     }
+    Timer {
+        id: profileWriteWatchdog
+        interval: 90000
+        repeat: false
+        onTriggered: {
+            if (!root.protocolProfilePending) return
+            // The signed operation may still be pending in the durable outbox.
+            // Never invent a confirmation after a timed-out UI request.
+            root.protocolProfilePending = false
+            root.protocolProfileConfirmed = false
+            root.protocolProfileError = qsTrId("genycaster.profile.save_retry_notice")
+        }
+    }
     Connections {
         target: presentationBridge
         function onProtocolProfileWriteCompleted(confirmed, message) {
             if (!root.protocolProfilePending) return
+            profileWriteWatchdog.stop()
             root.protocolProfilePending = false
             root.protocolProfileConfirmed = Boolean(confirmed)
             root.protocolProfileError = confirmed ? ""
-                : (String(message || "") || qsTrId("genycaster.profile.protocol_write_failed"))
+                : (String(message || "") || qsTrId("genycaster.profile.save_retry_notice"))
         }
     }
     FileDialog {
@@ -3311,6 +3325,7 @@ Item {
             root.profileExtrasError = ""
             root.protocolProfileError = ""
             root.protocolProfilePending = false
+            profileWriteWatchdog.stop()
             root.protocolProfileConfirmed = false
             root.editProfileMediaUrls = false
             displayProtocolEditor.text = String(root.activeDetail.displayName || "")
@@ -3324,7 +3339,9 @@ Item {
             ModalHeader {
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.profile.edit_details")
-                subtitle: qsTrId("genycaster.profile.edit_sections_subtitle")
+                subtitle: root.accountIsNativeCustody
+                    ? qsTrId("genycaster.profile.network_description")
+                    : qsTrId("genycaster.profile.edit_sections_subtitle")
                 sheetPresentation: false
                 onCloseRequested: profileExtrasEditor.close()
             }
@@ -3358,14 +3375,42 @@ Item {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.profile.protocol_heading")
+                        text: root.accountIsNativeCustody
+                              ? qsTrId("genycaster.settings.hypersnap_label")
+                              : qsTrId("genycaster.profile.protocol_heading")
                         font.weight: Theme.weightBold
                         font.pixelSize: Theme.typeLabelSize
                         color: Theme.ink
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.profile.protocol_description")
+                        text: root.accountIsNativeCustody
+                              ? qsTrId("genycaster.profile.network_description")
+                              : qsTrId("genycaster.profile.protocol_description")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                    // A preferred username is a separate proof-backed identity.
+                    // Never send it with display/bio UserData writes.
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.composer.username")
+                        color: Theme.inkMuted
+                    }
+                    DirectionAwareLabel {
+                        objectName: "profileProtocolUsername"
+                        Layout.fillWidth: true
+                        text: root.showUsername
+                              ? root.ltrHandle(root.activeDetail.username)
+                              : qsTrId("genycaster.profile.username_unset")
+                        color: root.showUsername ? Theme.ink : Theme.inkMuted
+                        font.pixelSize: Theme.typeBodySize
+                        wrapMode: Text.WrapAnywhere
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.username_separate")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
@@ -3535,7 +3580,7 @@ Item {
                         visible: mediaUpload.busy || root.protocolProfilePending
                         text: mediaUpload.busy
                               ? qsTrId("genycaster.profile.uploading_image")
-                              : qsTrId("genycaster.profile.saving_to_farcaster")
+                              : qsTrId("genycaster.profile.saving_details")
                         color: Theme.inkMuted
                     }
                     DirectionAwareLabel {
@@ -3548,9 +3593,30 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         visible: root.protocolProfileConfirmed
-                        text: qsTrId("genycaster.profile.protocol_confirmed")
+                        text: root.accountIsNativeCustody
+                            ? qsTrId("genycaster.profile.network_confirmed")
+                            : qsTrId("genycaster.profile.protocol_confirmed")
                         color: Theme.success
                         wrapMode: Text.Wrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: !presentationBridge.writeReady
+                                 && !root.protocolProfilePending
+                        text: qsTrId("genycaster.profile.signer_permissions_required")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                    ActionButton {
+                        objectName: "profileAuthorizeNativeSigner"
+                        visible: root.isOwnProfile && root.accountIsNativeCustody
+                                 && !presentationBridge.writeReady
+                        Layout.fillWidth: true
+                        quiet: true
+                        enabled: !presentationBridge.signerBusy
+                        text: qsTrId("genycaster.shell.native_signer_authorize")
+                        onClicked: presentationBridge.provisionSigner()
                     }
                     ActionButton {
                         objectName: "profileProtocolSave"
@@ -3558,7 +3624,7 @@ Item {
                         prominent: true
                         enabled: presentationBridge.writeReady && !presentationBridge.writeBusy
                                  && !mediaUpload.busy && !root.protocolProfilePending
-                        text: qsTrId("genycaster.profile.update_farcaster")
+                        text: qsTrId("genycaster.profile.publish_changes")
                         onClicked: {
                             const current = root.activeDetail
                             const fields = {
@@ -3580,7 +3646,7 @@ Item {
                                 if (fields[key] !== existing[key]) changes[key] = fields[key]
                             }
                             if (Object.keys(changes).length === 0) {
-                                root.protocolProfileError = qsTrId("genycaster.profile.no_protocol_changes")
+                                root.protocolProfileError = qsTrId("genycaster.profile.no_changes")
                                 return
                             }
                             for (const key of Object.keys(changes)) {
@@ -3592,9 +3658,16 @@ Item {
                             }
                             root.protocolProfileError = ""
                             root.protocolProfileConfirmed = false
-                            root.protocolProfilePending = presentationBridge.updateProtocolProfile(changes)
-                            if (!root.protocolProfilePending)
-                                root.protocolProfileError = qsTrId("genycaster.profile.protocol_write_failed")
+                            // A native adapter can fail synchronously. Mark pending before
+                            // emitting the bridge signal so the completion is never lost.
+                            root.protocolProfilePending = true
+                            profileWriteWatchdog.restart()
+                            const accepted = presentationBridge.updateProtocolProfile(changes)
+                            if (!accepted && root.protocolProfilePending) {
+                                profileWriteWatchdog.stop()
+                                root.protocolProfilePending = false
+                                root.protocolProfileError = qsTrId("genycaster.profile.save_retry_notice")
+                            }
                         }
                     }
                     Rectangle {

@@ -228,6 +228,31 @@ public:
             intent.createdAt);
     }
 
+    [[nodiscard]] foundation::result::Result<domain::write::PreparedOperation>
+    prepareProfileField(
+        const domain::write::ProfileFieldIntent& intent,
+        const domain::signer::PublicKey& signerPublicKey) override
+    {
+        auto timestamp = protocol::message::toFarcasterTimestamp(intent.createdAt);
+        if (!timestamp) {
+            return std::unexpected(std::move(timestamp.error()));
+        }
+        auto message = protocol::message::encodeUserDataAdd(protocol::message::UserDataInput{
+            .fid = intent.author,
+            .publicKey = signerPublicKey,
+            .field = intent.field,
+            .value = intent.value,
+            .timestamp = *timestamp,
+            .network = m_network,
+        });
+        if (!message) {
+            return std::unexpected(std::move(message.error()));
+        }
+        return preparedFrom(domain::write::OperationKind::UpdateProfile,
+            intent.author, {}, std::nullopt, signerPublicKey, std::move(*message),
+            intent.createdAt);
+    }
+
     [[nodiscard]] foundation::result::Result<domain::write::SignedOperation> seal(
         const domain::write::PreparedOperation& operation,
         const domain::signer::Signature& signature) override

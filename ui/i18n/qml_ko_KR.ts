@@ -1068,6 +1068,34 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>게시 채널</translation>
         </message>
+        <message id="genycaster.profile.network_description">
+            <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
+            <translation>서명된 프로필 정보는 선택한 프로토콜에 게시됩니다. 사용자 이름은 별도로 등록됩니다.</translation>
+        </message>
+        <message id="genycaster.profile.network_confirmed">
+            <source>Profile changes were confirmed by the protocol. Refreshing…</source>
+            <translation>프로토콜에서 프로필 변경을 확인했습니다. 새로고침 중…</translation>
+        </message>
+        <message id="genycaster.profile.username_unset">
+            <source>No username assigned</source>
+            <translation>사용자 이름이 설정되지 않았습니다</translation>
+        </message>
+        <message id="genycaster.profile.username_separate">
+            <source>Username requires a verified name claim and is not changed with the display name.</source>
+            <translation>사용자 이름에는 검증된 소유권 증명이 필요하며 표시 이름을 변경해도 바뀌지 않습니다.</translation>
+        </message>
+        <message id="genycaster.profile.publish_changes">
+            <source>Publish profile changes</source>
+            <translation>프로필 변경 사항 게시</translation>
+        </message>
+        <message id="genycaster.profile.signer_permissions_required">
+            <source>A verified signer with profile-edit permission is required to publish changes.</source>
+            <translation>변경 사항을 게시하려면 프로필 편집 권한이 있는 검증된 서명자가 필요합니다.</translation>
+        </message>
+        <message id="genycaster.profile.no_changes">
+            <source>No profile changes to publish.</source>
+            <translation>게시할 프로필 변경 사항이 없습니다.</translation>
+        </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
             <translation>Farcaster 프로필</translation>

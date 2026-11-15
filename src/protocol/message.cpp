@@ -36,6 +36,7 @@ constexpr std::uint32_t messageTypeReactionAdd = 3U;
 constexpr std::uint32_t messageTypeReactionRemove = 4U;
 constexpr std::uint32_t messageTypeLinkAdd = 5U;
 constexpr std::uint32_t messageTypeLinkRemove = 6U;
+constexpr std::uint32_t messageTypeUserDataAdd = 11U;
 constexpr std::uint32_t reactionTypeLike = 1U;
 constexpr std::uint32_t reactionTypeRecast = 2U;
 constexpr std::uint32_t messageTypeKeyAdd = 16U;
@@ -639,6 +640,29 @@ foundation::result::Result<UnsignedMessage> encodeFollow(const FollowInput& inpu
         input.network,
         14U,
         *body);
+}
+
+foundation::result::Result<UnsignedMessage> encodeUserDataAdd(const UserDataInput& input)
+{
+    if (auto status = validateSimpleMessage(
+            input.fid, input.publicKey, input.timestamp, input.network, "USER_DATA_ADD"); !status) {
+        return std::unexpected(std::move(status.error()));
+    }
+    if (!foundation::utf8::isValid(input.value)) {
+        return std::unexpected(invalid("UserDataAdd value must be valid UTF-8."));
+    }
+    const auto field = static_cast<std::uint32_t>(input.field);
+    const bool supported = field == 1U || field == 2U || field == 3U
+        || field == 5U || field == 10U;
+    if (!supported || input.value.size() > (field == 2U ? 32U : 256U)) {
+        return std::unexpected(invalid("UserDataAdd has an unsupported field or exceeds its byte limit."));
+    }
+    std::string body{};
+    appendUint(body, 1U, field);
+    // Emit the empty string to permit explicit clearing of a profile field.
+    appendBytes(body, 2U, input.value, true);
+    return encodeData(input.fid, input.publicKey, messageTypeUserDataAdd,
+        input.timestamp, input.network, 12U, body);
 }
 
 foundation::result::Result<UnsignedMessage> encodeKeyAdd(const KeyAddInput& input)

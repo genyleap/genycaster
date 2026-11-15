@@ -1068,6 +1068,34 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>في</translation>
         </message>
+        <message id="genycaster.profile.network_description">
+            <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
+            <translation>تُنشر تفاصيل الملف الشخصي الموقَّعة على البروتوكول المحدد. يُسجَّل اسم المستخدم بشكل منفصل.</translation>
+        </message>
+        <message id="genycaster.profile.network_confirmed">
+            <source>Profile changes were confirmed by the protocol. Refreshing…</source>
+            <translation>تم تأكيد تغييرات الملف الشخصي على البروتوكول. جارٍ التحديث…</translation>
+        </message>
+        <message id="genycaster.profile.username_unset">
+            <source>No username assigned</source>
+            <translation>لم يُعيَّن اسم مستخدم بعد</translation>
+        </message>
+        <message id="genycaster.profile.username_separate">
+            <source>Username requires a verified name claim and is not changed with the display name.</source>
+            <translation>يتطلب اسم المستخدم إثبات ملكية موثَّقًا ولا يتغير بتغيير اسم العرض.</translation>
+        </message>
+        <message id="genycaster.profile.publish_changes">
+            <source>Publish profile changes</source>
+            <translation>نشر تغييرات الملف الشخصي</translation>
+        </message>
+        <message id="genycaster.profile.signer_permissions_required">
+            <source>A verified signer with profile-edit permission is required to publish changes.</source>
+            <translation>يلزم موقّع موثَّق لديه إذن تعديل الملف الشخصي لنشر التغييرات.</translation>
+        </message>
+        <message id="genycaster.profile.no_changes">
+            <source>No profile changes to publish.</source>
+            <translation>لا توجد تغييرات في الملف الشخصي لنشرها.</translation>
+        </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
             <translation>ملف Farcaster الشخصي</translation>

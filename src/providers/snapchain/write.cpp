@@ -263,6 +263,7 @@ using domain::write::OperationKind;
     case OperationKind::Block: return "MESSAGE_TYPE_LINK_ADD";
     case OperationKind::Unfollow:
     case OperationKind::Unblock: return "MESSAGE_TYPE_LINK_REMOVE";
+    case OperationKind::UpdateProfile: return "MESSAGE_TYPE_USER_DATA_ADD";
     }
     return "MESSAGE_TYPE_NONE";
 }
@@ -286,6 +287,7 @@ using domain::write::OperationKind;
     case OperationKind::Recast:
     case OperationKind::Follow:
     case OperationKind::Block:
+    case OperationKind::UpdateProfile:
         return true;
     case OperationKind::RemoveCast:
     case OperationKind::Unlike:
@@ -508,6 +510,13 @@ using domain::write::OperationKind;
         return std::unexpected(std::move(messageHash.error()));
     }
     switch (operation.kind) {
+    case OperationKind::UpdateProfile:
+        if (operation.target.cast || operation.target.fid || operation.optimisticCast) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "UserDataAdd must not have a social or cast target."));
+        }
+        break;
     case OperationKind::PublishCast:
         if (!operation.optimisticCast || operation.optimisticCast->author.value != operation.author.value) {
             return std::unexpected(makeError(
@@ -902,6 +911,8 @@ struct NativeUnknownFidEvidence final {
     const std::string base = trimTrailingSlashes(
         config.readBaseUrl.empty() ? config.baseUrl : config.readBaseUrl);
     switch (operation.kind) {
+    case OperationKind::UpdateProfile:
+        return base + "/v1/userDataByFid?fid=" + std::to_string(operation.author.value);
     case OperationKind::PublishCast:
         return base + "/v1/castById?fid=" + std::to_string(operation.author.value) +
             "&hash=" + operation.optimisticCast->id.value;
@@ -1015,8 +1026,37 @@ public:
             return std::unexpected(httpStatusError(response->statusCode, response->body));
         }
 
+        if (operation.kind == OperationKind::UpdateProfile) {
+            auto document = parseJson(response->body);
+            if (!document || !document->is_object()) {
+                return std::unexpected(protocolError("UserData reconciliation returned invalid JSON."));
+            }
+            const auto* messages = findValue(document->as_object(), "messages");
+            if (messages == nullptr || !messages->is_array()) {
+                return std::unexpected(protocolError("UserData reconciliation response lacks messages."));
+            }
+            // Only the exact signed hash can confirm a write. A different
+            // value in the same slot is not evidence that ours was accepted.
+            auto expected = normalizeHash(operation.idempotencyKey.value, "operation.idempotencyKey");
+            if (!expected) return std::unexpected(std::move(expected.error()));
+            for (const auto& entry : messages->as_array()) {
+                if (!entry.is_object()) continue;
+                const auto* hash = findValue(entry.as_object(), "hash");
+                if (hash == nullptr || !hash->is_string()) continue;
+                const auto normalized = normalizeHash(std::string{hash->as_string()}, "message.hash");
+                if (!normalized || *normalized != *expected) continue;
+                if (auto verified = verifyEnvelope(boost::json::serialize(entry),
+                        operation, "MESSAGE_TYPE_USER_DATA_ADD", true); !verified) {
+                    return std::unexpected(std::move(verified.error()));
+                }
+                return capability::write::ConfirmationState::Confirmed;
+            }
+            return capability::write::ConfirmationState::Absent;
+        }
         foundation::result::Status verified{};
         switch (operation.kind) {
+        case OperationKind::UpdateProfile:
+            return std::unexpected(protocolError("Unexpected UserData reconciliation branch."));
         case OperationKind::PublishCast:
         case OperationKind::RemoveCast:
             verified = verifyCastState(response->body, operation);

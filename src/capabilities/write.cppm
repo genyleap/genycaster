@@ -59,6 +59,12 @@ public:
         const domain::write::FollowIntent& intent,
         const domain::signer::PublicKey& signerPublicKey) = 0;
 
+    /** @brief Prepares one UserDataAdd slot; username registration is a separate proof flow. */
+    [[nodiscard]] virtual foundation::result::Result<domain::write::PreparedOperation>
+    prepareProfileField(
+        const domain::write::ProfileFieldIntent& intent,
+        const domain::signer::PublicKey& signerPublicKey) = 0;
+
     /** @brief Seals a prepared operation with the Ed25519 signature over hashBytes. */
     [[nodiscard]] virtual foundation::result::Result<domain::write::SignedOperation> seal(
         const domain::write::PreparedOperation& operation,
