@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("CI source layout", ("python3", "ci/verify_ci.py")),
+    ("Core provider-boundary lexical guards",
+     ("python3", "-m", "unittest", "-q", "ci.test_source_comments")),
     ("Core architecture and module documentation", ("python3", "ci/check_architecture.py")),
     ("All supported locale catalogs", ("python3", "ci/check_localization_catalog.py")),
     ("Async resource limits", ("python3", "ci/check_async_resource_contract.py")),
