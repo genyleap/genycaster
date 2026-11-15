@@ -1582,8 +1582,8 @@ Empresa | https://company.com</translation>
             <translation>Comercial · despliegue y supervisión administrados</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>Servidor → Instalación → Sincronización → Conexión</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>Servidor · Instalación · Sincronización · Conexión</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>
