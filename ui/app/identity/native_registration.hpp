@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/app/identity/native_registration.hpp
+ * @brief       Read-only HyperSnap native account discovery controller.
+ *
+ * @details
+ * Resolves custody-to-FID relationships against an authoritative registry.
+ * Exposes bounded verification state to onboarding without signing.
+ *
+ * @author      Genyleap Engineering
+ * @since       15 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QObject>
@@ -43,6 +57,7 @@ public:
     [[nodiscard]] QString error() const { return m_error; }
     [[nodiscard]] int difficultyBits() const noexcept { return m_bits; }
     [[nodiscard]] QString firstNativeFid() const { return m_firstFid; }
+
     /** Unexpired, bound-to-this-node anchor information for C++ only. */
     [[nodiscard]] std::optional<Challenge> snapshot() const;
     Q_INVOKABLE void refresh();
@@ -50,8 +65,10 @@ public:
     [[nodiscard]] bool accountLookupChecked() const noexcept { return m_lookupChecked; }
     [[nodiscard]] bool accountLookupFailed() const noexcept { return m_lookupFailed; }
     [[nodiscard]] QString existingNativeFid() const { return m_existingFid; }
+
     /** C++ gate bound to the *exact* wallet previously checked with this node. */
     [[nodiscard]] bool verifiedAbsentForCustody(const QString& address) const;
+
     /** Returns an FID only after a successful, custody-bound registry lookup. */
     [[nodiscard]] QString verifiedExistingFidForCustody(const QString& address) const;
     Q_INVOKABLE void findExistingNativeAccount(const QString& address);

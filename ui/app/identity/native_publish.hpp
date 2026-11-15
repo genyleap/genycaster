@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/app/identity/native_publish.hpp
+ * @brief       Single-use HyperSnap native registration publication controller.
+ *
+ * @details
+ * Submits consented custody proofs and independently verifies registry state.
+ * Never interprets an HTTP acknowledgement as confirmed FID ownership.
+ *
+ * @author      Genyleap Engineering
+ * @since       15 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include "hypersnap_registration_transport.hpp"
@@ -30,6 +44,7 @@ struct NativePublicationPorts final {
     // Last fresh shard-0 head and maximum onboard anchor validity window.
     // Must come from the SAME node used by the publisher's custody lookup.
     std::function<std::optional<std::pair<std::uint64_t, std::uint32_t>>()> registrationWindow;
+
     /** Prior read-only lookup must identify this exact custody wallet. */
     std::function<QString(const QString&)> existingFidForCustody;
 };
@@ -78,25 +93,33 @@ public:
 
     /** User-initiated only. Does not automatically repeat an uncertain write. */
     Q_INVOKABLE bool submitPrepared();
+
     /** Read-only native shard-0 recovery for an interrupted registration. */
     Q_INVOKABLE bool recoverInterruptedRegistration();
+
     /** Verify an already registered FID by a fresh custody-bound shard-0
      * lookup. Never submits a registration or reuses a pending-write journal. */
     Q_INVOKABLE bool confirmExistingAccount();
+
     /** Explicitly retry sign-in after an FID was already confirmed. Fresh
      * registry lookup only: no registration submission or proof generation. */
     Q_INVOKABLE bool resumeConfirmedAccount();
+
     /** Queries the registry; safe even if submit returned timeout/500. */
     Q_INVOKABLE bool checkConfirmation();
+
     /** Explicitly release a timed-out attempt only after its anchor can no
      * longer enter shard-0 and a fresh custody lookup still shows NotFound.
      * Does NOT submit a new message or sign anything. */
     Q_INVOKABLE bool releaseExpiredAttempt();
+
     /** Explicit wallet switch. The old in-flight write is NOT cancelled and
      * its public recovery journal remains intact for later phrase recovery. */
     Q_INVOKABLE bool detachWalletForNewRegistration();
+
     /** Cancel local polling, never claim a network transaction was cancelled. */
     Q_INVOKABLE void stopPolling();
+
     /** Erase the transient UI status; does not revoke a blockchain identity. */
     Q_INVOKABLE void clear();
 

@@ -393,8 +393,10 @@ public:
     /** @brief Native-only explicit custody recovery, with a transient input.
      * Never retain the phrase in the presentation model or settings. */
     Q_INVOKABLE void beginNativeRecoverySetup(QString recoveryWords);
+
     /** Recover HyperSnap-native FID through its own registry, not IdRegistry. */
     Q_INVOKABLE void beginNativeHyperSnapRecoverySetup(QString recoveryWords);
+
     /** Recover an onchain Farcaster FID without an OpenProof account grant. */
     Q_INVOKABLE void beginNativeFarcasterRecoverySetup(QString recoveryWords);
     Q_INVOKABLE void cancelSignIn();
@@ -404,6 +406,7 @@ public:
     /** @brief Rechecks the saved native signer without requesting custody approval. */
     Q_INVOKABLE void refreshSigner();
     Q_INVOKABLE void provisionSigner();
+
     /** Authorize a HyperSnap-native signer from an explicit, transient local
      * recovery phrase. Native runtime verifies custody against shard 0 first. */
     Q_INVOKABLE void authorizeNativeHyperSnapSigner(QString recoveryWords);
@@ -629,6 +632,7 @@ signals:
     void signOutRequested();
     void signerRefreshRequested();
     void signerProvisionRequested();
+
     /** One-use recovery words; never exposed through a Q_PROPERTY or stored. */
     void nativeHyperSnapSignerAuthorizationRequested(QString recoveryWords);
     void signerRevokeRequested();

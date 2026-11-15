@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/registration_plan.hpp
+ * @brief       Native registration planning contracts for application workflows.
+ *
+ * @details
+ * Declares immutable protocol-scoped registration decisions and outcomes.
+ * Keeps the application boundary separate from Qt presentation and transport.
+ *
+ * @author      Genyleap Engineering
+ * @since       15 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <cstdint>

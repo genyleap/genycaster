@@ -67,6 +67,7 @@ public:
 
   [[nodiscard]] QString themeMode() const;
   [[nodiscard]] QString colorThemeId() const;
+
   /** @brief Host OS identity for native apps or browser-reported host for WASM.
    * The browser may withhold or spoof this coarse hint; unknown hosts use Web. */
   [[nodiscard]] QString platformName() const;

@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/app/identity/hypersnap_registration_transport.hpp
+ * @brief       HyperSnap native registration transport boundary for Qt clients.
+ *
+ * @details
+ * Defines shard-zero read and single-use registration transport contracts.
+ * Keeps registry verification independent of presentation decisions.
+ *
+ * @author      Genyleap Engineering
+ * @since       15 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QByteArray>
@@ -50,6 +64,7 @@ public:
 
     /** Read-only authoritative lookup; never treats HTTP 200 alone as identity. */
     void lookupByCustody(const QString& address, LookupCallback onResult);
+
     /** Explicitly initiated binary native-onboard broadcast; no retry. */
     void submit(const QByteArray& protobufEnvelope, SubmitCallback onResult);
 
