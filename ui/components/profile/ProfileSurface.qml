@@ -3426,6 +3426,7 @@ Item {
                              y: 1
                              width: parent.width - 2
                              height: 144
+                             fillMode: Image.PreserveAspectCrop
                              source: linkPreviewResolver ? linkPreviewResolver.imageSourceForUrl(bannerProtocolEditor.text.trim()) : ""
                              mediaCategory: "avatars"
                              forceAutomaticDownload: true
