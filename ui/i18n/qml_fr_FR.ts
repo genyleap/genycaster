@@ -5703,7 +5703,7 @@ Entreprise | https://company.com</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Farcaster (via Neynar)</source>
-            <translation>Farcaster (via Neynar)</translation>
+            <translation>Farcaster (par Neynar)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
             <source>FID on Optimism · registered via Neynar</source>
@@ -7779,11 +7779,11 @@ Entreprise | https://company.com</translation>
         </message>
         <message id="genycaster.channels.confirm_detail">
             <source>This action changes channel membership or following. Proceed only if you have permission.</source>
-            <translation>This action changes channel membership or following. Proceed only if you have permission.</translation>
+            <translation>Cette action modifie l’adhésion à un canal ou son suivi. Continuez uniquement si vous en avez l’autorisation.</translation>
         </message>
         <message id="genycaster.channels.confirm_title">
             <source>Confirm channel action</source>
-            <translation>Confirm channel action</translation>
+            <translation>Confirmer l’action sur le canal</translation>
         </message>
         <message id="genycaster.channels.follow">
             <source>Follow channel</source>
@@ -7795,11 +7795,11 @@ Entreprise | https://company.com</translation>
         </message>
         <message id="genycaster.channels.following_empty">
             <source>You are not following any channels yet.</source>
-            <translation>You are not following any channels yet.</translation>
+            <translation>Vous ne suivez encore aucun canal.</translation>
         </message>
         <message id="genycaster.channels.following_unavailable">
             <source>The selected provider cannot verify followed channels.</source>
-            <translation>The selected provider cannot verify followed channels.</translation>
+            <translation>Le fournisseur sélectionné ne peut pas vérifier les canaux suivis.</translation>
         </message>
         <message id="genycaster.channels.invite">
             <source>Invite</source>
@@ -7807,15 +7807,15 @@ Entreprise | https://company.com</translation>
         </message>
         <message id="genycaster.channels.invite_fid">
             <source>User FID</source>
-            <translation>User FID</translation>
+            <translation>FID de l’utilisateur</translation>
         </message>
         <message id="genycaster.channels.invites">
             <source>Invitations</source>
-            <translation>Invitations</translation>
+            <translation>Invitations aux canaux</translation>
         </message>
         <message id="genycaster.channels.invites_unavailable">
             <source>Invitations are unavailable on this provider.</source>
-            <translation>Invitations are unavailable on this provider.</translation>
+            <translation>Les invitations ne sont pas disponibles avec ce fournisseur.</translation>
         </message>
         <message id="genycaster.channels.member">
             <source>Member</source>
@@ -7831,15 +7831,15 @@ Entreprise | https://company.com</translation>
         </message>
         <message id="genycaster.channels.moderate_hint">
             <source>Select a joined channel to check your moderation privileges.</source>
-            <translation>Select a joined channel to check your moderation privileges.</translation>
+            <translation>Sélectionnez un canal que vous avez rejoint pour vérifier vos droits de modération.</translation>
         </message>
         <message id="genycaster.channels.moderator_required">
             <source>Only verified channel moderators can manage members.</source>
-            <translation>Only verified channel moderators can manage members.</translation>
+            <translation>Seuls les modérateurs de canal vérifiés peuvent gérer les membres.</translation>
         </message>
         <message id="genycaster.channels.moderator_verified">
             <source>Moderator permissions verified for this account.</source>
-            <translation>Moderator permissions verified for this account.</translation>
+            <translation>Les droits de modération ont été vérifiés pour ce compte.</translation>
         </message>
         <message id="genycaster.channels.open_feed">
             <source>View channel feed</source>
@@ -7860,6 +7860,26 @@ Entreprise | https://company.com</translation>
         <message id="genycaster.channels.unfollow">
             <source>Unfollow channel</source>
             <translation>Ne plus suivre</translation>
+        </message>
+        <message id="genycaster.miniapp.minimize">
+            <source>Minimize</source>
+            <translation>Réduire</translation>
+        </message>
+        <message id="genycaster.miniapp.share">
+            <source>Share</source>
+            <translation>Partager</translation>
+        </message>
+        <message id="genycaster.profile.back">
+            <source>Back</source>
+            <translation>Retour</translation>
+        </message>
+        <message id="genycaster.settings.cancel">
+            <source>Cancel</source>
+            <translation>Annuler</translation>
+        </message>
+        <message id="genycaster.settings.done">
+            <source>Done</source>
+            <translation>Terminé</translation>
         </message>
     </context>
 </TS>

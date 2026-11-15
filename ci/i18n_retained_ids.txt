@@ -2,6 +2,15 @@
 # Keep these IDs for older cached WebAssembly/native UI clients and future
 # profile migrations. New unreferenced IDs must be reviewed explicitly.
 # Generated from the current UI source ID references on 07 Nov 2026.
+# Additional legacy IDs retained for already-cached clients after November UI updates.
+genycaster.channels.read_note
+genycaster.home.geny_token_slide_one
+genycaster.home.geny_token_slide_two
+genycaster.home.geny_token_title
+genycaster.home.hub_wallet
+genycaster.home.search_description
+genycaster.pro.restoring_payment_session
+genycaster.setup.registration_connect
 genycaster.activity.less
 genycaster.bookmarks.saved_cast
 genycaster.composer.category
@@ -136,7 +145,6 @@ genycaster.setup.language_search
 genycaster.setup.legal_title
 genycaster.setup.live_preview
 genycaster.setup.native_recovery_description
-genycaster.setup.native_recovery_privacy
 genycaster.setup.network
 genycaster.setup.network_automatic
 genycaster.setup.network_body

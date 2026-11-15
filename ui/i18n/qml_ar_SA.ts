@@ -7778,11 +7778,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.confirm_detail">
             <source>This action changes channel membership or following. Proceed only if you have permission.</source>
-            <translation>This action changes channel membership or following. Proceed only if you have permission.</translation>
+            <translation>يؤدي هذا الإجراء إلى تغيير عضوية القناة أو متابعتها. تابع فقط إذا كانت لديك الصلاحية.</translation>
         </message>
         <message id="genycaster.channels.confirm_title">
             <source>Confirm channel action</source>
-            <translation>Confirm channel action</translation>
+            <translation>تأكيد إجراء القناة</translation>
         </message>
         <message id="genycaster.channels.follow">
             <source>Follow channel</source>
@@ -7794,11 +7794,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.following_empty">
             <source>You are not following any channels yet.</source>
-            <translation>You are not following any channels yet.</translation>
+            <translation>أنت لا تتابع أي قنوات بعد.</translation>
         </message>
         <message id="genycaster.channels.following_unavailable">
             <source>The selected provider cannot verify followed channels.</source>
-            <translation>The selected provider cannot verify followed channels.</translation>
+            <translation>لا يستطيع المزوّد المحدد التحقق من القنوات التي تتابعها.</translation>
         </message>
         <message id="genycaster.channels.invite">
             <source>Invite</source>
@@ -7806,7 +7806,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.invite_fid">
             <source>User FID</source>
-            <translation>User FID</translation>
+            <translation>معرّف المستخدم (FID)</translation>
         </message>
         <message id="genycaster.channels.invites">
             <source>Invitations</source>
@@ -7814,7 +7814,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.invites_unavailable">
             <source>Invitations are unavailable on this provider.</source>
-            <translation>Invitations are unavailable on this provider.</translation>
+            <translation>الدعوات غير متاحة لدى هذا المزوّد.</translation>
         </message>
         <message id="genycaster.channels.member">
             <source>Member</source>
@@ -7830,15 +7830,15 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.moderate_hint">
             <source>Select a joined channel to check your moderation privileges.</source>
-            <translation>Select a joined channel to check your moderation privileges.</translation>
+            <translation>اختر قناة انضممت إليها للتحقق من صلاحيات الإشراف لديك.</translation>
         </message>
         <message id="genycaster.channels.moderator_required">
             <source>Only verified channel moderators can manage members.</source>
-            <translation>Only verified channel moderators can manage members.</translation>
+            <translation>يمكن لمشرفي القناة الذين تم التحقق منهم فقط إدارة الأعضاء.</translation>
         </message>
         <message id="genycaster.channels.moderator_verified">
             <source>Moderator permissions verified for this account.</source>
-            <translation>Moderator permissions verified for this account.</translation>
+            <translation>تم التحقق من صلاحيات الإشراف لهذا الحساب.</translation>
         </message>
         <message id="genycaster.channels.open_feed">
             <source>View channel feed</source>
@@ -7859,6 +7859,26 @@ Company | https://company.com</source>
         <message id="genycaster.channels.unfollow">
             <source>Unfollow channel</source>
             <translation>إلغاء المتابعة</translation>
+        </message>
+        <message id="genycaster.miniapp.minimize">
+            <source>Minimize</source>
+            <translation>تصغير</translation>
+        </message>
+        <message id="genycaster.miniapp.share">
+            <source>Share</source>
+            <translation>مشاركة</translation>
+        </message>
+        <message id="genycaster.profile.back">
+            <source>Back</source>
+            <translation>رجوع</translation>
+        </message>
+        <message id="genycaster.settings.cancel">
+            <source>Cancel</source>
+            <translation>إلغاء</translation>
+        </message>
+        <message id="genycaster.settings.done">
+            <source>Done</source>
+            <translation>تم</translation>
         </message>
     </context>
 </TS>

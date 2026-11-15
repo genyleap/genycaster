@@ -7778,11 +7778,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.confirm_detail">
             <source>This action changes channel membership or following. Proceed only if you have permission.</source>
-            <translation>This action changes channel membership or following. Proceed only if you have permission.</translation>
+            <translation>此操作会更改频道成员身份或关注状态。仅在您拥有权限时继续。</translation>
         </message>
         <message id="genycaster.channels.confirm_title">
             <source>Confirm channel action</source>
-            <translation>Confirm channel action</translation>
+            <translation>确认频道操作</translation>
         </message>
         <message id="genycaster.channels.follow">
             <source>Follow channel</source>
@@ -7794,11 +7794,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.following_empty">
             <source>You are not following any channels yet.</source>
-            <translation>You are not following any channels yet.</translation>
+            <translation>您尚未关注任何频道。</translation>
         </message>
         <message id="genycaster.channels.following_unavailable">
             <source>The selected provider cannot verify followed channels.</source>
-            <translation>The selected provider cannot verify followed channels.</translation>
+            <translation>所选服务提供方无法验证您关注的频道。</translation>
         </message>
         <message id="genycaster.channels.invite">
             <source>Invite</source>
@@ -7806,7 +7806,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.invite_fid">
             <source>User FID</source>
-            <translation>User FID</translation>
+            <translation>用户 FID</translation>
         </message>
         <message id="genycaster.channels.invites">
             <source>Invitations</source>
@@ -7814,7 +7814,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.invites_unavailable">
             <source>Invitations are unavailable on this provider.</source>
-            <translation>Invitations are unavailable on this provider.</translation>
+            <translation>此服务提供方不支持邀请。</translation>
         </message>
         <message id="genycaster.channels.member">
             <source>Member</source>
@@ -7830,15 +7830,15 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.moderate_hint">
             <source>Select a joined channel to check your moderation privileges.</source>
-            <translation>Select a joined channel to check your moderation privileges.</translation>
+            <translation>请选择一个已加入的频道，以检查您的管理权限。</translation>
         </message>
         <message id="genycaster.channels.moderator_required">
             <source>Only verified channel moderators can manage members.</source>
-            <translation>Only verified channel moderators can manage members.</translation>
+            <translation>只有经过验证的频道管理员才能管理成员。</translation>
         </message>
         <message id="genycaster.channels.moderator_verified">
             <source>Moderator permissions verified for this account.</source>
-            <translation>Moderator permissions verified for this account.</translation>
+            <translation>已验证此账户的频道管理权限。</translation>
         </message>
         <message id="genycaster.channels.open_feed">
             <source>View channel feed</source>
@@ -7859,6 +7859,26 @@ Company | https://company.com</source>
         <message id="genycaster.channels.unfollow">
             <source>Unfollow channel</source>
             <translation>取消关注</translation>
+        </message>
+        <message id="genycaster.miniapp.minimize">
+            <source>Minimize</source>
+            <translation>最小化</translation>
+        </message>
+        <message id="genycaster.miniapp.share">
+            <source>Share</source>
+            <translation>分享</translation>
+        </message>
+        <message id="genycaster.profile.back">
+            <source>Back</source>
+            <translation>返回</translation>
+        </message>
+        <message id="genycaster.settings.cancel">
+            <source>Cancel</source>
+            <translation>取消</translation>
+        </message>
+        <message id="genycaster.settings.done">
+            <source>Done</source>
+            <translation>完成</translation>
         </message>
     </context>
 </TS>

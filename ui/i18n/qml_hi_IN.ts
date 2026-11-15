@@ -7778,11 +7778,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.confirm_detail">
             <source>This action changes channel membership or following. Proceed only if you have permission.</source>
-            <translation>This action changes channel membership or following. Proceed only if you have permission.</translation>
+            <translation>यह कार्रवाई चैनल की सदस्यता या उसे फ़ॉलो करने की स्थिति बदलती है। केवल अनुमति होने पर ही आगे बढ़ें।</translation>
         </message>
         <message id="genycaster.channels.confirm_title">
             <source>Confirm channel action</source>
-            <translation>Confirm channel action</translation>
+            <translation>चैनल कार्रवाई की पुष्टि करें</translation>
         </message>
         <message id="genycaster.channels.follow">
             <source>Follow channel</source>
@@ -7794,11 +7794,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.following_empty">
             <source>You are not following any channels yet.</source>
-            <translation>You are not following any channels yet.</translation>
+            <translation>आप अभी किसी भी चैनल को फ़ॉलो नहीं कर रहे हैं।</translation>
         </message>
         <message id="genycaster.channels.following_unavailable">
             <source>The selected provider cannot verify followed channels.</source>
-            <translation>The selected provider cannot verify followed channels.</translation>
+            <translation>चयनित प्रदाता फ़ॉलो किए गए चैनलों की पुष्टि नहीं कर सकता।</translation>
         </message>
         <message id="genycaster.channels.invite">
             <source>Invite</source>
@@ -7806,7 +7806,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.invite_fid">
             <source>User FID</source>
-            <translation>User FID</translation>
+            <translation>उपयोगकर्ता FID</translation>
         </message>
         <message id="genycaster.channels.invites">
             <source>Invitations</source>
@@ -7814,7 +7814,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.invites_unavailable">
             <source>Invitations are unavailable on this provider.</source>
-            <translation>Invitations are unavailable on this provider.</translation>
+            <translation>इस प्रदाता पर आमंत्रण उपलब्ध नहीं हैं।</translation>
         </message>
         <message id="genycaster.channels.member">
             <source>Member</source>
@@ -7830,15 +7830,15 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.moderate_hint">
             <source>Select a joined channel to check your moderation privileges.</source>
-            <translation>Select a joined channel to check your moderation privileges.</translation>
+            <translation>अपने मॉडरेशन अधिकारों की जाँच के लिए किसी ऐसे चैनल को चुनें जिसमें आप शामिल हैं।</translation>
         </message>
         <message id="genycaster.channels.moderator_required">
             <source>Only verified channel moderators can manage members.</source>
-            <translation>Only verified channel moderators can manage members.</translation>
+            <translation>केवल सत्यापित चैनल मॉडरेटर ही सदस्यों का प्रबंधन कर सकते हैं।</translation>
         </message>
         <message id="genycaster.channels.moderator_verified">
             <source>Moderator permissions verified for this account.</source>
-            <translation>Moderator permissions verified for this account.</translation>
+            <translation>इस खाते के मॉडरेटर अधिकार सत्यापित हैं।</translation>
         </message>
         <message id="genycaster.channels.open_feed">
             <source>View channel feed</source>
@@ -7859,6 +7859,26 @@ Company | https://company.com</source>
         <message id="genycaster.channels.unfollow">
             <source>Unfollow channel</source>
             <translation>अनफ़ॉलो करें</translation>
+        </message>
+        <message id="genycaster.miniapp.minimize">
+            <source>Minimize</source>
+            <translation>छोटा करें</translation>
+        </message>
+        <message id="genycaster.miniapp.share">
+            <source>Share</source>
+            <translation>साझा करें</translation>
+        </message>
+        <message id="genycaster.profile.back">
+            <source>Back</source>
+            <translation>वापस</translation>
+        </message>
+        <message id="genycaster.settings.cancel">
+            <source>Cancel</source>
+            <translation>रद्द करें</translation>
+        </message>
+        <message id="genycaster.settings.done">
+            <source>Done</source>
+            <translation>पूर्ण</translation>
         </message>
     </context>
 </TS>

@@ -7778,11 +7778,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.confirm_detail">
             <source>This action changes channel membership or following. Proceed only if you have permission.</source>
-            <translation>This action changes channel membership or following. Proceed only if you have permission.</translation>
+            <translation>この操作により、チャンネルへの参加状態またはフォロー状態が変わります。権限がある場合のみ続行してください。</translation>
         </message>
         <message id="genycaster.channels.confirm_title">
             <source>Confirm channel action</source>
-            <translation>Confirm channel action</translation>
+            <translation>チャンネル操作を確認</translation>
         </message>
         <message id="genycaster.channels.follow">
             <source>Follow channel</source>
@@ -7794,11 +7794,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.following_empty">
             <source>You are not following any channels yet.</source>
-            <translation>You are not following any channels yet.</translation>
+            <translation>まだどのチャンネルもフォローしていません。</translation>
         </message>
         <message id="genycaster.channels.following_unavailable">
             <source>The selected provider cannot verify followed channels.</source>
-            <translation>The selected provider cannot verify followed channels.</translation>
+            <translation>選択したプロバイダーでは、フォロー中のチャンネルを確認できません。</translation>
         </message>
         <message id="genycaster.channels.invite">
             <source>Invite</source>
@@ -7806,7 +7806,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.invite_fid">
             <source>User FID</source>
-            <translation>User FID</translation>
+            <translation>ユーザーFID</translation>
         </message>
         <message id="genycaster.channels.invites">
             <source>Invitations</source>
@@ -7814,7 +7814,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.invites_unavailable">
             <source>Invitations are unavailable on this provider.</source>
-            <translation>Invitations are unavailable on this provider.</translation>
+            <translation>このプロバイダーでは招待を利用できません。</translation>
         </message>
         <message id="genycaster.channels.member">
             <source>Member</source>
@@ -7830,15 +7830,15 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.channels.moderate_hint">
             <source>Select a joined channel to check your moderation privileges.</source>
-            <translation>Select a joined channel to check your moderation privileges.</translation>
+            <translation>参加済みのチャンネルを選択して、モデレーター権限を確認してください。</translation>
         </message>
         <message id="genycaster.channels.moderator_required">
             <source>Only verified channel moderators can manage members.</source>
-            <translation>Only verified channel moderators can manage members.</translation>
+            <translation>認証済みのチャンネルモデレーターのみがメンバーを管理できます。</translation>
         </message>
         <message id="genycaster.channels.moderator_verified">
             <source>Moderator permissions verified for this account.</source>
-            <translation>Moderator permissions verified for this account.</translation>
+            <translation>このアカウントのモデレーター権限が確認されました。</translation>
         </message>
         <message id="genycaster.channels.open_feed">
             <source>View channel feed</source>
@@ -7859,6 +7859,26 @@ Company | https://company.com</source>
         <message id="genycaster.channels.unfollow">
             <source>Unfollow channel</source>
             <translation>フォロー解除</translation>
+        </message>
+        <message id="genycaster.miniapp.minimize">
+            <source>Minimize</source>
+            <translation>最小化</translation>
+        </message>
+        <message id="genycaster.miniapp.share">
+            <source>Share</source>
+            <translation>共有</translation>
+        </message>
+        <message id="genycaster.profile.back">
+            <source>Back</source>
+            <translation>戻る</translation>
+        </message>
+        <message id="genycaster.settings.cancel">
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message id="genycaster.settings.done">
+            <source>Done</source>
+            <translation>完了</translation>
         </message>
     </context>
 </TS>

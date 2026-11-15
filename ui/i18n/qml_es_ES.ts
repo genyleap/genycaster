@@ -7779,11 +7779,11 @@ Empresa | https://company.com</translation>
         </message>
         <message id="genycaster.channels.confirm_detail">
             <source>This action changes channel membership or following. Proceed only if you have permission.</source>
-            <translation>This action changes channel membership or following. Proceed only if you have permission.</translation>
+            <translation>Esta acción cambia la pertenencia a un canal o su seguimiento. Continúa solo si tienes permiso.</translation>
         </message>
         <message id="genycaster.channels.confirm_title">
             <source>Confirm channel action</source>
-            <translation>Confirm channel action</translation>
+            <translation>Confirmar acción del canal</translation>
         </message>
         <message id="genycaster.channels.follow">
             <source>Follow channel</source>
@@ -7795,11 +7795,11 @@ Empresa | https://company.com</translation>
         </message>
         <message id="genycaster.channels.following_empty">
             <source>You are not following any channels yet.</source>
-            <translation>You are not following any channels yet.</translation>
+            <translation>Aún no sigues ningún canal.</translation>
         </message>
         <message id="genycaster.channels.following_unavailable">
             <source>The selected provider cannot verify followed channels.</source>
-            <translation>The selected provider cannot verify followed channels.</translation>
+            <translation>El proveedor seleccionado no puede verificar los canales que sigues.</translation>
         </message>
         <message id="genycaster.channels.invite">
             <source>Invite</source>
@@ -7807,7 +7807,7 @@ Empresa | https://company.com</translation>
         </message>
         <message id="genycaster.channels.invite_fid">
             <source>User FID</source>
-            <translation>User FID</translation>
+            <translation>FID del usuario</translation>
         </message>
         <message id="genycaster.channels.invites">
             <source>Invitations</source>
@@ -7815,7 +7815,7 @@ Empresa | https://company.com</translation>
         </message>
         <message id="genycaster.channels.invites_unavailable">
             <source>Invitations are unavailable on this provider.</source>
-            <translation>Invitations are unavailable on this provider.</translation>
+            <translation>Las invitaciones no están disponibles con este proveedor.</translation>
         </message>
         <message id="genycaster.channels.member">
             <source>Member</source>
@@ -7831,15 +7831,15 @@ Empresa | https://company.com</translation>
         </message>
         <message id="genycaster.channels.moderate_hint">
             <source>Select a joined channel to check your moderation privileges.</source>
-            <translation>Select a joined channel to check your moderation privileges.</translation>
+            <translation>Selecciona un canal al que te hayas unido para comprobar tus permisos de moderación.</translation>
         </message>
         <message id="genycaster.channels.moderator_required">
             <source>Only verified channel moderators can manage members.</source>
-            <translation>Only verified channel moderators can manage members.</translation>
+            <translation>Solo los moderadores de canal verificados pueden administrar miembros.</translation>
         </message>
         <message id="genycaster.channels.moderator_verified">
             <source>Moderator permissions verified for this account.</source>
-            <translation>Moderator permissions verified for this account.</translation>
+            <translation>Se han verificado los permisos de moderador de esta cuenta.</translation>
         </message>
         <message id="genycaster.channels.open_feed">
             <source>View channel feed</source>
@@ -7860,6 +7860,26 @@ Empresa | https://company.com</translation>
         <message id="genycaster.channels.unfollow">
             <source>Unfollow channel</source>
             <translation>Dejar de seguir</translation>
+        </message>
+        <message id="genycaster.miniapp.minimize">
+            <source>Minimize</source>
+            <translation>Minimizar</translation>
+        </message>
+        <message id="genycaster.miniapp.share">
+            <source>Share</source>
+            <translation>Compartir</translation>
+        </message>
+        <message id="genycaster.profile.back">
+            <source>Back</source>
+            <translation>Volver</translation>
+        </message>
+        <message id="genycaster.settings.cancel">
+            <source>Cancel</source>
+            <translation>Cancelar</translation>
+        </message>
+        <message id="genycaster.settings.done">
+            <source>Done</source>
+            <translation>Listo</translation>
         </message>
     </context>
 </TS>

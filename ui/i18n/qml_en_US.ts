@@ -7861,5 +7861,25 @@ Company | https://company.com</translation>
             <source>Unfollow channel</source>
             <translation>Unfollow channel</translation>
         </message>
+        <message id="genycaster.miniapp.minimize">
+            <source>Minimize</source>
+            <translation>Minimize</translation>
+        </message>
+        <message id="genycaster.miniapp.share">
+            <source>Share</source>
+            <translation>Share</translation>
+        </message>
+        <message id="genycaster.profile.back">
+            <source>Back</source>
+            <translation>Back</translation>
+        </message>
+        <message id="genycaster.settings.cancel">
+            <source>Cancel</source>
+            <translation>Cancel</translation>
+        </message>
+        <message id="genycaster.settings.done">
+            <source>Done</source>
+            <translation>Done</translation>
+        </message>
     </context>
 </TS>
