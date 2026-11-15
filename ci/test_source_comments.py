@@ -34,7 +34,7 @@ class SourceCommentTests(unittest.TestCase):
         self.assertNotIn("// fake provider", masked)
 
     def test_cpp_digit_separators_do_not_hide_comments(self):
-        source = "constexpr auto fid = 9'007'199; // HyperSnap is a comment\\n"
+        source = "constexpr auto fid = 9'007'199; // HyperSnap is a comment\n"
         source += 'auto issuer = "hypersnap:native-registry";'
         masked = without_comments(source)
         self.assertNotIn("// HyperSnap", masked)
