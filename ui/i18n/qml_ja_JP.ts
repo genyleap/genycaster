@@ -1581,8 +1581,8 @@ Company | https://company.com</source>
             <translation>商用 · 管理された運用と監視</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>サーバー → 導入 → 同期 → 接続</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>サーバー · 導入 · 同期 · 接続</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>
