@@ -1581,8 +1581,8 @@ Company | https://company.com</source>
             <translation>상업용 · 관리형 배포 및 모니터링</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>서버 → 설치 → 동기화 → 연결</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>서버 · 설치 · 동기화 · 연결</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>

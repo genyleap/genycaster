@@ -614,7 +614,11 @@ test('copyright and Beta version remain readable at the bottom of the desktop le
   assert.match(pane,/new Date\(\)\.getFullYear\(\)/);
   assert.match(pane,/Qt\.application\.version \? "v" \+ LocaleFormat\.localizeDigits/);
   assert.match(pane,/Qt\.application\.version/);
-  assert.match(pane,/Theme\.dark \? "#E2EAF4" : "#DFE8F4"/);
+  const theme=source('ui/theme/Theme.qml');
+  assert.match(pane,/color: Theme\.setupFooterCopyrightInk/);
+  assert.match(pane,/color: Theme\.setupFooterVersionInk/);
+  assert.match(pane,/font\.pixelSize: Theme\.typeCaptionSize/);
+  assert.match(theme,/readonly property color setupFooterCopyrightInk: dark \? "#E2EAF4" : "#DFE8F4"/);
   assert.match(pane,/id: genyleapCopyrightLink/);
   assert.match(pane,/text: "© " \+ new Date\(\)\.getFullYear\(\) \+ " Genyleap"/);
   assert.match(pane,/Accessible\.role: Accessible\.Link/);

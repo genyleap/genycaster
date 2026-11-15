@@ -1581,8 +1581,8 @@ Company | https://company.com</source>
             <translation>Geschäftlich · verwaltete Bereitstellung</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>Server → Installation → Sync → Verbindung</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>Server · Installation · Sync · Verbindung</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>

@@ -1582,8 +1582,8 @@ Company | https://company.com</translation>
             <translation>Business · managed deployment and monitoring</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>Server → Install → Sync → Connect</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>Server · Install · Sync · Connect</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>

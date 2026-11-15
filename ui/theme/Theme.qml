@@ -56,8 +56,10 @@ QtObject {
         mobileActionPreferences.action) >= 0 ? mobileActionPreferences.action : "compose"
     readonly property string mobileActionColorPreset: ["blue","coral","theme"].indexOf(
         mobileActionPreferences.colorPreset) >= 0 ? mobileActionPreferences.colorPreset : "blue"
+    readonly property color mobileActionBlue: "#3266FA"
+    readonly property color mobileActionCoral: "#FF5267"
     readonly property color mobileActionColor: mobileActionColorPreset === "coral"
-        ? "#FF5267" : mobileActionColorPreset === "theme" ? presetFill : "#3266FA"
+        ? mobileActionCoral : mobileActionColorPreset === "theme" ? presetFill : mobileActionBlue
     readonly property string mobileActionIcon: mobileAction === "photo" ? iconImage
         : mobileAction === "search" ? iconSearch
         : mobileAction === "settings" ? iconSettings : iconCompose
@@ -79,6 +81,21 @@ QtObject {
     function setAnimateEmoji(enabled) { energyPreferences.animateEmoji = Boolean(enabled) }
 
     readonly property bool dark: appearanceController.effectiveDark
+    // Onboarding artwork and native account decoration share the same
+    // semantic palette in Light/Dark; no raw palette escapes into page QML.
+    readonly property color setupHeroTop: dark ? "#111622" : "#F7F9FC"
+    readonly property color setupHeroMiddle: dark ? "#1A2232" : "#EDF1F8"
+    readonly property color setupHeroBottom: dark ? "#111824" : "#E6ECF6"
+    readonly property color setupHeroPulseStroke: "#5385A5"
+    readonly property color setupHeroTraceStroke: "#83B7D0"
+    readonly property color setupHeroTitleInk: "#C5E9FA"
+    readonly property color setupHeroCardBorder: dark ? "#35435C" : "#C8D2E3"
+    readonly property color setupFooterDivider: dark ? "#57758F" : "#63829F"
+    readonly property color setupFooterCopyrightInk: dark ? "#E2EAF4" : "#DFE8F4"
+    readonly property color setupFooterVersionInk: dark ? "#A3B8CB" : "#AFC5D9"
+    readonly property color verifiedGenyBadgeBackground: dark ? "#342812" : "#FFF6DE"
+    readonly property color verifiedGenyBadgeBorder: "#D6A435"
+    readonly property color verifiedGenyBadgeInk: dark ? "#F5CD66" : "#956A0B"
     readonly property bool reduceMotion: appearanceController.reduceMotion
     readonly property string mode: appearanceController.themeMode
     readonly property string colorThemeId: appearanceController.colorThemeId

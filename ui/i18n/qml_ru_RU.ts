@@ -1581,8 +1581,8 @@ Company | https://company.com</source>
             <translation>Коммерческий · управляемое развёртывание</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>Сервер → Установка → Синхронизация → Подключение</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>Сервер · Установка · Синхронизация · Подключение</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>

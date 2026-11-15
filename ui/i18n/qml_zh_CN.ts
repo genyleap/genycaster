@@ -1581,8 +1581,8 @@ Company | https://company.com</source>
             <translation>商业 · 托管部署及监控</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>服务器 → 安装 → 同步 → 连接</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>服务器 · 安装 · 同步 · 连接</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>
