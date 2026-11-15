@@ -1581,8 +1581,8 @@ Company | https://company.com</source>
             <translation>Comercial · implantação e monitoramento gerenciados</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>Servidor → Instalar → Sincronizar → Conectar</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>Servidor · Instalar · Sincronizar · Conectar</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>
