@@ -978,6 +978,28 @@ bool PresentationBridge::authenticationApprovalAvailable() const noexcept
 }
 QString PresentationBridge::authenticationErrorText() const { return m_authenticationErrorText; }
 QString PresentationBridge::accountIdentityIssuer() const { return m_accountIdentityIssuer; }
+
+bool PresentationBridge::nativeCustodyAccount() const noexcept
+{
+    return m_isAuthenticated
+        && m_accountIdentityIssuer == QStringLiteral("hypersnap:native-registry");
+}
+
+QString PresentationBridge::accountIdentityBadge() const
+{
+    if (!m_isAuthenticated || m_accountIdentityIssuer.isEmpty()) return {};
+    if (m_accountIdentityIssuer == QStringLiteral("genycaster:device-local"))
+        return qtTrId("genycaster.setup.remembered_device_label");
+    if (nativeCustodyAccount())
+        return qtTrId("genycaster.settings.hypersnap_label");
+    if (m_accountIdentityIssuer == QStringLiteral("farcaster:optimism-id-registry"))
+        return qtTrId("genycaster.settings.farcaster_label");
+    if (m_authenticationRoute == QStringLiteral("recovery"))
+        return qtTrId("genycaster.setup.recovery_verified");
+    if (m_authenticationRoute == QStringLiteral("farcaster"))
+        return qtTrId("genycaster.shell.farcaster_sign_in_openproof_verification");
+    return qtTrId("genycaster.shell.verified_by_openproof");
+}
 QString PresentationBridge::accountName() const { return m_accountName; }
 QString PresentationBridge::accountUsername() const { return m_accountUsername; }
 QString PresentationBridge::accountAvatarUrl() const { return m_accountAvatarUrl; }

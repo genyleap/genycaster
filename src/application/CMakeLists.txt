@@ -43,6 +43,7 @@ target_sources(farcaster_application
         FILE_SET CXX_MODULES
         FILES
             configuration.cppm
+            registration_plan.cppm
             read_model.cppm
             read_gateway.cppm
             read_async_gateway.cppm
@@ -52,7 +53,6 @@ target_sources(farcaster_application
             signer.cppm
     PRIVATE
         "${configuredFeaturesSource}"
-        registration_plan.hpp
         read_service.cpp
         read_async_service.cpp
         session.cpp

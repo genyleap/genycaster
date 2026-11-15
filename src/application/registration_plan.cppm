@@ -1,10 +1,10 @@
 /*!
- * @file        src/application/registration_plan.hpp
- * @brief       Native registration planning contracts for application workflows.
+ * @file        src/application/registration_plan.cppm
+ * @brief       Protocol-scoped native registration planning module.
  *
  * @details
- * Declares immutable protocol-scoped registration decisions and outcomes.
- * Keeps the application boundary separate from Qt presentation and transport.
+ * Declares pure, immutable registration action decisions for distinct identities.
+ * Keeps protocol signing and remote registration outside the application planner.
  *
  * @author      Genyleap Engineering
  * @since       15 Nov 2026
@@ -12,11 +12,13 @@
  * @license     See LICENSE in repository root (GPL-3.0-only).
  */
 
-#pragma once
+module;
 
 #include <cstdint>
 
-namespace genycaster::identity {
+export module farcaster.application.registration_plan;
+
+export namespace farcaster::application::registration_plan {
 
 /**
  * Registration identity namespaces, not interchangeable read API profiles.
@@ -114,4 +116,4 @@ struct RegistrationReadiness final {
     return RegistrationAction::Complete;
 }
 
-} // namespace genycaster::identity
+} // namespace farcaster::application::registration_plan

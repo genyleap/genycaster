@@ -112,6 +112,7 @@ Item {
         ? String(openProofConnections.publicActivitySource || "casts") : "casts"
     property double accountFid: 0
     property string accountIssuer: ""
+    property bool accountIsNativeCustody: false
     // GENY holder status is *never* derived from a user-editable bio, display
     // name, URL or arbitrary Farcaster metadata. A future attestation service
     // may bind this property after verifying the actual wallet and holdings.
@@ -1965,7 +1966,7 @@ Item {
                             height: implicitHeight
                             text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
                                   || ((root.isOwnProfile
-                                       && root.accountIssuer === "hypersnap:native-registry")
+                                       && root.accountIsNativeCustody)
                                       || Number(root.activeDetail.fid || 0) >= 4294967296
                                       ? qsTrId("genycaster.settings.hypersnap_label")
                                       : qsTrId("genycaster.profile.farcaster_profile"))
@@ -3425,6 +3426,7 @@ Item {
                              y: 1
                              width: parent.width - 2
                              height: 144
+                             fillMode: Image.PreserveAspectCrop
                              source: linkPreviewResolver ? linkPreviewResolver.imageSourceForUrl(bannerProtocolEditor.text.trim()) : ""
                              mediaCategory: "avatars"
                              forceAutomaticDownload: true

@@ -92,8 +92,18 @@ add_test(NAME custody.farcaster_id_registry_transfer
     "${CMAKE_CURRENT_SOURCE_DIR}/farcaster_transfer_interop.test.mjs"
     "$<TARGET_FILE:genycaster_farcaster_transfer_vectors>")
 
+# Independent build of the public C++26 registration planner. This source
+# cannot depend on Qt or on the whole application runtime graph.
+add_library(genycaster_registration_plan_contract)
+target_sources(genycaster_registration_plan_contract
+    PUBLIC FILE_SET CXX_MODULES
+        BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/../../src/application"
+        FILES ../../src/application/registration_plan.cppm)
+target_compile_features(genycaster_registration_plan_contract PUBLIC cxx_std_26)
+set_property(TARGET genycaster_registration_plan_contract PROPERTY CXX_SCAN_FOR_MODULES ON)
 add_executable(genycaster_registration_plan registration_plan.cpp)
 target_compile_features(genycaster_registration_plan PRIVATE cxx_std_26)
+target_link_libraries(genycaster_registration_plan PRIVATE genycaster_registration_plan_contract)
 add_test(NAME custody.registration_protocol_isolation
     COMMAND genycaster_registration_plan)
 

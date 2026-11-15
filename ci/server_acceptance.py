@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("CI source layout", ("python3", "ci/verify_ci.py")),
+    ("Core provider-boundary lexical guards",
+     ("python3", "-m", "unittest", "-q", "ci.test_source_comments")),
     ("Core architecture and module documentation", ("python3", "ci/check_architecture.py")),
     ("All supported locale catalogs", ("python3", "ci/check_localization_catalog.py")),
     ("Async resource limits", ("python3", "ci/check_async_resource_contract.py")),
@@ -30,6 +32,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Release notes/version gate", ("python3", "ci/release_gate.py")),
     ("Browser/native platform boundary",
      ("node", "--test", "tests/wasm/native_executable_and_platform_scope.test.mjs")),
+    ("Provider-neutral identity presentation and native signer authorization",
+     ("node", "--test", "tests/wasm/provider_neutral_identity_presentation.test.mjs")),
     ("Native custody worker lifetime contracts",
      ("node", "--test", "tests/wasm/native_custody_worker_lifetime.test.mjs")),
     ("Browser startup and Mini App identity contracts",
@@ -90,6 +94,9 @@ def main() -> int:
             errors.append(name)
 
     if args.strict_design:
+        if not execute("Cross-platform Release feature parity",
+                       ("python3", "ci/verify_release_feature_contract.py", "--strict")):
+            errors.append("Cross-platform Release feature parity")
         if not execute("Full UI design audit", ("python3", "ci/check_ui_design.py")):
             errors.append("Full UI design audit")
 

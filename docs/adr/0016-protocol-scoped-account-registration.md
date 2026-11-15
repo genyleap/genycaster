@@ -26,7 +26,7 @@ Use the following ownership layers:
 | HyperSnap native registration | HyperSnap-only anchor, Hashcash, `NATIVE_ONBOARD`, shard-0 confirmation |
 | Farcaster onchain registration | Optimism-only `IdRegistry` nonce, transfer signature, onchain custody confirmation |
 | Neynar registration adapter | Public reserved-FID request body; first-party server holds API key and `x-wallet-id` |
-| `registration_plan.hpp` | Explicit, tagged route preconditions and network-specific confirmation gates |
+| `registration_plan.cppm` | Explicit, tagged route preconditions and network-specific confirmation gates |
 | Signer service | Shared signer/vault infrastructure, with network-specific authorization and verification |
 
 The onchain `Transfer` EIP-712 domain is `Farcaster IdRegistry`, version
