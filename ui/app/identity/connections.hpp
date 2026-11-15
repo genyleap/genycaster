@@ -125,11 +125,14 @@ public:
      * Returns empty on invalid/non-HTTPS configuration. No bearer is exposed. */
     [[nodiscard]] QString recoveryGatewayOrigin() const;
     [[nodiscard]] bool authorized() const noexcept;
+
     /** Presentation-only status for an independently verified native
      * Farcaster-to-OPP enrollment. It is never account authorization. */
     [[nodiscard]] QString nativeEnrollmentPhase() const { return m_nativeEnrollmentPhase; }
+
     /** Trigger retry without repeating the confirmed on-chain registration. */
     Q_INVOKABLE void retryNativeEnrollment();
+
     /** Update only the current FID; no token, proof or subject enters QML. */
     void setNativeEnrollmentPhase(qulonglong fid, QString phase);
     [[nodiscard]] bool authorizing() const noexcept;
