@@ -96,8 +96,9 @@ add_test(NAME custody.farcaster_id_registry_transfer
 # cannot depend on Qt or on the whole application runtime graph.
 add_library(genycaster_registration_plan_contract)
 target_sources(genycaster_registration_plan_contract
-    PUBLIC FILE_SET CXX_MODULES FILES
-        ../../src/application/registration_plan.cppm)
+    PUBLIC FILE_SET CXX_MODULES
+        BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/../../src/application"
+        FILES ../../src/application/registration_plan.cppm)
 target_compile_features(genycaster_registration_plan_contract PUBLIC cxx_std_26)
 set_property(TARGET genycaster_registration_plan_contract PROPERTY CXX_SCAN_FOR_MODULES ON)
 add_executable(genycaster_registration_plan registration_plan.cpp)
