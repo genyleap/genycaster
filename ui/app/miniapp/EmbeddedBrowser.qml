@@ -118,6 +118,7 @@ Popup {
             Layout.preferredHeight: Theme.scaleUi(52)
             color: Theme.surfaceRaised
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 anchors.fill: parent
                 anchors.leftMargin: Theme.space3
                 anchors.rightMargin: Theme.space3
