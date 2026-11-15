@@ -5,6 +5,7 @@
 #include <QDateTime>
 #include <QGuiApplication>
 #include <QPainter>
+#include <QtConcurrent>
 #include <QTimer>
 #include <QFontMetricsF>
 #include <QStringList>
@@ -342,6 +343,71 @@ std::optional<QString> NativeCustodyWalletController::signReservedFarcasterTrans
     if (!result || result->custodyAddress != m_private->secret->address)
         return std::nullopt;
     return QString::fromStdString(result->signature);
+}
+
+QFuture<std::optional<QString>>
+NativeCustodyWalletController::signOpenProofFarcasterChallenge(
+    const std::uint64_t confirmedFid, const QString& challenge) const
+{
+    if (!backupVerified() || !m_private->secret
+        || confirmedFid == 0U
+        || confirmedFid > 9'007'199'254'740'991ULL
+        || challenge.size() < 80 || challenge.size() > 8192) {
+        return QtConcurrent::run([] { return std::optional<QString>{}; });
+    }
+    // A sensitive copy is confined to the C++ worker, then zeroized on the
+    // final reference release. Neither QML nor HTTP receives the words.
+    // The BIP39 KDF and secp256k1 signing never block the Qt render thread.
+    auto erase = [](QByteArray* bytes) {
+        bytes->fill(char{0});
+        delete bytes;
+    };
+    const auto& words = m_private->secret->recoveryWords;
+    auto privateWords = std::shared_ptr<QByteArray>(
+        new QByteArray{words.data(), static_cast<qsizetype>(words.size())},
+        erase);
+    const auto expectedAddress = m_private->secret->address;
+    return QtConcurrent::run(
+        [privateWords = std::move(privateWords), expectedAddress,
+         confirmedFid, challenge]() -> std::optional<QString> {
+            const auto proof = custody::signOneTimeIdentityProof(
+                std::string_view{privateWords->constData(),
+                                 static_cast<std::size_t>(privateWords->size())},
+                confirmedFid, challenge.toStdString());
+            if (!proof || proof->address != expectedAddress)
+                return std::nullopt;
+            return QString::fromStdString(proof->signature);
+        });
+}
+
+QFuture<std::optional<QString>>
+NativeCustodyWalletController::signOpenProofWalletChallenge(
+    const std::uint64_t confirmedNativeFid, const QString& challenge) const
+{
+    if (!backupVerified() || !m_private->secret
+        || confirmedNativeFid < (1ULL << 32)
+        || challenge.size() < 80 || challenge.size() > 8192) {
+        return QtConcurrent::run([] { return std::optional<QString>{}; });
+    }
+    auto erase = [](QByteArray* bytes) {
+        bytes->fill(char{0});
+        delete bytes;
+    };
+    const auto& words = m_private->secret->recoveryWords;
+    auto privateWords = std::shared_ptr<QByteArray>(
+        new QByteArray{words.data(), static_cast<qsizetype>(words.size())},
+        erase);
+    const auto address = m_private->secret->address;
+    return QtConcurrent::run(
+        [privateWords = std::move(privateWords), address,
+         challenge]() -> std::optional<QString> {
+            const auto proof = custody::signOpenProofWalletChallenge(
+                std::string_view{privateWords->constData(),
+                                 static_cast<std::size_t>(privateWords->size())},
+                address, challenge.toStdString());
+            if (!proof || proof->address != address) return std::nullopt;
+            return QString::fromStdString(proof->signature);
+        });
 }
 
 void NativeCustodyWalletController::discard()

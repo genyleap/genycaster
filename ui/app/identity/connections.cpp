@@ -3507,6 +3507,28 @@ void OpenProofConnectionsController::setBookmarkCollectionMembership(
          {QStringLiteral("remove"),remove}},true);
 }
 
+void OpenProofConnectionsController::retryNativeEnrollment()
+{
+    if (m_viewerFid == 0 || m_nativeEnrollmentPhase == QStringLiteral("pending"))
+        return;
+    emit nativeEnrollmentRetryRequested();
+}
+
+void OpenProofConnectionsController::setNativeEnrollmentPhase(
+    const qulonglong fid, QString phase)
+{
+    if (fid == 0 || m_viewerFid != fid
+        || (phase != QStringLiteral("pending")
+            && phase != QStringLiteral("linked")
+            && phase != QStringLiteral("wallet-linked")
+            && phase != QStringLiteral("retry"))) {
+        return;
+    }
+    if (m_nativeEnrollmentPhase == phase) return;
+    m_nativeEnrollmentPhase = std::move(phase);
+    emit stateChanged();
+}
+
 void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
 {
     if (m_viewerFid == fid) return;
@@ -3522,6 +3544,7 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_approvalUrl.clear();
     m_error.clear();
     m_viewerFid = fid;
+    m_nativeEnrollmentPhase = QStringLiteral("idle");
     cancelNetworkReply(m_streakRead, this);
     cancelNetworkReply(m_streakWrite, this);
     m_pendingStreakCasts=m_settings && fid

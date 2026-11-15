@@ -1,6 +1,34 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.setup.opp_wallet_pending">
+            <source>Registering your HyperSnap custody wallet with Genyleap through OpenProof…</source>
+            <translation>正在通过 OpenProof 将 HyperSnap 托管钱包注册到 Genyleap…</translation>
+        </message>
+        <message id="genycaster.setup.opp_wallet_linked">
+            <source>Your Genyleap account is ready in OpenProof. The HyperSnap FID remains a separate protocol identity.</source>
+            <translation>Genyleap 账户已在 OpenProof 中就绪。HyperSnap FID 仍是独立的协议身份。</translation>
+        </message>
+        <message id="genycaster.setup.opp_wallet_retry">
+            <source>HyperSnap FID is registered, but Genyleap wallet verification did not finish. Retry without repeating protocol registration.</source>
+            <translation>HyperSnap FID 已注册，但 Genyleap 钱包验证尚未完成。可重试，无需重新注册协议。</translation>
+        </message>
+        <message id="genycaster.setup.opp_pending">
+            <source>Connecting the new Farcaster identity to Genyleap through OpenProof…</source>
+            <translation>正在通过 OpenProof 将新的 Farcaster 身份关联到 Genyleap…</translation>
+        </message>
+        <message id="genycaster.setup.opp_linked">
+            <source>Genyleap account connected through OpenProof.</source>
+            <translation>已通过 OpenProof 关联 Genyleap 账户。</translation>
+        </message>
+        <message id="genycaster.setup.opp_retry">
+            <source>Your FID is registered, but Genyleap account linking could not finish. Your registration will not be repeated.</source>
+            <translation>FID 已注册，但 Genyleap 账户关联未完成。不会重复注册。</translation>
+        </message>
+        <message id="genycaster.setup.opp_retry_action">
+            <source>Retry Genyleap account connection</source>
+            <translation>重试关联 Genyleap 账户</translation>
+        </message>
         <message id="genycaster.shell.native_signer_description">
             <source>Your native HyperSnap FID is verified. Authorize a device signer to post, react and follow. Farcaster is not required.</source>
             <translation>您的 HyperSnap 原生 FID 已验证。授权此设备的签名密钥即可发布内容、互动和关注，无需使用 Farcaster。</translation>

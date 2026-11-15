@@ -418,10 +418,160 @@ void directFarcasterStillCreatesCanonicalOpenProofIdentity()
     assert(transport.empty());
 }
 
+[[nodiscard]] std::string walletAddress()
+{
+    return "0xabababababababababababababababababababab";
+}
+
+[[nodiscard]] std::string siweChallenge()
+{
+    return "genyleap.example wants you to sign in with your Ethereum account:\n"
+        + walletAddress()
+        + "\n\nSign in to OpenProof with your Ethereum account.\n\n"
+          "URI: https://genyleap.example/account\nVersion: 1\n"
+          "Chain ID: 1\nNonce: abcdef12345678\nIssued At: 2026-11-15T10:00:00Z\n"
+          "Expiration Time: 2026-11-15T10:05:00Z";
+}
+
+void walletEnrollmentCreatesOrReusesCanonicalAccount()
+{
+    const auto message = siweChallenge();
+    ScriptedTransport transport{{
+        Step{
+            .method = Method::Post,
+            .urlSuffix = "/auth/web3/start",
+            .status = 200,
+            .responseBody = std::string{R"({"provider":"ethereum-wallet","address":")"}
+                + walletAddress() + R"(","chain_id":"1","message":")"
+                // JSON escapes are mandatory for a multiline SIWE challenge.
+                + [] (std::string_view text) {
+                    std::string escaped{};
+                    for (char c : text) {
+                        if (c == '\n') escaped += "\\n";
+                        else escaped.push_back(c);
+                    }
+                    return escaped;
+                }(message) + R"("})",
+            .responseHeaders = {
+                "Set-Cookie: __Host-openproof-web3-continuation=abc; Path=/; Secure; HttpOnly",
+                "Set-Cookie: __Host-openproof-web3-binding=xyz; Path=/; Secure; HttpOnly",
+            },
+            .requestBodyContains = R"("provider":"ethereum-wallet")",
+        },
+        Step{
+            .method = Method::Post,
+            .urlSuffix = "/auth/web3/complete",
+            .status = 200,
+            .responseBody = R"({"authenticated":true,"identity_id":"opi_canonical-wallet-account"})",
+            .responseHeaders = {
+                "Set-Cookie: __Host-openproof-session=opaquewalletsession; Path=/; Secure; HttpOnly",
+            },
+            .requestBodyContains = std::string{R"("signature":"0x)"}
+                + std::string(130U, 'a') + "\"",
+            .requestHeaderContains = "__Host-openproof-web3-continuation=abc",
+        },
+        Step{
+            .method = Method::Get,
+            .urlSuffix = "/account/profile",
+            .status = 200,
+            .responseBody = R"({"identity_id":"opi_canonical-wallet-account"})",
+            .requestHeaderContains = "__Host-openproof-session=opaquewalletsession",
+        },
+        Step{
+            .method = Method::Get,
+            .urlSuffix = "/account/connections",
+            .status = 200,
+            .responseBody = std::string{R"({"connections":[{"provider":"ethereum-wallet","subject":")"}
+                + walletAddress() + R"("}]})",
+            .requestHeaderContains = "__Host-openproof-session=opaquewalletsession",
+        },
+    }};
+    auto started = provider::beginWalletEnrollment(transport, walletAddress(), 1, config());
+    assert(started);
+    assert((*started)->challengeMessage() == message);
+    auto enrolled = (*started)->complete("0x" + std::string(130U, 'a'));
+    assert(enrolled);
+    assert(enrolled->subject == "opi_canonical-wallet-account");
+    assert(enrolled->walletAddress == walletAddress());
+    // This is account-wallet verification, NOT a HyperSnap FID link.
+    auto replayed = (*started)->complete("0x" + std::string(130U, 'a'));
+    assert(!replayed);
+    assert(transport.empty());
+}
+
+void walletEnrollmentRefusesConnectionMismatch()
+{
+    const auto message = siweChallenge();
+    ScriptedTransport transport{{
+        Step{
+            .method = Method::Post,
+            .urlSuffix = "/auth/web3/start",
+            .status = 200,
+            .responseBody = std::string{R"({"provider":"ethereum-wallet","address":")"}
+                + walletAddress()
+                + R"(","chain_id":"1","message":")"
+                + [] (std::string_view text) {
+                    std::string escaped{};
+                    for (char c : text) {
+                        if (c == '\n') escaped += "\\n";
+                        else escaped.push_back(c);
+                    }
+                    return escaped;
+                }(message) + R"("})",
+            .responseHeaders = {
+                "Set-Cookie: __Host-openproof-web3-continuation=abc; Path=/",
+            },
+        },
+        Step{
+            .method = Method::Post,
+            .urlSuffix = "/auth/web3/complete",
+            .status = 200,
+            .responseBody = R"({"authenticated":true,"identity_id":"opi_wallet"})",
+            .responseHeaders = {"Set-Cookie: __Host-openproof-session=session; Path=/"},
+        },
+        Step{
+            .method = Method::Get,
+            .urlSuffix = "/account/profile",
+            .status = 200,
+            .responseBody = R"({"identity_id":"opi_wallet"})",
+        },
+        Step{
+            .method = Method::Get,
+            .urlSuffix = "/account/connections",
+            .status = 200,
+            .responseBody = R"({"connections":[{"provider":"ethereum-wallet","subject":"0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"}]})",
+        },
+    }};
+    auto started = provider::beginWalletEnrollment(transport, walletAddress(), 1, config());
+    assert(started);
+    auto completed = (*started)->complete("0x" + std::string(130U, 'a'));
+    assert(!completed);
+    assert(transport.empty());
+}
+
+void walletEnrollmentRejectsUntrustedChallengeWithoutSigning()
+{
+    ScriptedTransport transport{{
+        Step{
+            .method = Method::Post,
+            .urlSuffix = "/auth/web3/start",
+            .status = 200,
+            .responseBody = R"({"provider":"ethereum-wallet","address":"0xabababababababababababababababababababab","chain_id":"1","message":"evil.example wants you to sign in with your Ethereum account:\n0xabababababababababababababababababababab\n\nSign in to OpenProof with your Ethereum account.\n\nURI: https://evil.example/account\nVersion: 1\nChain ID: 1\nNonce: abcdef12345678"})",
+            .responseHeaders = {"Set-Cookie: __Host-openproof-web3-continuation=abc; Path=/"},
+        },
+    }};
+    auto started = provider::beginWalletEnrollment(transport, walletAddress(), 1, config());
+    assert(!started);
+    assert(transport.empty());
+}
+
 }
 
 int main()
 {
+    walletEnrollmentCreatesOrReusesCanonicalAccount();
+    walletEnrollmentRefusesConnectionMismatch();
+    walletEnrollmentRejectsUntrustedChallengeWithoutSigning();
     deviceAuthorizationCompletesForAlreadyLinkedAccount();
     rejectsAmbiguousFarcasterConnections();
     deviceAuthorizationRequiresAndCompletesFarcasterLink();

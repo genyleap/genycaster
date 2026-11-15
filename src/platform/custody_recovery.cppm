@@ -134,6 +134,17 @@ derivePublicCustodyAddress(std::string_view phrase);
 signOneTimeIdentityProof(std::string_view phrase, std::uint64_t fid,
                          std::string_view challenge);
 
+/** @brief Sign a one-use EIP-4361 OpenProof Ethereum-wallet challenge.
+ * @details This proves only the custody address, never HyperSnap FID
+ * ownership. The caller separately checks the confirmed native registry
+ * before invoking this primitive. The exact origin, address, statement,
+ * URI, version and chain ID are verified before deriving any secret.
+ */
+[[nodiscard]] std::expected<RecoveryProof, Error>
+signOpenProofWalletChallenge(std::string_view phrase,
+                             std::string_view expectedAddress,
+                             std::string_view challenge);
+
 /**
  * Materialize one strictly ephemeral custody authorizer after the first-party
  * recovery challenge has proved the same address owns the user FID.

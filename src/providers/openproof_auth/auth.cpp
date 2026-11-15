@@ -1210,6 +1210,220 @@ private:
 
 }
 
+
+namespace {
+
+// OPP provides an EIP-4361 wallet provider already. This adapter owns its
+// short-lived cookie-bound challenge and verifies both the canonical account
+// response and the linked Ethereum-wallet connection before reporting success.
+// HyperSnap FID provenance must remain protocol-native; SIWE proves only
+// custody-wallet ownership, not a HyperSnap registry record.
+class WalletEnrollmentAttempt final : public IWalletEnrollmentAttempt {
+public:
+    WalletEnrollmentAttempt(transport::http::IHttpTransport& transport,
+                            Config config, std::string address,
+                            std::string message, CookieJar cookies)
+        : m_transport(transport), m_config(std::move(config)),
+          m_address(std::move(address)), m_message(std::move(message)),
+          m_cookies(std::move(cookies)),
+          m_deadline(std::chrono::steady_clock::now() + std::chrono::minutes{5})
+    {
+    }
+
+    [[nodiscard]] std::string_view challengeMessage() const noexcept override
+    {
+        return m_message;
+    }
+
+    [[nodiscard]] foundation::result::Result<VerifiedWalletEnrollment>
+    complete(std::string signature) override
+    {
+        // A signed one-time challenge must never be replayed. The attempt is
+        // consumed before network I/O even if a timeout makes the outcome
+        // ambiguous; the caller can start a new read-only SIWE attempt.
+        if (m_consumed || std::chrono::steady_clock::now() > m_deadline) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Unauthorized,
+                "The OpenProof wallet enrollment challenge is no longer active."));
+        }
+        m_consumed = true;
+        const auto wipe = [&signature] {
+            std::fill(signature.begin(), signature.end(), char{0});
+        };
+        struct EraseSignature final {
+            decltype(wipe)& erase;
+            ~EraseSignature() { erase(); }
+        } eraseOnExit{wipe};
+
+        if (signature.size() != 132U || !signature.starts_with("0x")
+            || !std::all_of(signature.begin() + 2, signature.end(),
+                [](const unsigned char digit) { return std::isxdigit(digit) != 0; })) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "The OpenProof wallet signature is not EIP-191 hexadecimal."));
+        }
+
+        auto completed = m_transport.post(transport::http::HttpPostRequest{
+            .url = joinUrl(m_config.issuer, "/auth/web3/complete"),
+            .headers = {"Content-Type: application/json", "Accept: application/json",
+                        "Cookie: " + m_cookies.requestHeader()},
+            .body = "{\"message\":\"" + jsonEscape(m_message)
+                + "\",\"signature\":\"" + signature + "\"}",
+            .timeout = m_config.requestTimeout,
+            .maxBodyBytes = 128U * 1024U,
+        });
+        if (!completed) return std::unexpected(std::move(completed.error()));
+        if (auto status = requireStatus(*completed, 200U, "OpenProof wallet completion");
+            !status)
+            return std::unexpected(std::move(status.error()));
+        auto json = parseJson(completed->body, "OpenProof wallet completion");
+        if (!json || !json->get<bool>("authenticated", false)) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Unauthorized,
+                "OpenProof did not authenticate the custody wallet."));
+        }
+        const auto subject = trim(json->get("identity_id", std::string{}));
+        if (!subject.starts_with("opi_") || subject.size() > 512U) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::ProtocolFailure,
+                "OpenProof returned an invalid canonical identity."));
+        }
+        m_cookies.absorb(*completed);
+        const std::vector<std::string> headers{
+            "Cookie: " + m_cookies.requestHeader(), "Accept: application/json"};
+
+        auto profile = m_transport.get(transport::http::HttpRequest{
+            .url = joinUrl(m_config.issuer, "/account/profile"),
+            .headers = headers, .timeout = m_config.requestTimeout,
+            .maxBodyBytes = 128U * 1024U,
+        });
+        if (!profile) return std::unexpected(std::move(profile.error()));
+        if (auto status = requireStatus(*profile, 200U, "OpenProof wallet identity");
+            !status)
+            return std::unexpected(std::move(status.error()));
+        auto profileJson = parseJson(profile->body, "OpenProof wallet identity");
+        if (!profileJson
+            || profileJson->get("identity_id", std::string{}) != subject) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Unauthorized,
+                "OpenProof wallet identity did not match the verified session."));
+        }
+
+        auto connections = m_transport.get(transport::http::HttpRequest{
+            .url = joinUrl(m_config.issuer, "/account/connections"),
+            .headers = headers, .timeout = m_config.requestTimeout,
+            .maxBodyBytes = 256U * 1024U,
+        });
+        if (!connections) return std::unexpected(std::move(connections.error()));
+        if (auto status = requireStatus(*connections, 200U, "OpenProof wallet connection");
+            !status)
+            return std::unexpected(std::move(status.error()));
+        auto linked = parseJson(connections->body, "OpenProof wallet connection");
+        if (!linked) return std::unexpected(std::move(linked.error()));
+        const auto list = linked->get_child_optional("connections");
+        if (!list) return std::unexpected(makeError(
+            foundation::error::ErrorCode::ProtocolFailure,
+            "OpenProof wallet identity has no connection directory."));
+        bool walletVerified = false;
+        for (const auto& entry : *list) {
+            if (entry.second.get("provider", std::string{}) == "ethereum-wallet"
+                && lower(entry.second.get("subject", std::string{})) == m_address) {
+                walletVerified = true;
+                break;
+            }
+        }
+        if (!walletVerified) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Unauthorized,
+                "OpenProof has not linked the custody wallet to this identity."));
+        }
+        return VerifiedWalletEnrollment{.subject = subject,
+                                        .walletAddress = m_address};
+    }
+
+private:
+    transport::http::IHttpTransport& m_transport;
+    Config m_config;
+    std::string m_address;
+    std::string m_message;
+    CookieJar m_cookies;
+    std::chrono::steady_clock::time_point m_deadline;
+    bool m_consumed{false};
+};
+
+} // namespace
+
+foundation::result::Result<std::shared_ptr<IWalletEnrollmentAttempt>>
+beginWalletEnrollment(transport::http::IHttpTransport& transport,
+                      std::string walletAddress, const std::uint64_t chainId,
+                      Config config)
+{
+    walletAddress = lower(trim(std::move(walletAddress)));
+    if (walletAddress.size() != 42U || !walletAddress.starts_with("0x")
+        || !std::all_of(walletAddress.begin() + 2, walletAddress.end(),
+            [](const unsigned char digit) { return std::isxdigit(digit) != 0; })
+        || chainId != 1U
+        || !validHttpsUrl(config.issuer)
+        || !validHttpsUrl(config.genyleapAccountUrl)) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "OpenProof SIWE requires a trusted issuer and Ethereum mainnet wallet."));
+    }
+    const std::string url = withoutTrailingSlash(config.genyleapAccountUrl);
+    const auto authorityEnd = url.find('/', std::string_view{"https://"}.size());
+    const std::string domain = url.substr(
+        std::string_view{"https://"}.size(),
+        authorityEnd == std::string::npos ? std::string::npos
+                                         : authorityEnd - std::string_view{"https://"}.size());
+    if (domain.empty() || domain.find_first_of(":@?#\\") != std::string::npos) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "OpenProof wallet enrollment authority is not trusted."));
+    }
+    auto started = transport.post(transport::http::HttpPostRequest{
+        .url = joinUrl(config.issuer, "/auth/web3/start"),
+        .headers = {"Content-Type: application/json", "Accept: application/json"},
+        .body = "{\"provider\":\"ethereum-wallet\",\"address\":\""
+            + walletAddress + "\",\"chain_id\":\"1\"}",
+        .timeout = config.requestTimeout, .maxBodyBytes = 128U * 1024U,
+    });
+    if (!started) return std::unexpected(std::move(started.error()));
+    if (auto status = requireStatus(*started, 200U, "OpenProof wallet challenge");
+        !status)
+        return std::unexpected(std::move(status.error()));
+    auto payload = parseJson(started->body, "OpenProof wallet challenge");
+    if (!payload) return std::unexpected(std::move(payload.error()));
+    const auto message = payload->get("message", std::string{});
+    const std::string expectedHeading = domain
+        + " wants you to sign in with your Ethereum account:\n"
+        + walletAddress;
+    const std::string statement =
+        "\nSign in to OpenProof with your Ethereum account.";
+    if (payload->get("provider", std::string{}) != "ethereum-wallet"
+        || lower(payload->get("address", std::string{})) != walletAddress
+        || payload->get("chain_id", std::string{}) != "1"
+        || message.size() < 80U || message.size() > 8192U
+        || !message.starts_with(expectedHeading)
+        || message.find(statement) == std::string::npos
+        || message.find("\nURI: " + url + "\n") == std::string::npos) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "OpenProof returned a foreign or malformed SIWE challenge."));
+    }
+    CookieJar cookies;
+    cookies.absorb(*started);
+    if (cookies.empty()) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "OpenProof wallet challenge did not bind a secure session."));
+    }
+    std::shared_ptr<IWalletEnrollmentAttempt> attempt =
+        std::make_shared<WalletEnrollmentAttempt>(
+            transport, std::move(config), std::move(walletAddress),
+            message, std::move(cookies));
+    return attempt;
+}
+
 foundation::result::Result<std::unique_ptr<capability::auth::IAuthenticationProvider>>
 makeAuthentication(transport::http::IHttpTransport& transport, Config config)
 {

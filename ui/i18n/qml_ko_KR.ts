@@ -1,6 +1,34 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.setup.opp_wallet_pending">
+            <source>Registering your HyperSnap custody wallet with Genyleap through OpenProof…</source>
+            <translation>OpenProof를 통해 HyperSnap 수탁 지갑을 Genyleap에 등록하는 중…</translation>
+        </message>
+        <message id="genycaster.setup.opp_wallet_linked">
+            <source>Your Genyleap account is ready in OpenProof. The HyperSnap FID remains a separate protocol identity.</source>
+            <translation>Genyleap 계정이 OpenProof에 준비되었습니다. HyperSnap FID는 별도의 프로토콜 ID입니다.</translation>
+        </message>
+        <message id="genycaster.setup.opp_wallet_retry">
+            <source>HyperSnap FID is registered, but Genyleap wallet verification did not finish. Retry without repeating protocol registration.</source>
+            <translation>HyperSnap FID는 등록되었지만 Genyleap 지갑 검증이 완료되지 않았습니다. 재등록 없이 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.setup.opp_pending">
+            <source>Connecting the new Farcaster identity to Genyleap through OpenProof…</source>
+            <translation>새 Farcaster ID를 OpenProof를 통해 Genyleap에 연결하는 중…</translation>
+        </message>
+        <message id="genycaster.setup.opp_linked">
+            <source>Genyleap account connected through OpenProof.</source>
+            <translation>OpenProof를 통해 Genyleap 계정이 연결되었습니다.</translation>
+        </message>
+        <message id="genycaster.setup.opp_retry">
+            <source>Your FID is registered, but Genyleap account linking could not finish. Your registration will not be repeated.</source>
+            <translation>FID는 등록되었지만 Genyleap 계정 연결이 완료되지 않았습니다. 등록은 반복되지 않습니다.</translation>
+        </message>
+        <message id="genycaster.setup.opp_retry_action">
+            <source>Retry Genyleap account connection</source>
+            <translation>Genyleap 계정 연결 다시 시도</translation>
+        </message>
         <message id="genycaster.shell.native_signer_description">
             <source>Your native HyperSnap FID is verified. Authorize a device signer to post, react and follow. Farcaster is not required.</source>
             <translation>HyperSnap 네이티브 FID가 확인되었습니다. 게시, 반응, 팔로우를 위해 이 기기의 서명자를 승인하세요. Farcaster는 필요하지 않습니다.</translation>

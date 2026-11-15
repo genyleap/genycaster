@@ -123,6 +123,9 @@ import farcaster.domain.write;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
+#if GENYCASTER_HAS_OPENPROOF_AUTH
+import farcaster.provider.identity.openproof;
+#endif
 #if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
 // A C++ module import does not transitively expose declarations imported by
 // other modules. Native recovery stores an ICustodyAuthorizer in RecoveryBundle,
@@ -2633,7 +2636,334 @@ void connectRuntime(
     // Registry verification, durable session and one-shot signer permission
     // are shared by signup and recovery. The native verifier remains separate
     // from Farcaster's OpenProof/Optimism identity authority.
-    auto commitVerifiedIdentity = [runtime, &bridge, sessionObserver, signerObserver](
+
+    // Account enrollment must not submit another IdRegistry transaction.
+    // The FID/custody pair is already verified above; reuse the same
+    // one-shot HTTPS OpenProof gateway and C++-only BIP39 signer as native
+    // Farcaster recovery. The protocol-only session remains usable if OPP is
+    // unavailable. Signatures/tickets are never exposed to QML or persisted.
+    std::function<void(std::uint64_t, QString)> beginNativeOpenProofEnrollment{};
+    std::function<void(std::uint64_t, QString)> beginNativeWalletEnrollment{};
+#if GENYCASTER_HAS_OPENPROOF_AUTH
+    using EnrollmentChallenge = foundation::result::Result<
+        farcaster::provider::compatibility::auth::RecoveryChallenge>;
+    using EnrollmentIdentity = foundation::result::Result<
+        farcaster::provider::compatibility::auth::RecoveryIdentity>;
+    auto enrollmentGeneration = std::make_shared<std::atomic_uint64_t>(0U);
+    QObject::connect(&bridge, &PresentationBridge::signOutRequested, &bridge,
+        [enrollmentGeneration] {
+            enrollmentGeneration->fetch_add(1U, std::memory_order_acq_rel);
+        });
+    const QPointer<NativeCustodyWalletController> protectedWallet{nativeWallet};
+    beginNativeOpenProofEnrollment =
+        [runtime, &bridge, &connections, protectedWallet,
+         sessionObserver, enrollmentGeneration](const std::uint64_t fid,
+                                               QString custody) {
+        const auto active = runtime->currentSessionSnapshot();
+        if (!active || active->fid.value != fid
+            || active->identityIssuer != "farcaster:optimism-id-registry"
+            || !active->custodyAddress
+            || QString::fromStdString(*active->custodyAddress) != custody.toLower()
+            || !bridge.isAuthenticated() || bridge.accountFid() != fid
+            || !protectedWallet || !protectedWallet->backupVerified()
+            || protectedWallet->address().toLower() != custody.toLower()) {
+            return;
+        }
+        if (connections.nativeEnrollmentPhase() == QStringLiteral("pending"))
+            return;
+        const QString gateway = connections.recoveryGatewayOrigin();
+        if (gateway.isEmpty() || !runtime->transport) {
+            connections.setNativeEnrollmentPhase(fid, QStringLiteral("retry"));
+            return;
+        }
+        const auto generation = enrollmentGeneration->fetch_add(
+            1U, std::memory_order_acq_rel) + 1U;
+        connections.setNativeEnrollmentPhase(fid, QStringLiteral("pending"));
+        const auto current = [runtime, &bridge, enrollmentGeneration,
+                              generation, fid, custody] {
+            if (enrollmentGeneration->load(std::memory_order_acquire) != generation
+                || !bridge.isAuthenticated() || bridge.accountFid() != fid)
+                return false;
+            const auto snapshot = runtime->currentSessionSnapshot();
+            return snapshot && snapshot->fid.value == fid
+                && snapshot->identityIssuer == "farcaster:optimism-id-registry"
+                && snapshot->custodyAddress
+                && QString::fromStdString(*snapshot->custodyAddress)
+                       == custody.toLower();
+        };
+        // libc++ 22 can instantiate recursive std::expected comparisons
+        // for QFutureWatcher<T>; retain typed futures and watch void only.
+        auto challengeFuture = std::make_shared<QFuture<EnrollmentChallenge>>();
+        auto* challengeWatcher = new QFutureWatcher<void>(&bridge);
+        QObject::connect(challengeWatcher,
+            &QFutureWatcher<void>::finished, &bridge,
+            [challengeWatcher, challengeFuture, runtime, &bridge,
+             &connections, protectedWallet,
+             sessionObserver, enrollmentGeneration, generation, fid,
+             custody, gateway, current]() mutable {
+                auto challenge = challengeFuture->result();
+                challengeWatcher->deleteLater();
+                if (!current()) return;
+                if (!challenge || !protectedWallet) {
+                    connections.setNativeEnrollmentPhase(fid, QStringLiteral("retry"));
+                    return;
+                }
+                // BIP39 derivation and signing execute in a zeroizing C++
+                // worker: never stall the Qt Quick render/UI thread.
+                auto signatureFuture = std::make_shared<QFuture<std::optional<QString>>>(
+                    protectedWallet->signOpenProofFarcasterChallenge(
+                        fid, QString::fromStdString(challenge->message)));
+                auto* signatureWatcher = new QFutureWatcher<void>(&bridge);
+                QObject::connect(signatureWatcher,
+                    &QFutureWatcher<void>::finished, &bridge,
+                    [signatureWatcher, signatureFuture, runtime, &bridge, &connections,
+                     sessionObserver, enrollmentGeneration, generation,
+                     current, fid, custody, gateway,
+                     challenge = std::move(*challenge)]() mutable {
+                const auto signature = signatureFuture->result();
+                signatureWatcher->deleteLater();
+                if (!current()) return;
+                if (!signature) {
+                    connections.setNativeEnrollmentPhase(fid, QStringLiteral("retry"));
+                    return;
+                }
+                auto completedFuture = std::make_shared<QFuture<EnrollmentIdentity>>();
+                auto* completedWatcher = new QFutureWatcher<void>(&bridge);
+                QObject::connect(completedWatcher,
+                    &QFutureWatcher<void>::finished, &bridge,
+                    [completedWatcher, completedFuture, runtime, &bridge, &connections,
+                     sessionObserver, enrollmentGeneration, generation,
+                     current, fid, custody]() mutable {
+                        auto verified = completedFuture->result();
+                        completedWatcher->deleteLater();
+                        if (!current()) return;
+                        if (!verified || verified->fid.value != fid
+                            || verified->issuer != genycaster::deployment::openProofIssuer) {
+                            connections.setNativeEnrollmentPhase(
+                                fid, QStringLiteral("retry"));
+                            return;
+                        }
+                        auto ticket = std::make_shared<QByteArray>(
+                            QByteArray::fromStdString(verified->accountTicket));
+                        std::fill(verified->accountTicket.begin(),
+                                  verified->accountTicket.end(), char{0});
+                        const QString subject = QString::fromStdString(verified->subject);
+                        const int expires = verified->expiresSeconds;
+                        const auto now = foundation::time::now();
+                        domain::session::ClientSession canonical{
+                            .identityIssuer = verified->issuer,
+                            .identitySubject = verified->subject,
+                            .fid = domain::identity::Fid{fid},
+                            .custodyAddress = custody.toLower().toStdString(),
+                            .method = domain::session::AuthenticationMethod::Custody,
+                            .authenticatedAt = now,
+                            .expiresAt = now + std::chrono::duration_cast<
+                                std::chrono::milliseconds>(
+                                    std::chrono::seconds{expires})
+                        };
+                        auto saved = runtime->sessionService->acceptVerifiedRecovery(
+                            std::move(canonical),
+                            [&bridge, &connections, runtime, sessionObserver,
+                             enrollmentGeneration, generation, ticket,
+                             subject, fid, expires](
+                                application::session::SessionState state) mutable {
+                                const bool accepted =
+                                    state.phase == application::session::SessionPhase::Authenticated
+                                    && state.session && state.session->fid.value == fid
+                                    && state.session->identityIssuer
+                                    == genycaster::deployment::openProofIssuer
+                                    && state.session->identitySubject
+                                    == subject.toStdString();
+                                if (enrollmentGeneration->load(std::memory_order_acquire)
+                                        != generation) {
+                                    ticket->fill(char{0});
+                                    return;
+                                }
+                                sessionObserver(std::move(state));
+                                QMetaObject::invokeMethod(&bridge,
+                                    [&bridge, &connections, runtime,
+                                     enrollmentGeneration, generation,
+                                     ticket, subject, fid, expires, accepted]() mutable {
+                                        if (!accepted
+                                            || enrollmentGeneration->load(
+                                                std::memory_order_acquire) != generation
+                                            || !bridge.isAuthenticated()
+                                            || bridge.accountFid() != fid
+                                            || bridge.accountIdentityIssuer()
+                                                != connections.identityIssuer()) {
+                                            ticket->fill(char{0});
+                                            if (bridge.isAuthenticated()
+                                                && bridge.accountFid() == fid)
+                                                connections.setNativeEnrollmentPhase(
+                                                    fid, QStringLiteral("retry"));
+                                            return;
+                                        }
+                                        connections.acceptRecoveryGrant(
+                                            std::move(*ticket), subject, fid, expires);
+                                        connections.setNativeEnrollmentPhase(
+                                            fid, QStringLiteral("linked"));
+                                    }, Qt::QueuedConnection);
+                            });
+                        if (!saved) {
+                            ticket->fill(char{0});
+                            connections.setNativeEnrollmentPhase(
+                                fid, QStringLiteral("retry"));
+                        }
+                    });
+                *completedFuture = QtConcurrent::run(
+                    [runtime, gateway = gateway.toStdString(),
+                     request = std::move(challenge),
+                     signature = signature->toStdString()]() mutable {
+                        auto verified =
+                            farcaster::provider::compatibility::auth::
+                                completeRecoveryChallenge(
+                                    *runtime->transport, gateway, request, signature);
+                        std::fill(signature.begin(), signature.end(), char{0});
+                        return verified;
+                    });
+                completedWatcher->setFuture(QFuture<void>{*completedFuture});
+                    });
+                signatureWatcher->setFuture(QFuture<void>{*signatureFuture});
+            });
+        *challengeFuture = QtConcurrent::run(
+            [runtime, gateway = gateway.toStdString(), fid,
+             address = custody.toLower().toStdString()] {
+                return farcaster::provider::compatibility::auth::
+                    startRecoveryChallenge(*runtime->transport, gateway,
+                        domain::identity::Fid{fid}, address);
+            });
+        challengeWatcher->setFuture(QFuture<void>{*challengeFuture});
+    };
+    // HyperSnap has a distinct registry and FID namespace. OpenProof already
+    // supports Ethereum-wallet SIWE self-provisioning, so create/resolve the
+    // *wallet's* canonical account without forging a Farcaster link or
+    // changing the protocol-only HyperSnap session.
+    using WalletStart = foundation::result::Result<std::shared_ptr<
+        farcaster::provider::identity::openproof::IWalletEnrollmentAttempt>>;
+    using WalletReceipt = foundation::result::Result<
+        farcaster::provider::identity::openproof::VerifiedWalletEnrollment>;
+    beginNativeWalletEnrollment =
+        [runtime, &bridge, &connections, protectedWallet,
+         enrollmentGeneration](const std::uint64_t fid, QString custody) {
+        const auto active = runtime->currentSessionSnapshot();
+        if (!active || active->fid.value != fid
+            || fid < (1ULL << 32)
+            || active->identityIssuer != "hypersnap:native-registry"
+            || !active->custodyAddress
+            || QString::fromStdString(*active->custodyAddress) != custody.toLower()
+            || !bridge.isAuthenticated() || bridge.accountFid() != fid
+            || !protectedWallet || !protectedWallet->backupVerified()
+            || protectedWallet->address().toLower() != custody.toLower()
+            || !runtime->transport)
+            return;
+        if (connections.nativeEnrollmentPhase() == QStringLiteral("pending"))
+            return;
+        const auto generation = enrollmentGeneration->fetch_add(
+            1U, std::memory_order_acq_rel) + 1U;
+        connections.setNativeEnrollmentPhase(fid, QStringLiteral("pending"));
+        const auto current = [runtime, &bridge, enrollmentGeneration,
+                              generation, fid, custody] {
+            if (enrollmentGeneration->load(std::memory_order_acquire) != generation
+                || !bridge.isAuthenticated() || bridge.accountFid() != fid)
+                return false;
+            const auto snapshot = runtime->currentSessionSnapshot();
+            return snapshot && snapshot->fid.value == fid
+                && snapshot->identityIssuer == "hypersnap:native-registry"
+                && snapshot->custodyAddress
+                && QString::fromStdString(*snapshot->custodyAddress)
+                    == custody.toLower();
+        };
+        auto startedFuture = std::make_shared<QFuture<WalletStart>>();
+        auto* startedWatcher = new QFutureWatcher<void>(&bridge);
+        QObject::connect(startedWatcher, &QFutureWatcher<void>::finished,
+            &bridge, [startedWatcher, startedFuture, runtime, &bridge,
+                      &connections, protectedWallet, generation, current,
+                      fid, custody]() mutable {
+                auto started = startedFuture->result();
+                startedWatcher->deleteLater();
+                if (!current()) return;
+                if (!started || !protectedWallet) {
+                    connections.setNativeEnrollmentPhase(fid, QStringLiteral("retry"));
+                    return;
+                }
+                auto attempt = *started;
+                const auto signatureFuture = std::make_shared<
+                    QFuture<std::optional<QString>>>(
+                        protectedWallet->signOpenProofWalletChallenge(
+                            fid, QString::fromStdString(
+                                std::string{attempt->challengeMessage()})));
+                auto* signatureWatcher = new QFutureWatcher<void>(&bridge);
+                QObject::connect(signatureWatcher,
+                    &QFutureWatcher<void>::finished, &bridge,
+                    [signatureWatcher, signatureFuture, attempt, runtime,
+                     &bridge, &connections, current, fid, custody]() mutable {
+                        auto signature = signatureFuture->result();
+                        signatureWatcher->deleteLater();
+                        if (!current()) return;
+                        if (!signature) {
+                            connections.setNativeEnrollmentPhase(
+                                fid, QStringLiteral("retry"));
+                            return;
+                        }
+                        auto finishedFuture = std::make_shared<QFuture<WalletReceipt>>();
+                        auto* finishedWatcher = new QFutureWatcher<void>(&bridge);
+                        QObject::connect(finishedWatcher,
+                            &QFutureWatcher<void>::finished, &bridge,
+                            [finishedWatcher, finishedFuture, &connections,
+                             current, fid, custody]() mutable {
+                                auto verified = finishedFuture->result();
+                                finishedWatcher->deleteLater();
+                                if (!current()) return;
+                                // Wallet account creation/lookup succeeded.
+                                // Do NOT rewrite the HyperSnap FID issuer to
+                                // OpenProof: OPP has no native registry proof.
+                                if (!verified
+                                    || verified->walletAddress != custody.toLower()
+                                    || !verified->subject.starts_with("opi_")) {
+                                    connections.setNativeEnrollmentPhase(
+                                        fid, QStringLiteral("retry"));
+                                    return;
+                                }
+                                connections.setNativeEnrollmentPhase(
+                                    fid, QStringLiteral("wallet-linked"));
+                            });
+                        *finishedFuture = QtConcurrent::run(
+                            [attempt, signature = signature->toStdString()]() mutable {
+                                auto verified = attempt->complete(signature);
+                                std::fill(signature.begin(), signature.end(), char{0});
+                                return verified;
+                            });
+                        finishedWatcher->setFuture(QFuture<void>{*finishedFuture});
+                    });
+                signatureWatcher->setFuture(QFuture<void>{*signatureFuture});
+            });
+        *startedFuture = QtConcurrent::run(
+            [runtime, address = custody.toLower().toStdString()] {
+                return farcaster::provider::identity::openproof::
+                    beginWalletEnrollment(*runtime->transport, address);
+            });
+        startedWatcher->setFuture(QFuture<void>{*startedFuture});
+    };
+    QObject::connect(&connections,
+        &OpenProofConnectionsController::nativeEnrollmentRetryRequested,
+        &bridge, [runtime, protectedWallet, beginNativeOpenProofEnrollment,
+                  beginNativeWalletEnrollment] {
+            const auto active = runtime->currentSessionSnapshot();
+            if (!active || !active->custodyAddress || !protectedWallet)
+                return;
+            const auto address = QString::fromStdString(*active->custodyAddress);
+            if (active->identityIssuer == "farcaster:optimism-id-registry"
+                && beginNativeOpenProofEnrollment)
+                beginNativeOpenProofEnrollment(active->fid.value, address);
+            else if (active->identityIssuer == "hypersnap:native-registry"
+                     && beginNativeWalletEnrollment)
+                beginNativeWalletEnrollment(active->fid.value, address);
+        });
+#endif
+
+    auto commitVerifiedIdentity = [runtime, &bridge, sessionObserver, signerObserver,
+                                   beginNativeOpenProofEnrollment,
+                                   beginNativeWalletEnrollment](
         const std::uint64_t fid, const QString& custody,
         std::shared_ptr<capability::signer::ICustodyAuthorizer> permit,
         const bool farcaster) {
@@ -2675,7 +3005,9 @@ void connectRuntime(
                     };
                     auto persisted = [runtime, &bridge, sessionObserver,
                         signerObserver, permit = std::move(permit),
-                        fid, issuer, writer](
+                        fid, issuer, writer, farcaster, custody,
+                        beginNativeOpenProofEnrollment,
+                        beginNativeWalletEnrollment](
                         application::session::SessionState state) mutable {
                         const bool accepted = state.phase
                                 == application::session::SessionPhase::Authenticated
@@ -2687,7 +3019,9 @@ void connectRuntime(
                         // provision; the one-shot key may authorize ONLY this FID.
                         QMetaObject::invokeMethod(&bridge,
                             [&bridge, runtime, signerObserver, permit, fid,
-                             issuer, writer] {
+                             issuer, writer, farcaster, custody,
+                             beginNativeOpenProofEnrollment,
+                             beginNativeWalletEnrollment] {
                                 if (!bridge.isAuthenticated()
                                     || bridge.accountFid() != fid
                                     || !runtime->signerService)
@@ -2709,6 +3043,14 @@ void connectRuntime(
                                             .phase = application::signer::SignerPhase::Unavailable,
                                             .error = std::move(result.error())});
                                 }
+                                // OPP enrollment is independent of whether a
+                                // device signer could be provisioned. Reuse
+                                // the already confirmed custody/FID; never
+                                // repeat the IdRegistry transaction.
+                                if (farcaster && beginNativeOpenProofEnrollment)
+                                    beginNativeOpenProofEnrollment(fid, custody);
+                                else if (!farcaster && beginNativeWalletEnrollment)
+                                    beginNativeWalletEnrollment(fid, custody);
                             }, Qt::QueuedConnection);
                     };
                     auto result = farcaster

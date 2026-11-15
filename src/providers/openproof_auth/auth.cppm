@@ -16,8 +16,10 @@ module;
 
 #include "genycaster_deployment.hpp"
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 
 export module farcaster.provider.identity.openproof;
 
@@ -51,5 +53,41 @@ struct Config final {
 makeAuthentication(
     transport::http::IHttpTransport& transport,
     Config config = {});
+
+/** @brief Canonical OPP wallet identity after a verified SIWE exchange.
+ * @details This does not assert that an independent HyperSnap FID is linked
+ * to the account; the protocol-only session retains its native registry
+ * provenance until a distinct registry-bound OpenProof verifier exists.
+ */
+struct VerifiedWalletEnrollment final {
+    std::string subject{};
+    std::string walletAddress{};
+};
+
+/** @brief Short-lived C++-only SIWE ceremony with opaque HttpOnly cookies.
+ * No cookie, private key, account bearer or recovery phrase is exposed to QML.
+ */
+class IWalletEnrollmentAttempt {
+public:
+    IWalletEnrollmentAttempt() = default;
+    IWalletEnrollmentAttempt(const IWalletEnrollmentAttempt&) = delete;
+    IWalletEnrollmentAttempt& operator=(const IWalletEnrollmentAttempt&) = delete;
+    virtual ~IWalletEnrollmentAttempt() = default;
+
+    /** Exact issuer-bound SIWE challenge; must be signed by its address. */
+    [[nodiscard]] virtual std::string_view challengeMessage() const noexcept = 0;
+    /** Verify and consume the challenge; returns the authoritative OPP subject. */
+    [[nodiscard]] virtual foundation::result::Result<VerifiedWalletEnrollment>
+    complete(std::string signature) = 0;
+};
+
+/** @brief Begin a custody-address-to-OPP wallet enrollment using existing SIWE.
+ * Never implies ownership of a HyperSnap FID. A subsequent explicit OPP
+ * wallet/FID binding requires its own server-side registry proof.
+ */
+[[nodiscard]] foundation::result::Result<std::shared_ptr<IWalletEnrollmentAttempt>>
+beginWalletEnrollment(transport::http::IHttpTransport& transport,
+                      std::string walletAddress, std::uint64_t chainId = 1U,
+                      Config config = {});
 
 }

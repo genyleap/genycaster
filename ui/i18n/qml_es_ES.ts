@@ -1,6 +1,34 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="es_ES" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.setup.opp_wallet_pending">
+            <source>Registering your HyperSnap custody wallet with Genyleap through OpenProof…</source>
+            <translation>Registrando la billetera de custodia HyperSnap en Genyleap mediante OpenProof…</translation>
+        </message>
+        <message id="genycaster.setup.opp_wallet_linked">
+            <source>Your Genyleap account is ready in OpenProof. The HyperSnap FID remains a separate protocol identity.</source>
+            <translation>Tu cuenta de Genyleap ya está lista en OpenProof. El FID de HyperSnap sigue siendo una identidad de protocolo independiente.</translation>
+        </message>
+        <message id="genycaster.setup.opp_wallet_retry">
+            <source>HyperSnap FID is registered, but Genyleap wallet verification did not finish. Retry without repeating protocol registration.</source>
+            <translation>El FID de HyperSnap está registrado, pero falta verificar la billetera en Genyleap. Reintenta sin repetir el registro.</translation>
+        </message>
+        <message id="genycaster.setup.opp_pending">
+            <source>Connecting the new Farcaster identity to Genyleap through OpenProof…</source>
+            <translation>Conectando la nueva identidad de Farcaster con Genyleap mediante OpenProof…</translation>
+        </message>
+        <message id="genycaster.setup.opp_linked">
+            <source>Genyleap account connected through OpenProof.</source>
+            <translation>Cuenta de Genyleap conectada mediante OpenProof.</translation>
+        </message>
+        <message id="genycaster.setup.opp_retry">
+            <source>Your FID is registered, but Genyleap account linking could not finish. Your registration will not be repeated.</source>
+            <translation>Tu FID está registrado, pero no se completó la vinculación con Genyleap. No se repetirá el registro.</translation>
+        </message>
+        <message id="genycaster.setup.opp_retry_action">
+            <source>Retry Genyleap account connection</source>
+            <translation>Reintentar conexión con Genyleap</translation>
+        </message>
         <message id="genycaster.shell.native_signer_description">
             <source>Your native HyperSnap FID is verified. Authorize a device signer to post, react and follow. Farcaster is not required.</source>
             <translation>Tu FID nativo de HyperSnap está verificado. Autoriza un firmante en este dispositivo para publicar, reaccionar y seguir cuentas. No necesitas Farcaster.</translation>

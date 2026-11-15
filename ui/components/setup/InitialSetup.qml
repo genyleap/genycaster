@@ -1311,6 +1311,44 @@ Item {
                 centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space2 }
+            // A verified protocol FID is not automatically an OPP identity.
+            // Show the independent proof result without obstructing the
+            // already confirmed registration or repeating its chain write.
+            ColumnLayout {
+                objectName: "setupCentralAccountEnrollment"
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                visible: root.accountFidRegistered && root.authenticated
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: openProofConnections.nativeEnrollmentPhase === "linked"
+                        ? qsTrId("genycaster.setup.opp_linked")
+                        : openProofConnections.nativeEnrollmentPhase === "wallet-linked"
+                          ? qsTrId("genycaster.setup.opp_wallet_linked")
+                          : openProofConnections.nativeEnrollmentPhase === "pending"
+                            || openProofConnections.nativeEnrollmentPhase === "idle"
+                            ? root.registrationProviderId === "hypersnap-v2"
+                              ? qsTrId("genycaster.setup.opp_wallet_pending")
+                              : qsTrId("genycaster.setup.opp_pending")
+                            : root.registrationProviderId === "hypersnap-v2"
+                              ? qsTrId("genycaster.setup.opp_wallet_retry")
+                              : qsTrId("genycaster.setup.opp_retry")
+                    color: openProofConnections.nativeEnrollmentPhase === "linked"
+                           ? Theme.success
+                           : openProofConnections.nativeEnrollmentPhase === "retry"
+                             ? Theme.warning : Theme.inkMuted
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+                ActionButton {
+                    objectName: "setupRetryCentralAccount"
+                    Layout.fillWidth: true
+                    compact: true
+                    visible: openProofConnections.nativeEnrollmentPhase === "retry"
+                    text: qsTrId("genycaster.setup.opp_retry_action")
+                    onClicked: openProofConnections.retryNativeEnrollment()
+                }
+            }
             GridLayout {
                 visible: !root.choosingRegistrationProvider
                 Layout.fillWidth: true

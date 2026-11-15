@@ -53,6 +53,39 @@ int main()
     const auto wrongAddress = signOneTimeIdentityProof(known, 123, modified);
     if (wrongAddress || wrongAddress.error() != Error::InvalidChallenge) return 15;
 
+    // The existing OPP wallet provider uses plain EIP-4361 chain 1;
+    // this must NEVER be confused with a proof of HyperSnap FID ownership.
+    const std::string walletChallenge =
+        "genyleap.com wants you to sign in with your Ethereum account:\n"
+        + *address
+        + "\n\nSign in to OpenProof with your Ethereum account.\n\n"
+          "URI: https://genyleap.com/account\n"
+          "Version: 1\n"
+          "Chain ID: 1\n"
+          "Nonce: abcdefgh123456\n"
+          "Issued At: 2026-11-15T00:00:00Z\n"
+          "Expiration Time: 2026-11-15T00:05:00Z";
+    using farcaster::platform::custody_recovery::signOpenProofWalletChallenge;
+    const auto walletProof =
+        signOpenProofWalletChallenge(known, *address, walletChallenge);
+    if (!walletProof || walletProof->address != *address
+        || walletProof->signature.size() != 132U
+        || !walletProof->signature.starts_with("0x")) return 29;
+    std::string foreign = walletChallenge;
+    foreign.replace(foreign.find("Chain ID: 1"), 11, "Chain ID: 10");
+    if (signOpenProofWalletChallenge(known, *address, foreign)) return 30;
+    foreign = walletChallenge;
+    foreign.replace(foreign.find("genyleap.com"), 12, "malicious.com");
+    if (signOpenProofWalletChallenge(known, *address, foreign)) return 31;
+    foreign = walletChallenge;
+    foreign.replace(foreign.find("Sign in to OpenProof"),
+                    std::string{"Sign in to OpenProof"}.size(),
+                    "Authorize transfer");
+    if (signOpenProofWalletChallenge(known, *address, foreign)) return 32;
+    if (signOpenProofWalletChallenge(
+            known, "0x0000000000000000000000000000000000000000", walletChallenge))
+        return 33;
+
     const auto uppercase = derivePublicCustodyAddress(
         "  TEST  TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST JUNK  ");
     if (!uppercase || *uppercase != *address) return 2;

@@ -46,6 +46,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString identityIssuer READ identityIssuer CONSTANT)
     Q_PROPERTY(bool authorized READ authorized NOTIFY stateChanged)
+    Q_PROPERTY(QString nativeEnrollmentPhase READ nativeEnrollmentPhase NOTIFY stateChanged)
     Q_PROPERTY(bool authorizing READ authorizing NOTIFY stateChanged)
     Q_PROPERTY(QString approvalUrl READ approvalUrl NOTIFY stateChanged)
     Q_PROPERTY(QVariantList connections READ connections NOTIFY stateChanged)
@@ -124,6 +125,13 @@ public:
      * Returns empty on invalid/non-HTTPS configuration. No bearer is exposed. */
     [[nodiscard]] QString recoveryGatewayOrigin() const;
     [[nodiscard]] bool authorized() const noexcept;
+    /** Presentation-only status for an independently verified native
+     * Farcaster-to-OPP enrollment. It is never account authorization. */
+    [[nodiscard]] QString nativeEnrollmentPhase() const { return m_nativeEnrollmentPhase; }
+    /** Trigger retry without repeating the confirmed on-chain registration. */
+    Q_INVOKABLE void retryNativeEnrollment();
+    /** Update only the current FID; no token, proof or subject enters QML. */
+    void setNativeEnrollmentPhase(qulonglong fid, QString phase);
     [[nodiscard]] bool authorizing() const noexcept;
     [[nodiscard]] QString approvalUrl() const;
     [[nodiscard]] QVariantList connections() const;
@@ -368,6 +376,7 @@ signals:
     void proBillingChanged();
     void genyAssetsChanged();
     void stateChanged();
+    void nativeEnrollmentRetryRequested();
     void cloudStateChanged();
     void feedbackChanged();
     void profileStatusChanged();
@@ -551,6 +560,7 @@ private:
     QString m_accountSubject{};
     QVariantList m_connections{};
     qulonglong m_viewerFid{};
+    QString m_nativeEnrollmentPhase{QStringLiteral("idle")};
     std::uint64_t m_grantGeneration{};
     bool m_authorizing{};
     bool m_verified{};

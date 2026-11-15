@@ -58,9 +58,9 @@ test('OPP enrollment is never conflated with an app-service session or protocol 
     const guide = read('docs/OPENPROOF_AND_SERVICES.md');
     const roadmap = read('docs/12-roadmap.md');
     const account = read('services/account-sync/README.md');
-    assert.match(guide, /Neither registration commits an OpenProof identity/);
+    assert.match(guide, /Only then is a canonical OpenProof-backed session saved/);
     assert.match(guide, /no HyperSnap-native/);
-    assert.match(guide, /resumable, idempotent/);
-    assert.match(roadmap, /Cross-protocol identity convergence is NOT complete/);
+    assert.match(guide, /Retry repeats only the identity challenge/);
+    assert.match(roadmap, /Cross-protocol identity convergence remains partial/);
     assert.match(account, /Genycaster.*own[\s\S]*PostgreSQL database/);
 });

@@ -17,6 +17,8 @@ int main(int argc, char** argv)
     assert(meta->indexOfProperty("recoveryWords") == -1);
     assert(meta->indexOfMethod("recoveryWords()") == -1);
     assert(meta->indexOfMethod("signReservedFarcasterTransfer(quint64,quint64,quint64)") == -1);
+    assert(meta->indexOfMethod("signOpenProofWalletChallenge(quint64,QString)") == -1);
+    assert(meta->indexOfMethod("signOpenProofFarcasterChallenge(quint64,QString)") == -1);
     assert(!wallet.hasWallet() && !wallet.backupVerified());
     assert(wallet.address().isEmpty());
     assert(wallet.generate());
@@ -57,7 +59,24 @@ int main(int argc, char** argv)
     assert(wallet.backupVerified());
     assert(!wallet.recoveryVisible());
     assert(wallet.address().size() == 42);
-    assert(!wallet.restoreForRegistration(validPhrase)); // No overwrite.
+    assert(!wallet.restoreForRegistration(validPhrase));
+    const QString trustedSiwe = QStringLiteral(
+        "genyleap.com wants you to sign in with your Ethereum account:\n")
+        + wallet.address()
+        + QStringLiteral("\n\nSign in to OpenProof with your Ethereum account.\n\n"
+                         "URI: https://genyleap.com/account\n"
+                         "Version: 1\nChain ID: 1\nNonce: abcdefgh123456\n"
+                         "Issued At: 2026-11-15T00:00:00Z\n"
+                         "Expiration Time: 2026-11-15T00:05:00Z");
+    auto signedWallet = wallet.signOpenProofWalletChallenge(1ULL << 32, trustedSiwe);
+    assert(signedWallet.result().has_value());
+    assert(signedWallet.result()->size() == 132);
+    const auto invalidFid = wallet.signOpenProofWalletChallenge(123, trustedSiwe);
+    assert(!invalidFid.result());
+    const auto invalidChain = wallet.signOpenProofWalletChallenge(
+        1ULL << 32, QString{trustedSiwe}.replace(QStringLiteral("Chain ID: 1"),
+                                                   QStringLiteral("Chain ID: 10")));
+    assert(!invalidChain.result()); // No overwrite.
     const auto signedTransfer=wallet.signReservedFarcasterTransfer(
         1234567, 0, static_cast<std::uint64_t>(QDateTime::currentSecsSinceEpoch()+180));
     assert(signedTransfer && signedTransfer->size() == 132);

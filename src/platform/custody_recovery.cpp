@@ -661,6 +661,57 @@ signOneTimeIdentityProof(const std::string_view phrase,
 }
 
 
+std::expected<RecoveryProof, Error>
+signOpenProofWalletChallenge(const std::string_view phrase,
+                             const std::string_view expectedAddress,
+                             const std::string_view challenge)
+{
+    // The OpenProof Ethereum-wallet provider uses EIP-4361 on chain 1.
+    // Keep this narrower than an arbitrary wallet personal_sign service.
+    constexpr std::string_view accountOrigin{
+        genycaster::deployment::companyOrigin};
+    constexpr auto authorityEnd = accountOrigin.find('/', 8);
+    const std::string host{accountOrigin.substr(
+        8, authorityEnd == std::string_view::npos
+            ? std::string_view::npos : authorityEnd - 8)};
+    const std::string heading = host
+        + " wants you to sign in with your Ethereum account:\n";
+    const std::string expectedUri = std::string{accountOrigin} + "/account";
+    if (expectedAddress.size() != 42U || !expectedAddress.starts_with("0x")
+        || challenge.size() < 80U || challenge.size() > 8192U
+        || !challenge.starts_with(heading)
+        || challenge.find("\nSign in to OpenProof with your Ethereum account.\n")
+            == std::string_view::npos
+        || challenge.find("\nURI: " + expectedUri + "\n")
+            == std::string_view::npos
+        || challenge.find("\nVersion: 1\n") == std::string_view::npos
+        || challenge.find("\nChain ID: 1\n") == std::string_view::npos
+        || challenge.find("\nNonce: ") == std::string_view::npos) {
+        return std::unexpected(Error::InvalidChallenge);
+    }
+    auto custody = deriveMaterial(phrase);
+    if (!custody) return std::unexpected(custody.error());
+    // EIP-4361 must specify the derived signer on the line immediately
+    // following the trusted domain heading; no alternate wallet is accepted.
+    const std::string signerLine = heading + custody->address + "\n";
+    if (custody->address != expectedAddress
+        || !challenge.starts_with(signerLine)) {
+        return std::unexpected(Error::InvalidChallenge);
+    }
+    std::string prefix{"\x19" "Ethereum Signed Message:\n"};
+    prefix += std::to_string(challenge.size());
+    std::vector<unsigned char> payload{};
+    payload.reserve(prefix.size() + challenge.size());
+    for (const char c : prefix) payload.push_back(static_cast<unsigned char>(c));
+    for (const char c : challenge) payload.push_back(static_cast<unsigned char>(c));
+    auto signature = signDigest(custody->privateKey, keccak256(payload));
+    if (!signature) return std::unexpected(Error::SigningFailed);
+    return RecoveryProof{
+        .address = std::move(custody->address),
+        .signature = std::move(*signature),
+    };
+}
+
 // Strict, single-use EIP-712 signing for a network-approved device signer.
 // The typed-data hashes reproduce key_authorization::buildTypedData's domain,
 // field ordering and dynamic-array encoding; no JSON parser is trusted here.

@@ -30,16 +30,49 @@ corresponding routes use the browser OpenProof gateway. A successful login
 does not grant a protocol signer, custody access, Mini App wallet permission
 or automatic publishing authority.
 
-### Protocol registration is NOT automatic OpenProof enrollment
+### Native account convergence after confirmed registration — November 2026
 
-GenyCaster also has independent native **Create account** workflows for
-HyperSnap's shard-0 native registry and Farcaster's Optimism IdRegistry
-(Neynar-assisted). Both verify a custody address and FID, but then call
-`acceptVerifiedNativeCustody` or `acceptVerifiedFarcasterCustody`, respectively.
-Those functions persist a short-lived *protocol-only* local session with an
-issuer of `hypersnap:native-registry` or `farcaster:optimism-id-registry`.
-**Neither registration commits an OpenProof identity, calls OPP, or guarantees
-an OpenProof account.** Native custody recovery follows the same rule.
+GenyCaster now starts a bounded, separately verified OpenProof ceremony **after**
+the native registry has confirmed a new custody-controlled FID and its
+protocol-only session was saved. The protocol registration is **never**
+resubmitted as part of the OpenProof ceremony or a Retry action.
+
+- **New Farcaster FID:** reuse the existing trusted browser Farcaster
+  recovery gateway. Native C++ checks the trusted origin, the exact
+  Optimism FID, the confirmed custody address and signed EIP-191 challenge.
+  OPP verifies the proof using existing Farcaster SIWF support and returns
+  the canonical identity, confirmed FID and one-use account ticket.
+  Only then is a canonical OpenProof-backed session saved and the account
+  ticket handed to the account service. An existing OPP subject is reused
+  when the same Farcaster identity is already linked there.
+- **New HyperSnap Native FID:** OPP has **no HyperSnap registry verifier**.
+  Existing ethereum-wallet SIWE can independently establish the wallet's
+  canonical OPP account, subject to the configured provider policy. Native
+  C++ signs a domain/address/chain/statement-bound SIWE challenge; afterward
+  it verifies the returned OPP profile and matching wallet connection.
+  The HyperSnap session issuer stays hypersnap:native-registry. **This does
+  not verify or link the Native FID to the OPP subject**, grant a Farcaster
+  account capability or enable HyperSnap-FID-based OPP SSO.
+- **Existing Genyleap accounts:** an already-linked Farcaster identity or
+  wallet resolves its existing canonical OPP subject. If the user already
+  has an account authenticated by a different provider, do not silently
+  merge it with an unrelated new SIWE account. Linking requires explicit
+  existing-account authentication and a separate ownership-checked OPP
+  connection ceremony. Cross-account merge remains out of scope.
+- **Reliability:** OPP failures preserve the confirmed protocol FID, wallet,
+  writer and signer. Retry repeats only the identity challenge, not the
+  registry write. Sign-out and FID changes invalidate in-flight results.
+  BIP39 derivation and signature happen in C++ workers; no mnemonic is
+  exposed through Qt properties, HTTP, QML or JavaScript.
+- **Platform scope:** the native onboarding integration is compiled only
+  when custody registration and OPP are available. WebAssembly retains
+  browser OpenProof device/Farcaster flows. Device-only recovery is not
+  the same as verified OpenProof enrollment.
+
+**Remaining:** a verified OPP HyperSnap Native FID provider/linker; an
+explicit existing-account-first wallet linking choice; restart/key-lost
+resumption; and real production and cross-platform end-to-end qualification.
+A wallet account in OPP must never be labeled a verified HyperSnap FID link.
 
 Browser/WASM OpenProof device/Farcaster sign-in is OpenProof-backed only after
 the real issuer grants a subject and an authenticated connection. The

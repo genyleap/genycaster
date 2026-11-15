@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QByteArray>
 #include <QColor>
+#include <QFuture>
 #include <QPointer>
 #include <QQuickPaintedItem>
 #include <QString>
@@ -60,6 +61,24 @@ public:
     [[nodiscard]] std::optional<QString> signReservedFarcasterTransfer(
         std::uint64_t fid, std::uint64_t onchainNonce,
         std::uint64_t deadlineUnixSeconds) const;
+
+    /** @brief Sign only a trusted, FID-bound OpenProof SIWF challenge.
+     * @details The challenge is validated for the configured HTTPS authority,
+     * actual custody address and exact FID inside the secure custody module.
+     * The returned value is a public EIP-191 signature, never wallet material.
+     * This C++-only operation cannot be invoked from QML or a Mini App.
+     * The caller must first confirm the FID at Farcaster IdRegistry.
+     */
+    [[nodiscard]] QFuture<std::optional<QString>> signOpenProofFarcasterChallenge(
+        std::uint64_t confirmedFid, const QString& challenge) const;
+
+    /** @brief Asynchronously sign one trusted OpenProof EIP-4361 wallet proof.
+     * @details The native FID must already be confirmed on HyperSnap.
+     * SIWE establishes the central account only; it does not link that FID.
+     * Never exposes an arbitrary signMessage API to QML or Mini Apps.
+     */
+    [[nodiscard]] QFuture<std::optional<QString>> signOpenProofWalletChallenge(
+        std::uint64_t confirmedNativeFid, const QString& challenge) const;
 signals:
     void changed();
 

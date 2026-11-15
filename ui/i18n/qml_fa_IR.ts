@@ -1,6 +1,34 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.setup.opp_wallet_pending">
+            <source>Registering your HyperSnap custody wallet with Genyleap through OpenProof…</source>
+            <translation>در حال ثبت کیف پول حضانتی HyperSnap در حساب مرکزی جنی‌لیپ از طریق OpenProof…</translation>
+        </message>
+        <message id="genycaster.setup.opp_wallet_linked">
+            <source>Your Genyleap account is ready in OpenProof. The HyperSnap FID remains a separate protocol identity.</source>
+            <translation>حساب مرکزی جنی‌لیپ در OpenProof آماده است. شناسهٔ HyperSnap همچنان یک هویت پروتکلی مستقل است.</translation>
+        </message>
+        <message id="genycaster.setup.opp_wallet_retry">
+            <source>HyperSnap FID is registered, but Genyleap wallet verification did not finish. Retry without repeating protocol registration.</source>
+            <translation>شناسهٔ HyperSnap ثبت شده، اما تأیید کیف پول در جنی‌لیپ کامل نشده است. بدون تکرار ثبت‌نام پروتکل دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.setup.opp_pending">
+            <source>Connecting the new Farcaster identity to Genyleap through OpenProof…</source>
+            <translation>در حال اتصال هویت جدید فارکستر به جنی‌لیپ از طریق OpenProof…</translation>
+        </message>
+        <message id="genycaster.setup.opp_linked">
+            <source>Genyleap account connected through OpenProof.</source>
+            <translation>حساب جنی‌لیپ از طریق OpenProof متصل شد.</translation>
+        </message>
+        <message id="genycaster.setup.opp_retry">
+            <source>Your FID is registered, but Genyleap account linking could not finish. Your registration will not be repeated.</source>
+            <translation>FID ثبت شده است، اما اتصال حساب جنی‌لیپ کامل نشد. ثبت‌نام شبکه دوباره انجام نخواهد شد.</translation>
+        </message>
+        <message id="genycaster.setup.opp_retry_action">
+            <source>Retry Genyleap account connection</source>
+            <translation>تلاش دوباره برای اتصال حساب جنی‌لیپ</translation>
+        </message>
         <message id="genycaster.shell.native_signer_description">
             <source>Your native HyperSnap FID is verified. Authorize a device signer to post, react and follow. Farcaster is not required.</source>
             <translation>شناسهٔ بومی شما در HyperSnap تأیید شده است. برای ارسال پست، واکنش و دنبال‌کردن، امضاکنندهٔ این دستگاه را مجاز کنید. نیازی به Farcaster نیست.</translation>
