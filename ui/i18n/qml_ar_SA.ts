@@ -1581,8 +1581,8 @@ Company | https://company.com</source>
             <translation>تجارية · نشر ومراقبة مُداران</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>الخادم ← تثبيت ← مزامنة ← اتصال</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>الخادم · تثبيت · مزامنة · اتصال</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>
