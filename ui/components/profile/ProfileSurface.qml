@@ -1964,12 +1964,15 @@ Item {
                             objectName: "profileDisplayName"
                             width: Math.min(implicitWidth, profileIdentityFlow.width)
                             height: implicitHeight
-                            text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
-                                  || ((root.isOwnProfile
-                                       && root.accountIsNativeCustody)
-                                      || Number(root.activeDetail.fid || 0) >= 4294967296
+                            // An FID is unique only within its verified identity namespace.
+                            // A large numeric FID is not proof of HyperSnap ownership.
+                            // Public profile reads currently expose no verified issuer field;
+                            // only the active account's authenticated identity can be labeled.
+                            text: root.activeDetail.displayName
+                                  || (root.showUsername ? root.activeDetail.username : "")
+                                  || (root.isOwnProfile && root.accountIsNativeCustody
                                       ? qsTrId("genycaster.settings.hypersnap_label")
-                                      : qsTrId("genycaster.profile.farcaster_profile"))
+                                      : qsTrId("genycaster.side_nav.profile"))
                             color: Theme.ink
                             font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
                             font.weight: Theme.weightBold
