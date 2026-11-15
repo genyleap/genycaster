@@ -7861,5 +7861,25 @@ Company | https://company.com</source>
             <source>Unfollow channel</source>
             <translation>لغو دنبال‌کردن کانال</translation>
         </message>
+        <message id="genycaster.miniapp.minimize">
+            <source>Minimize</source>
+            <translation>کوچک‌کردن</translation>
+        </message>
+        <message id="genycaster.miniapp.share">
+            <source>Share</source>
+            <translation>اشتراک‌گذاری</translation>
+        </message>
+        <message id="genycaster.profile.back">
+            <source>Back</source>
+            <translation>بازگشت</translation>
+        </message>
+        <message id="genycaster.settings.cancel">
+            <source>Cancel</source>
+            <translation>لغو</translation>
+        </message>
+        <message id="genycaster.settings.done">
+            <source>Done</source>
+            <translation>انجام شد</translation>
+        </message>
     </context>
 </TS>
