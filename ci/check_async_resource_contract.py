@@ -33,6 +33,15 @@ global_pool_owners = {
     "ui/app/miniapp/runtime.cpp",  # Scope-bound HTTP, CallbackGate delivery.
     "ui/app/runtime/bindings.cpp",  # Owned recovery/runtime state.
     "ui/app/data/storage.cpp",  # Owned storage snapshot, no Qt I/O loop.
+    # Audited: workers retain values/callables, never a QObject. Delivery is
+    # via a QObject-owned watcher with sign-out generation + timeout checks.
+    "ui/app/identity/connections.cpp",
+    # Audited: worker captures only immutable challenge data and shared atomic
+    # cancellation; watcher is a controller member and cancelled on teardown.
+    "ui/app/identity/native_prepare.cpp",
+    # Audited: workers capture zeroizing phrase buffers by shared ownership,
+    # not the controller. Asynchronous results require live caller adoption.
+    "ui/app/identity/native_wallet.cpp",
 }
 for directory in (root / "src", root / "ui"):
     for path in directory.rglob("*.cpp"):
@@ -113,7 +122,9 @@ if ("cacheBuffer: root.compact ? Math.min(Math.max(height * 0.33, 240), 440)" no
         or "pixelAligned: false" not in feed):
     errors.append("Feed must retain bounded compact/desktop delegate runways and preserve subpixel scrolling.")
 if ("cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)" not in profile
-        or "if (!profileList.moving && !root.restoringViewport && !scrollWorkThrottle.running)" not in profile):
+        or "if (!root.profileEntryResetActive && !profileList.moving" not in profile
+        or "&& !root.restoringViewport && !scrollWorkThrottle.running)" not in profile
+        or "onMovementEnded: {\n            scrollWorkThrottle.stop()" not in profile):
     errors.append("Profile feed scroll work must stay idle during kinetic motion and use the bounded pre-incubation runway shared with the main feed.")
 if "INSERT OR IGNORE INTO timeline_entries" not in storage or "idx_timeline_entries_identity" not in storage:
     errors.append("Feed pagination must append unseen rows incrementally with a stable identity index.")
