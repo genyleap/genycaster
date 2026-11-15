@@ -30,6 +30,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Release notes/version gate", ("python3", "ci/release_gate.py")),
     ("Browser/native platform boundary",
      ("node", "--test", "tests/wasm/native_executable_and_platform_scope.test.mjs")),
+    ("Native custody worker lifetime contracts",
+     ("node", "--test", "tests/wasm/native_custody_worker_lifetime.test.mjs")),
     ("Browser startup and Mini App identity contracts",
      ("node", "--test", "tests/wasm/wasm_startup_modes.test.mjs",
       "tests/wasm/miniapp_sdk_contract.test.mjs")),

@@ -28,6 +28,16 @@ function denied(message = 'Mini App wallet access was not authorized', code = 41
   return Object.assign(new Error(message), {code});
 }
 
+// An EIP-1193 grant is scoped to the exact chain as well as the wallet account.
+// Reject invalid/zero/non-hex chain identifiers rather than trusting provider events.
+function canonicalChainId(value){
+  if(typeof value!=='string'||!/^0x[0-9a-f]{1,64}$/i.test(value))return '';
+  try{
+    const id=BigInt(value);
+    return id>0n?'0x'+id.toString(16):'';
+  }catch{return '';}
+}
+
 
 // Discover EIP-6963 providers without inspecting browser profiles or extensions.
 // Announcement names are self-reported: never present them as verified wallets.
@@ -615,12 +625,25 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
   const controller = new AbortController();
   let granted=false;
   let grantedAddress='';
+  let grantedChain='';
   let closed=false;
   let pendingApproval=null;
   let sensitiveApprovalTail=Promise.resolve();
   let pendingSensitiveCount=0;
   const forwards=new Map();
   const guard=()=>{if(closed)throw denied('Mini App session is closed',4900);};
+  const revoke=()=>{granted=false;grantedAddress='';grantedChain='';};
+  const approvedAccount=async()=>{
+    const accounts=await injected.request({method:'eth_accounts'});
+    const chain=canonicalChainId(await injected.request({method:'eth_chainId'}));
+    guard();
+    if(!granted||!Array.isArray(accounts)||typeof accounts[0]!=='string'
+        ||accounts[0].toLowerCase()!==grantedAddress||chain!==grantedChain){
+      revoke();
+      return null;
+    }
+    return accounts[0];
+  };
   const listen=(event,callback)=>{
     if(!WALLET_EVENTS.has(event) || typeof callback!=='function')return;
     if(!callbacks.has(event))callbacks.set(event,new Set());
@@ -633,13 +656,24 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
         if(!granted||closed)return;
         let safeArgs=args;
         if(event==='disconnect'){
-          granted=false;grantedAddress='';
+          revoke();
+        }else if(event==='chainChanged'){
+          if(canonicalChainId(args[0])!==grantedChain){
+            revoke();
+            // Chain rotation cannot preserve a prior account-specific grant.
+            for(const callback of callbacks.get('accountsChanged')||[]){
+              try{callback([]);}catch(error){console.warn('[GenyCaster] Wallet listener failed',error);}
+            }
+          }
         }else if(event==='accountsChanged' && Array.isArray(args[0])){
           const account=typeof args[0][0]==='string'?args[0][0].toLowerCase():'';
           if(!account || account!==grantedAddress){
-            granted=false;grantedAddress='';
+            revoke();
             // Never expose an unapproved account identity to this Mini App.
             safeArgs=[[]];
+          }else{
+            // A grant covers exactly one account, never the wallet's other addresses.
+            safeArgs=[[args[0][0]]];
           }
         }
         for(const callback of callbacks.get(event)||[]){
@@ -661,14 +695,8 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
         throw denied('Invalid wallet RPC method',4200);
       if(method==='eth_accounts'){
         if(!granted)return [];
-        const accounts=await injected.request(payload);
-        guard();
-        if(!Array.isArray(accounts)||typeof accounts[0]!=='string'
-            ||accounts[0].toLowerCase()!==grantedAddress){
-          granted=false;grantedAddress='';
-          return [];
-        }
-        return accounts;
+        const account=await approvedAccount();
+        return account?[account]:[];
       }
       if(method==='eth_requestAccounts'){
         if(!granted){
@@ -684,13 +712,18 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
           ||!/^0x[0-9a-f]{40}$/i.test(accounts[0]))
           throw denied('Wallet returned an invalid connected account',4001);
         const currentAddress=accounts[0].toLowerCase();
-        if(granted && currentAddress!==grantedAddress){
-          granted=false;grantedAddress='';
-          throw denied('Wallet account changed. Approve the new account separately.',4100);
+        const chain=canonicalChainId(await injected.request({method:'eth_chainId'}));
+        guard();
+        if(!chain)throw denied('Wallet returned an invalid connected chain',4900);
+        if(granted && (currentAddress!==grantedAddress||chain!==grantedChain)){
+          revoke();
+          throw denied('Wallet account or chain changed. Approve separately.',4100);
         }
         granted=true;
         grantedAddress=currentAddress;
-        return accounts;
+        grantedChain=chain;
+        // Do not disclose secondary wallet addresses as a side effect of consent.
+        return [accounts[0]];
       }
       if(PUBLIC_METHODS.has(method))
         return injected.request(payload);
@@ -707,13 +740,8 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
       if(SIGNING_METHODS.has(method)){
         // Some providers do not emit accountsChanged reliably after a wallet
         // switch. Revalidate the approved principal before *every* write.
-        const accounts=await injected.request({method:'eth_accounts'});
-        guard();
-        if(!Array.isArray(accounts)||typeof accounts[0]!=='string'
-            ||accounts[0].toLowerCase()!==grantedAddress){
-          granted=false;grantedAddress='';
-          throw denied('Wallet account changed. Connect this Mini App again.',4100);
-        }
+        if(!await approvedAccount())
+          throw denied('Wallet account or chain changed. Connect this Mini App again.',4100);
         // One visibly separate host prompt for EVERY sensitive operation.
         // Bound the queue so an untrusted iframe cannot flood pending dialogs.
         if(pendingSensitiveCount>=2)
@@ -729,6 +757,12 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
         finally{pendingSensitiveCount--;}
         if(!confirmed)throw denied('Wallet operation rejected by the user',4001);
         guard();
+        // A user can change or disconnect a wallet while the host confirmation
+        // is open. Never submit a previously approved request under a new
+        // principal, even when the injected provider emits no change event.
+        if(!granted)throw denied('Mini App wallet grant was revoked',4100);
+        if(!await approvedAccount())
+          throw denied('Wallet account or chain changed during approval. Connect again.',4100);
       }
       // The real wallet owns its own independent signature confirmation.
       return injected.request(payload);
@@ -746,7 +780,7 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
     },
     dispose(){
       if(closed)return;
-      closed=true;granted=false;grantedAddress='';controller.abort();
+      closed=true;revoke();controller.abort();
       for(const [event,listener] of forwards)
         injected.removeListener?.(event,listener);
       forwards.clear();callbacks.clear();

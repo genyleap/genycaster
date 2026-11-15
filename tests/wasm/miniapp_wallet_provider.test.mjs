@@ -122,7 +122,7 @@ test('EIP-6963 registry lets the user choose among actual injected providers',as
       return true;
     });
   await wallet.provider.request({method:'eth_requestAccounts'});
-  assert.deepEqual(second.calls,['eth_requestAccounts']);
+  assert.deepEqual(second.calls,['eth_requestAccounts','eth_chainId']);
   assert.deepEqual(first.calls,[]);
   wallet.dispose();
   registry.dispose();
@@ -253,7 +253,7 @@ test('WalletConnect is offered without injected extensions and returns real sign
    '0xsigned-from-wallet');
  assert.deepEqual(origins,['https://mini.example']);
  assert.equal(connected,1);
- assert.deepEqual(seen,['eth_requestAccounts','eth_accounts','personal_sign']);
+ assert.deepEqual(seen,['eth_requestAccounts','eth_chainId','eth_accounts','eth_chainId','eth_accounts','eth_chainId','personal_sign']);
  wallet.dispose();
  registry.dispose();
  assert.ok([...handlers.values()].every(set=>set.size===0));
@@ -262,7 +262,8 @@ test('WalletConnect is offered without injected extensions and returns real sign
 test('WalletConnect origin grant cannot be reused by another Mini App or after teardown',async()=>{
  const win=new EventTarget();
  const provider={session:{topic:'existing'},request:async({method})=>
-   method==='eth_requestAccounts'?['0x0000000000000000000000000000000000000002']:'0xsigned',
+   method==='eth_requestAccounts'?['0x0000000000000000000000000000000000000002']:
+   method==='eth_chainId'?'0x1':'0xsigned',
    on(){},removeListener(){}};
  const registry=createDiscoveredBrowserWallet(win,{
    walletConnectFactory:async()=>provider
@@ -307,6 +308,7 @@ test('account switching or disconnecting revokes a previously granted wallet',as
      if(method==='eth_requestAccounts')
        return ['0x0000000000000000000000000000000000000003'];
      if(method==='personal_sign')return '0xreal-wallet-result';
+     if(method==='eth_chainId')return '0x1';
      return ['0x0000000000000000000000000000000000000003'];
    },
    on(event,cb){if(!events.has(event))events.set(event,new Set());events.get(event).add(cb);},
@@ -447,8 +449,8 @@ test('every sensitive request receives a separate host confirmation and can be d
  assert.deepEqual(requests.map(r=>r.method),
    ['personal_sign','personal_sign','personal_sign']);
  assert.ok(requests.every(r=>r.origin==='https://one.example'));
- assert.deepEqual(calls,['eth_requestAccounts','eth_accounts','personal_sign',
-   'eth_accounts','eth_accounts','personal_sign']);
+ assert.deepEqual(calls,['eth_requestAccounts','eth_chainId','eth_accounts','eth_chainId','eth_accounts','eth_chainId','personal_sign',
+   'eth_accounts','eth_chainId','eth_accounts','eth_chainId','eth_accounts','eth_chainId','personal_sign']);
  for(const method of ['eth_sign','eth_sendRawTransaction','wallet_unknownAction']){
    await assert.rejects(app.provider.request({method,params:[]}),e=>e.code===4200);
  }
@@ -530,4 +532,118 @@ test('silent account rotation is rejected even without an accountsChanged event'
    '0xsigned');
  assert.equal(signCalls,1);
  app.dispose();
+});
+
+test('one Mini App wallet grant never reveals secondary accounts, including events',async()=>{
+  const {provider}=fakeWallet();
+  const primary='0xAa00000000000000000000000000000000000001';
+  const secondary='0xBb00000000000000000000000000000000000002';
+  const original=provider.request.bind(provider);
+  provider.request=payload=>(
+    payload.method==='eth_requestAccounts'||payload.method==='eth_accounts'
+      ? Promise.resolve([primary,secondary]) : original(payload));
+  const app=createMiniAppEthereumProvider('https://primary.example',provider,()=>true);
+  const notifications=[];
+  app.provider.on('accountsChanged',accounts=>notifications.push(accounts));
+  assert.deepEqual(await app.provider.request({method:'eth_requestAccounts'}),[primary]);
+  assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[primary]);
+  provider.emit('accountsChanged',[primary,secondary]);
+  assert.deepEqual(notifications,[[primary]]);
+  app.dispose();
+});
+
+test('an account rotated during the host signing dialog is refused before wallet submission',async()=>{
+  const primary='0x0000000000000000000000000000000000000001';
+  const second='0x0000000000000000000000000000000000000002';
+  let active=primary;
+  let signatures=0;
+  let approvals=0;
+  const injected={
+    async request({method}){
+      if(method==='eth_requestAccounts'||method==='eth_accounts')return [active];
+      if(method==='personal_sign'){signatures++;return '0xunexpected';}
+      return '0x1';
+    },
+    on(){},removeListener(){}
+  };
+  const app=createMiniAppEthereumProvider('https://first.example',injected,
+    ()=>true,undefined,async()=>{
+      approvals++;
+      active=second; // No accountsChanged event: provider silently switches.
+      return true;
+    });
+  await app.provider.request({method:'eth_requestAccounts'});
+  await assert.rejects(app.provider.request({method:'personal_sign',params:['0x12']}),
+    error=>error.code===4100);
+  assert.equal(approvals,1);
+  assert.equal(signatures,0);
+  assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[]);
+  app.dispose();
+});
+
+test('a disconnect while signing approval is visible invalidates the original grant',async()=>{
+  const {provider,calls}=fakeWallet();
+  const app=createMiniAppEthereumProvider('https://example.org',provider,
+    ()=>true,undefined,async()=>{
+      provider.emit('disconnect',{code:4900});
+      return true;
+    });
+  await app.provider.request({method:'eth_requestAccounts'});
+  await assert.rejects(app.provider.request({method:'personal_sign',params:['0x12']}),
+    error=>error.code===4100);
+  assert.equal(calls.includes('personal_sign'),false);
+  app.dispose();
+});
+
+test('a chainChanged event immediately revokes a Mini App wallet grant',async()=>{
+  const {provider}=fakeWallet();
+  const app=createMiniAppEthereumProvider('https://chain.example',provider,()=>true);
+  const changes=[];
+  app.provider.on('accountsChanged',accounts=>changes.push(accounts));
+  await app.provider.request({method:'eth_requestAccounts'});
+  provider.emit('chainChanged','0x1'); // 8453 to 1, same custody address.
+  assert.deepEqual(changes,[[]]);
+  assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[]);
+  await assert.rejects(app.provider.request({method:'personal_sign',params:['0x12']}),
+    error=>error.code===4100);
+  app.dispose();
+});
+
+test('silent chain switching during the signature prompt fails before wallet submission',async()=>{
+  const account='0x0000000000000000000000000000000000000001';
+  let chain='0x1';
+  let forwarded=0;
+  const injected={
+    async request({method}){
+      if(method==='eth_requestAccounts'||method==='eth_accounts')return [account];
+      if(method==='eth_chainId')return chain;
+      if(method==='personal_sign'){forwarded++;return '0xunexpected';}
+      return null;
+    },on(){},removeListener(){}
+  };
+  const app=createMiniAppEthereumProvider('https://chain.example',injected,()=>true,
+    undefined,async()=>{chain='0xa';return true;});
+  await app.provider.request({method:'eth_requestAccounts'});
+  await assert.rejects(app.provider.request({method:'personal_sign',params:['0x12']}),
+    error=>error.code===4100);
+  assert.equal(forwarded,0);
+  assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[]);
+  app.dispose();
+});
+
+test('silent chain rotation also invalidates read-only account exposure',async()=>{
+  const account='0x0000000000000000000000000000000000000001';
+  let chain='0x1';
+  const injected={
+    async request({method}){
+      if(method==='eth_requestAccounts'||method==='eth_accounts')return [account];
+      if(method==='eth_chainId')return chain;
+      return null;
+    },on(){},removeListener(){}
+  };
+  const app=createMiniAppEthereumProvider('https://chain.example',injected,()=>true);
+  await app.provider.request({method:'eth_requestAccounts'});
+  chain='0xa';
+  assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[]);
+  app.dispose();
 });

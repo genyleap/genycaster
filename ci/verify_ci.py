@@ -210,7 +210,10 @@ def main() -> None:
     expected_context_objects = {
         "genyPulseActivity", "openProofConnections", "proCheckout",
         "proWalletHost", "presentationBridge",
-        "channelDirectory", "dataStorage", "richComposer", "emojiController",
+        "channelDirectory", "channelBrowser", "channelAdmin",
+        "nativeRegistrationStatus", "nativeCustodyWallet",
+        "nativeRegistrationPreparation", "nativeRegistrationPublisher",
+        "neynarRegistration", "dataStorage", "richComposer", "emojiController",
         "mediaUpload", "mediaClassifier", "mediaPlayback",
         "localizationController", "geoLocationResolver", "linkPreviewResolver",
         "browserLinkMetadataController", "browserTokenPreviewController",
