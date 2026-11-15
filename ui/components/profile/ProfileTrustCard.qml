@@ -230,7 +230,7 @@ NeonSurface {
                         objectName: "sidebarFidMetric"
                         visible: Number(root.fid) > 0
                         Layout.fillWidth: true
-                        text: "FID " + LocaleFormat.formatInteger(root.fid)
+                        text: qsTrId("genycaster.detail.fid_value").arg(LocaleFormat.formatInteger(root.fid))
                         color: Theme.textTertiary
                         font.pixelSize: Theme.typeCaptionSize
                         elide: Text.ElideRight
