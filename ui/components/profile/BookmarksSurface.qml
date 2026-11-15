@@ -474,7 +474,11 @@ Flickable {
                 // hover shader only when a card is actually inspected.
                 interactive: true
                 deferredNeon: true
-                ambientNeon: false
+                // Restore the stationary Neon rim for visible saved Casts
+                // without allocating a shader for every offscreen bookmark.
+                ambientNeon: root.visible && !root.moving
+                    && bookmarkCard.y + bookmarkCard.height >= root.contentY - root.height * 0.5
+                    && bookmarkCard.y <= root.contentY + root.height * 1.5
                 neonStrength: Theme.neonCardStrength
                 required property var modelData
                 // Stable explicit cell geometry, measured from the viewport,

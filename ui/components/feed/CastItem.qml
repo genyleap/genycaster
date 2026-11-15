@@ -382,6 +382,17 @@ Item {
     }
 
     implicitHeight: messageRow.implicitHeight + (root.magazineCard ? 0 : Theme.space3)
+    // Qt Quick Layouts can temporarily report a shorter implicitHeight when
+    // engagement counters or a late embed reflow. For Magazine, measure the
+    // actual bottom of the final visible actions row instead. This property
+    // does not feed back into the inner Layout's implicit size, preventing a
+    // binding loop while its children are being rearranged.
+    readonly property real magazinePaintHeight: root.magazineCard
+        ? Math.max(root.implicitHeight,
+            messageRow.y + messageSurface.y + messageContent.y
+            + magazineActions.y + magazineActions.height
+            + messageContent.anchors.bottomMargin + Theme.space1)
+        : 0
     // The parent Loader measures implicitHeight, but the card must also have
     // actual paint geometry for anchored rich text/media and interaction hit
     // targets. Never leave a zero-height Item painting into the next slot.
@@ -1063,6 +1074,7 @@ Item {
                 }
 
                 RowLayout {
+                    id: magazineActions
                     visible: !root.mediaFirst || root.magazineCard
                     Layout.fillWidth: true
                     spacing: Theme.space2

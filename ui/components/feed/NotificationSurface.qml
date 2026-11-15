@@ -865,7 +865,12 @@ Item {
                     anchors.fill: parent
                     interactive: !list.moving
                     deferredNeon: true
-                    ambientNeon: false
+                    // Notifications are real cards, not bare list rows.
+                    // Keep their ambient rim while idle, but only for the
+                    // currently visible neighborhood of a recycled ListView.
+                    ambientNeon: notificationRow.visible && !list.moving
+                        && notificationRow.y + notificationRow.height >= list.contentY - 160
+                        && notificationRow.y <= list.contentY + list.height + 160
                     neonStrength: Theme.neonControlStrength
                     externalHovered: rowHover.hovered
                     externalPointerX: rowHover.point.position.x - x

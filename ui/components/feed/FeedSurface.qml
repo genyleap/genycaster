@@ -1766,8 +1766,10 @@ Item {
         readonly property real reservedHeight: root.rowIncubationHeight(
                                                    payload, presentationKind,
                                                    mediaLayoutKind, width)
-        readonly property real resolvedHeight: item && item.implicitHeight > 0
-                                               ? item.implicitHeight : 0
+        readonly property real resolvedHeight: item
+            ? Math.max(0, Number(item.implicitHeight || 0),
+                rowDelegate.magazineRow ? Number(item.magazinePaintHeight || 0) : 0)
+            : 0
         property real committedHeight: reservedHeight
 
         function synchronizeHeight() {

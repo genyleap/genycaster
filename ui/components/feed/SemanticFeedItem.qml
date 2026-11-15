@@ -29,6 +29,10 @@ Item {
                                           : "conversation"
 
     implicitHeight: loader.item ? loader.item.implicitHeight : 0
+    // The last rendered actions row is the strongest geometry observation
+    // for a Magazine cast containing delayed link/media hydration.
+    readonly property real magazinePaintHeight: root.magazineCard && loader.item
+        ? Number(loader.item.magazinePaintHeight || 0) : 0
     // Give the nested Loader a real vertical extent. Width-only anchoring
     // allows rich children to calculate their implicitHeight while painting
     // with a zero-height scene node, clipping markdown/media into the next row.

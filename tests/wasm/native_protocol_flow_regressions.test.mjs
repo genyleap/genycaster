@@ -12,8 +12,9 @@ test('followers and following never reserve the Explorer feed header',()=>{
 
 test('attached drawer corners are square across themes and display directions',()=>{
   const drawer=read('ui/components/controls/GenyDrawer.qml');
-  assert.match(drawer,/neonAmbient:\s*false/);
+  assert.match(drawer,/neonAmbient:\s*!control\.fullScreen/);
   assert.match(drawer,/neonInteractive:\s*false/);
+  assert.match(drawer,/Math\.max\(26, parent\.curveDepth \+ Theme\.space1\)/);
   assert.match(drawer,/shadowEnabled:\s*false/);
   assert.match(drawer,/leftInset:\s*floatingSheet && edge !== Qt\.LeftEdge/);
   assert.match(drawer,/rightInset:\s*floatingSheet && edge !== Qt\.RightEdge/);

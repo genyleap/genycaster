@@ -115,10 +115,10 @@ Drawer {
     }
 
     background: PopupSurface {
-        // The shared neon rim is a symmetric rounded rectangle. It ignores
-        // the per-corner curve flags below and paints a second arc over the
-        // square attached edge. Side sheets must not instantiate that halo.
-        neonAmbient: false
+        // Keep the Kit's Neon material on inspector panels. The rim shader
+        // uses symmetric corners; the attached-edge mask below removes only
+        // its incompatible arc, not the entire glow from the sheet.
+        neonAmbient: !control.fullScreen
         neonInteractive: false
         shadowEnabled: false
         fillColor: Theme.surfaceElevated
@@ -133,22 +133,38 @@ Drawer {
         curveBottomLeft: !control.fullScreen && !control.bottomSheet && control.edge !== Qt.LeftEdge
         curveBottomRight: !control.fullScreen && !control.bottomSheet && control.edge !== Qt.RightEdge
 
-        // Cover any fractional-pixel anti-alias fringe at the anchored edge.
-        // The inward-facing corners stay gently rounded.
+        // Mask only the Neon shader's unsupported attached-edge arcs.
+        // A soft transition retains the glow on the free corners while the
+        // panel's actual scene-graph Superellipse owns its square edge.
         Rectangle {
             visible: !control.fullScreen && !control.bottomSheet
             x: control.edge === Qt.RightEdge ? parent.width - width : 0
             y: 0
-            width: 2
+            width: Math.max(26, parent.curveDepth + Theme.space1)
             height: parent.height
-            color: Theme.surfaceElevated
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop {
+                    position: 0
+                    color: control.edge === Qt.RightEdge
+                        ? "transparent" : Theme.surfaceElevated
+                }
+                GradientStop {
+                    position: 1
+                    color: control.edge === Qt.RightEdge
+                        ? Theme.surfaceElevated : "transparent"
+                }
+            }
         }
         Rectangle {
             visible: !control.fullScreen && control.bottomSheet
             anchors.bottom: parent.bottom
             width: parent.width
-            height: 2
-            color: Theme.surfaceElevated
+            height: Math.max(26, parent.curveDepth + Theme.space1)
+            gradient: Gradient {
+                GradientStop { position: 0; color: "transparent" }
+                GradientStop { position: 1; color: Theme.surfaceElevated }
+            }
         }
 
         // Form sheets disable Drawer.interactive so scroll gestures belong to

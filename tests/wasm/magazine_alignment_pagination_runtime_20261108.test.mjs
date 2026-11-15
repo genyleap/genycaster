@@ -42,8 +42,13 @@ test("Rich Cast paint height tracks its implicit text/media geometry through eac
     assert.match(semantic, /id: loader[\s\S]*?anchors\.top: parent\.top\s*height: root\.height/);
     const profileMagazine = profile.slice(profile.indexOf("id: profileMagazineView"));
     assert.match(profileMagazine, /delegate: Component \{\s*CastItem \{\s*width: parent\.width[\s\S]*?height: implicitHeight/);
-    // A measured slot cannot clip a now-larger text/markdown subtree.
-    assert.match(wall, /clip: cardLoader\.item === null/);
+    // During transient async relayout, the slot must block any content
+    // from painting into the next card. Height grows from real painted
+    // content and is then propagated into native lane geometry.
+    assert.match(wall, /clip: true/);
+    assert.match(cast, /readonly property real magazinePaintHeight:/);
+    assert.match(semantic, /readonly property real magazinePaintHeight:/);
+    assert.match(feed, /rowDelegate\.magazineRow \? Number\(item\.magazinePaintHeight \|\| 0\)/);
     assert.match(wall, /function onImplicitHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
 });
 

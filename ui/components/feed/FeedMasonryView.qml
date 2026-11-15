@@ -252,13 +252,19 @@ Flickable {
             required property real cardY
             required property real cardHeight
             property real measuredHeight: view.recalledHeight(stableKey, revisionKey, width)
+            // A revision update (especially Like/Recast) can briefly shrink
+            // the nested Qt Layout before it completes rearrangement.
+            // Grow immediately, but only commit a smaller height after the
+            // row has settled over another event-loop/frame boundary.
+            property bool revisionSettling: false
             property bool placed: true
             property bool admitted: true
             readonly property var loadedCard: cardLoader.item
             readonly property real paintedHeight: !loadedCard ? 0
                 : loadedCard.resolvedHeight !== undefined
                   ? Number(loadedCard.resolvedHeight || 0)
-                  : Number(loadedCard.implicitHeight || loadedCard.height || 0)
+                  : Math.max(Number(loadedCard.magazinePaintHeight || 0),
+                      Number(loadedCard.implicitHeight || loadedCard.height || 0))
             readonly property bool cardReady: cardLoader.status === Loader.Ready
                 && loadedCard !== null && loadedCard.incubating !== true
                 && paintedHeight > 0
@@ -266,7 +272,11 @@ Flickable {
             y: cardY
             width: view.cardWidth
             height: Math.max(1, cardHeight)
-            clip: cardLoader.item === null
+            // The native slot boundary is authoritative. During a pending
+            // Like or delayed rich preview, prevent a temporarily oversized
+            // child from painting over the next independently placed card.
+            // Once the actual painted extent is measured the native lane grows.
+            clip: true
 
             function offerEstimate() {
                 if (!view.estimateHeight || view.recalledHeight(stableKey, revisionKey, width) > 0)
@@ -291,9 +301,13 @@ Flickable {
                 const hasResolvedHeight = content.resolvedHeight !== undefined
                 const next = hasResolvedHeight
                     ? Number(content.resolvedHeight || 0)
-                    : Number(content.implicitHeight || content.height || 0)
+                    : Math.max(Number(content.magazinePaintHeight || 0),
+                        Number(content.implicitHeight || content.height || 0))
                 if (next > 0 && isFinite(next)) {
                     const resolved = Math.ceil(next)
+                    if (revisionSettling
+                            && resolved < Math.max(cardHeight, measuredHeight) - 1)
+                        return
                     if (Math.abs(resolved - measuredHeight) >= 1)
                         measuredHeight = resolved
                     view.retainHeight(stableKey, revisionKey, width, resolved)
@@ -302,6 +316,8 @@ Flickable {
             Component.onCompleted: offerEstimate()
             onStableKeyChanged: offerEstimate()
             onRevisionKeyChanged: {
+                revisionSettling = true
+                revisionSettleTimer.restart()
                 const previousPaintedHeight = measuredHeight
                 measuredHeight = view.recalledHeight(stableKey, revisionKey, width)
                 // A like/recast changes the row revision but not the cast's
@@ -310,6 +326,16 @@ Flickable {
                 if (!(previousPaintedHeight > 0)) offerEstimate()
             }
             onWidthChanged: offerEstimate()
+
+            Timer {
+                id: revisionSettleTimer
+                interval: 48
+                repeat: false
+                onTriggered: {
+                    slot.revisionSettling = false
+                    slot.recordHeight()
+                }
+            }
 
             Loader {
                 id: visiblePlaceholder

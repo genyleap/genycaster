@@ -19,7 +19,8 @@ test('a resolved magazine card replaces an oversized reservation with its actual
     const sample = [];
     const context = vm.createContext({
         cardLoader: {item: {height: 850, implicitHeight: 230}},
-        measuredHeight: 850, stableKey: 'cast:1', revisionKey: 'r:1', width: 346,
+        measuredHeight: 850, cardHeight: 850, revisionSettling: false,
+        stableKey: 'cast:1', revisionKey: 'r:1', width: 346,
         view: {retainHeight: (...args) => sample.push(args)}
     });
     vm.runInContext(code.trim(), context);

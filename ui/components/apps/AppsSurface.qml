@@ -445,7 +445,7 @@ Item {
                     id: destinationCard
                     interactive: true
                     deferredNeon: true
-                    ambientNeon: false
+                    ambientNeon: destinationCard.selected
                     neonStrength: Theme.neonControlStrength
                     required property var modelData
                     readonly property string destinationId: String(modelData.id)
