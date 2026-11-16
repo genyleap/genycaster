@@ -46,12 +46,14 @@ GenyAdaptiveDialog {
     function scrollToBeginning() {
         // Only explicit Settings entry resets state. Switching controls or
         // returning from a nested detail does not discard unsaved values.
-        const pages = [mobileSettingsIndex, appearanceScroll, localeScroll,
-                       marketScroll, readSettingsScroll, updatesScroll,
-                       recoverySettingsScroll, nodeSettingsScroll]
+        // Reset only the mounted page; inactive preferences are not instantiated.
+        const pages = [mobileSettingsIndex, appearancePage.item, localePage.item,
+                       marketPage.item, readSettingsPage.item, updatesPage.item,
+                       recoveryPage.item, nodePage.item]
         for (let i = 0; i < pages.length; ++i) {
-            if (pages[i].contentItem)
-                pages[i].contentItem.contentY = 0
+            const page = pages[i]
+            if (page && page.contentItem)
+                page.contentItem.contentY = 0
         }
     }
 
@@ -85,7 +87,10 @@ GenyAdaptiveDialog {
     }
     readonly property bool compactLayout: width < 640
     // Narrow inspectors never squeeze two form columns.
-    readonly property int contentColumns: width >= 900 ? 2 : 1
+    // Use the content pane, not the outer dialog, to choose form columns.
+    readonly property real navigationColumnWidth: Math.min(228, Math.max(186, width * 0.24))
+    readonly property int contentColumns: !mobilePresentation
+        && width - navigationColumnWidth - Theme.space6 >= Theme.scaleUi(840) ? 2 : 1
     readonly property var proEntitlements: openProofConnections
         ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property bool marketProEligible:
@@ -96,6 +101,8 @@ GenyAdaptiveDialog {
     property bool marketInputError: false
     property bool validatorUrlError: false
     property bool customColorError: false
+    // Reference to the color field while its page is mounted.
+    property var accentEditor: null
 
     signal customAccentStudioRequested(string color)
     signal dataStorageRequested()
@@ -106,8 +113,8 @@ GenyAdaptiveDialog {
     function applyCustomAccentColor(color) {
         const applied = appearanceController.setCustomAccentColor(String(color || ""))
         root.customColorError = !applied
-        if (applied)
-            customAccentField.text = appearanceController.customAccentColor
+        if (applied && root.accentEditor)
+            root.accentEditor.text = appearanceController.customAccentColor
         return applied
     }
 
@@ -146,7 +153,8 @@ GenyAdaptiveDialog {
             root.currentSection = 0
             root.mobileIndexOpen = true
         }
-        customAccentField.text = appearanceController.customAccentColor
+        if (root.accentEditor)
+            root.accentEditor.text = appearanceController.customAccentColor
         root.customColorError = false
         root.showRecoveryExplanation = false
     }
@@ -716,7 +724,7 @@ GenyAdaptiveDialog {
 
             Superellipse {
                 visible: !root.mobilePresentation
-                Layout.preferredWidth: Math.min(224, Math.max(188, root.width * 0.28))
+                Layout.preferredWidth: root.navigationColumnWidth
                 Layout.fillHeight: true
                 fillColor: "transparent"
                 curveDepth: Theme.curveContainer
@@ -832,6 +840,11 @@ GenyAdaptiveDialog {
                 }
             }
 
+            Loader {
+                id: appearancePage
+                active: (!root.mobilePresentation || !root.mobileIndexOpen) && root.currentSection === 0
+                asynchronous: false
+                sourceComponent: Component {
             ScrollView {
                 id: appearanceScroll
                 clip: true
@@ -1126,7 +1139,8 @@ GenyAdaptiveDialog {
                         GridLayout {
                             Layout.fillWidth: true
                             layoutDirection: Theme.uiDirection
-                            columns: appearanceScroll.availableWidth >= 320 ? 4 : 3
+                            columns: appearanceScroll.availableWidth >= 520 ? 4
+                                     : appearanceScroll.availableWidth >= 350 ? 3 : 2
                             uniformCellWidths: true
                             rowSpacing: Theme.space3
                             columnSpacing: Theme.space2
@@ -1163,20 +1177,18 @@ GenyAdaptiveDialog {
                                     readonly property bool selected: appearanceController.colorThemeId === presetId
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 0
-                                    Layout.preferredHeight: 76
+                                    Layout.preferredHeight: 90
                                     Accessible.role: Accessible.RadioButton
                                     Accessible.name: themePreset.presetLabel
                                     Accessible.checked: selected
 
-                                    // Palette selection is shown by its own
-                                    // circular ring. This plate only adds the
-                                    // shared transient glint on pointer entry.
+                                    // Stable hit area and highlighted selected cell.
                                     NeonStatePlate {
                                         anchors.fill: parent
-                                        selected: false
+                                        selected: themePreset.selected
                                         hovered: presetHover.hovered
                                         pressed: false
-                                        selectedFill: "transparent"
+                                        selectedFill: Theme.surfaceSelected
                                         hoverFill: Theme.surfaceHover
                                         cornerRadius: Theme.curveControl
                                         neonOnHover: true
@@ -1195,9 +1207,8 @@ GenyAdaptiveDialog {
                                                 color: "transparent"
                                                 border.width: 2
                                                 border.color: themePreset.selected ? Theme.accent : "transparent"
-                                                Behavior on border.color {
-                                                    ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                                                }
+                                                // Immediate selection avoids a burst of
+                                                // ring animations during palette changes.
                                             }
                                             Rectangle {
                                                 anchors.centerIn: parent
@@ -1229,7 +1240,10 @@ GenyAdaptiveDialog {
                                             color: themePreset.selected ? Theme.ink : Theme.inkMuted
                                             font.pixelSize: Theme.typeCaptionSize
                                             font.weight: Theme.weightMedium
-                                            elide: Text.ElideRight
+                                            wrapMode: Text.WordWrap
+                                            maximumLineCount: 2
+                                            verticalAlignment: Text.AlignVCenter
+                                            Layout.preferredHeight: 28
                                         }
                                     }
 
@@ -1347,6 +1361,14 @@ GenyAdaptiveDialog {
                                     spacing: Theme.space2
                                     DirectionAwareTextField {
                                         id: customAccentField
+                                        Component.onCompleted: {
+                                            root.accentEditor = customAccentField
+                                            text = appearanceController.customAccentColor
+                                        }
+                                        Component.onDestruction: {
+                                            if (root.accentEditor === customAccentField)
+                                                root.accentEditor = null
+                                        }
                                         Layout.fillWidth: true
                                         placeholderText: qsTrId("genycaster.settings.custom_color_placeholder")
                                         onTextChanged: root.customColorError = false
@@ -1806,7 +1828,14 @@ GenyAdaptiveDialog {
                     Item { Layout.preferredHeight: Theme.space4 }
                 }
             }
+                }
+            }
 
+            Loader {
+                id: localePage
+                active: (!root.mobilePresentation || !root.mobileIndexOpen) && root.currentSection === 1
+                asynchronous: false
+                sourceComponent: Component {
             ScrollView {
                 id: localeScroll
                 clip: true
@@ -2002,7 +2031,14 @@ GenyAdaptiveDialog {
                     Item { Layout.preferredHeight: Theme.space4 }
                 }
             }
+                }
+            }
 
+            Loader {
+                id: marketPage
+                active: (!root.mobilePresentation || !root.mobileIndexOpen) && root.currentSection === 2
+                asynchronous: false
+                sourceComponent: Component {
             ScrollView {
                 id: marketScroll
                 clip: true
@@ -2551,7 +2587,14 @@ GenyAdaptiveDialog {
                     Item { Layout.preferredHeight: Theme.space4 }
                 }
             }
+                }
+            }
 
+            Loader {
+                id: readSettingsPage
+                active: (!root.mobilePresentation || !root.mobileIndexOpen) && root.currentSection === 3
+                asynchronous: false
+                sourceComponent: Component {
             ScrollView {
                 id: readSettingsScroll
                 clip: true
@@ -2699,7 +2742,14 @@ GenyAdaptiveDialog {
 
                 }
             }
+                }
+            }
 
+            Loader {
+                id: updatesPage
+                active: (!root.mobilePresentation || !root.mobileIndexOpen) && root.currentSection === 4
+                asynchronous: false
+                sourceComponent: Component {
             ScrollView {
                 id: updatesScroll
                 clip: true
@@ -2983,7 +3033,14 @@ GenyAdaptiveDialog {
                     }
                 }
             }
+                }
+            }
 
+            Loader {
+                id: recoveryPage
+                active: (!root.mobilePresentation || !root.mobileIndexOpen) && root.currentSection === 5
+                asynchronous: false
+                sourceComponent: Component {
             ScrollView {
                 id: recoverySettingsScroll
                 clip: true
@@ -3077,6 +3134,13 @@ GenyAdaptiveDialog {
                     }
                 }
             }
+                }
+            }
+            Loader {
+                id: nodePage
+                active: (!root.mobilePresentation || !root.mobileIndexOpen) && root.currentSection === 6
+                asynchronous: false
+                sourceComponent: Component {
             ScrollView {
                 id: nodeSettingsScroll
                 clip: true
@@ -3086,6 +3150,8 @@ GenyAdaptiveDialog {
 
                 NodeManagementPanel {
                     width: nodeSettingsScroll.availableWidth
+                }
+            }
                 }
             }
         }
