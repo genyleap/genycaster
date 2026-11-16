@@ -10,6 +10,7 @@ Item {
     objectName: "profileStreakCard"
 
     signal profileRequested(double fid)
+    signal signerAuthorizationRequested()
 
     property var snapshot: ({})
     property bool loading: false
@@ -35,6 +36,17 @@ Item {
         ? Boolean(openProofConnections.streakLeaderboardBusy) : false
     readonly property bool leaderboardCanJoin: openProofConnections
         ? Boolean(openProofConnections.cloudAuthorizationReady) : false
+    // A missing or unapproved HyperSnap signer needs its own custody consent.
+    // Repeating a cloud cookie request cannot register a network signer.
+    readonly property bool signerAuthorizationNeeded: presentationBridge
+        && presentationBridge.isAuthenticated
+        && presentationBridge.nativeCustodyAccount
+        && !presentationBridge.writeReady
+        && !presentationBridge.signerBusy
+        && (presentationBridge.signerPhase === "missing"
+            || presentationBridge.signerPhase === "authorization-required"
+            || presentationBridge.signerPhase === "expired"
+            || presentationBridge.signerPhase === "revoked")
 
     readonly property var track: activeTrack === "creator"
         ? (snapshot.creator || ({})) : (snapshot.activity || ({}))
@@ -276,10 +288,17 @@ Item {
                 && openProofConnections && !openProofConnections.cloudAuthorizationReady
             enabled: openProofConnections && !openProofConnections.cloudSessionBusy
                 && !openProofConnections.accountProofBusy
-            text: qsTrId("genycaster.pro.restore_secure_session")
+            text: root.signerAuthorizationNeeded
+                ? qsTrId("genycaster.shell.enable_interactions")
+                : qsTrId("genycaster.pro.restore_secure_session")
             compact: true
             quiet: true
-            onClicked: openProofConnections.retryAccountSession()
+            onClicked: {
+                if (root.signerAuthorizationNeeded)
+                    root.signerAuthorizationRequested()
+                else
+                    openProofConnections.retryAccountSession()
+            }
         }
 
         ColumnLayout {
