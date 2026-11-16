@@ -103,10 +103,17 @@ Item {
         }
         if (!/^https:\/\/[^\s?#]+\.gif(?:\?[^#]*)?$/i.test(mediaUrl))
             return ''
-        return Qt.platform.os === 'wasm'
-               ? (deploymentEndpoints.browserGateway + "/v1/browser/images?url=")
-                 + encodeURIComponent(mediaUrl)
-               : mediaUrl
+        // Tenor's media1 CDN answers GET with valid GIF bytes but sometimes
+        // rejects the request style used by Qt's QMovie/AnimatedImage stack.
+        // The bounded, same-origin-capable first-party image proxy pins DNS,
+        // verifies GIF magic, and never relies on a HEAD request. Route the
+        // known problematic CDN through it on desktop as well as WASM.
+        const useGateway = Qt.platform.os === 'wasm'
+            || /^https:\/\/media1\.tenor\.com\/m\//i.test(mediaUrl)
+        return useGateway
+            ? (deploymentEndpoints.browserGateway + "/v1/browser/images?url=")
+                + encodeURIComponent(mediaUrl)
+            : mediaUrl
     }
     readonly property bool automaticDownloadAllowed: !root.remoteSource
                                                     || root.manualLoadRequested
@@ -434,7 +441,13 @@ Item {
         id: animatedGif
         z: 1.5
         anchors.fill: parent
-        source: root.animatedGifUrl
+        // ImagePolicy applies to GIFs too. The still-image provider remains
+        // the single source of admission and is allowed to fail back cleanly
+        // when the animation codec or network is unavailable.
+        source: root.componentReady && root.hasRenderableGeometry
+                && root.automaticDownloadAllowed
+                && root.activeSource.toString().length > 0
+            ? root.animatedGifUrl : ""
         sourceSize: Qt.size(root.stableSourceWidth, root.stableSourceHeight)
         fillMode: root.fillMode
         asynchronous: true
