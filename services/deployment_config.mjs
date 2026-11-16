@@ -22,9 +22,9 @@ export function trustedOrigin(raw, name, {path = false} = {}) {
 
 export function serverDeployment(env = process.env) {
   const publicOrigin = trustedOrigin(
-    env.GENYCASTER_PUBLIC_ORIGIN || 'https://caster.genyleap.com',
+    env.GENYCASTER_PUBLIC_ORIGIN || 'https://genycaster.xyz',
     'GENYCASTER_PUBLIC_ORIGIN');
-  const customOrigin = publicOrigin !== 'https://caster.genyleap.com';
+  const customOrigin = publicOrigin !== 'https://genycaster.xyz';
   if (env.GENYCASTER_DEPLOYMENT_STRICT === '1' || customOrigin) {
     const required = [
       'GENYCASTER_PUBLIC_ORIGIN', 'GENYCASTER_OPENPROOF_ISSUER',
