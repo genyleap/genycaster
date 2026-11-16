@@ -1893,14 +1893,16 @@ Item {
                                 icon.source: root.socialIcon(String(modelData.provider))
                                 icon.width: Theme.scaleUi(root.compact ? 18 : 21)
                                 icon.height: Theme.scaleUi(root.compact ? 18 : 21)
-                                background: Rectangle {
-                                    radius: Theme.curveCompact
-                                    color: socialBadge.down ? Theme.surfacePressed
-                                           : socialBadge.hovered ? Theme.surfaceHover : Theme.surface
-                                    border.color: Theme.keyboardFocusVisible(socialBadge) ? Theme.focus
-                                                  : socialBadge.hovered ? Theme.accent : Theme.borderMuted
-                                    border.width: socialBadge.hovered || Theme.keyboardFocusVisible(socialBadge) ? 2 : 1
-                                    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+                                background: Superellipse {
+                                    curveDepth: Theme.curveCompact
+                                    fillColor: socialBadge.down ? Theme.surfacePressed
+                                               : socialBadge.hovered ? Theme.surfaceHover : Theme.surface
+                                    borderColor: Theme.keyboardFocusVisible(socialBadge) ? Theme.focus
+                                                 : socialBadge.hovered ? Theme.accent : Theme.borderMuted
+                                    borderWidth: socialBadge.hovered || Theme.keyboardFocusVisible(socialBadge) ? 2 : 1
+                                    Behavior on fillColor {
+                                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                    }
                                 }
                                 Rectangle {
                                     anchors.right: parent.right
@@ -1937,11 +1939,11 @@ Item {
                                         font.pixelSize: Theme.typeCaptionSize
                                         wrapMode: Text.Wrap
                                     }
-                                    background: Rectangle {
-                                        radius: Theme.curveCompact
-                                        color: Theme.surfaceElevated
-                                        border.color: Theme.borderMuted
-                                        border.width: 1
+                                    background: PopupSurface {
+                                        curveDepth: Theme.curveCompact
+                                        fillColor: Theme.surfaceElevated
+                                        borderColor: Theme.borderMuted
+                                        borderWidth: 1
                                     }
                                 }
                                 Accessible.name: hintText
@@ -2210,12 +2212,14 @@ Item {
                                     flat: true
                                     hoverEnabled: true
                                     padding: 0
-                                    background: Rectangle {
-                                        radius: Theme.curveCompact
-                                        color: identityMoreLinks.hovered ? Theme.surfaceHover : "transparent"
-                                        Behavior on color {
-                                            ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                                        }
+                                    background: NeonStatePlate {
+                                        hovered: identityMoreLinks.hovered
+                                        pressed: identityMoreLinks.down
+                                        focused: Theme.keyboardFocusVisible(identityMoreLinks)
+                                        hoverFill: Theme.surfaceHover
+                                        pressedFill: Theme.surfacePressed
+                                        cornerRadius: Theme.curveCompact
+                                        neonOnHover: false
                                     }
                                     contentItem: Label {
                                         text: qsTrId("genycaster.profile.more_links").arg(
