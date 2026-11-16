@@ -63,7 +63,17 @@ test('Settings is a centered content-fitted modal on desktop and a bottom sheet 
     assert.match(settings, /activeFocusOnTab: true/);
     assert.match(settings, /Accessible\.onPressAction: themePreset\.selectPreset\(\)/);
     assert.match(settings, /focused: themePreset\.activeFocus/);
-    assert.match(settings, /colorThemeId === "custom"[\s\S]*?\? Theme\.surfaceSelected : Theme\.surfaceRaised/);
+    assert.match(settings, /id: colorThemeLayout/);
+    assert.match(settings, /columns: appearanceScroll\.availableWidth >= Theme\.scaleUi\(850\) \? 2 : 1/);
+    assert.match(settings, /id: palettePresets/);
+    assert.match(settings, /columns: appearanceScroll\.availableWidth >= 520 \? 4/);
+    assert.match(settings, /objectName: "textSelectionSegment"/);
+    assert.match(settings, /Layout\.maximumWidth: Theme\.scaleUi\(360\)/);
+    assert.match(settings, /id: customAccentCard/);
+    assert.match(settings, /implicitHeight: customColorContent\.implicitHeight \+ Theme\.space3 \* 2/);
+    assert.match(settings, /border\.width: themePreset\.selected/);
+    assert.doesNotMatch(settings, /selected: themePreset\.selected\s*\n\s*focused:/);
+    assert.match(settings, /onTapped: themePreset\.selectPreset\(\)/);
 });
 
 test('All recovery checkboxes share a stable Light/Dark background and explicit checked appearance', () => {
