@@ -2871,10 +2871,9 @@ Item {
         sourceComponent: Component {
             LocaleSettingsPopup {
                 parent: root
-                // Frost only the exposed desktop workspace. Mobile settings
-                // fully cover the viewport and never allocate a blur texture.
-                // The adaptive dialog uses a frozen, downsampled GPU effect.
-                blurSourceItem: mobilePresentation ? null : shellContent
+                // Settings covers the full viewport on every platform;
+                // do not capture a hidden workspace for an invisible blur.
+                blurSourceItem: null
                 onCustomAccentStudioRequested: color => accentColorStudio.openWith(color)
                 onDataStorageRequested: root.openDataStorageSettings()
                 onProDetailsRequested: genyProDetailsDrawer.open()
