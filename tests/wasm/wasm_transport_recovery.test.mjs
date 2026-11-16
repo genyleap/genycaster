@@ -20,7 +20,7 @@ test("large WASM bypasses service worker without removing private browser data",
 test("failed old-worker WASM startup unregisters only app worker and reloads at most once",async()=>{
     const session=new Map();
     const changes=[];
-    const location={href:"https://caster.genyleap.com/?p=1",replace:url=>changes.push(url)};
+    const location={href:"https://genycaster.xyz/?p=1",replace:url=>changes.push(url)};
     let unregisterCount=0;
     const registration={unregister:async()=>{unregisterCount++;return true;}};
     const scope={
@@ -45,7 +45,7 @@ test("failed old-worker WASM startup unregisters only app worker and reloads at 
 });
 
 test("unrelated errors and non-worker browsers do not unregister anything",async()=>{
-    const location={href:"https://caster.genyleap.com/",replace:()=>{throw Error("should not reload")}};
+    const location={href:"https://genycaster.xyz/",replace:()=>{throw Error("should not reload")}};
     let calls=0;
     const scope={currentVersion:"test",URL,location,console,
         navigator:{serviceWorker:{controller:null,
@@ -63,9 +63,9 @@ test("WASM wrapper preserves native request credentials and retries once without
     const end=source.indexOf("const screen=$(\"qt-screen\");",begin);
     assert.ok(begin>=0 && end>begin);
     const calls=[];
-    const wasmURL="https://caster.genyleap.com/genycaster.0123456789abcdef0123.wasm";
+    const wasmURL="https://genycaster.xyz/genycaster.0123456789abcdef0123.wasm";
     const native=new Response(new Uint8Array([0,97,115,109]),{headers:{"content-type":"application/wasm"}});
-    const ctx={window:{},URL,location:{href:"https://caster.genyleap.com/",origin:"https://caster.genyleap.com"},
+    const ctx={window:{},URL,location:{href:"https://genycaster.xyz/",origin:"https://genycaster.xyz"},
         originalFetch:async(input,opts)=>{
             calls.push({url:String(input),options:opts});
             if(calls.length===1)throw new TypeError("Load failed");
@@ -93,7 +93,7 @@ test("WebKit startup unregisters only app worker and navigates once before Qt bo
     const navigations=[];
     const storage=new Map();
     const context={isWebKitRuntime:true,currentVersion:"12345678901234567890",URL,console,
-        location:{href:"https://caster.genyleap.com/",replace:u=>navigations.push(u)},
+        location:{href:"https://genycaster.xyz/",replace:u=>navigations.push(u)},
         window:{isSecureContext:true,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}},
         navigator:{serviceWorker:{controller:{},getRegistration:async()=>({unregister:async()=>{unregisters++;return true;}}),
             register:async()=>{registrations++;}}}};
@@ -110,7 +110,7 @@ test("WebKit startup unregisters only app worker and navigates once before Qt bo
 test("WebKit preserves native streaming Response on its first ordinary WASM request",async()=>{
     const begin=source.indexOf("window.fetch=async function(input,options) {");
     const end=source.indexOf('const screen=$("qt-screen");',begin);
-    const wasmURL="https://caster.genyleap.com/genycaster.0123456789abcdef0123.wasm";
+    const wasmURL="https://genycaster.xyz/genycaster.0123456789abcdef0123.wasm";
     const binary=Uint8Array.from([0,97,115,109,1,0,0,0]);
     const native=new Response(binary,{status:206,headers:{
         "Content-Type":"application/wasm",
@@ -120,7 +120,7 @@ test("WebKit preserves native streaming Response on its first ordinary WASM requ
     const calls=[];
     const ctx={window:{},URL,Headers,Response,isWebKitRuntime:true,
         compressedWebKitEngine:async()=>null,wasmResourceUrl:null,
-        location:{href:"https://caster.genyleap.com/",origin:"https://caster.genyleap.com"},
+        location:{href:"https://genycaster.xyz/",origin:"https://genycaster.xyz"},
         originalFetch:async(input,options)=>{calls.push({input,options});return native;},
         verifiedAsset:new URL(wasmURL),hashedWasm:/^genycaster\.[0-9a-f]{20}\.wasm$/,
         releaseInfo:{wasmBytes:8},installing:false,updating:false,finished:false,
@@ -139,10 +139,10 @@ test("WebKit preserves native streaming Response on its first ordinary WASM requ
 test("WebKit rejects incomplete fallback ranges and uses Range only after ordinary fetch fails",async()=>{
     const begin=source.indexOf("window.fetch=async function(input,options) {");
     const end=source.indexOf('const screen=$("qt-screen");',begin);
-    const wasmURL="https://caster.genyleap.com/genycaster.0123456789abcdef0123.wasm";
+    const wasmURL="https://genycaster.xyz/genycaster.0123456789abcdef0123.wasm";
     const makeCtx=(impl)=>({window:{},URL,Headers,isWebKitRuntime:true,
         compressedWebKitEngine:async()=>null,wasmResourceUrl:null,
-        location:{href:"https://caster.genyleap.com/",origin:"https://caster.genyleap.com"},
+        location:{href:"https://genycaster.xyz/",origin:"https://genycaster.xyz"},
         originalFetch:impl,verifiedAsset:new URL(wasmURL),
         hashedWasm:/^genycaster\.[0-9a-f]{20}\.wasm$/,
         releaseInfo:{wasmBytes:8},installing:false,updating:false,finished:false,
@@ -177,14 +177,14 @@ test("WebKit gzip sidecar streams and decodes valid WebAssembly without cloning 
     const binary=Uint8Array.from([0,97,115,109,1,0,0,0]);
     const compressed=gzipSync(binary);
     const wasm="genycaster.0123456789abcdef0123.wasm";
-    const url="https://caster.genyleap.com/"+wasm;
+    const url="https://genycaster.xyz/"+wasm;
     const assetRequests=[];
     const ctx={
         URL,Response,TransformStream,DecompressionStream,
         isWebKitRuntime:true,hashedWasm:new RegExp("^genycaster[.][0-9a-f]{20}[.]wasm$"),
         releaseInfo:{wasmGzip:wasm+".gz",wasmGzipBytes:compressed.length,
             version:"1234567890abcdef1234"},
-        location:{href:"https://caster.genyleap.com/"},
+        location:{href:"https://genycaster.xyz/"},
         originalFetch:async(request,options)=>{
             assetRequests.push({request,options});
             return new Response(compressed,{headers:{
