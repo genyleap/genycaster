@@ -51,6 +51,22 @@ def check_return(args: list[str]) -> None:
     subprocess.run(args, check=True, timeout=20)
 
 
+def probe_public_route(route: str, expected: str) -> None:
+    # Probe THIS Nginx vhost rather than a CDN edge; preserve TLS hostname
+    # validation, and do not send any cookies or account credentials.
+    result = subprocess.run([
+        'curl', '--noproxy', '*', '--resolve',
+        'caster.genyleap.com:443:127.0.0.1', '--max-time', '9',
+        '-sS', '-o', '/dev/null', '-w', '%{http_code}',
+        'https://caster.genyleap.com' + route,
+    ], capture_output=True, text=True, timeout=12, check=True)
+    if result.stdout.strip() != expected:
+        raise RuntimeError(
+            f'wrong HTTPS status for {route}: {result.stdout.strip()} '
+            f'(expected {expected})'
+        )
+
+
 def activate(config: Path, content: str) -> None:
     """Back up, validate Nginx, and roll back automatically on any failure."""
     backup = config.with_name(config.name + '.before-cloud-api-20261116')
@@ -69,6 +85,10 @@ def activate(config: Path, content: str) -> None:
         staged.replace(config)
         check_return(['nginx', '-t'])
         check_return(['systemctl', 'reload', 'nginx'])
+        probe_public_route('/api/v1/cloud/pro/plan', '200')
+        probe_public_route('/api/v1/cloud/session', '401')
+        probe_public_route('/', '503')
+        probe_public_route('/farcaster_client.html', '503')
     except Exception:
         shutil.copy2(backup, config)
         check_return(['nginx', '-t'])
