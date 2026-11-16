@@ -11,8 +11,8 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 DEFAULT = {
-    "GENYCASTER_PUBLIC_ORIGIN": "https://caster.genyleap.com",
-    "GENYCASTER_SIWF_ORIGIN": "https://genycaster.genyleap.com",
+    "GENYCASTER_PUBLIC_ORIGIN": "https://genycaster.xyz",
+    "GENYCASTER_SIWF_ORIGIN": "https://genycaster.xyz",
     "GENYCASTER_OPENPROOF_ISSUER": "https://openproof.genyleap.com",
     "GENYCASTER_OPENPROOF_BROWSER_BASE": "https://genyleap.com/openproof",
     "GENYCASTER_BROWSER_GATEWAY_ORIGIN": "https://storage-farcaster.genyleap.com",
