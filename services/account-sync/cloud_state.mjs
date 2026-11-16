@@ -522,18 +522,23 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       const cookie=sessionToken(request);
       if(!cookie || typeof store.getSession!=='function') return null;
       const session=await store.getSession(sessionDigest(cookie));
-      if(!session || !/^farcaster:[1-9][0-9]{0,18}$/.test(session.subject))
-        return null;
+      // The signed account proof issues protocol-scoped sessions. HyperSnap
+      // native FIDs use their own verified signer registry and issuer; never
+      // mistake them for a linked OpenProof/Farcaster identity.
+      const match=/^(farcaster|hypersnap):([1-9][0-9]{0,18})$/
+        .exec(String(session?.subject||''));
+      if(!match || !Number.isSafeInteger(Number(match[2])) ||
+          (match[1]==='hypersnap' &&
+           (session.issuer!=='hypersnap:native-registry' ||
+            Number(match[2])<4294967296)))return null;
       // Browsers automatically attach cookies: non-GET operations additionally
       // require a secret returned only to the same-origin account client.
       if(request.method!=='GET' &&
           !csrfMatches(request.headers['x-genycaster-csrf'],session.csrf_token))
         return null;
       return {issuer:session.issuer,subject:session.subject,
-        fid:session.fid || (session.subject.startsWith('hypersnap:')
-          ? session.subject.slice('hypersnap:'.length)
-          : session.subject.slice('farcaster:'.length)),
-        cookieAuth:true,sessionToken:cookie,csrfToken:session.csrf_token};
+        fid:match[2],cookieAuth:true,
+        sessionToken:cookie,csrfToken:session.csrf_token};
     }
     if (!/^Bearer [A-Za-z0-9._~+/-]+={0,2}$/.test(header) || header.length>8192) return null;
     const recovery=header.startsWith('Bearer recovery.');
