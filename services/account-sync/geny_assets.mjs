@@ -12,13 +12,14 @@ export function createGenyAssetsPolicy(env=process.env) {
   if (!ADDRESS.test(contract)) throw new Error('Invalid GENY token address');
   const rpcUrl = String(env.GENYCASTER_GENY_RPC_URL || 'https://mainnet.base.org');
   const snapchainUrl = String(env.GENYCASTER_SNAPCHAIN_URL || serverDeployment(env).snapchainOrigin);
-  for (const endpoint of [rpcUrl,snapchainUrl]) {
+  const hypersnapUrl = String(env.GENYCASTER_HYPERSNAP_URL || serverDeployment(env).hypersnapOrigin);
+  for (const endpoint of [rpcUrl,snapchainUrl,hypersnapUrl]) {
     const url = new URL(endpoint);
     if (url.protocol!=='https:' || url.username || url.password || url.hash
         || url.search || url.pathname!=='/' || url.port)
       throw new Error('Geny assets require credential-free HTTPS provider origins');
   }
-  return Object.freeze({contract,rpcUrl,snapchainUrl});
+  return Object.freeze({contract,rpcUrl,snapchainUrl,hypersnapUrl});
 }
 async function checkedJson(fetchImpl,url,options={}) {
   const response=await fetchImpl(url,{...options,redirect:'error',
@@ -43,12 +44,13 @@ function verificationWallet(record,fid) {
   return address;
 }
 
-export async function verifiedFarcasterWallets(fid,{policy,fetchImpl=globalThis.fetch}={}) {
-  if(!/^[1-9][0-9]{0,18}$/.test(String(fid)))throw new Error('invalid_fid');
+async function verifiedWalletsByFid(fid,origin,fetchImpl) {
+  if(!/^[1-9][0-9]{0,18}$/.test(String(fid))
+      || !Number.isSafeInteger(Number(fid)))throw new Error('invalid_fid');
   const wallets=new Set();
   let pageToken='';
   for(let page=0;page<MAX_PAGES;page++) {
-    const endpoint=new URL('/v1/verificationsByFid',policy.snapchainUrl);
+    const endpoint=new URL('/v1/verificationsByFid',origin);
     endpoint.searchParams.set('fid',String(fid));
     endpoint.searchParams.set('pageSize','100');
     if(pageToken)endpoint.searchParams.set('pageToken',pageToken);
@@ -66,6 +68,26 @@ export async function verifiedFarcasterWallets(fid,{policy,fetchImpl=globalThis.
     pageToken=next;
   }
   throw new Error('provider_unavailable');
+}
+// The account issuer, not the UI-selected read network or a bare caller FID,
+// determines which signed protocol verification records may authorize payment.
+export async function verifiedAccountWallets(owner,{policy,fetchImpl=globalThis.fetch}={}) {
+  if(!owner || typeof owner!=='object')throw new Error('verified_account_required');
+  const fid=String(owner.fid||'');
+  const namespace=String(owner.issuer||'');
+  if(namespace==='hypersnap:native-registry' &&
+      owner.subject==='hypersnap:'+fid && Number(fid)>=4294967296)
+    return verifiedWalletsByFid(fid,policy.hypersnapUrl,fetchImpl);
+  if(namespace!=='hypersnap:native-registry' &&
+      owner.subject==='farcaster:'+fid &&
+      (namespace==='https://openproof.genyleap.com' ||
+       namespace==='https://id.example.test' ||
+       namespace==='farcaster:optimism-id-registry'))
+    return verifiedWalletsByFid(fid,policy.snapchainUrl,fetchImpl);
+  throw new Error('verified_account_required');
+}
+export async function verifiedFarcasterWallets(fid,{policy,fetchImpl=globalThis.fetch}={}) {
+  return verifiedWalletsByFid(fid,policy.snapchainUrl,fetchImpl);
 }
 async function rpc(fetchImpl,policy,method,params){
   const response=await checkedJson(fetchImpl,policy.rpcUrl,{
