@@ -37,9 +37,10 @@ test('Settings palette never recreates all eight model delegates when dark mode 
   assert.doesNotMatch(qml,/selected: themePreset\.selected\s*\n\s*focused:/);
   assert.match(qml,/GenyAdaptiveDialog \{/);
   assert.match(qml,/mobileFullScreen: true/);
+  assert.match(qml,/desktopFullScreen: true/);
   assert.match(qml,/blurSourceItem: null/);
-  assert.match(qml,/dimBackground: !mobilePresentation/);
-  assert.match(qml,/efficientBackdropBlur: true/);
+  assert.match(qml,/dimBackground: false/);
+  assert.doesNotMatch(qml,/efficientBackdropBlur: true/);
 });
 
 test('Qt appearance inspector uses opt-in optimized snapshot blur, other drawers retain the Kit Gaussian',()=>{
