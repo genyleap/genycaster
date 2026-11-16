@@ -36,7 +36,13 @@ GenyDrawer {
         ? String(openProofConnections.accountProofError || "") : ""
     readonly property bool signerAuthorizationNeeded: !membershipVerified && appSignedIn
         && (proofError === "account_signer_unavailable"
-            || proofError === "account_proof_not_accepted")
+            || proofError === "account_proof_not_accepted"
+            || (presentationBridge.nativeCustodyAccount
+                && !presentationBridge.writeReady && !presentationBridge.signerBusy
+                && (presentationBridge.signerPhase === "missing"
+                    || presentationBridge.signerPhase === "authorization-required"
+                    || presentationBridge.signerPhase === "expired"
+                    || presentationBridge.signerPhase === "revoked")))
     readonly property bool eligible: membershipVerified
         && membership.tier === "pro" && membership.eligible === true
     readonly property bool appSignedIn: presentationBridge
