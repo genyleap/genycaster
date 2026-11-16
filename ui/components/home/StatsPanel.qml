@@ -299,8 +299,10 @@ ColumnLayout {
         visible: !root.proUnlocked
         Layout.fillWidth: true
         implicitHeight: premiumGateBody.implicitHeight + Theme.space4 * 2
-        fillColor: Theme.proSurface
-        borderColor: Theme.proBorder
+        // Unverified is not Basic. Treat an unavailable entitlement service
+        // as a neutral status panel, not a paid-upgrade advertisement.
+        fillColor: root.proStatusKnown ? Theme.proSurface : Theme.surfaceRaised
+        borderColor: root.proStatusKnown ? Theme.proBorder : Theme.borderMuted
         borderWidth: Theme.strokeHairline
         curveDepth: Theme.curveContainer
 
@@ -342,9 +344,12 @@ ColumnLayout {
                 Layout.fillWidth: root.compact
                 Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
                 compact: false
-                prominent: true
-                iconGlyph: Theme.iconSpark
-                text: qsTrId("genycaster.pro.get_pro")
+                prominent: root.proStatusKnown
+                quiet: !root.proStatusKnown
+                iconGlyph: root.proStatusKnown ? Theme.iconSpark : Theme.iconRefresh
+                text: root.proStatusKnown
+                    ? qsTrId("genycaster.pro.get_pro")
+                    : qsTrId("genycaster.pro.check_status")
                 onClicked: root.proRequested()
             }
         }
