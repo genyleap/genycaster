@@ -1091,24 +1091,49 @@ GenyAdaptiveDialog {
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.Wrap
                         }
-                        RowLayout {
+                        // A bounded segmented selector rather than two buttons
+                        // spanning the entire inspector. The parent still
+                        // shrinks on phones and mirrors correctly in RTL.
+                        Superellipse {
+                            objectName: "textSelectionSegment"
                             Layout.fillWidth: true
-                            layoutDirection: Theme.uiDirection
-                            spacing: Theme.space2
-                            ActionButton {
-                                Layout.fillWidth: true
-                                compact: true
-                                selected: textSelectionSettings.mode === "genycaster"
-                                text: qsTrId("genycaster.settings.selection_genycaster")
-                                onClicked: textSelectionSettings.setMode("genycaster")
-                            }
-                            ActionButton {
-                                Layout.fillWidth: true
-                                compact: true
-                                selected: textSelectionSettings.systemSelectionEnabled
-                                enabled: textSelectionSettings.nativeAvailable
-                                text: qsTrId("genycaster.settings.selection_system")
-                                onClicked: textSelectionSettings.setMode("system")
+                            Layout.maximumWidth: Theme.scaleUi(360)
+                            Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                            implicitHeight: Theme.compactControlHeight + Theme.space1 * 2
+                            fillColor: Theme.surfaceMuted
+                            borderWidth: Theme.strokeHairline
+                            borderColor: Theme.borderSubtle
+                            curveDepth: Theme.curveControl
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: Theme.space1
+                                layoutDirection: Theme.uiDirection
+                                spacing: Theme.space1
+
+                                ActionButton {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    compact: true
+                                    quiet: true
+                                    selected: textSelectionSettings.mode === "genycaster"
+                                    Accessible.role: Accessible.RadioButton
+                                    Accessible.checked: selected
+                                    text: qsTrId("genycaster.settings.selection_genycaster")
+                                    onClicked: textSelectionSettings.setMode("genycaster")
+                                }
+                                ActionButton {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    compact: true
+                                    quiet: true
+                                    selected: textSelectionSettings.systemSelectionEnabled
+                                    enabled: textSelectionSettings.nativeAvailable
+                                    Accessible.role: Accessible.RadioButton
+                                    Accessible.checked: selected
+                                    text: qsTrId("genycaster.settings.selection_system")
+                                    onClicked: textSelectionSettings.setMode("system")
+                                }
                             }
                         }
                         DirectionAwareLabel {
@@ -1134,292 +1159,279 @@ GenyAdaptiveDialog {
                             font.weight: Theme.weightDemiBold
                         }
 
-                        // Palette swatches are a single responsive family:
-                        // circular color samples, a quiet label, one selection
-                        // ring. No nested pill cards or clipped preset names.
+                        // The eight built-in presets and the custom editor
+                        // share one adaptive grid. On desktop the editor sits
+                        // beside the two-row palette instead of occupying a
+                        // large, duplicated full-width stack.
                         GridLayout {
+                            id: colorThemeLayout
+                            objectName: "colorThemeLayout"
                             Layout.fillWidth: true
+                            Layout.minimumWidth: 0
                             layoutDirection: Theme.uiDirection
-                            columns: appearanceScroll.availableWidth >= 520 ? 4
-                                     : appearanceScroll.availableWidth >= 350 ? 3 : 2
-                            uniformCellWidths: true
-                            rowSpacing: Theme.space3
-                            columnSpacing: Theme.space2
+                            columns: appearanceScroll.availableWidth >= Theme.scaleUi(850) ? 2 : 1
+                            columnSpacing: Theme.space3
+                            rowSpacing: Theme.space2
 
-                            Repeater {
-                                // This model is deliberately immutable. A reactive JS
-                                // array of Theme swatches destroys/recreates all eight
-                                // delegates on each Light/Dark change; keep the controls
-                                // and handlers alive, updating only the palette bindings.
-                                model: ["platform", "geny", "ocean", "violet",
-                                        "ember", "rose", "mint", "mono"]
-                                delegate: Item {
-                                    id: themePreset
-                                    required property string modelData
-                                    readonly property string presetId: modelData
-                                    readonly property string presetLabel:
-                                        presetId === "platform" ? Theme.platformName
-                                        : presetId === "geny" ? qsTrId("genycaster.settings.theme_geny")
-                                        : presetId === "ocean" ? qsTrId("genycaster.settings.theme_ocean")
-                                        : presetId === "violet" ? qsTrId("genycaster.settings.theme_violet")
-                                        : presetId === "ember" ? qsTrId("genycaster.settings.theme_ember")
-                                        : presetId === "rose" ? qsTrId("genycaster.settings.theme_rose")
-                                        : presetId === "mint" ? qsTrId("genycaster.settings.theme_mint")
-                                        : qsTrId("genycaster.settings.theme_mono")
-                                    readonly property color presetSwatch:
-                                        presetId === "platform" ? Theme.swatchPlatform
-                                        : presetId === "geny" ? Theme.swatchGeny
-                                        : presetId === "ocean" ? Theme.swatchOcean
-                                        : presetId === "violet" ? Theme.swatchViolet
-                                        : presetId === "ember" ? Theme.swatchEmber
-                                        : presetId === "rose" ? Theme.swatchRose
-                                        : presetId === "mint" ? Theme.swatchMint
-                                        : Theme.swatchMono
-                                    readonly property bool selected: appearanceController.colorThemeId === presetId
-                                    function selectPreset() {
-                                        if (selected) return
-                                        Theme.beginPaletteSwitch()
-                                        appearanceController.setColorThemeId(presetId)
-                                    }
-                                    activeFocusOnTab: true
-                                    Keys.onPressed: event => {
-                                        if (event.key === Qt.Key_Space || event.key === Qt.Key_Return
-                                                || event.key === Qt.Key_Enter) {
-                                            themePreset.selectPreset()
-                                            event.accepted = true
+                            GridLayout {
+                                id: palettePresets
+                                objectName: "palettePresets"
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                Layout.preferredWidth: colorThemeLayout.columns === 2
+                                    ? appearanceScroll.availableWidth * 0.57
+                                    : appearanceScroll.availableWidth
+                                Layout.alignment: Qt.AlignTop
+                                layoutDirection: Theme.uiDirection
+                                columns: appearanceScroll.availableWidth >= 520 ? 4
+                                         : appearanceScroll.availableWidth >= 350 ? 3 : 2
+                                uniformCellWidths: true
+                                rowSpacing: Theme.space1
+                                columnSpacing: Theme.space1
+
+                                Repeater {
+                                    // IDs are immutable: do not recreate eight
+                                    // delegates on every Light/Dark change.
+                                    model: ["platform", "geny", "ocean", "violet",
+                                            "ember", "rose", "mint", "mono"]
+                                    delegate: Item {
+                                        id: themePreset
+                                        required property string modelData
+                                        readonly property string presetId: modelData
+                                        readonly property string presetLabel:
+                                            presetId === "platform" ? Theme.platformName
+                                            : presetId === "geny" ? qsTrId("genycaster.settings.theme_geny")
+                                            : presetId === "ocean" ? qsTrId("genycaster.settings.theme_ocean")
+                                            : presetId === "violet" ? qsTrId("genycaster.settings.theme_violet")
+                                            : presetId === "ember" ? qsTrId("genycaster.settings.theme_ember")
+                                            : presetId === "rose" ? qsTrId("genycaster.settings.theme_rose")
+                                            : presetId === "mint" ? qsTrId("genycaster.settings.theme_mint")
+                                            : qsTrId("genycaster.settings.theme_mono")
+                                        readonly property color presetSwatch:
+                                            presetId === "platform" ? Theme.swatchPlatform
+                                            : presetId === "geny" ? Theme.swatchGeny
+                                            : presetId === "ocean" ? Theme.swatchOcean
+                                            : presetId === "violet" ? Theme.swatchViolet
+                                            : presetId === "ember" ? Theme.swatchEmber
+                                            : presetId === "rose" ? Theme.swatchRose
+                                            : presetId === "mint" ? Theme.swatchMint
+                                            : Theme.swatchMono
+                                        readonly property bool selected: appearanceController.colorThemeId === presetId
+
+                                        function selectPreset() {
+                                            if (selected) return
+                                            Theme.beginPaletteSwitch()
+                                            appearanceController.setColorThemeId(presetId)
                                         }
-                                    }
-                                    Layout.fillWidth: true
-                                    Layout.minimumWidth: 0
-                                    Layout.preferredHeight: 90
-                                    Accessible.role: Accessible.RadioButton
-                                    Accessible.name: themePreset.presetLabel
-                                    Accessible.checked: selected
-                                    Accessible.onPressAction: themePreset.selectPreset()
 
-                                    // Stable hit area and highlighted selected cell.
-                                    NeonStatePlate {
-                                        anchors.fill: parent
-                                        selected: themePreset.selected
-                                        focused: themePreset.activeFocus
-                                        hovered: presetHover.hovered
-                                        pressed: false
-                                        selectedFill: Theme.surfaceSelected
-                                        hoverFill: Theme.surfaceHover
-                                        cornerRadius: Theme.curveControl
-                                        neonOnHover: true
-                                        neonStrength: Theme.neonControlStrength
-                                    }
-                                    ColumnLayout {
-                                        anchors.fill: parent
-                                        spacing: Theme.space1
-                                        Item {
-                                            Layout.alignment: Qt.AlignHCenter
-                                            Layout.preferredWidth: 46
-                                            Layout.preferredHeight: 46
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                radius: width / 2
-                                                color: "transparent"
-                                                border.width: 2
-                                                border.color: themePreset.selected ? Theme.accent : "transparent"
-                                                // Immediate selection avoids a burst of
-                                                // ring animations during palette changes.
+                                        activeFocusOnTab: true
+                                        Keys.onPressed: event => {
+                                            if (event.key === Qt.Key_Space || event.key === Qt.Key_Return
+                                                    || event.key === Qt.Key_Enter) {
+                                                themePreset.selectPreset()
+                                                event.accepted = true
                                             }
-                                            Rectangle {
-                                                anchors.centerIn: parent
-                                                width: 36
-                                                height: 36
-                                                radius: width / 2
-                                                color: themePreset.presetSwatch
-                                                border.width: 1
-                                                border.color: Theme.borderStrong
-                                                Icon {
+                                        }
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        Layout.preferredHeight: Theme.scaleUi(70)
+                                        Accessible.role: Accessible.RadioButton
+                                        Accessible.name: themePreset.presetLabel
+                                        Accessible.checked: selected
+                                        Accessible.onPressAction: themePreset.selectPreset()
+
+                                        // No selected rectangular plate: the
+                                        // circular swatch and its ring alone
+                                        // convey selection, hover, and focus.
+                                        ColumnLayout {
+                                            anchors.fill: parent
+                                            spacing: Theme.space1
+
+                                            Item {
+                                                Layout.alignment: Qt.AlignHCenter
+                                                Layout.preferredWidth: 42
+                                                Layout.preferredHeight: 42
+
+                                                Rectangle {
+                                                    anchors.fill: parent
+                                                    radius: width / 2
+                                                    color: "transparent"
+                                                    border.width: themePreset.selected
+                                                                  || themePreset.activeFocus ? 2
+                                                                  : presetHover.hovered ? 1 : 0
+                                                    border.color: themePreset.activeFocus
+                                                                  ? Theme.focus
+                                                                  : themePreset.selected ? Theme.accent
+                                                                  : Theme.borderStrong
+                                                }
+                                                Rectangle {
                                                     anchors.centerIn: parent
-                                                    text: themePreset.presetId === "platform"
-                                                          ? Theme.platformIcon : Theme.iconCheck
-                                                    color: Theme.contrastInk(themePreset.presetSwatch)
-                                                    preferredSize: themePreset.presetId === "platform" ? 20 : 17
-                                                    opacity: themePreset.presetId === "platform"
-                                                             || themePreset.selected ? 1 : 0
-                                                    Behavior on opacity {
-                                                        NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                                    width: 32
+                                                    height: 32
+                                                    radius: width / 2
+                                                    color: themePreset.presetSwatch
+                                                    border.width: 1
+                                                    border.color: Theme.borderStrong
+
+                                                    Icon {
+                                                        anchors.centerIn: parent
+                                                        text: themePreset.presetId === "platform"
+                                                              ? Theme.platformIcon : Theme.iconCheck
+                                                        color: Theme.contrastInk(themePreset.presetSwatch)
+                                                        preferredSize: themePreset.presetId === "platform" ? 18 : 15
+                                                        opacity: themePreset.presetId === "platform"
+                                                                 || themePreset.selected ? 1 : 0
                                                     }
                                                 }
                                             }
+                                            DirectionAwareLabel {
+                                                Layout.fillWidth: true
+                                                Layout.minimumWidth: 0
+                                                Layout.preferredHeight: Theme.scaleUi(22)
+                                                horizontalAlignment: Text.AlignHCenter
+                                                verticalAlignment: Text.AlignVCenter
+                                                text: themePreset.presetLabel
+                                                color: themePreset.selected ? Theme.ink : Theme.inkMuted
+                                                font.pixelSize: Theme.typeCaptionSize
+                                                font.weight: themePreset.selected
+                                                    ? Theme.weightDemiBold : Theme.weightMedium
+                                                wrapMode: Text.WordWrap
+                                                maximumLineCount: 2
+                                            }
                                         }
-                                        DirectionAwareLabel {
-                                            Layout.fillWidth: true
-                                            Layout.minimumWidth: 0
-                                            horizontalAlignment: Text.AlignHCenter
-                                            text: themePreset.presetLabel
-                                            color: themePreset.selected ? Theme.ink : Theme.inkMuted
-                                            font.pixelSize: Theme.typeCaptionSize
-                                            font.weight: Theme.weightMedium
-                                            wrapMode: Text.WordWrap
-                                            maximumLineCount: 2
-                                            verticalAlignment: Text.AlignVCenter
-                                            Layout.preferredHeight: 28
-                                        }
-                                    }
 
-                                    HoverHandler { id: presetHover; cursorShape: Qt.PointingHandCursor }
-                                    TapHandler {
-                                        gesturePolicy: TapHandler.ReleaseWithinBounds
-                                        onTapped: themePreset.selectPreset()
+                                        HoverHandler {
+                                            id: presetHover
+                                            cursorShape: Qt.PointingHandCursor
+                                        }
+                                        TapHandler {
+                                            gesturePolicy: TapHandler.ReleaseWithinBounds
+                                            onTapped: themePreset.selectPreset()
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        NeonSurface {
-                            interactive: true
-                            deferredNeon: true
-                            ambientNeon: false
-                            neonStrength: Theme.neonCardStrength
-                            Layout.fillWidth: true
-                            implicitHeight: customColorContent.implicitHeight + Theme.space3 * 2
-                            fillColor: appearanceController.colorThemeId === "custom" ? Theme.surfaceSelected : Theme.surfaceMuted
-                            borderWidth: appearanceController.colorThemeId === "custom" ? 2 : Theme.strokeHairline
-                            borderColor: appearanceController.colorThemeId === "custom" ? Theme.accent : Theme.borderSubtle
-                            curveDepth: Theme.curveContainer
+                            NeonSurface {
+                                id: customAccentCard
+                                objectName: "customAccentCard"
+                                interactive: false
+                                ambientNeon: false
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                Layout.preferredWidth: colorThemeLayout.columns === 2
+                                    ? appearanceScroll.availableWidth * 0.39
+                                    : appearanceScroll.availableWidth
+                                Layout.alignment: Qt.AlignTop
+                                implicitHeight: customColorContent.implicitHeight + Theme.space3 * 2
+                                fillColor: Theme.surfaceMuted
+                                borderWidth: Theme.strokeHairline
+                                borderColor: appearanceController.colorThemeId === "custom"
+                                    ? Theme.accent : Theme.borderSubtle
+                                curveDepth: Theme.curveContainer
 
-                            ColumnLayout {
-                                id: customColorContent
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.leftMargin: Theme.space3
-                                anchors.rightMargin: Theme.space3
-                                spacing: Theme.space2
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    layoutDirection: Theme.uiDirection
+                                ColumnLayout {
+                                    id: customColorContent
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.leftMargin: Theme.space3
+                                    anchors.rightMargin: Theme.space3
                                     spacing: Theme.space2
 
-                                    Superellipse {
-                                        Layout.preferredWidth: 34
-                                        Layout.preferredHeight: 34
-                                        fillColor: Theme.swatchCustom
-                                        borderWidth: Theme.strokeHairline
-                                        borderColor: Theme.borderStrong
-                                        curveDepth: 10
-                                        exponent: 3.8
-                                    }
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 0
-                                        DirectionAwareLabel {
-                                            Layout.fillWidth: true
-                                            text: qsTrId("genycaster.settings.custom_color")
-                                            color: Theme.ink
-                                            font.pixelSize: Theme.typeMetaSize
-                                            font.weight: Theme.weightDemiBold
-                                        }
-                                        DirectionAwareLabel {
-                                            Layout.fillWidth: true
-                                            text: qsTrId("genycaster.settings.custom_color_description")
-                                            color: Theme.inkMuted
-                                            font.pixelSize: Theme.typeCaptionSize
-                                            wrapMode: Text.Wrap
-                                        }
-                                    }
-                                }
-
-                                NeonSurface {
-                                    interactive: true
-                                    deferredNeon: true
-                                    ambientNeon: false
-                                    neonStrength: Theme.neonPanelStrength
-                                    Layout.fillWidth: true
-                                    implicitHeight: 54
-                                    // A preview must not look selected while another preset is active.
-                                    fillColor: appearanceController.colorThemeId === "custom"
-                                        ? Theme.surfaceSelected : Theme.surfaceRaised
-                                    borderWidth: Theme.strokeHairline
-                                    borderColor: Theme.borderSubtle
-                                    curveDepth: Theme.curveControl
-
                                     RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: Theme.space2
-                                        spacing: Theme.space2
+                                        Layout.fillWidth: true
                                         layoutDirection: Theme.uiDirection
+                                        spacing: Theme.space2
 
                                         Superellipse {
-                                            Layout.preferredWidth: 36
-                                            Layout.preferredHeight: 36
+                                            Layout.preferredWidth: 30
+                                            Layout.preferredHeight: 30
                                             fillColor: appearanceController.customAccentColor
                                             borderWidth: Theme.strokeHairline
-                                            borderColor: Theme.borderStrong
-                                            curveDepth: 11
-                                            exponent: 3.8
+                                            borderColor: appearanceController.colorThemeId === "custom"
+                                                ? Theme.accent : Theme.borderStrong
+                                            curveDepth: 15
                                         }
-                                        DirectionAwareLabel {
+                                        ColumnLayout {
                                             Layout.fillWidth: true
-                                            text: String(appearanceController.customAccentColor).toUpperCase()
-                                            color: Theme.ink
-                                            font.family: Theme.latinFontFamily
-                                            font.pixelSize: Theme.typeMetaSize
-                                            font.weight: Theme.weightDemiBold
+                                            Layout.minimumWidth: 0
+                                            spacing: 0
+                                            DirectionAwareLabel {
+                                                Layout.fillWidth: true
+                                                text: qsTrId("genycaster.settings.custom_color")
+                                                color: Theme.ink
+                                                font.pixelSize: Theme.typeMetaSize
+                                                font.weight: Theme.weightDemiBold
+                                            }
+                                            DirectionAwareLabel {
+                                                Layout.fillWidth: true
+                                                text: qsTrId("genycaster.settings.custom_color_description")
+                                                color: Theme.inkMuted
+                                                font.pixelSize: Theme.typeCaptionSize
+                                                wrapMode: Text.Wrap
+                                            }
                                         }
                                         ActionButton {
                                             compact: true
                                             quiet: true
+                                            iconOnly: true
                                             iconGlyph: Theme.iconPalette
                                             text: qsTrId("genycaster.settings.custom_color")
-                                            onClicked: root.customAccentStudioRequested(appearanceController.customAccentColor)
+                                            onClicked: root.customAccentStudioRequested(
+                                                           appearanceController.customAccentColor)
                                         }
                                     }
 
-                                }
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    layoutDirection: Theme.uiDirection
-                                    spacing: Theme.space2
-                                    DirectionAwareTextField {
-                                        id: customAccentField
-                                        Component.onCompleted: {
-                                            root.accentEditor = customAccentField
-                                            text = appearanceController.customAccentColor
-                                        }
-                                        Component.onDestruction: {
-                                            if (root.accentEditor === customAccentField)
-                                                root.accentEditor = null
-                                        }
+                                    RowLayout {
                                         Layout.fillWidth: true
-                                        placeholderText: qsTrId("genycaster.settings.custom_color_placeholder")
-                                        Accessible.name: qsTrId("genycaster.settings.custom_color")
-                                        onTextChanged: root.customColorError = false
-                                        onAccepted: {
-                                            Theme.beginPaletteSwitch()
-                                            const applied = appearanceController.setCustomAccentColor(text)
-                                            root.customColorError = !applied
-                                            if (applied) text = appearanceController.customAccentColor
-                                        }
-                                    }
-                                    ActionButton {
-                                        compact: true
-                                        prominent: true
-                                        text: qsTrId("genycaster.composer.apply")
-                                        onClicked: {
-                                            Theme.beginPaletteSwitch()
-                                            const applied = appearanceController.setCustomAccentColor(customAccentField.text)
-                                            root.customColorError = !applied
-                                            if (applied) customAccentField.text = appearanceController.customAccentColor
-                                        }
-                                    }
-                                }
+                                        layoutDirection: Theme.uiDirection
+                                        spacing: Theme.space2
 
-                                DirectionAwareLabel {
-                                    visible: root.customColorError
-                                    Layout.fillWidth: true
-                                    text: qsTrId("genycaster.settings.custom_color_invalid")
-                                    color: Theme.danger
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    wrapMode: Text.Wrap
+                                        DirectionAwareTextField {
+                                            id: customAccentField
+                                            Component.onCompleted: {
+                                                root.accentEditor = customAccentField
+                                                text = appearanceController.customAccentColor
+                                            }
+                                            Component.onDestruction: {
+                                                if (root.accentEditor === customAccentField)
+                                                    root.accentEditor = null
+                                            }
+                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
+                                            placeholderText: qsTrId("genycaster.settings.custom_color_placeholder")
+                                            Accessible.name: qsTrId("genycaster.settings.custom_color")
+                                            onTextChanged: root.customColorError = false
+                                            onAccepted: {
+                                                Theme.beginPaletteSwitch()
+                                                const applied = appearanceController.setCustomAccentColor(text)
+                                                root.customColorError = !applied
+                                                if (applied) text = appearanceController.customAccentColor
+                                            }
+                                        }
+                                        ActionButton {
+                                            compact: true
+                                            prominent: true
+                                            text: qsTrId("genycaster.composer.apply")
+                                            onClicked: {
+                                                Theme.beginPaletteSwitch()
+                                                const applied = appearanceController.setCustomAccentColor(
+                                                                    customAccentField.text)
+                                                root.customColorError = !applied
+                                                if (applied)
+                                                    customAccentField.text = appearanceController.customAccentColor
+                                            }
+                                        }
+                                    }
+                                    DirectionAwareLabel {
+                                        visible: root.customColorError
+                                        Layout.fillWidth: true
+                                        text: qsTrId("genycaster.settings.custom_color_invalid")
+                                        color: Theme.danger
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        wrapMode: Text.Wrap
+                                    }
                                 }
                             }
                         }
