@@ -86,15 +86,19 @@ Genycaster supports two independently verified ways to establish a
 30-day browser account session:
 
 - An explicit OpenProof/Farcaster grant uses POST /api/v1/cloud/session.
-- An already **Snapchain-registered** device signer uses POST
+- An already **network-registered** Ed25519 device signer uses POST
   /api/v1/cloud/session/challenge followed by POST /api/v1/cloud/session/proof.
-  The 90-second nonce is one-time and domain-separated, signed with the
-  non-extractable Ed25519 browser key. The API validates the signature
-  and the **live FID-scoped signer registration**, including scopes and
-  expiry, directly with the fixed Snapchain endpoint. A remembered FID,
-  an unregistered signer and a mere local session marker grant nothing.
-  The browser performs this ceremony silently on registered signer
-  restoration; no private key or custody phrase is sent to the server.
+  The 90-second nonce is one-time and domain-separated. The API validates
+  its signature and live FID-scoped signer registration, including scopes
+  and expiry, against the trusted registry for that protocol. Standard
+  Farcaster FIDs resolve through Snapchain to `farcaster:<FID>` under the
+  configured OpenProof issuer. Native HyperSnap FIDs (at least 2^32) resolve
+  through the fixed HyperSnap registry to `hypersnap:<FID>` under
+  `hypersnap:native-registry`. Neither proof merges protocol accounts or
+  fabricates an OpenProof/Farcaster link. A remembered FID, unregistered
+  signer or local session marker grants nothing. The Qt native client signs
+  the challenge with the secure OS vault; no private key or custody phrase
+  is sent to the server.
 
 The account database remains canonical. PostgreSQL stores only a SHA-256
 session-token digest. A Secure, HttpOnly, SameSite=Strict host-only cookie
