@@ -60,6 +60,18 @@ test('streak records every confirmed authored cast, not only the rich composer p
   assert.match(editor,/genycaster\.streak\.verified_session_required/);
 });
 
+test('HyperSnap Streak and Pro surfaces expose safe recovery without forging entitlements',()=>{
+  const profile=read('ui/components/profile/StreakCard.qml');
+  assert.match(profile,/objectName: "streakRestoreVerifiedSession"/);
+  assert.match(profile,/!openProofConnections\.cloudSessionBusy/);
+  assert.match(profile,/!openProofConnections\.accountProofBusy/);
+  assert.match(profile,/onClicked: openProofConnections\.retryAccountSession\(\)/);
+  const pro=read('ui/components/profile/GenyProDetailsDrawer.qml');
+  assert.match(pro,/visible: root\.appSignedIn && !root\.cloudReady && !root\.eligible/);
+  assert.doesNotMatch(pro,/!root\.eligible\s*&& root\.restoringSession/);
+  assert.match(pro,/root\.proofError\.length > 0/);
+});
+
 test('native connections identify separate OpenProof wallet links, never fake FID verification',()=>{
   const popup=read('ui/components/profile/ConnectionsPopup.qml');
   assert.match(popup,/objectName:\s*"nativeOpenProofConnections"/);
