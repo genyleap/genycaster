@@ -251,3 +251,39 @@ test('Arweave content-addressed raster redirects work but unrelated origins stay
     assert.equal(deniedCalls.length,1);
   }
 });
+
+test('Tenor media1 GET-only GIFs are admitted narrowly without a generic external proxy',()=>{
+  const good='https://media1.tenor.com/m/Kzqq0MjDxYcAAAAd/pepe-pepe-the-frog.gif';
+  assert.equal(validImageUrl(good)?.href,good);
+  for(const bad of [
+    'https://media1.tenor.com/admin',
+    'https://media1.tenor.com/m/Kzqq0MjDxYcAAAAd/pepe-pepe-the-frog.gif?token=abc',
+    'https://media1.tenor.com/m/Kzqq0MjDxYcAAAAd/test.svg',
+    'https://media1.tenor.com/m/../admin',
+    'https://attacker.media1.tenor.com/m/Kzqq0MjDxYcAAAAd/test.gif',
+    'https://media1.tenor.com.evil.test/m/Kzqq0MjDxYcAAAAd/test.gif'
+  ]) assert.equal(validImageUrl(bad),null,bad);
+});
+
+test('Tenor animated GIF is retrieved using GET with validated raster bytes, not HEAD',async()=>{
+  const {PassThrough}=await import('node:stream');
+  const methods=[];
+  const requester=(url,options,callback)=>{
+    methods.push(options.method);
+    const request=new PassThrough();
+    request.end=()=>{
+      const response=new PassThrough();
+      response.statusCode=200;
+      response.headers={'content-type':'image/gif','content-length':'8'};
+      callback(response);
+      response.end(Buffer.from('GIF89a00'));
+    };
+    return request;
+  };
+  const result=await retrieveBrowserImage(
+    'https://media1.tenor.com/m/Kzqq0MjDxYcAAAAd/pepe-pepe-the-frog.gif',
+    {lookupHost:async()=>[{address:'8.8.8.8',family:4}],requester});
+  assert.equal(result.status,200);
+  assert.equal(result.contentType,'image/gif');
+  assert.deepEqual(methods,['GET']);
+});
