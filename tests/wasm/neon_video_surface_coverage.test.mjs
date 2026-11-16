@@ -47,11 +47,14 @@ test('Appearance drawer includes the visible setting and color picker panels', (
     const settings = read('ui/components/settings/SettingsPopup.qml');
     assert.match(settings, /component SettingsProfileCard: NeonSurface \{/);
     for (const row of ['energyRow','avatarMotionRow','emojiMotionRow','reduceMotionRow',
-                       'neonEffectsRow','customColorContent']) {
+                       'neonEffectsRow']) {
         const pattern = new RegExp('NeonSurface \\{[\\s\\S]{0,450}?'
                                 + 'implicitHeight: '+row+'\\.implicitHeight');
         assert.match(settings, pattern, row);
     }
+    // Custom accent is now a compact sibling of the palette grid; it still
+    // uses the shared material without the old three stacked preview surfaces.
+    assert.match(settings, /NeonSurface \\{\\s*id: customAccentCard[\\s\\S]*?implicitHeight: customColorContent\\.implicitHeight/);
     for (const name of ['DisplayScaleControl','PanelWidthControl']) {
         const source = read('ui/components/settings/'+name+'.qml');
         assert.match(source, /^NeonCard \{/m, name);
