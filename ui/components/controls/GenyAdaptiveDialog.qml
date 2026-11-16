@@ -22,6 +22,7 @@ Item {
     // short gesture-dismissable sheets, while scrollable forms opt into a
     // full-screen inspector with their own Close control and no pull handle.
     property bool mobileFullScreen: false
+    property bool desktopFullScreen: false
     property bool showHandle: true
     property real mobileHeightRatio: 0.90
     property real popupZ: 1000
@@ -83,19 +84,22 @@ Item {
         id: desktopDialog
         parent: control.parent
         padding: control.contentPadding
+        fullScreen: control.desktopFullScreen
         z: control.popupZ
         closePolicy: control.closePolicy
-        width: Math.min(control.width, parent ? Math.max(320, parent.width - Theme.space5 * 2) : control.width)
-        height: Math.min(control.height, parent ? Math.max(320, parent.height - Theme.space5 * 2) : control.height)
+        width: control.desktopFullScreen ? (parent ? parent.width : control.width)
+            : Math.min(control.width, parent ? Math.max(320, parent.width - Theme.space5 * 2) : control.width)
+        height: control.desktopFullScreen ? (parent ? parent.height : control.height)
+            : Math.min(control.height, parent ? Math.max(320, parent.height - Theme.space5 * 2) : control.height)
 
-        // Desktop dialog stays centered; the backdrop samples the actual
-        // application, rather than replacing it with a flat dark scrim.
+        // The modal is edge-to-edge only when the caller opts in. Standard
+        // dialogs continue to use their existing centered frosted backdrop.
         Overlay.modal: DrawerBackdrop {
-            sourceItem: control.blurSourceItem
+            sourceItem: control.desktopFullScreen ? null : control.blurSourceItem
             efficientNativeBlur: control.efficientBackdropBlur
             snapshotBlurOnBrowser: true
             active: desktopDialog.opened
-            addScrim: control.dimBackground
+            addScrim: !control.desktopFullScreen && control.dimBackground
             blockInput: true
             onBackgroundTapped: control.close()
         }
