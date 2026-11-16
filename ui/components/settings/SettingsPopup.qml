@@ -111,26 +111,30 @@ GenyDrawer {
         return applied
     }
 
-    // Settings owns the complete mobile viewport (inside the OS safe-area).
-    // No exposed strip of the underlying app, sheet grabber or rounded top.
-    // Keep its navigation and independently scrollable sections unchanged.
+    // Settings occupies the entire application viewport on every platform.
+    // Its opaque surface replaces the workspace, so blurring or dimming
+    // a background that is not visible would waste GPU memory bandwidth.
+    // Mobile retains its bottom-sheet gesture direction and safe-area rules.
     bottomSheet: mobilePresentation
-    fullScreen: mobilePresentation
+    fullScreen: true
+    blurSourceItem: null
     // Scrolling settings must not drag the sheet. Dismiss only by Back/Close
     // or Escape; the full-screen mobile panel has no outside backdrop.
     interactive: false
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     showHandle: false
-    dimBackground: true
-    // Appearance changes repaint many visible materials in one frame. Keep
-    // the frosted shell but replace its full-res two-pass Gaussian workload
-    // with a downsampled, GPU-optimized blur while this drawer is open.
-    efficientBackdropBlur: true
-    contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space3
-    // The desktop inspector needs enough width for a real preferences rail
-    // and controls at normal font scaling. Phones retain their full viewport.
-    width: parent ? (mobilePresentation ? parent.width
-                    : Math.min(920, Math.max(0, parent.width - Theme.space4 * 2))) : 880
+    dimBackground: false
+    efficientBackdropBlur: false
+    contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
+    // On large desktop monitors, constrain the inner preferences content,
+    // NOT the drawer. The opaque panel still covers the full viewport while
+    // the navigation and editing columns remain comfortably readable.
+    readonly property real desktopContentInset: mobilePresentation
+        ? root.contentPadding
+        : Math.max(root.contentPadding, (root.width - Theme.scaleUi(1200)) / 2)
+    leftPadding: desktopContentInset
+    rightPadding: desktopContentInset
+    width: parent ? parent.width : 880
     // The overlay already represents the Qt-safe content viewport. Reserve
     // system status/navigation insets through padding, not a fake blank strip
     // above the drawer. Full height also works after orientation changes.

@@ -9,7 +9,7 @@ test('mobile settings use fullscreen navigation and scrollable sections',()=>{
   const settings=qml('LocaleSettingsPopup');
   assert.match(settings,/bottomSheet: mobilePresentation/);
   assert.match(settings,/interactive: false/);
-  assert.match(settings,/fullScreen: mobilePresentation/);
+  assert.match(settings,/fullScreen: true/);
   assert.match(settings,/height: parent \? parent\.height : 820/);
 });
 

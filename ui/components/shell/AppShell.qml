@@ -2871,7 +2871,8 @@ Item {
         sourceComponent: Component {
             LocaleSettingsPopup {
                 parent: root
-                blurSourceItem: shellContent
+                // Full-screen settings are opaque and never capture the
+                // underlying workspace into a costly blur snapshot.
                 onCustomAccentStudioRequested: color => accentColorStudio.openWith(color)
                 onDataStorageRequested: root.openDataStorageSettings()
                 onProDetailsRequested: genyProDetailsDrawer.open()

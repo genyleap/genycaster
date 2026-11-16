@@ -326,7 +326,7 @@ test('native desktop and mobile recovery use 24 styled secret word slots', () =>
   assert.match(setup,/id: revealWords\s+objectName: "nativeRecoveryRevealWords"/);
   assert.match(setup,/GenyCheckRow \{[\s\S]*?id: revealWords/);
   assert.match(source('ui/components/controls/GenyCheckRow.qml'),/Accessible\.role: Accessible\.CheckBox/);
-  assert.match(source('ui/components/controls/GenyCheckRow.qml'),/fillColor: control\.checked \? Theme\.ink : "transparent"/);
+  assert.match(source('ui/components/controls/GenyCheckRow.qml'),/fillColor: control\.checked \? Theme\.accent : Theme\.surface/);
   assert.doesNotMatch(setup,/id: recoveryField|CheckBox \{/);
   assert.match(bridge,/const auto exactly24Words = \[\]/);
   assert.match(bridge,/!exactly24Words\(recoveryWords\)/);
@@ -484,7 +484,7 @@ test('acceptance toggle is borderless unless keyboard focused', () => {
   const start=s.indexOf('id: consentCheck');
   const end=s.indexOf('id: accountStage');
   const terms=s.slice(start,end);
-  assert.match(terms,/borderWidth: Theme\.keyboardFocusVisible\(consentCheck\) \? 2 : 0/);
+  assert.match(terms,/borderWidth: Theme\.keyboardFocusVisible\(consentCheck\) \? 2 : Theme\.strokeHairline/);
   assert.match(terms,/fillColor: consentCheck\.down \? Theme\.surfacePressed/);
   assert.match(terms,/onClicked: root\.consentChecked = !root\.consentChecked/);
 });

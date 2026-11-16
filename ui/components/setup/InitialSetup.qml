@@ -1236,7 +1236,11 @@ Item {
                 id: consentCheck
                 Layout.fillWidth: true
                 Layout.topMargin: Theme.space3
-                implicitHeight: Math.max(56, consentLabel.implicitHeight + Theme.space3 * 2)
+                implicitHeight: Math.max(Theme.touchTarget, consentLabel.implicitHeight + Theme.space3 * 2)
+                leftPadding: Theme.space3
+                rightPadding: Theme.space3
+                topPadding: Theme.space3
+                bottomPadding: Theme.space3
                 enabled: true
                 focusPolicy: Qt.StrongFocus
                 Accessible.name: qsTrId("genycaster.setup.single_legal_consent")
@@ -1244,34 +1248,35 @@ Item {
                 onClicked: root.consentChecked = !root.consentChecked
                 background: NeonSurface {
                     interactive: consentCheck.enabled
-                    ambientNeon: root.consentChecked
-                    deferredNeon: !root.consentChecked
+                    ambientNeon: false
+                    deferredNeon: true
                     focused: Theme.keyboardFocusVisible(consentCheck)
                     externalHovered: consentCheck.hovered
                     neonStrength: Theme.neonControlStrength
                     fillColor: consentCheck.down ? Theme.surfacePressed
-                               : consentCheck.hovered ? Theme.surfaceHover
-                               : Theme.surfaceMuted
-                    borderWidth: Theme.keyboardFocusVisible(consentCheck) ? 2 : 0
-                    borderColor: Theme.focus
+                               : root.consentChecked ? Theme.surfaceSelected
+                               : consentCheck.hovered ? Theme.surfaceHover : Theme.surfaceMuted
+                    borderWidth: Theme.keyboardFocusVisible(consentCheck) ? 2 : Theme.strokeHairline
+                    borderColor: Theme.keyboardFocusVisible(consentCheck) ? Theme.focus
+                               : root.consentChecked ? Theme.accent : Theme.borderMuted
                     curveDepth: Theme.curveContainer
                 }
                 contentItem: RowLayout {
                     spacing: Theme.space3
                     layoutDirection: Theme.uiDirection
                     Superellipse {
-                        Layout.preferredWidth: 23
-                        Layout.preferredHeight: 23
-                        fillColor: root.consentChecked ? Theme.ink : "transparent"
-                        borderColor: Theme.inkMuted
-                        borderWidth: 1
-                        curveDepth: 5
+                        Layout.preferredWidth: Theme.scaleUi(24)
+                        Layout.preferredHeight: Theme.scaleUi(24)
+                        fillColor: root.consentChecked ? Theme.accent : Theme.surface
+                        borderColor: root.consentChecked ? Theme.accent : Theme.borderStrong
+                        borderWidth: Theme.strokeStandard
+                        curveDepth: Theme.scaleUi(6)
                         Icon {
                             anchors.centerIn: parent
                             visible: root.consentChecked
                             text: Theme.iconCheck
-                            color: Theme.surface
-                            preferredSize: 15
+                            color: Theme.contrastInk(Theme.accent)
+                            preferredSize: Theme.scaleUi(16)
                         }
                     }
                     DirectionAwareLabel {
@@ -1279,7 +1284,7 @@ Item {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.setup.single_legal_consent")
                         color: Theme.ink
-                        font.pixelSize: Theme.typeCaptionSize
+                        font.pixelSize: Theme.typeBodySize
                         wrapMode: Text.WordWrap
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -2451,7 +2456,6 @@ Item {
                         objectName: "nativeRecoveryRevealWords"
                         Layout.fillWidth: true
                         label: qsTrId("genycaster.setup.show_recovery_words")
-                        checked: false
                         onVisibleChanged: if (!visible) checked = false
                     }
                     GenyCheckRow {
@@ -2459,7 +2463,6 @@ Item {
                         objectName: "nativeRecoveryDeviceSignerConsent"
                         Layout.fillWidth: true
                         label: qsTrId("genycaster.setup.recovery_signer_consent")
-                        checked: false
                     }
                 }
                 SetupPrimaryButton {

@@ -3,9 +3,10 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-// Recovery uses the same dark-ink checkbox as the legal-consent screen,
-// not the separately configurable accent color. Cross-platform styling is
-// owned by GenyCaster rather than the native CheckBox indicator.
+// One cross-platform checkbox for backup, registration and recovery consent.
+// A consistently painted row prevents hovering one checkbox from creating a
+// large gray slab while the next checkbox appears as a bare icon and label.
+// Button.checkable owns the state; never add a second onClicked toggle.
 Button {
     id: control
     property string label: ""
@@ -13,19 +14,19 @@ Button {
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
 
-    topPadding: Theme.space2
-    bottomPadding: Theme.space2
-    leftPadding: 0
-    rightPadding: 0
+    topPadding: Theme.space3
+    bottomPadding: Theme.space3
+    leftPadding: Theme.space3
+    rightPadding: Theme.space3
     implicitHeight: Math.max(Theme.touchTarget,
                              choiceContent.implicitHeight + topPadding + bottomPadding)
-    implicitWidth: choiceContent.implicitWidth
+    implicitWidth: choiceContent.implicitWidth + leftPadding + rightPadding
     Accessible.role: Accessible.CheckBox
     Accessible.name: label
     Accessible.checked: checked
 
-    // The recovery words themselves stay private. The opt-in row only
-    // shows a subtle transient focus/hover response, not permanent glow.
+    // The entire 44px+ row is the hit target; checked, unchecked, hover and
+    // keyboard-focus states use the same card geometry and do not jump.
     background: NeonSurface {
         interactive: control.enabled
         deferredNeon: true
@@ -33,8 +34,11 @@ Button {
         focused: Theme.keyboardFocusVisible(control)
         externalHovered: control.hovered
         fillColor: control.down ? Theme.surfacePressed
-                   : control.hovered ? Theme.surfaceHover : "transparent"
-        borderWidth: 0
+                   : control.checked ? Theme.surfaceSelected
+                   : control.hovered ? Theme.surfaceHover : Theme.surfaceMuted
+        borderWidth: Theme.keyboardFocusVisible(control) ? 2 : Theme.strokeHairline
+        borderColor: Theme.keyboardFocusVisible(control) ? Theme.focus
+                   : control.checked ? Theme.accent : Theme.borderMuted
         curveDepth: Theme.curveControl
         neonStrength: Theme.neonControlStrength
     }
@@ -44,23 +48,23 @@ Button {
         spacing: Theme.space3
         layoutDirection: Theme.uiDirection
 
-        // Match the legal-consent checkbox in InitialSetup exactly. Its ink
-        // fill is deliberately independent of the user-selected accent theme.
+        // A visible outline even in Light mode, and an accessible tick
+        // whose contrast follows the currently selected accent palette.
         Superellipse {
-            Layout.preferredWidth: 23
-            Layout.preferredHeight: 23
+            Layout.preferredWidth: Theme.scaleUi(24)
+            Layout.preferredHeight: Theme.scaleUi(24)
             Layout.alignment: Qt.AlignVCenter
-            fillColor: control.checked ? Theme.ink : "transparent"
-            borderColor: Theme.inkMuted
-            borderWidth: 1
-            curveDepth: 5
+            fillColor: control.checked ? Theme.accent : Theme.surface
+            borderColor: control.checked ? Theme.accent : Theme.borderStrong
+            borderWidth: Theme.strokeStandard
+            curveDepth: Theme.scaleUi(6)
 
             Icon {
                 anchors.centerIn: parent
                 visible: control.checked
                 text: Theme.iconCheck
-                color: Theme.surface
-                preferredSize: 15
+                color: Theme.contrastInk(Theme.accent)
+                preferredSize: Theme.scaleUi(16)
                 Accessible.ignored: true
             }
         }
@@ -71,7 +75,7 @@ Button {
             Layout.alignment: Qt.AlignVCenter
             text: control.label
             color: control.enabled ? Theme.ink : Theme.inkDisabled
-            font.pixelSize: Theme.typeCaptionSize
+            font.pixelSize: Theme.typeBodySize
             font.weight: Theme.weightMedium
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap

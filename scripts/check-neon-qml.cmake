@@ -9,6 +9,8 @@ if(NOT qmlformat_executable)
 endif()
 set(files
     "ui/components/controls/GenyDrawer.qml"
+    "ui/components/controls/GenyCheckRow.qml"
+    "ui/components/setup/InitialSetup.qml"
     "ui/components/visual/NeonHalo.qml"
     "ui/components/visual/NeonSurface.qml"
     "ui/components/home/HomeDashboard.qml"

@@ -32,7 +32,10 @@ test('Settings palette never recreates all eight model delegates when dark mode 
   assert.match(qml,/text: themePreset\.presetLabel/);
   assert.match(qml,/onTapped: appearanceController\.setColorThemeId\(themePreset\.presetId\)/);
   assert.doesNotMatch(qml,/\{ id: "ocean", label:.*Theme\.swatchOcean/);
-  assert.match(qml,/efficientBackdropBlur: true/);
+  assert.match(qml,/fullScreen: true/);
+  assert.match(qml,/blurSourceItem: null/);
+  assert.match(qml,/dimBackground: false/);
+  assert.match(qml,/efficientBackdropBlur: false/);
 });
 
 test('Qt appearance inspector uses opt-in optimized snapshot blur, other drawers retain the Kit Gaussian',()=>{
