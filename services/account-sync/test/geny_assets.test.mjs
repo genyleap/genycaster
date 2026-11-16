@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {evaluateGenyAssets,createGenyAssetsPolicy} from '../geny_assets.mjs';
+import {evaluateGenyAssets,createGenyAssetsPolicy,verifiedAccountWallets} from '../geny_assets.mjs';
 
 const fid='42';
 const first='0x1111111111111111111111111111111111111111';
@@ -57,4 +57,49 @@ test('all failed readings are unavailable, not a nonholder verdict',async()=>{
   assert.equal(result.status,'unavailable');
   assert.equal(result.available,false);
   assert.equal(result.partial,true);
+});
+
+test('HyperSnap Pro payer lookup uses only the verified HyperSnap owner and registry',async()=>{
+  const fid='4294967296';
+  const wallet='0x'+'ab'.repeat(20);
+  const policy=createGenyAssetsPolicy({});
+  const requests=[];
+  const fetchImpl=async url=>{
+    requests.push(String(url));
+    return Response.json({messages:[
+      {data:{fid:Number(fid),type:'MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS',
+        network:'FARCASTER_NETWORK_MAINNET',
+        verificationAddAddressBody:{address:wallet,protocol:'PROTOCOL_ETHEREUM'}}},
+      {data:{fid:42,type:'MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS',
+        network:'FARCASTER_NETWORK_MAINNET',
+        verificationAddAddressBody:{address:'0x'+'cd'.repeat(20),protocol:'PROTOCOL_ETHEREUM'}}}
+    ]});
+  };
+  const owner={fid,issuer:'hypersnap:native-registry',subject:'hypersnap:'+fid};
+  const wallets=await verifiedAccountWallets(owner,{policy,fetchImpl});
+  assert.deepEqual(wallets,[wallet]);
+  assert.equal(requests.length,1);
+  assert.equal(new URL(requests[0]).origin,new URL(policy.hypersnapUrl).origin);
+  assert.equal(new URL(requests[0]).searchParams.get('fid'),fid);
+  await assert.rejects(verifiedAccountWallets(
+    {...owner,subject:'hypersnap:42'},{policy,fetchImpl}),/verified_account_required/);
+  await assert.rejects(verifiedAccountWallets(
+    {...owner,issuer:'https://openproof.genyleap.com'},{policy,fetchImpl}),
+    /verified_account_required/);
+  assert.equal(requests.length,1,'invalid principals must never query a wallet source');
+});
+
+test('Farcaster Pro payer discovery stays pinned to Snapchain issuer',async()=>{
+  const policy=createGenyAssetsPolicy({});
+  const requests=[];
+  const fetchImpl=async url=>{
+    requests.push(String(url));
+    return Response.json({messages:[]});
+  };
+  const owner={issuer:'https://openproof.genyleap.com',
+    subject:'farcaster:42',fid:'42'};
+  assert.deepEqual(await verifiedAccountWallets(owner,{policy,fetchImpl}),[]);
+  assert.equal(new URL(requests[0]).origin,new URL(policy.snapchainUrl).origin);
+  await assert.rejects(verifiedAccountWallets(
+    {...owner,subject:'hypersnap:42'},{policy,fetchImpl}),/verified_account_required/);
 });
