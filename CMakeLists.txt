@@ -93,8 +93,8 @@ option(
 unset(_farcasterMediaUploadDefault)
 
 # Secure CMake-owned deployment configuration. No secrets or user-controlled JS.
-set(GENYCASTER_PUBLIC_ORIGIN "https://caster.genyleap.com" CACHE STRING "Canonical public application origin")
-set(GENYCASTER_SIWF_ORIGIN "https://genycaster.genyleap.com" CACHE STRING "Trusted SIWF relying party origin (separate from the hosting origin)")
+set(GENYCASTER_PUBLIC_ORIGIN "https://genycaster.xyz" CACHE STRING "Canonical public application origin")
+set(GENYCASTER_SIWF_ORIGIN "https://genycaster.xyz" CACHE STRING "Trusted SIWF relying party origin (separate from the hosting origin)")
 set(GENYCASTER_OPENPROOF_ISSUER "https://openproof.genyleap.com" CACHE STRING "Trusted OpenProof issuer")
 set(GENYCASTER_OPENPROOF_BROWSER_BASE "https://genyleap.com/openproof" CACHE STRING "OAuth browser handoff base")
 set(GENYCASTER_BROWSER_GATEWAY_ORIGIN "https://storage-farcaster.genyleap.com" CACHE STRING "Browser gateway origin")
