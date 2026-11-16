@@ -9,7 +9,7 @@ test('mobile settings use fullscreen navigation and scrollable sections',()=>{
   const settings=qml('LocaleSettingsPopup');
   assert.match(settings,/GenyAdaptiveDialog \{/);
   assert.match(settings,/mobileFullScreen: true/);
-  assert.match(settings,/height: parent \? \(mobilePresentation \? parent\.height/);
+  assert.match(settings,/height: parent \? parent\.height : 780/);
   const adaptive=qml('GenyAdaptiveDialog');
   assert.match(adaptive,/bottomSheet: true/);
   assert.match(adaptive,/interactive: !control\.mobileFullScreen/);
