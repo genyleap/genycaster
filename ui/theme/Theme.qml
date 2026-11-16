@@ -3,6 +3,22 @@ import QtQuick
 import QtCore
 
 QtObject {
+    id: theme
+    // Palette changes are one atomic UI operation, not hundreds of independent
+    // surface color animations competing with a frozen backdrop snapshot.
+    property bool paletteSwitchInProgress: false
+    property Timer paletteSwitchTimer: Timer {
+        interval: 280
+        repeat: false
+        onTriggered: theme.paletteSwitchInProgress = false
+    }
+    function beginPaletteSwitch() {
+        paletteSwitchInProgress = true
+        paletteSwitchTimer.restart()
+    }
+    // Also cover system-wide appearance and palette changes outside Settings.
+    onDarkChanged: beginPaletteSwitch()
+    onColorThemeIdChanged: beginPaletteSwitch()
     // User-owned, device-local media preferences. Keep them independent of
     // reduced UI motion: accessibility and battery-saving have different goals.
     property Settings energyPreferences: Settings {
