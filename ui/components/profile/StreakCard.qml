@@ -279,6 +279,19 @@ Item {
             horizontalAlignment: Theme.textStartAlignment
         }
 
+        // Explain why a retry failed instead of leaving the same inert
+        // prompt on screen after the session API rejects a signed proof.
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            visible: root.activePage !== "leaderboard" && !root.available
+                && !root.signerAuthorizationNeeded && openProofConnections
+                && String(openProofConnections.accountProofError || "").length > 0
+            text: qsTrId("genycaster.pro.secure_session_unavailable")
+            color: Theme.inkMuted
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.WordWrap
+        }
+
         // A session failure must have an explicit recovery action. The
         // server independently validates the same FID's registered signer;
         // this button never fabricates activity or an authenticated account.
@@ -288,6 +301,8 @@ Item {
                 && openProofConnections && !openProofConnections.cloudAuthorizationReady
             enabled: openProofConnections && !openProofConnections.cloudSessionBusy
                 && !openProofConnections.accountProofBusy
+            busy: openProofConnections && (openProofConnections.cloudSessionBusy
+                || openProofConnections.accountProofBusy)
             text: root.signerAuthorizationNeeded
                 ? qsTrId("genycaster.shell.enable_interactions")
                 : qsTrId("genycaster.pro.restore_secure_session")
