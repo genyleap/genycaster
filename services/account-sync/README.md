@@ -60,6 +60,50 @@ than implying that a remote write succeeded. The API responds with JSON,
 never its browser app shell. Browser clients only contact the same-origin
 `api.example.com` API; they do not see PostgreSQL credentials.
 
+## Pre-launch Nginx hold must not block the Account API
+
+The unpublished WebAssembly frontend is intentionally held behind HTTP 503
+until Beta release approval. This does **not** imply that already distributed
+native clients should lose their authenticated account, Pro or Streak API.
+
+A **server-level** `return 503;` takes priority over all child
+`location` blocks and therefore disables `/api/v1/cloud/` as well.
+Keep the static frontend blocked, but make an explicit, **normalized URI**
+exception for the existing authenticated API proxy:
+
+```nginx
+# Inside the existing caster.genyleap.com server block; replace the single
+# unconditional pre-launch hold, NOT the /api/v1/cloud/ location.
+add_header Cache-Control "no-store, max-age=0" always;
+if ($uri !~ "^/api/v1/cloud/") {
+    return 503;
+}
+```
+
+The reviewed one-time deployment helper is
+`ci/repair_prelaunch_cloud_nginx.py`. On the actual Nginx host, review the
+proposed diff first:
+
+```sh
+python3 ci/repair_prelaunch_cloud_nginx.py
+sudo python3 ci/repair_prelaunch_cloud_nginx.py --apply
+```
+
+The helper only recognizes the known vhost/proxy and exact hold, creates
+a local backup, calls `nginx -t`, reloads Nginx and verifies HTTPS response
+codes locally with TLS hostname validation. It automatically rolls back
+if validation fails. Administrative file access is required; a Remote Ops
+connection mounting `/etc` read-only cannot apply this change.
+
+Expected externally observable HTTP statuses after the change:
+- `/api/v1/cloud/pro/plan`: 200
+- `/api/v1/cloud/session` without credentials: 401
+- `/` and `/farcaster_client.html`: 503, until Beta publication
+
+Never solve this by removing the entire prelaunch hold, disabling
+authentication/CSRF, moving the client to an untrusted host, or returning
+a fabricated membership. Public Pro metadata is not a user entitlement.
+
 ## Authentication and ownership
 
 All private endpoints authenticate **every request**. The API ignores
