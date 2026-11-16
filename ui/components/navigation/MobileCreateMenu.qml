@@ -69,11 +69,19 @@ GenyDrawer {
                     Keys.onReturnPressed: if (available) choice.activated()
                     Keys.onSpacePressed: if (available) choice.activated()
 
-                    Rectangle {
+                    // Avoid square row highlights when keyboard or mouse
+                    // navigation reaches an action inside the rounded sheet.
+                    NeonStatePlate {
                         anchors.fill: parent
-                        color: Theme.surfacePressed
-                        opacity: choiceMouse.pressed && choice.available ? 0.8 : 0
-                        radius: Theme.space2
+                        anchors.margins: Theme.space1
+                        selected: false
+                        hovered: choiceMouse.containsMouse && choice.available
+                        pressed: choiceMouse.pressed && choice.available
+                        focused: choice.activeFocus && choice.available
+                        neonOnHover: false
+                        cornerRadius: Theme.curveControl
+                        hoverFill: Theme.surfaceHover
+                        pressedFill: Theme.surfacePressed
                     }
                     RowLayout {
                         anchors.fill: parent
@@ -116,6 +124,7 @@ GenyDrawer {
                         id: choiceMouse
                         anchors.fill: parent
                         enabled: choice.available
+                        hoverEnabled: true
                         cursorShape: choice.available ? Qt.PointingHandCursor : Qt.ArrowCursor
                         onClicked: choice.activated()
                     }
