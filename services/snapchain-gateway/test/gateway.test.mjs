@@ -154,7 +154,7 @@ test('CORS permits trusted WASM local preview and shipping origin only', async (
   try {
     for (const origin of [
       'http://127.0.0.1:30000', 'http://localhost:30000',
-      'https://genycaster.genyleap.com',
+      'https://genycaster.xyz',
     ]) {
       const preflight = await fetch(`http://127.0.0.1:${port}/v1/submitMessage`, {
         method: 'OPTIONS', headers: {
@@ -174,7 +174,7 @@ test('CORS permits trusted WASM local preview and shipping origin only', async (
     }
     for (const origin of [
       'null', 'http://0.0.0.0:30000', 'https://attacker.invalid',
-      'https://genycaster.genyleap.com.attacker.invalid',
+      'https://genycaster.xyz.attacker.invalid',
       'http://127.0.0.1.evil.test:30000',
     ]) {
       const preflight = await fetch(`http://127.0.0.1:${port}/v1/submitMessage`, {
