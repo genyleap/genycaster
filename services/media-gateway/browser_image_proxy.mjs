@@ -15,7 +15,7 @@ export const defaultBrowserImageHosts = [
   'ipfs.decentralized-content.com',
   // Keep the browser's bounded raster-only retrieval compatible with the
   // image hosts recognized by the C++ Cast embed classifier.
-  'media.tenor.com', 'media.giphy.com', 'lh3.googleusercontent.com', 'imagekit.io',
+  'media.tenor.com', 'media1.tenor.com', 'media.giphy.com', 'lh3.googleusercontent.com', 'imagekit.io',
   'assets.geckoterminal.com',
   // Cloudflare Stream exposes a deterministic raster poster for public video
   // manifests. Only the /thumbnails/thumbnail.jpg asset is admissible here.
@@ -79,7 +79,14 @@ export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts,
   // grants for attacker-controlled subdomains.
   if (!allowedHosts.some(host => hostname === host
       || (host !== managedMediaHost && host !== 'media-farcaster.genyleap.com'
+          && host !== 'media1.tenor.com'
           && hostname.endsWith('.' + host)))) return null;
+  // Tenor's media1 delivery host returns HTTP 404 to HEAD but valid animated
+  // GIF bytes to GET. Proxy just its opaque public GIF assets; do not turn
+  // the entire tenor.com namespace into a general-purpose fetch surface.
+  if (hostname === 'media1.tenor.com'
+      && (!/^\/m\/[A-Za-z0-9_-]{8,64}\/[A-Za-z0-9-]{1,128}\.gif$/.test(parsed.pathname)
+          || parsed.search)) return null;
   // First-party media must be a published asset, not a recursive gateway URL.
   if ((hostname === managedMediaHost || hostname === 'media-farcaster.genyleap.com')
       && !parsed.pathname.startsWith('/m/')) return null;
