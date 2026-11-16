@@ -225,7 +225,7 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("root.beginSelectionHandoff()", feed)
         self.assertIn("root.selectionSettling", feed)
         self.assertIn("visible: root.mobilePresentation", settings)
-        self.assertIn("columns: appearanceScroll.availableWidth >= 320 ? 4 : 3", settings)
+        self.assertIn("columns: appearanceScroll.availableWidth >= 520 ? 4", settings)
         self.assertIn("Accessible.role: Accessible.RadioButton", settings)
         self.assertIn("id: composerFixedChrome", composer)
         self.assertLess(composer.index("id: composerFixedChrome"),
