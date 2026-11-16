@@ -107,6 +107,17 @@ test('channel and profile option menus retain readable contrast and surfaces', (
   assert.match(filter, /color: Theme\.textPrimary/);
   assert.match(filter, /fillColor: control\.popup\.visible \? Theme\.surfaceElevated/);
   assert.match(filter, /borderColor: Theme\.borderDefault/);
+  assert.match(filter,/background: NeonStatePlate \{/);
+  assert.match(filter,/selected: option\.index === control\.currentIndex/);
+  assert.match(filter,/focused: option\.activeFocus/);
+  const mobileCreate=read('ui/components/navigation/MobileCreateMenu.qml');
+  assert.match(mobileCreate,/component CreateRow: Item[\s\S]*?NeonStatePlate \{/);
+  assert.match(mobileCreate,/focused: choice\.activeFocus && choice\.available/);
+  assert.match(mobileCreate,/hoverEnabled: true/);
+  assert.doesNotMatch(mobileCreate,/radius: Theme\.space2/);
+  const multi=read('ui/components/controls/GenyMultiSelect.qml');
+  assert.match(multi,/background: NeonStatePlate \{[\s\S]*?selected: optionButton\.selected/);
+  assert.match(multi,/focused: optionButton\.activeFocus/);
 });
 
 test('website link drawer always paints a domain monogram behind optional favicon art', () => {
