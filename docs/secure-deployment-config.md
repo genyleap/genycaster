@@ -68,6 +68,42 @@ production issuer. Serve `deployment_config.mjs` with
 information in older browser tabs. This module is excluded from the service
 worker's offline cache.
 
+## Canonical Genycaster application domain
+
+Genycaster's dedicated first-party origin is **https://genycaster.xyz**.
+Both the CMake-default public Origin and the shipping SIWF relying-party
+authority now use this host. Existing Qt CMake caches carrying the two
+former Genycaster-default values are migrated at configure time; deliberate
+self-hosted overrides remain intact. Reconfigure and rebuild **every native
+platform and WebAssembly** so the generated `genycaster_deployment.hpp`,
+`public_endpoints.json` and browser `deployment_config.mjs` agree.
+
+The standalone `genycaster.xyz` HTTPS landing page remains live. The
+Account API is routed only under `/api/v1/cloud/`, without redirecting
+this path or replacing the landing; the prepared Nginx helper is
+`ci/enable_genycaster_xyz_cloud_api.py`. Verify public HTTPS:
+`GET /api/v1/cloud/pro/plan` -> 200,
+unauthenticated `GET /api/v1/cloud/session` -> 401,
+a same-origin `POST /api/v1/cloud/session/challenge` -> 200,
+and `GET /` -> 200. The backend must already trust
+`Origin: https://genycaster.xyz` before applying the proxy.
+
+**Never rewrite origin-specific cookies.** The application account cookie
+is host-only, Secure and SameSite=Strict. Migrating the origin requires a
+new, signed account-session challenge from the existing registered device
+Signer; it does not require a new FID or change Pro/Streak ownership. Do not
+treat any old session on `caster.genyleap.com` as reusable on the new host.
+
+OpenProof remains the distinct identity issuer and OAuth broker; Snapchain,
+HyperSnap and media gateway remain separately trusted protocol/service hosts.
+Do not replace those origins with the landing hostname unless those services
+are actually hosted there. Their browser CORS allowlists must independently
+accept **only** the new exact application Origin (plus explicit development
+origins where already permitted). This is especially important for the
+Snapchain signer-protobuf gateway and the media upload/browsing gateway.
+Verify the new origin's preflight responses after deploying those services;
+a source update alone does not update running systemd/Docker processes.
+
 ## Server configuration and secrets
 
 The Node account-sync and media-gateway services use
