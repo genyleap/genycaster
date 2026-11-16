@@ -119,24 +119,20 @@ GenyAdaptiveDialog {
         return applied
     }
 
-    // Reuse the shared adaptive host: a true centered Qt modal on desktop
-    // and a genuine bottom-edge Drawer on mobile. The entire preferences
-    // form remains a single contentItem, not two independent implementations.
-    // The shell supplies the desktop workspace as the blur source. A phone's
-    // opaque, full-screen settings view needs no background capture.
+    // Settings owns the entire application viewport on desktop and mobile.
+    // Its opaque surface does not need a backdrop snapshot or dimming layer.
+    // Both presentations reuse the same responsive settings content.
     blurSourceItem: null
-    efficientBackdropBlur: true
-    dimBackground: !mobilePresentation
+    dimBackground: false
     // Keep the ordinary modal stacking level. Sign-out, recovery, Pro and
     // nested confirmation popups opened from Settings must appear above it.
     popupZ: 0
     mobileFullScreen: true
+    desktopFullScreen: true
     showHandle: false
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
-    width: parent ? (mobilePresentation ? parent.width
-        : Math.min(Theme.scaleUi(1380), Math.max(0, parent.width - Theme.space4 * 2))) : 1180
-    height: parent ? (mobilePresentation ? parent.height
-        : Math.min(Theme.scaleUi(860), Math.max(0, parent.height - Theme.space4 * 2))) : 780
+    width: parent ? parent.width : 1180
+    height: parent ? parent.height : 780
     // Drawer/Popup inherits QtObject rather than Item. SafeArea belongs to
     // the overlay Item (or its Window.contentItem), never to the popup root.
     readonly property real navigationInset: root.mobilePresentation && parent
