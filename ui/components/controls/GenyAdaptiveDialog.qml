@@ -11,6 +11,9 @@ Item {
 
     property Item contentItem: null
     property Item blurSourceItem: null
+    // Opt-in: static, downsampled backdrop for expensive desktop inspectors.
+    // Other dialogs keep their existing Gaussian presentation.
+    property bool efficientBackdropBlur: false
     property int contentPadding: Theme.space3
     property bool dimBackground: true
     property int closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
@@ -89,6 +92,7 @@ Item {
         // application, rather than replacing it with a flat dark scrim.
         Overlay.modal: DrawerBackdrop {
             sourceItem: control.blurSourceItem
+            efficientNativeBlur: control.efficientBackdropBlur
             snapshotBlurOnBrowser: true
             active: desktopDialog.opened
             addScrim: control.dimBackground
@@ -118,6 +122,7 @@ Item {
         interactive: !control.mobileFullScreen
         dimBackground: control.dimBackground
         blurSourceItem: control.blurSourceItem
+        efficientBackdropBlur: control.efficientBackdropBlur
         showHandle: !control.mobileFullScreen && control.showHandle
         contentPadding: control.contentPadding
         bottomPadding: control.contentPadding + control.mobileBottomPaddingExtra
