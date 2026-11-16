@@ -42,7 +42,8 @@ Popup {
         // popup fills the whole application viewport.
         neonAmbient: !control.fullScreen
         neonInteractive: !control.fullScreen
-        shadowEnabled: !control.fullScreen
+        // Keep the shared modal's previous shadow behavior unchanged.
+        shadowEnabled: false
         borderWidth: control.fullScreen ? 0 : 1
         curveDepth: control.fullScreen ? 0 : Theme.curveModal
         elevation: control.fullScreen ? Theme.elevationNone : Theme.elevationModal
