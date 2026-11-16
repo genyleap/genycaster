@@ -34,6 +34,19 @@ test('native FID session renewal only after matching shard-zero registry and loc
   assert.ok(!runtime.includes('renewed.identityIssuer = "farcaster:optimism-id-registry"'));
 });
 
+test('native expired sessions do not continuously retry queued writes',()=>{
+  const runtime=read('ui/app/runtime/bindings.cpp');
+  const writes=read('src/application/write.cpp');
+  assert.match(runtime,/const auto resumeAuthorizedWrites = \[runtime, writeObserver\]/);
+  assert.match(runtime,/if \(!session \|\| domain::session::isExpired\(/);
+  assert.match(runtime,/outboxRetryTimer->setInterval\(30'000\)/);
+  assert.match(runtime,/runtimeRecoveryTimer->setInterval\(60'000\)/);
+  assert.match(runtime,/resumeAuthorizedWrites\(\)/);
+  assert.doesNotMatch(runtime,/writeService->resume\(runtime->currentSessionSnapshot\(\), writeObserver\)/);
+  assert.doesNotMatch(writes,/Farcaster session has expired/);
+  assert.match(writes,/verified account session has expired/);
+});
+
 test('streak records every confirmed authored cast, not only the rich composer path',()=>{
   const shell=read('ui/components/shell/AppShell.qml');
   const start=shell.indexOf('Streak is not a rich-composer feature');
