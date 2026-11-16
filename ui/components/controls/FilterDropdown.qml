@@ -114,12 +114,17 @@ ComboBox {
             }
         }
 
-        background: Superellipse {
-            anchors.fill: parent
+        background: NeonStatePlate {
             anchors.margins: 2
-            fillColor: option.highlighted || option.hovered ? Theme.primarySurfaceHover
-                       : option.index === control.currentIndex ? Theme.primarySurface : Theme.surfaceRaised
-            curveDepth: 10
+            selected: option.index === control.currentIndex
+            hovered: option.highlighted || option.hovered
+            pressed: option.down
+            focused: option.activeFocus
+            selectedFill: Theme.primarySurface
+            hoverFill: Theme.primarySurfaceHover
+            pressedFill: Theme.surfacePressed
+            neonOnHover: false
+            cornerRadius: Theme.curveCompact
         }
     }
 
