@@ -346,6 +346,7 @@ bool AppearanceController::setThemeMode(const QString &mode) {
   m_themeMode = canonical;
   m_settings.setValue(QString::fromLatin1(kThemeModeSetting), m_themeMode);
   refreshEffectiveMode(false);
+  emit themeModeChanged();
   emit appearanceChanged();
   return true;
 }
@@ -360,6 +361,7 @@ bool AppearanceController::setColorThemeId(const QString &themeId) {
   }
   m_colorThemeId = canonical;
   m_settings.setValue(QString::fromLatin1(kColorThemeSetting), m_colorThemeId);
+  emit colorThemeIdChanged();
   emit appearanceChanged();
   return true;
 }
@@ -369,14 +371,20 @@ bool AppearanceController::setCustomAccentColor(const QString &color) {
   if (canonical.isEmpty()) {
     return false;
   }
-  const bool changed = canonical != m_customAccentColor ||
-                       m_colorThemeId != QStringLiteral("custom");
+  const bool colorChanged = canonical != m_customAccentColor;
+  const bool presetChanged = m_colorThemeId != QStringLiteral("custom");
   m_customAccentColor = canonical;
   m_colorThemeId = QStringLiteral("custom");
   m_settings.setValue(QString::fromLatin1(kCustomAccentSetting),
                       m_customAccentColor);
   m_settings.setValue(QString::fromLatin1(kColorThemeSetting), m_colorThemeId);
-  if (changed) {
+  if (colorChanged) {
+    emit customAccentColorChanged();
+  }
+  if (presetChanged) {
+    emit colorThemeIdChanged();
+  }
+  if (colorChanged || presetChanged) {
     emit appearanceChanged();
   }
   return true;
@@ -389,6 +397,7 @@ void AppearanceController::setReduceMotion(const bool enabled) {
   m_reduceMotion = enabled;
   m_settings.setValue(QString::fromLatin1(kReduceMotionSetting),
                       m_reduceMotion);
+  emit reduceMotionChanged();
   emit appearanceChanged();
 }
 
@@ -402,6 +411,7 @@ bool AppearanceController::setFontScale(const qreal scale) {
   }
   m_fontScale = canonical;
   m_settings.setValue(QString::fromLatin1(kFontScaleSetting), m_fontScale);
+  emit fontScaleChanged();
   emit appearanceChanged();
   return true;
 }
@@ -416,6 +426,7 @@ bool AppearanceController::setInterfaceScale(const qreal scale) {
   }
   m_interfaceScale = canonical;
   m_settings.setValue(QString::fromLatin1(kInterfaceScaleSetting), m_interfaceScale);
+  emit interfaceScaleChanged();
   emit appearanceChanged();
   return true;
 }
@@ -455,11 +466,13 @@ void AppearanceController::resetSocialLayout() {
 }
 
 void AppearanceController::resetAppearance() {
-  const bool changed = m_themeMode != QStringLiteral("system") ||
-                       m_colorThemeId != QStringLiteral("platform") ||
-                       m_customAccentColor != QString::fromLatin1(kDefaultCustomAccent) ||
-                       m_reduceMotion || !qFuzzyCompare(m_fontScale, 1.0) ||
-                       !qFuzzyCompare(m_interfaceScale, 1.0);
+  const bool modeChanged = m_themeMode != QStringLiteral("system");
+  const bool presetChanged = m_colorThemeId != QStringLiteral("platform");
+  const bool colorChanged = m_customAccentColor != QString::fromLatin1(kDefaultCustomAccent);
+  const bool motionChanged = m_reduceMotion;
+  const bool textScaleChanged = !qFuzzyCompare(m_fontScale, 1.0);
+  const bool uiScaleChanged = !qFuzzyCompare(m_interfaceScale, 1.0);
+
   m_themeMode = QStringLiteral("system");
   m_colorThemeId = QStringLiteral("platform");
   m_customAccentColor = QString::fromLatin1(kDefaultCustomAccent);
@@ -472,8 +485,31 @@ void AppearanceController::resetAppearance() {
   m_settings.remove(QString::fromLatin1(kReduceMotionSetting));
   m_settings.remove(QString::fromLatin1(kFontScaleSetting));
   m_settings.remove(QString::fromLatin1(kInterfaceScaleSetting));
+
+  // A system appearance change may also change effectiveDark; it emits its
+  // own precise NOTIFY without invalidating every unrelated QML property.
+  const bool previousEffectiveDark = m_effectiveDark;
   refreshEffectiveMode(false);
-  if (changed) {
+  if (modeChanged) {
+    emit themeModeChanged();
+  }
+  if (presetChanged) {
+    emit colorThemeIdChanged();
+  }
+  if (colorChanged) {
+    emit customAccentColorChanged();
+  }
+  if (motionChanged) {
+    emit reduceMotionChanged();
+  }
+  if (textScaleChanged) {
+    emit fontScaleChanged();
+  }
+  if (uiScaleChanged) {
+    emit interfaceScaleChanged();
+  }
+  if (modeChanged || presetChanged || colorChanged || motionChanged ||
+      textScaleChanged || uiScaleChanged || m_effectiveDark != previousEffectiveDark) {
     emit appearanceChanged();
   }
 }
@@ -488,6 +524,7 @@ void AppearanceController::refreshEffectiveMode(const bool notify) {
     return;
   }
   m_effectiveDark = resolved;
+  emit effectiveDarkChanged();
   if (notify) {
     emit appearanceChanged();
   }

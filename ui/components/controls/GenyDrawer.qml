@@ -12,6 +12,9 @@ Drawer {
     property int contentPadding: 0
     property Item hostItem: null
     property Item blurSourceItem: null
+    // Theme-switching settings can use Qt's optimized downsampled blur path
+    // rather than two full-screen 47-tap Gaussian shaders per render frame.
+    property bool efficientBackdropBlur: false
     // Full-screen inspectors have their own Cancel/Close navigation. Only
     // short, gesture-dismissable bottom sheets expose a pull handle.
     property bool showHandle: bottomSheet && !fullScreen
@@ -91,7 +94,12 @@ Drawer {
     // Blur belongs to the environment behind the drawer, not to the drawer
     // surface itself. Qt creates these components underneath visible popups.
     Overlay.modal: DrawerBackdrop {
-        sourceItem: control.blurSourceItem
+        // A completely opaque full-screen Settings drawer covers the
+        // workspace; taking a blurred full-screen snapshot behind it buys
+        // nothing and is particularly expensive on mobile Retina displays.
+        sourceItem: control.fullScreen && control.efficientBackdropBlur
+            ? null : control.blurSourceItem
+        efficientNativeBlur: control.efficientBackdropBlur
         snapshotBlurOnBrowser: true
         active: control.position > 0
         opacity: control.position
@@ -106,7 +114,12 @@ Drawer {
     }
 
     Overlay.modeless: DrawerBackdrop {
-        sourceItem: control.blurSourceItem
+        // A completely opaque full-screen Settings drawer covers the
+        // workspace; taking a blurred full-screen snapshot behind it buys
+        // nothing and is particularly expensive on mobile Retina displays.
+        sourceItem: control.fullScreen && control.efficientBackdropBlur
+            ? null : control.blurSourceItem
+        efficientNativeBlur: control.efficientBackdropBlur
         snapshotBlurOnBrowser: true
         active: control.position > 0
         opacity: control.position

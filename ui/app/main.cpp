@@ -634,7 +634,7 @@ int main(int argc, char* argv[])
         }, appearanceController.effectiveDark() ? 1 : 0);
     };
     updateBrowserChromeTheme();
-    QObject::connect(&appearanceController, &AppearanceController::appearanceChanged,
+    QObject::connect(&appearanceController, &AppearanceController::effectiveDarkChanged,
                      &application, updateBrowserChromeTheme);
 #endif
     renderingControllerOwner = std::make_unique<RenderingController>(settings);
@@ -962,12 +962,12 @@ int main(int argc, char* argv[])
     MiniAppTaskManagerController& miniAppTaskManager = *miniAppTaskManagerControllerOwner;
 
     miniAppHost.setReduceMotion(appearanceController.reduceMotion());
-    QObject::connect(&appearanceController, &AppearanceController::appearanceChanged, &miniAppHost,
+    QObject::connect(&appearanceController, &AppearanceController::reduceMotionChanged, &miniAppHost,
         [&appearanceController, &miniAppHost] {
             miniAppHost.setReduceMotion(appearanceController.reduceMotion());
         });
     mediaWebHost.setReduceMotion(appearanceController.reduceMotion());
-    QObject::connect(&appearanceController, &AppearanceController::appearanceChanged, &mediaWebHost,
+    QObject::connect(&appearanceController, &AppearanceController::reduceMotionChanged, &mediaWebHost,
         [&appearanceController, &mediaWebHost] {
             mediaWebHost.setReduceMotion(appearanceController.reduceMotion());
         });

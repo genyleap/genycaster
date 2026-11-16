@@ -31,16 +31,16 @@ class QSettings;
  */
 class AppearanceController final : public QObject {
   Q_OBJECT
-  Q_PROPERTY(QString themeMode READ themeMode NOTIFY appearanceChanged)
-  Q_PROPERTY(QString colorThemeId READ colorThemeId NOTIFY appearanceChanged)
+  Q_PROPERTY(QString themeMode READ themeMode NOTIFY themeModeChanged)
+  Q_PROPERTY(QString colorThemeId READ colorThemeId NOTIFY colorThemeIdChanged)
   Q_PROPERTY(QString platformName READ platformName CONSTANT)
   Q_PROPERTY(QString platformAccentColor READ platformAccentColor CONSTANT)
   Q_PROPERTY(QString platformIcon READ platformIcon CONSTANT)
-  Q_PROPERTY(QString customAccentColor READ customAccentColor NOTIFY appearanceChanged)
-  Q_PROPERTY(bool effectiveDark READ effectiveDark NOTIFY appearanceChanged)
-  Q_PROPERTY(bool reduceMotion READ reduceMotion NOTIFY appearanceChanged)
-  Q_PROPERTY(qreal fontScale READ fontScale NOTIFY appearanceChanged)
-  Q_PROPERTY(qreal interfaceScale READ interfaceScale NOTIFY appearanceChanged)
+  Q_PROPERTY(QString customAccentColor READ customAccentColor NOTIFY customAccentColorChanged)
+  Q_PROPERTY(bool effectiveDark READ effectiveDark NOTIFY effectiveDarkChanged)
+  Q_PROPERTY(bool reduceMotion READ reduceMotion NOTIFY reduceMotionChanged)
+  Q_PROPERTY(qreal fontScale READ fontScale NOTIFY fontScaleChanged)
+  Q_PROPERTY(qreal interfaceScale READ interfaceScale NOTIFY interfaceScaleChanged)
   Q_PROPERTY(qreal socialNavigationWidth READ socialNavigationWidth NOTIFY layoutChanged)
   Q_PROPERTY(qreal socialContextWidth READ socialContextWidth NOTIFY layoutChanged)
 
@@ -128,6 +128,16 @@ public:
   Q_INVOKABLE void resetAppearance();
 
 signals:
+  // Notify only the actual property that changed. A color-preset selection
+  // must not invalidate QML text, UI scale, motion and dark-mode bindings.
+  // The aggregate signal remains for legacy application-level observers.
+  void themeModeChanged();
+  void colorThemeIdChanged();
+  void customAccentColorChanged();
+  void effectiveDarkChanged();
+  void reduceMotionChanged();
+  void fontScaleChanged();
+  void interfaceScaleChanged();
   void appearanceChanged();
   void layoutChanged();
 

@@ -20,7 +20,10 @@ test("OS-native color theme stays independently selectable and preserves saved G
 test("native platform swatch shows OS name and icon in Setup and Settings", () => {
   const settings = read("ui/components/settings/SettingsPopup.qml");
   const setup = read("ui/components/setup/InitialSetup.qml");
-  assert.match(settings, /\{ id: "platform", label: Theme\.platformName, color: Theme\.swatchPlatform, icon: Theme\.platformIcon \}/);
+  assert.match(settings, /model: \["platform", "geny", "ocean", "violet"/);
+  assert.match(settings, /presetId === "platform" \? Theme\.platformName/);
+  assert.match(settings, /presetId === "platform" \? Theme\.swatchPlatform/);
+  assert.match(settings, /themePreset\.presetId === "platform"[\s\S]*?Theme\.platformIcon/);
   assert.match(setup, /id: setupPlatformColor/);
   assert.match(setup, /Theme\.platformAccentHex/);
   assert.match(setup, /Theme\.platformIcon/);

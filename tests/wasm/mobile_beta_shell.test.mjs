@@ -35,17 +35,18 @@ test("iOS safe-area background and PWA metadata use the app appearance",()=>{
     assert.equal(manifest.theme_color,"#0b0c0f");
     assert.match(js,/__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme/);
     assert.match(cpp,/updateBrowserChromeTheme/);
-    assert.match(cpp,/AppearanceController::appearanceChanged/);
+    assert.match(cpp,/AppearanceController::effectiveDarkChanged/);
     assert.match(cpp,/#if defined\(Q_OS_WASM\)/);
 });
 
-test("phone Home is focused on three active actions and a locked Wallet",()=>{
+test("phone Home keeps four live quick-access destinations without an inert wallet tile",()=>{
  const home=read("ui/components/home/HomeDashboard.qml");
  assert.match(home,/component HubWorkspace: ColumnLayout/);
  assert.match(home,/columns: 2/);
  assert.match(home,/"homeShortcut_" \+ modelData.destination/);
- assert.match(home,/destination: "wallet"/);
- assert.doesNotMatch(home,/destination: "trends"|key: "agent"|key: "studio"/);
+ for (const destination of ["explorer","channels","apps","pro"])
+   assert.match(home,new RegExp('destination: "'+destination+'"'));
+ assert.doesNotMatch(home,/destination: "wallet"|destination: "trends"|key: "agent"|key: "studio"/);
  assert.match(home,/HomeActivityCard \{/);
 });
 

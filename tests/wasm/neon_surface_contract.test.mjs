@@ -24,7 +24,7 @@ test('shared overlay freezes workspace only and never captures the overlay tree'
     assert.match(blur, /property Item sourceItem: null/);
     assert.match(blur, /recursive: false/);
     assert.match(blur, /live: false/);
-    assert.match(blur, /hideSource: root\.nativeGaussian/);
+    assert.match(blur, /hideSource: root\.nativeBlurActive/);
     assert.match(blur, /sourceItem: root\.sourceItem/);
     assert.match(blur, /id: horizontalPass/);
     assert.match(blur, /id: intermediate/);

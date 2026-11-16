@@ -10,15 +10,19 @@ Item {
     property bool addScrim: true
     property bool blockInput: false
     property bool snapshotBlurOnBrowser: false
+    property bool efficientNativeBlur: false
     // Pointer presses and synthesized taps may both be delivered on WASM.
     // Dismiss exactly once per open, even if both handlers receive the gesture.
     property bool outsideDismissConsumed: false
     readonly property bool useBrowserSnapshot: root.browserRenderer && root.snapshotBlurOnBrowser
-    // The native renderer uses the reference two-pass Gaussian rather than
-    // the platform-dependent MultiEffect blur. Browser keeps its proven
-    // reduced-resolution snapshot fallback for WebGL/Canvas compatibility.
-    readonly property bool nativeGaussian: !root.browserRenderer && root.active
-                                            && root.sourceItem !== null
+    // Non-settings native dialogs retain the reference two-pass Gaussian.
+    // Appearance settings use an optimized downsampled MultiEffect so one
+    // theme change cannot saturate the compositor with two full-res passes.
+    // WebAssembly keeps its proven reduced-resolution snapshot fallback.
+    readonly property bool nativeBlurActive: !root.browserRenderer && root.active
+                                              && root.sourceItem !== null
+    readonly property bool nativeGaussian: root.nativeBlurActive && !root.efficientNativeBlur
+    readonly property bool optimizedNativeBlur: root.nativeBlurActive && root.efficientNativeBlur
     readonly property real gaussianAmount: 1.0
     function refreshSnapshot() {
         if (!root.active || !root.sourceItem)
@@ -36,6 +40,31 @@ Item {
     onSourceItemChanged: root.refreshSnapshot()
     onWidthChanged: root.refreshSnapshot()
     onHeightChanged: root.refreshSnapshot()
+    // The backdrop is deliberately frozen between changes. Refresh once
+    // AFTER Qt has propagated the new palette, not on each animated color
+    // frame of dozens of live cards beneath the settings inspector.
+    Timer {
+        id: paletteSnapshotRefresh
+        interval: Theme.materialSurfaceDuration + 20
+        repeat: false
+        onTriggered: root.refreshSnapshot()
+    }
+    Connections {
+        target: Theme
+        enabled: root.efficientNativeBlur
+        function onDarkChanged() {
+            if (root.optimizedNativeBlur)
+                paletteSnapshotRefresh.restart()
+        }
+        function onColorThemeIdChanged() {
+            if (root.optimizedNativeBlur)
+                paletteSnapshotRefresh.restart()
+        }
+        function onCustomAccentChanged() {
+            if (root.optimizedNativeBlur)
+                paletteSnapshotRefresh.restart()
+        }
+    }
     signal backgroundTapped()
     function requestOutsideDismiss() {
         if (!root.active || !root.blockInput || root.outsideDismissConsumed)
@@ -54,11 +83,14 @@ Item {
                                             : 0.90
     readonly property real blurStrength: renderingController.profile === "efficiency"
                                          || renderingController.effectiveQuality === "efficiency" ? 0.46 : 0.58
-    // Native captures preserve device-pixel detail on Retina/HiDPI screens.
-    // Freeze after admission and cap the longest texture edge for mobile GPUs.
-    readonly property real nativeCaptureScale: Math.min(
-        Math.max(1, Screen.devicePixelRatio) * root.captureScale,
-        4096 / Math.max(1, root.width, root.height))
+    // Original panels retain their HiDPI snapshot. The theme inspector
+    // intentionally samples at <= 72% viewport resolution: detail behind a
+    // frosted sheet is intentionally obscured, so Retina-scale copies only
+    // waste memory bandwidth and induce expensive GPU synchronization.
+    readonly property real nativeCaptureScale: root.efficientNativeBlur
+        ? Math.min(0.72, 2048 / Math.max(1, root.width, root.height))
+        : Math.min(Math.max(1, Screen.devicePixelRatio) * root.captureScale,
+                   4096 / Math.max(1, root.width, root.height))
 
     anchors.fill: parent
     visible: root.active
@@ -72,7 +104,7 @@ Item {
         // entire animated feed through two Gaussian passes every frame.
         live: false
         recursive: false
-        hideSource: root.nativeGaussian
+        hideSource: root.nativeBlurActive
         sourceItem: root.sourceItem
         textureSize: Qt.size(
             root.browserRenderer && !root.useBrowserSnapshot ? 1
@@ -121,11 +153,16 @@ Item {
 
     MultiEffect {
         anchors.fill: parent
-        visible: root.active && root.useBrowserSnapshot && root.sourceItem !== null
+        visible: root.active && (root.useBrowserSnapshot || root.optimizedNativeBlur)
+                 && root.sourceItem !== null
         source: capture
+        // Qt Quick MultiEffect implements a downsampled blur pyramid.
+        // A moderate radius approximates the reference's tight Gaussian
+        // instead of turning the entire desktop into an oversized blur.
+        // A frozen, low-res compositor effect avoids two 47-tap passes.
         blurEnabled: true
-        blur: root.blurStrength
-        blurMax: 30
+        blur: root.optimizedNativeBlur ? 0.48 : root.blurStrength
+        blurMax: root.optimizedNativeBlur ? 24 : 30
         saturation: 0.92
         autoPaddingEnabled: false
         antialiasing: true

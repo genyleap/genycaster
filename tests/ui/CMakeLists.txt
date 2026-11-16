@@ -562,6 +562,10 @@ foreach(genycasterQmlIndex RANGE 0 ${genycasterLastQmlSourceIndex})
 endforeach()
 configure_file("${genycasterUiSourceDir}/components/composer/ProCastPolicy.js"
     "${genycasterPublicQmlFixtureDir}/ProCastPolicy.js" COPYONLY)
+# The public NeonHalo.qml imports its JS geometry sibling by relative path.
+# Production flattens that alias; the standalone native QML fixture must too.
+configure_file("${genycasterUiSourceDir}/components/visual/NeonGeometry.js"
+    "${genycasterPublicQmlFixtureDir}/NeonGeometry.js" COPYONLY)
 unset(genycasterQmlIndex)
 unset(genycasterQmlPublicName)
 unset(genycasterQmlPhysicalName)
@@ -581,6 +585,13 @@ qt_add_resources(farcaster_media_scroll_tests media_scroll_icons
     PREFIX "/qt/qml/Farcaster/Client/assets/icons/genyleap"
     BASE "${genycasterUiSourceDir}/assets/icons/genyleap"
     FILES ${genyleapIconSystemFiles})
+# Verify precise appearance NOTIFY fanout using real Qt QSignalSpy without
+# importing production-only wallet types into the isolated media fixture.
+add_test(NAME ui.appearance_notify_smoke COMMAND farcaster_media_scroll_tests)
+set_tests_properties(ui.appearance_notify_smoke PROPERTIES TIMEOUT 15
+    LABELS "ui;appearance;qt;regression"
+    ENVIRONMENT "QT_QPA_PLATFORM=${farcasterHeadlessPlatform};QT_QUICK_BACKEND=software;QT_QUICK_CONTROLS_STYLE=Basic;GENYCASTER_APPEARANCE_NOTIFY_SMOKE_ONLY=1")
+
 # Parse the complete native startup QML dependency chain with a real
 # QQmlEngine. qmlcache compilation alone misses unknown attached objects
 # such as Layout.minimumWidth without import QtQuick.Layouts.

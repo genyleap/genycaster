@@ -122,6 +122,10 @@ GenyDrawer {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     showHandle: false
     dimBackground: true
+    // Appearance changes repaint many visible materials in one frame. Keep
+    // the frosted shell but replace its full-res two-pass Gaussian workload
+    // with a downsampled, GPU-optimized blur while this drawer is open.
+    efficientBackdropBlur: true
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space3
     // The desktop inspector needs enough width for a real preferences rail
     // and controls at normal font scaling. Phones retain their full viewport.
@@ -1135,25 +1139,40 @@ GenyDrawer {
                             columnSpacing: Theme.space2
 
                             Repeater {
-                                model: [
-                                    { id: "platform", label: Theme.platformName, color: Theme.swatchPlatform, icon: Theme.platformIcon },
-                                    { id: "geny", label: qsTrId("genycaster.settings.theme_geny"), color: Theme.swatchGeny },
-                                    { id: "ocean", label: qsTrId("genycaster.settings.theme_ocean"), color: Theme.swatchOcean },
-                                    { id: "violet", label: qsTrId("genycaster.settings.theme_violet"), color: Theme.swatchViolet },
-                                    { id: "ember", label: qsTrId("genycaster.settings.theme_ember"), color: Theme.swatchEmber },
-                                    { id: "rose", label: qsTrId("genycaster.settings.theme_rose"), color: Theme.swatchRose },
-                                    { id: "mint", label: qsTrId("genycaster.settings.theme_mint"), color: Theme.swatchMint },
-                                    { id: "mono", label: qsTrId("genycaster.settings.theme_mono"), color: Theme.swatchMono }
-                                ]
+                                // This model is deliberately immutable. A reactive JS
+                                // array of Theme swatches destroys/recreates all eight
+                                // delegates on each Light/Dark change; keep the controls
+                                // and handlers alive, updating only the palette bindings.
+                                model: ["platform", "geny", "ocean", "violet",
+                                        "ember", "rose", "mint", "mono"]
                                 delegate: Item {
                                     id: themePreset
-                                    required property var modelData
-                                    readonly property bool selected: appearanceController.colorThemeId === String(modelData.id)
+                                    required property string modelData
+                                    readonly property string presetId: modelData
+                                    readonly property string presetLabel:
+                                        presetId === "platform" ? Theme.platformName
+                                        : presetId === "geny" ? qsTrId("genycaster.settings.theme_geny")
+                                        : presetId === "ocean" ? qsTrId("genycaster.settings.theme_ocean")
+                                        : presetId === "violet" ? qsTrId("genycaster.settings.theme_violet")
+                                        : presetId === "ember" ? qsTrId("genycaster.settings.theme_ember")
+                                        : presetId === "rose" ? qsTrId("genycaster.settings.theme_rose")
+                                        : presetId === "mint" ? qsTrId("genycaster.settings.theme_mint")
+                                        : qsTrId("genycaster.settings.theme_mono")
+                                    readonly property color presetSwatch:
+                                        presetId === "platform" ? Theme.swatchPlatform
+                                        : presetId === "geny" ? Theme.swatchGeny
+                                        : presetId === "ocean" ? Theme.swatchOcean
+                                        : presetId === "violet" ? Theme.swatchViolet
+                                        : presetId === "ember" ? Theme.swatchEmber
+                                        : presetId === "rose" ? Theme.swatchRose
+                                        : presetId === "mint" ? Theme.swatchMint
+                                        : Theme.swatchMono
+                                    readonly property bool selected: appearanceController.colorThemeId === presetId
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 0
                                     Layout.preferredHeight: 76
                                     Accessible.role: Accessible.RadioButton
-                                    Accessible.name: String(modelData.label)
+                                    Accessible.name: themePreset.presetLabel
                                     Accessible.checked: selected
 
                                     // Palette selection is shown by its own
@@ -1192,16 +1211,16 @@ GenyDrawer {
                                                 width: 36
                                                 height: 36
                                                 radius: width / 2
-                                                color: themePreset.modelData.color
+                                                color: themePreset.presetSwatch
                                                 border.width: 1
                                                 border.color: Theme.borderStrong
                                                 Icon {
                                                     anchors.centerIn: parent
-                                                    text: String(themePreset.modelData.id) === "platform"
+                                                    text: themePreset.presetId === "platform"
                                                           ? Theme.platformIcon : Theme.iconCheck
-                                                    color: Theme.contrastInk(themePreset.modelData.color)
-                                                    preferredSize: String(themePreset.modelData.id) === "platform" ? 20 : 17
-                                                    opacity: String(themePreset.modelData.id) === "platform"
+                                                    color: Theme.contrastInk(themePreset.presetSwatch)
+                                                    preferredSize: themePreset.presetId === "platform" ? 20 : 17
+                                                    opacity: themePreset.presetId === "platform"
                                                              || themePreset.selected ? 1 : 0
                                                     Behavior on opacity {
                                                         NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
@@ -1213,7 +1232,7 @@ GenyDrawer {
                                             Layout.fillWidth: true
                                             Layout.minimumWidth: 0
                                             horizontalAlignment: Text.AlignHCenter
-                                            text: themePreset.modelData.label
+                                            text: themePreset.presetLabel
                                             color: themePreset.selected ? Theme.ink : Theme.inkMuted
                                             font.pixelSize: Theme.typeCaptionSize
                                             font.weight: Theme.weightMedium
@@ -1224,7 +1243,7 @@ GenyDrawer {
                                     HoverHandler { id: presetHover; cursorShape: Qt.PointingHandCursor }
                                     TapHandler {
                                         gesturePolicy: TapHandler.ReleaseWithinBounds
-                                        onTapped: appearanceController.setColorThemeId(String(themePreset.modelData.id))
+                                        onTapped: appearanceController.setColorThemeId(themePreset.presetId)
                                     }
                                 }
                             }

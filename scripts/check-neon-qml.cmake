@@ -22,7 +22,9 @@ set(files
     "ui/components/profile/ProfileSurface.qml"
     "ui/components/apps/AppsSurface.qml"
     "ui/components/profile/BookmarksSurface.qml"
-    "ui/components/feed/NotificationSurface.qml")
+    "ui/components/feed/NotificationSurface.qml"
+    "ui/components/settings/SettingsPopup.qml"
+    "ui/components/visual/DrawerBackdrop.qml")
 foreach(file IN LISTS files)
     execute_process(
         COMMAND "${qmlformat_executable}" "${CMAKE_CURRENT_LIST_DIR}/../${file}"

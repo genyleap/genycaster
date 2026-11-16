@@ -228,6 +228,53 @@ int main(int argc, char** argv)
     expect(temporary.isValid(), "isolated settings directory");
     QSettings settings{temporary.filePath(QStringLiteral("settings.ini")), QSettings::IniFormat};
     AppearanceController appearance{settings};
+    // A color-preset click must invalidate the preset, not every unrelated
+    // Qt/QML setting. The old shared NOTIFY fanned out to all properties,
+    // causing avoidable GUI polish/repaint work during live theme changes.
+    QSignalSpy modeChanged{&appearance, &AppearanceController::themeModeChanged};
+    QSignalSpy presetChanged{&appearance, &AppearanceController::colorThemeIdChanged};
+    QSignalSpy accentChanged{&appearance, &AppearanceController::customAccentColorChanged};
+    QSignalSpy darkChanged{&appearance, &AppearanceController::effectiveDarkChanged};
+    QSignalSpy motionChanged{&appearance, &AppearanceController::reduceMotionChanged};
+    QSignalSpy scaleChanged{&appearance, &AppearanceController::fontScaleChanged};
+    QSignalSpy uiScaleChanged{&appearance, &AppearanceController::interfaceScaleChanged};
+    QSignalSpy aggregateChanged{&appearance, &AppearanceController::appearanceChanged};
+
+    expect(appearance.setColorThemeId(QStringLiteral("ocean"))
+           && presetChanged.count() == 1 && aggregateChanged.count() == 1
+           && modeChanged.isEmpty() && accentChanged.isEmpty()
+           && darkChanged.isEmpty() && motionChanged.isEmpty()
+           && scaleChanged.isEmpty() && uiScaleChanged.isEmpty(),
+        "Accent selection notifies only colorThemeId, not unrelated QML properties");
+    expect(appearance.setColorThemeId(QStringLiteral("ocean"))
+           && presetChanged.count() == 1 && aggregateChanged.count() == 1,
+        "Selecting the current palette does not emit redundant repaint signals");
+    const bool wasDark = appearance.effectiveDark();
+    expect(appearance.setThemeMode(QStringLiteral("dark"))
+           && modeChanged.count() == 1
+           && darkChanged.count() == (wasDark ? 0 : 1)
+           && presetChanged.count() == 1
+           && scaleChanged.isEmpty() && uiScaleChanged.isEmpty(),
+        "Light/dark change does not invalidate palette choice or layout scale");
+    appearance.setReduceMotion(true);
+    expect(motionChanged.count() == 1 && modeChanged.count() == 1
+           && presetChanged.count() == 1 && scaleChanged.isEmpty(),
+        "Reduce Motion invalidates only its own property");
+    appearance.resetAppearance();
+    expect(appearance.themeMode() == QStringLiteral("system")
+           && appearance.colorThemeId() == QStringLiteral("platform")
+           && !appearance.reduceMotion() && modeChanged.count() == 2
+           && presetChanged.count() == 2 && motionChanged.count() == 2,
+        "Reset publishes the changed appearance properties independently");
+
+    // Allow the appearance notification contract to run without importing
+    // the entire runtime shell (whose native wallet types are registered by
+    // production main.cpp, not by this standalone media fixture).
+    if (qEnvironmentVariableIsSet("GENYCASTER_APPEARANCE_NOTIFY_SMOKE_ONLY")) {
+        std::println("Native appearance notification regression: {} failure(s)", failures);
+        return failures == 0 ? 0 : 1;
+    }
+
     RenderingController rendering{settings};
     MediaPlaybackCoordinator playback{settings};
     QSignalSpy renderingPolicyChanges{&rendering, &RenderingController::renderingChanged};
