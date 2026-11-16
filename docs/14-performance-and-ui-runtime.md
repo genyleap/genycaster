@@ -516,11 +516,16 @@ own `Theme`, superellipse renderer, typography, accent and layout policies.
   UI Kit's **two-pass Gaussian** shader; the capture is frozen after opening
   instead of continuously replaying the underlying feed. The snapshot scales
   with device-pixel ratio but caps its longest edge at 4096 pixels.
-- Desktop Settings opts into a downsampled, frozen MultiEffect snapshot
-  (at most 48% of the logical viewport and a 1440 px edge). Palette changes
-  coalesce and refresh only after the material update settles; repeated size
-  and theme invalidations schedule at most one scene capture per event turn.
-  Full-screen phone Settings never captures the obscured workspace.
+- Settings is an **edge-to-edge, full-viewport inspector** on desktop
+  (`GenyModal.fullScreen`) and on mobile (`GenyDrawer.fullScreen`).
+  Its opaque surface has no rounded outer corners, backdrop blur, scrim,
+  glow, or fullscreen opacity animation. No hidden workspace texture is
+  captured during theme changes. Other transient dialogs retain their
+  existing inset geometry and frosted material.
+- When an overlay actually exposes the underlying workspace, the optimized
+  `DrawerBackdrop` option still uses a frozen, downsampled MultiEffect
+  snapshot (at most 48% of the logical viewport and a 1440 px edge), with
+  coalesced refreshes after palette updates.
 - Settings uses seven on-demand page loaders rather than constructing every
   invisible inspector. Palette switching temporarily bypasses per-surface
   material tweens so a mode change cannot queue hundreds of competing color
