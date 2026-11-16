@@ -21,11 +21,19 @@ Item {
     Accessible.description: actionEnabled ? "" : label
     activeFocusOnTab: true
 
-    Superellipse {
+    // Pointer, keyboard focus and press share one retained superellipse.
+    // A rectangular Qt MenuItem highlight must never sit behind the label.
+    NeonStatePlate {
         anchors.fill: parent
-        fillColor: hit.hovered && root.actionEnabled ? Theme.surfaceHover : "transparent"
-        curveDepth: Theme.curveControl
-        borderWidth: 0
+        anchors.margins: 2
+        selected: false
+        hovered: hit.containsMouse && root.actionEnabled
+        pressed: hit.pressed && root.actionEnabled
+        focused: root.activeFocus && root.actionEnabled
+        cornerRadius: Theme.curveControl
+        neonOnHover: false
+        hoverFill: Theme.surfaceHover
+        pressedFill: Theme.surfacePressed
     }
     Text {
         anchors.left: parent.left
