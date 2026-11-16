@@ -2488,7 +2488,20 @@ void connectRuntime(
             Qt::QueuedConnection);
     };
 
-    const auto signerObserver = [&bridge, &richComposer, runtime, writeObserver](application::signer::SignerState state) {
+    // A locally restored account snapshot is not perpetual write authority.
+    // The HyperSnap registry renewal below can refresh it after an independent
+    // custody check. Until then, leave queued writes intact and do not emit
+    // an unauthorized failure every 30/60 seconds from the recovery timers.
+    const auto resumeAuthorizedWrites = [runtime, writeObserver] {
+        if (!runtime->writeService) return;
+        auto session = runtime->currentSessionSnapshot();
+        if (!session || domain::session::isExpired(
+                *session, foundation::time::now())) return;
+        (void)runtime->writeService->resume(std::move(session), writeObserver);
+    };
+
+    const auto signerObserver = [&bridge, &richComposer, runtime, writeObserver,
+                                 resumeAuthorizedWrites](application::signer::SignerState state) {
         const bool ready = state.phase == application::signer::SignerPhase::Ready;
         const bool authorityTerminated = state.phase == application::signer::SignerPhase::Revoked ||
             state.phase == application::signer::SignerPhase::Expired;
@@ -2515,9 +2528,7 @@ void connectRuntime(
                     runtime->currentSessionSnapshot(), writeObserver);
             }
         } else if (ready) {
-            if (runtime->writeService) {
-                (void)runtime->writeService->resume(runtime->currentSessionSnapshot(), writeObserver);
-            }
+            resumeAuthorizedWrites();
 #if FARCASTER_HAS_MEDIA_UPLOAD
             QMetaObject::invokeMethod(
                 &richComposer,
@@ -2533,15 +2544,15 @@ void connectRuntime(
     auto* const outboxRetryTimer = new QTimer(&bridge);
     outboxRetryTimer->setInterval(30'000);
     QObject::connect(outboxRetryTimer, &QTimer::timeout, &bridge,
-        [&bridge, runtime, writeObserver] {
+        [&bridge, runtime, resumeAuthorizedWrites] {
             if (!bridge.isAuthenticated() || !bridge.writeReady() || bridge.writeBusy() ||
                 !runtime->writeService) return;
-            (void)runtime->writeService->resume(runtime->currentSessionSnapshot(), writeObserver);
+            resumeAuthorizedWrites();
         });
     outboxRetryTimer->start();
 
     QObject::connect(&bridge, &PresentationBridge::networkReachabilityChanged, &bridge,
-        [&bridge, &richComposer, runtime, writeObserver](const bool known, const bool online) {
+        [&bridge, &richComposer, runtime, resumeAuthorizedWrites](const bool known, const bool online) {
             if (!known || !online) {
                 return;
             }
@@ -2551,7 +2562,7 @@ void connectRuntime(
             if (!runtime->writeService || !bridge.writeReady() || bridge.writeBusy()) {
                 return;
             }
-            (void)runtime->writeService->resume(runtime->currentSessionSnapshot(), writeObserver);
+            resumeAuthorizedWrites();
         });
 
     const auto sessionObserver = [&bridge, runtime, authenticationAvailable, signerObserver
@@ -4793,7 +4804,7 @@ void connectRuntime(
     auto* const runtimeRecoveryTimer = new QTimer(&bridge);
     runtimeRecoveryTimer->setInterval(60'000);
     QObject::connect(runtimeRecoveryTimer, &QTimer::timeout, &bridge,
-        [&bridge, &richComposer, runtime, writeObserver] {
+        [&bridge, &richComposer, runtime, resumeAuthorizedWrites] {
             if (bridge.isOffline()) {
                 return;
             }
@@ -4803,7 +4814,7 @@ void connectRuntime(
             if (!runtime->writeService || !bridge.writeReady() || bridge.writeBusy()) {
                 return;
             }
-            (void)runtime->writeService->resume(runtime->currentSessionSnapshot(), writeObserver);
+            resumeAuthorizedWrites();
         });
     runtimeRecoveryTimer->start();
 
