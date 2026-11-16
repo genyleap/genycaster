@@ -30,13 +30,16 @@ test('Settings palette never recreates all eight model delegates when dark mode 
   assert.match(qml,/readonly property string presetLabel:/);
   assert.match(qml,/color: themePreset\.presetSwatch/);
   assert.match(qml,/text: themePreset\.presetLabel/);
-  assert.match(qml,/onTapped: appearanceController\.setColorThemeId\(themePreset\.presetId\)/);
+  assert.match(qml,/onTapped: themePreset\.selectPreset\(\)/);
   assert.doesNotMatch(qml,/\{ id: "ocean", label:.*Theme\.swatchOcean/);
+  assert.match(qml,/id: colorThemeLayout/);
+  assert.match(qml,/id: palettePresets/);
+  assert.doesNotMatch(qml,/selected: themePreset\.selected\s*\n\s*focused:/);
   assert.match(qml,/GenyAdaptiveDialog \{/);
   assert.match(qml,/mobileFullScreen: true/);
   assert.match(qml,/blurSourceItem: null/);
   assert.match(qml,/dimBackground: !mobilePresentation/);
-  assert.doesNotMatch(qml,/efficientBackdropBlur: true/);
+  assert.match(qml,/efficientBackdropBlur: true/);
 });
 
 test('Qt appearance inspector uses opt-in optimized snapshot blur, other drawers retain the Kit Gaussian',()=>{
@@ -49,11 +52,11 @@ test('Qt appearance inspector uses opt-in optimized snapshot blur, other drawers
   assert.match(backdrop,/property bool efficientNativeBlur: false/);
   assert.match(backdrop,/nativeGaussian: root\.nativeBlurActive && !root\.efficientNativeBlur/);
   assert.match(backdrop,/optimizedNativeBlur: root\.nativeBlurActive && root\.efficientNativeBlur/);
-  assert.match(backdrop,/nativeCaptureScale: root\.efficientNativeBlur[\s\S]*?Math\.min\(0\.72/);
+  assert.match(backdrop,/nativeCaptureScale: root\.efficientNativeBlur[\s\S]*?Math\.min\(0\.48/);
   assert.match(backdrop,/hideSource: root\.nativeBlurActive/);
   assert.match(backdrop,/sourceItem: root\.sourceItem/);
   assert.match(backdrop,/live: false/);
-  assert.match(backdrop,/blur: root\.optimizedNativeBlur \? 0\.48 : root\.blurStrength/);
+  assert.match(backdrop,/blur: root\.optimizedNativeBlur \? 0\.66 : root\.blurStrength/);
   assert.match(backdrop,/visible: root\.active && \(root\.useBrowserSnapshot \|\| root\.optimizedNativeBlur\)/);
   assert.match(backdrop,/id: paletteSnapshotRefresh[\s\S]*?root\.refreshSnapshot\(\)/);
   assert.match(backdrop,/function onDarkChanged\(\)/);
