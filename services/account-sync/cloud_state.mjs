@@ -7,7 +7,7 @@ import {validateFeedback} from './feedback.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 import {createGithubCalendarReader} from './github_contributions.mjs';
 import {calculateStreaks,eligibleStreakDay,STREAK_START_DAY} from './streaks.mjs';
-import {createGenyAssetsPolicy,evaluateGenyAssets,verifiedFarcasterWallets} from './geny_assets.mjs';
+import {createGenyAssetsPolicy,evaluateGenyAssets,verifiedAccountWallets} from './geny_assets.mjs';
 import {createProBillingPolicy,createProRateReader,createProTokenVerifier,createProQuote,
   proPaymentAsset,quoteAsset,formatTokenAmount,
   formatGeny,subscriptionEntitlements,verifyProTransfer} from './pro_billing.mjs';
@@ -434,7 +434,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
                                     billingPolicy=createProBillingPolicy(),
                                     readGenyRate=createProRateReader({fetchImpl}),
                                     checkProToken=createProTokenVerifier({fetchImpl}),
-                                    resolveProPaymentWallets=(fid)=>verifiedFarcasterWallets(fid,{policy:proPolicy,fetchImpl}),
+                                    resolveProPaymentWallets=(owner)=>verifiedAccountWallets(owner,{policy:proPolicy,fetchImpl}),
                                     verifyBillingTransfer=verifyProTransfer,
                                     resolvePro=async(fid,owner)=>{
                                       if(!owner || !store.proBillingReady?.())
@@ -743,7 +743,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }
         let payerWallets;
         try {
-          payerWallets=await resolveProPaymentWallets(owner.fid);
+          payerWallets=await resolveProPaymentWallets(owner);
           if(!Array.isArray(payerWallets) || payerWallets.length===0) {
             respond(response,422,{error:'verified_wallet_required'});return true;
           }
