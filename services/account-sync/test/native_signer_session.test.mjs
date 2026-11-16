@@ -127,6 +127,7 @@ test('Native HyperSnap account cookie restores verified Streak and rejects cross
     assert.equal((await session.json()).fid,nativeFid);
     const first=await fetch(base+'streak',{headers:{cookie}});
     assert.equal(first.status,200,'HyperSnap must read its streak');
+    await first.arrayBuffer();
 
     const cast_hash='0x'+'ab'.repeat(20);
     const rejected=await fetch(base+'streak/cast',{
@@ -134,6 +135,7 @@ test('Native HyperSnap account cookie restores verified Streak and rejects cross
       body:JSON.stringify({cast_hash}),
     });
     assert.equal(rejected.status,401,'cookie without CSRF must not write');
+    await rejected.arrayBuffer();
     const recorded=await fetch(base+'streak/cast',{
       method:'PUT',headers:{cookie,
         'x-genycaster-csrf':challengeResult.csrf_token,
@@ -148,6 +150,9 @@ test('Native HyperSnap account cookie restores verified Streak and rejects cross
     assert.equal(restored.status,200);
     assert.equal((await restored.json()).streak.activity.total_days,1);
   }finally {
+    // Undici retains pooled sockets across test files. Drain/cancel all
+    // responses and close open keep-alive connections before server shutdown.
+    server.closeAllConnections();
     await new Promise(resolve=>server.close(resolve));
   }
 });
