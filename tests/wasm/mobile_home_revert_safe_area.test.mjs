@@ -21,7 +21,7 @@ test('Settings occupies the full phone viewport, without a partial-height sheet'
     const settings=qml('LocaleSettingsPopup');
     assert.match(settings,/GenyAdaptiveDialog \{/);
     assert.match(settings,/mobileFullScreen: true/);
-    assert.match(settings,/height: parent \? \(mobilePresentation \? parent\.height/);
+    assert.match(settings,/height: parent \? parent\.height : 780/);
     assert.match(settings,/showHandle: false/);
     const adaptive=qml('GenyAdaptiveDialog');
     assert.match(adaptive,/bottomSheet: true/);
