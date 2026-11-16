@@ -146,6 +146,36 @@ test('USDC receipts require native Circle token, exact amount, verified sender a
     topic,topicAddress(wallet),topicAddress(treasury)],data:'0x'+(2990001n).toString(16).padStart(64,'0')}]},'USDC');
   await assert.rejects(verifyProTransfer(broken),/payment_not_matched/);
 });
+test('HyperSnap Pro receipt verifies payer via HyperSnap, never Snapchain',async()=>{
+  const fixture=receiptNetwork();
+  const requests=[];
+  const fetchImpl=async(url,options)=>{
+    const address=String(url);
+    if(address.includes('/v1/verificationsByFid')){
+      requests.push(address);
+      return Response.json({messages:[{data:{
+        fid:4294967296,type:'MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS',
+        network:'FARCASTER_NETWORK_MAINNET',
+        verificationAddAddressBody:{
+          address:wallet,protocol:'PROTOCOL_ETHEREUM'
+        }
+      }}]});
+    }
+    return fixture.fetchImpl(url,options);
+  };
+  const owner={fid:'4294967296',issuer:'hypersnap:native-registry',
+    subject:'hypersnap:4294967296'};
+  const paid=await verifyProTransfer({...fixture,owner,fetchImpl,
+    verifyWallets:undefined});
+  assert.equal(paid.payer,wallet);
+  assert.equal(requests.length,1);
+  assert.equal(new URL(requests[0]).origin,new URL(policy.hypersnapUrl).origin);
+  await assert.rejects(verifyProTransfer({...fixture,fetchImpl,
+    owner:{...owner,subject:'farcaster:4294967296'},
+    verifyWallets:undefined}),/verified_account_required/);
+  assert.equal(requests.length,1,'spoofed owner must not access any wallet origin');
+});
+
 test('renewal entitlements expire automatically without token holding',()=>{
   const start=Date.UTC(2026,10,9);
   const end=new Date(start+30*86400_000).toISOString();
