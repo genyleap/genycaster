@@ -666,6 +666,15 @@ private:
         const QString errorString = reply ? reply->errorString() : QStringLiteral("Unknown network failure");
         // Qt's generic HTTP/2 warning omits the host. Emit only the hostname
         // and status here: never log query strings, paths, cookies or tokens.
+        if (reply && (networkError == QNetworkReply::ProtocolFailure
+                      || networkError == QNetworkReply::InternalServerError)) {
+            // A Qt HTTP/2 RST_STREAM diagnostic contains only a stream number.
+            // Log the host and status to distinguish remote service failures
+            // from image/CDN responses without exposing URL path, query or
+            // authorization headers.
+            qWarning().noquote() << "[Genycaster] Network protocol failure at host:"
+                                  << reply->url().host() << "(HTTP status" << statusCode << ")";
+        }
         if (reply && ((statusValid && statusCode == 401)
                       || networkError == QNetworkReply::AuthenticationRequiredError)) {
             qWarning().noquote() << "[Genycaster] Authentication required by host:"
