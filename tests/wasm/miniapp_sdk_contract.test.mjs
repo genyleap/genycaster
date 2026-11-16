@@ -25,7 +25,7 @@ function hostBrowser(sdkInitially=true) {
     getElementById:id=>documentNodes.get(id)||null,
     head:{append(node){node.isConnected=true;if(node.id)documentNodes.set(node.id,node);}},
     body:{append(node){node.isConnected=true;}}};
-  const window={location:{origin:'https://caster.genyleap.com'},innerWidth:1200};
+  const window={location:{origin:'https://genycaster.xyz'},innerWidth:1200};
   const sdk={attach(frame,url,user,actions){
     const instance={frame,url,user,actions};attached.push(instance);
     const detach=()=>detached.push(instance);
@@ -97,7 +97,7 @@ test('SDK user context preserves a safe public avatar and updates it only for th
   class HTMLIFrameElement {
     constructor(src) { this.src = src; }
   }
-  const window = {location:{origin:'https://caster.genyleap.com'}};
+  const window = {location:{origin:'https://genycaster.xyz'}};
   // Substitute only the SDK adapter functions; execute the production
   // identity normalization and same-account refresh flow.
   const moduleSource = bridge.replace(/^import .*;\s*$/gm, '');
