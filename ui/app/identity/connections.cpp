@@ -373,7 +373,9 @@ void OpenProofConnectionsController::beginSignedAccountSession()
         challenge->deleteLater();
         if (viewer != m_viewerFid || generation != m_grantGeneration) return;
         if (status != 200) {
-            m_accountProofError = QStringLiteral("account_session_unavailable");
+            m_accountProofError = status == 0 || status >= 500
+                ? QStringLiteral("account_service_unavailable")
+                : QStringLiteral("account_session_unavailable");
             emit stateChanged();
             return;
         }
@@ -431,7 +433,12 @@ void OpenProofConnectionsController::beginSignedAccountSession()
             signedReply->deleteLater();
             if (viewer != m_viewerFid || generation != m_grantGeneration) return;
             if (code != 200) {
-                m_accountProofError = QStringLiteral("account_proof_not_accepted");
+                // A gateway/hosting outage is NOT evidence that the Signer
+                // is invalid. Never send native users to custody approval
+                // merely because Nginx returned a temporary HTTP 503.
+                m_accountProofError = code == 0 || code >= 500
+                    ? QStringLiteral("account_service_unavailable")
+                    : QStringLiteral("account_proof_not_accepted");
                 emit stateChanged();
                 return;
             }
@@ -527,9 +534,11 @@ void OpenProofConnectionsController::restoreAccountSession()
             if (status == 401 && m_accountProofSigner && !m_accountProofAttempted)
                 beginSignedAccountSession();
             else {
-                m_accountProofError = status == 401 && !m_accountProofSigner
-                    ? QStringLiteral("account_signer_unavailable")
-                    : QStringLiteral("account_session_unavailable");
+                m_accountProofError = status == 0 || status >= 500
+                    ? QStringLiteral("account_service_unavailable")
+                    : status == 401 && !m_accountProofSigner
+                      ? QStringLiteral("account_signer_unavailable")
+                      : QStringLiteral("account_session_unavailable");
                 emit stateChanged();
             }
             return;
@@ -612,9 +621,11 @@ void OpenProofConnectionsController::bootstrapAccountSession()
             if (status == 401 && m_accountProofSigner && !m_accountProofAttempted)
                 beginSignedAccountSession();
             else {
-                m_accountProofError = status == 401 && !m_accountProofSigner
-                    ? QStringLiteral("account_signer_unavailable")
-                    : QStringLiteral("account_session_unavailable");
+                m_accountProofError = status == 0 || status >= 500
+                    ? QStringLiteral("account_service_unavailable")
+                    : status == 401 && !m_accountProofSigner
+                      ? QStringLiteral("account_signer_unavailable")
+                      : QStringLiteral("account_session_unavailable");
                 emit stateChanged();
             }
             return;
