@@ -196,7 +196,7 @@ async function readResponseBody(upstreamResponse, maxBytes) {
 // Reject opaque/file origins, arbitrary external origins and credentials.
 function permittedBrowserOrigin(origin) {
   if (!origin || typeof origin !== 'string') return false;
-  if (origin === 'https://genycaster.genyleap.com') return true;
+  if (origin === 'https://genycaster.xyz') return true;
   try {
     const parsed = new URL(origin);
     const host = parsed.hostname.toLowerCase();
