@@ -52,7 +52,7 @@ test('account-session browser client proves FID, then validates stored HttpOnly 
     },
   };
   const result=await ensureBrowserAccountSession({fid,fetchImpl,vault,
-    origin:'https://caster.genyleap.com'});
+    origin:'https://genycaster.xyz'});
   assert.equal(result.csrf_token,csrf);
   assert.deepEqual(calls.map(x=>x.path),[
     '/api/v1/cloud/session','/api/v1/cloud/session/challenge',
@@ -63,7 +63,7 @@ test('account-session browser client proves FID, then validates stored HttpOnly 
   }
   calls.length=0;
   await ensureBrowserAccountSession({fid,fetchImpl,vault,
-    origin:'https://caster.genyleap.com'});
+    origin:'https://genycaster.xyz'});
   assert.deepEqual(calls.map(x=>x.path),['/api/v1/cloud/session']);
 });
 
@@ -76,7 +76,7 @@ test('missing signer, wrong origin and mismatched cookie cannot grant account da
     fid:'999',csrf_token:'x'.repeat(43)
   }),{status:200});
   await assert.rejects(ensureBrowserAccountSession({
-    fid:'321969',origin:'https://caster.genyleap.com',
+    fid:'321969',origin:'https://genycaster.xyz',
     vault:{},fetchImpl
   }),/differs/);
 });
