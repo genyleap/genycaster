@@ -246,10 +246,16 @@ Item {
                     Accessible.checked: selected
                     Accessible.name: control.optionLabel(canonicalValue)
                     onClicked: control.toggleOption(canonicalValue)
-                    background: Superellipse {
-                        fillColor: optionButton.down || optionButton.hovered
-                                   ? Theme.surfaceHover : "transparent"
-                        curveDepth: Theme.curveCompact
+                    background: NeonStatePlate {
+                        selected: optionButton.selected
+                        hovered: optionButton.hovered
+                        pressed: optionButton.down
+                        focused: optionButton.activeFocus
+                        selectedFill: Theme.primarySurface
+                        hoverFill: Theme.surfaceHover
+                        pressedFill: Theme.surfacePressed
+                        neonOnHover: false
+                        cornerRadius: Theme.curveCompact
                     }
                     contentItem: RowLayout {
                         spacing: Theme.space2
