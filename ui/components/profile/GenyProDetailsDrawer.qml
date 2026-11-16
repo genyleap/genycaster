@@ -1048,9 +1048,11 @@ GenyDrawer {
                     visible: root.appSignedIn && !root.cloudReady && !root.eligible
                     text: root.restoringSession
                         ? qsTrId("genycaster.pro.secure_session_hint")
-                        : root.proofError.length > 0
-                          ? qsTrId("genycaster.pro.secure_session_unavailable")
-                          : qsTrId("genycaster.pro.secure_session_hint")
+                        : root.proofError === "account_service_unavailable"
+                          ? qsTrId("genycaster.pro.verification_unavailable")
+                          : root.proofError.length > 0
+                            ? qsTrId("genycaster.pro.secure_session_unavailable")
+                            : qsTrId("genycaster.pro.secure_session_hint")
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.textSecondary
                     wrapMode: Text.Wrap
