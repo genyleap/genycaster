@@ -24,6 +24,19 @@ DEFAULT = {
 
 
 class DeploymentConfigurationTests(unittest.TestCase):
+    def test_shipping_application_and_sign_in_authority_are_dedicated_domain(self):
+        root = SCRIPT.parent.parent
+        cmake = (root / "CMakeLists.txt").read_text()
+        browser = (root / "ui/wasm/deployment_config.mjs").read_text()
+        server = (root / "services/deployment_config.mjs").read_text()
+        self.assertIn('set(GENYCASTER_PUBLIC_ORIGIN "https://genycaster.xyz"', cmake)
+        self.assertIn('set(GENYCASTER_SIWF_ORIGIN "https://genycaster.xyz"', cmake)
+        self.assertIn('if(GENYCASTER_PUBLIC_ORIGIN STREQUAL "https://caster.genyleap.com")', cmake)
+        self.assertIn('if(FARCASTER_DEFAULT_SIWF_DOMAIN STREQUAL "genycaster.genyleap.com")', cmake)
+        self.assertIn("publicOrigin: 'https://genycaster.xyz'", browser)
+        self.assertIn("siwfOrigin: 'https://genycaster.xyz'", browser)
+        self.assertIn("env.GENYCASTER_PUBLIC_ORIGIN || 'https://genycaster.xyz'", server)
+
     def test_generate_public_files_and_type_safe_cpp(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
