@@ -4,15 +4,16 @@ import {readFileSync} from 'node:fs';
 
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
-test('Settings is a centered content-fitted modal on desktop and a bottom sheet on mobile', () => {
+test('Settings fills the desktop viewport and the mobile inspector remains full-height', () => {
     const settings = read('ui/components/settings/SettingsPopup.qml');
     const shell = read('ui/components/shell/AppShell.qml');
     const adaptive = read('ui/components/controls/GenyAdaptiveDialog.qml');
     assert.match(settings, /GenyAdaptiveDialog \{/);
     assert.match(settings, /mobileFullScreen: true/);
+    assert.match(settings, /desktopFullScreen: true/);
     assert.match(settings, /showHandle: false/);
     assert.match(settings, /blurSourceItem: null/);
-    assert.match(settings, /efficientBackdropBlur: true/);
+    assert.doesNotMatch(settings, /efficientBackdropBlur: true/);
     // Inactive settings sections must not allocate or update theme-bound QSG items.
     for (const id of ['appearancePage','localePage','marketPage','readSettingsPage',
                       'updatesPage','recoveryPage','nodePage'])
@@ -20,12 +21,12 @@ test('Settings is a centered content-fitted modal on desktop and a bottom sheet 
     assert.match(settings, /active: \(!root\.mobilePresentation \|\| !root\.mobileIndexOpen\) && root\.currentSection === 0/);
     assert.match(settings, /page && page\.contentItem/);
     assert.match(settings, /readonly property int contentColumns:[\s\S]*?width - navigationColumnWidth - Theme\.space6/);
-    assert.match(settings, /dimBackground: !mobilePresentation/);
+    assert.match(settings, /dimBackground: false/);
     assert.match(settings, /popupZ: 0/);
-    assert.match(settings, /width: parent \? \(mobilePresentation \? parent\.width/);
-    assert.match(settings, /Math\.min\(Theme\.scaleUi\(1380\), Math\.max\(0, parent\.width - Theme\.space4 \* 2\)\)/);
-    assert.match(settings, /height: parent \? \(mobilePresentation \? parent\.height/);
-    assert.match(settings, /Math\.min\(Theme\.scaleUi\(860\), Math\.max\(0, parent\.height - Theme\.space4 \* 2\)\)/);
+    assert.match(settings, /width: parent \? parent\.width : 1180/);
+    assert.match(settings, /height: parent \? parent\.height : 780/);
+    assert.doesNotMatch(settings, /Math\.min\(Theme\.scaleUi\(1380\)/);
+    assert.doesNotMatch(settings, /Math\.min\(Theme\.scaleUi\(860\)/);
     assert.doesNotMatch(settings, /desktopContentInset|leftPadding: desktopContentInset|rightPadding: desktopContentInset/);
     assert.match(settings, /contentPadding: mobilePresentation \? Theme\.mobileGutter : Theme\.space4/);
     assert.match(settings, /onCloseRequested: root\.close\(\)/);
@@ -34,6 +35,16 @@ test('Settings is a centered content-fitted modal on desktop and a bottom sheet 
     assert.match(settings, /onDidOpen: \{/);
     assert.match(settings, /onDidClose: root\.mobileIndexOpen = true/);
     assert.match(adaptive, /GenyModal \{[\s\S]*?id: desktopDialog/);
+    assert.match(adaptive, /fullScreen: control\.desktopFullScreen/);
+    assert.match(adaptive, /width: control\.desktopFullScreen \? \(parent \? parent\.width : control\.width\)/);
+    assert.match(adaptive, /height: control\.desktopFullScreen \? \(parent \? parent\.height : control\.height\)/);
+    assert.match(adaptive, /sourceItem: control\.desktopFullScreen \? null : control\.blurSourceItem/);
+    assert.match(adaptive, /addScrim: !control\.desktopFullScreen && control\.dimBackground/);
+    const modal = read('ui/components/controls/GenyModal.qml');
+    assert.match(modal, /property bool fullScreen: false/);
+    assert.match(modal, /curveDepth: control\.fullScreen \? 0 : Theme\.curveModal/);
+    assert.match(modal, /neonAmbient: !control\.fullScreen/);
+    assert.match(modal, /duration: control\.fullScreen \? 0 : Theme\.motionStandard/);
     assert.match(adaptive, /GenyDrawer \{[\s\S]*?id: mobileDrawer/);
     assert.match(adaptive, /bottomSheet: true/);
     assert.match(adaptive, /fullScreen: control\.mobileFullScreen/);
@@ -45,7 +56,7 @@ test('Settings is a centered content-fitted modal on desktop and a bottom sheet 
     assert.match(adaptive, /control\.attachContent\(desktopContentHost\)/);
     assert.match(adaptive, /control\.attachContent\(mobileContentHost\)/);
     const loadedSettings = shell.split('LocaleSettingsPopup {')[1].split('onCustomAccentStudioRequested')[0];
-    assert.match(loadedSettings, /blurSourceItem: mobilePresentation \? null : shellContent/);
+    assert.match(loadedSettings, /blurSourceItem: null/);
     assert.doesNotMatch(loadedSettings, /blurSourceItem:\s*shellContent/);
     const frost = read('ui/components/visual/DrawerBackdrop.qml');
     assert.match(frost, /interval: Math\.max\(360, Theme\.materialSurfaceDuration \+ 220\)/);
