@@ -65,11 +65,20 @@ test('HyperSnap Streak and Pro surfaces expose safe recovery without forging ent
   assert.match(profile,/objectName: "streakRestoreVerifiedSession"/);
   assert.match(profile,/!openProofConnections\.cloudSessionBusy/);
   assert.match(profile,/!openProofConnections\.accountProofBusy/);
-  assert.match(profile,/onClicked: openProofConnections\.retryAccountSession\(\)/);
+  assert.match(profile,/readonly property bool signerAuthorizationNeeded:/);
+  assert.match(profile,/root\.signerAuthorizationRequested\(\)/);
+  assert.match(profile,/openProofConnections\.retryAccountSession\(\)/);
+  const owner=read('ui/components/profile/ProfileSurface.qml');
+  const shell=read('ui/components/shell/AppShell.qml');
+  assert.match(owner,/onSignerAuthorizationRequested:\s*\{[\s\S]*?root\.signerAuthorizationRequested\(\)/);
+  assert.match(owner,/objectName: "profileAuthorizeNativeSigner"[\s\S]*?onClicked: root\.signerAuthorizationRequested\(\)/);
+  assert.doesNotMatch(owner,/onClicked: presentationBridge\.provisionSigner\(\)/);
+  assert.match(shell,/onSignerAuthorizationRequested: root\.requestInteractionAuthorization\(\)/);
   const pro=read('ui/components/profile/GenyProDetailsDrawer.qml');
   assert.match(pro,/visible: root\.appSignedIn && !root\.cloudReady && !root\.eligible/);
   assert.doesNotMatch(pro,/!root\.eligible\s*&& root\.restoringSession/);
   assert.match(pro,/root\.proofError\.length > 0/);
+  assert.match(pro,/presentationBridge\.signerPhase === "authorization-required"/);
 });
 
 test('native connections identify separate OpenProof wallet links, never fake FID verification',()=>{
