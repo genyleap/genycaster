@@ -267,6 +267,21 @@ Item {
             horizontalAlignment: Theme.textStartAlignment
         }
 
+        // A session failure must have an explicit recovery action. The
+        // server independently validates the same FID's registered signer;
+        // this button never fabricates activity or an authenticated account.
+        ActionButton {
+            objectName: "streakRestoreVerifiedSession"
+            visible: root.activePage !== "leaderboard" && !root.available
+                && openProofConnections && !openProofConnections.cloudAuthorizationReady
+            enabled: openProofConnections && !openProofConnections.cloudSessionBusy
+                && !openProofConnections.accountProofBusy
+            text: qsTrId("genycaster.pro.restore_secure_session")
+            compact: true
+            quiet: true
+            onClicked: openProofConnections.retryAccountSession()
+        }
+
         ColumnLayout {
             Layout.fillWidth: true
             visible: root.activePage !== "leaderboard" && root.available
