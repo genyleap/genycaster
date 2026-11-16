@@ -22,6 +22,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("CI source layout", ("python3", "ci/verify_ci.py")),
     ("Nginx prelaunch hold preserves the authenticated cloud API",
      ("python3", "-m", "unittest", "-q", "ci.test_prelaunch_cloud_nginx")),
+    ("genycaster.xyz canonical account API proxy leaves landing intact",
+     ("python3", "-m", "unittest", "-q", "ci.test_genycaster_xyz_cloud_api")),
     ("Core provider-boundary lexical guards",
      ("python3", "-m", "unittest", "-q", "ci.test_source_comments")),
     ("Core architecture and module documentation", ("python3", "ci/check_architecture.py")),
