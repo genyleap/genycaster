@@ -42,6 +42,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("node", "--test", "tests/wasm/profile_fid_namespace_label_contract.test.mjs")),
     ("Native custody worker lifetime contracts",
      ("node", "--test", "tests/wasm/native_custody_worker_lifetime.test.mjs")),
+    ("Protocol-scoped HyperSnap account Streak and CSRF acceptance",
+     ("node", "--test", "services/account-sync/test/native_signer_session.test.mjs")),
     ("Browser startup and Mini App identity contracts",
      ("node", "--test", "tests/wasm/wasm_startup_modes.test.mjs",
       "tests/wasm/miniapp_sdk_contract.test.mjs")),
