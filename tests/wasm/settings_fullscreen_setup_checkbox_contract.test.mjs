@@ -51,6 +51,19 @@ test('Settings is a centered content-fitted modal on desktop and a bottom sheet 
     assert.match(frost, /interval: Math\.max\(360, Theme\.materialSurfaceDuration \+ 220\)/);
     assert.match(frost, /Math\.min\(0\.48, 1440 \/ Math\.max\(1, root\.width, root\.height\)\)/);
     assert.match(frost, /sourceItem: root\.nativeGaussian \? horizontalPass : null/);
+    assert.match(frost, /captureUpdateQueued: false/);
+    assert.match(frost, /Qt\.callLater\(root\.performSnapshotUpdate\)/);
+    const theme = read('ui/theme/Theme.qml');
+    const surfaces = read('ui/components/visual/NeonSurface.qml');
+    const plates = read('ui/components/visual/NeonStatePlate.qml');
+    assert.match(theme, /function beginPaletteSwitch\(\)/);
+    assert.match(theme, /paletteSwitchInProgress: false/);
+    assert.equal((surfaces.match(/!Theme\.paletteSwitchInProgress/g) || []).length, 2);
+    assert.equal((plates.match(/!Theme\.paletteSwitchInProgress/g) || []).length, 2);
+    assert.match(settings, /activeFocusOnTab: true/);
+    assert.match(settings, /Accessible\.onPressAction: themePreset\.selectPreset\(\)/);
+    assert.match(settings, /focused: themePreset\.activeFocus/);
+    assert.match(settings, /colorThemeId === "custom"[\s\S]*?\? Theme\.surfaceSelected : Theme\.surfaceRaised/);
 });
 
 test('All recovery checkboxes share a stable Light/Dark background and explicit checked appearance', () => {
