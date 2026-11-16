@@ -67,8 +67,8 @@ int main(int argc, char** argv)
     EnvironmentScope environment{};
     using genycaster::ui::bootstrap::loadAuthenticationOptions;
     constexpr std::uint64_t defaultFid = 866408U;
-    const QString domain = QStringLiteral("genycaster.genyleap.com");
-    const QString uri = QStringLiteral("https://genycaster.genyleap.com/login");
+    const QString domain = QStringLiteral("genycaster.xyz");
+    const QString uri = QStringLiteral("https://genycaster.xyz/login");
     bool passed = true;
     {
         const auto configuration = loadAuthenticationOptions(
@@ -77,9 +77,9 @@ int main(int argc, char** argv)
         if (!configuration) return 1;
         passed &= require(configuration->appFid == defaultFid,
                           "compiled app FID is preserved");
-        passed &= require(configuration->siwfDomain == "genycaster.genyleap.com"
+        passed &= require(configuration->siwfDomain == "genycaster.xyz"
                               && configuration->siwfUri ==
-                                  "https://genycaster.genyleap.com/login",
+                                  "https://genycaster.xyz/login",
                           "deployment SIWF identity preserved");
         passed &= require(configuration->authenticationAvailable,
                           "compatibility login uses valid SIWF identity");
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
             {QStringLiteral("--siwf-domain=evil.example")},
             defaultFid, domain, uri, false, true);
         passed &= require(configuration && configuration->siwfDomain ==
-                              "genycaster.genyleap.com",
+                              "genycaster.xyz",
                           "partial SIWF identity override is not applied");
     }
     {
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
              QStringLiteral("--siwf-uri=https://other.example/login")},
             defaultFid, domain, uri, false, true);
         passed &= require(configuration && configuration->siwfDomain ==
-                              "genycaster.genyleap.com",
+                              "genycaster.xyz",
                           "SIWF domain/URI mismatch cannot replace compiled identity");
     }
     {
