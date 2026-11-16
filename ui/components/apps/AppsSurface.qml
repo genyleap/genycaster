@@ -427,12 +427,19 @@ Item {
         }
 
         GridLayout {
+            id: miniAppDestinationGrid
             Layout.fillWidth: true
             Layout.preferredHeight: root.compact ? 52 : 48
             columns: 3
             rowSpacing: Theme.space2
             columnSpacing: Theme.space2
             layoutDirection: Theme.uiDirection
+
+            HoverHandler {
+                id: miniAppDestinationPointer
+                enabled: Theme.neonEnabled && !root.compact
+                blocking: false
+            }
 
             Repeater {
                 model: [
@@ -443,6 +450,9 @@ Item {
 
                 delegate: NeonSurface {
                     id: destinationCard
+                    proximityPointerActive: miniAppDestinationPointer.hovered
+                    proximityPointerX: miniAppDestinationPointer.point.position.x - destinationCard.x
+                    proximityPointerY: miniAppDestinationPointer.point.position.y - destinationCard.y
                     interactive: true
                     deferredNeon: true
                     ambientNeon: destinationCard.selected

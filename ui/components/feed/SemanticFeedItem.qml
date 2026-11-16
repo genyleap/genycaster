@@ -10,6 +10,9 @@ Item {
     property bool compact: false
     property bool magazineCard: false
     property var sharedMediaGeometry: null
+    property bool sharedNeonPointerActive: false
+    property real sharedNeonPointerX: 0
+    property real sharedNeonPointerY: 0
     property bool interactionsAvailable: false
     property bool enrichmentActive: true
     property double accountFid: 0
@@ -54,6 +57,9 @@ Item {
         CastItem {
             magazineCard: true
             sharedMediaGeometry: root.sharedMediaGeometry
+            sharedNeonPointerActive: root.sharedNeonPointerActive
+            sharedNeonPointerX: root.sharedNeonPointerX
+            sharedNeonPointerY: root.sharedNeonPointerY
             modelData: root.modelData
             compact: true
             interactionsAvailable: root.interactionsAvailable

@@ -531,25 +531,44 @@ ColumnLayout {
         }
 
         GridLayout {
+            id: statsKpiGrid
             layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             columns: root.compact || root.width < 660 ? 2 : 4
             columnSpacing: Theme.space2
             rowSpacing: Theme.space2
 
+            HoverHandler {
+                id: statsKpiPointer
+                enabled: Theme.neonEnabled && !root.compact
+                blocking: false
+            }
+
             StatsKpi {
+                id: castsKpi
+                proximityPointerActive: statsKpiPointer.hovered
+                proximityPointerX: statsKpiPointer.point.position.x - castsKpi.x
+                proximityPointerY: statsKpiPointer.point.position.y - castsKpi.y
                 title: qsTrId("genycaster.stats.casts")
                 iconName: Theme.iconCompose
                 amount: Number(root.metrics.casts || 0)
                 footnote: qsTrId("genycaster.stats.published_posts")
             }
             StatsKpi {
+                id: repliesKpi
+                proximityPointerActive: statsKpiPointer.hovered
+                proximityPointerX: statsKpiPointer.point.position.x - repliesKpi.x
+                proximityPointerY: statsKpiPointer.point.position.y - repliesKpi.y
                 title: qsTrId("genycaster.stats.replies")
                 iconName: Theme.iconReply
                 amount: Number(root.metrics.replies || 0)
                 footnote: qsTrId("genycaster.stats.written_replies")
             }
             StatsKpi {
+                id: engagementKpi
+                proximityPointerActive: statsKpiPointer.hovered
+                proximityPointerX: statsKpiPointer.point.position.x - engagementKpi.x
+                proximityPointerY: statsKpiPointer.point.position.y - engagementKpi.y
                 title: qsTrId("genycaster.stats.engagement")
                 iconName: Theme.iconHeart
                 amount: Number(root.metrics.engagement || 0)
@@ -557,6 +576,10 @@ ColumnLayout {
                 footnote: qsTrId("genycaster.stats.received_on_posts")
             }
             StatsKpi {
+                id: followersKpi
+                proximityPointerActive: statsKpiPointer.hovered
+                proximityPointerX: statsKpiPointer.point.position.x - followersKpi.x
+                proximityPointerY: statsKpiPointer.point.position.y - followersKpi.y
                 title: qsTrId("genycaster.stats.followers")
                 iconName: Theme.iconProfile
                 amount: Number(root.metrics.followers || 0)

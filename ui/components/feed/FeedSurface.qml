@@ -1504,6 +1504,9 @@ Item {
             FeedRow {
                 magazineRow: true
                 sharedMediaGeometry: magazineView
+                sharedNeonPointerActive: parent.sharedNeonPointerActive
+                sharedNeonPointerX: parent.sharedNeonPointerX
+                sharedNeonPointerY: parent.sharedNeonPointerY
                 viewportY: parent.slotY
                 width: parent.width
                 index: parent.rowIndex
@@ -1754,6 +1757,11 @@ Item {
         required property string revisionKey
         required property int index
         property bool magazineRow: false
+        // Supplied by FeedMasonryView's one passive pointer observer.
+        // Timeline rows leave this false and retain their local hover.
+        property bool sharedNeonPointerActive: false
+        property real sharedNeonPointerX: 0
+        property real sharedNeonPointerY: 0
         // Reuse the bounded per-feed aspect cache when ListView recycles a
         // mobile portrait. The Magazine viewport need not be visible.
         property var sharedMediaGeometry: magazineView
@@ -1876,6 +1884,9 @@ Item {
                 compact: root.compact || rowDelegate.magazineRow
                 magazineCard: rowDelegate.magazineRow
                 sharedMediaGeometry: rowDelegate.sharedMediaGeometry
+                sharedNeonPointerActive: rowDelegate.sharedNeonPointerActive
+                sharedNeonPointerX: rowDelegate.sharedNeonPointerX
+                sharedNeonPointerY: rowDelegate.sharedNeonPointerY
                 interactionsAvailable: root.interactionsAvailable
                 // Keep only a small near-viewport margin subscribed.
                 enrichmentActive: root.presentationActive && rowDelegate.visible

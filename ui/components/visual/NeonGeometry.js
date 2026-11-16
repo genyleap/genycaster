@@ -3,7 +3,9 @@
 // Arc-length exact projection and perimeter traversal from the user-supplied
 // Genyleap Neon UI Kit v0.4.5. Geometry is shared between Halo instances.
 // No QML object captures or delayed callbacks live in this library.
-function nearestBorderPoint(px, py, width, height, radius, power) {
+function nearestBorderPoint(px, py, width, height, radius, power,
+                            topLeft = true, topRight = true,
+                            bottomRight = true, bottomLeft = true) {
     const w = Math.max(0, width)
     const h = Math.max(0, height)
     if (w <= 0 || h <= 0 || !Number.isFinite(px) || !Number.isFinite(py))
@@ -26,17 +28,21 @@ function nearestBorderPoint(px, py, width, height, radius, power) {
         }
         return distanceSq
     }
-    consider(clamp(px, r, w - r), 0)
-    consider(w, clamp(py, r, h - r))
-    consider(clamp(px, r, w - r), h)
-    consider(0, clamp(py, r, h - r))
+    const radii = [topLeft ? r : 0, topRight ? r : 0,
+                   bottomRight ? r : 0, bottomLeft ? r : 0]
+    consider(clamp(px, radii[0], w - radii[1]), 0)
+    consider(w, clamp(py, radii[1], h - radii[2]))
+    consider(clamp(px, radii[3], w - radii[2]), h)
+    consider(0, clamp(py, radii[0], h - radii[3]))
     if (r > 0) {
         const corners = [
-            [r, r, -1, -1], [w - r, r, 1, -1],
-            [w - r, h - r, 1, 1], [r, h - r, -1, 1]
+            [r, r, -1, -1, topLeft], [w - r, r, 1, -1, topRight],
+            [w - r, h - r, 1, 1, bottomRight],
+            [r, h - r, -1, 1, bottomLeft]
         ]
         const fraction = (Math.sqrt(5) - 1) * 0.5
         for (const corner of corners) {
+            if (!corner[4]) continue
             const cx = corner[0]
             const cy = corner[1]
             const sx = corner[2]

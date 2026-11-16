@@ -122,11 +122,22 @@ ColumnLayout {
         columns: root.width >= 680 ? 3 : root.width >= 420 ? 2 : 1
         columnSpacing: Theme.space2
         rowSpacing: Theme.space2
+        HoverHandler {
+            id: tokenGridPointer
+            enabled: Theme.neonEnabled
+            blocking: false
+        }
 
         Repeater {
             model: root.assets
-            delegate: Superellipse {
+            delegate: NeonSurface {
                 id: assetCard
+                interactive: true
+                ambientNeon: true
+                neonStrength: Theme.neonCardStrength
+                proximityPointerActive: tokenGridPointer.hovered
+                proximityPointerX: tokenGridPointer.point.position.x - assetCard.x
+                proximityPointerY: tokenGridPointer.point.position.y - assetCard.y
                 required property var modelData
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
@@ -203,20 +214,34 @@ ColumnLayout {
     }
 
     GridLayout {
+        id: marketKpiGrid
         visible: !root.initialLoading
         Layout.fillWidth: true
         layoutDirection: Theme.uiDirection
         columns: root.width >= 450 ? 2 : 1
         columnSpacing: Theme.space2
         rowSpacing: Theme.space2
+        HoverHandler {
+            id: marketKpiPointer
+            enabled: Theme.neonEnabled
+            blocking: false
+        }
 
         MarketKpi {
+            id: marketCapKpi
+            proximityPointerActive: marketKpiPointer.hovered
+            proximityPointerX: marketKpiPointer.point.position.x - marketCapKpi.x
+            proximityPointerY: marketKpiPointer.point.position.y - marketCapKpi.y
             caption: qsTrId("genycaster.market.marketcap")
             value: root.hasGlobal ? root.compact(root.globalData.market_cap_usd) : "—"
             description: qsTrId("genycaster.market.total_market")
             iconName: Theme.iconChart
         }
         MarketKpi {
+            id: marketVolumeKpi
+            proximityPointerActive: marketKpiPointer.hovered
+            proximityPointerX: marketKpiPointer.point.position.x - marketVolumeKpi.x
+            proximityPointerY: marketKpiPointer.point.position.y - marketVolumeKpi.y
             caption: qsTrId("genycaster.market.volume")
             value: root.hasGlobal ? root.compact(root.globalData.volume_24h_usd) : "—"
             description: qsTrId("genycaster.market.last_24h")
@@ -234,11 +259,19 @@ ColumnLayout {
         columns: root.wideLayout ? 2 : 1
         columnSpacing: Theme.space3
         rowSpacing: Theme.space3
+        HoverHandler {
+            id: marketInsightPointer
+            enabled: Theme.neonEnabled
+            blocking: false
+        }
 
         NeonSurface {
             interactive: true
             ambientNeon: true
             neonStrength: Theme.neonCardStrength
+            proximityPointerActive: marketInsightPointer.hovered
+            proximityPointerX: marketInsightPointer.point.position.x - fearCard.x
+            proximityPointerY: marketInsightPointer.point.position.y - fearCard.y
             Layout.row: 0
             Layout.column: 0
             Layout.minimumWidth: 0
@@ -288,6 +321,10 @@ ColumnLayout {
         }
 
         MarketTrend {
+            id: marketBenchmarkCard
+            proximityPointerActive: marketInsightPointer.hovered
+            proximityPointerX: marketInsightPointer.point.position.x - marketBenchmarkCard.x
+            proximityPointerY: marketInsightPointer.point.position.y - marketBenchmarkCard.y
             Layout.row: root.wideLayout ? 0 : 2
             Layout.column: root.wideLayout ? 1 : 0
             Layout.minimumWidth: 0
@@ -302,9 +339,13 @@ ColumnLayout {
         }
 
         NeonSurface {
+            id: seasonCard
             interactive: true
             ambientNeon: true
             neonStrength: Theme.neonCardStrength
+            proximityPointerActive: marketInsightPointer.hovered
+            proximityPointerX: marketInsightPointer.point.position.x - seasonCard.x
+            proximityPointerY: marketInsightPointer.point.position.y - seasonCard.y
             Layout.row: 1
             Layout.column: 0
             Layout.minimumWidth: 0
@@ -350,9 +391,13 @@ ColumnLayout {
         }
 
         NeonSurface {
+            id: dominanceCard
             interactive: true
             ambientNeon: true
             neonStrength: Theme.neonCardStrength
+            proximityPointerActive: marketInsightPointer.hovered
+            proximityPointerX: marketInsightPointer.point.position.x - dominanceCard.x
+            proximityPointerY: marketInsightPointer.point.position.y - dominanceCard.y
             Layout.row: root.wideLayout ? 1 : 3
             Layout.column: root.wideLayout ? 1 : 0
             Layout.minimumWidth: 0

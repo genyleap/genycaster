@@ -10,6 +10,9 @@ Item {
     property bool compact: false
     property bool magazineCard: false
     property var sharedMediaGeometry: null
+    property bool sharedNeonPointerActive: false
+    property real sharedNeonPointerX: 0
+    property real sharedNeonPointerY: 0
     property bool interactionsAvailable: false
     property bool enrichmentActive: true
     property double accountFid: 0
@@ -458,7 +461,13 @@ Item {
             // All feed families share one soft superellipse surface. Keeping
             // the wrapper outside media Loaders preserves delegate reuse.
             NeonSurface {
+                id: magazineCardSurface
                 anchors.fill: parent
+                proximityPointerActive: root.magazineCard && root.sharedNeonPointerActive
+                proximityPointerX: magazineCardSurface.mapFromItem(
+                    root, root.sharedNeonPointerX, root.sharedNeonPointerY).x
+                proximityPointerY: magazineCardSurface.mapFromItem(
+                    root, root.sharedNeonPointerX, root.sharedNeonPointerY).y
                 // Virtualized feed cards create the shader only on demand;
                 // keep long lists cheap and avoid animation during flicking.
                 interactive: root.magazineCard && !root.scrollMoving

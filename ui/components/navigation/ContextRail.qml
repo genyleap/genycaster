@@ -211,6 +211,12 @@ Item {
             width: railScroll.availableWidth
             spacing: Theme.space2
 
+            HoverHandler {
+                id: widgetColumnPointer
+                enabled: Theme.neonEnabled && root.visible
+                blocking: false
+            }
+
             Item { Layout.preferredHeight: Theme.space2 }
 
             Repeater {
@@ -250,6 +256,34 @@ Item {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         sourceComponent: root.componentForWidget(widgetDelegate.widgetId)
+                    }
+                    // Drive the loaded cards from this owning layout rather
+                    // than looking up a sibling ID inside the inline
+                    // WidgetCard component's lexical scope. The hovered
+                    // point stays defined across gaps and reorder drags.
+                    Binding {
+                        target: widgetLoader.item
+                        property: "proximityPointerActive"
+                        when: widgetLoader.item !== null
+                        value: widgetColumnPointer.hovered && !reorderDrag.active
+                    }
+                    Binding {
+                        target: widgetLoader.item
+                        property: "proximityPointerX"
+                        when: widgetLoader.item !== null
+                        value: widgetLoader.item
+                            ? widgetLoader.item.mapFromItem(widgetColumn,
+                                widgetColumnPointer.point.position.x,
+                                widgetColumnPointer.point.position.y).x : 0
+                    }
+                    Binding {
+                        target: widgetLoader.item
+                        property: "proximityPointerY"
+                        when: widgetLoader.item !== null
+                        value: widgetLoader.item
+                            ? widgetLoader.item.mapFromItem(widgetColumn,
+                                widgetColumnPointer.point.position.x,
+                                widgetColumnPointer.point.position.y).y : 0
                     }
 
                     Superellipse {

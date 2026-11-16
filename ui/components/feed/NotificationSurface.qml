@@ -808,6 +808,12 @@ Item {
             boundsMovement: Flickable.FollowBoundsBehavior
             ScrollBar.vertical: GenyScrollBar {}
 
+            HoverHandler {
+                id: notificationListPointer
+                enabled: list.visible && Theme.neonEnabled && !list.moving
+                blocking: false
+            }
+
             // Overlay is viewport-owned and does not feed back into ListView's
             // footer/contentHeight calculations (the old footer caused a
             // height binding loop under fast pagination).
@@ -862,8 +868,16 @@ Item {
                 implicitHeight: content.implicitHeight + (root.compact ? 34 : 42)
 
                 NeonSurface {
+                    id: notificationCardSurface
                     anchors.fill: parent
                     interactive: !list.moving
+                    proximityPointerActive: notificationListPointer.hovered && !list.moving
+                    proximityPointerX: notificationCardSurface.mapFromItem(
+                        list, notificationListPointer.point.position.x,
+                        notificationListPointer.point.position.y).x
+                    proximityPointerY: notificationCardSurface.mapFromItem(
+                        list, notificationListPointer.point.position.x,
+                        notificationListPointer.point.position.y).y
                     deferredNeon: true
                     // Notifications are real cards, not bare list rows.
                     // Keep their ambient rim while idle, but only for the

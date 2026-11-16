@@ -24,6 +24,13 @@ Item {
     property real activityStrength: Theme.neonActivityStrength
     property real reach: 150
     property color tintColor: "transparent"
+    // Must match the owning QSG Superellipse's four independent corners.
+    // Edge-mounted drawers have square attached corners and curved free
+    // corners; masking a symmetrical shader obscures the glow.
+    property bool curveTopLeft: true
+    property bool curveTopRight: true
+    property bool curveBottomRight: true
+    property bool curveBottomLeft: true
 
     readonly property bool useLight: Theme.dark !== inverted
     readonly property bool hovered: interactive && pointerHandler.hovered
@@ -91,7 +98,11 @@ Item {
     onHeightChanged: samplePointer()
     Component.onCompleted: samplePointer()
 
-    readonly property var edgePoint: NeonGeometry.nearestBorderPoint(sampledPointer.x - inset, sampledPointer.y - inset, Math.max(0, width - 2 * inset), Math.max(0, height - 2 * inset), cornerRadius, cornerPower)
+    readonly property var edgePoint: NeonGeometry.nearestBorderPoint(
+        sampledPointer.x - inset, sampledPointer.y - inset,
+        Math.max(0, width - 2 * inset), Math.max(0, height - 2 * inset),
+        cornerRadius, cornerPower, curveTopLeft, curveTopRight,
+        curveBottomRight, curveBottomLeft)
 
     property real envelope: responding ? 1 : 0
     Behavior on envelope {
@@ -128,6 +139,9 @@ Item {
         property vector4d focusParameters: Qt.vector4d(root.sampledPointer.x, root.sampledPointer.y, root.reflectionLength, Math.min(10000, root.edgePoint.distance))
         property vector4d lightParameters: Qt.vector4d(root.useLight ? Theme.neonLightLuminance : Theme.neonDarkLuminance, root.visibleStrength, root.edgeSigma, root.inset)
         property vector4d tintParameters: Qt.vector4d(root.tintColor.r, root.tintColor.g, root.tintColor.b, root.tintColor.a)
+        property vector4d cornerFlags: Qt.vector4d(root.curveTopLeft ? 1 : 0,
+            root.curveTopRight ? 1 : 0, root.curveBottomRight ? 1 : 0,
+            root.curveBottomLeft ? 1 : 0)
         property real steadyActivity: root.visualSteady
         fragmentShader: "qrc:/genycaster/effects/neon.frag.qsb"
     }

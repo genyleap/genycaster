@@ -13,9 +13,12 @@ test('edge-mounted drawers restore the neon rim while preserving square attached
   assert.match(drawer,/neonAmbient:\s*!control\.fullScreen/);
   assert.match(drawer,/curveTopLeft: !control\.fullScreen && \(control\.bottomSheet \|\| control\.edge !== Qt\.LeftEdge\)/);
   assert.match(drawer,/curveTopRight: !control\.fullScreen && \(control\.bottomSheet \|\| control\.edge !== Qt\.RightEdge\)/);
-  assert.match(drawer,/Math\.max\(26, parent\.curveDepth \+ Theme\.space1\)/);
-  assert.match(drawer,/gradient: Gradient \{[\s\S]*?GradientStop/);
-  assert.match(drawer,/control\.edge === Qt\.RightEdge[\s\S]*?"transparent"/);
+  assert.match(drawer,/neonInteractive:\s*!control\.fullScreen/);
+  assert.doesNotMatch(drawer,/gradient: Gradient/);
+  assert.doesNotMatch(drawer,/Math\.max\(26, parent\.curveDepth/);
+  assert.match(read('ui/components/visual/NeonSurface.qml'),/curveTopLeft: material\.curveTopLeft/);
+  assert.match(read('ui/components/visual/NeonHalo.qml'),/cornerFlags: Qt\.vector4d/);
+  assert.match(read('ui/shaders/neon.frag'),/float enabledCorner = point\.y < halfExtent\.y/);
   assert.doesNotMatch(drawer,/neonAmbient:\s*false/);
 });
 

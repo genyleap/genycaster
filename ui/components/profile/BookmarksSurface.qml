@@ -465,11 +465,20 @@ Flickable {
             columnSpacing: Theme.space3
             rowSpacing: Theme.space3
 
+            HoverHandler {
+                id: savedCastsPointer
+                enabled: Theme.neonEnabled && root.visible && !root.moving
+                blocking: false
+            }
+
             Repeater {
             id: savedCastRepeater
             model: root.sortedRows
             delegate: NeonSurface {
                 id: bookmarkCard
+                proximityPointerActive: savedCastsPointer.hovered && !root.moving
+                proximityPointerX: savedCastsPointer.point.position.x - bookmarkCard.x
+                proximityPointerY: savedCastsPointer.point.position.y - bookmarkCard.y
                 // Saved Casts are a potentially large grid: allocate the
                 // hover shader only when a card is actually inspected.
                 interactive: true

@@ -27,8 +27,22 @@ Superellipse {
     property real neonStrength: Theme.neonControlStrength
     property real ambientStrength: Theme.neonAmbientStrength
     property color neonColor: "transparent"
-
-    readonly property bool pointerActive: interactive && (externalHovered || pointer.hovered)
+    // Shared, passive pointer for collections. Like the original Neon Kit
+    // product grid, a single parent HoverHandler sees gutters as well as
+    // card interiors, so adjacent cards react simultaneously.
+    property bool proximityPointerActive: false
+    property real proximityPointerX: width / 2
+    property real proximityPointerY: height / 2
+    property real proximityReach: 85
+    readonly property real proximityDx: Math.max(0, -proximityPointerX,
+                                                 proximityPointerX - width)
+    readonly property real proximityDy: Math.max(0, -proximityPointerY,
+                                                 proximityPointerY - height)
+    readonly property real proximityStrength: proximityPointerActive && interactive
+        ? Math.max(0, 1 - Math.hypot(proximityDx, proximityDy) / Math.max(1, proximityReach))
+        : 0
+    readonly property bool pointerActive: interactive && (externalHovered
+        || pointer.hovered || proximityStrength > 0)
     property real hoverLifetime: pointerActive ? 1 : 0
     Behavior on hoverLifetime {
         enabled: material.deferredNeon && Theme.neonMotionEnabled
@@ -54,8 +68,12 @@ Superellipse {
             easing.type: Easing.OutCubic
         }
     }
-    readonly property real pointerPositionX: externalHovered ? externalPointerX : pointer.hovered ? pointer.point.position.x : width / 2
-    readonly property real pointerPositionY: externalHovered ? externalPointerY : pointer.hovered ? pointer.point.position.y : height / 2
+    readonly property real pointerPositionX: proximityPointerActive && proximityStrength > 0
+        ? proximityPointerX : externalHovered ? externalPointerX
+        : pointer.hovered ? pointer.point.position.x : width / 2
+    readonly property real pointerPositionY: proximityPointerActive && proximityStrength > 0
+        ? proximityPointerY : externalHovered ? externalPointerY
+        : pointer.hovered ? pointer.point.position.y : height / 2
 
     HoverHandler {
         id: pointer
@@ -83,8 +101,13 @@ Superellipse {
             borderInset: material.borderWidth / 2
             inverted: material.inverted
             tintColor: material.neonColor
-            strength: material.neonStrength
+            strength: material.neonStrength * (material.proximityPointerActive
+                ? material.proximityStrength : 1)
             ambientStrength: material.ambientStrength
+            curveTopLeft: material.curveTopLeft
+            curveTopRight: material.curveTopRight
+            curveBottomRight: material.curveBottomRight
+            curveBottomLeft: material.curveBottomLeft
         }
     }
 }

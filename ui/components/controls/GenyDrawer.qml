@@ -115,11 +115,11 @@ Drawer {
     }
 
     background: PopupSurface {
-        // Keep the Kit's Neon material on inspector panels. The rim shader
-        // uses symmetric corners; the attached-edge mask below removes only
-        // its incompatible arc, not the entire glow from the sheet.
+        // Draw the halo on the actual per-corner shape. The attached edge is
+        // square in both the QSG surface and the shader, without an overlay
+        // that hides the rim or the localized hover reflection.
         neonAmbient: !control.fullScreen
-        neonInteractive: false
+        neonInteractive: !control.fullScreen
         shadowEnabled: false
         fillColor: Theme.surfaceElevated
         curveDepth: control.fullScreen ? 0
@@ -132,40 +132,6 @@ Drawer {
         curveTopRight: !control.fullScreen && (control.bottomSheet || control.edge !== Qt.RightEdge)
         curveBottomLeft: !control.fullScreen && !control.bottomSheet && control.edge !== Qt.LeftEdge
         curveBottomRight: !control.fullScreen && !control.bottomSheet && control.edge !== Qt.RightEdge
-
-        // Mask only the Neon shader's unsupported attached-edge arcs.
-        // A soft transition retains the glow on the free corners while the
-        // panel's actual scene-graph Superellipse owns its square edge.
-        Rectangle {
-            visible: !control.fullScreen && !control.bottomSheet
-            x: control.edge === Qt.RightEdge ? parent.width - width : 0
-            y: 0
-            width: Math.max(26, parent.curveDepth + Theme.space1)
-            height: parent.height
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop {
-                    position: 0
-                    color: control.edge === Qt.RightEdge
-                        ? "transparent" : Theme.surfaceElevated
-                }
-                GradientStop {
-                    position: 1
-                    color: control.edge === Qt.RightEdge
-                        ? Theme.surfaceElevated : "transparent"
-                }
-            }
-        }
-        Rectangle {
-            visible: !control.fullScreen && control.bottomSheet
-            anchors.bottom: parent.bottom
-            width: parent.width
-            height: Math.max(26, parent.curveDepth + Theme.space1)
-            gradient: Gradient {
-                GradientStop { position: 0; color: "transparent" }
-                GradientStop { position: 1; color: Theme.surfaceElevated }
-            }
-        }
 
         // Form sheets disable Drawer.interactive so scroll gestures belong to
         // their Flickable. The isolated grabber remains swipe-dismissable,

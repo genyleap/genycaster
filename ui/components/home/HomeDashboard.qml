@@ -187,11 +187,20 @@ Item {
         }
 
         GridLayout {
+            id: shortcutGrid
             Layout.fillWidth: true
             columns: 2
             columnSpacing: Theme.space2
             rowSpacing: Theme.space2
             layoutDirection: Theme.uiDirection
+
+            // One passive pointer covers BOTH cards and their gutters, as
+            // in the supplied Neon Kit's DiscoverPage 2x2 product grid.
+            HoverHandler {
+                id: shortcutGridPointer
+                enabled: Theme.neonEnabled && !root.compact
+                blocking: false
+            }
 
             Repeater {
                 model: [
@@ -212,6 +221,9 @@ Item {
                     externalHovered: actionMouse.containsMouse && !root.compact
                     externalPointerX: actionMouse.mouseX
                     externalPointerY: actionMouse.mouseY
+                    proximityPointerActive: shortcutGridPointer.hovered && !root.compact
+                    proximityPointerX: shortcutGridPointer.point.position.x - shortcut.x
+                    proximityPointerY: shortcutGridPointer.point.position.y - shortcut.y
                     required property var modelData
                     objectName: "homeShortcut_" + modelData.destination
                     Layout.fillWidth: true

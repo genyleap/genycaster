@@ -82,6 +82,14 @@ Flickable {
     signal layoutFinished()
 
     clip: true
+    // A single passive hover observer covers the masonry gutters, including
+    // four-way intersections. Each admitted card receives its own local
+    // coordinates; no offscreen item or extra hit target is instantiated.
+    HoverHandler {
+        id: masonryPointer
+        enabled: view.visible && Theme.neonEnabled && !view.moving
+        blocking: false
+    }
     contentWidth: width
     contentHeight: Math.max(0, rowsBottom + footerLoader.height)
     flickableDirection: Flickable.VerticalFlick
@@ -381,6 +389,10 @@ Flickable {
                 readonly property string presentationKind: slot.presentationKind
                 readonly property string mediaLayoutKind: slot.mediaLayoutKind
                 readonly property real slotY: slot.y
+                readonly property bool sharedNeonPointerActive: masonryPointer.hovered && !view.moving
+                readonly property real sharedNeonPointerX: masonryPointer.point.position.x - slot.x
+                readonly property real sharedNeonPointerY: masonryPointer.point.position.y
+                    + view.contentY - slot.y
                 width: slot.width
                 active: slot.admitted
                 // Crossfade the hydrated card under the existing skeleton.

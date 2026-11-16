@@ -3030,6 +3030,9 @@ Item {
         delegate: Component {
             CastItem {
                 width: parent.width
+                sharedNeonPointerActive: parent.sharedNeonPointerActive
+                sharedNeonPointerX: parent.sharedNeonPointerX
+                sharedNeonPointerY: parent.sharedNeonPointerY
                 // A Loader cannot infer the real visual height from an Item
                 // that only declares implicitHeight. Keep the paint bounds
                 // synchronized with rich-text/media layout growth so the

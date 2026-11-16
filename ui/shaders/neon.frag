@@ -10,12 +10,20 @@ layout(std140, binding = 0) uniform buf {
     vec4 focusParameters;
     vec4 lightParameters;
     vec4 tintParameters;
+    vec4 cornerFlags;
     float steadyActivity;
 };
-float superellipseDistance(vec2 point, vec2 extent, float radius, float power)
+float superellipseDistance(vec2 point, vec2 extent, float radius, float power,
+                           vec4 roundedCorners)
 {
     vec2 halfExtent = extent * 0.5;
-    float r = clamp(radius, 0.0, min(halfExtent.x, halfExtent.y));
+    // [top-left, top-right, bottom-right, bottom-left]; use the same
+    // per-corner shape as the retained QSG Superellipse. A zero-radius
+    // corner produces two uninterrupted straight edges, not a masked arc.
+    float enabledCorner = point.y < halfExtent.y
+        ? (point.x < halfExtent.x ? roundedCorners.x : roundedCorners.y)
+        : (point.x >= halfExtent.x ? roundedCorners.z : roundedCorners.w);
+    float r = clamp(radius * enabledCorner, 0.0, min(halfExtent.x, halfExtent.y));
     vec2 q = abs(point - halfExtent) - (halfExtent - vec2(r));
     if (q.x > 0.0 && q.y > 0.0 && r > 0.0) {
         float p = max(2.0, power);
@@ -34,7 +42,7 @@ void main()
     vec2 pixel = qt_TexCoord0 * extent;
     float inset = lightParameters.w;
     float sdf = superellipseDistance(pixel - vec2(inset), extent - vec2(2.0 * inset),
-                                     surfaceParameters.z, surfaceParameters.w);
+                                     surfaceParameters.z, surfaceParameters.w, cornerFlags);
     // Match GenyHub Kit: one logical pixel core with a tiny inward shoulder.
     // The previous widened rim and doubled stationary glow changed the
     // material identity and made the controls look unlike the reference.
