@@ -13,6 +13,13 @@ test('Settings is a centered content-fitted modal on desktop and a bottom sheet 
     assert.match(settings, /showHandle: false/);
     assert.match(settings, /blurSourceItem: null/);
     assert.match(settings, /efficientBackdropBlur: true/);
+    // Inactive settings sections must not allocate or update theme-bound QSG items.
+    for (const id of ['appearancePage','localePage','marketPage','readSettingsPage',
+                      'updatesPage','recoveryPage','nodePage'])
+        assert.match(settings, new RegExp('id: ' + id + '\\b'));
+    assert.match(settings, /active: \(!root\.mobilePresentation \|\| !root\.mobileIndexOpen\) && root\.currentSection === 0/);
+    assert.match(settings, /page && page\.contentItem/);
+    assert.match(settings, /readonly property int contentColumns:[\s\S]*?width - navigationColumnWidth - Theme\.space6/);
     assert.match(settings, /dimBackground: !mobilePresentation/);
     assert.match(settings, /popupZ: 0/);
     assert.match(settings, /width: parent \? \(mobilePresentation \? parent\.width/);
@@ -40,6 +47,10 @@ test('Settings is a centered content-fitted modal on desktop and a bottom sheet 
     const loadedSettings = shell.split('LocaleSettingsPopup {')[1].split('onCustomAccentStudioRequested')[0];
     assert.match(loadedSettings, /blurSourceItem: mobilePresentation \? null : shellContent/);
     assert.doesNotMatch(loadedSettings, /blurSourceItem:\s*shellContent/);
+    const frost = read('ui/components/visual/DrawerBackdrop.qml');
+    assert.match(frost, /interval: Math\.max\(360, Theme\.materialSurfaceDuration \+ 220\)/);
+    assert.match(frost, /Math\.min\(0\.48, 1440 \/ Math\.max\(1, root\.width, root\.height\)\)/);
+    assert.match(frost, /sourceItem: root\.nativeGaussian \? horizontalPass : null/);
 });
 
 test('All recovery checkboxes share a stable Light/Dark background and explicit checked appearance', () => {
