@@ -98,7 +98,28 @@ sudo python3 ci/enable_genycaster_xyz_cloud_api.py --apply
 ```
 
 Its backup, `nginx -t`, reload, HTTP probes and automatic rollback protect
-the existing landing. The tool deliberately requires the Account API to
+the existing landing. The production host also has a staged copy at
+`/opt/genycaster/caster-deployment/enable_genycaster_xyz_cloud_api.py`.
+With authorized root access, that copy may be used in the commands above.
+
+**Before opening the web API**, finish deploying the exact-Origin gateway
+checks. The dedicated Snapchain service uses
+`/opt/genyleap/snapchain-gateway/gateway.mjs`; the Docker media gateway
+build uses `/opt/genycaster/media-gateway/gateway.mjs`. Their source files
+may be updated without yet changing the running process/image:
+
+```sh
+sudo systemctl restart genyleap-snapchain-gateway
+cd /opt/genycaster/media-gateway
+sudo docker compose up -d --build
+```
+
+Run only with appropriate operational privileges and check the two gateway
+health/CORS preflights before continuing. Do not assume `docker restart`
+loads changes from a Docker image build context. The remote-management
+connector may restrict restarting non-allowlisted services.
+
+The tool deliberately requires the Account API to
 already accept the new `Origin: https://genycaster.xyz`. It verifies:
 
 - `GET /api/v1/cloud/pro/plan`: 200, from the public HTTPS vhost
