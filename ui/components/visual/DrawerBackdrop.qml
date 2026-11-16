@@ -24,13 +24,18 @@ Item {
     readonly property bool nativeGaussian: root.nativeBlurActive && !root.efficientNativeBlur
     readonly property bool optimizedNativeBlur: root.nativeBlurActive && root.efficientNativeBlur
     readonly property real gaussianAmount: 1.0
+    property bool captureUpdateQueued: false
+    function performSnapshotUpdate() {
+        root.captureUpdateQueued = false
+        if (root.active && root.sourceItem)
+            capture.scheduleUpdate()
+    }
     function refreshSnapshot() {
-        if (!root.active || !root.sourceItem)
+        if (!root.active || !root.sourceItem || root.captureUpdateQueued)
             return
-        Qt.callLater(() => {
-            if (root.active && root.sourceItem)
-                capture.scheduleUpdate()
-        })
+        root.captureUpdateQueued = true
+        // All triggers share one scheduled update, even during rapid resizing.
+        Qt.callLater(root.performSnapshotUpdate)
     }
     onActiveChanged: {
         if (root.active)
