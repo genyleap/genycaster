@@ -55,14 +55,14 @@ Superellipse {
     // both paint transitions and rim instantiation. Dense plain rows never
     // allocate ShaderEffects unless they explicitly opt into Neon.
     Behavior on fillColor {
-        enabled: material.animatePaint && !Theme.reduceMotion
+        enabled: material.animatePaint && !Theme.reduceMotion && !Theme.paletteSwitchInProgress
         ColorAnimation {
             duration: Theme.materialSurfaceDuration
             easing.type: Easing.OutCubic
         }
     }
     Behavior on borderColor {
-        enabled: material.animatePaint && !Theme.reduceMotion
+        enabled: material.animatePaint && !Theme.reduceMotion && !Theme.paletteSwitchInProgress
         ColorAnimation {
             duration: Theme.materialSurfaceDuration
             easing.type: Easing.OutCubic
