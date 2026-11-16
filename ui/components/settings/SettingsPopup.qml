@@ -111,6 +111,7 @@ GenyAdaptiveDialog {
     signal proDetailsRequested()
 
     function applyCustomAccentColor(color) {
+        Theme.beginPaletteSwitch()
         const applied = appearanceController.setCustomAccentColor(String(color || ""))
         root.customColorError = !applied
         if (applied && root.accentEditor)
@@ -901,7 +902,7 @@ GenyAdaptiveDialog {
                                     selected: appearanceController.themeMode === "system"
                                     iconGlyph: Theme.iconSystem
                                     text: qsTrId("genycaster.settings.mode_system")
-                                    onClicked: appearanceController.setThemeMode("system")
+                                    onClicked: { Theme.beginPaletteSwitch(); appearanceController.setThemeMode("system") }
                                 }
                                 ActionButton {
                                     Layout.fillWidth: true
@@ -909,7 +910,7 @@ GenyAdaptiveDialog {
                                     selected: appearanceController.themeMode === "dark"
                                     iconGlyph: Theme.iconMoon
                                     text: qsTrId("genycaster.settings.mode_dark")
-                                    onClicked: appearanceController.setThemeMode("dark")
+                                    onClicked: { Theme.beginPaletteSwitch(); appearanceController.setThemeMode("dark") }
                                 }
                                 ActionButton {
                                     Layout.fillWidth: true
@@ -917,7 +918,7 @@ GenyAdaptiveDialog {
                                     selected: appearanceController.themeMode === "light"
                                     iconGlyph: Theme.iconSun
                                     text: qsTrId("genycaster.settings.mode_light")
-                                    onClicked: appearanceController.setThemeMode("light")
+                                    onClicked: { Theme.beginPaletteSwitch(); appearanceController.setThemeMode("light") }
                                 }
                             }
                         }
@@ -1250,7 +1251,7 @@ GenyAdaptiveDialog {
                                     HoverHandler { id: presetHover; cursorShape: Qt.PointingHandCursor }
                                     TapHandler {
                                         gesturePolicy: TapHandler.ReleaseWithinBounds
-                                        onTapped: appearanceController.setColorThemeId(themePreset.presetId)
+                                        onTapped: { Theme.beginPaletteSwitch(); appearanceController.setColorThemeId(themePreset.presetId) }
                                     }
                                 }
                             }
@@ -1373,6 +1374,7 @@ GenyAdaptiveDialog {
                                         placeholderText: qsTrId("genycaster.settings.custom_color_placeholder")
                                         onTextChanged: root.customColorError = false
                                         onAccepted: {
+                                            Theme.beginPaletteSwitch()
                                             const applied = appearanceController.setCustomAccentColor(text)
                                             root.customColorError = !applied
                                             if (applied) text = appearanceController.customAccentColor
@@ -1383,6 +1385,7 @@ GenyAdaptiveDialog {
                                         prominent: true
                                         text: qsTrId("genycaster.composer.apply")
                                         onClicked: {
+                                            Theme.beginPaletteSwitch()
                                             const applied = appearanceController.setCustomAccentColor(customAccentField.text)
                                             root.customColorError = !applied
                                             if (applied) customAccentField.text = appearanceController.customAccentColor
