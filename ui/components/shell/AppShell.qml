@@ -2220,6 +2220,7 @@ Item {
                                                 accountIsNativeCustody: presentationBridge.nativeCustodyAccount
                                                 onBackRequested: root.returnFromProfileSurface()
                                                 onProRequested: genyProDetailsDrawer.open()
+                                                onSignerAuthorizationRequested: root.requestInteractionAuthorization()
                                                 onFollowersRequested: presentationBridge.openFollowers()
                                                 onFollowingRequested: presentationBridge.openFollowing()
                                                 onRefreshRequested: presentationBridge.selectProfileFeed(presentationBridge.profileFeed)
