@@ -1259,7 +1259,8 @@ GenyAdaptiveDialog {
 
                         NeonSurface {
                             interactive: true
-                            ambientNeon: true
+                            deferredNeon: true
+                            ambientNeon: false
                             neonStrength: Theme.neonCardStrength
                             Layout.fillWidth: true
                             implicitHeight: customColorContent.implicitHeight + Theme.space3 * 2
@@ -1313,11 +1314,14 @@ GenyAdaptiveDialog {
 
                                 NeonSurface {
                                     interactive: true
-                                    ambientNeon: true
+                                    deferredNeon: true
+                                    ambientNeon: false
                                     neonStrength: Theme.neonPanelStrength
                                     Layout.fillWidth: true
                                     implicitHeight: 54
-                                    fillColor: Theme.primarySurface
+                                    // A preview must not look selected while another preset is active.
+                                    fillColor: appearanceController.colorThemeId === "custom"
+                                        ? Theme.surfaceSelected : Theme.surfaceRaised
                                     borderWidth: Theme.strokeHairline
                                     borderColor: Theme.borderSubtle
                                     curveDepth: Theme.curveControl
