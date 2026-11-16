@@ -442,7 +442,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
                                       return subscriptionEntitlements(
                                         await store.getProSubscription(owner),billingPolicy);
                                     },
-                                    resolveGenyAssets=(fid)=>evaluateGenyAssets(fid,{policy:proPolicy,fetchImpl}),
+                                    resolveGenyAssets=(fid,owner)=>evaluateGenyAssets(owner,{policy:proPolicy,fetchImpl}),
                                     discoverStreakCasts=(fid)=>discoverVerifiedStreakCasts(fid,{fetchImpl,hypersnapOrigin})}) {
   // Bounded per-account reconciliation cache; failed network fetches never
   // block a valid historical streak already persisted in PostgreSQL.
@@ -713,7 +713,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         if(request.method!=='GET') {
           respond(response,405,{error:'method_not_allowed'});return true;
         }
-        respond(response,200,{holding:await resolveGenyAssets(owner.fid)});
+        respond(response,200,{holding:await resolveGenyAssets(owner.fid,owner)});
         return true;
       }
       if(entity==='entitlements') {
