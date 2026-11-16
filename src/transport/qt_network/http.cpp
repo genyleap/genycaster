@@ -516,6 +516,13 @@ private:
         const QVariant statusAttribute = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
         bool statusValid{false};
         const int statusCode = statusAttribute.toInt(&statusValid);
+        if (reply->error() == QNetworkReply::ProtocolFailure
+            || reply->error() == QNetworkReply::InternalServerError) {
+            // Qt's generic HTTP/2 log does not identify the peer. Keep only
+            // the hostname and status; request URL and credentials are private.
+            qWarning().noquote() << "[Genycaster] Network protocol failure at host:"
+                                  << reply->url().host() << "(HTTP status" << statusCode << ")";
+        }
         if ((statusValid && statusCode == 401)
             || reply->error() == QNetworkReply::AuthenticationRequiredError) {
             // Report the failing origin without leaking path/query/credentials.
