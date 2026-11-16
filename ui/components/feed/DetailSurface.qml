@@ -13,6 +13,7 @@ ListView {
     property bool busy: false
     property bool interactionsAvailable: false
     property double accountFid: 0
+    property bool accountIsNativeCustody: false
     property var confirmedReply: ({})
     readonly property string menuCastId: String(root.detail && root.detail.castId || "")
     onMenuCastIdChanged: if (detailCastMenuLoader) detailCastMenuLoader.active = false
@@ -740,11 +741,14 @@ ListView {
 
                             Label {
                                 visible: Boolean(root.detail.username)
+                                    && !/^fid:[0-9]+$/i.test(String(root.detail.username))
+                                    && !(root.accountIsNativeCustody
+                                        && Number(root.detail.authorFid || root.detail.fid || 0) === root.accountFid)
                                 LayoutMirroring.enabled: false
                                 Layout.minimumWidth: 0
                                 Layout.preferredWidth: root.compact && root.activeView === "cast"
                                     ? Math.min(implicitWidth, Math.max(80, root.width * 0.44)) : implicitWidth
-                                text: root.ltrHandle(root.detail.username)
+                                text: visible ? root.ltrHandle(root.detail.username) : ""
                                 font.family: Theme.latinFontFamily
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeMetaSize

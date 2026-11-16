@@ -39,6 +39,7 @@ test('C++ account profile and write boundary preserve Snapchain username while h
 test('unregistered fid:* values never become @handles in cast, bookmarks, notification and search surfaces',()=>{
   const cases=[
     ['ui/components/feed/CastItem.qml',/visible: root\.authorHandle\.length > 0/],
+    ['ui/components/feed/DetailSurface.qml',/!\(root\.accountIsNativeCustody/],
     ['ui/components/profile/ProfileListItem.qml',/visible: root\.authorHandle\.length > 0/],
     ['ui/components/profile/BookmarksSurface.qml',/visible: actualHandle\.length > 0 && !\/\^fid:/],
     ['ui/components/feed/NotificationSurface.qml',/visible: actualHandle\.length > 0 && !\/\^fid:/],

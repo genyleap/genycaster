@@ -2294,6 +2294,7 @@ Item {
                                                 interactionsAvailable: presentationBridge.isAuthenticated
                                                                        && presentationBridge.writeReady
                                                 accountFid: presentationBridge.accountFid
+                                                accountIsNativeCustody: presentationBridge.nativeCustodyAccount
                                                 confirmedReply: root.confirmedReply
                                                 onBackRequested: root.returnFromCastDetail()
                                                 onComposeRequested: root.openComposer(null)
