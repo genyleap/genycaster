@@ -125,9 +125,10 @@ Superellipse {
                     }
 
                     Label {
-                        visible: Boolean(root.embed.author)
+                        readonly property string actualHandle: String(root.embed.author || "").trim().replace(/^@/, "")
+                        visible: actualHandle.length > 0 && !/^fid:[0-9]+$/i.test(actualHandle)
                         LayoutMirroring.enabled: false
-                        text: root.ltrText("@" + String(root.embed.author || ""))
+                        text: visible ? root.ltrText("@" + actualHandle) : ""
                         font.family: Theme.latinFontFamily
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize

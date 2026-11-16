@@ -54,6 +54,7 @@ test('native connections identify separate OpenProof wallet links, never fake FI
   assert.match(popup,/https:\/\/genyleap\.com\/openproof/);
   const runtime=read('ui/app/runtime/bindings.cpp');
   assert.match(runtime,/genycaster\.profile\.username_proof_missing/);
-  assert.match(read('ui/components/profile/ProfileSurface.qml'),
-    /genycaster\.profile\.native_username_registration_pending/);
+  const profile=read('ui/components/profile/ProfileSurface.qml');
+  assert.doesNotMatch(profile,/genycaster\.profile\.native_username_registration_pending/);
+  assert.match(profile,/objectName: "profileProtocolUsername"[\s\S]*?visible: !root\.accountIsNativeCustody/);
 });

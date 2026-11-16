@@ -26,6 +26,7 @@ Item {
     signal accountRequested()
     signal refreshRequested()
     signal profileRequested(string username)
+    signal profileFidRequested(double fid)
     signal ownProfileRequested()
     signal marketSettingsRequested()
 
@@ -69,12 +70,14 @@ Item {
         for (let index = 0; index < source.length && result.length < limit; ++index) {
             const row = source[index] || ({})
             const fid = Number(row.authorFid || 0)
-            const username = String(row.author || row.username || "")
+            const raw = String(row.author || row.username || "").trim().replace(/^@/, "")
+            const username = /^fid:[0-9]+$/i.test(raw) ? "" : raw
             const key = fid > 0 ? "fid:" + fid : "user:" + username.toLowerCase()
             if (key.length === 5 || seen[key]) continue
             seen[key] = true
             result.push({ fid: fid, username: username,
-                          displayName: String(row.displayName || username),
+                          displayName: String(row.displayName || username
+                              || qsTrId("genycaster.side_nav.profile")),
                           avatarUrl: String(row.avatarUrl || "") })
         }
         return result
@@ -843,9 +846,25 @@ Item {
                         ColumnLayout {
                             Layout.fillWidth: true; spacing: 0
                             DirectionAwareLabel { Layout.fillWidth: true; text: String(modelData.displayName || modelData.username || ""); color: Theme.textPrimary; font.pixelSize: Theme.typeMetaSize; font.weight: Theme.weightDemiBold; elide: Text.ElideRight }
-                            Label { Layout.fillWidth: true; LayoutMirroring.enabled: false; text: "@" + String(modelData.username || ""); color: Theme.textTertiary; font.family: Theme.latinFontFamily; font.pixelSize: Theme.typeCaptionSize; horizontalAlignment: Text.AlignLeft; elide: Text.ElideRight }
+                            Label {
+                                Layout.fillWidth: true
+                                LayoutMirroring.enabled: false
+                                readonly property string actualHandle: String(modelData.username || "").trim().replace(/^@/, "")
+                                visible: actualHandle.length > 0 && !/^fid:[0-9]+$/i.test(actualHandle)
+                                text: visible ? "@" + actualHandle : ""
+                                color: Theme.textTertiary
+                                font.family: Theme.latinFontFamily
+                                font.pixelSize: Theme.typeCaptionSize
+                                horizontalAlignment: Text.AlignLeft
+                                elide: Text.ElideRight
+                            }
                         }
-                        ActionButton { compact: true; quiet: true; iconOnly: true; iconGlyph: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight; text: qsTrId("genycaster.home.view_profile"); onClicked: root.profileRequested(String(modelData.username || "")) }
+                        ActionButton { compact: true; quiet: true; iconOnly: true; iconGlyph: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight; text: qsTrId("genycaster.home.view_profile"); onClicked: {
+                            const fid = Number(modelData.fid || 0)
+                            if (fid > 0) root.profileFidRequested(fid)
+                            else if (String(modelData.username || "").length > 0)
+                                root.profileRequested(String(modelData.username))
+                        } }
                     }
                 }
             }

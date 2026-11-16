@@ -33,6 +33,12 @@ Item {
     // vertical scanning surface, not a dashboard grid; widening it should improve
     // text/media breathing room without changing information hierarchy.
     readonly property var recentProfiles: root.collectRecentProfiles(4)
+    readonly property string shownHandle: {
+        const value = root.mode === "profile"
+            ? String(root.shownProfile.username || "").trim().replace(/^@/, "")
+            : String(root.accountUsername || "").trim().replace(/^@/, "")
+        return /^fid:[0-9]+$/i.test(value) ? "" : value
+    }
 
     function collectRecentProfiles(limit) {
         const result = []
@@ -161,10 +167,8 @@ Item {
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: root.mode === "profile"
-                                      ? (String(root.shownProfile.username || "").length > 0
-                                         ? "@" + String(root.shownProfile.username || "") : "")
-                                      : (root.accountUsername.length > 0 ? "@" + root.accountUsername : qsTrId("genycaster.social.sign_in_to_personalize"))
+                                visible: root.shownHandle.length > 0
+                                text: root.shownHandle.length > 0 ? "@" + root.shownHandle : ""
                                 color: Theme.textTertiary
                                 font.pixelSize: Theme.typeCaptionSize
                                 elide: Text.ElideRight
@@ -332,8 +336,9 @@ Item {
                                     }
                                     DirectionAwareLabel {
                                         Layout.fillWidth: true
-                                        text: String(personRow.modelData.username || "").length > 0
-                                              ? "@" + String(personRow.modelData.username || "") : ""
+                                        readonly property string actualHandle: String(personRow.modelData.username || "").trim().replace(/^@/, "")
+                                        visible: actualHandle.length > 0 && !/^fid:[0-9]+$/i.test(actualHandle)
+                                        text: visible ? "@" + actualHandle : ""
                                         color: Theme.textTertiary
                                         font.pixelSize: Theme.typeCaptionSize
                                         elide: Text.ElideRight

@@ -1056,7 +1056,12 @@ QString PresentationBridge::accountIdentityBadge() const
     return qtTrId("genycaster.shell.verified_by_openproof");
 }
 QString PresentationBridge::accountName() const { return m_accountName; }
-QString PresentationBridge::accountUsername() const { return m_accountUsername; }
+QString PresentationBridge::accountUsername() const
+{
+    // A native HyperSnap account has no registered username namespace.
+    // Do not expose a provider fallback as a social handle anywhere in QML.
+    return nativeCustodyAccount() ? QString{} : m_accountUsername;
+}
 QString PresentationBridge::accountAvatarUrl() const { return m_accountAvatarUrl; }
 qulonglong PresentationBridge::accountFid() const noexcept { return m_accountFid; }
 QVariantMap PresentationBridge::accountProfile() const { return m_accountProfile; }
@@ -1841,6 +1846,11 @@ bool PresentationBridge::updateProtocolProfile(const QVariantMap& fields)
         const int maximumBytes = key == QStringLiteral("display") ? 32
             : key == QStringLiteral("username") ? 20 : 256;
         if (key == QStringLiteral("username")) {
+            // Native HyperSnap does not support name registration; a
+            // UserDataAdd selection cannot claim an unregistered fname.
+            // Keep this supported solely for Snapchain accounts.
+            if (m_accountIdentityIssuer == QStringLiteral("hypersnap:native-registry"))
+                return false;
             static const QRegularExpression preferredName{
                 QStringLiteral("^[a-z0-9][a-z0-9-]{0,15}(\\.eth)?$")};
             if (!preferredName.match(value).hasMatch()) return false;
@@ -3679,12 +3689,13 @@ void PresentationBridge::applyAuthenticationState(
         if (clearViewerFields(m_searchResults)) emit searchChanged();
         m_viewerReactionKnownStates.clear();
     }
-    m_accountUsername = m_isAuthenticated ? visibleProfileUsername(std::move(username)) : QString{};
+    m_accountIdentityIssuer = m_isAuthenticated ? std::move(identityIssuer) : QString{};
+    m_accountUsername = m_isAuthenticated && !nativeCustodyAccount()
+        ? visibleProfileUsername(std::move(username)) : QString{};
     m_accountName = m_isAuthenticated
         ? (displayName.isEmpty() ? m_accountUsername : std::move(displayName))
         : QString{};
     m_accountAvatarUrl = m_isAuthenticated ? std::move(avatarUrl) : QString{};
-    m_accountIdentityIssuer = m_isAuthenticated ? std::move(identityIssuer) : QString{};
     m_authenticationApprovalUrl = std::move(approvalUrl);
     m_authenticationErrorText = std::move(errorText);
     if (!m_isAuthenticated || (previousAccountFid != 0 && previousAccountFid != m_accountFid)) {
@@ -3766,7 +3777,8 @@ void PresentationBridge::applyAccountProfile(
     if (!m_isAuthenticated || fid == 0 || fid != m_accountFid || profile.isEmpty()) {
         return;
     }
-    m_accountUsername = visibleProfileUsername(std::move(username));
+    m_accountUsername = nativeCustodyAccount()
+        ? QString{} : visibleProfileUsername(std::move(username));
     m_accountName = displayName.isEmpty() ? m_accountUsername : std::move(displayName);
     m_accountAvatarUrl = std::move(avatarUrl);
     m_accountProfile = std::move(profile);
@@ -4220,8 +4232,9 @@ void PresentationBridge::applyIdentity(const qulonglong fid, QString displayName
     if (updatesAccountProfile) {
         m_accountProfile = std::move(profile);
         m_profileDetailCache.insert(fid, m_accountProfile);
-        m_accountUsername = visibleProfileUsername(
-            m_accountProfile.value(QStringLiteral("username")).toString());
+        m_accountUsername = nativeCustodyAccount() ? QString{}
+            : visibleProfileUsername(
+                m_accountProfile.value(QStringLiteral("username")).toString());
         const QString accountDisplayName =
             m_accountProfile.value(QStringLiteral("displayName")).toString();
         m_accountName = accountDisplayName.isEmpty() ? m_accountUsername : accountDisplayName;
@@ -4675,8 +4688,9 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
         m_profileDetailCache.insert(m_profileFid, m_detail);
         if (m_profileFid == m_accountFid) {
             m_accountProfile = m_detail;
-            m_accountUsername = visibleProfileUsername(
-                m_accountProfile.value(QStringLiteral("username")).toString());
+            m_accountUsername = nativeCustodyAccount() ? QString{}
+                : visibleProfileUsername(
+                    m_accountProfile.value(QStringLiteral("username")).toString());
             const QString accountDisplayName =
                 m_accountProfile.value(QStringLiteral("displayName")).toString();
             m_accountName = accountDisplayName.isEmpty() ? m_accountUsername : accountDisplayName;

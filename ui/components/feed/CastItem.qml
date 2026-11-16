@@ -107,7 +107,13 @@ Item {
                 && root.channelImageUrl.length === 0)
             channelDirectory.ensureChannelImage(root.castChannel)
     }
-    readonly property string authorName: root.modelData.displayName || root.modelData.author || qsTrId("genycaster.cast.unknown")
+    readonly property string authorName: root.modelData.displayName
+        || root.authorHandle || qsTrId("genycaster.cast.unknown")
+    // A provider's fid:<number> locator is not an @username.
+    readonly property string authorHandle: {
+        const value = String(root.modelData.username || root.modelData.author || "").trim().replace(/^@/, "")
+        return /^fid:[0-9]+$/i.test(value) ? "" : value
+    }
     readonly property string directionSeed: String(root.modelData.text || root.authorName || "")
     readonly property bool contentRtl: localizationController.isRightToLeftText(root.directionSeed)
 
@@ -620,11 +626,11 @@ Item {
                             layoutDirection: Theme.uiDirection
 
                             Label {
-                                visible: Boolean(root.modelData.author)
+                                visible: root.authorHandle.length > 0
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 0
                                 LayoutMirroring.enabled: false
-                                text: root.ltrHandle(root.modelData.author || "")
+                                text: root.authorHandle.length > 0 ? root.ltrHandle(root.authorHandle) : ""
                                 font.family: Theme.latinFontFamily
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeMetaSize

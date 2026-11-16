@@ -8,7 +8,7 @@ const card=read('ui/components/profile/StreakCard.qml');
 const langCodes=['en_US','fa_IR','de_DE','ja_JP','ko_KR','zh_CN',
   'hi_IN','ar_SA','es_ES','fr_FR','pt_BR','ru_RU'];
 const keys=['title','subtitle','open','profile_badge','activity','creator',
-  'loading','unavailable','day_in_row','days_in_row','best','next',
+  'loading','unavailable','verified_session_required','day_in_row','days_in_row','best','next',
   'legendary','mon','tue','wed','thu','fri','sat','sun','creator_rule',
   'activity_rule','badges','show_less','see_all','badge_days',
   'badge_first_spark','badge_ignition','badge_momentum','badge_on_fire',

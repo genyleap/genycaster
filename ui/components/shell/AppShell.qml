@@ -2523,6 +2523,7 @@ Item {
                                     onAccountRequested: root.openAccountPopup()
                                     onRefreshRequested: presentationBridge.retry()
                                     onProfileRequested: username => root.openSuggestedProfile(username)
+                                    onProfileFidRequested: fid => presentationBridge.openProfileFid(fid)
                                     onOwnProfileRequested: root.openMyProfileFromNavigation()
                                     onMarketSettingsRequested: { root.openLocaleSettings(2) }
                                 }
@@ -2711,6 +2712,7 @@ Item {
             onAccountRequested: root.openAccountPopup()
             onRefreshRequested: presentationBridge.retry()
             onProfileRequested: username => root.openSuggestedProfile(username)
+            onProfileFidRequested: fid => presentationBridge.openProfileFid(fid)
             onOwnProfileRequested: root.openMyProfileFromNavigation()
             onMarketSettingsRequested: { root.openLocaleSettings(2) }
             }

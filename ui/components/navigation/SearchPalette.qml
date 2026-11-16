@@ -426,8 +426,11 @@ Drawer {
                                 Label {
                                     Layout.fillWidth: true
                                     LayoutMirroring.enabled: false
+                                    readonly property string actualHandle: String(modelData.username || "").trim().replace(/^@/, "")
+                                    visible: !resultRow.profileResult || (actualHandle.length > 0
+                                        && !/^fid:[0-9]+$/i.test(actualHandle))
                                     text: resultRow.profileResult
-                                          ? "@" + String(modelData.username || "")
+                                          ? (visible ? "@" + actualHandle : "")
                                           : "/" + String(modelData.id || "")
                                     color: Theme.textTertiary
                                     font.family: Theme.latinFontFamily
@@ -642,7 +645,10 @@ Drawer {
                                 spacing: 0
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
-                                    text: String(modelData.displayName || modelData.username || "")
+                                    text: String(modelData.displayName
+                                        || (/^fid:[0-9]+$/i.test(String(modelData.username || ""))
+                                            ? "" : modelData.username)
+                                        || qsTrId("genycaster.side_nav.profile"))
                                     color: Theme.textPrimary
                                     font.pixelSize: Theme.typeMetaSize
                                     font.weight: Theme.weightDemiBold
@@ -651,7 +657,9 @@ Drawer {
                                 Label {
                                     Layout.fillWidth: true
                                     LayoutMirroring.enabled: false
-                                    text: "@" + String(modelData.username || "")
+                                    readonly property string actualHandle: String(modelData.username || "").trim().replace(/^@/, "")
+                                    visible: actualHandle.length > 0 && !/^fid:[0-9]+$/i.test(actualHandle)
+                                    text: visible ? "@" + actualHandle : ""
                                     color: Theme.textTertiary
                                     font.family: Theme.latinFontFamily
                                     font.pixelSize: Theme.typeCaptionSize

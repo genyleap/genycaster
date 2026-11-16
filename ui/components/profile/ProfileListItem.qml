@@ -7,6 +7,10 @@ Item {
     id: root
 
     property var modelData
+    readonly property string authorHandle: {
+        const value = String(root.modelData.author || "").trim().replace(/^@/, "")
+        return /^fid:[0-9]+$/i.test(value) ? "" : value
+    }
     signal openRequested(double fid)
 
     function ltrHandle(value) {
@@ -37,7 +41,7 @@ Item {
         Avatar {
             avatarSize: 42
             sourceUrl: root.modelData.avatarUrl || ""
-            displayName: root.modelData.displayName || root.modelData.author || ""
+            displayName: root.modelData.displayName || root.authorHandle || ""
         }
 
         ColumnLayout {
@@ -46,7 +50,8 @@ Item {
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: root.modelData.displayName || root.modelData.author || qsTrId("genycaster.profile_list.unknown")
+                text: root.modelData.displayName || root.authorHandle
+                    || qsTrId("genycaster.profile_list.unknown")
                 color: Theme.ink
                 font.pixelSize: Theme.typeLabelSize
                 font.weight: Theme.weightDemiBold
@@ -56,7 +61,8 @@ Item {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 forceLeftToRight: true
-                text: root.modelData.author ? root.ltrHandle(root.modelData.author) : ""
+                visible: root.authorHandle.length > 0
+                text: root.authorHandle.length > 0 ? root.ltrHandle(root.authorHandle) : ""
                 font.family: Theme.latinFontFamily
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize

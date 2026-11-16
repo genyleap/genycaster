@@ -589,7 +589,8 @@ Flickable {
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
                                     text: String(bookmarkCard.modelData.displayName
-                                                 || bookmarkCard.modelData.author || "")
+                                        || (/^fid:[0-9]+$/i.test(String(bookmarkCard.modelData.author || ""))
+                                            ? "" : bookmarkCard.modelData.author) || "")
                                     color: Theme.textPrimary
                                     font.pixelSize: Theme.typeLabelSize
                                     font.weight: Theme.weightDemiBold
@@ -597,8 +598,10 @@ Flickable {
                                 }
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
-                                    text: "@" + String(bookmarkCard.modelData.username
-                                                      || bookmarkCard.modelData.author || "")
+                                    readonly property string actualHandle: String(bookmarkCard.modelData.username
+                                        || bookmarkCard.modelData.author || "").trim().replace(/^@/, "")
+                                    visible: actualHandle.length > 0 && !/^fid:[0-9]+$/i.test(actualHandle)
+                                    text: visible ? "@" + actualHandle : ""
                                     color: Theme.textSecondary
                                     font.pixelSize: Theme.typeCaptionSize
                                     elide: Text.ElideRight

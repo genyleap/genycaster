@@ -203,7 +203,9 @@ Item {
                                     elide: Text.ElideRight
                                 }
                                 DirectionAwareLabel {
-                                    text: "@" + String(modelData.username || modelData.fid)
+                                    readonly property string actualHandle: String(modelData.username || "").trim().replace(/^@/, "")
+                                    visible: actualHandle.length > 0 && !/^fid:[0-9]+$/i.test(actualHandle)
+                                    text: visible ? "@" + actualHandle : ""
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
                                 }

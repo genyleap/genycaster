@@ -858,8 +858,11 @@ Item {
         openProofConnections.refresh()
         accountConnectionsPopup.open()
     }
-    readonly property bool showUsername: String(root.activeDetail.username || "").trim().length > 0
-                                         && !root.syntheticUsername(root.activeDetail.username)
+    // Native HyperSnap accounts do not have a username registry.
+    // Display the handle only when a genuine non-synthetic username exists.
+    readonly property bool showUsername: !(root.isOwnProfile && root.accountIsNativeCustody)
+        && String(root.activeDetail.username || "").trim().length > 0
+        && !root.syntheticUsername(root.activeDetail.username)
     readonly property string normalizedBio: String(root.activeDetail.bio || "").replace(/\s+/g, " ").trim()
     readonly property string displayLocation: {
         const geoAvailable = typeof geoLocationResolver !== "undefined" && geoLocationResolver !== null
@@ -1585,8 +1588,9 @@ Item {
                                         }
                                     }
                                     ActionButton {
-                                        visible: presentationBridge.farcasterWebProfileUrl(
-                                            String(root.activeDetail.username || "")).length > 0
+                                        visible: root.showUsername
+                                            && presentationBridge.farcasterWebProfileUrl(
+                                                String(root.activeDetail.username || "")).length > 0
                                         Layout.fillWidth: true
                                         quiet: true
                                         alignStart: true
@@ -1837,7 +1841,8 @@ Item {
                         y: -Math.round(root.profileAvatarSize * 0.50)
                         avatarSize: root.profileAvatarSize
                         sourceUrl: root.activeDetail.avatarUrl || ""
-                        displayName: root.activeDetail.displayName || root.activeDetail.username || ""
+                        displayName: root.activeDetail.displayName
+                            || (root.showUsername ? root.activeDetail.username : "")
                     }
 
                     TapHandler {
@@ -2228,6 +2233,7 @@ Item {
 
                     RowLayout {
                         objectName: "profileUsernameAndLinksRow"
+                        visible: root.showUsername
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         layoutDirection: Theme.uiDirection
@@ -3359,8 +3365,7 @@ Item {
             ModalHeader {
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.profile.edit_details")
-                subtitle: root.accountIsNativeCustody
-                    ? qsTrId("genycaster.profile.network_description")
+                subtitle: root.accountIsNativeCustody ? ""
                     : qsTrId("genycaster.profile.edit_sections_subtitle")
                 sheetPresentation: false
                 onCloseRequested: profileExtrasEditor.close()
@@ -3404,16 +3409,17 @@ Item {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: root.accountIsNativeCustody
-                              ? qsTrId("genycaster.profile.network_description")
-                              : qsTrId("genycaster.profile.protocol_description")
+                        visible: !root.accountIsNativeCustody
+                        text: qsTrId("genycaster.profile.protocol_description")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
                     }
-                    // Preferred USERNAME (UserData type 6) needs existing
-                    // protocol ownership proof. Keep it distinct from display.
+                    // The username editor is Snapchain-only. Native HyperSnap
+                    // accounts have no name registry; never show a disabled
+                    // field or a warning about an unsupported feature.
                     DirectionAwareLabel {
+                        visible: !root.accountIsNativeCustody
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.composer.username")
                         color: Theme.inkMuted
@@ -3421,6 +3427,7 @@ Item {
                     DirectionAwareTextField {
                         id: usernameProtocolEditor
                         objectName: "profileProtocolUsername"
+                        visible: !root.accountIsNativeCustody
                         Layout.fillWidth: true
                         forceLeftToRight: true
                         maximumLength: 20
@@ -3429,21 +3436,15 @@ Item {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        visible: !root.accountIsNativeCustody
                         text: qsTrId("genycaster.profile.username_separate")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
                     }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        visible: root.accountIsNativeCustody
-                        text: qsTrId("genycaster.profile.native_username_registration_pending")
-                        color: Theme.warning
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.Wrap
-                    }
                     ActionButton {
                         objectName: "profileProtocolUsernameSave"
+                        visible: !root.accountIsNativeCustody
                         Layout.fillWidth: true
                         quiet: true
                         compact: true

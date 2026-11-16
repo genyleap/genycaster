@@ -580,11 +580,12 @@ GenyDrawer {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: "@" + String(presentationBridge.accountProfile.username || "")
+                        text: "@" + String(presentationBridge.accountUsername || "")
                         color: Theme.textSecondary
                         font.pixelSize: Theme.typeMetaSize
                         elide: Text.ElideRight
-                        visible: Boolean(presentationBridge.accountProfile.username)
+                        visible: !presentationBridge.nativeCustodyAccount
+                            && Boolean(presentationBridge.accountUsername)
                     }
                 }
                 Icon {

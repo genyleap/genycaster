@@ -647,8 +647,10 @@ Item {
                                     DirectionAwareLabel {
                                         Layout.fillWidth: true
                                         alignToUi: true
-                                        text: String(modelData.display_name || modelData.username || "")
-                                            || qsTrId("genycaster.streak.fid")
+                                        text: String(modelData.display_name
+                                            || (/^fid:[0-9]+$/i.test(String(modelData.username || ""))
+                                                ? "" : modelData.username)
+                                            || "") || qsTrId("genycaster.streak.fid")
                                                 .arg(LocaleFormat.formatInteger(Number(modelData.fid)))
                                         font.pixelSize: Theme.typeBodySize
                                         font.weight: Theme.weightDemiBold
@@ -662,8 +664,9 @@ Item {
                                         layoutDirection: Theme.uiDirection
                                         LayoutMirroring.enabled: false
                                         DirectionAwareLabel {
-                                            visible: String(modelData.username || "").length > 0
-                                            text: "@" + String(modelData.username || "")
+                                            readonly property string actualHandle: String(modelData.username || "").trim().replace(/^@/, "")
+                                            visible: actualHandle.length > 0 && !/^fid:[0-9]+$/i.test(actualHandle)
+                                            text: visible ? "@" + actualHandle : ""
                                             forceLeftToRight: true
                                             font.pixelSize: Theme.typeCaptionSize
                                             color: Theme.inkMuted
@@ -671,7 +674,8 @@ Item {
                                             Layout.maximumWidth: Theme.scaleUi(120)
                                         }
                                         Label {
-                                            visible: String(modelData.username || "").length > 0
+                                            visible: String(modelData.username || "").trim().length > 0
+                                                && !/^fid:[0-9]+$/i.test(String(modelData.username || "").trim())
                                             text: "·"
                                             color: Theme.inkMuted
                                             font.pixelSize: Theme.typeCaptionSize

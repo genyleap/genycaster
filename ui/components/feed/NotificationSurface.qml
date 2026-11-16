@@ -230,7 +230,7 @@ Item {
             return false
         const handle = String(root.accountProfile && root.accountProfile.username || "")
             .replace(/^@/, "").toLowerCase()
-        if (handle.length === 0) return false
+        if (handle.length === 0 || /^fid:[0-9]+$/i.test(handle)) return false
         const text = String(row.castText || "").toLowerCase()
         const needle = "@" + handle
         let offset = text.indexOf(needle)
@@ -418,7 +418,7 @@ Item {
             if (display.length > 0)
                 return display
             const username = String(root.accountProfile.username || "")
-            if (username.length > 0)
+            if (username.length > 0 && !/^fid:[0-9]+$/i.test(username))
                 return username
         }
         return ""
@@ -1527,7 +1527,9 @@ Item {
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: "@" + String(actorEntry.modelData.username || actorEntry.modelData.fid || "")
+                                readonly property string actualHandle: String(actorEntry.modelData.username || "").trim().replace(/^@/, "")
+                                visible: actualHandle.length > 0 && !/^fid:[0-9]+$/i.test(actualHandle)
+                                text: visible ? "@" + actualHandle : ""
                                 color: Theme.textSecondary
                                 font.pixelSize: Theme.typeCaptionSize
                                 elide: Text.ElideRight

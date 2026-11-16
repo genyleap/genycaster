@@ -13,6 +13,11 @@ genycaster.side_nav.genycaster
 # projections use the real FID instead of synthetic @you / You labels.
 genycaster.runtime.you
 genycaster.runtime.you_2
+# Native HyperSnap does not expose fname registration, and empty social handles
+# are now hidden. Older clients may still request these translated labels.
+genycaster.profile.native_username_registration_pending
+genycaster.profile.network_description
+genycaster.social.sign_in_to_personalize
 genycaster.channels.read_note
 genycaster.home.geny_token_slide_one
 genycaster.home.geny_token_slide_two

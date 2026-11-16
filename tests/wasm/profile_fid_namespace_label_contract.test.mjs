@@ -48,7 +48,8 @@ test('unset native usernames are never rendered as fake profile handles', () => 
 
   assert.ok(decoder.includes('handle.starts_with("fid:")'));
   assert.ok(presenter.includes('visibleProfileUsername(std::move(username))'));
-  assert.ok(presenter.includes('m_accountUsername = visibleProfileUsername('));
+  assert.ok(presenter.includes('m_accountUsername = nativeCustodyAccount() ? QString{}'));
+  assert.ok(presenter.includes('return nativeCustodyAccount() ? QString{} : m_accountUsername;'));
   assert.ok(profile.includes('visible: root.showUsername'));
   const ownershipStart = profile.indexOf('readonly property bool isOwnProfile:');
   const ownershipEnd = profile.indexOf('readonly property int profileAvatarSize', ownershipStart);

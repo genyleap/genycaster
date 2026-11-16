@@ -111,7 +111,8 @@ Superellipse {
         hoverEnabled: true
         focusPolicy: Qt.StrongFocus
         Accessible.name: root.authenticated ? root.shownName : qsTrId("genycaster.header.sign_in")
-        Accessible.description: root.authenticated && root.username.length > 0 ? "@" + root.username : ""
+        Accessible.description: root.authenticated && root.shownUsername.length > 0
+                                ? "@" + root.shownUsername : ""
         background: Item {}
         contentItem: Item {}
         onClicked: root.authenticated ? root.viewProfileRequested() : root.accountRequested()
