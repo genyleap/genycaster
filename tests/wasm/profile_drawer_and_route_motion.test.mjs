@@ -63,6 +63,14 @@ test('mobile uses equal-width Share and Edit buttons; desktop uses a real profil
   assert.match(actions,/profileExtrasEditor\.open\(\)/);
   assert.doesNotMatch(actions,/text: qsTrId\("genycaster\.profile\.links_title"\)/);
 });
+test('profile link and provider focus use shared superellipse geometry',()=>{
+  assert.match(profile,/background: Superellipse \{[\s\S]*?fillColor: socialBadge\.down/);
+  assert.match(profile,/background: PopupSurface \{[\s\S]*?curveDepth: Theme\.curveCompact/);
+  assert.match(profile,/background: NeonStatePlate \{[\s\S]*?hovered: identityMoreLinks\.hovered/);
+  assert.match(profile,/focused: Theme\.keyboardFocusVisible\(identityMoreLinks\)/);
+  assert.doesNotMatch(profile,/color: identityMoreLinks\.hovered \? Theme\.surfaceHover/);
+});
+
 test('website and additional links are in the identity row, not below the biography',()=>{
   const start=profile.indexOf('objectName: "profileIdentityRow"');
   const end=profile.indexOf('objectName: "profileProfessionalCategory"',start);
