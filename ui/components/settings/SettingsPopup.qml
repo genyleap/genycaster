@@ -1176,17 +1176,32 @@ GenyAdaptiveDialog {
                                         : presetId === "mint" ? Theme.swatchMint
                                         : Theme.swatchMono
                                     readonly property bool selected: appearanceController.colorThemeId === presetId
+                                    function selectPreset() {
+                                        if (selected) return
+                                        Theme.beginPaletteSwitch()
+                                        appearanceController.setColorThemeId(presetId)
+                                    }
+                                    activeFocusOnTab: true
+                                    Keys.onPressed: event => {
+                                        if (event.key === Qt.Key_Space || event.key === Qt.Key_Return
+                                                || event.key === Qt.Key_Enter) {
+                                            themePreset.selectPreset()
+                                            event.accepted = true
+                                        }
+                                    }
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 0
                                     Layout.preferredHeight: 90
                                     Accessible.role: Accessible.RadioButton
                                     Accessible.name: themePreset.presetLabel
                                     Accessible.checked: selected
+                                    Accessible.onPressAction: themePreset.selectPreset()
 
                                     // Stable hit area and highlighted selected cell.
                                     NeonStatePlate {
                                         anchors.fill: parent
                                         selected: themePreset.selected
+                                        focused: themePreset.activeFocus
                                         hovered: presetHover.hovered
                                         pressed: false
                                         selectedFill: Theme.surfaceSelected
@@ -1251,7 +1266,7 @@ GenyAdaptiveDialog {
                                     HoverHandler { id: presetHover; cursorShape: Qt.PointingHandCursor }
                                     TapHandler {
                                         gesturePolicy: TapHandler.ReleaseWithinBounds
-                                        onTapped: { Theme.beginPaletteSwitch(); appearanceController.setColorThemeId(themePreset.presetId) }
+                                        onTapped: themePreset.selectPreset()
                                     }
                                 }
                             }
@@ -1376,6 +1391,7 @@ GenyAdaptiveDialog {
                                         }
                                         Layout.fillWidth: true
                                         placeholderText: qsTrId("genycaster.settings.custom_color_placeholder")
+                                        Accessible.name: qsTrId("genycaster.settings.custom_color")
                                         onTextChanged: root.customColorError = false
                                         onAccepted: {
                                             Theme.beginPaletteSwitch()
