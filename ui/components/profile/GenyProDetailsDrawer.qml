@@ -1040,10 +1040,9 @@ GenyDrawer {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     visible: root.appSignedIn && !root.cloudReady && !root.eligible
-                             && root.restoringSession
                     text: root.restoringSession
                         ? qsTrId("genycaster.pro.secure_session_hint")
-                        : openProofConnections && String(openProofConnections.accountProofError || "").length > 0
+                        : root.proofError.length > 0
                           ? qsTrId("genycaster.pro.secure_session_unavailable")
                           : qsTrId("genycaster.pro.secure_session_hint")
                     font.pixelSize: Theme.typeCaptionSize
