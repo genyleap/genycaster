@@ -24,7 +24,7 @@ test('Mobile Settings remains full-height with grouped index navigation', () => 
     const shell = source('AppShell.qml');
     assert.match(settings, /GenyAdaptiveDialog \{/);
     assert.match(settings, /mobileFullScreen: true/);
-    assert.match(settings, /height: parent \? \(mobilePresentation \? parent\.height/);
+    assert.match(settings, /height: parent \? parent\.height : 780/);
     assert.match(settings, /mobileBottomPaddingExtra: Math\.max\(Theme\.space3, root\.navigationInset\)/);
     assert.match(settings, /readonly property real navigationInset/);
     assert.match(settings, /parent\.Window\.contentItem\.SafeArea\.margins\.bottom : 0/);
