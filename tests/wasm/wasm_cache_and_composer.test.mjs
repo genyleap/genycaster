@@ -214,6 +214,10 @@ test('menu keeps hover label contrast independent of Qt MenuItem opacity',()=>{
     assert.match(item,/text: root\.label/);
     assert.match(item,/color: root\.actionEnabled \? Theme\.ink/);
     assert.match(item,/onClicked: root\.activate\(\)/);
+    assert.match(item,/NeonStatePlate \{/);
+    assert.match(item,/hovered: hit\.containsMouse && root\.actionEnabled/);
+    assert.match(item,/focused: root\.activeFocus && root\.actionEnabled/);
+    assert.doesNotMatch(item,/radius: Theme\.space2/);
     assert.match(qml,/EditorMenuItem/);
     assert.doesNotMatch(qml,/delegate: MenuItem/);
 });
