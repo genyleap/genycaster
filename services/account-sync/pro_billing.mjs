@@ -2,7 +2,7 @@
 // The database is the only subscription authority; a wallet balance never grants
 // Pro and an unsigned client-supplied amount never creates a payment quote.
 import {randomUUID} from 'node:crypto';
-import {verifiedFarcasterWallets} from './geny_assets.mjs';
+import {verifiedAccountWallets} from './geny_assets.mjs';
 import {serverDeployment} from '../deployment_config.mjs';
 
 const ADDRESS=/^0x[0-9a-fA-F]{40}$/;
@@ -64,9 +64,10 @@ export function createProBillingPolicy(env=process.env) {
     throw new Error('invalid_pro_treasury');
   const rpcUrl=validOrigin(String(env.GENYCASTER_GENY_RPC_URL||'https://mainnet.base.org'));
   const snapchainUrl=validOrigin(String(env.GENYCASTER_SNAPCHAIN_URL||serverDeployment(env).snapchainOrigin));
+  const hypersnapUrl=validOrigin(String(env.GENYCASTER_HYPERSNAP_URL||serverDeployment(env).hypersnapOrigin));
   return Object.freeze({
     monthlyUsdCents:Number(cents),treasury,token:GENY,
-    rpcUrl,snapchainUrl,chainId:Number(BASE_CHAIN_ID),quoteTtlMs:QUOTE_TTL_MS,
+    rpcUrl,snapchainUrl,hypersnapUrl,chainId:Number(BASE_CHAIN_ID),quoteTtlMs:QUOTE_TTL_MS,
     confirmations:Number(CONFIRMATIONS),
     enabled:!!treasury,periodDays:30
   });
@@ -221,14 +222,14 @@ export function createProTokenVerifier({fetchImpl=globalThis.fetch,now=Date.now}
 }
 
 export async function verifyProTransfer({
-  owner,quote,txHash,policy,fetchImpl=globalThis.fetch,verifyWallets=verifiedFarcasterWallets
+  owner,quote,txHash,policy,fetchImpl=globalThis.fetch,verifyWallets=verifiedAccountWallets
 }) {
   const tx=normalHash(txHash);
   if(!tx)throw new Error('invalid_payment_hash');
   if(!quote || quote.status!=='quoted')
     throw new Error('quote_not_payable');
-  const wallets=await verifyWallets(owner.fid,{
-    policy:{snapchainUrl:policy.snapchainUrl,
+  const wallets=await verifyWallets(owner,{
+    policy:{snapchainUrl:policy.snapchainUrl,hypersnapUrl:policy.hypersnapUrl,
       rpcUrl:policy.rpcUrl,contract:policy.token},fetchImpl});
   const asset=quoteAsset(quote);
   const expectedToken=proPaymentAsset(asset).token;
