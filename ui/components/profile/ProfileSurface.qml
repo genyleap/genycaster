@@ -756,6 +756,7 @@ Item {
     signal authenticationRequested()
     signal loadMoreRequested()
     signal proRequested()
+    signal signerAuthorizationRequested()
 
     readonly property bool profileMuted: root.mutedProfileFids.indexOf(
         String(Number(root.activeDetail.fid || 0))) >= 0
@@ -3303,6 +3304,10 @@ Item {
                         streakDrawer.close()
                         root.profileRequested(fid)
                     }
+                    onSignerAuthorizationRequested: {
+                        streakDrawer.close()
+                        root.signerAuthorizationRequested()
+                    }
                     onPageChanged: {
                         // Switching between Streak and its peer leaderboard
                         // starts each page at its top.
@@ -3668,7 +3673,7 @@ Item {
                         quiet: true
                         enabled: !presentationBridge.signerBusy
                         text: qsTrId("genycaster.shell.native_signer_authorize")
-                        onClicked: presentationBridge.provisionSigner()
+                        onClicked: root.signerAuthorizationRequested()
                     }
                     ActionButton {
                         objectName: "profileProtocolSave"
