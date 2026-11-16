@@ -78,11 +78,11 @@ export async function verifiedAccountWallets(owner,{policy,fetchImpl=globalThis.
   if(namespace==='hypersnap:native-registry' &&
       owner.subject==='hypersnap:'+fid && Number(fid)>=4294967296)
     return verifiedWalletsByFid(fid,policy.hypersnapUrl,fetchImpl);
-  if(namespace!=='hypersnap:native-registry' &&
-      owner.subject==='farcaster:'+fid &&
-      (namespace==='https://openproof.genyleap.com' ||
-       namespace==='https://id.example.test' ||
-       namespace==='farcaster:optimism-id-registry'))
+  // The account API has already authenticated this issuer; the provider
+  // function rejects all caller-supplied FID/subject mismatches.
+  if((namespace.startsWith('https://') ||
+      namespace==='farcaster:optimism-id-registry') &&
+      owner.subject==='farcaster:'+fid)
     return verifiedWalletsByFid(fid,policy.snapchainUrl,fetchImpl);
   throw new Error('verified_account_required');
 }
