@@ -11,7 +11,7 @@ test('Home keeps original layout with GENY banner and four compact slots', () =>
  assert.equal((home.match(/HubWorkspace \{/g)||[]).length,2);
  assert.match(home,/id: mobileFlick/);
  assert.match(home,/avatarSize: root\.androidCompact\s*\? \(root\.densePhone \? 50 : 64\)\s*: \(root\.densePhone \? 56 : 76\)/);
- for(const id of ['explorer','search','apps','wallet'])
+ for(const id of ['explorer','channels','apps','pro'])
    assert.match(home,new RegExp('destination: "'+id+'"'));
  assert.match(home,/HomeActivityCard \{/);
  assert.doesNotMatch(home,/key: "agent"|key: "studio"/);
@@ -19,11 +19,14 @@ test('Home keeps original layout with GENY banner and four compact slots', () =>
 
 test('Settings occupies the full phone viewport, without a partial-height sheet', () => {
     const settings=qml('LocaleSettingsPopup');
-    assert.match(settings,/height: parent \? parent\.height : 820/);
-    assert.match(settings,/bottomSheet: mobilePresentation/);
+    assert.match(settings,/GenyAdaptiveDialog \{/);
+    assert.match(settings,/mobileFullScreen: true/);
+    assert.match(settings,/height: parent \? \(mobilePresentation \? parent\.height/);
     assert.match(settings,/showHandle: false/);
-    assert.match(settings,/interactive: false/);
-    assert.match(settings,/closePolicy: Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
+    const adaptive=qml('GenyAdaptiveDialog');
+    assert.match(adaptive,/bottomSheet: true/);
+    assert.match(adaptive,/interactive: !control\.mobileFullScreen/);
+    assert.match(adaptive,/closePolicy: control\.closePolicy/);
 });
 
 test('Create sheet fits content and removes old top/bottom spacer', () => {

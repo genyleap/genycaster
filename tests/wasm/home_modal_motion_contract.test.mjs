@@ -9,6 +9,7 @@ test('all drawer families close on outside press without dragging their scrollin
     const base=qml('GenyDrawer'), backdrop=qml('DrawerBackdrop');
     const search=qml('SearchPalette'),settings=qml('LocaleSettingsPopup');
     const composer=qml('ComposerDrawer'), create=qml('MobileCreateMenu');
+    const adaptive=qml('GenyAdaptiveDialog');
     const account=qml('AppShell');
     assert.match(base,/closePolicy: Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
     assert.match(base,/Overlay\.modal: DrawerBackdrop \{/);
@@ -16,10 +17,12 @@ test('all drawer families close on outside press without dragging their scrollin
     assert.match(backdrop,/onPressed: mouse => \{[\s\S]*?root\.requestOutsideDismiss\(\)/);
     assert.match(search,/closePolicy: Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
     assert.match(search,/onBackgroundTapped: root\.close\(\)/);
-    assert.match(settings,/closePolicy: Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
-    assert.match(settings,/height: parent \? parent\.height : 820/);
-    for(const q of [settings,composer])
-        assert.match(q,/interactive: false/);
+    assert.match(settings,/GenyAdaptiveDialog \{/);
+    assert.match(adaptive,/closePolicy: Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
+    assert.match(adaptive,/closePolicy: control\.closePolicy/);
+    assert.match(settings,/mobileFullScreen: true/);
+    assert.match(adaptive,/interactive: !control\.mobileFullScreen/);
+    assert.match(composer,/interactive: false/);
     // The small Create menu is intentionally gesture-dismissable, unlike
     // scrollable full-screen editors.
     assert.match(create,/interactive: true/);
@@ -29,8 +32,9 @@ test('all drawer families close on outside press without dragging their scrollin
 test('centered modal outside click dismisses while intercepting input from underlying page',()=>{
     const modal=qml('GenyModal');
     assert.match(modal,/closePolicy: Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
-    assert.match(modal,/onPressed: function\(mouse\) \{[\s\S]*?mouse\.accepted = true[\s\S]*?control\.close\(\)/);
-    assert.match(modal,/Overlay\.modal: Rectangle/);
+    assert.match(modal,/Overlay\.modal: DrawerBackdrop \{/);
+    assert.match(modal,/blockInput: true/);
+    assert.match(modal,/if \(control\.closePolicy & Popup\.CloseOnPressOutside\)[\s\S]*?control\.close\(\)/);
 });
 
 test('drawers animate from owning edge with reduced-motion safe transitions',()=>{
@@ -46,10 +50,11 @@ test('drawers animate from owning edge with reduced-motion safe transitions',()=
     assert.match(search,/opacity: root\.position/);
 });
 
-test('Home presents a compact banner, three navigation cards and passive Wallet',()=>{
+test('Home retains four functional shortcuts and a Neon activity card',()=>{
  const home=qml('HomeDashboard');
- assert.match(home,/component HomeActivityCard: Superellipse/);
- assert.match(home,/destination: "wallet"/);
+ assert.match(home,/component HomeActivityCard: NeonCard/);
+ for(const destination of ['explorer','channels','apps','pro'])
+     assert.match(home,new RegExp('destination: "'+destination+'"'));
  assert.match(home,/enabled: !shortcut.locked/);
- assert.doesNotMatch(home,/key: "agent"|key: "studio"/);
+ assert.doesNotMatch(home,/destination: "wallet"|key: "agent"|key: "studio"/);
 });

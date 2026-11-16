@@ -4,27 +4,38 @@ import {readFileSync} from 'node:fs';
 
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
-test('Settings covers the entire application on desktop and mobile without capturing the workspace', () => {
+test('Settings is a centered content-fitted modal on desktop and a bottom sheet on mobile', () => {
     const settings = read('ui/components/settings/SettingsPopup.qml');
     const shell = read('ui/components/shell/AppShell.qml');
-    const drawer = read('ui/components/controls/GenyDrawer.qml');
-    assert.match(settings, /bottomSheet: mobilePresentation/);
-    assert.match(settings, /fullScreen: true/);
+    const adaptive = read('ui/components/controls/GenyAdaptiveDialog.qml');
+    assert.match(settings, /GenyAdaptiveDialog \{/);
+    assert.match(settings, /mobileFullScreen: true/);
+    assert.match(settings, /showHandle: false/);
     assert.match(settings, /blurSourceItem: null/);
-    assert.match(settings, /dimBackground: false/);
-    assert.match(settings, /efficientBackdropBlur: false/);
-    assert.match(settings, /width: parent \? parent\.width : 880/);
-    assert.match(settings, /height: parent \? parent\.height : 820/);
-    assert.match(settings, /readonly property real desktopContentInset:[\s\S]*?Math\.max\(root\.contentPadding, \(root\.width - Theme\.scaleUi\(1200\)\) \/ 2\)/);
-    assert.match(settings, /leftPadding: desktopContentInset/);
-    assert.match(settings, /rightPadding: desktopContentInset/);
+    assert.match(settings, /dimBackground: !mobilePresentation/);
+    assert.match(settings, /popupZ: 0/);
+    assert.match(settings, /width: parent \? \(mobilePresentation \? parent\.width/);
+    assert.match(settings, /Math\.min\(Theme\.scaleUi\(1380\), Math\.max\(0, parent\.width - Theme\.space4 \* 2\)\)/);
+    assert.match(settings, /height: parent \? \(mobilePresentation \? parent\.height/);
+    assert.match(settings, /Math\.min\(Theme\.scaleUi\(860\), Math\.max\(0, parent\.height - Theme\.space4 \* 2\)\)/);
+    assert.doesNotMatch(settings, /desktopContentInset|leftPadding: desktopContentInset|rightPadding: desktopContentInset/);
+    assert.match(settings, /contentPadding: mobilePresentation \? Theme\.mobileGutter : Theme\.space4/);
     assert.match(settings, /onCloseRequested: root\.close\(\)/);
     assert.match(settings, /readonly property real navigationInset/);
+    assert.match(settings, /mobileBottomPaddingExtra: Math\.max\(Theme\.space3, root\.navigationInset\)/);
+    assert.match(settings, /onDidOpen: \{/);
+    assert.match(settings, /onDidClose: root\.mobileIndexOpen = true/);
+    assert.match(adaptive, /GenyModal \{[\s\S]*?id: desktopDialog/);
+    assert.match(adaptive, /GenyDrawer \{[\s\S]*?id: mobileDrawer/);
+    assert.match(adaptive, /bottomSheet: true/);
+    assert.match(adaptive, /fullScreen: control\.mobileFullScreen/);
+    assert.match(adaptive, /blurSourceItem: control\.blurSourceItem/);
+    assert.match(adaptive, /contentItem: Item \{\s*id: desktopContentHost/);
+    assert.match(adaptive, /contentItem: Item \{\s*id: mobileContentHost/);
+    assert.match(adaptive, /control\.attachContent\(desktopContentHost\)/);
+    assert.match(adaptive, /control\.attachContent\(mobileContentHost\)/);
     const loadedSettings = shell.split('LocaleSettingsPopup {')[1].split('onCustomAccentStudioRequested')[0];
     assert.doesNotMatch(loadedSettings, /blurSourceItem:\s*shellContent/);
-    assert.match(drawer, /dim: control\.blurSourceItem !== null \|\| control\.dimBackground/);
-    assert.match(drawer, /curveDepth: control\.fullScreen \? 0/);
-    assert.match(drawer, /neonAmbient: !control\.fullScreen/);
 });
 
 test('All recovery checkboxes share a stable Light/Dark background and explicit checked appearance', () => {

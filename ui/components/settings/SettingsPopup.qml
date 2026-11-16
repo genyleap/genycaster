@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-GenyDrawer {
+GenyAdaptiveDialog {
     id: root
     objectName: "settingsPopup"
 
@@ -111,34 +111,22 @@ GenyDrawer {
         return applied
     }
 
-    // Settings occupies the entire application viewport on every platform.
-    // Its opaque surface replaces the workspace, so blurring or dimming
-    // a background that is not visible would waste GPU memory bandwidth.
-    // Mobile retains its bottom-sheet gesture direction and safe-area rules.
-    bottomSheet: mobilePresentation
-    fullScreen: true
+    // Reuse the shared adaptive host: a true centered Qt modal on desktop
+    // and a genuine bottom-edge Drawer on mobile. The entire preferences
+    // form remains a single contentItem, not two independent implementations.
+    // Neither presentation samples the workspace for blur.
     blurSourceItem: null
-    // Scrolling settings must not drag the sheet. Dismiss only by Back/Close
-    // or Escape; the full-screen mobile panel has no outside backdrop.
-    interactive: false
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    dimBackground: !mobilePresentation
+    // Keep the ordinary modal stacking level. Sign-out, recovery, Pro and
+    // nested confirmation popups opened from Settings must appear above it.
+    popupZ: 0
+    mobileFullScreen: true
     showHandle: false
-    dimBackground: false
-    efficientBackdropBlur: false
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
-    // On large desktop monitors, constrain the inner preferences content,
-    // NOT the drawer. The opaque panel still covers the full viewport while
-    // the navigation and editing columns remain comfortably readable.
-    readonly property real desktopContentInset: mobilePresentation
-        ? root.contentPadding
-        : Math.max(root.contentPadding, (root.width - Theme.scaleUi(1200)) / 2)
-    leftPadding: desktopContentInset
-    rightPadding: desktopContentInset
-    width: parent ? parent.width : 880
-    // The overlay already represents the Qt-safe content viewport. Reserve
-    // system status/navigation insets through padding, not a fake blank strip
-    // above the drawer. Full height also works after orientation changes.
-    height: parent ? parent.height : 820
+    width: parent ? (mobilePresentation ? parent.width
+        : Math.min(Theme.scaleUi(1380), Math.max(0, parent.width - Theme.space4 * 2))) : 1180
+    height: parent ? (mobilePresentation ? parent.height
+        : Math.min(Theme.scaleUi(860), Math.max(0, parent.height - Theme.space4 * 2))) : 780
     // Drawer/Popup inherits QtObject rather than Item. SafeArea belongs to
     // the overlay Item (or its Window.contentItem), never to the popup root.
     readonly property real navigationInset: root.mobilePresentation && parent
@@ -149,10 +137,9 @@ GenyDrawer {
                        ? parent.Window.window.SafeArea.margins.bottom : 0,
                    parent.Window.contentItem
                        ? parent.Window.contentItem.SafeArea.margins.bottom : 0) : 0
-    bottomPadding: root.contentPadding + (root.mobilePresentation
-                   ? Math.max(Theme.space3, root.navigationInset) : 0)
+    mobileBottomPaddingExtra: Math.max(Theme.space3, root.navigationInset)
 
-    onOpened: {
+    onDidOpen: {
         if (!presentationBridge.isAuthenticated && root.currentSection === 5) {
             root.currentSection = 0
             root.mobileIndexOpen = true
@@ -161,7 +148,7 @@ GenyDrawer {
         root.customColorError = false
         root.showRecoveryExplanation = false
     }
-    onClosed: root.mobileIndexOpen = true
+    onDidClose: root.mobileIndexOpen = true
     Connections {
         target: presentationBridge
         function onAuthenticationStateChanged() {

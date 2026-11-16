@@ -22,9 +22,10 @@ test('Home quick composer transfers text to the rich Cast paragraph', () => {
 test('Mobile Settings remains full-height with grouped index navigation', () => {
     const settings = source('LocaleSettingsPopup.qml');
     const shell = source('AppShell.qml');
-    assert.match(settings, /fullScreen: true/);
-    assert.match(settings, /height: parent \? parent\.height : 820/);
-    assert.match(settings, /bottomPadding: root\.contentPadding \+ \(root\.mobilePresentation/);
+    assert.match(settings, /GenyAdaptiveDialog \{/);
+    assert.match(settings, /mobileFullScreen: true/);
+    assert.match(settings, /height: parent \? \(mobilePresentation \? parent\.height/);
+    assert.match(settings, /mobileBottomPaddingExtra: Math\.max\(Theme\.space3, root\.navigationInset\)/);
     assert.match(settings, /readonly property real navigationInset/);
     assert.match(settings, /parent\.Window\.contentItem\.SafeArea\.margins\.bottom : 0/);
     assert.match(settings, /parent\.Window\.window\.SafeArea\.margins\.bottom : 0/);

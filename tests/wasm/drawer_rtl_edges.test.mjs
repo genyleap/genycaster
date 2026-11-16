@@ -49,8 +49,9 @@ test('profile editors, app details, account and settings inherit the shared edge
   assert.match(apps,/id:\s*miniAppDetailDrawer[\s\S]*?bottomSheet:\s*mobilePresentation/);
   const account=qml('components/profile/ConnectionsPopup.qml');
   assert.match(account,/bottomSheet:\s*mobilePresentation/);
-  for(const name of ['LocaleSettingsPopup','DataStoragePopup'])
-    assert.match(qml('components/'+componentPath(name)+'.qml'),/bottomSheet:\s*(?:mobilePresentation|root\.mobilePresentation)/);
+  assert.match(qml('components/'+componentPath('LocaleSettingsPopup')+'.qml'),/GenyAdaptiveDialog \{/);
+  assert.match(qml('components/'+componentPath('LocaleSettingsPopup')+'.qml'),/mobileFullScreen: true/);
+  assert.match(qml('components/'+componentPath('DataStoragePopup')+'.qml'),/bottomSheet:\s*(?:mobilePresentation|root\.mobilePresentation)/);
   const theme=qml('theme/Theme.qml');
   assert.match(theme,/uiDirection:\s*rtl\s*\?\s*Qt\.RightToLeft\s*:\s*Qt\.LeftToRight/);
   assert.match(profile,/layoutDirection:\s*Theme\.uiDirection/);

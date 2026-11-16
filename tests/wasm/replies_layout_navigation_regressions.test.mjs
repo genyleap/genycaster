@@ -42,7 +42,9 @@ test('settings scrolling does not dismiss the drawer; header identity opens prof
   const settings=read('ui/components/settings/SettingsPopup.qml');
   const header=read('ui/components/shell/AppHeader.qml');
   const shell=read('ui/components/shell/AppShell.qml');
-  assert.match(settings,/interactive: false\s*closePolicy: Popup\.CloseOnEscape/);
+  assert.match(settings,/GenyAdaptiveDialog \{/);
+  assert.match(settings,/mobileFullScreen: true/);
+  assert.match(read('ui/components/controls/GenyAdaptiveDialog.qml'),/interactive: !control\.mobileFullScreen/);
   assert.match(header,/root\.isAuthenticated \? root\.ownProfileRequested\(\) : root\.accountRequested\(\)/);
   assert.match(shell,/onOwnProfileRequested: root\.openMyProfileFromNavigation\(\)/);
   assert.match(settings,/objectName: "settingsRecoveryRevoke"/);
@@ -51,7 +53,7 @@ test('settings scrolling does not dismiss the drawer; header identity opens prof
 test('compact Mini Apps use equal tabs and explicit launch/save actions',()=>{
   const app=read('ui/components/apps/AppsSurface.qml');
   const library=read('ui/components/apps/LibraryShelves.qml');
-  assert.match(app,/id: destinationCard[\s\S]{0,900}Layout\.preferredWidth: 0/);
+  assert.match(app,/id: destinationCard[\s\S]{0,1400}Layout\.preferredWidth: 0/);
   assert.match(app,/objectName: "miniAppMobileOpenButton"/);
   assert.match(app,/iconGlyph: saved \? Theme\.iconCheck : Theme\.iconPlus/);
   assert.match(library,/objectName: "savedMiniAppOpenButton"/);

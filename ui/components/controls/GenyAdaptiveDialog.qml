@@ -13,6 +13,8 @@ Item {
     property Item blurSourceItem: null
     property int contentPadding: Theme.space3
     property bool dimBackground: true
+    property int closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    property real mobileBottomPaddingExtra: 0
     // Explicit presentation contract: compact confirmation prompts remain
     // short gesture-dismissable sheets, while scrollable forms opt into a
     // full-screen inspector with their own Close control and no pull handle.
@@ -79,6 +81,7 @@ Item {
         parent: control.parent
         padding: control.contentPadding
         z: control.popupZ
+        closePolicy: control.closePolicy
         width: Math.min(control.width, parent ? Math.max(320, parent.width - Theme.space5 * 2) : control.width)
         height: Math.min(control.height, parent ? Math.max(320, parent.height - Theme.space5 * 2) : control.height)
 
@@ -117,6 +120,8 @@ Item {
         blurSourceItem: control.blurSourceItem
         showHandle: !control.mobileFullScreen && control.showHandle
         contentPadding: control.contentPadding
+        bottomPadding: control.contentPadding + control.mobileBottomPaddingExtra
+        closePolicy: control.closePolicy
         z: control.popupZ
         width: parent ? parent.width : control.width
         height: control.mobileFullScreen

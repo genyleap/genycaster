@@ -7,10 +7,13 @@ const qml=name=>readFileSync('ui/components/' + componentPath(name)+'.qml','utf8
 
 test('mobile settings use fullscreen navigation and scrollable sections',()=>{
   const settings=qml('LocaleSettingsPopup');
-  assert.match(settings,/bottomSheet: mobilePresentation/);
-  assert.match(settings,/interactive: false/);
-  assert.match(settings,/fullScreen: true/);
-  assert.match(settings,/height: parent \? parent\.height : 820/);
+  assert.match(settings,/GenyAdaptiveDialog \{/);
+  assert.match(settings,/mobileFullScreen: true/);
+  assert.match(settings,/height: parent \? \(mobilePresentation \? parent\.height/);
+  const adaptive=qml('GenyAdaptiveDialog');
+  assert.match(adaptive,/bottomSheet: true/);
+  assert.match(adaptive,/interactive: !control\.mobileFullScreen/);
+  assert.match(adaptive,/onOpened:[\s\S]*?control\.didOpen\(\)/);
 });
 
 test('composer topic loading uses the GenyCaster spinner rather than native Qt busy control',()=>{
