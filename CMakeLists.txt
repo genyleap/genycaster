@@ -95,6 +95,17 @@ unset(_farcasterMediaUploadDefault)
 # Secure CMake-owned deployment configuration. No secrets or user-controlled JS.
 set(GENYCASTER_PUBLIC_ORIGIN "https://genycaster.xyz" CACHE STRING "Canonical public application origin")
 set(GENYCASTER_SIWF_ORIGIN "https://genycaster.xyz" CACHE STRING "Trusted SIWF relying party origin (separate from the hosting origin)")
+# Older configured Qt build trees retain their CMake cache across source
+# upgrades. Migrate only the two published legacy Genycaster defaults; keep
+# explicit third-party/self-hosted overrides intact.
+if(GENYCASTER_PUBLIC_ORIGIN STREQUAL "https://caster.genyleap.com")
+    set(GENYCASTER_PUBLIC_ORIGIN "https://genycaster.xyz" CACHE STRING
+        "Canonical public application origin" FORCE)
+endif()
+if(GENYCASTER_SIWF_ORIGIN STREQUAL "https://genycaster.genyleap.com")
+    set(GENYCASTER_SIWF_ORIGIN "https://genycaster.xyz" CACHE STRING
+        "Trusted SIWF relying party origin" FORCE)
+endif()
 set(GENYCASTER_OPENPROOF_ISSUER "https://openproof.genyleap.com" CACHE STRING "Trusted OpenProof issuer")
 set(GENYCASTER_OPENPROOF_BROWSER_BASE "https://genyleap.com/openproof" CACHE STRING "OAuth browser handoff base")
 set(GENYCASTER_BROWSER_GATEWAY_ORIGIN "https://storage-farcaster.genyleap.com" CACHE STRING "Browser gateway origin")
@@ -142,6 +153,14 @@ set(FARCASTER_DEFAULT_SIWF_DOMAIN
 set(FARCASTER_DEFAULT_SIWF_URI
     "${_GENYCASTER_CANONICAL_SIWF_URI}"
     CACHE STRING "Default SIWF URI for shipping Genycaster builds")
+if(FARCASTER_DEFAULT_SIWF_DOMAIN STREQUAL "genycaster.genyleap.com")
+    set(FARCASTER_DEFAULT_SIWF_DOMAIN "genycaster.xyz"
+        CACHE STRING "Default SIWF domain for shipping Genycaster builds" FORCE)
+endif()
+if(FARCASTER_DEFAULT_SIWF_URI STREQUAL "https://genycaster.genyleap.com/login")
+    set(FARCASTER_DEFAULT_SIWF_URI "https://genycaster.xyz/login"
+        CACHE STRING "Default SIWF URI for shipping Genycaster builds" FORCE)
+endif()
 
 # CMake cache entries survive source upgrades. Reject stale malformed SIWF values
 # before they can be compiled into a shipping binary. Local development values
