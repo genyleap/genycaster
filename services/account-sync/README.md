@@ -60,49 +60,69 @@ than implying that a remote write succeeded. The API responds with JSON,
 never its browser app shell. Browser clients only contact the same-origin
 `api.example.com` API; they do not see PostgreSQL credentials.
 
-## Pre-launch Nginx hold must not block the Account API
+## Canonical HTTPS API domain: genycaster.xyz
 
-The unpublished WebAssembly frontend is intentionally held behind HTTP 503
-until Beta release approval. This does **not** imply that already distributed
-native clients should lose their authenticated account, Pro or Streak API.
+The public application authority is **https://genycaster.xyz**, shared by
+native account-session proof, Pro status/quotes, Streak, and future browser
+deployments. `https://caster.genyleap.com` is a historical unpublished host,
+not the canonical account API. Do not remove its existing prelaunch hold to
+solve a current desktop-session error.
 
-A **server-level** `return 503;` takes priority over all child
-`location` blocks and therefore disables `/api/v1/cloud/` as well.
-Keep the static frontend blocked, but make an explicit, **normalized URI**
-exception for the existing authenticated API proxy:
+The `genycaster.xyz` HTTPS vhost currently serves the public **landing page**.
+The account API must be mounted as a narrowly scoped proxy, without changing
+the landing page or exposing unpublished WebAssembly files:
 
 ```nginx
-# Inside the existing caster.genyleap.com server block; replace the single
-# unconditional pre-launch hold, NOT the /api/v1/cloud/ location.
-add_header Cache-Control "no-store, max-age=0" always;
-if ($uri !~ "^/api/v1/cloud/") {
-    return 503;
+location ^~ /api/v1/cloud/ {
+    proxy_pass http://127.0.0.1:8797;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Request-ID $request_id;
+    proxy_connect_timeout 3s;
+    proxy_read_timeout 30s;
+    proxy_redirect off;
+    client_max_body_size 208k;
+    add_header Cache-Control "no-store" always;
+    add_header X-Content-Type-Options "nosniff" always;
 }
 ```
 
-The reviewed one-time deployment helper is
-`ci/repair_prelaunch_cloud_nginx.py`. On the actual Nginx host, review the
-proposed diff first:
+The reviewed **dry-run-first** admin helper is
+`ci/enable_genycaster_xyz_cloud_api.py`; run these commands **on the
+actual Nginx host with privileged `/etc` access**:
 
 ```sh
-python3 ci/repair_prelaunch_cloud_nginx.py
-sudo python3 ci/repair_prelaunch_cloud_nginx.py --apply
+python3 ci/enable_genycaster_xyz_cloud_api.py
+sudo python3 ci/enable_genycaster_xyz_cloud_api.py --apply
 ```
 
-The helper only recognizes the known vhost/proxy and exact hold, creates
-a local backup, calls `nginx -t`, reloads Nginx and verifies HTTPS response
-codes locally with TLS hostname validation. It automatically rolls back
-if validation fails. Administrative file access is required; a Remote Ops
-connection mounting `/etc` read-only cannot apply this change.
+Its backup, `nginx -t`, reload, HTTP probes and automatic rollback protect
+the existing landing. The tool deliberately requires the Account API to
+already accept the new `Origin: https://genycaster.xyz`. It verifies:
 
-Expected externally observable HTTP statuses after the change:
-- `/api/v1/cloud/pro/plan`: 200
-- `/api/v1/cloud/session` without credentials: 401
-- `/` and `/farcaster_client.html`: 503, until Beta publication
+- `GET /api/v1/cloud/pro/plan`: 200, from the public HTTPS vhost
+- `GET /api/v1/cloud/session` without credentials: 401
+- `POST /api/v1/cloud/session/challenge` with canonical Origin: 200
+- `GET /`: 200 (existing landing is preserved)
 
-Never solve this by removing the entire prelaunch hold, disabling
-authentication/CSRF, moving the client to an untrusted host, or returning
-a fabricated membership. Public Pro metadata is not a user entitlement.
+A Remote Ops connection mounting `/etc` read-only cannot perform this step.
+The old `ci/repair_prelaunch_cloud_nginx.py` only targets the **legacy**
+`caster.genyleap.com` vhost and is not part of this migration.
+
+The signed API cookie is `Secure; HttpOnly; SameSite=Strict` and **host-only**.
+Old cookies cannot be moved from `caster.genyleap.com` to `genycaster.xyz`;
+existing native clients must reissue the short signed account challenge after
+updating to the new public origin. User data, Streak, and Pro subscriptions
+remain attached to the verified protocol issuer/FID in the database and are
+not moved between accounts.
+
+Keep OpenProof's **issuer and OAuth authority**, Snapchain and HyperSnap
+registries, and the media gateway distinct. Their public endpoints continue
+to use the independently configured HTTPS origins; any browser-facing
+Snapchain/Media CORS allowed-origin checks must recognize
+`https://genycaster.xyz` before the WASM app is published. Never use wildcard
+CORS or bypass nonce/CSRF validation to accommodate a migration.
 
 ## Authentication and ownership
 
