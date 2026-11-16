@@ -3,5 +3,5 @@
   "openproofIssuerUrl": "https://openproof.genyleap.com",
   "openproofBrowserConnectionBaseUrl": "https://genyleap.com/openproof",
   "openproofConnectionsGatewayUrl": "https://storage-farcaster.genyleap.com/v1/browser/openproof/connections",
-  "genycasterCloudApiUrl": "https://caster.genyleap.com/api/v1/cloud/profile_extras"
+  "genycasterCloudApiUrl": "https://genycaster.xyz/api/v1/cloud/profile_extras"
 }
