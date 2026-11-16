@@ -45,7 +45,9 @@ Item {
     // frame of dozens of live cards beneath the settings inspector.
     Timer {
         id: paletteSnapshotRefresh
-        interval: Theme.materialSurfaceDuration + 20
+        // Coalesce palette changes and wait until the visible scene settles;
+        // capturing during its paint animations creates a GPU synchronization stall.
+        interval: Math.max(360, Theme.materialSurfaceDuration + 220)
         repeat: false
         onTriggered: root.refreshSnapshot()
     }
@@ -84,11 +86,11 @@ Item {
     readonly property real blurStrength: renderingController.profile === "efficiency"
                                          || renderingController.effectiveQuality === "efficiency" ? 0.46 : 0.58
     // Original panels retain their HiDPI snapshot. The theme inspector
-    // intentionally samples at <= 72% viewport resolution: detail behind a
+    // intentionally samples at <= 48% viewport resolution: detail behind a
     // frosted sheet is intentionally obscured, so Retina-scale copies only
     // waste memory bandwidth and induce expensive GPU synchronization.
     readonly property real nativeCaptureScale: root.efficientNativeBlur
-        ? Math.min(0.72, 2048 / Math.max(1, root.width, root.height))
+        ? Math.min(0.48, 1440 / Math.max(1, root.width, root.height))
         : Math.min(Math.max(1, Screen.devicePixelRatio) * root.captureScale,
                    4096 / Math.max(1, root.width, root.height))
 
@@ -136,10 +138,12 @@ Item {
     }
     ShaderEffectSource {
         id: intermediate
-        sourceItem: horizontalPass
+        sourceItem: root.nativeGaussian ? horizontalPass : null
         visible: false
         live: root.nativeGaussian
-        textureSize: capture.textureSize
+        // Skip the second full-screen offscreen render target for the
+        // optimized frosted Settings backdrop.
+        textureSize: root.nativeGaussian ? capture.textureSize : Qt.size(1, 1)
         smooth: true
     }
     ShaderEffect {
@@ -161,8 +165,8 @@ Item {
         // instead of turning the entire desktop into an oversized blur.
         // A frozen, low-res compositor effect avoids two 47-tap passes.
         blurEnabled: true
-        blur: root.optimizedNativeBlur ? 0.48 : root.blurStrength
-        blurMax: root.optimizedNativeBlur ? 24 : 30
+        blur: root.optimizedNativeBlur ? 0.66 : root.blurStrength
+        blurMax: root.optimizedNativeBlur ? 20 : 30
         saturation: 0.92
         autoPaddingEnabled: false
         antialiasing: true
