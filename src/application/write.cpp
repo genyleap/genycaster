@@ -280,12 +280,12 @@ struct WriteService::Impl final {
         if (!session) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::Unauthorized,
-                "A protocol write requires an authenticated Farcaster session."));
+                "A protocol write requires a verified account session."));
         }
         if (domain::session::isExpired(*session, foundation::time::now())) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::Unauthorized,
-                "The Farcaster session has expired; sign in again before writing."));
+                "The verified account session has expired; reverify the account before writing."));
         }
         auto signer = authority.requireSigner(session->fid, scope);
         if (!signer) {
@@ -905,7 +905,7 @@ foundation::result::Status WriteService::resume(
                     .phase = WritePhase::Blocked,
                     .error = makeError(
                         foundation::error::ErrorCode::Unauthorized,
-                        "A current authenticated Farcaster session is required before resuming writes."),
+                        "A current verified account session is required before resuming writes."),
                 });
                 return;
             }
@@ -939,7 +939,7 @@ foundation::result::Status WriteService::invalidatePendingAuthority(
     if (!session || domain::session::isExpired(*session, foundation::time::now())) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::Unauthorized,
-            "A current authenticated Farcaster session is required to invalidate queued writes."));
+            "A current verified account session is required to invalidate queued writes."));
     }
     if (auto valid = validatePolicy(m_impl->policy); !valid) {
         return valid;
