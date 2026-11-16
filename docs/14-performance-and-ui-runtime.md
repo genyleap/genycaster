@@ -516,6 +516,15 @@ own `Theme`, superellipse renderer, typography, accent and layout policies.
   UI Kit's **two-pass Gaussian** shader; the capture is frozen after opening
   instead of continuously replaying the underlying feed. The snapshot scales
   with device-pixel ratio but caps its longest edge at 4096 pixels.
+- Desktop Settings opts into a downsampled, frozen MultiEffect snapshot
+  (at most 48% of the logical viewport and a 1440 px edge). Palette changes
+  coalesce and refresh only after the material update settles; repeated size
+  and theme invalidations schedule at most one scene capture per event turn.
+  Full-screen phone Settings never captures the obscured workspace.
+- Settings uses seven on-demand page loaders rather than constructing every
+  invisible inspector. Palette switching temporarily bypasses per-surface
+  material tweens so a mode change cannot queue hundreds of competing color
+  animations. Interaction/hover animations resume after the palette settles.
 - WebAssembly uses a deliberately lower-resolution, on-demand MultiEffect
   snapshot to avoid expensive full-screen GPU passes on the browser's main
   thread. Missing or unsupported texture capture keeps the scrim rather than
