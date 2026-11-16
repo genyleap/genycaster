@@ -12,6 +12,7 @@ test('Settings is a centered content-fitted modal on desktop and a bottom sheet 
     assert.match(settings, /mobileFullScreen: true/);
     assert.match(settings, /showHandle: false/);
     assert.match(settings, /blurSourceItem: null/);
+    assert.match(settings, /efficientBackdropBlur: true/);
     assert.match(settings, /dimBackground: !mobilePresentation/);
     assert.match(settings, /popupZ: 0/);
     assert.match(settings, /width: parent \? \(mobilePresentation \? parent\.width/);
@@ -30,11 +31,14 @@ test('Settings is a centered content-fitted modal on desktop and a bottom sheet 
     assert.match(adaptive, /bottomSheet: true/);
     assert.match(adaptive, /fullScreen: control\.mobileFullScreen/);
     assert.match(adaptive, /blurSourceItem: control\.blurSourceItem/);
+    assert.match(adaptive, /efficientNativeBlur: control\.efficientBackdropBlur/);
+    assert.match(adaptive, /efficientBackdropBlur: control\.efficientBackdropBlur/);
     assert.match(adaptive, /contentItem: Item \{\s*id: desktopContentHost/);
     assert.match(adaptive, /contentItem: Item \{\s*id: mobileContentHost/);
     assert.match(adaptive, /control\.attachContent\(desktopContentHost\)/);
     assert.match(adaptive, /control\.attachContent\(mobileContentHost\)/);
     const loadedSettings = shell.split('LocaleSettingsPopup {')[1].split('onCustomAccentStudioRequested')[0];
+    assert.match(loadedSettings, /blurSourceItem: mobilePresentation \? null : shellContent/);
     assert.doesNotMatch(loadedSettings, /blurSourceItem:\s*shellContent/);
 });
 
