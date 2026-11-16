@@ -28,7 +28,7 @@ Item {
         borderWidth: 0
         opacity: plate.selected ? 1 : 0
         Behavior on opacity {
-            enabled: plate.animatePaint && !Theme.reduceMotion
+            enabled: plate.animatePaint && !Theme.reduceMotion && !Theme.paletteSwitchInProgress
             NumberAnimation {
                 duration: Theme.materialSelectionDuration
                 easing.type: Easing.OutCubic
@@ -42,7 +42,7 @@ Item {
         borderWidth: 0
         opacity: plate.hovered && !plate.pressed ? (plate.selected ? 0.23 : 1) : 0
         Behavior on opacity {
-            enabled: plate.animatePaint && !Theme.reduceMotion
+            enabled: plate.animatePaint && !Theme.reduceMotion && !Theme.paletteSwitchInProgress
             NumberAnimation {
                 duration: plate.hovered ? Theme.materialHoverInDuration
                                         : Theme.materialHoverOutDuration
