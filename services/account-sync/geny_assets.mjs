@@ -102,14 +102,17 @@ async function rpc(fetchImpl,policy,method,params){
 // Read-only Base ERC-20 holdings for a verified Farcaster account. This is
 // independent of Pro authorization: balances can be summed for display but
 // never establish an account entitlement.
-export async function evaluateGenyAssets(fid,{
+export async function evaluateGenyAssets(account,{
   policy=createGenyAssetsPolicy(),fetchImpl=globalThis.fetch
 }={}) {
+  const fid=typeof account==='object' ? account?.fid : account;
   const unavailable={status:'unavailable',available:false,partial:false,
     wallets:[],addresses:[],balance:0,holder:false,source:'Base RPC',
     error:'provider_unavailable'};
   try {
-    const verified=await verifiedFarcasterWallets(fid,{policy,fetchImpl});
+    const verified=typeof account==='object'
+      ? await verifiedAccountWallets(account,{policy,fetchImpl})
+      : await verifiedFarcasterWallets(fid,{policy,fetchImpl});
     if (!verified.length)
       return {...unavailable,status:'verified',error:'',wallets:[],available:false};
     if (await rpc(fetchImpl,policy,'eth_chainId',[])!==8453n)
