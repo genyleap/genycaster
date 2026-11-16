@@ -114,8 +114,10 @@ GenyAdaptiveDialog {
     // Reuse the shared adaptive host: a true centered Qt modal on desktop
     // and a genuine bottom-edge Drawer on mobile. The entire preferences
     // form remains a single contentItem, not two independent implementations.
-    // Neither presentation samples the workspace for blur.
+    // The shell supplies the desktop workspace as the blur source. A phone's
+    // opaque, full-screen settings view needs no background capture.
     blurSourceItem: null
+    efficientBackdropBlur: true
     dimBackground: !mobilePresentation
     // Keep the ordinary modal stacking level. Sign-out, recovery, Pro and
     // nested confirmation popups opened from Settings must appear above it.
