@@ -763,8 +763,12 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
             ?await store.getProWallets(owner):[];
           let protocolWallets=[];
           let providerFailed=false;
-          try{protocolWallets=await resolveProPaymentWallets(owner);}
-          catch{providerFailed=true;}
+          // An app wallet with a verified EIP-191 signature is sufficient.
+          // Do not block a quote on unrelated protocol/indexer availability.
+          if(!appWallets.length) {
+            try{protocolWallets=await resolveProPaymentWallets(owner);}
+            catch{providerFailed=true;}
+          }
           payerWallets=[...new Set([...appWallets,...protocolWallets]
             .filter(address=>typeof address==='string'
               && /^0x[0-9a-f]{40}$/.test(address)))].slice(0,100);
@@ -776,9 +780,12 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }catch {
           respond(response,503,{error:'wallet_verification_unavailable'});return true;
         }
+        // Distinguish an unavailable Base RPC from a failed live GENY rate.
+        // Neither path may produce a guessed price or grant membership.
+        try {await checkProToken(billingPolicy,asset);}
+        catch {respond(response,503,{error:'billing_chain_unavailable'});return true;}
         let quote;
         try {
-          await checkProToken(billingPolicy,asset);
           const rate=asset==='GENY'?await readGenyRate():null;
           quote=createProQuote({policy:billingPolicy,rate,asset});
         }catch {
