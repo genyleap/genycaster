@@ -3,7 +3,7 @@
  * @brief       Native QML shutdown sequencing.
  *
  * @details
- * Destroys QML root objects only after network producers stop and bootstrap work joins; Qt releases scene-graph resources during QQuickWindow destruction.
+ * Detaches Qt Quick visual roots before the corresponding windows are destroyed, then releases QML roots after network producers stop and bootstrap work joins.
  *
  * @author      Kambiz Asadzadeh
  * @since       07 Nov 2026
@@ -21,9 +21,10 @@ export namespace genycaster::ui::bootstrap {
      * @brief Destroy all loaded QML roots while a GUI dispatcher still exists.
      *
      * Invoke only after stopping producers and joining runtime bootstrap.
-     * The function detaches Qt Quick overlays while the window remains valid,
-     * deletes roots, then drains deferred cleanup. It must not hide the native
-     * window early or restart the event loop.
+     * Detaches each loaded window's visual root items (including overlays)
+     * while the window is still valid, then deletes QObject-owned roots and
+     * drains deferred cleanup. It must not hide the native window early or
+     * restart the event loop.
      *
      * @param engine Engine whose root objects are to be released.
      * @param mainWindow Window whose overlays need safe teardown, or null when absent.
