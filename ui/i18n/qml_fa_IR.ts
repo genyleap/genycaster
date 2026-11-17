@@ -8017,6 +8017,14 @@ Company | https://company.com</source>
             <source>Could not prepare payment. No transaction was sent. Please retry.</source>
             <translation>آماده‌سازی پرداخت ناموفق بود. هیچ تراکنشی ارسال نشد. دوباره تلاش کنید.</translation>
         </message>
+        <message id="genycaster.pro.quote_rate_unavailable">
+            <source>Live GENY pricing is temporarily unavailable. Retry or choose USDC. No transaction was sent.</source>
+            <translation>قیمت لحظه‌ای GENY موقتاً در دسترس نیست. دوباره تلاش کنید یا USDC را انتخاب کنید. هیچ تراکنشی ارسال نشده است.</translation>
+        </message>
+        <message id="genycaster.pro.quote_chain_unavailable">
+            <source>Base network validation is temporarily unavailable. No transaction was sent. Please retry.</source>
+            <translation>اعتبارسنجی شبکهٔ Base موقتاً در دسترس نیست. هیچ تراکنشی ارسال نشده است. دوباره تلاش کنید.</translation>
+        </message>
         <message id="genycaster.pro.checkout_verify_wallet">
             <source>Verify wallet</source>
             <translation>تأیید کیف پول</translation>
