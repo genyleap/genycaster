@@ -35,6 +35,8 @@ runtime role.
 | `bookmark_changes` | Monotonic, repeat-safe mutation history and incremental cursor |
 | `drafts` | Private application drafts; no protocol publishing |
 | `notifications` | Provider-event snapshots (future adapter) and the app-owned, monotonic read watermark |
+| `genybuzz_preferences` | Private opt-in consent and revision for first-party attention nudges (schema v14) |
+| `genybuzz_events` | Short-lived sender/recipient-scoped attention signals and acknowledgements (schema v14) |
 | `tasks` | Future scheduled task definitions; no unattended signer or scheduler |
 | `app_updates` | Public version information, read-only to users |
 | `schema_migrations` | Administrative schema tracking |
@@ -43,6 +45,11 @@ runtime role.
 | `cast_topics` | Up to three topic references per protocol-verified, author-owned cast; independent of channels |
 | `bookmark_collections` | Private user-created, account-owned named reading-list collections |
 | `bookmark_collection_items` | Private many-to-many links to existing, saved bookmarks |
+
+GenyBuzz is an optional app-owned extension (not a protocol message).
+Its schema v14 must be applied before it is usable, and reception is off by
+default. See [GenyBuzz](../../docs/GENYBUZZ.md) for security controls,
+future DM integration and rollout requirements.
 
 The API runtime must connect with a restricted application role; no
 connection to or grants on OpenProof's PostgreSQL database are required.
