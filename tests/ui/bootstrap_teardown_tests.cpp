@@ -39,7 +39,7 @@ int main(int argc, char** argv)
         "ApplicationWindow { objectName: \"teardownWindow\"; visible: true;"
         " width: 180; height: 120;"
         " Item { id: owner; anchors.fill: parent;"
-        " property bool anyPopupOpen: confirmation.opened || more.opened;"
+        " property bool anyPopupOpen: (confirmation && confirmation.opened) || (more && more.opened);"
         " Popup { id: confirmation; width: 80; height: 48; modal: true;"
         " visible: true; contentItem: Text { text: \"Approval\" } }"
         " Popup { id: more; width: 80; height: 48; modal: false;"
