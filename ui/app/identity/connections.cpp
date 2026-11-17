@@ -2191,6 +2191,125 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
     });
 }
 
+void OpenProofConnectionsController::requestProWalletChallenge(const QString& payer)
+{
+    if (m_proWalletRequest) return;
+    static const QRegularExpression address{
+        QStringLiteral("^0x[0-9a-fA-F]{40}$")};
+    if (!m_viewerFid || !cloudAuthorizationReady()
+        || !trustedHttpsEndpoint(m_cloudUrl)
+        || !address.match(payer).hasMatch()) {
+        m_proWalletError = QStringLiteral("wallet_proof_unavailable");
+        emit proWalletChanged();
+        return;
+    }
+    m_proWalletVerified = false;
+    m_proWalletError.clear();
+    QUrl url = m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/pro/wallet/challenge"));
+    url.setQuery(QString{});
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(12000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* const reply=m_network.post(request,QJsonDocument{QJsonObject{
+        {QStringLiteral("address"),payer.toLower()}
+    }}.toJson(QJsonDocument::Compact));
+    m_proWalletRequest=reply;
+    emit proWalletChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation,payer] {
+        if(m_proWalletRequest!=reply){reply->deleteLater();return;}
+        m_proWalletRequest.clear();
+        const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray bytes=reply->isReadable() && reply->bytesAvailable()<=4096
+            ?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto root=QJsonDocument::fromJson(bytes).object();
+        const auto challenge=root.value(QStringLiteral("challenge")).toObject();
+        const auto id=challenge.value(QStringLiteral("id")).toString();
+        const auto message=challenge.value(QStringLiteral("message")).toString();
+        const auto serverPayer=challenge.value(QStringLiteral("address")).toString();
+        if(status==201 && id.size()==36
+           && message.size()>=100 && message.size()<=2500
+           && serverPayer.compare(payer,Qt::CaseInsensitive)==0) {
+            m_proWalletError.clear();
+            emit proWalletChanged();
+            emit proWalletChallengeReady(id,message);
+            return;
+        }
+        m_proWalletError=root.value(QStringLiteral("error")).toString(
+            QStringLiteral("pro_wallet_verification_unavailable"));
+        emit proWalletChanged();
+    });
+}
+
+void OpenProofConnectionsController::confirmProWalletSignature(
+    const QString& challengeId,const QString& signature)
+{
+    if(m_proWalletRequest)return;
+    static const QRegularExpression idPattern{
+        QStringLiteral("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")};
+    static const QRegularExpression sigPattern{
+        QStringLiteral("^0x[0-9a-fA-F]{130}$")};
+    if(!m_viewerFid || !cloudAuthorizationReady()
+       || !trustedHttpsEndpoint(m_cloudUrl)
+       || !idPattern.match(challengeId).hasMatch()
+       || !sigPattern.match(signature).hasMatch()) {
+        m_proWalletError=QStringLiteral("invalid_wallet_proof");
+        emit proWalletChanged();
+        return;
+    }
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/pro/wallet/verify"));
+    url.setQuery(QString{});
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(12000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* const reply=m_network.post(request,QJsonDocument{QJsonObject{
+        {QStringLiteral("challenge_id"),challengeId},
+        {QStringLiteral("signature"),signature}
+    }}.toJson(QJsonDocument::Compact));
+    m_proWalletRequest=reply;
+    m_proWalletError.clear();
+    emit proWalletChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if(m_proWalletRequest!=reply){reply->deleteLater();return;}
+        m_proWalletRequest.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray bytes=reply->isReadable() && reply->bytesAvailable()<=4096
+            ?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto root=QJsonDocument::fromJson(bytes).object();
+        if(status==200 && root.value(QStringLiteral("wallet")).toObject()
+            .value(QStringLiteral("verified")).toBool()) {
+            m_proWalletVerified=true;
+            m_proWalletError.clear();
+            emit proWalletChanged();
+            emit proWalletVerificationCompleted();
+        }else{
+            m_proWalletVerified=false;
+            m_proWalletError=root.value(QStringLiteral("error")).toString(
+                QStringLiteral("wallet_proof_unavailable"));
+            emit proWalletChanged();
+        }
+    });
+}
+
 void OpenProofConnectionsController::requestProPaymentQuote(const QString& asset)
 {
     if (m_proBillingRequest) return;
@@ -3277,6 +3396,10 @@ void OpenProofConnectionsController::clearAccountGrant()
     emit feedbackChanged();
     cancelNetworkReply(m_proEntitlementsRead, this);
     cancelNetworkReply(m_proBillingRequest, this);
+    cancelNetworkReply(m_proWalletRequest, this);
+    m_proWalletError.clear();
+    m_proWalletVerified=false;
+    emit proWalletChanged();
     m_proPaymentPoll.stop();
     m_pendingProPaymentHash.clear();
     m_pendingProPaymentQuoteId.clear();
