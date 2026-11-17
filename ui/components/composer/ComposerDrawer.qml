@@ -1348,7 +1348,7 @@ GenyDrawer {
                 contentHeight: topicFlow.height
                 Flow {
                     id: topicFlow
-                    width: topicScroll.width
+                    width: topicScroll ? topicScroll.width : 0
                     height: childrenRect.height
                     spacing: Theme.space2
                     layoutDirection: Theme.uiDirection
@@ -1361,10 +1361,12 @@ GenyDrawer {
                             readonly property string slug: String(modelData.slug || "")
                             readonly property string title: root.topicName(slug)
                             readonly property bool chosen: root.selectedTopics.indexOf(slug)>=0
-                            visible: topicSearch.text.trim().length === 0
-                                     || title.toLocaleLowerCase().includes(topicSearch.text.trim().toLocaleLowerCase())
-                                     || slug.includes(topicSearch.text.trim().toLocaleLowerCase())
-                            width: Math.min(topicFlow.width, chipText.implicitWidth
+                            readonly property string topicFilterNeedle: topicSearch
+                                ? String(topicSearch.text || "").trim().toLocaleLowerCase() : ""
+                            visible: topicFilterNeedle.length === 0
+                                     || title.toLocaleLowerCase().includes(topicFilterNeedle)
+                                     || slug.includes(topicFilterNeedle)
+                            width: Math.min(topicFlow ? topicFlow.width : 0, chipText.implicitWidth
                                             + (chosen ? Theme.scaleUi(36) : Theme.scaleUi(24)))
                             // Keep the 44dp hit target, but render compact
                             // topic chips in every client form factor.
