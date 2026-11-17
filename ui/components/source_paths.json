@@ -114,6 +114,8 @@
   "NavItem.qml": "navigation/NavItem.qml",
   "NeonCard.qml": "visual/NeonCard.qml",
   "NeonHalo.qml": "visual/NeonHalo.qml",
+  "NeonReflection.qml": "visual/NeonReflection.qml",
+  "NeonReflectionSource.qml": "visual/NeonReflectionSource.qml",
   "NeonStatePlate.qml": "visual/NeonStatePlate.qml",
   "NeonSurface.qml": "visual/NeonSurface.qml",
   "NodeManagementPanel.qml": "settings/NodeManagementPanel.qml",
