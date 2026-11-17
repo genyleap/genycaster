@@ -25,6 +25,8 @@ ComboBox {
     readonly property real currentTextWidth: currentMetrics.advanceWidth
     readonly property real naturalTriggerWidth: Math.ceil(currentTextWidth + Theme.space2 * 2 + 22)
 
+    readonly property bool popupVisible: !!control.popup && control.popup.visible
+
     implicitHeight: 26
     implicitWidth: Math.max(74, Math.min(maximumTriggerWidth, naturalTriggerWidth))
     leftPadding: Theme.rtl ? 24 : Theme.space2
@@ -61,9 +63,9 @@ ComboBox {
         x: Theme.rtl ? Theme.space2 : control.width - width - Theme.space2
         y: Math.round((control.height - height) / 2)
         text: Theme.iconChevronDown
-        color: control.popup.visible ? Theme.accent : Theme.textTertiary
+        color: control.popupVisible ? Theme.accent : Theme.textTertiary
         preferredSize: 10
-        rotation: control.popup.visible ? 180 : 0
+        rotation: control.popupVisible ? 180 : 0
         Behavior on rotation {
             NumberAnimation {
                 duration: Theme.reduceMotion ? 0 : Theme.motionFast
@@ -73,10 +75,10 @@ ComboBox {
     }
 
     background: Superellipse {
-        fillColor: control.popup.visible ? Theme.surfaceElevated
+        fillColor: control.popupVisible ? Theme.surfaceElevated
                   : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
         borderWidth: Theme.strokeHairline
-        borderColor: Theme.keyboardFocusVisible(control) || control.popup.visible ? Theme.accent : Theme.borderDefault
+        borderColor: Theme.keyboardFocusVisible(control) || control.popupVisible ? Theme.accent : Theme.borderDefault
         curveDepth: height / 2
         elevation: Theme.elevationNone
     }
