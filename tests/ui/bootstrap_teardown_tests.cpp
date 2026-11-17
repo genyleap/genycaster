@@ -23,7 +23,9 @@ int main(int argc, char** argv)
         "ApplicationWindow { objectName: \"teardownWindow\"; visible: true;"
         " width: 180; height: 120;"
         " Popup { id: confirmation; width: 80; height: 48; modal: true;"
-        " visible: true; contentItem: Text { text: \"Approval\" } } }"),
+        " visible: true; contentItem: Text { text: \"Approval\" } }"
+        " Popup { id: more; width: 80; height: 48; modal: false;"
+        " visible: true; contentItem: Text { text: \"More\" } } }"),
         QUrl{QStringLiteral("inmemory:/teardown.qml")});
     // Some Qt backends finish QML loading on the next event-loop turn.
     // Wait for construction instead of treating deferred incubation as failure.
