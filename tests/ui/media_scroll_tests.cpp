@@ -1039,11 +1039,10 @@ int main(int argc, char** argv)
     expect(qmlWarnings.empty(), "notification row instantiates without Qt 6.12 QML warnings");
     qmlWarnings.clear();
 
-    // Geometry regression: the profile identity name and both URL controls
-    // must be adjacent on desktop. In narrow/mobile widths the *entire* link
-    // cluster wraps as one unit instead of leaving 200+ px of blank space
-    // between the URL and "and N more". Inspect actual Qt Quick items, not
-    // QML source substrings or a layout sketch.
+    // Geometry regression: the display name and relationship badges must
+    // share one row, with Follow/Followed on the far right. Keep URL and
+    // "and N more" as a compact trailing pair in the next header row.
+    // Check live Qt Quick geometry at desktop and mobile widths.
     {
         auto profile = createSurface(engine, QStringLiteral("ProfileSurface"), *scroll,
             {{QStringLiteral("detail"), QVariantMap{
@@ -1100,12 +1099,61 @@ int main(int argc, char** argv)
                 expect(slotStart.x() >= -1
                     && slotStart.x() + slot->width() <= flow->width() + 2,
                     "identity links stay within the profile content gutter");
-                expect(qAbs(nameEnd.y() - slotCenter.y()) <= 4,
-                    "name and links remain centered on the same row");
-                expect(slotStart.x() > nameEnd.x(),
-                    "links are at the opposite side, not overlapping the name");
+                expect(slotStart.y() >= nameEnd.y(),
+                    "secondary links do not compete with the full-width identity row");
                 expect(qAbs(slotStart.x() + slot->width() - flow->width()) <= 4,
-                    "links are anchored to the trailing edge of the header");
+                    "links remain anchored to the trailing edge of the header");
+                expect(slotCenter.y() > nameEnd.y(),
+                    "URL and and-N-more remain a compact separate header line");
+            }
+
+            // The viewer visits a mutual-follow profile. Both relation badges
+            // and the display name must remain centered on the same line.
+            profile->setProperty("accountFid", 55);
+            profile->setProperty("detail", QVariantMap{
+                {QStringLiteral("fid"), 44},
+                {QStringLiteral("username"), QStringLiteral("cassie")},
+                {QStringLiteral("displayName"), QStringLiteral("Cassie Heart")},
+                {QStringLiteral("profileUrl"), QStringLiteral("https://example.com")},
+                {QStringLiteral("followingKnown"), true},
+                {QStringLiteral("followingByMe"), true},
+                {QStringLiteral("followsMeKnown"), true},
+                {QStringLiteral("followsMe"), true}
+            });
+            auto* const leading = profile->findChild<QQuickItem*>(
+                QStringLiteral("profileIdentityLeading"));
+            auto* const followsYou = profile->findChild<QQuickItem*>(
+                QStringLiteral("profileFollowsYouBadge"));
+            auto* const followAction = profile->findChild<QQuickItem*>(
+                QStringLiteral("profileFollowAction"));
+            expect(leading && followsYou && followAction,
+                "name, follows-you badge and follow action are addressable QML items");
+            if (leading && followsYou && followAction) {
+                for (const int viewportWidth : {1280, 940, 700, 390}) {
+                    profile->setProperty("width", viewportWidth);
+                    profile->setProperty("compact", viewportWidth < 600);
+                    QCoreApplication::processEvents();
+                    polishTree(qobject_cast<QQuickItem*>(profile.get()));
+                    QCoreApplication::processEvents();
+                    expect(followsYou->isVisible() && followAction->isVisible(),
+                        "mutual-follow relationship is rendered");
+                    const QPointF n = name->mapToItem(leading,
+                        QPointF{name->width() / 2, name->height() / 2});
+                    const QPointF f = followsYou->mapToItem(leading,
+                        QPointF{followsYou->width() / 2, followsYou->height() / 2});
+                    const QPointF b = followAction->mapToItem(leading,
+                        QPointF{followAction->width() / 2, followAction->height() / 2});
+                    expect(qAbs(n.y() - f.y()) <= 3 && qAbs(n.y() - b.y()) <= 3,
+                        "name, follows-you and Followed are vertically centered");
+                    expect(f.x() > n.x() && b.x() > f.x(),
+                        "badge immediately follows the name; Followed stays last");
+                    const QPointF right = followAction->mapToItem(leading,
+                        QPointF{followAction->width(), 0});
+                    expect(qAbs(right.x() - leading->width()) <= 4,
+                        "Followed remains pinned to the right at every viewport width");
+                    expect(name->width() >= 0 && right.x() <= leading->width() + 4,
+                        "long labels are constrained rather than clipping the action");
+                }
             }
         }
         profile.reset();
