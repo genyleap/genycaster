@@ -4026,8 +4026,8 @@ Item {
                             required property var modelData
                             Layout.fillWidth: true
                             elevated: false
-                            quiet: profileStatusEditor.selectedMood!==modelData.id
-                            selected: profileStatusEditor.selectedMood===modelData.id
+                            quiet: !profileStatusEditor || profileStatusEditor.selectedMood!==modelData.id
+                            selected: !!profileStatusEditor && profileStatusEditor.selectedMood===modelData.id
                             iconGlyph: modelData.icon
                             customIconColor: modelData.color
                             customSelectedColor: modelData.color
