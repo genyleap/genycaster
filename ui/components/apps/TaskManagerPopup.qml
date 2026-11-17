@@ -7,9 +7,11 @@ Item {
     id: root
 
     readonly property bool compactPresentation: parent ? parent.width < Theme.breakpointMobile : false
-    readonly property bool opened: desktopDialog.opened || mobileDrawer.opened
+    readonly property bool opened: (desktopDialog && desktopDialog.opened)
+                                  || (mobileDrawer && mobileDrawer.opened)
 
     function open() {
+        if (!desktopDialog || !mobileDrawer) return
         if (root.compactPresentation) {
             desktopDialog.close()
             mobileDrawer.open()
@@ -20,8 +22,8 @@ Item {
     }
 
     function close() {
-        desktopDialog.close()
-        mobileDrawer.close()
+        if (desktopDialog) desktopDialog.close()
+        if (mobileDrawer) mobileDrawer.close()
     }
 
     function memoryText(bytes) {
