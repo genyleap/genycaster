@@ -61,6 +61,7 @@ test('Pro wallet verification signs an account-bound challenge before requesting
   const proof=read('services/account-sync/pro_wallet_proof.mjs');
   const migration15=read('services/account-sync/migrations/015_pro_wallet_proof.sql');
   const bridge=read('src/providers/compatibility/browser_wallet/bridge.cpp');
+  const browserWallet=read('ui/app/identity/browser_pro_wallet.hpp');
   const icon=read('ui/wasm/genycaster-icon.svg');
   assert.match(proof,/Ethereum Signed Message/);
   assert.match(proof,/Account issuer:/);
@@ -73,6 +74,8 @@ test('Pro wallet verification signs an account-bound challenge before requesting
   assert.match(controller,/\/api\/v1\/cloud\/pro\/wallet\/verify/);
   assert.match(checkout,/void ProCheckoutController::signWalletChallenge\(/);
   assert.match(checkout,/request\(QStringLiteral\("personal_sign"\)/);
+  assert.match(browserWallet,/QStringLiteral\("personal_sign"\)/);
+  assert.match(browserWallet,/\['eth_requestAccounts','personal_sign','eth_chainId'/);
   assert.match(pro,/onProWalletChallengeReady\(id, message\)/);
   assert.match(pro,/onProWalletVerificationCompleted\(\)/);
   assert.match(pro,/root\.walletVerified/);
@@ -87,7 +90,7 @@ test('Pro wallet verification signs an account-bound challenge before requesting
   assert.doesNotMatch(bridge,/brand-mark" aria-hidden="true">✦/);
 });
 
-test('GenyBuzz remains app-owned, opt-in and DM-context-ready without a protocol writer',()=>{
+test('GenyBuzz remains opt-in, profile-only and independent of protocol writers',()=>{
   assert.match(cloud,/handleGenyBuzz\(/);
   assert.match(migration,/CREATE TABLE IF NOT EXISTS genybuzz_preferences/);
   assert.match(migration,/enabled boolean NOT NULL DEFAULT false/);
@@ -95,6 +98,9 @@ test('GenyBuzz remains app-owned, opt-in and DM-context-ready without a protocol
   assert.match(migration,/context IN \('profile','dm'\)/);
   assert.match(store,/pg_advisory_xact_lock/);
   assert.match(store,/recipient_count/);
+  assert.match(store,/sender_day_count/);
+  assert.match(store,/recipient_day_count/);
+  assert.match(read('services/account-sync/genybuzz.mjs'),/input.context!=='profile'/);
   assert.match(store,/muted_profiles/);
   assert.match(header,/Q_INVOKABLE void sendGenyBuzz\(qulonglong targetFid/);
   assert.match(controller,/authorizeCloudRequest\(request\)/);
