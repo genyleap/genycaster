@@ -114,6 +114,17 @@ GenyDrawer {
             return qsTrId("genycaster.pro.quote_expired")
         return qsTrId("genycaster.pro.wallet_failure")
     }
+    function quoteErrorMessage() {
+        if (!openProofConnections) return ""
+        const code = String(openProofConnections.proBillingError || "")
+        if (code === "verified_wallet_required")
+            return qsTrId("genycaster.pro.quote_wallet_required")
+        if (code === "billing_rate_unavailable")
+            return qsTrId("genycaster.pro.quote_rate_unavailable")
+        if (code === "billing_chain_unavailable")
+            return qsTrId("genycaster.pro.quote_chain_unavailable")
+        return qsTrId("genycaster.pro.quote_retry_notice")
+    }
     function requestCurrentQuote() {
         if (!root.canRequestQuote || root.busy
             || (root.walletAvailable && (!root.walletConnected || !root.walletVerified))) return
@@ -807,10 +818,7 @@ GenyDrawer {
                             && openProofConnections
                             && String(openProofConnections.proBillingError || "").length > 0
                             && openProofConnections.proBillingError !== "payment_pending"
-                        text: String(openProofConnections.proBillingError || "")
-                                === "verified_wallet_required"
-                            ? qsTrId("genycaster.pro.quote_wallet_required")
-                            : qsTrId("genycaster.pro.quote_retry_notice")
+                        text: root.quoteErrorMessage()
                         color: Theme.negative
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
