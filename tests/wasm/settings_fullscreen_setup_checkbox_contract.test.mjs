@@ -73,7 +73,7 @@ test('Settings fills the desktop viewport and the mobile inspector remains full-
     assert.equal((plates.match(/!Theme\.paletteSwitchInProgress/g) || []).length, 2);
     assert.match(settings, /activeFocusOnTab: true/);
     assert.match(settings, /Accessible\.onPressAction: themePreset\.selectPreset\(\)/);
-    assert.match(settings, /focused: themePreset\.activeFocus/);
+    assert.match(settings, /border\.color: themePreset\.activeFocus/);
     assert.match(settings, /id: colorThemeLayout/);
     assert.match(settings, /columns: appearanceScroll\.availableWidth >= Theme\.scaleUi\(850\) \? 2 : 1/);
     assert.match(settings, /id: palettePresets/);
