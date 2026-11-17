@@ -2609,6 +2609,7 @@ Item {
 
                             sourceComponent: Component {
                                 SocialSidebar {
+                                    reflectionSource: workspaceReflection
                                     mode: presentationBridge.activeView === "profile" ? "profile"
                                           : presentationBridge.activeView === "cast" ? "cast" : "feed"
                                     authenticated: presentationBridge.isAuthenticated
