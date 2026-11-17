@@ -121,6 +121,12 @@ void testBridgeRoutesWalletRequestsAndEvents()
     assert(page.body().find("role=\"radiogroup\"") != std::string::npos);
     assert(page.body().find("<select id=\"options\"") == std::string::npos);
     assert(page.body().find("className='wallet-option'") != std::string::npos);
+    // Wallet labels and the Extension badge must never clip against a
+    // 196px list scrollport (the fourth provider used to overflow).
+    assert(page.body().find("max-height:196px") == std::string::npos);
+    assert(page.body().find("grid-template-columns:16px minmax(0,1fr) auto") != std::string::npos);
+    assert(page.body().find("scrollbar-gutter:stable") != std::string::npos);
+    assert(page.body().find("result-ready") != std::string::npos);
     assert(page.body().find("request.method==='eth_requestAccounts'") != std::string::npos);
     assert(page.body().find("Why is this a local page?") != std::string::npos);
     assert(page.body().find("Your private key stays there.") != std::string::npos);
