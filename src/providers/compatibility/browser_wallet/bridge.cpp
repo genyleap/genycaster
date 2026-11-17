@@ -464,8 +464,10 @@ const execute=async()=>{
       lastConsentResultShown=true;
       show(response.error?(response.error.code===4001?'Request declined.':'Wallet request failed.')
         :(request.method==='eth_requestAccounts'
-            ? 'Wallet connected. Return to GenyCaster.'
-            : 'Approved. Return to GenyCaster.'),response.error?'error':'ok');
+            ? 'Wallet connected. Complete the next verification request here.'
+            : request.method==='personal_sign'
+              ? 'Signature approved. Return to GenyCaster to continue checkout.'
+              : 'Approved. Return to GenyCaster.'),response.error?'error':'ok');
     }
     completed();
   }catch(error){
