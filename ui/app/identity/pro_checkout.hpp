@@ -33,6 +33,7 @@ class ProCheckoutController final : public QObject {
     Q_PROPERTY(QString quoteId READ quoteId NOTIFY changed)
     Q_PROPERTY(bool walletAvailable READ walletAvailable NOTIFY changed)
     Q_PROPERTY(bool walletConnected READ walletConnected NOTIFY changed)
+    Q_PROPERTY(QString payerAddress READ payerAddress NOTIFY changed)
 public:
     using RpcComplete = std::function<void(QJsonValue, QString)>;
     using RpcRequest = std::function<void(QString, QJsonArray, RpcComplete)>;
@@ -48,6 +49,7 @@ public:
     [[nodiscard]] QString txHash() const { return m_txHash; }
     [[nodiscard]] QString quoteId() const { return m_quoteId; }
     [[nodiscard]] bool walletAvailable() const noexcept { return static_cast<bool>(m_begin); }
+    [[nodiscard]] QString payerAddress() const { return m_payer; }
     [[nodiscard]] bool walletConnected() const noexcept {
         return m_session && !m_busy && m_phase == QLatin1String("connected")
                && !m_payer.isEmpty();
@@ -57,6 +59,9 @@ public:
     /** Connect an explicitly selected external wallet before requesting a quote.
      * No transfer or chain switch is permitted during this preflight. */
     Q_INVOKABLE void connectWallet();
+    /** Sign a one-time app-owned wallet proof, not an ERC-20 transaction. */
+    Q_INVOKABLE void signWalletChallenge(const QString& challengeId,
+                                         const QString& message);
     Q_INVOKABLE void pay();
     Q_INVOKABLE void cancel();
 signals:
