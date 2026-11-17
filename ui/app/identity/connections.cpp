@@ -1680,6 +1680,246 @@ void OpenProofConnectionsController::setProfileMuted(
     });
 }
 
+// GenyBuzz is an app-owned attention event. These requests reuse only the
+// verified cloud account grant; neither a protocol writer nor wallet is touched.
+void OpenProofConnectionsController::fetchGenyBuzzPreferences()
+{
+    if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)
+        || m_buzzPreferenceRead || m_buzzPreferenceWrite) return;
+    const auto now=QDateTime::currentMSecsSinceEpoch();
+    if (m_buzzPreferencesReady && now-m_buzzPreferencesFetchedAt<60'000) return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/buzz/preferences"));
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* const reply=m_network.get(request);
+    m_buzzPreferenceRead=reply;
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if (m_buzzPreferenceRead!=reply){reply->deleteLater();return;}
+        m_buzzPreferenceRead.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->isReadable() && reply->bytesAvailable()<=4096
+            ?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto value=QJsonDocument::fromJson(bytes).object()
+            .value(QStringLiteral("preferences")).toObject();
+        const auto revision=value.value(QStringLiteral("revision")).toInteger(-1);
+        if (status==200 && value.value(QStringLiteral("enabled")).isBool()
+            && revision>=0) {
+            m_buzzPreferences=value.toVariantMap();
+            m_buzzPreferencesReady=true;
+            m_buzzPreferencesFetchedAt=QDateTime::currentMSecsSinceEpoch();
+            m_buzzError.clear();
+        } else {
+            m_buzzError=QStringLiteral("buzz_unavailable");
+        }
+        emit genyBuzzChanged();
+    });
+}
+
+void OpenProofConnectionsController::setGenyBuzzEnabled(const bool enabled)
+{
+    if (!m_buzzPreferencesReady || !m_viewerFid || !cloudAuthorizationReady()
+        || !trustedHttpsEndpoint(m_cloudUrl) || m_buzzPreferenceWrite)return;
+    const auto revision=m_buzzPreferences.value(QStringLiteral("revision")).toLongLong();
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/buzz/preferences"));
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(10'000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    const QJsonObject payload{{QStringLiteral("enabled"),enabled},
+                              {QStringLiteral("revision"),revision}};
+    auto* const reply=m_network.put(request,
+        QJsonDocument{payload}.toJson(QJsonDocument::Compact));
+    m_buzzPreferenceWrite=reply;
+    m_buzzError.clear();
+    emit genyBuzzChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if (m_buzzPreferenceWrite!=reply){reply->deleteLater();return;}
+        m_buzzPreferenceWrite.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->isReadable() && reply->bytesAvailable()<=4096
+            ?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto value=QJsonDocument::fromJson(bytes).object()
+            .value(QStringLiteral("preferences")).toObject();
+        const auto revision=value.value(QStringLiteral("revision")).toInteger(-1);
+        if (status==200 && value.value(QStringLiteral("enabled")).isBool()
+            && revision>=0) {
+            m_buzzPreferences=value.toVariantMap();
+            m_buzzPreferencesReady=true;
+            m_buzzPreferencesFetchedAt=QDateTime::currentMSecsSinceEpoch();
+            m_buzzError.clear();
+            if (!value.value(QStringLiteral("enabled")).toBool())m_buzzInbox.clear();
+        } else {
+            m_buzzPreferencesReady=false;
+            m_buzzPreferencesFetchedAt=0;
+            m_buzzError=status==409?QStringLiteral("buzz_preferences_conflict")
+                                   :QStringLiteral("buzz_unavailable");
+        }
+        emit genyBuzzChanged();
+        if (!m_buzzPreferencesReady)fetchGenyBuzzPreferences();
+    });
+}
+
+void OpenProofConnectionsController::sendGenyBuzz(
+    const qulonglong targetFid,const QString& targetKind,const QString& context)
+{
+    if (m_buzzSend)return;
+    if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)
+        || targetFid==0 || targetFid>9'007'199'254'740'991ULL
+        || targetFid==m_viewerFid
+        || (targetKind!=QStringLiteral("farcaster")
+            && targetKind!=QStringLiteral("hypersnap"))
+        || (context!=QStringLiteral("profile")
+            && context!=QStringLiteral("dm"))) {
+        m_buzzError=QStringLiteral("buzz_unavailable");
+        emit genyBuzzChanged();
+        return;
+    }
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/buzz"));
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(12'000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    const QJsonObject payload{
+        {QStringLiteral("target_fid"),QString::number(targetFid)},
+        {QStringLiteral("target_kind"),targetKind},
+        {QStringLiteral("context"),context}
+    };
+    auto* const reply=m_network.post(request,
+        QJsonDocument{payload}.toJson(QJsonDocument::Compact));
+    m_buzzSend=reply;
+    m_buzzError.clear();
+    m_buzzLastSentFid=0;
+    emit genyBuzzChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation,targetFid] {
+        if (m_buzzSend!=reply){reply->deleteLater();return;}
+        m_buzzSend.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->isReadable() && reply->bytesAvailable()<=4096
+            ?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto payload=QJsonDocument::fromJson(bytes).object();
+        if (status==201 && payload.value(QStringLiteral("item")).isObject()) {
+            m_buzzLastSentFid=targetFid;
+            m_buzzError.clear();
+        } else {
+            m_buzzLastSentFid=0;
+            const auto code=payload.value(QStringLiteral("error")).toString();
+            m_buzzError=code==QStringLiteral("buzz_rate_limited")
+                ||code==QStringLiteral("buzz_not_available")?code
+                :QStringLiteral("buzz_unavailable");
+        }
+        emit genyBuzzChanged();
+    });
+}
+
+void OpenProofConnectionsController::fetchGenyBuzzInbox()
+{
+    if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)
+        || m_buzzInboxRead || m_buzzAck) return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/buzz/inbox"));
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* const reply=m_network.get(request);
+    m_buzzInboxRead=reply;
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if (m_buzzInboxRead!=reply){reply->deleteLater();return;}
+        m_buzzInboxRead.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->isReadable() && reply->bytesAvailable()<=16384
+            ?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        const auto items=doc.object().value(QStringLiteral("items")).toArray();
+        if (status!=200 || !doc.isObject()
+            || !doc.object().value(QStringLiteral("items")).isArray()
+            || items.size()>20)return;
+        QVariantList confirmed;
+        for(const auto& entry:items) {
+            const auto item=entry.toObject();
+            if (item.value(QStringLiteral("id")).toString().isEmpty()
+                || item.value(QStringLiteral("sender_fid")).toString().isEmpty()
+                || !item.value(QStringLiteral("context")).isString())return;
+            confirmed.push_back(item.toVariantMap());
+        }
+        m_buzzInbox=std::move(confirmed);
+        emit genyBuzzChanged();
+    });
+}
+
+void OpenProofConnectionsController::acknowledgeGenyBuzz(const QString& id)
+{
+    if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)
+        || m_buzzAck
+        || !QRegularExpression{QStringLiteral(
+            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")}
+            .match(id).hasMatch())return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/buzz/ack"));
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    const QJsonObject payload{{QStringLiteral("id"),id}};
+    auto* const reply=m_network.post(request,
+        QJsonDocument{payload}.toJson(QJsonDocument::Compact));
+    m_buzzAck=reply;
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation,id] {
+        if (m_buzzAck!=reply){reply->deleteLater();return;}
+        m_buzzAck.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        reply->deleteLater();
+        if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        if (status==200) {
+            QVariantList retained;
+            for(const auto& value:m_buzzInbox)
+                if (value.toMap().value(QStringLiteral("id")).toString()!=id)
+                    retained.push_back(value);
+            m_buzzInbox=std::move(retained);
+            emit genyBuzzChanged();
+            // Drain a bounded inbox one item at a time; never busy-loop on a
+            // failed acknowledgement or a missing account grant.
+            fetchGenyBuzzInbox();
+        }
+    });
+}
+
 void OpenProofConnectionsController::fetchStreakPreferences()
 {
     if(!m_viewerFid || !cloudAuthorizationReady() ||
@@ -3587,6 +3827,18 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     cancelNetworkReply(m_streakPreferencesWrite, this);
     cancelNetworkReply(m_mutedProfilesRead, this);
     cancelNetworkReply(m_mutedProfilesWrite, this);
+    cancelNetworkReply(m_buzzPreferenceRead, this);
+    cancelNetworkReply(m_buzzPreferenceWrite, this);
+    cancelNetworkReply(m_buzzSend, this);
+    cancelNetworkReply(m_buzzInboxRead, this);
+    cancelNetworkReply(m_buzzAck, this);
+    m_buzzPreferences.clear();
+    m_buzzInbox.clear();
+    m_buzzError.clear();
+    m_buzzPreferencesReady=false;
+    m_buzzPreferencesFetchedAt=0;
+    m_buzzLastSentFid=0;
+    emit genyBuzzChanged();
     m_mutedProfileFids.clear();
     m_mutedProfilesRevision=0;
     m_mutedProfilesFetchedAt=0;
