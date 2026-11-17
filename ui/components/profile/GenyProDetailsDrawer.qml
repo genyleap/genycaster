@@ -84,12 +84,15 @@ GenyDrawer {
     readonly property bool canRequestQuote: membershipVerified && !eligible
         && cloudReady && openProofConnections && !openProofConnections.proPlanBusy
         && monthlyUsdCents > 0 && plan.payment_available === true
-    readonly property bool busy: (openProofConnections && openProofConnections.proBillingBusy)
+    readonly property bool busy: (openProofConnections && (openProofConnections.proBillingBusy
+            || openProofConnections.proWalletBusy))
         || (proCheckout && proCheckout.busy)
     readonly property string amountText: String(paymentQuote.amount_geny || "")
         + " " + quoteAsset
     readonly property bool walletAvailable: proCheckout && proCheckout.walletAvailable
     readonly property bool walletConnected: proCheckout && proCheckout.walletConnected
+    readonly property bool walletVerified: openProofConnections
+        && openProofConnections.proWalletVerified
 
     function shortWallet(value) {
         const address = String(value || "")
@@ -113,7 +116,7 @@ GenyDrawer {
     }
     function requestCurrentQuote() {
         if (!root.canRequestQuote || root.busy
-            || (root.walletAvailable && !root.walletConnected)) return
+            || (root.walletAvailable && (!root.walletConnected || !root.walletVerified))) return
         root.quoteAttempted = true
         root.lastRequestedAsset = root.selectedAsset
         openProofConnections.requestProPaymentQuote(root.selectedAsset)
@@ -132,7 +135,7 @@ GenyDrawer {
     function prepareQuote() {
         if (!root.opened || !root.purchaseIntent || root.checkoutOpen || root.eligible
             || !root.canRequestQuote || root.busy || root.quoteForSelection
-            || (root.walletAvailable && !root.walletConnected)
+            || (root.walletAvailable && (!root.walletConnected || !root.walletVerified))
             || root.lastRequestedAsset === root.selectedAsset) return
         root.requestCurrentQuote()
     }
@@ -184,10 +187,16 @@ GenyDrawer {
                 // First user gesture opens the wallet selector (native) or
                 // EIP-1193 account picker (WASM). The server quote follows
                 // connection; payment itself requires a second explicit click.
-                if (root.walletAvailable && !root.walletConnected) {
+                if (root.walletAvailable) {
                     root.walletAttempted = true
-                    proCheckout.connectWallet()
-                    return
+                    if (!root.walletConnected) {
+                        proCheckout.connectWallet()
+                        return
+                    }
+                    if (!root.walletVerified) {
+                        openProofConnections.requestProWalletChallenge(proCheckout.payerAddress)
+                        return
+                    }
                 }
                 root.requestCurrentQuote()
                 return
@@ -220,6 +229,8 @@ GenyDrawer {
             return qsTrId("genycaster.pro.payment_unavailable")
         if (!checkoutActive && walletAvailable && !walletConnected)
             return qsTrId("genycaster.pro.checkout_open_wallet")
+        if (!checkoutActive && walletAvailable && !walletVerified)
+            return qsTrId("genycaster.pro.checkout_verify_wallet")
         if (!checkoutActive) return qsTrId("genycaster.pro.checkout_continue")
         if (txSubmitted) return qsTrId("genycaster.pro.checkout_check_payment")
         if (!quoteValid) return qsTrId("genycaster.pro.checkout_new_quote")
@@ -300,6 +311,10 @@ GenyDrawer {
             && String(proCheckout.error || "").length > 0) {
             root.purchaseIntent = false
             root.lastRequestedAsset = ""
+        } else if (!root.busy && root.purchaseIntent && openProofConnections
+            && String(openProofConnections.proWalletError || "").length > 0) {
+            root.purchaseIntent = false
+            root.lastRequestedAsset = ""
         } else if (!root.busy && root.purchaseIntent && !root.quoteForSelection
             && openProofConnections
             && String(openProofConnections.proBillingError || "").length > 0) {
@@ -332,10 +347,22 @@ GenyDrawer {
     Connections {
         target: proCheckout
         function onWalletConnectedSuccessfully() {
-            // A completed account-picker response may fetch the quote, but
-            // never authorize eth_sendTransaction without a fresh button click.
-            if (root.quoteForSelection) root.openQuotedCheckout()
-            else root.prepareQuote()
+            // eth_requestAccounts alone does not verify wallet ownership.
+            // Ask the server to bind a one-time EIP-191 proof to this account.
+            if (root.purchaseIntent && openProofConnections)
+                openProofConnections.requestProWalletChallenge(proCheckout.payerAddress)
+        }
+    }
+    Connections {
+        target: openProofConnections
+        function onProWalletChallengeReady(id, message) {
+            if (root.opened && root.purchaseIntent && proCheckout)
+                proCheckout.signWalletChallenge(id,message)
+        }
+        function onProWalletVerificationCompleted() {
+            // The backend checked an actual wallet signature for this account.
+            // Only now can we ask it for a price-bound payment quote.
+            root.prepareQuote()
         }
     }
     // No refresh from generic account stateChanged: it includes unrelated
@@ -517,6 +544,18 @@ GenyDrawer {
                             visible: root.walletAttempted && !root.checkoutActive
                                 && proCheckout && String(proCheckout.error || "").length > 0
                             text: root.walletErrorMessage()
+                            color: Theme.negative
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            objectName: "genyProWalletProofError"
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            visible: root.walletAttempted && !root.checkoutActive
+                                && openProofConnections
+                                && String(openProofConnections.proWalletError || "").length > 0
+                            text: qsTrId("genycaster.pro.wallet_verification_unavailable")
                             color: Theme.negative
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.WordWrap
