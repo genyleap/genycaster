@@ -152,3 +152,26 @@ test('profile table is private by default with optimistic revision checks',()=>{
   assert.match(sql,/publicly_visible boolean NOT NULL DEFAULT false/);
   assert.match(db,/WHERE profile_extras\.revision=\$6/);
 });
+
+test('native signed cloud-session bootstrap avoids anonymous 401 probes', () => {
+  const code = read('ui/app/identity/connections.cpp');
+  const restore = code.slice(
+    code.indexOf('void OpenProofConnectionsController::restoreAccountSession()'),
+    code.indexOf('void OpenProofConnectionsController::cancelAccountSessionRequest()')
+  );
+  assert.match(restore, /#if !defined\(Q_OS_WASM\)/);
+  assert.match(restore, /cookieJar->cookiesForUrl\(m_cloudUrl\)/);
+  assert.match(restore, /__Host-genycaster-account/);
+  assert.match(restore, /if \(!hasAccountCookie\)/);
+  assert.match(restore, /beginSignedAccountSession\(\)/);
+  assert.ok(restore.indexOf('if (!hasAccountCookie)') <
+            restore.indexOf('m_network.get(request)'),
+            'missing-cookie native clients must not make a knowingly unauthorized GET');
+  assert.match(restore, /status==200 && reply->isReadable\(\)/);
+  assert.match(restore, /m_cloudSessionVerified=true/);
+  assert.match(restore, /data.value\(QStringLiteral\("fid"\)\)/);
+  assert.match(restore, /csrf.size\(\)!=43/);
+  const cloud = read('services/account-sync/cloud_state.mjs');
+  assert.match(cloud, /const SESSION_COOKIE='__Host-genycaster-account'/);
+  assert.match(cloud, /if\(request.method==='GET' && owner.cookieAuth\)/);
+});
