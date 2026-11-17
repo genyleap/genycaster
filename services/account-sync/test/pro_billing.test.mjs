@@ -188,6 +188,10 @@ test('server checkout requires authenticated FID and never grants on unverified 
   const calls=[];const quotes=new Map();
   const store={
     proBillingReady:()=>true,
+    proWalletReady:()=>true,
+    // Independently signed payment wallets are app-owned, not implicitly
+    // trusted just because a browser connected an EIP-1193 provider.
+    async getProWallets(){return [wallet];},
     async getProSubscription(){return null;},
     async createProQuote(owner,quote){
       calls.push(['quote',owner.fid]);const item={...quote,status:'quoted'};
@@ -208,8 +212,12 @@ test('server checkout requires authenticated FID and never grants on unverified 
   const api=createAccountApi({catalogUrl:'https://id.example.test',issuer:'https://id.example.test',
     store,fetchImpl,billingPolicy:policy,readGenyRate:async()=>rate,
     checkProToken:async()=>true,
-    resolveProPaymentWallets:async()=>[wallet],
-    verifyBillingTransfer:async()=>{throw new Error('payment_not_matched');}});
+    resolveProPaymentWallets:async()=>[],
+    verifyBillingTransfer:async({owner,verifyWallets})=>{
+      assert.deepEqual(await verifyWallets(owner),[wallet],
+        'final receipt must trust the same signed payer as the quote');
+      throw new Error('payment_not_matched');
+    }});
   await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+api.address().port+'/api/v1/cloud/';
   const req=(path,auth=true,body={},method='POST')=>fetch(base+path,{
