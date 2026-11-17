@@ -4,6 +4,8 @@ import {readFileSync} from 'node:fs';
 
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const pro=read('ui/components/profile/GenyProDetailsDrawer.qml');
+const checkout=read('ui/app/identity/pro_checkout.cpp');
+const checkoutHeader=read('ui/app/identity/pro_checkout.hpp');
 const profile=read('ui/components/profile/ProfileSurface.qml');
 const shell=read('ui/components/shell/AppShell.qml');
 const header=read('ui/app/identity/connections.hpp');
@@ -27,8 +29,32 @@ test('Continue advances automatically when the quote succeeds, without auto-payi
   const beforePayment=proceed.slice(0,proceed.indexOf('if (root.txSubmitted)'));
   assert.doesNotMatch(beforePayment,/proCheckout\\.pay\\(/,
     'pressing Continue must first show the quote rather than auto-pay');
-  assert.match(pro,/visible: !root\.checkoutActive && openProofConnections\s*\n\s*&& String\(openProofConnections\.proBillingError/);
+  assert.match(pro,/visible: root\.quoteAttempted && !root\.checkoutActive/);
+  assert.match(pro,/objectName: "genyProWalletConnectError"/);
   assert.match(pro,/root\.purchaseIntent = false\s*\n\s*root\.lastRequestedAsset = ""/);
+});
+
+test('Continue opens a wallet selector on the user gesture, never a silent transfer',()=>{
+  assert.match(checkoutHeader,/Q_INVOKABLE void connectWallet\(\)/);
+  assert.match(checkoutHeader,/Q_PROPERTY\(bool walletConnected READ walletConnected NOTIFY changed\)/);
+  assert.match(checkout,/void ProCheckoutController::connectWallet\(\)/);
+  const first=checkout.slice(checkout.indexOf('void ProCheckoutController::connectWallet()'),
+    checkout.indexOf('void ProCheckoutController::pay()'));
+  assert.match(first,/m_begin\(\)/);
+  assert.match(first,/request\(QStringLiteral\("eth_requestAccounts"\)/);
+  assert.doesNotMatch(first,/requestChain\(\)|sendTransfer\(\)|eth_sendTransaction/);
+  const pay=checkout.slice(checkout.indexOf('void ProCheckoutController::pay()'),
+    checkout.indexOf('void ProCheckoutController::request('));
+  assert.match(pay,/if \(alreadyConnected\)/);
+  assert.match(pay,/m_quote\.value\(QStringLiteral\("verified_payers"\)\)/);
+  assert.match(pay,/requestChain\(\)/);
+  assert.match(pro,/proCheckout\.connectWallet\(\)/);
+  assert.match(pro,/onWalletConnectedSuccessfully\(\)/);
+  assert.match(pro,/proCheckout\.pay\(\)/);
+  assert.match(pro,/root\.walletAttempted && !root\.checkoutActive/);
+  assert.match(pro,/visible: root\.quoteAttempted && !root\.checkoutActive/);
+  assert.match(pro,/qsTrId\("genycaster\.pro\.quote_wallet_required"\)/);
+  assert.match(pro,/qsTrId\("genycaster\.pro\.quote_retry_notice"\)/);
 });
 
 test('GenyBuzz remains app-owned, opt-in and DM-context-ready without a protocol writer',()=>{
@@ -45,6 +71,10 @@ test('GenyBuzz remains app-owned, opt-in and DM-context-ready without a protocol
   assert.match(controller,/cancelNetworkReply\(m_buzzInboxRead, this\)/);
   assert.match(profile,/objectName: "genyBuzzReceiveToggle"/);
   assert.match(profile,/objectName: "genyBuzzSendFromProfile"/);
+  assert.match(profile,/sharePopup\.close\(\)\s*\n\s*root\.buzzRequested\(/);
+  assert.doesNotMatch(profile,/root\.buzzError/);
+  assert.match(shell,/objectName: "genyBuzzSendFeedback"/);
+  assert.match(shell,/root\.buzzPendingSendFid/);
   assert.match(profile,/visible: true\\s*\\n\\s*Layout\\.fillWidth: true/,
     'own mobile profile must expose actions');
   assert.match(shell,/openProofConnections\.sendGenyBuzz\(/);
@@ -57,12 +87,16 @@ test('GenyBuzz remains app-owned, opt-in and DM-context-ready without a protocol
 
 test('GenyBuzz strings are present in all compiled translations',()=>{
   const ids=['enable','disable','send','sent','slow_down','not_available',
-    'error','received','from_fid','view'];
+    'error','received','from_fid','view','service_unavailable'];
+  const proErrors=['quote_wallet_required','quote_retry_notice'];
   for(const locale of ['en_US','fa_IR','de_DE','ja_JP','ko_KR','zh_CN',
     'hi_IN','ar_SA','es_ES','fr_FR','pt_BR','ru_RU']){
     const file=read('ui/i18n/qml_'+locale+'.ts');
     for(const id of ids)
       assert.ok(file.includes('id="genycaster.buzz.'+id+'"'),
+        locale+' misses '+id);
+    for(const id of proErrors)
+      assert.ok(file.includes('id="genycaster.pro.'+id+'"'),
         locale+' misses '+id);
   }
 });
