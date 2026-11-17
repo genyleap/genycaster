@@ -8,6 +8,25 @@ Item {
     id: root
     objectName: "appShell"
 
+    property var pendingBuzz: ({})
+    property string lastDisplayedBuzzId: ""
+    function showNextBuzz() {
+        if (!root.visible || initialSetup.visible || genyBuzzToast.opened
+            || !openProofConnections || !openProofConnections.cloudAuthorizationReady)
+            return
+        const rows = openProofConnections.genyBuzzInbox || []
+        for (const event of rows) {
+            if (!event || !event.id || String(event.id) === root.lastDisplayedBuzzId)
+                continue
+            root.pendingBuzz = event
+            root.lastDisplayedBuzzId = String(event.id)
+            genyBuzzToast.open()
+            // Explicitly acknowledge only an item shown to this user.
+            openProofConnections.acknowledgeGenyBuzz(String(event.id))
+            break
+        }
+    }
+
     function readingOverlayInset(surface) {
         if (mobileBottomNavigation.visible)
             return mobileBottomNavigation.height
@@ -2186,6 +2205,27 @@ Item {
                                                 mutedProfileFids: root.mutedActorIds
                                                 muteSettingsReady: openProofConnections ? openProofConnections.mutedProfilesReady : false
                                                 muteWriteBusy: openProofConnections ? openProofConnections.mutedProfilesBusy : false
+                                                buzzAuthorizationReady: openProofConnections
+                                                    ? openProofConnections.cloudAuthorizationReady : false
+                                                buzzPreferencesReady: openProofConnections
+                                                    ? openProofConnections.genyBuzzPreferencesReady : false
+                                                buzzEnabled: openProofConnections
+                                                    ? openProofConnections.genyBuzzPreferences.enabled === true : false
+                                                buzzBusy: openProofConnections
+                                                    ? openProofConnections.genyBuzzBusy : false
+                                                buzzError: openProofConnections
+                                                    ? String(openProofConnections.genyBuzzError || "") : ""
+                                                buzzLastSentFid: openProofConnections
+                                                    ? Number(openProofConnections.genyBuzzLastSentFid || 0) : 0
+                                                onBuzzEnabledRequested: enabled => {
+                                                    if (openProofConnections)
+                                                        openProofConnections.setGenyBuzzEnabled(enabled)
+                                                }
+                                                onBuzzRequested: (fid,kind) => {
+                                                    if (openProofConnections)
+                                                        openProofConnections.sendGenyBuzz(
+                                                            Math.floor(fid),kind,"profile")
+                                                }
                                                 onMuteRequested: (fid,muted) => {
                                                     if (openProofConnections)
                                                         openProofConnections.setProfileMuted(Math.floor(fid), muted)
@@ -3451,6 +3491,96 @@ Item {
                     onClicked: {
                         signOutConfirm.close()
                         presentationBridge.signOut()
+                    }
+                }
+            }
+        }
+    }
+
+    // App-owned GenyBuzz inbox. Polling is bounded and only runs during an
+    // authenticated visible session. A future DM view can reuse the same
+    // controller without owning delivery, sound or a second nudge backend.
+    Timer {
+        id: genyBuzzPoll
+        interval: 30_000
+        repeat: true
+        running: root.visible && openProofConnections
+            && openProofConnections.cloudAuthorizationReady
+        onRunningChanged: {
+            if (running) {
+                openProofConnections.fetchGenyBuzzPreferences()
+                openProofConnections.fetchGenyBuzzInbox()
+            }
+        }
+        onTriggered: {
+            openProofConnections.fetchGenyBuzzPreferences()
+            openProofConnections.fetchGenyBuzzInbox()
+            root.showNextBuzz()
+        }
+    }
+    Connections {
+        target: openProofConnections
+        function onGenyBuzzChanged() { root.showNextBuzz() }
+    }
+    Popup {
+        id: genyBuzzToast
+        objectName: "genyBuzzIncomingToast"
+        parent: Overlay.overlay
+        z: 15000
+        modal: false
+        focus: false
+        padding: Theme.space3
+        width: parent ? Math.min(340, parent.width-Theme.space3*2) : 320
+        x: parent ? (Theme.rtl ? Theme.space3
+            : Math.max(Theme.space3,parent.width-width-Theme.space3)) : 0
+        y: Theme.space3
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: PopupSurface { curveDepth: Theme.curveContainer }
+        onClosed: root.showNextBuzz()
+        Timer {
+            interval: 4800
+            repeat: false
+            running: genyBuzzToast.opened
+            onTriggered: genyBuzzToast.close()
+        }
+        contentItem: RowLayout {
+            spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
+            Icon {
+                text: Theme.iconNotification
+                color: Theme.accent
+                preferredSize: Theme.iconSizeLarge
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space1
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.buzz.received")
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightDemiBold
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.buzz.from_fid").arg(
+                        String(root.pendingBuzz.sender_fid || ""))
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
+            }
+            ActionButton {
+                compact: true
+                quiet: true
+                text: qsTrId("genycaster.buzz.view")
+                onClicked: {
+                    const fid=Number(root.pendingBuzz.sender_fid || 0)
+                    genyBuzzToast.close()
+                    if (fid>0 && isFinite(fid)) {
+                        root.clearPendingShellReturn()
+                        root.shellRoute = ""
+                        presentationBridge.openProfileFid(fid)
                     }
                 }
             }
