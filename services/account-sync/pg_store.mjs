@@ -613,7 +613,9 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
     async putBuzzPreferences({issuer,subject},{enabled,revision}) {
       if(!buzzReady)throw new Error('buzz_unavailable');
       const result=await pool.query(`INSERT INTO genybuzz_preferences
-        (issuer,subject,enabled,revision) SELECT $1,$2,$3,1 WHERE $4::bigint=0
+        (issuer,subject,enabled,revision) SELECT $1,$2,$3,1
+        WHERE $4::bigint=0 OR EXISTS (
+          SELECT 1 FROM genybuzz_preferences WHERE issuer=$1 AND subject=$2)
         ON CONFLICT (issuer,subject) DO UPDATE SET
           enabled=EXCLUDED.enabled,revision=genybuzz_preferences.revision+1,
           updated_at=now()
