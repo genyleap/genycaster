@@ -218,51 +218,53 @@ constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
     std::string page = R"html(<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wallet approval · GenyCaster</title><style nonce=")html";
     page += nonce;
     page += R"html(">
-:root{color-scheme:dark;--accent:#168bff;--accent-soft:#102c48;--canvas:#10141c;--panel:#1b2330;--raised:#242e3d;--line:#354356;--ink:#f3f7fc;--muted:#a5b3c7;--danger:#ff8f9c;--success:#87edbf;font:14px/1.48 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
+:root{color-scheme:light dark;--accent:#007aff;--accent-soft:#e7f2ff;--canvas:#f5f7fa;--panel:#fff;--raised:#f6f8fb;--line:#e1e6ed;--ink:#181c23;--muted:#657181;--danger:#c93849;--success:#187c60;font:14px/1.45 -apple-system,BlinkMacSystemFont,Inter,"Segoe UI",ui-sans-serif,system-ui,sans-serif}
+@media(prefers-color-scheme:dark){:root{--accent:#0a84ff;--accent-soft:#132b47;--canvas:#11141c;--panel:#1b202a;--raised:#252c39;--line:#394556;--ink:#f3f5f9;--muted:#a4afbf;--danger:#ff919e;--success:#7bdcb5}}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at 18% 6%,#163555 0%,transparent 46%),var(--canvas);color:var(--ink)}
-main{width:min(100%,460px);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:0 24px 70px #030a1588}
-.brand{display:flex;align-items:center;gap:10px;color:#99c9ff;font-size:.77rem;font-weight:750;letter-spacing:.09em;text-transform:uppercase;margin-bottom:12px}
-.brand-mark{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--accent-soft);border:1px solid #295b8d;font-size:16px}
-h1{font-size:1.55rem;letter-spacing:-.035em;line-height:1.22;margin:0 0 5px;font-weight:750}
-.subtitle{color:var(--muted);margin:0 0 19px;font-size:.87rem}
-h2{font-size:1.03rem;line-height:1.4;margin:7px 0 7px}
-.app{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--raised);margin-bottom:20px}
-#app-name{display:block;font-size:1rem;font-weight:750}
-#origin{font-size:.82rem;color:var(--muted);overflow-wrap:anywhere;margin-top:3px}
-.label{display:block;font-size:.77rem;font-weight:650;color:var(--muted);margin-bottom:9px}
-#options{display:grid;gap:8px;max-height:225px;overflow-y:auto}
-button{font:inherit;cursor:pointer;border-radius:12px;padding:11px 14px;border:1px solid var(--line);color:var(--ink);background:var(--raised);-webkit-appearance:none;appearance:none}
-button:disabled{opacity:.55;cursor:not-allowed}
-button:hover:enabled{border-color:#5e9cde}
-button:focus-visible,summary:focus-visible{outline:2px solid #77bcff;outline-offset:2px}
-.wallet-option{display:flex;align-items:center;gap:12px;width:100%;text-align:start;min-height:50px}
-.wallet-option[aria-checked="true"]{background:var(--accent-soft);border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-.wallet-dot{width:16px;height:16px;border:2px solid #8597ad;border-radius:50%;display:block;flex:none}
-.wallet-option[aria-checked="true"] .wallet-dot{border:5px solid var(--accent);background:white}
-.wallet-name{flex:1;font-weight:650;overflow-wrap:anywhere}
-.wallet-tag{font-size:.69rem;color:var(--muted);letter-spacing:.01em}
-#request{margin:17px 0 0;padding:15px;border:1px solid var(--line);border-radius:14px;background:var(--raised)}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:18px;background:var(--canvas);color:var(--ink)}
+main{width:min(100%,438px);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 12px 38px #00000018}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);font-size:.79rem;font-weight:750;letter-spacing:.025em;margin-bottom:13px}
+.brand-mark{display:block;width:32px;height:32px;flex:none;border-radius:9px}
+.brand-mark svg{display:block;width:100%;height:100%}
+h1{font-size:1.34rem;letter-spacing:-.022em;line-height:1.25;margin:0 0 4px;font-weight:750}
+.subtitle{color:var(--muted);margin:0 0 16px;font-size:.86rem}
+h2{font-size:.99rem;line-height:1.35;margin:7px 0}
+.app{padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:var(--raised);margin-bottom:17px}
+#app-name{display:block;font-size:.96rem;font-weight:700}
+#origin{font-size:.78rem;color:var(--muted);overflow-wrap:anywhere;margin-top:2px}
+.label{display:block;font-size:.78rem;font-weight:650;color:var(--muted);margin-bottom:8px}
+#options{display:grid;gap:7px;max-height:196px;overflow-y:auto}
+button{font:inherit;cursor:pointer;border-radius:11px;padding:10px 12px;border:1px solid var(--line);color:var(--ink);background:var(--raised);-webkit-appearance:none;appearance:none}
+button:disabled{opacity:.58;cursor:not-allowed}
+button:hover:enabled{border-color:var(--accent)}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wallet-option{display:flex;align-items:center;gap:11px;width:100%;text-align:start;min-height:46px}
+.wallet-option[aria-checked="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.wallet-dot{width:15px;height:15px;border:2px solid var(--muted);border-radius:50%;display:block;flex:none}
+.wallet-option[aria-checked="true"] .wallet-dot{border:5px solid var(--accent);background:var(--panel)}
+.wallet-name{flex:1;font-weight:620;overflow-wrap:anywhere}
+.wallet-tag{font-size:.72rem;color:var(--muted)}
+#request{margin:14px 0 0;padding:13px;border:1px solid var(--line);border-radius:13px;background:var(--raised)}
 #request[hidden],#message[hidden]{display:none}
-#kind{font-size:.73rem;color:#81bdff;font-weight:700}
-#message{max-height:100px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:.79rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:11px;border-radius:9px;background:var(--canvas);color:var(--ink);margin:10px 0}
-details{font-size:.8rem;color:var(--muted);margin:12px 0 0}
+#kind{font-size:.72rem;color:var(--accent);font-weight:700}
+#message{max-height:100px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:.78rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px;border-radius:9px;background:var(--canvas);color:var(--ink);margin:9px 0}
+details{font-size:.79rem;color:var(--muted);margin:12px 0 0}
 summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-weight:600}
 summary::-webkit-details-marker{display:none}
 summary::before{content:'›';display:inline-grid;place-items:center;width:14px;height:16px;color:var(--accent);font-size:18px;line-height:1}
 details[open]>summary::before{transform:rotate(90deg)}
-pre{background:var(--canvas);padding:10px;border-radius:8px;white-space:pre-wrap;overflow:auto;overflow-wrap:anywhere;max-height:160px;font:.73rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
-.actions{display:flex;gap:9px;margin-top:16px}
-.actions button{flex:1;text-align:center;min-height:44px}
-#approve{background:var(--accent);border-color:var(--accent);color:white;font-weight:750}
-#approve:hover:enabled{background:#319cff}
-#status,#wallet{font-size:.8rem;color:var(--muted);line-height:1.5;margin:10px 0 0;overflow-wrap:anywhere}
+pre{background:var(--canvas);padding:9px;border-radius:8px;white-space:pre-wrap;overflow:auto;overflow-wrap:anywhere;max-height:135px;font:.72rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
+.actions{display:flex;gap:8px;margin-top:13px}
+.actions button{flex:1;text-align:center;min-height:42px}
+#approve{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+#approve:hover:enabled{filter:brightness(1.1)}
+#status,#wallet{font-size:.79rem;color:var(--muted);line-height:1.45;margin:10px 0 0;overflow-wrap:anywhere}
 #status.error,#wallet.error{color:var(--danger)}
 #status.ok,#wallet.ok{color:var(--success)}
-.help{margin:17px 0 0;font-size:.8rem;line-height:1.5;color:var(--muted)}
-@media(max-width:450px){main{padding:18px}body{padding:10px}.actions{flex-wrap:wrap}}
+.help{margin:14px 0 0;font-size:.76rem;line-height:1.45;color:var(--muted)}
+@media(max-width:450px){main{padding:17px}body{padding:9px}.actions{flex-wrap:wrap}}
 @media(prefers-reduced-motion:no-preference){button{transition:border-color .15s ease,background .15s ease}}
-</style></head><body><main><div class="brand"><span class="brand-mark" aria-hidden="true">✦</span>GenyCaster</div><h1>Wallet approval</h1><p class="subtitle">Connect securely using your selected browser wallet.</p><section class="app"><strong id="app-name">)html";
+</style></head><body><main><div class="brand"><span class="brand-mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="48 48 416 416"><path fill="#101010" d="M 158 56 H 354 C 410.33 56 456 101.67 456 158 V 354 C 456 410.33 410.33 456 354 456 H 158 C 101.67 456 56 410.33 56 354 V 158 C 56 101.67 101.67 56 158 56 Z"/><path fill="#FFFFFF" d="M 366 204 C 342 157 298 128 249 128 C 178.30 128 121 185.30 121 256 C 121 326.70 178.30 384 249 384 C 294 384 331.8 365.4 354.3 349.5 L 322.0 315.2 C 303.6 330.2 281.4 336 249 336 C 204.82 336 169 300.18 169 256 C 169 211.82 204.82 176 249 176 C 278 176 299.5 185 315.5 204 Z"/><path fill="#BEBEBE" d="M 254 231 H 376 C 382.08 231 385 233.92 385 240 V 362 C 385 367.7 383.1 367.25 379.4 363.3 C 341.2 321.9 296.6 280.8 252.2 245.8 C 245.6 240.8 247.0 231 254 231 Z"/></svg></span>GenyCaster</div><h1>Wallet approval</h1><p class="subtitle">Connect securely using your selected browser wallet.</p><section class="app"><strong id="app-name">)html";
     page += htmlEscape(appName);
     page += R"html(</strong><div id="origin">)html";
     page += htmlEscape(origin);
@@ -402,8 +404,13 @@ window.addEventListener('eip6963:announceProvider',event=>{
     add(detail.info.name,detail.provider);
 });
 window.dispatchEvent(new Event('eip6963:requestProvider'));
-if(window.ethereum&&typeof window.ethereum.request==='function')
-  add('Browser wallet',window.ethereum);
+// EIP-6963 announcements take priority: a generic window.ethereum fallback
+// placed ahead of branded providers caused duplicate "Browser wallet" rows.
+setTimeout(()=>{
+  if(!providers.length && window.ethereum
+      && typeof window.ethereum.request==='function')
+    add('Browser wallet',window.ethereum);
+},350);
 setTimeout(()=>{
   if(!providers.length){wallet.className='error';
     wallet.textContent='No EIP-1193 wallet detected. Reopen the connection in GenyCaster and choose a browser with a wallet extension.';}
