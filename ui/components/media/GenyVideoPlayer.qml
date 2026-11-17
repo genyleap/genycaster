@@ -2168,18 +2168,20 @@ Item {
     // Cleanup: recycled/deleted delegates never leak decoders, audio outputs
     // or coordinator ownership.
     Component.onDestruction: {
-        startupTimer.stop()
-        startupWatchdog.stop()
-        stallWatchdog.stop()
-        adaptiveDownshift.stop()
-        adaptiveUpgrade.stop()
+        if (startupTimer) startupTimer.stop()
+        if (startupWatchdog) startupWatchdog.stop()
+        if (stallWatchdog) stallWatchdog.stop()
+        if (adaptiveDownshift) adaptiveDownshift.stop()
+        if (adaptiveUpgrade) adaptiveUpgrade.stop()
         if ((qualityPopup && qualityPopup.opened))
             qualityPopup.close()
         if ((fullscreenPopup && fullscreenPopup.opened))
             fullscreenPopup.close()
-        player.stop()
-        activation.activated = false
-        activation.preparationId = 0
+        if (player) player.stop()
+        if (activation) {
+            activation.activated = false
+            activation.preparationId = 0
+        }
         root.releasePrimaryPlayback()
     }
 }
