@@ -51,7 +51,7 @@ test('Pro payer API needs account-owned, single-use signed proof before any wall
       if(!issued || consumed || challengeId!==id)return null;
       consumed=true;return {address,message};
     },
-    saveProWallet:async(owner,payer)=>{assert.equal(owner.subject,account.subject);saved.push(payer)}
+    saveProWallet:async(owner,payer)=>{assert.equal(owner.subject,account.subject);saved.push(payer);return true}
   };
   const respond=(res,status,value)=>{res.status=status;res.body=value};
   const request={method:'POST',headers:{'content-type':'application/json'}};
