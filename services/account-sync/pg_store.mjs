@@ -750,17 +750,27 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
           (SELECT COUNT(*)::int FROM genybuzz_events
            WHERE sender_issuer=$1 AND sender_subject=$2
              AND recipient_issuer=$3 AND recipient_subject=$4
-             AND created_at>now()-interval '60 seconds') AS pair_count,
+             AND created_at>now()-interval '6 hours') AS pair_count,
           (SELECT COUNT(*)::int FROM genybuzz_events
            WHERE sender_issuer=$1 AND sender_subject=$2
              AND created_at>now()-interval '1 hour') AS sender_count,
           (SELECT COUNT(*)::int FROM genybuzz_events
            WHERE recipient_issuer=$3 AND recipient_subject=$4
-             AND created_at>now()-interval '1 hour') AS recipient_count`,
+             AND created_at>now()-interval '1 hour') AS recipient_count,
+          (SELECT COUNT(*)::int FROM genybuzz_events
+           WHERE sender_issuer=$1 AND sender_subject=$2
+             AND created_at>now()-interval '24 hours') AS sender_day_count,
+          (SELECT COUNT(*)::int FROM genybuzz_events
+           WHERE recipient_issuer=$3 AND recipient_subject=$4
+             AND created_at>now()-interval '24 hours') AS recipient_day_count`,
           [sender.issuer,sender.subject,recipient.issuer,recipient.subject]);
         const limit=limits.rows[0]||{};
-        if(Number(limit.pair_count)>=1 || Number(limit.sender_count)>=5
-           || Number(limit.recipient_count)>=10) {
+        // Transactional per-identity and per-recipient budgets also protect
+        // opted-in people against a caller using multiple verified accounts.
+        if(Number(limit.pair_count)>=1 || Number(limit.sender_count)>=4
+           || Number(limit.recipient_count)>=4
+           || Number(limit.sender_day_count)>=12
+           || Number(limit.recipient_day_count)>=12) {
           await client.query('ROLLBACK');
           return {status:'rate_limited'};
         }
