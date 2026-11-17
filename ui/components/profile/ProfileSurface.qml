@@ -81,6 +81,16 @@ Item {
     property var mutedProfileFids: []
     property bool muteSettingsReady: false
     property bool muteWriteBusy: false
+    // GenyBuzz remains a product-owned interaction. No protocol signer is
+    // needed; authorization comes from the independent account service.
+    property bool buzzAuthorizationReady: false
+    property bool buzzPreferencesReady: false
+    property bool buzzEnabled: false
+    property bool buzzBusy: false
+    property string buzzError: ""
+    property double buzzLastSentFid: 0
+    readonly property string buzzTargetKind:
+        Number(root.activeDetail.fid || 0) >= 4294967296 ? "hypersnap" : "farcaster"
     // Account-owned data must not be dereferenced after its QML context
     // service has been destroyed. Empty snapshots are explicitly unknown,
     // never fabricated verified entitlements or activity.
@@ -750,6 +760,8 @@ Item {
     signal followingMutationRequested(double targetFid, bool following)
     signal blockingMutationRequested(double targetFid, bool blocked)
     signal muteRequested(double targetFid, bool muted)
+    signal buzzRequested(double targetFid, string targetKind)
+    signal buzzEnabledRequested(bool enabled)
     signal removeCastRequested(var cast)
     signal externalRequested(string url)
     signal mediaRequested(var mediaItems, int index)
@@ -1543,6 +1555,52 @@ Item {
                                             copyProfileLinkAction.acknowledgeCopy(copied)
                                             menuCopyCloseTimer.restart()
                                         }
+                                    }
+                                    ActionButton {
+                                        objectName: "genyBuzzReceiveToggle"
+                                        visible: root.isOwnProfile
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconBell
+                                        text: root.buzzEnabled
+                                            ? qsTrId("genycaster.buzz.disable")
+                                            : qsTrId("genycaster.buzz.enable")
+                                        enabled: root.buzzAuthorizationReady
+                                            && root.buzzPreferencesReady && !root.buzzBusy
+                                        busy: root.buzzBusy
+                                        onClicked: root.buzzEnabledRequested(!root.buzzEnabled)
+                                    }
+                                    ActionButton {
+                                        objectName: "genyBuzzSendFromProfile"
+                                        visible: !root.isOwnProfile
+                                            && Number(root.activeDetail.fid || 0) > 0
+                                            && !Boolean(root.activeDetail.blockedByMe)
+                                            && !root.profileMuted
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconBell
+                                        text: root.buzzLastSentFid===Number(root.activeDetail.fid)
+                                            ? qsTrId("genycaster.buzz.sent")
+                                            : qsTrId("genycaster.buzz.send")
+                                        enabled: root.buzzAuthorizationReady && !root.buzzBusy
+                                        busy: root.buzzBusy
+                                        onClicked: root.buzzRequested(
+                                            Number(root.activeDetail.fid),root.buzzTargetKind)
+                                    }
+                                    DirectionAwareLabel {
+                                        Layout.fillWidth: true
+                                        visible: root.buzzError.length>0
+                                            && root.buzzAuthorizationReady
+                                        text: root.buzzError==="buzz_rate_limited"
+                                            ? qsTrId("genycaster.buzz.slow_down")
+                                            : root.buzzError==="buzz_not_available"
+                                              ? qsTrId("genycaster.buzz.not_available")
+                                              : qsTrId("genycaster.buzz.error")
+                                        color: Theme.negative
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        wrapMode: Text.WordWrap
                                     }
                                     ActionButton {
                                         visible: !root.isOwnProfile
