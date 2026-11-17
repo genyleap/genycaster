@@ -8,6 +8,9 @@ Button {
     id: control
 
     property bool prominent: false
+    // Opt-in to a shared adjacent capture. Ordinary feed actions never
+    // allocate their own texture or reflect ancestor content.
+    property NeonReflectionSource reflectionSource: null
     property bool quiet: false
     property bool destructive: false
     property bool destructiveFilled: false
@@ -273,6 +276,8 @@ Button {
     }
 
     background: NeonSurface {
+        reflectionSource: control.reflectionSource
+        reflectedBorder: !control.prominent && !control.destructive
         // Keep the Kit's hover-capable halo instantiated for the lifetime of
         // an enabled button. Binding interactivity to hovered unloaded the
         // ShaderEffect on mouse exit and snapped the fade away.
