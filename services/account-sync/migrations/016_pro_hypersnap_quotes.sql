@@ -1,10 +1,9 @@
--- Allow Pro quotes for the verified HyperSnap-native account identity.
--- Migration 012 assumed every account was Farcaster. Keep its accepted
--- Farcaster subjects intact and allow only the canonical native issuer/FID.
--- Wallet ownership remains proved by the independent one-use EIP-191 flow.
---
--- Run under a database-owner role, never grant schema ALTER to the API role.
--- PostgreSQL DDL and schema_migrations insertion are one atomic transaction.
+-- Extend Pro quote ownership to verified HyperSnap-native accounts.
+-- Migration 012 constrained every quote to a Farcaster subject. Wallet proof
+-- already accepts both protocols, but a verified HyperSnap payer could not
+-- insert a quote. Retain the original Farcaster format for non-native issuers.
+-- The native issuer must be paired with a safe, canonical HyperSnap FID.
+-- No existing rows or payment receipts are modified.
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '30s';
@@ -14,24 +13,19 @@ ALTER TABLE pro_quotes
 
 ALTER TABLE pro_quotes
   ADD CONSTRAINT pro_quotes_subject_check CHECK (
-    CASE WHEN issuer = 'hypersnap:native-registry' THEN
-      CASE WHEN subject ~ '^hypersnap:[1-9][0-9]{9,15}
-
-INSERT INTO schema_migrations(version) VALUES(16)
-  ON CONFLICT DO NOTHING;
-COMMIT;
- THEN
-        split_part(subject, ':', 2)::numeric
-          BETWEEN 4294967296 AND 9007199254740991
-      ELSE false END
-    ELSE subject ~ '^farcaster:[1-9][0-9]{0,18}
-
-INSERT INTO schema_migrations(version) VALUES(16)
-  ON CONFLICT DO NOTHING;
-COMMIT;
- END
+    CASE
+      WHEN issuer = 'hypersnap:native-registry' THEN
+        CASE
+          WHEN subject ~ '^hypersnap:[1-9][0-9]{9,15}$' THEN
+            split_part(subject, ':', 2)::numeric
+              BETWEEN 4294967296 AND 9007199254740991
+          ELSE false
+        END
+      ELSE
+        subject ~ '^farcaster:[1-9][0-9]{0,18}$'
+    END
   );
 
-INSERT INTO schema_migrations(version) VALUES(16)
+INSERT INTO schema_migrations(version) VALUES (16)
   ON CONFLICT DO NOTHING;
 COMMIT;
