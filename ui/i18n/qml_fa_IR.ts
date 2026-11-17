@@ -7650,8 +7650,12 @@ Company | https://company.com</source>
             <translation>در حال دریافت قیمت پرو…</translation>
         </message>
         <message id="genycaster.pro.price_unavailable">
-            <source>Current Pro price is unavailable. Please retry.</source>
-            <translation>قیمت فعلی پرو در دسترس نیست. دوباره تلاش کنید.</translation>
+            <source>Pro price unavailable</source>
+            <translation>قیمت پرو در دسترس نیست</translation>
+        </message>
+        <message id="genycaster.pro.price_retry_hint">
+            <source>Live pricing could not be loaded. Try again in a moment.</source>
+            <translation>دریافت قیمت لحظه‌ای ممکن نشد. کمی بعد دوباره تلاش کنید.</translation>
         </message>
         <message id="genycaster.pro.connect_to_pay">
             <source>Connect account</source>
