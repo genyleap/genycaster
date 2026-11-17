@@ -3520,7 +3520,15 @@ Item {
     }
     Connections {
         target: openProofConnections
-        function onGenyBuzzChanged() { root.showNextBuzz() }
+        function onGenyBuzzChanged() {
+            if (!openProofConnections || !openProofConnections.cloudAuthorizationReady) {
+                genyBuzzToast.close()
+                root.pendingBuzz = ({})
+                root.lastDisplayedBuzzId = ""
+                return
+            }
+            root.showNextBuzz()
+        }
     }
     Popup {
         id: genyBuzzToast
