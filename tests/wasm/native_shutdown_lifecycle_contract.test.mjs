@@ -100,7 +100,8 @@ test("popup-host QML bindings stay null-safe during native scene destruction", (
     assert.match(composer, /topicFilterNeedle: topicSearch/);
     assert.doesNotMatch(composer, /topicSearch\.text\.trim\(\)/);
     assert.match(video, /\(qualityPopup && qualityPopup\.opened\)/);
-    assert.match(video, /x: Math\.max\(0, \(parent \? parent\.width : 0\) - width - Theme\.space4\)/);\n    assert.doesNotMatch(video, /anchors\.(?:top|right): fullscreenHost \? fullscreenHost\.(?:top|right) : null/);
+    assert.match(video, /x: Math\.max\(0, \(parent \? parent\.width : 0\) - width - Theme\.space4\)/);
+    assert.doesNotMatch(video, /anchors\.(?:top|right): fullscreenHost \? fullscreenHost\.(?:top|right) : null/);
     assert.match(profile, /!profileStatusEditor \|\| profileStatusEditor\.selectedMood/);
     assert.match(multi, /readonly property bool pickerVisible: !!picker && picker\.visible/);
     for (const qml of [combo, filter])
