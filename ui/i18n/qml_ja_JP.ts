@@ -7964,5 +7964,45 @@ Company | https://company.com</source>
             <source>Done</source>
             <translation>完了</translation>
         </message>
+        <message id="genycaster.buzz.enable">
+            <source>Enable GenyBuzz</source>
+            <translation>GenyBuzzを有効にする</translation>
+        </message>
+        <message id="genycaster.buzz.disable">
+            <source>Disable GenyBuzz</source>
+            <translation>GenyBuzzを無効にする</translation>
+        </message>
+        <message id="genycaster.buzz.send">
+            <source>Send Buzz</source>
+            <translation>Buzzを送信</translation>
+        </message>
+        <message id="genycaster.buzz.sent">
+            <source>Buzz sent</source>
+            <translation>Buzzを送信しました</translation>
+        </message>
+        <message id="genycaster.buzz.slow_down">
+            <source>Too many Buzzes. Try again later.</source>
+            <translation>Buzzの送信回数が多すぎます。後でもう一度お試しください。</translation>
+        </message>
+        <message id="genycaster.buzz.not_available">
+            <source>Buzz is unavailable for this account.</source>
+            <translation>このアカウントにはBuzzを送信できません。</translation>
+        </message>
+        <message id="genycaster.buzz.error">
+            <source>Could not send Buzz. Try again.</source>
+            <translation>Buzzを送信できませんでした。もう一度お試しください。</translation>
+        </message>
+        <message id="genycaster.buzz.received">
+            <source>GenyBuzz</source>
+            <translation>GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.from_fid">
+            <source>Attention nudge from FID %1</source>
+            <translation>FID %1 からの通知</translation>
+        </message>
+        <message id="genycaster.buzz.view">
+            <source>View</source>
+            <translation>表示</translation>
+        </message>
     </context>
 </TS>
