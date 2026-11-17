@@ -4881,6 +4881,22 @@ Entreprise | https://company.com</translation>
             <source>Play emoji once when visible, then keep them still to save energy.</source>
             <translation>Animer les émojis une seule fois lorsqu’ils apparaissent, puis les figer pour économiser l’énergie.</translation>
         </message>
+        <message id="genycaster.settings.chromatic_reflections">
+            <source>Content-aware reflections</source>
+            <translation>Reflets de couleur selon le contenu</translation>
+        </message>
+        <message id="genycaster.settings.chromatic_reflections_description">
+            <source>Reflect nearby colors on sidebars, headers and panels.</source>
+            <translation>Reflète les couleurs du contenu voisin sur les barres latérales, les en-têtes et les panneaux.</translation>
+        </message>
+        <message id="genycaster.settings.reflection_intensity">
+            <source>Reflection intensity</source>
+            <translation>Intensité des reflets</translation>
+        </message>
+        <message id="genycaster.settings.reduce_reflection_transparency">
+            <source>Reduce transparency</source>
+            <translation>Réduire la transparence</translation>
+        </message>
         <message id="genycaster.settings.neon_effects">
             <source>Neon edge lighting</source>
             <translation>Éclairage néon des contours</translation>
