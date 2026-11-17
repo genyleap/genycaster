@@ -49,11 +49,11 @@ test('SetupActionCard single material owns geometry, strokes, fill and focus', (
   assert.match(card, /root.protocolChoice && root.selected\s*\?\s*\(root.down \? Theme.primarySurfaceHover : Theme.primarySurface\)/);
   assert.match(card, /root.protocolChoice \|\| root.setupEmphasis \|\| root.networkShowcase/);
   assert.match(card, /Theme.strokeHairline/);
-  assert.match(card, /root.selected \|\| root.setupEmphasis \? Theme.accent/);
+  assert.match(card, /root.selected \? Theme.accent : "transparent"/);
   assert.match(card, /curveDepth: Theme.curveContainer/);
   assert.match(card, /highQualityEdges: true/);
   assert.match(card, /Accessible.role: root.protocolChoice \? Accessible.RadioButton : Accessible.Button/);
   assert.match(card, /focused: Theme.keyboardFocusVisible\(root\)/);
   assert.match(card, /externalHovered: root.hovered/);
-  assert.match(card, /neonColor: root.neutralPrimary[\s\S]*?root.selected \|\| root.setupEmphasis \? Theme.accent/);
+  assert.match(card, /neonColor: root.visuallyDisabled[\s\S]*?root.primary \|\| root.setupEmphasis[\s\S]*?Qt.lighter\(Theme.primaryFill, 1.28\)/);
 });

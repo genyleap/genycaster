@@ -11,7 +11,7 @@ endif()
 if(NOT qmlformat)
     message(FATAL_ERROR "Qt 6.12 qmlformat not found")
 endif()
-foreach(file IN ITEMS InitialSetup.qml SetupStepIndicator.qml SetupPrimaryButton.qml)
+foreach(file IN ITEMS InitialSetup.qml SetupStepIndicator.qml SetupPrimaryButton.qml SetupActionCard.qml SetupLanguageSelector.qml)
     execute_process(
         COMMAND "${qmlformat}"
             "${CMAKE_CURRENT_LIST_DIR}/../ui/components/setup/${file}"

@@ -55,7 +55,7 @@ test('white Setup CTA rims are neutral in idle, hover and keyboard focus', () =>
     const setup = read('ui/components/setup/SetupPrimaryButton.qml');
     assert.match(setup, /^ActionButton \{/m);
     for (const source of [action, choice]) {
-        assert.match(source, /neonColor: (?:control|root)\.neutralPrimary\s*\?\s*Theme\.ink/);
+        assert.match(source, /neonColor:[\s\S]*?(?:control|root)\.neutralPrimary\s*\?\s*Theme\.ink/);
         assert.doesNotMatch(source, /(?:control|root)\.neutralPrimary\s*\?\s*Qt\.lighter\(Theme\.accent/);
         assert.match(source, /(?:control|root)\.neutralPrimary\s*\?\s*Qt\.rgba\(Theme\.ink\.r, Theme\.ink\.g, Theme\.ink\.b/);
         assert.match(source, /Theme\.keyboardFocusVisible\((?:control|root)\)[\s\S]*?(?:control|root)\.neutralPrimary\s*\?\s*Theme\.inkMuted/);

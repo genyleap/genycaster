@@ -61,15 +61,16 @@ Button {
     // An in-flight action remains visually active while clicks are disabled.
     // Unrelated sign-in options stay neutral, never inheriting its spinner.
     readonly property bool visuallyDisabled: !enabled && !busy
-    readonly property color foreground: root.unavailable ? Theme.inkMuted
-                                      : setupEmphasis ? Theme.setupActionEmphasisInk
-                                      : visuallyDisabled ? Theme.inkMuted
-                                      : primary ? (neutralPrimary ? Theme.surface : Theme.accentInk) : Theme.ink
-    readonly property color secondaryForeground: root.unavailable ? Theme.inkSubtle
-                                               : setupEmphasis ? Theme.setupActionEmphasisMutedInk
-                                               : visuallyDisabled ? Theme.inkMuted
-                                               : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
-                                               : Theme.inkMuted
+    readonly property color foreground: root.unavailable || root.visuallyDisabled
+                                       ? Theme.inkMuted
+                                       : root.setupEmphasis ? Theme.accentInk
+                                       : root.primary ? (root.neutralPrimary ? Theme.surface : Theme.accentInk)
+                                       : Theme.ink
+    readonly property color secondaryForeground: root.unavailable || root.visuallyDisabled
+                                                ? Theme.inkMuted
+                                                : root.setupEmphasis || root.primary
+                                                  ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
+                                                : Theme.inkMuted
 
     background: NeonCard {
         // Every SetupActionCard is a real Button. Earlier only the account
@@ -83,7 +84,7 @@ Button {
                       && !root.primary && !root.setupEmphasis && !root.selected
         neonBusy: root.busy
         inverted: root.neutralPrimary ? Theme.dark
-                  : root.primary ? !Theme.dark : false
+                  : root.primary || root.setupEmphasis ? !Theme.dark : false
         focused: Theme.keyboardFocusVisible(root)
         externalHovered: root.hovered
         externalPointerX: cardPointer.hovered ? cardPointer.point.position.x : width / 2
@@ -92,14 +93,16 @@ Button {
         ambientStrength: root.primary || root.setupEmphasis
                          ? Math.min(0.80, Theme.neonAmbientStrength * 1.9)
                          : Theme.neonAmbientStrength
-        neonColor: root.neutralPrimary
-            ? Theme.ink
-            : root.primary
-              ? Qt.lighter(Theme.primaryFill, 1.28)
-            : root.selected || root.setupEmphasis ? Theme.accent : "transparent"
+        neonColor: root.visuallyDisabled || root.unavailable ? "transparent"
+                   : root.neutralPrimary ? Theme.ink
+                   : root.primary || root.setupEmphasis
+                     ? Qt.lighter(Theme.primaryFill, 1.28)
+                   : root.selected ? Theme.accent : "transparent"
         fillColor: root.unavailable ? Theme.setupActionUnavailableSurface
                    : root.visuallyDisabled ? Theme.surfaceMuted
-                   : root.setupEmphasis ? Theme.setupActionEmphasisSurface
+                   : root.setupEmphasis
+                     ? (root.down ? Theme.primaryPressed
+                                  : root.hovered ? Theme.primaryFillHover : Theme.primaryFill)
                    : root.primary
                      ? (root.neutralPrimary ? Theme.ink
                         : root.down ? Theme.primaryPressed
@@ -123,8 +126,11 @@ Button {
                      : root.neutralPrimary
                        ? Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b,
                                  root.hovered ? 0.32 : 0.0)
-                     : (root.protocolChoice || root.networkShowcase || root.setupEmphasis)
-                       && (root.selected || root.setupEmphasis)
+                     : root.setupEmphasis && !root.visuallyDisabled
+                       ? Qt.rgba(Theme.primaryFill.r, Theme.primaryFill.g,
+                                 Theme.primaryFill.b, root.hovered ? 0.95 : 0.48)
+                     : (root.protocolChoice || root.networkShowcase)
+                       && root.selected
                        ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
                                  root.hovered ? 0.83 : 0.52)
                      : root.protocolChoice || root.networkShowcase
@@ -136,7 +142,8 @@ Button {
                      : Theme.borderMuted
         curveDepth: Theme.curveContainer
         highQualityEdges: true
-        elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone
+        elevation: (root.primary || root.setupEmphasis) && !root.visuallyDisabled
+                   ? Theme.elevationControl : Theme.elevationNone
 
 
     }
@@ -163,6 +170,7 @@ Button {
             visible: !root.busy && root.iconGlyph.length > 0 && root.brandImageSource.toString().length === 0
             text: root.iconGlyph
             color: root.protocolChoice && root.selected ? Theme.accent
+                   : root.setupEmphasis ? root.foreground
                    : !root.visuallyDisabled && !root.primary
                      ? Theme.inkMuted : root.foreground
             preferredSize: Theme.iconSize
@@ -235,6 +243,7 @@ Button {
                      && (!root.selected || !root.showSelectionMark) && !root.busy
             text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
             color: root.visuallyDisabled ? Theme.inkMuted
+                   : root.setupEmphasis ? root.foreground
                    : root.primary ? root.secondaryForeground : Theme.inkSubtle
             preferredSize: Theme.iconSizeSmall
         }
