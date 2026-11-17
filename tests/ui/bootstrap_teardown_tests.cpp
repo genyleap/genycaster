@@ -8,6 +8,7 @@
 #include <QQuickWindow>
 #include <QQuickItem>
 #include <QUrl>
+#include <array>
 
 import genycaster.ui.bootstrap.teardown;
 
@@ -62,28 +63,70 @@ int main(int argc, char** argv)
     if (!second) return 5;
     QPointer<QObject> trackedSecond = second;
 
+    struct WindowOrder {
+        int popupsExpected = 0;
+        int popupsDestroyed = 0;
+        int overlaysDestroyed = 0;
+        int windowsDestroyed = 0;
+        bool orderValid = true;
+    };
+    std::array<WindowOrder, 2> order;
     int attachedVisualRoots = 0;
     int detachedVisualRoots = 0;
     int overlays = 0;
+    int index = 0;
     for (QQuickWindow* const itemWindow : {window, second}) {
+        WindowOrder* const state = &order.at(index++);
         QQuickItem* const content = itemWindow->contentItem();
         if (!content) return 6;
+
+        for (QObject* const child : itemWindow->findChildren<QObject*>()) {
+            if (!child || !child->inherits("QQuickPopup")) continue;
+            ++state->popupsExpected;
+            QObject::connect(child, &QObject::destroyed, &app,
+                [state] {
+                    if (state->overlaysDestroyed != 0)
+                        state->orderValid = false;
+                    ++state->popupsDestroyed;
+                });
+        }
         for (QQuickItem* const child : content->childItems()) {
             if (!child || child->window() != itemWindow) continue;
             ++attachedVisualRoots;
-            if (child->inherits("QQuickOverlay")) ++overlays;
             QObject::connect(child, &QQuickItem::windowChanged, &app,
                 [&detachedVisualRoots](QQuickWindow* const changedWindow) {
                     if (!changedWindow) ++detachedVisualRoots;
                 });
+            if (!child->inherits("QQuickOverlay")) continue;
+            ++overlays;
+            QObject::connect(child, &QObject::destroyed, &app,
+                [state] {
+                    if (state->popupsDestroyed != state->popupsExpected)
+                        state->orderValid = false;
+                    ++state->overlaysDestroyed;
+                });
         }
+        QObject::connect(itemWindow, &QObject::destroyed, &app,
+            [state] {
+                if (state->overlaysDestroyed != 1)
+                    state->orderValid = false;
+                ++state->windowsDestroyed;
+            });
     }
-    if (overlays != 2 || attachedVisualRoots < 4) return 7;
+    if (overlays != 2 || attachedVisualRoots < 4
+        || order[0].popupsExpected < 2 || order[1].popupsExpected < 1)
+        return 7;
 
     // Called after all worker threads and network producers have stopped.
     genycaster::ui::bootstrap::releaseQmlRoots(engine, window);
     if (tracked || trackedSecond || !engine.rootObjects().isEmpty()) return 3;
-    if (detachedVisualRoots < attachedVisualRoots) return 8;
+    for (const WindowOrder& state : order) {
+        if (!state.orderValid
+            || state.popupsDestroyed != state.popupsExpected
+            || state.overlaysDestroyed != 1 || state.windowsDestroyed != 1)
+            return 8;
+    }
+    if (detachedVisualRoots + overlays < attachedVisualRoots) return 9;
 
     // A second idle engine must be a safe no-op.
     QQmlApplicationEngine empty;
