@@ -11,8 +11,12 @@ layout(std140, binding = 0) uniform buf {
     vec4 lightParameters;
     vec4 tintParameters;
     vec4 cornerFlags;
+    vec2 environmentSize;
+    vec4 environmentRect;
+    vec4 environmentParameters; // hue weight, reach, polarity, sample depth
     float steadyActivity;
 };
+layout(binding = 1) uniform sampler2D environmentSource;
 float superellipseDistance(vec2 point, vec2 extent, float radius, float power,
                            vec4 roundedCorners)
 {
@@ -36,20 +40,63 @@ float superellipseDistance(vec2 point, vec2 extent, float radius, float power,
     }
     return max(q.x, q.y) - r;
 }
+// Color only the half of the rim facing the source, with the same spatial
+// falloff as the projected body reflection. Neutral hover always remains.
+float sourceFacingWeight(vec2 uv, vec4 receiver, vec2 size)
+{
+    vec2 center = receiver.xy + receiver.zw * 0.5;
+    vec2 towardSource = clamp(center, vec2(0.0), size) - center;
+    float distance = length(towardSource);
+    if (distance < 0.001) return 1.0;
+    vec2 direction = towardSource / distance;
+    float span = dot(abs(direction), max(abs(receiver.zw) * 0.5, vec2(0.001)));
+    float facing = dot((uv - 0.5) * abs(receiver.zw), direction) / span;
+    return smoothstep(0.0, 1.0, facing);
+}
+
+vec4 reflectedEdgeMaterial(vec3 baseColor, out float colorWeight)
+{
+    colorWeight = 0.0;
+    if (environmentParameters.x <= 0.0)
+        return vec4(baseColor, 1.0);
+    vec2 size = max(environmentSize, vec2(1.0));
+    vec2 point = environmentRect.xy + qt_TexCoord0 * environmentRect.zw;
+    vec2 depth = min(vec2(max(0.0, environmentParameters.w)), size * 0.5);
+    vec2 projected = clamp(point, vec2(0.0), size);
+    if (point.x < 0.0) projected.x = depth.x;
+    else if (point.x > size.x) projected.x = size.x - depth.x;
+    if (point.y < 0.0) projected.y = depth.y;
+    else if (point.y > size.y) projected.y = size.y - depth.y;
+
+    vec4 sampled = texture(environmentSource, projected / size);
+    vec3 color = clamp(sampled.rgb / max(sampled.a, 0.0001), 0.0, 1.0);
+    float minimum = min(color.r, min(color.g, color.b));
+    float maximum = max(color.r, max(color.g, color.b));
+    float chroma = maximum - minimum;
+    float confidence = smoothstep(0.025, 0.10, chroma) * sampled.a;
+    float facing = sourceFacingWeight(qt_TexCoord0, environmentRect, size);
+    float contribution = clamp(environmentParameters.x * confidence * facing, 0.0, 1.0);
+    vec3 hue = clamp((color - vec3(minimum)) / max(chroma, 0.0001), 0.0, 1.0);
+    colorWeight = contribution;
+    float distance = length(point - clamp(point, vec2(0.0), size));
+    float distanceFade = exp(-distance / max(1.0, environmentParameters.y));
+    return vec4(mix(baseColor, hue * mix(0.62, 0.96, environmentParameters.z),
+                    contribution), mix(1.0, distanceFade, contribution));
+}
+
 void main()
 {
     vec2 extent = max(surfaceParameters.xy, vec2(1.0));
     vec2 pixel = qt_TexCoord0 * extent;
     float inset = lightParameters.w;
-    float sdf = superellipseDistance(pixel - vec2(inset), extent - vec2(2.0 * inset),
-                                     surfaceParameters.z, surfaceParameters.w, cornerFlags);
-    // Match GenyHub Kit: one logical pixel core with a tiny inward shoulder.
-    // The previous widened rim and doubled stationary glow changed the
-    // material identity and made the controls look unlike the reference.
-    float aa = max(fwidth(sdf), 0.001);
-    float borderCore = 1.0 - smoothstep(0.5 - 0.5 * aa, 0.5 + 0.5 * aa, abs(sdf));
-    float insideFeather = exp(-0.5 * pow((sdf + 1.0) / 1.15, 2.0))
-                         * (1.0 - smoothstep(-0.5, 0.5, sdf)) * 0.16;
+    float sdf = superellipseDistance(pixel - vec2(inset),
+        extent - vec2(2.0 * inset), surfaceParameters.z,
+        surfaceParameters.w, cornerFlags);
+    // Exact one-pixel superellipse rim: no broad inward halo or raised tube.
+    float aa = max(length(vec2(dFdx(sdf), dFdy(sdf))), 0.001);
+    float borderCore = 1.0 - smoothstep(0.5 - aa * 0.5,
+                                       0.5 + aa * 0.5, abs(sdf));
+
     vec2 delta = pixel - focusParameters.xy;
     float nearest = focusParameters.w;
     float tangentDistanceSq = max(0.0, dot(delta, delta) - nearest * nearest);
@@ -58,12 +105,26 @@ void main()
     float glint = exp(-0.5 * tangentDistanceSq / (sigma * sigma * 0.16));
     float approach = exp(-0.5 * pow(nearest / max(1.0, lightParameters.z), 2.0));
     float localized = (0.65 * shoulder + 0.35 * glint) * approach;
-    float rim = mix(localized, 0.32, steadyActivity);
-    float feather = mix(shoulder * approach, 0.32, steadyActivity);
-    float alpha = (borderCore * rim + insideFeather * feather)
-                  * lightParameters.y * qt_Opacity;
-    alpha = clamp(alpha, 0.0, 1.0);
-    vec3 baseColor = vec3(lightParameters.x);
-    vec3 haloColor = mix(baseColor, tintParameters.rgb, clamp(tintParameters.a, 0.0, 1.0));
-    fragColor = vec4(haloColor * alpha, alpha);
+    float ambient = mix(0.16, 0.30, 1.0 - qt_TexCoord0.y);
+    float rim = mix(localized, ambient, steadyActivity);
+    float alpha = clamp(borderCore * rim * lightParameters.y * qt_Opacity, 0.0, 1.0);
+    if (alpha <= 0.0) { fragColor = vec4(0.0); return; }
+
+    vec3 base = vec3(lightParameters.x);
+    // Explicit semantic tint continues to win over neighboring artwork.
+    float tint = clamp(tintParameters.a, 0.0, 1.0);
+    base = mix(base, tintParameters.rgb, tint);
+    float colorWeight;
+    vec4 environment = reflectedEdgeMaterial(base, colorWeight);
+    float headroom = clamp(lightParameters.y, 0.0, 1.0);
+    float focusedGain = headroom * (1.0 - headroom)
+        * mix(1.20, 0.70, environmentParameters.z)
+        * glint * approach * colorWeight
+        * (1.0 - clamp(steadyActivity, 0.0, 1.0))
+        * (1.0 - tint);
+    alpha = clamp(alpha + borderCore * qt_Opacity * focusedGain,
+                  0.0, borderCore * qt_Opacity);
+    alpha *= environment.a;
+    vec3 finalColor = mix(environment.rgb, base, tint);
+    fragColor = vec4(finalColor * alpha, alpha);
 }
