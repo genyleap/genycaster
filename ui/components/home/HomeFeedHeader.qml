@@ -98,14 +98,20 @@ Item {
                 }
             }
 
-            Superellipse {
+            NeonSurface {
+                interactive: true
+                ambientNeon: !root.compact
+                deferredNeon: root.compact
+                neonStrength: Theme.neonControlStrength
+                neonColor: pointerActive ? Theme.accent : "transparent"
                 Layout.preferredWidth: root.compact ? 40 : 184
                 Layout.preferredHeight: 44
                 fillColor: root.compact ? "transparent"
                                         : (searchHover.hovered ? Theme.surfaceHover : Theme.surfaceRaised)
-                borderWidth: root.compact ? 0 : 1
-                borderColor: searchHover.hovered ? Theme.borderStrong : Theme.borderMuted
+                borderWidth: root.compact ? 0 : Theme.strokeHairline
+                borderColor: pointerActive ? Theme.borderDefault : Theme.borderMuted
                 curveDepth: height / 2
+                highQualityEdges: true
                 elevation: root.compact ? Theme.elevationNone : Theme.elevationControl
 
                 RowLayout {
@@ -204,36 +210,42 @@ Item {
                 elide: Text.ElideRight
             }
 
-            Rectangle {
+            NeonSurface {
                 id: audienceSelector
                 objectName: "explorerAudienceSelector"
-                // Persian labels need real width; do not let the Buttons'
-                // implicit minima push them across their segment boundary.
+                // One continuous superellipse with a matching interior rim,
+                // shared hover material and equal-sized localized segments.
                 Layout.preferredWidth: root.compact ? 228
                                      : root.condensedFeedActions ? 198 : 240
                 Layout.minimumWidth: Layout.preferredWidth
-                Layout.preferredHeight: 38
-                radius: 13
-                clip: true
-                color: Theme.surfaceRaised
-                border.width: Theme.strokeHairline
-                border.color: Theme.borderSubtle
+                Layout.preferredHeight: 42
+                interactive: true
+                ambientNeon: true
+                neonStrength: Theme.neonControlStrength
+                fillColor: Theme.surfaceRaised
+                borderWidth: Theme.strokeHairline
+                borderColor: pointerActive ? Theme.borderDefault : Theme.borderMuted
+                curveDepth: Theme.curveControl
+                highQualityEdges: true
 
-                // Keep one persistent selection pill. Moving it is smoother
-                // than replacing two selected delegate backgrounds on clicks.
-                Rectangle {
+                NeonSurface {
                     id: audienceSelectionPill
-                    // Two equal segments with a real optical gap. The pill
-                    // never grows into the neighboring hover slot.
                     width: (audienceSelector.width - 10) / 2
                     height: audienceSelector.height - 6
                     y: 3
                     x: 3 + ((root.audience === "following") !== Theme.rtl
                             ? width + 4 : 0)
-                    radius: 10
-                    color: Theme.surfaceRaised
-                    border.width: Theme.strokeStandard
-                    border.color: Theme.borderStrong
+                    interactive: true
+                    ambientNeon: true
+                    neonColor: Theme.accent
+                    neonStrength: Theme.neonControlStrength
+                    fillColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                       Theme.accent.b, Theme.dark ? 0.13 : 0.075)
+                    borderWidth: Theme.strokeHairline
+                    borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                         Theme.accent.b, 0.66)
+                    curveDepth: Theme.curveControl
+                    highQualityEdges: true
                     Behavior on x {
                         NumberAnimation {
                             duration: Theme.reduceMotion ? 0 : Theme.motionStandard

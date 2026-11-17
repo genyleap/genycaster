@@ -653,28 +653,38 @@ Item {
                     { kind: "channels", title: qsTrId("genycaster.notifications.filter_channels") },
                     { kind: "mention", title: qsTrId("genycaster.notifications.filter_mentions") }
                 ]
-                delegate: Superellipse {
+                delegate: NeonSurface {
+                    id: filterTab
                     required property var modelData
+                    readonly property bool selected: root.filterKind === modelData.kind
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.compact ? 36 : 40
-                    fillColor: root.filterKind === modelData.kind
-                               ? Theme.primarySurface : "transparent"
-                    borderWidth: 1
-                    borderColor: root.filterKind === modelData.kind
-                                 ? Theme.primaryFill : Theme.borderSubtle
+                    Layout.preferredHeight: root.compact ? 38 : 44
+                    interactive: true
+                    deferredNeon: !selected
+                    ambientNeon: selected
+                    neonColor: selected ? Theme.accent : "transparent"
+                    neonStrength: Theme.neonControlStrength
+                    fillColor: selected
+                        ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                                  Theme.dark ? 0.25 : 0.13)
+                        : pointerActive ? Theme.surfaceHover : Theme.surfaceRaised
+                    borderWidth: Theme.strokeHairline
+                    borderColor: selected ? Theme.accent
+                                 : pointerActive ? Theme.borderDefault : Theme.borderMuted
                     curveDepth: Theme.curveControl
+                    highQualityEdges: true
 
                     DirectionAwareLabel {
                         anchors.centerIn: parent
-                        text: modelData.title
-                        color: root.filterKind === modelData.kind
-                               ? Theme.accent : Theme.textSecondary
+                        text: filterTab.modelData.title
+                        color: filterTab.selected ? Theme.ink : Theme.textSecondary
                         font.pixelSize: Theme.typeCaptionSize
-                        font.weight: root.filterKind === modelData.kind
+                        font.weight: filterTab.selected
                                      ? Theme.weightDemiBold : Theme.weightMedium
                     }
                     TapHandler {
-                        onTapped: root.filterKind = modelData.kind
+                        gesturePolicy: TapHandler.ReleaseWithinBounds
+                        onTapped: root.filterKind = filterTab.modelData.kind
                     }
                 }
             }
@@ -885,7 +895,9 @@ Item {
                     ambientNeon: notificationRow.visible && !list.moving
                         && notificationRow.y + notificationRow.height >= list.contentY - 160
                         && notificationRow.y <= list.contentY + list.height + 160
-                    neonStrength: Theme.neonControlStrength
+                    neonStrength: Theme.neonCardStrength
+                    ambientStrength: Math.min(0.65, Theme.neonAmbientStrength * 1.3)
+                    neonColor: notificationRow.latestActivity ? Theme.accent : "transparent"
                     externalHovered: rowHover.hovered
                     externalPointerX: rowHover.point.position.x - x
                     externalPointerY: rowHover.point.position.y - y
@@ -900,8 +912,13 @@ Item {
                                            Theme.dark ? 0.11 : 0.055)
                                  : Theme.surfaceRaised
                     borderWidth: Theme.strokeHairline
-                    borderColor: Theme.borderSubtle
+                    borderColor: notificationCardSurface.pointerActive
+                        ? Theme.borderDefault
+                        : notificationRow.latestActivity
+                          ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.40)
+                          : Theme.borderMuted
                     curveDepth: Theme.curveContainer
+                    highQualityEdges: true
                 }
 
                 RowLayout {

@@ -7,9 +7,11 @@ import Farcaster.Client
 // including multi-line footnotes in Arabic/Persian or large accessibility type.
 NeonSurface {
     id: root
+    interactive: true
     ambientNeon: true
-    neonStrength: Theme.neonCardStrength
-    ambientStrength: Theme.neonAmbientStrength
+    neonStrength: Math.min(1, Theme.neonCardStrength * 1.15)
+    ambientStrength: Math.min(0.68, Theme.neonAmbientStrength * 1.35)
+    neonColor: root.pointerActive ? Theme.accent : "transparent"
     property string title: ""
     property string iconName: ""
     property string footnote: ""
@@ -39,9 +41,10 @@ NeonSurface {
     Layout.preferredWidth: 0
     Layout.preferredHeight: Math.max(140, cardContent.implicitHeight + Theme.space3 * 2)
     fillColor: Theme.surface
-    borderWidth: 1
-    borderColor: Theme.borderMuted
+    borderWidth: Theme.strokeHairline
+    borderColor: root.pointerActive ? Theme.borderDefault : Theme.borderMuted
     curveDepth: Theme.curveContainer
+    highQualityEdges: true
 
     NumberAnimation {
         id: numberTween

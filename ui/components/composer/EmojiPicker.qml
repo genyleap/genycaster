@@ -277,13 +277,17 @@ Popup {
         // Both modes are catalog-complete but intentionally separate: Classic
         // never creates an animation renderer, while Special resolves Noto
         // assets lazily from the manifest-derived provider catalog.
-        Superellipse {
+        NeonSurface {
             Layout.fillWidth: true
-            Layout.preferredHeight: 42
+            Layout.preferredHeight: 46
+            interactive: true
+            ambientNeon: true
+            neonStrength: Theme.neonControlStrength
             fillColor: Theme.surfaceMuted
             borderWidth: Theme.strokeHairline
-            borderColor: Theme.borderSubtle
-            curveDepth: Theme.curveCompact
+            borderColor: pointerActive ? Theme.borderDefault : Theme.borderMuted
+            curveDepth: Theme.curveControl
+            highQualityEdges: true
 
             RowLayout {
                 anchors.fill: parent
@@ -293,16 +297,25 @@ Popup {
 
                 Repeater {
                     model: emojiController.spriteAvailable ? 2 : 1
-                    delegate: Superellipse {
+                    delegate: NeonSurface {
                         id: modeButton
                         required property int index
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         readonly property bool selected: root.animatedMode === (index === 1)
-                        fillColor: selected ? Theme.primarySurface : "transparent"
-                        borderWidth: selected ? Theme.strokeHairline : 0
-                        borderColor: selected ? Theme.borderSubtle : "transparent"
-                        curveDepth: Theme.curveCompact
+                        interactive: true
+                        deferredNeon: !selected
+                        ambientNeon: selected
+                        neonColor: selected ? Theme.accent : "transparent"
+                        neonStrength: Theme.neonControlStrength
+                        fillColor: selected
+                            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                                      Theme.dark ? 0.25 : 0.13)
+                            : pointerActive ? Theme.surfaceHover : "transparent"
+                        borderWidth: selected || pointerActive ? Theme.strokeHairline : 0
+                        borderColor: selected ? Theme.accent : Theme.borderMuted
+                        curveDepth: Theme.curveControl
+                        highQualityEdges: true
 
                         RowLayout {
                             anchors.centerIn: parent
@@ -323,7 +336,7 @@ Popup {
                             }
                         }
 
-                        HoverHandler { cursorShape: Qt.PointingHandCursor }
+                        HoverHandler { cursorShape: Qt.PointingHandCursor; blocking: false }
                         TapHandler {
                             gesturePolicy: TapHandler.ReleaseWithinBounds
                             onTapped: root.animatedMode = modeButton.index === 1

@@ -41,15 +41,22 @@ Button {
     contentItem: Item {
         implicitWidth: contentRow.implicitWidth
         implicitHeight: contentRow.implicitHeight
+        // The old free-width Row could paint the label outside the pill
+        // while the button animated between icon-only and expanded sizes.
+        clip: true
 
-        Row {
+        RowLayout {
             id: contentRow
-            anchors.centerIn: parent
-            spacing: Theme.space2
+            anchors.fill: parent
+            anchors.leftMargin: control.expanded ? Theme.space3 : Theme.space1
+            anchors.rightMargin: anchors.leftMargin
+            spacing: control.expanded ? Theme.space2 : 0
             layoutDirection: Theme.uiDirection
 
+            Item { Layout.fillWidth: !control.expanded; visible: !control.expanded }
+
             Icon {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 text: control.iconGlyph
                 color: Theme.accentInk
                 preferredSize: Theme.iconSizeLarge
@@ -57,29 +64,39 @@ Button {
 
             DirectionAwareLabel {
                 visible: control.expanded
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                Layout.alignment: Qt.AlignVCenter
                 text: control.labelText
                 color: Theme.accentInk
                 font.pixelSize: Theme.typeLabelSize
                 font.weight: Theme.weightDemiBold
+                elide: Text.ElideRight
+                maximumLineCount: 1
             }
+
+            Item { Layout.fillWidth: !control.expanded; visible: !control.expanded }
         }
     }
 
     background: NeonSurface {
         interactive: control.enabled
         ambientNeon: true
-        inverted: true
+        inverted: !Theme.dark
         externalHovered: control.hovered
         externalPointerX: composePointer.hovered ? composePointer.point.position.x : width / 2
         externalPointerY: composePointer.hovered ? composePointer.point.position.y : height / 2
-        neonStrength: Theme.neonCardStrength
-        neonColor: Qt.rgba(1, 1, 1, 0.30)
+        neonStrength: Math.min(1, Theme.neonCardStrength * 1.18)
+        ambientStrength: Math.min(0.80, Theme.neonAmbientStrength * 1.9)
+        neonColor: Qt.lighter(Theme.primaryFill, 1.28)
         fillColor: control.down ? Theme.primaryPressed
                   : control.hovered ? Theme.primaryFillHover
                   : Theme.primaryFill
         borderWidth: Theme.keyboardFocusVisible(control) ? 2 : Theme.strokeHairline
-        borderColor: Theme.keyboardFocusVisible(control) ? Theme.focusOnAccent : Qt.rgba(Theme.accentInk.r, Theme.accentInk.g, Theme.accentInk.b, 0.16)
+        borderColor: Theme.keyboardFocusVisible(control)
+                     ? Qt.lighter(Theme.primaryFill, 1.28)
+                     : Qt.rgba(Theme.primaryFill.r, Theme.primaryFill.g,
+                               Theme.primaryFill.b, control.hovered ? 0.95 : 0.45)
         curveDepth: control.height / 2
         exponent: Theme.superellipseExponent
         highQualityEdges: true

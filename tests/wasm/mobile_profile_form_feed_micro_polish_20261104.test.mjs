@@ -46,7 +46,9 @@ test('RTL Explorer audience buttons have bounded widths with correct 2-segment m
  const control=qml.slice(qml.indexOf('id: audienceSelector'),qml.indexOf('ContentTabs {'));
  assert.match(control,/Layout\.preferredWidth: root\.compact \? 228\s*: root\.condensedFeedActions \? 198 : 240/);
  assert.match(control,/Layout\.minimumWidth: Layout\.preferredWidth/);
- assert.match(control,/clip: true/);
+ assert.match(control,/NeonSurface \{/);
+ assert.match(control,/highQualityEdges: true/);
+ assert.match(control,/curveDepth: Theme\.curveControl/);
  assert.match(control,/Layout\.minimumWidth: 0/);
  assert.match(control,/Layout\.maximumWidth: Layout\.preferredWidth/);
  assert.match(control,/layoutDirection: Theme\.uiDirection/);
