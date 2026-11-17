@@ -27,7 +27,8 @@ Item {
     property real mobileHeightRatio: 0.90
     property real popupZ: 1000
     readonly property bool compactPresentation: parent ? parent.width < Theme.breakpointMobile : false
-    readonly property bool opened: desktopDialog.opened || mobileDrawer.opened
+    readonly property bool opened: (desktopDialog && desktopDialog.opened)
+                                  || (mobileDrawer && mobileDrawer.opened)
 
     signal didOpen()
     signal didClose()
@@ -45,6 +46,7 @@ Item {
     }
 
     function open() {
+        if (!desktopDialog || !mobileDrawer) return
         if (control.compactPresentation) {
             control.switchingPresentation = desktopDialog.opened
             if (desktopDialog.opened)
@@ -62,8 +64,8 @@ Item {
     }
 
     function close() {
-        desktopDialog.close()
-        mobileDrawer.close()
+        if (desktopDialog) desktopDialog.close()
+        if (mobileDrawer) mobileDrawer.close()
     }
 
     onCompactPresentationChanged: {
@@ -98,7 +100,7 @@ Item {
             sourceItem: control.desktopFullScreen ? null : control.blurSourceItem
             efficientNativeBlur: control.efficientBackdropBlur
             snapshotBlurOnBrowser: true
-            active: desktopDialog.opened
+            active: !!desktopDialog && desktopDialog.opened
             addScrim: !control.desktopFullScreen && control.dimBackground
             blockInput: true
             onBackgroundTapped: control.close()
