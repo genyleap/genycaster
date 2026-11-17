@@ -432,8 +432,8 @@ ColumnLayout {
                         delegate: ItemDelegate {
                             id: periodChoice
                             required property var modelData
-                            width: periodMenu.width - periodMenu.leftPadding
-                                   - periodMenu.rightPadding
+                            width: periodMenu ? periodMenu.width - periodMenu.leftPadding
+                                   - periodMenu.rightPadding : 0
                             height: 38
                             hoverEnabled: true
                             onClicked: {
