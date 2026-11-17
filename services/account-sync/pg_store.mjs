@@ -9,6 +9,7 @@ const NOTIFICATION_SEEN_ROW='00000000-0000-4000-8000-000000000001';
 const PROFILE_STATUS_ROW='00000000-0000-4000-8000-000000000003';
 const STREAK_PREFERENCES_ROW='00000000-0000-4000-8000-000000000004';
 const MUTED_PROFILES_ROW='00000000-0000-4000-8000-000000000005';
+
 const COLUMNS=Object.freeze({
   drafts:'id,kind,title,content,revision,deleted_at,updated_at',
   tasks:'id,kind,schedule_at,timezone,payload,state,revision,attempt_count,executed_at,deleted_at,updated_at',
@@ -35,7 +36,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13,14)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -51,10 +52,12 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const feedbackReady=versions.has(11);
   const proBillingReady=versions.has(12);
   const neynarRegistrationReady=versions.has(13);
+  const buzzReady=versions.has(14);
   return {
     close:()=>pool.end(),
     proBillingReady:()=>proBillingReady,
     neynarRegistrationReady:()=>neynarRegistrationReady,
+    buzzReady:()=>buzzReady,
     neynarRegistrationLedger:neynarRegistrationReady
       ?createNeynarRegistrationLedger(pool):null,
     // Subscription state is authoritative even when the GENY price oracle is
@@ -597,6 +600,126 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       const row=result.rows[0];
       return row?{muted_fids:row.payload.muted_fids,
         revision:Number(row.revision)}:null;
+    },
+    // GenyBuzz is private app data. An absent preference means explicitly OFF.
+    async getBuzzPreferences({issuer,subject}) {
+      if(!buzzReady)throw new Error('buzz_unavailable');
+      const result=await pool.query(
+        'SELECT enabled,revision::text FROM genybuzz_preferences WHERE issuer=$1 AND subject=$2',
+        [issuer,subject]);
+      const row=result.rows[0];
+      return {enabled:row?.enabled===true,revision:Number(row?.revision||0)};
+    },
+    async putBuzzPreferences({issuer,subject},{enabled,revision}) {
+      if(!buzzReady)throw new Error('buzz_unavailable');
+      const result=await pool.query(`INSERT INTO genybuzz_preferences
+        (issuer,subject,enabled,revision) SELECT $1,$2,$3,1 WHERE $4::bigint=0
+        ON CONFLICT (issuer,subject) DO UPDATE SET
+          enabled=EXCLUDED.enabled,revision=genybuzz_preferences.revision+1,
+          updated_at=now()
+        WHERE genybuzz_preferences.revision=$4::bigint
+        RETURNING enabled,revision::text`,
+        [issuer,subject,enabled,revision]);
+      const row=result.rows[0];
+      return row?{enabled:row.enabled===true,revision:Number(row.revision)}:null;
+    },
+    async sendBuzz(sender,recipient) {
+      if(!buzzReady)throw new Error('buzz_unavailable');
+      const client=await pool.connect();
+      try {
+        await client.query('BEGIN');
+        // Acquire locks in canonical order. Both directions and concurrent
+        // recipients share the same recipient/sender budgets without deadlocks.
+        const keys=[
+          sender.issuer+'|'+sender.subject,
+          recipient.issuer+'|'+recipient.subject
+        ].sort();
+        for(const key of [...new Set(keys)])
+          await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
+            ['genybuzz',key]);
+        const consent=await client.query(
+          'SELECT enabled FROM genybuzz_preferences WHERE issuer=$1 AND subject=$2',
+          [recipient.issuer,recipient.subject]);
+        if(consent.rows[0]?.enabled!==true) {
+          await client.query('ROLLBACK');
+          return {status:'not_available'};
+        }
+        // App-owned mutes deny Buzz in both directions, regardless of the
+        // transport used to render the sending entry point.
+        const preferences=await client.query(`SELECT issuer,subject,payload
+          FROM notifications WHERE id=$5::uuid
+            AND source='genycaster' AND kind='muted_profiles'
+            AND deleted_at IS NULL AND
+            ((issuer=$1 AND subject=$2) OR (issuer=$3 AND subject=$4))`,
+          [sender.issuer,sender.subject,recipient.issuer,recipient.subject,
+           MUTED_PROFILES_ROW]);
+        const senderFid=String(sender.fid);
+        const targetFid=recipient.subject.split(':')[1];
+        if(preferences.rows.some(row=>{
+          const other=row.issuer===sender.issuer && row.subject===sender.subject
+            ?targetFid:senderFid;
+          return Array.isArray(row.payload?.muted_fids)
+            && row.payload.muted_fids.includes(other);
+        })) {
+          await client.query('ROLLBACK');
+          return {status:'not_available'};
+        }
+        const limits=await client.query(`SELECT
+          (SELECT COUNT(*)::int FROM genybuzz_events
+           WHERE sender_issuer=$1 AND sender_subject=$2
+             AND recipient_issuer=$3 AND recipient_subject=$4
+             AND created_at>now()-interval '60 seconds') AS pair_count,
+          (SELECT COUNT(*)::int FROM genybuzz_events
+           WHERE sender_issuer=$1 AND sender_subject=$2
+             AND created_at>now()-interval '1 hour') AS sender_count,
+          (SELECT COUNT(*)::int FROM genybuzz_events
+           WHERE recipient_issuer=$3 AND recipient_subject=$4
+             AND created_at>now()-interval '1 hour') AS recipient_count`,
+          [sender.issuer,sender.subject,recipient.issuer,recipient.subject]);
+        const limit=limits.rows[0]||{};
+        if(Number(limit.pair_count)>=1 || Number(limit.sender_count)>=5
+           || Number(limit.recipient_count)>=10) {
+          await client.query('ROLLBACK');
+          return {status:'rate_limited'};
+        }
+        const id=randomUUID();
+        await client.query(`INSERT INTO genybuzz_events
+          (id,sender_issuer,sender_subject,recipient_issuer,
+           recipient_subject,context)
+          VALUES($1::uuid,$2,$3,$4,$5,$6)`,
+          [id,sender.issuer,sender.subject,recipient.issuer,recipient.subject,
+           recipient.context]);
+        await client.query('COMMIT');
+        return {status:'sent',id};
+      }catch(error) {
+        try{await client.query('ROLLBACK');}catch{}
+        throw error;
+      }finally{client.release();}
+    },
+    async listBuzzInbox({issuer,subject}) {
+      if(!buzzReady)throw new Error('buzz_unavailable');
+      // Disabled users receive nothing, including delayed inbox polling.
+      const consent=await pool.query(
+        'SELECT enabled FROM genybuzz_preferences WHERE issuer=$1 AND subject=$2',
+        [issuer,subject]);
+      if(consent.rows[0]?.enabled!==true)return [];
+      const result=await pool.query(`SELECT id::text,sender_subject,context,
+          created_at FROM genybuzz_events
+        WHERE recipient_issuer=$1 AND recipient_subject=$2
+          AND seen_at IS NULL AND expires_at>now()
+        ORDER BY created_at ASC LIMIT 20`,[issuer,subject]);
+      return result.rows.map(row=>({
+        id:row.id,sender_fid:String(row.sender_subject.split(':')[1]),
+        sender_kind:String(row.sender_subject.split(':')[0]),
+        context:row.context,created_at:row.created_at
+      }));
+    },
+    async ackBuzz({issuer,subject},id) {
+      if(!buzzReady)throw new Error('buzz_unavailable');
+      await pool.query(`UPDATE genybuzz_events SET seen_at=now()
+        WHERE id=$1::uuid AND recipient_issuer=$2 AND recipient_subject=$3
+          AND seen_at IS NULL AND expires_at>now()`,
+        [id,issuer,subject]);
     },
     async getNotificationSeen({issuer,subject}) {
       const result=await pool.query(`SELECT
