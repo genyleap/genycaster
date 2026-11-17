@@ -6,6 +6,7 @@ import Farcaster.Client
 Item {
     id: root
 
+    property NeonReflectionSource reflectionSource: null
     property string identityName: ""
     property string accountName: ""
     property string activeFeed: "following"
@@ -128,6 +129,8 @@ Item {
 
     component WidgetCard: NeonCard {
         id: card
+        reflectionSource: root.reflectionSource
+        reflectionStrength: Theme.reflectionStrength * 0.80
         interactive: true
         ambientNeon: true
         neonStrength: Theme.neonPanelStrength
@@ -197,6 +200,19 @@ Item {
     }
 
     Rectangle { anchors.fill: parent; color: Theme.contextRailCanvas }
+
+    // The inspector borrows the reading canvas; it is never part of the
+    // capture itself. Keep content above this quiet color-only material.
+    NeonReflection {
+        anchors.fill: parent
+        reflectionSource: root.reflectionSource
+        strength: Theme.reflectionStrength * 0.75
+        cornerRadius: 0
+        borderInset: 0
+        edgeStrength: 0.68
+        edgeWidth: 1
+        edgeInset: 0.5
+    }
 
     ScrollView {
         id: railScroll
@@ -394,6 +410,8 @@ Item {
 
                     NeonSurface {
                         id: assetFront
+                        reflectionSource: root.reflectionSource
+                        reflectionStrength: Theme.reflectionStrength * 0.65
                         interactive: true
                         ambientNeon: true
                         neonStrength: Theme.neonCardStrength
