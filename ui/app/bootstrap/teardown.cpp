@@ -28,12 +28,26 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
         window->setPersistentGraphics(true);
         window->setPersistentSceneGraph(true);
 
-        // The QQuickPopup objects can still have active connections to the
-        // overlay. Destroy them *first*, while both the overlay and native
-        // window are fully alive. Deleting the overlay with live popups causes
-        // a use-after-free through QQuickPopupPrivate::setWindow.
-        // Collect QPointers before deletion: destroying an enclosing Popup
-        // may also destroy nested Popup objects.
+        // Destroy application content while the native QQuickWindow and its
+        // overlay are valid. Its QML-owned Popups and their attached bindings
+        // then die with their owners instead of being invalidated individually.
+        // Do not call setParentItem(nullptr): on macOS/Qt 6.12 it dispatches
+        // QQuickOverlayAttached::setWindowAndParent() into stale connections.
+        QList<QPointer<QQuickItem>> sceneItems;
+        for (QQuickItem* const child : content->childItems()) {
+            if (child && !child->inherits("QQuickOverlay"))
+                sceneItems.append(QPointer<QQuickItem>{child});
+        }
+        for (const QPointer<QQuickItem>& item : sceneItems) {
+            if (item && item->parentItem() == content)
+                delete item.data();
+        }
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
+        // Some Popups may be declared directly on ApplicationWindow and not
+        // in the visual scene. They must be destroyed before the overlay.
+        // Use QObject's window tree rather than contentItem's QObject tree:
+        // QML ownership does not have to mirror visual parentItem ownership.
         QList<QPointer<QObject>> popups;
         for (QObject* const obj : window->findChildren<QObject*>(
                  QString{}, Qt::FindChildrenRecursively)) {
@@ -46,10 +60,9 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
         }
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
 
-        // QObject ownership of overlays normally belongs to QQuickRootItem.
-        // Release them now rather than waiting until QQuickWindow has already
-        // entered its destructor and cleared the contentItem pointer.
-        // Query after Popup destruction as closing Popups can remove overlays.
+        // Delete overlays before QQuickWindow clears its contentItem pointer
+        // in the window destructor. Never detach surviving scene items:
+        // visual reparenting invokes unsafe QQuickOverlayAttached callbacks.
         QList<QPointer<QObject>> overlays;
         for (QObject* const obj : content->children()) {
             if (obj && obj->inherits("QQuickOverlay"))
@@ -58,13 +71,6 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
         for (const QPointer<QObject>& overlay : overlays) {
             if (overlay)
                 delete overlay.data();
-        }
-
-        // Detach the remaining scene items while QQuickWindow remains valid.
-        // Never change QObject ownership or call releaseResources()/hide().
-        for (QQuickItem* const child : content->childItems()) {
-            if (child && child->parentItem() == content)
-                child->setParentItem(nullptr);
         }
     };
 
