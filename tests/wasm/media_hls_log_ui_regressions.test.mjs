@@ -135,9 +135,12 @@ test('consent page keeps a confirmed approval steady through a follow-up read an
    get(){return this._text;},
    set(value){this._text=value;statuses.push(value);}
  });
- const wallet={request:async({method})=>method==='eth_chainId'?'0x1':
-    ['0x1111111111111111111111111111111111111111'],
-   on(){},removeListener(){}};
+ const walletCalls=[];
+ const wallet={request:async({method})=>{
+     walletCalls.push(method);
+     return method==='eth_chainId'?'0x1':
+       ['0x1111111111111111111111111111111111111111'];
+   },on(){},removeListener(){}};
  const win={ethereum:wallet,addEventListener(){},dispatchEvent(){}};
  const next=[
    {method:'eth_requestAccounts',requiresApproval:true,transportId:1,params:[]},
@@ -163,7 +166,11 @@ test('consent page keeps a confirmed approval steady through a follow-up read an
  const flush=async()=>{for(let i=0;i<16;i++)await Promise.resolve();};
  await flush();
  assert.equal(element('request').hidden,false);
+ assert.equal(walletCalls.filter(method=>method==='eth_requestAccounts').length,0,
+   'receiving an account request must never silently connect a wallet');
  await element('approve').listeners.click();
+ assert.equal(walletCalls.filter(method=>method==='eth_requestAccounts').length,1,
+   'the explicit Connect action must invoke the selected extension once');
  await flush();
  assert.equal(element('request').hidden,true);
  for(let i=0;i<18&&queue.length;i++){
