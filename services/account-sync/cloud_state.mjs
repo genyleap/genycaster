@@ -829,8 +829,23 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }
         let receipt;
         try {
+          // Final on-chain verification must recognize the SAME authoritative
+          // set of wallet signatures as quote creation. Otherwise a genuine
+          // app-verified payer could submit a transfer and be denied Pro.
+          const verifyWallets=async(verifiedOwner)=>{
+            const app=store.proWalletReady?.()
+              ?await store.getProWallets(verifiedOwner):[];
+            let protocol=[];
+            try{protocol=await resolveProPaymentWallets(verifiedOwner);}
+            catch(error){if(!app.length)throw error;}
+            return [...new Set([...app,...protocol]
+              .filter(address=>typeof address==='string'
+                && /^0x[0-9a-fA-F]{40}$/.test(address))
+              .map(address=>address.toLowerCase()))].slice(0,100);
+          };
           receipt=await verifyBillingTransfer({
-            owner,quote,txHash:input.tx_hash,policy:billingPolicy,fetchImpl});
+            owner,quote,txHash:input.tx_hash,policy:billingPolicy,fetchImpl,
+            verifyWallets});
         }catch(error) {
           const code=String(error?.message||'');
           const rejected=new Set(['invalid_payment_hash','verified_wallet_required',
