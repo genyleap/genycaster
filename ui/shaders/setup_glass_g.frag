@@ -103,6 +103,13 @@ vec3 background(vec2 screen,vec2 uv,bool dark){
  vec2 backgroundArc=(screen-vec2(-.11,.08))*vec2(.84,1.07);
  float halo=exp(-dot(backgroundArc,backgroundArc)*.92);
  col+=(dark?vec3(.013,.031,.055):vec3(.025,.054,.077))*halo;
+ // Volumetric sapphire core behind the canonical glyph. This is analytic
+ // falloff in the existing single-pass studio shader, not a blur layer.
+ vec2 blueCore=(screen-vec2(.06,.015))*vec2(1.25,1.45);
+ float bloom=exp(-dot(blueCore,blueCore)*1.30);
+ col+=vec3(.013,.058,.132)*bloom;
+ vec2 sapphireWash=(screen-vec2(-.38,.10))*vec2(1.10,.92);
+ col+=vec3(.007,.021,.057)*exp(-dot(sapphireWash,sapphireWash)*.64);
  // Restrained optical falloff anchors the sculpture without a shadow
  // that resembles a duplicate of its SVG silhouette.
  vec2 ambient=(screen-vec2(.09,-.12))*vec2(.84,1.32);
@@ -128,6 +135,11 @@ vec3 studioEnv(vec3 r,bool dark) {
  float softbox=exp(-pow((r.y-.84)*6.,2.))
               *smoothstep(-.8,.5,r.z);
  env+=vec3(.90,.94,1.0)*(.85*stripA+.54*stripB+.35*softbox);
+ // A restrained azure strip reflects off bevels and sidewalls as the 3D
+ // object turns; the front silhouette remains the exact SVG union.
+ float azureStrip=exp(-pow((r.x+.69)*7.0,2.0))
+                  *smoothstep(-.55,.45,r.y);
+ env+=vec3(.13,.38,.80)*azureStrip*.42;
  float amber=exp(-pow((r.x-.88)*10.,2.)) * smoothstep(-.1,.7,r.y);
  env+=vec3(.94,.58,.34)*amber*.36;
  return env;
@@ -139,8 +151,8 @@ vec3 materialAt(vec3 p,vec3 ray,vec2 rotation,float arrow,bool dark){
  vec3 r=reflect(-v,n);
  // Two subtly different anodized finishes on the *same* extruded solid:
  // cool satin silver for G and darker titanium for the arrow.
- vec3 silver=dark?vec3(.73,.80,.88):vec3(.51,.62,.73);
- vec3 titanium=dark?vec3(.31,.37,.45):vec3(.26,.33,.41);
+ vec3 silver=dark?vec3(.62,.76,.90):vec3(.53,.68,.82);
+ vec3 titanium=dark?vec3(.27,.37,.53):vec3(.24,.34,.49);
  vec3 albedo=mix(silver,titanium,arrow);
  // Broader, lower-energy highlights are closer to satin metal than chrome.
  float roughness=mix(.34,.40,arrow);
@@ -170,6 +182,10 @@ vec3 materialAt(vec3 p,vec3 ray,vec2 rotation,float arrow,bool dark){
  color+=direct*nl*vec3(1.03,1.07,1.13)*.40;
  float edge=pow(1.-nv,2.8);
  color+=vec3(.13,.27,.39)*edge*.25;
+ // Shape-specific sapphire rim light adds dimensionality without making
+ // the G a flat blue decal. Grazing faces get the strongest response.
+ float sideKey=max(dot(n,normalize(vec3(.73,-.18,.66))),0.0);
+ color+=vec3(.06,.20,.43)*pow(1.0-nv,2.0)*(0.45+0.55*sideKey);
  // One near-invisible energy pulse on click, not a pulsing neon outline.
  color+=params.pulseValue*.09*vec3(.23,.55,.82);
  return color;
@@ -179,7 +195,9 @@ void main(){
  vec2 screen=vec2((uv.x-.5)*2.33,
                   (.5-uv.y)*2.33*params.paneSize.y/max(1.,params.paneSize.x));
  screen/=clamp(params.viewZoom,.75,1.5);
- screen.y+=.06;
+ // Slow floating uses the existing GPU-orbit clock. Reduced-motion,
+ // background/inactive and power-save modes already stop that clock in QML.
+ screen.y+=.06+.022*sin(params.orbitYaw*.01745329252*1.35);
  bool dark=params.darkMode>.5;
  const float rad=.01745329252;
  vec2 rotation=vec2(

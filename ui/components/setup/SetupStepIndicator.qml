@@ -27,13 +27,13 @@ Item {
                 required property int index
                 readonly property bool active: index === root.activeIndex
                 readonly property bool completed: index < root.activeIndex
-                width: active ? 22 : 10
+                width: active ? 26 : 12
                 height: 16
 
                 Rectangle {
                     anchors.centerIn: parent
-                    width: marker.active ? 22 : 6
-                    height: marker.active ? 4 : 6
+                    width: marker.active ? 26 : 7
+                    height: marker.active ? 5 : 7
                     radius: height / 2
                     color: marker.active ? Theme.accent
                            : marker.completed ? Theme.inkMuted : Theme.borderMuted

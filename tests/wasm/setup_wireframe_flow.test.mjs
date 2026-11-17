@@ -350,7 +350,7 @@ test('mobile has a bottom CTA, desktop a two-pane welcome', () => {
   assert.match(setup, /id: stageScroll/);
   assert.match(setup, /id: stageAction/);
   assert.match(setup, /id: desktopBrandPane/);
-  assert.match(setup, /width: Math.min\(parent.width \* 0.29, 430\)/);
+  assert.match(setup, /width: Math.min\(parent.width \* 0.35, 560\)/);
   assert.match(setup, /anchors.bottom: parent.bottom/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
 });
@@ -398,7 +398,7 @@ test('full-window setup removes shell chrome and has no fake desktop header or f
   const app=source('ui/components/shell/AppShell.qml');
   assert.match(s,/id: setupCanvas/);
   assert.match(s,/id: desktopBrandPane/);
-  assert.match(s,/width: Math\.min\(parent\.width \* 0\.29, 430\)/);
+  assert.match(s,/width: Math\.min\(parent\.width \* 0\.35, 560\)/);
   assert.match(s,/id: stageAction/);
   assert.match(s,/anchors\.bottom: parent\.bottom/);
   assert.doesNotMatch(s,/id: setupFooter/);
@@ -550,8 +550,8 @@ test('shared marker geometry maintains a common vertical center for pill and eig
   assert.match(component,/readonly property int activeIndex: Math\.max\(0, Math\.min\(safeCount - 1, currentStep\)\)/);
   assert.match(component,/anchors\.centerIn: parent/);
   assert.match(component,/height: 16/);
-  assert.match(component,/width: marker\.active \? 22 : 6/);
-  assert.match(component,/height: marker\.active \? 4 : 6/);
+  assert.match(component,/width: marker\.active \? 26 : 7/);
+  assert.match(component,/height: marker\.active \? 5 : 7/);
   assert.match(component,/Behavior on color/);
   assert.match(component,/Theme\.reduceMotion/);
 });

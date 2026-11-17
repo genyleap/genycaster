@@ -561,16 +561,15 @@ Item {
         id: setupCanvas
         anchors.fill: parent
 
-        // Split-screen composition from the approved desktop wireframe:
-        // the brand artwork occupies the left third, with content and a
-        // stage-local CTA on the right. No header, footer or shell chrome.
+        // Editorial split: the sculpture gets enough room for its full
+        // orbit while the form retains the larger, readable content pane.
         Rectangle {
             id: desktopBrandPane
             visible: !root.phone && root.width >= 980
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: Math.min(parent.width * 0.29, 430)
+            width: Math.min(parent.width * 0.35, 560)
             border.width: brandInteraction.activeFocus ? 2 : 0
             border.color: Theme.accent
             // One local studio scene: the existing logo shader, a restrained
@@ -711,11 +710,11 @@ Item {
                 objectName: "setupBrandOrbit"
                 z: 1
                 anchors.centerIn: parent
-                width: parent.width * 1.18
+                width: Math.min(parent.width * 0.91, parent.height * 0.71)
                 height: width
                 preferredRendererType: Shape.CurveRenderer
-                opacity: 0.46 + desktopBrandPane.tapImpulse * 0.22
-                rotation: -18
+                opacity: 0.60 + desktopBrandPane.tapImpulse * 0.20
+                rotation: -18 + desktopBrandPane.orbitYaw * 0.09
                 ShapePath {
                     fillColor: "transparent"
                     strokeColor: Theme.setupHeroPulseStroke
@@ -756,12 +755,69 @@ Item {
                 }
             }
 
+            // A second, offset orbit supplies depth without another shader,
+            // texture capture, clock, or offscreen render target.
+            Shape {
+                id: brandSecondaryOrbit
+                z: 1
+                anchors.centerIn: parent
+                width: brandOrbit.width * 0.79
+                height: width
+                preferredRendererType: Shape.CurveRenderer
+                opacity: 0.38 + desktopBrandPane.tapImpulse * 0.15
+                rotation: 36 - desktopBrandPane.orbitYaw * 0.13
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: Theme.setupHeroTraceStroke
+                    strokeWidth: 1
+                    capStyle: ShapePath.RoundCap
+                    PathAngleArc {
+                        centerX: brandSecondaryOrbit.width / 2
+                        centerY: brandSecondaryOrbit.height / 2
+                        radiusX: brandSecondaryOrbit.width * 0.47
+                        radiusY: brandSecondaryOrbit.height * 0.47
+                        startAngle: 204
+                        sweepAngle: 78
+                    }
+                }
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: Theme.setupHeroPulseStroke
+                    strokeWidth: 0.8
+                    capStyle: ShapePath.RoundCap
+                    PathAngleArc {
+                        centerX: brandSecondaryOrbit.width / 2
+                        centerY: brandSecondaryOrbit.height / 2
+                        radiusX: brandSecondaryOrbit.width * 0.47
+                        radiusY: brandSecondaryOrbit.height * 0.47
+                        startAngle: 32
+                        sweepAngle: 54
+                    }
+                }
+            }
+
             // A short glint acknowledges actual progress, never delays a step.
             Connections {
                 target: root
                 function onCurrentStepChanged() {
                     if (desktopBrandPane.motionAllowed) brandAccentTap.restart()
                 }
+            }
+
+            // A softly graded boundary replaces the former hard 2px split.
+            // The live stage-progress marker remains independently visible.
+            Rectangle {
+                z: 1
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                width: 9
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: "transparent" }
+                    GradientStop { position: 1.0; color: Theme.setupHeroCardBorder }
+                }
+                opacity: 0.32
             }
 
             // Edge progression is connected to the actual Setup stage.
@@ -771,7 +827,8 @@ Item {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 anchors.right: parent.right
-                width: 2
+                width: 1
+                opacity: 0.63
                 color: Theme.setupHeroCardBorder
             }
             Rectangle {
@@ -1071,7 +1128,11 @@ Item {
                 x: desktopBrandPane.visible
                    ? desktopBrandPane.width + (stageScroll.width - desktopBrandPane.width - width) / 2
                    : (stageScroll.width - width) / 2
-                y: !root.phone && root.currentStep > 0 && root.currentStep < 7
+                y: !root.phone && root.currentStep === 0
+                   ? Math.max(Theme.space7,
+                              (stageScroll.height - stageLoader.implicitHeight
+                               - Theme.space7 - stageAction.implicitHeight) * 0.47)
+                   : !root.phone && root.currentStep > 0 && root.currentStep < 7
                    ? Math.max(Theme.space3, Math.min(Theme.space6, stageScroll.height * 0.04))
                    : root.currentStep === 0 || root.currentStep === 7
                    ? Math.max(root.phone ? 110 : 52, (stageScroll.height - stageLoader.implicitHeight) * 0.39)
@@ -1112,9 +1173,16 @@ Item {
             visible: root.showsPrimaryCta
             z: 10
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: root.phone ? Theme.space5 : Math.max(38, root.height * 0.085)
+            // On Welcome, this single bottom anchor follows the centered
+            // content block. The other stages retain their fixed CTA footer.
+            anchors.bottomMargin: !root.phone && root.currentStep === 0
+                                  ? Math.max(Theme.space3, root.height - stagePanel.y
+                                             - stagePanel.implicitHeight
+                                             - Theme.space7 - height)
+                                  : root.phone ? Theme.space5
+                                  : Math.max(38, root.height * 0.085)
             width: root.phone ? Math.min(root.width - root.setupGutter * 2, 440)
-                              : Math.min(300, stagePanel.width * 0.65)
+                              : Math.min(330, stagePanel.width * 0.65)
             x: desktopBrandPane.visible
                ? desktopBrandPane.width + (parent.width - desktopBrandPane.width - width) / 2
                : (parent.width - width) / 2
@@ -1131,44 +1199,55 @@ Item {
     Component {
         id: welcomeStage
         ColumnLayout {
-            spacing: Theme.space4
+            id: welcomeContent
+            spacing: Theme.space3
             LayoutMirroring.enabled: Theme.rtl
 
-            Image {
-                Layout.preferredWidth: root.phone ? 62 : 42
-                Layout.preferredHeight: root.phone ? 62 : 42
-                Layout.alignment: desktopBrandPane.visible ? Qt.AlignLeft
-                                : root.phone ? (Theme.rtl ? Qt.AlignRight : Qt.AlignLeft)
-                                : Qt.AlignHCenter
-                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                fillMode: Image.PreserveAspectFit
-                sourceSize: Qt.size(160,160)
+            // The icon, title, supporting copy and progress form one centered
+            // block. The CTA is placed directly beneath it by stageAction.
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.phone ? 62 : 70
+                Image {
+                    anchors.verticalCenter: parent.verticalCenter
+                    x: root.phone ? (Theme.rtl ? parent.width - width : 0)
+                                  : (parent.width - width) / 2
+                    width: root.phone ? 54 : 58
+                    height: width
+                    source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize: Qt.size(160, 160)
+                    smooth: true
+                    mipmap: true
+                }
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                Layout.topMargin: Theme.space2
+                Layout.topMargin: Theme.space1
                 text: qsTrId("genycaster.setup.welcome_title")
-                font.pixelSize: root.phone ? 32 : 36
+                font.pixelSize: root.phone ? 32 : 40
                 font.weight: Theme.weightBold
                 lineHeight: 1.14
                 color: Theme.ink
                 wrapMode: Text.WordWrap
-                horizontalAlignment: root.phone || desktopBrandPane.visible ? Theme.textStartAlignment : Text.AlignHCenter
+                horizontalAlignment: root.phone ? Theme.textStartAlignment : Text.AlignHCenter
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
+                Layout.topMargin: Theme.space1
                 text: qsTrId("genycaster.setup.design_welcome_description")
                 color: Theme.inkMuted
-                font.pixelSize: Theme.typeLabelSize
-                lineHeight: 1.36
+                font.pixelSize: root.phone ? Theme.typeLabelSize
+                                          : Theme.typeLabelSize + Theme.scaleUi(1)
+                lineHeight: 1.45
                 wrapMode: Text.WordWrap
-                horizontalAlignment: root.phone || desktopBrandPane.visible ? Theme.textStartAlignment : Text.AlignHCenter
+                horizontalAlignment: root.phone ? Theme.textStartAlignment : Text.AlignHCenter
             }
             // Welcome and all later pages share marker geometry and count.
             SetupStepIndicator {
-                Layout.alignment: root.phone ? Qt.AlignHCenter
-                                  : desktopBrandPane.visible ? Qt.AlignLeft : Qt.AlignHCenter
-                Layout.topMargin: root.phone ? Theme.space6 : Theme.space3
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: root.phone ? Theme.space6 : Theme.space5
+                markerSpacing: root.phone ? 8 : 10
                 stepCount: root.progressCount
                 currentStep: root.currentStep
                 Accessible.name: root.stepTitle(root.currentStep)
