@@ -111,12 +111,58 @@ bool ProCheckoutController::validQuote(const QVariantMap& quote) const
     return !decimalToUint256(quote.value(QStringLiteral("amount_base_units")).toString()).isEmpty();
 }
 
-void ProCheckoutController::pay()
+void ProCheckoutController::connectWallet()
 {
     if (m_busy || m_session) return;
+    if (!m_account || !m_account->activeAccountFid()
+        || !m_account->cloudAuthorizationReady()) {
+        finishError(QStringLiteral("authentication_required"));
+        return;
+    }
+    if (!m_begin || !m_request || !m_end) {
+        finishError(QStringLiteral("wallet_unavailable"));
+        return;
+    }
+    // This phase only requests account selection; it never switches networks,
+    // grants a subscription or constructs an ERC-20 transfer.
+    m_fid = m_account->activeAccountFid();
+    m_payer.clear();
+    m_quote.clear();
+    m_quoteId.clear();
+    m_txHash.clear();
+    m_error.clear();
+    ++m_generation;
+    m_busy = true;
+    m_phase = QStringLiteral("connecting");
+    emit changed();
+    if (!m_begin()) {
+        finishError(QStringLiteral("wallet_unavailable"));
+        return;
+    }
+    m_session = true;
+    request(QStringLiteral("eth_requestAccounts"), {}, [this](QJsonValue accounts, QString error) {
+        if (!error.isEmpty() || !accounts.isArray() || accounts.toArray().isEmpty()) {
+            finishError(error.isEmpty() ? QStringLiteral("wallet_connect_failed") : error);
+            return;
+        }
+        const QString payer = accounts.toArray().first().toString().toLower();
+        if (!Address.match(payer).hasMatch()) {
+            finishError(QStringLiteral("wallet_address_invalid"));
+            return;
+        }
+        m_payer = payer;
+        m_busy = false;
+        m_phase = QStringLiteral("connected");
+        emit changed();
+        emit walletConnectedSuccessfully();
+    });
+}
+
+void ProCheckoutController::pay()
+{
+    if (m_busy || (m_session && !walletConnected())) return;
     m_error.clear();
     m_txHash.clear();
-    m_payer.clear();
     if (!m_begin || !m_request || !m_end) {
         finishError(QStringLiteral("wallet_unavailable"));
         return;
@@ -126,12 +172,29 @@ void ProCheckoutController::pay()
         finishError(QStringLiteral("invalid_payment_quote"));
         return;
     }
+    const bool alreadyConnected = walletConnected();
+    if (alreadyConnected && m_fid != m_account->activeAccountFid()) {
+        finishError(QStringLiteral("wallet_not_verified_for_account"));
+        return;
+    }
     m_fid = m_account->activeAccountFid();
     m_quoteId = m_quote.value(QStringLiteral("id")).toString();
     ++m_generation;
     m_busy = true;
-    m_phase = QStringLiteral("connecting");
+    m_phase = alreadyConnected ? QStringLiteral("checking_chain") : QStringLiteral("connecting");
     emit changed();
+    if (alreadyConnected) {
+        const QVariantList payers = m_quote.value(QStringLiteral("verified_payers")).toList();
+        const bool owned = std::any_of(payers.begin(), payers.end(), [this](const QVariant& v) {
+            return sameAddress(v.toString(), m_payer);
+        });
+        if (!owned) {
+            finishError(QStringLiteral("wallet_not_verified_for_account"));
+            return;
+        }
+        requestChain();
+        return;
+    }
     if (!m_begin()) {
         finishError(QStringLiteral("wallet_unavailable"));
         return;
