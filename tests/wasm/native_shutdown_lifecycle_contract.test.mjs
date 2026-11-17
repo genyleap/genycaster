@@ -36,9 +36,9 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
         && roots > overlayDelete && destroy > roots
         && collect > destroy && drain > collect,
         "destroy QML owners, remaining Popups, Overlay, and only then QML windows");
-    assert.match(teardown, /for \\(QObject\\* const root : engine\\.rootObjects\\(\\)\\)/);
+    assert.match(teardown, /for \(QObject\* const root : engine\.rootObjects\(\)\)/);
     assert.match(teardown, /QPointer<QObject>/);
-    assert.doesNotMatch(teardown, /setParentItem\\(nullptr\\)/,
+    assert.doesNotMatch(teardown, /child->setParentItem\(nullptr\)/,
         "Qt 6.12 macOS crashes when visual teardown disconnects attached overlays");
     assert.doesNotMatch(teardown, /mainWindow->hide\(\)/,
         "hiding Cocoa before QQuickOverlay destruction invalidates its window association");
