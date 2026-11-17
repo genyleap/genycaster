@@ -67,6 +67,7 @@ private:
     {
         static const QStringList methods{
             QStringLiteral("eth_requestAccounts"),
+            QStringLiteral("personal_sign"),
             QStringLiteral("eth_chainId"),
             QStringLiteral("wallet_switchEthereumChain"),
             QStringLiteral("eth_sendTransaction")
@@ -95,7 +96,7 @@ private:
                 if (state.responses.length >= 16) state.responses.shift();
                 state.responses.push({id, value, error:failure || ""});
             }
-            if (!['eth_requestAccounts','eth_chainId',
+            if (!['eth_requestAccounts','personal_sign','eth_chainId',
                   'wallet_switchEthereumChain','eth_sendTransaction'].includes(method)) {
                 finish(null,'wallet_method_unavailable');
                 return;
