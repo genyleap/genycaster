@@ -347,9 +347,23 @@ const select=index=>{
   if(current&&!current.requiresApproval)execute();
 };
 const add=(name,provider)=>{
-  if(!provider||typeof provider.request!=='function'||providers.some(item=>item.provider===provider)
-      ||providers.length>=12)return;
-  const entry={name:String(name||'Browser wallet').slice(0,64),provider};
+  if(!provider||typeof provider.request!=='function')return;
+  const advertisedName=String(name||'Browser wallet').slice(0,64);
+  const known=providers.findIndex(item=>item.provider===provider);
+  if(known>=0){
+    // A legacy window.ethereum fallback may arrive before EIP-6963. Upgrade
+    // its label when the wallet later announces its branded identity.
+    const entry=providers[known];
+    if(entry.name==='Browser wallet'&&advertisedName!=='Browser wallet'){
+      entry.name=advertisedName;
+      const button=options.children[known];
+      const label=button&&button.querySelector('.wallet-name');
+      if(label)label.textContent=advertisedName;
+    }
+    return;
+  }
+  if(providers.length>=12)return;
+  const entry={name:advertisedName,provider};
   const index=providers.push(entry)-1;
   const item=document.createElement('button');
   item.type='button';
