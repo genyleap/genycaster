@@ -4,6 +4,7 @@ import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
 import {createSignerSessionProof} from './signer_session_proof.mjs';
 import {serverDeployment, trustedOrigin} from '../deployment_config.mjs';
 import {validateFeedback} from './feedback.mjs';
+import {handleGenyBuzz} from './genybuzz.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 import {createGithubCalendarReader} from './github_contributions.mjs';
 import {calculateStreaks,eligibleStreakDay,STREAK_START_DAY} from './streaks.mjs';
@@ -578,7 +579,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
       'entitlements','geny/assets','pro/plan','pro/quote','pro/verify',
       'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
-      'muted_profiles','feedback',
+      'muted_profiles','feedback','buzz','buzz/preferences','buzz/inbox','buzz/ack',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
@@ -689,6 +690,10 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      // Owner verified by the existing cloud session, not a protocol signer.
+      if (await handleGenyBuzz({
+        entity,request,response,owner,issuer:upstream,store,readBody,respond
+      })) return true;
       if(entity==='feedback') {
         if(typeof store.feedbackReady!=='function' || !store.feedbackReady()) {
           respond(response,503,{error:'feedback_unavailable'});return true;
