@@ -79,6 +79,9 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QVariantMap proPaymentQuote READ proPaymentQuote NOTIFY proBillingChanged)
     Q_PROPERTY(bool proBillingBusy READ proBillingBusy NOTIFY proBillingChanged)
     Q_PROPERTY(QString proBillingError READ proBillingError NOTIFY proBillingChanged)
+    Q_PROPERTY(bool proWalletBusy READ proWalletBusy NOTIFY proWalletChanged)
+    Q_PROPERTY(bool proWalletVerified READ proWalletVerified NOTIFY proWalletChanged)
+    Q_PROPERTY(QString proWalletError READ proWalletError NOTIFY proWalletChanged)
     Q_PROPERTY(QVariantMap genyAssets READ genyAssets NOTIFY genyAssetsChanged)
     Q_PROPERTY(bool streakBusy READ streakBusy NOTIFY streakChanged)
     Q_PROPERTY(QString streakError READ streakError NOTIFY streakChanged)
@@ -222,6 +225,12 @@ public:
     }
     [[nodiscard]] bool proBillingBusy() const noexcept { return m_proBillingRequest != nullptr; }
     [[nodiscard]] QString proBillingError() const { return m_proBillingError; }
+    [[nodiscard]] bool proWalletBusy() const noexcept { return m_proWalletRequest != nullptr; }
+    [[nodiscard]] bool proWalletVerified() const noexcept { return m_proWalletVerified; }
+    [[nodiscard]] QString proWalletError() const { return m_proWalletError; }
+    Q_INVOKABLE void requestProWalletChallenge(const QString& payer);
+    Q_INVOKABLE void confirmProWalletSignature(const QString& challengeId,
+                                                const QString& signature);
 
     /** @brief Obtain a signed-account, time-limited USD-priced GENY quote. */
     Q_INVOKABLE void requestProPaymentQuote(const QString& asset = QStringLiteral("GENY"));
@@ -401,6 +410,9 @@ signals:
     void proPlanChanged();
     void proEntitlementsChanged();
     void proBillingChanged();
+    void proWalletChanged();
+    void proWalletChallengeReady(const QString& id, const QString& message);
+    void proWalletVerificationCompleted();
     void genyAssetsChanged();
     void stateChanged();
     void nativeEnrollmentRetryRequested();
@@ -467,6 +479,9 @@ private:
     qint64 m_proPlanFetchedAt{};
     QPointer<QNetworkReply> m_proEntitlementsRead{};
     QPointer<QNetworkReply> m_proBillingRequest{};
+    QPointer<QNetworkReply> m_proWalletRequest{};
+    QString m_proWalletError{};
+    bool m_proWalletVerified{};
     QVariantMap m_proQuote{};
     qulonglong m_proQuoteFid{};
     QString m_proBillingError{};
