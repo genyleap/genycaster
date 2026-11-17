@@ -1758,6 +1758,113 @@ GenyAdaptiveDialog {
                         }
                     }
 
+                    // Content-aware chromatic reflections are a separate
+                    // choice from the basic NEON outline. The shared capture
+                    // remains disabled in battery-saving or reduced-transparency
+                    // mode, so no extra per-control GPU work is introduced.
+                    NeonSurface {
+                        objectName: "settingsChromaticReflections"
+                        Layout.fillWidth: true
+                        interactive: true
+                        ambientNeon: true
+                        fillColor: Theme.surfaceMuted
+                        curveDepth: Theme.curveContainer
+                        implicitHeight: reflectionOptions.implicitHeight + Theme.space3 * 2
+
+                        ColumnLayout {
+                            id: reflectionOptions
+                            anchors.fill: parent
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space3
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space3
+                                layoutDirection: Theme.uiDirection
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Theme.space1
+                                    DirectionAwareLabel {
+                                        Layout.fillWidth: true
+                                        text: qsTrId("genycaster.settings.chromatic_reflections")
+                                        color: Theme.ink
+                                        font.pixelSize: Theme.typeLabelSize
+                                        font.weight: Theme.weightDemiBold
+                                    }
+                                    DirectionAwareLabel {
+                                        Layout.fillWidth: true
+                                        text: qsTrId("genycaster.settings.chromatic_reflections_description")
+                                        color: Theme.inkMuted
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        wrapMode: Text.Wrap
+                                    }
+                                }
+                                GenySwitch {
+                                    checked: Theme.reflectionPreferences.enabled
+                                    enabled: Theme.neonEnabled
+                                    onToggled: Theme.setReflectionsEnabled(checked)
+                                    Accessible.name: qsTrId("genycaster.settings.chromatic_reflections")
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space1
+                                enabled: Theme.neonEnabled && Theme.reflectionPreferences.enabled
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.settings.reflection_intensity")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Theme.space2
+                                    layoutDirection: Qt.LeftToRight
+                                    GenySlider {
+                                        objectName: "chromaticReflectionIntensity"
+                                        Layout.fillWidth: true
+                                        compact: true
+                                        from: 0
+                                        to: 100
+                                        stepSize: 5
+                                        snapMode: Slider.SnapAlways
+                                        value: Math.round(Theme.reflectionIntensity * 100)
+                                        activeColor: Theme.accent
+                                        onMoved: Theme.setReflectionIntensity(value / 100)
+                                        Accessible.name: qsTrId("genycaster.settings.reflection_intensity")
+                                    }
+                                    Label {
+                                        text: LocaleFormat.formatInteger(Math.round(Theme.reflectionIntensity * 100)) + "%"
+                                        color: Theme.inkMuted
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        font.tabularFigures: true
+                                    }
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space3
+                                layoutDirection: Theme.uiDirection
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.settings.reduce_reflection_transparency")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.Wrap
+                                }
+                                GenySwitch {
+                                    checked: Theme.reduceTransparency
+                                    onToggled: Theme.setReduceTransparency(checked)
+                                    Accessible.name: qsTrId("genycaster.settings.reduce_reflection_transparency")
+                                }
+                            }
+                        }
+                    }
+
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space2
