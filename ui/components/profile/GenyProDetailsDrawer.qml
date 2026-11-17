@@ -1212,7 +1212,8 @@ GenyDrawer {
                 Layout.fillWidth: true
                 compact: false
                 prominent: true
-                iconGlyph: root.checkoutActive && !root.txSubmitted && root.walletAvailable
+                iconGlyph: root.walletAvailable && !root.txSubmitted
+                    && (root.checkoutActive || !root.walletConnected)
                     ? Theme.iconWallet : ""
                 busy: root.busy
                 enabled: !root.busy
