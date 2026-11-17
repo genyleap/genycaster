@@ -11,12 +11,14 @@ not through a Remote Operations connection with a read-only /etc mount.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import difflib
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 DEFAULT_CONFIG = Path('/etc/nginx/sites-available/genycaster.xyz')
 HOST = 'server_name genycaster.xyz;'
@@ -75,10 +77,25 @@ def probe(path: str, expected: str, *, method: str = 'GET',
         raise RuntimeError(f'{path}: HTTPS {result.stdout.strip()}, expected {expected}')
 
 
+def wait_until_proxy_ready() -> None:
+    # nginx -s reload returns when it has signalled the master, not when
+    # replacement workers are guaranteed to accept new TLS connections.
+    # A single immediate 404 may be served by the previous static vhost.
+    # Retry only the safe public GET; never repeat session challenges.
+    for attempt in range(15):
+        try:
+            probe('/api/v1/cloud/pro/plan', '200')
+            return
+        except RuntimeError:
+            if attempt == 14:
+                raise
+            time.sleep(0.5)
+
+
 def check_public_routes() -> None:
     # Validates that both the Nginx proxy and API's same-origin authority
     # have migrated; a 403 for the canonical Origin is a failed deployment.
-    probe('/api/v1/cloud/pro/plan', '200')
+    wait_until_proxy_ready()
     probe('/api/v1/cloud/session', '401')
     probe('/api/v1/cloud/session/challenge', '200', method='POST',
           origin='https://genycaster.xyz', data='{"fid":"4294967296"}')
@@ -86,7 +103,10 @@ def check_public_routes() -> None:
 
 
 def activate(config: Path, revised: str) -> None:
-    backup = config.with_name(config.name + '.before-cloud-api-xyz-20261116')
+    backup = config.with_name(
+        config.name + '.before-cloud-api-xyz-'
+        + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    )
     if backup.exists():
         raise RuntimeError(f'refusing to overwrite existing backup: {backup}')
     shutil.copy2(config, backup)
