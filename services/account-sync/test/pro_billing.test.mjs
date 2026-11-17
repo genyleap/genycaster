@@ -231,6 +231,16 @@ test('server checkout requires authenticated FID and never grants on unverified 
     assert.equal(publishedPlan.period_days,30);
     assert.equal(publishedPlan.chain_id,8453);
     assert.equal(publishedPlan.payment_available,true);
+    // Payments must never be advertised when proof persistence is absent.
+    const disabledApi=createAccountApi({catalogUrl:'https://id.example.test',
+      issuer:'https://id.example.test',store:{...store,proWalletReady:()=>false},
+      fetchImpl,billingPolicy:policy});
+    await new Promise(ok=>disabledApi.listen(0,'127.0.0.1',ok));
+    try {
+      const disabledPlan=await fetch('http://127.0.0.1:'+
+        disabledApi.address().port+'/api/v1/cloud/pro/plan');
+      assert.equal((await disabledPlan.json()).plan.payment_available,false);
+    } finally {await new Promise(ok=>disabledApi.close(ok));}
     assert.equal('treasury' in publishedPlan,false);
     assert.equal((await req('pro/plan',false)).status,405);
     assert.equal((await req('pro/quote',false)).status,401);
