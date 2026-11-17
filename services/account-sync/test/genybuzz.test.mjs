@@ -96,6 +96,19 @@ test('GenyBuzz API requires verified owner, explicit opt-in and bounded methods'
     assert.equal((await call('buzz','POST',{
       target_fid:'53',target_kind:'farcaster',context:'profile'
     })).status,201);
+    const previousKillSwitch=process.env.GENYCASTER_BUZZ_SEND_DISABLED;
+    try {
+      process.env.GENYCASTER_BUZZ_SEND_DISABLED='1';
+      const paused=await call('buzz','POST',{
+        target_fid:'53',target_kind:'farcaster',context:'profile'
+      });
+      assert.equal(paused.status,503);
+      assert.equal(attempts,1,'emergency cutoff must not call the datastore');
+    } finally {
+      if(previousKillSwitch===undefined)
+        delete process.env.GENYCASTER_BUZZ_SEND_DISABLED;
+      else process.env.GENYCASTER_BUZZ_SEND_DISABLED=previousKillSwitch;
+    }
     const limited=await call('buzz','POST',{
       target_fid:'53',target_kind:'farcaster',context:'profile'
     });
