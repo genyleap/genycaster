@@ -7,6 +7,8 @@
 const SOURCE='https://pro-api.coinmarketcap.com';
 const PUBLIC_SOURCE=SOURCE+'/public-api';
 const ALTERNATIVE='https://api.alternative.me/fng/?limit=1';
+const COINGECKO_GLOBAL='https://api.coingecko.com/api/v3/global';
+const COINGECKO_PRICES='https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin%2Cethereum%2Csolana&price_change_percentage=24h';
 const CORE_METRICS=Object.freeze(['global','sentiment','season','cmc100']);
 const DEFINITIONS=Object.freeze({
   global:{path:'/v1/global-metrics/quotes/latest?convert=USD',ttl:600_000},
@@ -114,6 +116,39 @@ function alternativeSentiment(root){
     timestamp:Number.isFinite(timestamp) && timestamp>0 && timestamp<1e11
       ? new Date(timestamp*1000).toISOString() : ''};
 }
+// Only factual, directly published CoinGecko observations are fallbacks.
+// Never derive CMC Altcoin Season or CMC100 from unrelated indicators.
+function coingeckoGlobal(root){
+  const d=root?.data;
+  if(!d || typeof d!=='object')throw Error('invalid_coingecko_global');
+  const cap=finite(d.total_market_cap?.usd);
+  const volume=finite(d.total_volume?.usd);
+  const btc=finite(d.market_cap_percentage?.btc,100);
+  const eth=finite(d.market_cap_percentage?.eth,100);
+  const updated=Number(d.updated_at);
+  if([cap,volume,btc,eth].some(n=>n===null) || cap<=0 || volume<=0
+     || !Number.isSafeInteger(updated) || updated<=0 || updated>1e11)
+    throw Error('invalid_coingecko_global');
+  return {btc_dominance:btc,eth_dominance:eth,
+    market_cap_usd:cap,volume_24h_usd:volume,
+    timestamp:new Date(updated*1000).toISOString()};
+}
+function coingeckoPrices(root){
+  if(!Array.isArray(root)||root.length>50)throw Error('invalid_coingecko_prices');
+  const requested=new Map([['bitcoin','BTC'],['ethereum','ETH'],['solana','SOL']]);
+  const assets=new Map();
+  for(const coin of root){
+    const symbol=requested.get(coin?.id);
+    if(!symbol || assets.has(symbol))continue;
+    const price=finite(coin.current_price);
+    const change=Number(coin.price_change_percentage_24h);
+    if(price===null || price<=0 || !Number.isFinite(change)
+       || Math.abs(change)>1000)continue;
+    assets.set(symbol,{symbol,price_usd:price,change_24h_percent:change});
+  }
+  if(assets.size<2)throw Error('incomplete_coingecko_prices');
+  return {assets:[...requested.values()].map(symbol=>assets.get(symbol)).filter(Boolean)};
+}
 export function createMarketReader({
   key=process.env.GENYCASTER_CMC_API_KEY||'',
   fetchImpl=globalThis.fetch,now=Date.now
@@ -128,6 +163,7 @@ export function createMarketReader({
   const mode=hasKey?'keyed':'public';
   const request=async(name,provider=mode)=>{
     if(provider==='alternative'&&name!=='sentiment')return null;
+    if(provider==='coingecko' && name!=='global' && name!=='prices')return null;
     const definition=DEFINITIONS[name];
     const id=provider+':'+name;
     const existing=cache.get(id);
@@ -146,6 +182,14 @@ export function createMarketReader({
             signal:AbortSignal.timeout(8000)});
           value=alternativeSentiment(await jsonLimited(response,8192));
           origin='Alternative.me';
+        }else if(provider==='coingecko'){
+          const endpoint=name==='global'?COINGECKO_GLOBAL:COINGECKO_PRICES;
+          const response=await fetchImpl(endpoint,{
+            headers:{Accept:'application/json'},redirect:'error',
+            signal:AbortSignal.timeout(8000)});
+          const root=await jsonLimited(response,name==='global'?16*1024:64*1024);
+          value=name==='global'?coingeckoGlobal(root):coingeckoPrices(root);
+          origin='CoinGecko';
         }else{
           const endpoint=(provider==='keyed'?SOURCE:PUBLIC_SOURCE)+definition.path;
           const headers=provider==='keyed'
@@ -176,9 +220,12 @@ export function createMarketReader({
   return async()=>{
     const entries=await Promise.all(Object.keys(DEFINITIONS).map(async name=>{
       let result=await request(name);
-      // Retain a correctly attributed fallback only when the CMC sentiment
-      // endpoint has not yielded a usable snapshot.
+      // The keyless CMC endpoint can return 429 to Node clients even when
+      // interactive curl requests succeed. Use separately cached sources,
+      // with honest provenance and shared server-side cooldowns.
       if(name==='sentiment'&&!result)result=await request(name,'alternative');
+      if((name==='global'||name==='prices')&&!result)
+        result=await request(name,'coingecko');
       return [name,result];
     }));
     const metrics={};
