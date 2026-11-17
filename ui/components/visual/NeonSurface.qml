@@ -114,12 +114,14 @@ Superellipse {
         anchors.fill: parent
         active: material.visible && Theme.neonEnabled
                 && (material.ambientNeon || material.neonBusy
-                    || (material.interactive && (!material.deferredNeon
+                    || (material.interactive && (material.focused
+                                                || !material.deferredNeon
                                                 || material.pointerActive
                                                 || material.hoverLifetime > 0.001)))
         sourceComponent: NeonHalo {
             anchors.fill: parent
-            active: material.pointerActive
+            // Keyboard focus must activate the same glint as pointer hover.
+            active: material.pointerActive || material.focused
             ambient: material.ambientNeon
             activity: material.neonBusy
             hoverCapable: material.interactive
@@ -134,7 +136,8 @@ Superellipse {
             reflectionRect: material.reflectionRect
             reflectionStrength: material.neonReflectionStrength
             reflectionReach: Theme.reflectionReach
-            suppressed: material.focused
+            // Focus outline and Neon are compatible, not mutually exclusive.
+            suppressed: false
             strength: material.neonStrength * (material.proximityPointerActive
                 ? material.proximityStrength : 1)
             ambientStrength: material.ambientStrength

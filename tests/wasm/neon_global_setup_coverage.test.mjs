@@ -23,15 +23,14 @@ test('The semantic NeonCard is registered and owns only the shared material', ()
 test('Welcome and language wheel have actual pointer-tracking surfaces', () => {
     const primary = read('ui/components/setup/SetupPrimaryButton.qml');
     const language = read('ui/components/setup/SetupLanguageSelector.qml');
-    assert.match(primary, /background: NeonSurface \{/);
-    assert.match(primary, /externalHovered: root\.hovered/);
-    assert.match(primary, /neonBusy: root\.busy/);
-    assert.match(primary, /focused: Theme\.keyboardFocusVisible\(root\)/);
-    assert.match(language, /NeonCard \{/);
-    assert.match(language, /ambientNeon: true/);
+    // Setup uses the same ActionButton material as the app's primary CTA.
+    assert.match(primary, /^ActionButton \{/m);
+    assert.match(primary, /prominent: true/);
+    assert.doesNotMatch(primary, /background: NeonSurface \{/);
     assert.match(language, /id: languagePointer/);
-    assert.match(language, /NeonStatePlate \{/);
-    assert.match(language, /hovered: languagePointer\.hovered/);
+    assert.match(language, /NeonSurface \{/);
+    assert.match(language, /ambientNeon: languageRow\.selected/);
+    assert.match(language, /externalHovered: languagePointer\.hovered && !picker\.moving/);
     assert.match(language, /onMovementEnded: root\.choose\(currentIndex\)/);
 });
 

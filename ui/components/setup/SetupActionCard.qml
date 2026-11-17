@@ -78,14 +78,22 @@ Button {
         deferredNeon: !root.accountShowcase && !root.networkShowcase
                       && !root.primary && !root.setupEmphasis && !root.selected
         neonBusy: root.busy
-        inverted: root.primary && !root.neutralPrimary
+        inverted: root.neutralPrimary ? Theme.dark
+                  : root.primary ? !Theme.dark : false
         focused: Theme.keyboardFocusVisible(root)
         externalHovered: root.hovered
         externalPointerX: cardPointer.hovered ? cardPointer.point.position.x : width / 2
         externalPointerY: cardPointer.hovered ? cardPointer.point.position.y : height / 2
         neonStrength: Theme.neonCardStrength
-        neonColor: root.selected
-            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.40)
+        ambientStrength: root.primary || root.setupEmphasis
+                         ? Math.min(0.68, Theme.neonAmbientStrength * 1.55)
+                         : Theme.neonAmbientStrength
+        neonColor: root.neutralPrimary
+            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.90)
+            : root.primary
+              ? Qt.rgba(1, 1, 1, 0.72)
+            : root.selected
+              ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.60)
             : "transparent"
         fillColor: root.unavailable ? Theme.setupActionUnavailableSurface
                    : root.setupEmphasis ? Theme.setupActionEmphasisSurface
@@ -98,12 +106,19 @@ Button {
                      : root.down ? Theme.surfacePressed
                                  : root.hovered ? Theme.surfaceHover : Theme.surface
         borderWidth: Theme.keyboardFocusVisible(root) ? 2
-                     : root.setupEmphasis ? 0
+                     : root.setupEmphasis ? Theme.strokeHairline
                      : root.selected ? 2
-                     : root.primary && !root.visuallyDisabled ? 0 : Theme.strokeStandard
+                     : root.primary && !root.visuallyDisabled
+                       ? Theme.strokeHairline : Theme.strokeStandard
         borderColor: Theme.keyboardFocusVisible(root) ? Theme.focus
                      : root.unavailable ? Theme.setupActionUnavailableBorder
-                     : root.selected ? Theme.accent : Theme.borderMuted
+                     : root.selected ? Theme.accent
+                     : root.neutralPrimary
+                       ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                                 root.hovered ? 0.70 : 0.28)
+                     : root.primary || root.setupEmphasis
+                       ? Qt.rgba(1, 1, 1, root.hovered ? 0.62 : 0.26)
+                     : Theme.borderMuted
         curveDepth: Theme.curveContainer
         elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone
 

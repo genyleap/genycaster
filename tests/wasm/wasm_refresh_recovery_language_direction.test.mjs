@@ -82,11 +82,14 @@ test('Setup surfaces use the active accent and actual theme controller',()=>{
     const button=file('ui/components/setup/SetupPrimaryButton.qml');
     const card=file('ui/components/setup/SetupActionCard.qml');
     const setup=file('ui/components/setup/InitialSetup.qml');
-    for(const s of [button,card]){
-        assert.match(s,/Theme.primaryFill/);
-        assert.match(s,/Theme.accentInk/);
+    const shared=file('ui/components/controls/ActionButton.qml');
+    assert.match(button,/^ActionButton \{/m);
+    assert.match(shared,/Theme.primaryFill/);
+    assert.match(shared,/Theme.accentInk/);
+    assert.match(card,/Theme.primaryFill/);
+    assert.match(card,/Theme.accentInk/);
+    for(const s of [button,card])
         assert.doesNotMatch(s,/#111315|#FFFFFF|#F6F7F8/);
-    }
     assert.match(setup,/appearanceController.setThemeMode/);
     assert.match(setup,/appearanceController.setColorThemeId/);
     assert.match(setup,/id: appearanceStage/);

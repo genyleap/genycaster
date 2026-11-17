@@ -408,7 +408,12 @@ test('Qt button rings use keyboard focus, never persistent pointer-focus borders
     for(const file of ['SetupPrimaryButton','ActionButton','NavItem','GenyTabButton',
         'GenySwitch','EngagementButton','GenyComboBox','SetupActionCard']){
         const code=read('ui/components/' + componentPath(file)+'.qml');
-        assert.match(code,/Theme\.keyboardFocusVisible\(/,file);
+        if (file === 'SetupPrimaryButton') {
+            assert.match(code, /^ActionButton \{/m,
+                'setup inherits the keyboard-focus policy of ActionButton');
+        } else {
+            assert.match(code,/Theme\.keyboardFocusVisible\(/,file);
+        }
         assert.doesNotMatch(code,/borderWidth: [\w]+\.activeFocus/,file);
     }
 });

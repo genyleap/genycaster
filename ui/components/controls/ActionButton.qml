@@ -8,6 +8,8 @@ Button {
     id: control
 
     property bool prominent: false
+    // Neutral (ink-filled) CTA uses the same material, geometry and input path.
+    property bool neutralPrimary: false
     // Opt-in to a shared adjacent capture. Ordinary feed actions never
     // allocate their own texture or reflect ancestor content.
     property NeonReflectionSource reflectionSource: null
@@ -170,6 +172,7 @@ Button {
                                                : copyConfirmed ? Theme.success
                                                : customForegroundColor.a > 0 ? customForegroundColor
                                                : !enabled && !busy ? Theme.inkDisabled
+                                               : neutralPrimary ? Theme.surface
                                                : positive ? Theme.contrastInk(Theme.success)
                                                : prominent ? Theme.accentInk
                                                : selected ? (customSelectedColor.a > 0 ? customSelectedColor : Theme.accent)
@@ -277,27 +280,42 @@ Button {
 
     background: NeonSurface {
         reflectionSource: control.reflectionSource
-        reflectedBorder: !control.prominent && !control.destructive
+        reflectedBorder: true
         // Keep the Kit's hover-capable halo instantiated for the lifetime of
         // an enabled button. Binding interactivity to hovered unloaded the
         // ShaderEffect on mouse exit and snapped the fade away.
-        interactive: control.enabled && !control.destructive
+        interactive: control.enabled
         // Hundreds of quiet Cast-action buttons may coexist in a feed.
         // Preserve the Kit's hover reflection but allocate GPU material
         // only during entry/exit rather than one shader per idle button.
         deferredNeon: control.quiet && !control.selected && !control.prominent
-                      && !control.positive
+                      && !control.positive && !control.destructiveFilled
+                      && !control.neutralPrimary
         ambientNeon: control.prominent || control.selected || control.positive
+                     || control.destructiveFilled || control.neutralPrimary
         neonBusy: control.busy
-        inverted: control.prominent || control.positive || control.destructiveFilled
+        // Bright fills need a light glint regardless of the page palette;
+        // an ink-filled neutral CTA uses an accent-tinted dark-edge glint.
+        inverted: control.neutralPrimary ? Theme.dark
+                  : (control.prominent || control.positive || control.destructiveFilled)
+                    ? !Theme.dark : false
         focused: Theme.keyboardFocusVisible(control)
         externalHovered: control.hovered && !control.mobileViewport
         externalPointerX: neonPointer.hovered ? neonPointer.point.position.x : width / 2
         externalPointerY: neonPointer.hovered ? neonPointer.point.position.y : height / 2
-        neonStrength: Theme.neonControlStrength
-        neonColor: control.prominent ? Qt.rgba(1, 1, 1, 0.18)
+        neonStrength: control.prominent || control.destructiveFilled
+                      || control.neutralPrimary || control.positive
+                      ? Theme.neonCardStrength : Theme.neonControlStrength
+        ambientStrength: control.prominent || control.destructiveFilled
+                         || control.neutralPrimary || control.positive
+                         ? Math.min(0.68, Theme.neonAmbientStrength * 1.55)
+                         : Theme.neonAmbientStrength
+        neonColor: control.neutralPrimary
+                   ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.90)
+                   : control.prominent || control.positive || control.destructiveFilled
+                     ? Qt.rgba(1, 1, 1, 0.72)
                    : control.selected ? Qt.rgba(Theme.accent.r, Theme.accent.g,
-                                               Theme.accent.b, 0.36)
+                                               Theme.accent.b, 0.60)
                    : "transparent"
         fillColor: {
             if (!control.enabled && !control.busy)
@@ -306,6 +324,8 @@ Button {
                 return control.down ? Qt.darker(Theme.danger, 1.12) : Theme.danger
             if (control.destructive)
                 return control.hovered || control.down ? Theme.dangerSurface : "transparent"
+            if (control.neutralPrimary)
+                return control.down ? Qt.lighter(Theme.ink, 1.10) : Theme.ink
             if (control.positive)
                 return control.down ? Qt.darker(Theme.success, 1.10)
                                     : control.hovered ? Qt.lighter(Theme.success, 1.06)
@@ -321,11 +341,23 @@ Button {
             return control.down ? Theme.surfacePressed : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
         }
         borderWidth: Theme.keyboardFocusVisible(control) ? 2
-                     : (!control.prominent && !control.quiet && !control.destructive && !control.positive && !control.selected ? Theme.strokeStandard : 0)
+                     : control.prominent || control.destructiveFilled
+                       || control.positive || control.neutralPrimary || control.selected
+                       ? Theme.strokeHairline
+                     : (!control.quiet && !control.destructive
+                        ? Theme.strokeStandard : 0)
         borderColor: Theme.keyboardFocusVisible(control)
-                     ? (control.prominent || control.positive ? Theme.focusOnAccent : Theme.focus)
+                     ? (control.prominent || control.positive || control.destructiveFilled
+                        ? Theme.focusOnAccent : Theme.focus)
+                     : control.neutralPrimary
+                       ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                                 control.hovered ? 0.70 : 0.28)
+                     : control.prominent || control.positive || control.destructiveFilled
+                       ? Qt.rgba(1, 1, 1, control.hovered ? 0.62 : 0.26)
                      : Theme.borderMuted
-        curveDepth: control.pill ? control.height / 2 : Theme.curveControl
+        curveDepth: control.pill ? control.height / 2
+                    : control.prominent || control.destructiveFilled || control.neutralPrimary
+                      ? Theme.curveContainer : Theme.curveControl
         elevation: control.enabled && control.elevated
                    && (control.prominent || control.positive || (!control.quiet && !control.destructive && !control.selected))
                    ? Theme.elevationControl : Theme.elevationNone

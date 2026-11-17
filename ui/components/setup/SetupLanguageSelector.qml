@@ -88,19 +88,9 @@ Item {
             Layout.preferredHeight: root.narrow ? 328 : 356
             Layout.bottomMargin: root.narrow ? Theme.space3 : Theme.space4
 
-            NeonCard {
-                anchors.centerIn: parent
-                width: Math.min(parent.width, root.narrow ? 340 : 400)
-                height: root.rowHeight - 4
-                interactive: true
-                ambientNeon: true
-                neonStrength: Theme.neonControlStrength
-                fillColor: Theme.surfaceMuted
-                borderColor: root.storyboard ? "transparent" : Theme.borderMuted
-                borderWidth: Theme.strokeStandard
-                curveDepth: Theme.curveControl
-            }
-
+            // Every language owns its own selectable NeonSurface. A separate
+            // fixed backdrop fell behind the ListView and never received its
+            // hover/focus state.
             ListView {
                 id: picker
                 objectName: "setupLanguageWheel"
@@ -147,24 +137,37 @@ Item {
                     Accessible.name: modelData.language
                     Accessible.checked: selected
 
-                    // The wheel retains its centered selected backdrop, but
-                    // every language can now respond to pointer proximity.
                     HoverHandler {
                         id: languagePointer
                         enabled: Theme.neonEnabled && !picker.moving
                         blocking: false
                     }
-                    NeonStatePlate {
+                    NeonSurface {
+                        id: languageSurface
                         anchors.fill: parent
-                        selected: false
-                        hovered: languagePointer.hovered
-                        pressed: false
-                        outlined: false
-                        neonOnHover: true
-                        neonStrength: Theme.neonControlStrength
-                        hoverFill: Theme.surfaceHover
-                        cornerRadius: Theme.curveControl
-                        opacity: languageRow.selected ? 0.42 : 0.80
+                        anchors.leftMargin: Theme.space1
+                        anchors.rightMargin: Theme.space1
+                        interactive: !picker.moving
+                        deferredNeon: !languageRow.selected
+                        ambientNeon: languageRow.selected
+                        focused: languageRow.selected && Theme.keyboardFocusVisible(picker)
+                        externalHovered: languagePointer.hovered && !picker.moving
+                        externalPointerX: languageSurface.mapFromItem(
+                            languageRow, languagePointer.point.position.x,
+                            languagePointer.point.position.y).x
+                        externalPointerY: languageSurface.mapFromItem(
+                            languageRow, languagePointer.point.position.x,
+                            languagePointer.point.position.y).y
+                        neonStrength: Theme.neonCardStrength
+                        neonColor: languageRow.selected
+                            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.72)
+                            : "transparent"
+                        fillColor: languageRow.selected ? Theme.surfaceMuted
+                                   : languagePointer.hovered ? Theme.surfaceHover : "transparent"
+                        borderWidth: languageRow.selected ? Theme.strokeStandard
+                                     : languagePointer.hovered ? Theme.strokeHairline : 0
+                        borderColor: languageRow.selected ? Theme.borderDefault : Theme.borderMuted
+                        curveDepth: Theme.curveControl
                     }
 
                     RowLayout {
