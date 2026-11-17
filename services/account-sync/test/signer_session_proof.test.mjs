@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {generateKeyPairSync,sign} from 'node:crypto';
 import {createAccountApi} from '../server.mjs';
+import {serverDeployment} from '../../deployment_config.mjs';
 
-const ORIGIN='https://caster.genyleap.com';
+// The production origin is configurable; use the same deployment authority
+// as the HTTP handler instead of hard-coding the retired Caster hostname.
+const ORIGIN=serverDeployment().publicOrigin;
 const issuer='https://openproof.genyleap.com';
 const fid='321969';
 const keys=generateKeyPairSync('ed25519');
