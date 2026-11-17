@@ -8,6 +8,24 @@ import "NeonGeometry.js" as NeonGeometry
 Item {
     id: root
 
+    // Share the adjacent scene texture with the surface; never capture the
+    // halo or one of its ancestors, and never allocate a capture per control.
+    property NeonReflectionSource reflectionSource: null
+    property rect reflectionRect: NeonGeometry.translatedRect(root,
+        reflectionSource ? reflectionSource.sourceItem : null)
+    property real reflectionStrength: Theme.neonReflectionStrength
+    property real reflectionReach: Theme.reflectionReach
+    property bool suppressed: false
+    readonly property bool reflectionSourceIsSafe: {
+        if (!reflectionSource || !reflectionSource.capturing) return false
+        let ancestor = root
+        while (ancestor) {
+            if (ancestor === reflectionSource.sourceItem) return false
+            ancestor = ancestor.parent
+        }
+        return true
+    }
+
     property bool active: false
     property bool interactive: false
     property bool hoverCapable: false
@@ -129,8 +147,21 @@ Item {
         }
     }
 
-    visible: Theme.neonEnabled && width > 0 && height > 0 && (hoverCapable || ambient || activity || responding || envelope > 0.001)
-    opacity: Theme.neonEnabled ? (Theme.neonMotionEnabled ? envelope : (responding ? 1 : 0)) : 0
+    visible: !suppressed && Theme.neonEnabled && width > 0 && height > 0 && (hoverCapable || ambient || activity || responding || envelope > 0.001)
+    opacity: !suppressed && Theme.neonEnabled
+        ? (Theme.neonMotionEnabled ? envelope : (responding ? 1 : 0)) : 0
+
+    // A ShaderEffect sampler must have a texture provider even when its
+    // source is disabled. This singleton-size PNG is not a scene capture.
+    Image {
+        id: emptyEnvironment
+        width: 1
+        height: 1
+        visible: false
+        asynchronous: false
+        cache: true
+        source: "qrc:/genycaster/effects/transparent.png"
+    }
 
     ShaderEffect {
         anchors.fill: parent
@@ -142,6 +173,17 @@ Item {
         property vector4d cornerFlags: Qt.vector4d(root.curveTopLeft ? 1 : 0,
             root.curveTopRight ? 1 : 0, root.curveBottomRight ? 1 : 0,
             root.curveBottomLeft ? 1 : 0)
+        property variant environmentSource: root.reflectionSourceIsSafe
+            ? root.reflectionSource.texture : emptyEnvironment
+        property vector2d environmentSize: Qt.vector2d(
+            root.reflectionSource ? Math.max(1, root.reflectionSource.width) : 1,
+            root.reflectionSource ? Math.max(1, root.reflectionSource.height) : 1)
+        property rect environmentRect: root.reflectionRect
+        property vector4d environmentParameters: Qt.vector4d(
+            root.reflectionSourceIsSafe
+                ? Math.max(0, Math.min(1, root.reflectionStrength)) * Theme.reflectionGain : 0,
+            Math.max(1, root.reflectionReach), root.useLight ? 1 : 0,
+            root.reflectionSource ? 2 * root.reflectionSource.effectiveBlur : 0)
         property real steadyActivity: root.visualSteady
         fragmentShader: "qrc:/genycaster/effects/neon.frag.qsb"
     }
