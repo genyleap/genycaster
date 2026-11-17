@@ -13,6 +13,8 @@ Button {
     property real minimumWidth: 72
     property bool dense: false
     property bool segmented: true
+    // Only explicit tab groups (e.g. the rich composer) paint a selected plate.
+    property bool filledTabs: false
     property bool showSelectionIndicator: true
 
     implicitHeight: 40
@@ -69,17 +71,15 @@ Button {
     }
 
     background: NeonStatePlate {
-        // Tabs are typographic navigation: selection changes ink only.
-        selected: false
-        // Unsegmented tabs (Dashboard, Explorer, Composer) are interactive
-        // too. The old segmented-only predicate left them visually inert.
+        // Typographic tabs stay clean; composer tabs opt into a filled group.
+        selected: control.filledTabs && control.selected
         hovered: control.hovered
         pressed: control.down
         focused: Theme.keyboardFocusVisible(control)
-        selectedFill: Theme.surfaceRaised
-        hoverFill: "transparent"
-        pressedFill: "transparent"
-        neonOnHover: false
+        selectedFill: Theme.primarySurface
+        hoverFill: control.filledTabs ? Theme.surfaceHover : "transparent"
+        pressedFill: control.filledTabs ? Theme.surfacePressed : "transparent"
+        neonOnHover: control.filledTabs
         cornerRadius: Theme.curveControl
 
         Superellipse {

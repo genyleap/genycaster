@@ -24,20 +24,25 @@ NeonSurface {
     borderColor: Theme.borderSubtle
     curveDepth: Theme.curveControl
     elevation: Theme.elevationNone
-    implicitHeight: 40
+    // Compact ActionButtons are at least 38px tall. The old 40px toolbar
+    // minus 6px margins clipped their outlines and cursor-hit regions.
+    implicitHeight: Theme.compactControlHeight + Theme.space4
 
     Flickable {
+        id: toolViewport
         anchors.fill: parent
-        anchors.margins: 3
-        contentWidth: row.implicitWidth
+        anchors.margins: Theme.space1
+        contentWidth: Math.max(width, row.implicitWidth)
         contentHeight: height
         flickableDirection: Flickable.HorizontalFlick
+        boundsBehavior: Flickable.StopAtBounds
         clip: true
 
         RowLayout {
             id: row
-            height: parent.height
-            spacing: 1
+            width: Math.max(implicitWidth, toolViewport.width)
+            height: toolViewport.height
+            spacing: Theme.space1
             layoutDirection: Theme.uiDirection
 
             ActionButton {

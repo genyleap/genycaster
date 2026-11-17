@@ -86,15 +86,13 @@ Button {
         externalPointerY: cardPointer.hovered ? cardPointer.point.position.y : height / 2
         neonStrength: Theme.neonCardStrength
         ambientStrength: root.primary || root.setupEmphasis
-                         ? Math.min(0.68, Theme.neonAmbientStrength * 1.55)
+                         ? Math.min(0.80, Theme.neonAmbientStrength * 1.9)
                          : Theme.neonAmbientStrength
         neonColor: root.neutralPrimary
-            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.90)
+            ? Qt.lighter(Theme.accent, 1.30)
             : root.primary
-              ? Qt.rgba(1, 1, 1, 0.72)
-            : root.selected
-              ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.60)
-            : "transparent"
+              ? Qt.lighter(Theme.primaryFill, 1.28)
+            : root.selected ? Theme.accent : "transparent"
         fillColor: root.unavailable ? Theme.setupActionUnavailableSurface
                    : root.setupEmphasis ? Theme.setupActionEmphasisSurface
                    : root.visuallyDisabled
@@ -117,7 +115,8 @@ Button {
                        ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
                                  root.hovered ? 0.70 : 0.28)
                      : root.primary || root.setupEmphasis
-                       ? Qt.rgba(1, 1, 1, root.hovered ? 0.62 : 0.26)
+                       ? Qt.rgba(Theme.primaryFill.r, Theme.primaryFill.g,
+                                 Theme.primaryFill.b, root.hovered ? 0.95 : 0.45)
                      : Theme.borderMuted
         curveDepth: Theme.curveContainer
         elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone

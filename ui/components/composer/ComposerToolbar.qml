@@ -15,6 +15,7 @@ GenyTabStrip {
     currentId: root.mode
     distribute: true
     segmented: true
+    filledTabs: true
     minimumTabWidth: 84
     onActivated: tabId => root.modeRequested(tabId)
 }

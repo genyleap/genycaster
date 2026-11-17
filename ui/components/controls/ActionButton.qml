@@ -303,20 +303,25 @@ Button {
         externalHovered: control.hovered && !control.mobileViewport
         externalPointerX: neonPointer.hovered ? neonPointer.point.position.x : width / 2
         externalPointerY: neonPointer.hovered ? neonPointer.point.position.y : height / 2
+        // Filled CTA rims must amplify their OWN hue, not turn white.
+        // Keep the same material for prominent, destructive and neutral actions.
         neonStrength: control.prominent || control.destructiveFilled
                       || control.neutralPrimary || control.positive
-                      ? Theme.neonCardStrength : Theme.neonControlStrength
+                      ? Math.min(1, Theme.neonCardStrength * 1.18)
+                      : Theme.neonControlStrength
         ambientStrength: control.prominent || control.destructiveFilled
                          || control.neutralPrimary || control.positive
-                         ? Math.min(0.68, Theme.neonAmbientStrength * 1.55)
+                         ? Math.min(0.80, Theme.neonAmbientStrength * 1.9)
                          : Theme.neonAmbientStrength
         neonColor: control.neutralPrimary
-                   ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.90)
-                   : control.prominent || control.positive || control.destructiveFilled
-                     ? Qt.rgba(1, 1, 1, 0.72)
-                   : control.selected ? Qt.rgba(Theme.accent.r, Theme.accent.g,
-                                               Theme.accent.b, 0.60)
-                   : "transparent"
+                   ? Qt.lighter(Theme.accent, 1.30)
+                   : control.destructiveFilled
+                     ? Qt.lighter(Theme.danger, 1.20)
+                   : control.positive
+                     ? Qt.lighter(Theme.success, 1.20)
+                   : control.prominent
+                     ? Qt.lighter(Theme.primaryFill, 1.28)
+                   : control.selected ? Theme.accent : "transparent"
         fillColor: {
             if (!control.enabled && !control.busy)
                 return control.quiet ? "transparent" : Theme.surfaceMuted
@@ -347,13 +352,22 @@ Button {
                      : (!control.quiet && !control.destructive
                         ? Theme.strokeStandard : 0)
         borderColor: Theme.keyboardFocusVisible(control)
-                     ? (control.prominent || control.positive || control.destructiveFilled
-                        ? Theme.focusOnAccent : Theme.focus)
+                     ? (control.destructiveFilled ? Qt.lighter(Theme.danger, 1.28)
+                        : control.positive ? Qt.lighter(Theme.success, 1.28)
+                        : control.prominent ? Qt.lighter(Theme.primaryFill, 1.28)
+                        : Theme.focus)
                      : control.neutralPrimary
                        ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
-                                 control.hovered ? 0.70 : 0.28)
-                     : control.prominent || control.positive || control.destructiveFilled
-                       ? Qt.rgba(1, 1, 1, control.hovered ? 0.62 : 0.26)
+                                 control.hovered ? 0.84 : 0.34)
+                     : control.destructiveFilled
+                       ? Qt.rgba(Theme.danger.r, Theme.danger.g, Theme.danger.b,
+                                 control.hovered ? 0.90 : 0.40)
+                     : control.positive
+                       ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b,
+                                 control.hovered ? 0.90 : 0.40)
+                     : control.prominent
+                       ? Qt.rgba(Theme.primaryFill.r, Theme.primaryFill.g,
+                                 Theme.primaryFill.b, control.hovered ? 0.95 : 0.45)
                      : Theme.borderMuted
         curveDepth: control.pill ? control.height / 2
                     : control.prominent || control.destructiveFilled || control.neutralPrimary

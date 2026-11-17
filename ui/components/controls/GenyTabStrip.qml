@@ -9,6 +9,7 @@ Item {
     property string currentId: ""
     property bool distribute: false
     property bool segmented: true
+    property bool filledTabs: false
     property real minimumTabWidth: 72
     property real spacing: Theme.space1
     property bool showSelectionIndicator: true
@@ -26,7 +27,7 @@ Item {
     }
 
     Superellipse {
-        visible: false // No background plate behind tab collections.
+        visible: root.filledTabs
         anchors.fill: parent
         fillColor: Theme.surfaceMuted
         borderWidth: 1
@@ -72,6 +73,7 @@ Item {
             height: tabList.height
             minimumWidth: root.minimumTabWidth
             segmented: root.segmented
+            filledTabs: root.filledTabs
             showSelectionIndicator: root.showSelectionIndicator
             dense: root.distribute
                    && tabList.width / Math.max(1, tabList.count) < 84
