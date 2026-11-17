@@ -16,6 +16,8 @@ GenyDrawer {
     // Opening membership details is read-only; never initiate a payment
     // quote or a secure-session challenge until the user requests checkout.
     property bool purchaseIntent: false
+    // An old verification failure must not be shown as a new quote failure.
+    property bool quoteAttempted: false
     property string displayedQuoteId: ""
     property bool showBenefits: false
     property bool manualExpanded: false
@@ -86,6 +88,7 @@ GenyDrawer {
     readonly property string amountText: String(paymentQuote.amount_geny || "")
         + " " + quoteAsset
     readonly property bool walletAvailable: proCheckout && proCheckout.walletAvailable
+    readonly property bool walletConnected: proCheckout && proCheckout.walletConnected
 
     function shortWallet(value) {
         const address = String(value || "")
@@ -108,7 +111,9 @@ GenyDrawer {
         return qsTrId("genycaster.pro.wallet_failure")
     }
     function requestCurrentQuote() {
-        if (!root.canRequestQuote || root.busy) return
+        if (!root.canRequestQuote || root.busy
+            || (root.walletAvailable && !root.walletConnected)) return
+        root.quoteAttempted = true
         root.lastRequestedAsset = root.selectedAsset
         openProofConnections.requestProPaymentQuote(root.selectedAsset)
     }
@@ -126,6 +131,7 @@ GenyDrawer {
     function prepareQuote() {
         if (!root.opened || !root.purchaseIntent || root.checkoutOpen || root.eligible
             || !root.canRequestQuote || root.busy || root.quoteForSelection
+            || (root.walletAvailable && !root.walletConnected)
             || root.lastRequestedAsset === root.selectedAsset) return
         root.requestCurrentQuote()
     }
@@ -172,9 +178,16 @@ GenyDrawer {
             return
         }
         if (!root.checkoutActive) {
+            root.purchaseIntent = true
             if (!root.quoteForSelection) {
-                root.purchaseIntent = true
-                if (!root.busy) root.requestCurrentQuote()
+                // First user gesture opens the wallet selector (native) or
+                // EIP-1193 account picker (WASM). The server quote follows
+                // connection; payment itself requires a second explicit click.
+                if (root.walletAvailable && !root.walletConnected) {
+                    proCheckout.connectWallet()
+                    return
+                }
+                root.requestCurrentQuote()
                 return
             }
             root.openQuotedCheckout()
@@ -203,6 +216,8 @@ GenyDrawer {
         if (!cloudReady) return qsTrId("genycaster.pro.restore_secure_session")
         if (!checkoutActive && plan.payment_available !== true)
             return qsTrId("genycaster.pro.payment_unavailable")
+        if (!checkoutActive && walletAvailable && !walletConnected)
+            return qsTrId("genycaster.pro.checkout_open_wallet")
         if (!checkoutActive) return qsTrId("genycaster.pro.checkout_continue")
         if (txSubmitted) return qsTrId("genycaster.pro.checkout_check_payment")
         if (!quoteValid) return qsTrId("genycaster.pro.checkout_new_quote")
@@ -251,6 +266,7 @@ GenyDrawer {
     }
     onOpened: {
         purchaseIntent = false
+        quoteAttempted = false
         checkoutOpen = false
         lastRequestedAsset = ""
         manualExpanded = false
@@ -270,12 +286,18 @@ GenyDrawer {
     }
     onClosed: {
         root.purchaseIntent = false
-        if (!root.txSubmitted && proCheckout && proCheckout.busy)
+        if (!root.txSubmitted && proCheckout
+            && (proCheckout.busy || proCheckout.walletConnected))
             Qt.callLater(() => proCheckout.cancel())
     }
     onCanRequestQuoteChanged: root.prepareQuote()
     onBusyChanged: {
-        if (!root.busy && root.purchaseIntent && !root.quoteForSelection
+        if (!root.busy && root.purchaseIntent && root.walletAvailable
+            && !root.walletConnected && proCheckout
+            && String(proCheckout.error || "").length > 0) {
+            root.purchaseIntent = false
+            root.lastRequestedAsset = ""
+        } else if (!root.busy && root.purchaseIntent && !root.quoteForSelection
             && openProofConnections
             && String(openProofConnections.proBillingError || "").length > 0) {
             // A failed request must not remain latched as an attempted asset.
@@ -303,6 +325,14 @@ GenyDrawer {
         }
         root.openQuotedCheckout()
         root.prepareQuote()
+    }
+    Connections {
+        target: proCheckout
+        function onWalletConnectedSuccessfully() {
+            // A completed account-picker response may fetch the quote, but
+            // never authorize eth_sendTransaction without a fresh button click.
+            root.prepareQuote()
+        }
     }
     // No refresh from generic account stateChanged: it includes unrelated
     // account mutations and previously caused repeated Pro status checks.
@@ -464,10 +494,25 @@ GenyDrawer {
                             objectName: "genyProQuoteRequestError"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            visible: !root.checkoutActive && openProofConnections
+                            visible: root.quoteAttempted && !root.checkoutActive
+                                && openProofConnections
                                 && String(openProofConnections.proBillingError || "").length > 0
                                 && openProofConnections.proBillingError !== "payment_pending"
-                            text: qsTrId("genycaster.pro.billing_error")
+                            text: String(openProofConnections.proBillingError || "")
+                                    === "verified_wallet_required"
+                                ? qsTrId("genycaster.pro.quote_wallet_required")
+                                : qsTrId("genycaster.pro.quote_retry_notice")
+                            color: Theme.negative
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            objectName: "genyProWalletConnectError"
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            visible: !root.checkoutActive && proCheckout
+                                && String(proCheckout.error || "").length > 0
+                            text: root.walletErrorMessage()
                             color: Theme.negative
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.WordWrap
