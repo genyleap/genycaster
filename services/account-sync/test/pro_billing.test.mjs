@@ -237,7 +237,8 @@ test('server checkout requires authenticated FID and never grants on unverified 
   const api=createAccountApi({catalogUrl:'https://id.example.test',issuer:'https://id.example.test',
     store,fetchImpl,billingPolicy:policy,readGenyRate:async()=>rate,
     checkProToken:async()=>true,
-    resolveProPaymentWallets:async()=>[],
+    // An app-verified EIP-191 payer must not depend on protocol indexers.
+    resolveProPaymentWallets:async()=>{throw new Error('indexer_offline');},
     verifyBillingTransfer:async({owner,verifyWallets})=>{
       assert.deepEqual(await verifyWallets(owner),[wallet],
         'final receipt must trust the same signed payer as the quote');
