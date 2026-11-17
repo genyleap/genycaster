@@ -28,12 +28,12 @@ TextArea {
         || textSelectionSettings.systemSelectionEnabled
 
     function resetSelection() {
-        selectionDelay.stop()
+        if (selectionDelay) selectionDelay.stop()
         if (selectionBar) selectionBar.close()
         root.deselect() // TextEdit.deselect(): selection only, never erases draft.
     }
     function dismissSelectionActions() {
-        selectionDelay.stop()
+        if (selectionDelay) selectionDelay.stop()
         if (selectionBar) selectionBar.close()
         selectionPressActive = false
         selectionGestureActive = false
@@ -111,7 +111,7 @@ TextArea {
         // authoritative; the parent's visibility and composer close lifecycle
         // prevent this window-overlay popup from leaking onto Home.
         if (!root.customCanvasSelection || !root.visible
-                || !root.selectedText.length || !selectionBar.parent) return
+                || !root.selectedText.length || !selectionBar || !selectionBar.parent) return
         const start = root.positionToRectangle(root.selectionStart)
         const end = root.positionToRectangle(root.selectionEnd)
         // Anchor to the selected range, not cursorRectangle (the latter can
@@ -165,7 +165,7 @@ TextArea {
         if (!root.customCanvasSelection) return
         root.selectionReleaseRetries = 0
         if (selectedText.length === 0) {
-            selectionDelay.stop()
+            if (selectionDelay) selectionDelay.stop()
             if (selectionBar) selectionBar.close()
         } else if (!selectionHandleDragging && root.visible) {
             // The selection signal, not onReleased, is the reliable completion
@@ -182,13 +182,13 @@ TextArea {
         }
         // Let the finger lift before presenting the toolbar: otherwise the
         // popup steals the gesture that should extend the text selection.
-        selectionDelay.stop()
+        if (selectionDelay) selectionDelay.stop()
         if (selectionBar) selectionBar.close()
     }
     onPressed: mouse => {
         root.selectionPressActive = true
         root.selectionReleaseRetries = 0
-        selectionDelay.stop()
+        if (selectionDelay) selectionDelay.stop()
         if (selectionBar) selectionBar.close()
     }
     onReleased: mouse => {
@@ -205,7 +205,7 @@ TextArea {
             // A focus change alone is not selection cancellation on Qt/WASM.
             // The selection can outlive the keyboard's temporary focus owner.
             if (root.selectedText.length === 0) {
-                selectionDelay.stop()
+                if (selectionDelay) selectionDelay.stop()
                 if (selectionBar) selectionBar.close()
             }
         }
@@ -273,7 +273,7 @@ TextArea {
                         pressDeltaX = point.x - grip.caretRect.x
                         pressDeltaY = point.y - grip.caretRect.y
                         root.selectionHandleDragging = true
-                        selectionDelay.stop()
+                        if (selectionDelay) selectionDelay.stop()
                         if (selectionBar) selectionBar.close()
                     }
                     onPositionChanged: mouse => {
