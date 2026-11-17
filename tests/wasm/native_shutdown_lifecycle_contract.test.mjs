@@ -20,17 +20,23 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
         && released > joined && returned > released,
         "the main thread must stop producers, join workers and explicitly release the scene graph");
 
+    const popupCleanup = teardown.indexOf('obj->inherits("QQuickPopup")');
+    const popupDelete = teardown.indexOf('delete popup;');
+    const overlayCleanup = teardown.indexOf('obj->inherits("QQuickOverlay")');
+    const overlayDelete = teardown.indexOf('delete overlay.data();');
     const sceneDetach = teardown.indexOf('child->setParentItem(nullptr);');
     const roots = teardown.indexOf("engine.rootObjects()");
     const destroy = teardown.indexOf("delete root;");
-    const drain = teardown.indexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
+    const drain = teardown.lastIndexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
     const collect = teardown.indexOf("engine.collectGarbage();");
-    assert.ok(sceneDetach >= 0 && roots > sceneDetach
-        && destroy > roots && drain > destroy && collect > drain,
-        "detach the entire visual scene while its native window is alive, then destroy QML and drain deletions");
-    assert.match(teardown, /!child->inherits\("QQuickOverlay"\)/);
+    assert.ok(popupCleanup >= 0 && popupDelete > popupCleanup
+        && overlayCleanup > popupDelete && overlayDelete > overlayCleanup
+        && sceneDetach > overlayDelete && roots > sceneDetach
+        && destroy > roots && collect > destroy && drain > collect,
+        "destroy Popups, then Overlay, then detach the scene before deleting QML roots");
     assert.match(teardown, /for \(QObject\* const root : engine\.rootObjects\(\)\)/);
     assert.match(teardown, /child->parentItem\(\) == content/);
+    assert.match(teardown, /QPointer<QObject>/);
     assert.doesNotMatch(teardown, /mainWindow->hide\(\)/,
         "hiding Cocoa before QQuickOverlay destruction invalidates its window association");
     assert.doesNotMatch(teardown,/mainWindow->releaseResources\(\)/,
