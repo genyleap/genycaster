@@ -461,6 +461,18 @@ GenyDrawer {
                             wrapMode: Text.WordWrap
                         }
                         DirectionAwareLabel {
+                            objectName: "genyProQuoteRequestError"
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            visible: !root.checkoutActive && openProofConnections
+                                && String(openProofConnections.proBillingError || "").length > 0
+                                && openProofConnections.proBillingError !== "payment_pending"
+                            text: qsTrId("genycaster.pro.billing_error")
+                            color: Theme.negative
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
                             Layout.fillWidth: true
                             visible: !root.eligible && !root.checkoutActive
                             text: qsTrId("genycaster.pro.manual_renewal")
@@ -1110,16 +1122,6 @@ GenyDrawer {
                             : qsTrId("genycaster.pro.secure_session_hint")
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.textSecondary
-                    wrapMode: Text.Wrap
-                }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    visible: !root.checkoutActive && openProofConnections
-                        && String(openProofConnections.proBillingError || "").length > 0
-                        && openProofConnections.proBillingError !== "payment_pending"
-                    text: qsTrId("genycaster.pro.billing_error")
-                    color: Theme.negative
-                    font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.Wrap
                 }
                 DirectionAwareLabel {
