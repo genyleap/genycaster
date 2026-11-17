@@ -14,7 +14,7 @@ test('unknown Pro price remains nonpayable and can be refreshed', () => {
     assert.match(drawer, /visible: root\.paymentOptionsReady/);
     assert.match(drawer, /if \(monthlyUsdCents <= 0\) return qsTrId\("genycaster\.pro\.refresh_price"\)/);
     assert.match(drawer, /openProofConnections\.fetchProPlan\(true\)/);
-    assert.match(drawer, /if \(!root\.canRequestQuote \|\| root\.busy\) return/);
+    assert.match(drawer, /if \(!root\.canRequestQuote \|\| root\.busy[\s\S]*?walletAvailable && !root\.walletConnected/);
     assert.match(drawer, /root\.selectedAsset = modelData/);
     assert.doesNotMatch(drawer, /pay\(\)\s*;\s*\/\/.*price_unavailable/);
 });
