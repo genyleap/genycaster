@@ -26,6 +26,9 @@ Button {
     property bool accountShowcase: false
     property bool networkShowcase: false
     property bool setupEmphasis: false
+    // Recovery protocol choices reuse this same card material, not a
+    // separate ActionButton selected-state and radius.
+    property bool protocolChoice: false
     // Disabled feature choice: muted card with a localized availability
     // badge. Keeps the status visible without implying the card is clickable.
     property bool unavailable: false
@@ -48,6 +51,7 @@ Button {
                    ? Theme.space3 : Theme.space4
 
     Accessible.name: title
+    Accessible.role: root.protocolChoice ? Accessible.RadioButton : Accessible.Button
     Accessible.description: subtitle + (root.unavailable
                             ? " · " + qsTrId("genycaster.setup.temporarily_unavailable") : "")
     Accessible.checked: root.selected
@@ -92,20 +96,24 @@ Button {
             ? Theme.ink
             : root.primary
               ? Qt.lighter(Theme.primaryFill, 1.28)
-            : root.selected ? Theme.accent : "transparent"
+            : root.selected || root.setupEmphasis ? Theme.accent : "transparent"
         fillColor: root.unavailable ? Theme.setupActionUnavailableSurface
+                   : root.visuallyDisabled ? Theme.surfaceMuted
                    : root.setupEmphasis ? Theme.setupActionEmphasisSurface
-                   : root.visuallyDisabled
-                   ? Theme.surfaceMuted
                    : root.primary
                      ? (root.neutralPrimary ? Theme.ink
                         : root.down ? Theme.primaryPressed
                                     : root.hovered ? Theme.primaryFillHover : Theme.primaryFill)
-                     : root.down ? Theme.surfacePressed
-                                 : root.hovered ? Theme.surfaceHover : Theme.surface
+                   : root.protocolChoice && root.selected
+                     ? (root.down ? Theme.primarySurfaceHover : Theme.primarySurface)
+                   : root.down ? Theme.surfacePressed
+                               : root.hovered ? Theme.surfaceHover : Theme.surface
+        // One Superellipse geometry and one hairline perimeter for recovery
+        // and protocol cards; keyboard focus remains separately visible.
         borderWidth: Theme.keyboardFocusVisible(root) ? 2
                      : root.neutralPrimary ? (root.hovered ? Theme.strokeHairline : 0)
-                     : root.setupEmphasis ? Theme.strokeHairline
+                     : (root.protocolChoice || root.setupEmphasis || root.networkShowcase)
+                       ? Theme.strokeHairline
                      : root.selected ? 2
                      : root.primary && !root.visuallyDisabled
                        ? Theme.strokeHairline : Theme.strokeStandard
@@ -115,12 +123,19 @@ Button {
                      : root.neutralPrimary
                        ? Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b,
                                  root.hovered ? 0.32 : 0.0)
+                     : (root.protocolChoice || root.networkShowcase || root.setupEmphasis)
+                       && (root.selected || root.setupEmphasis)
+                       ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                                 root.hovered ? 0.83 : 0.52)
+                     : root.protocolChoice || root.networkShowcase
+                       ? (root.hovered ? Theme.borderDefault : Theme.borderMuted)
                      : root.selected ? Theme.accent
-                     : root.primary || root.setupEmphasis
+                     : root.primary
                        ? Qt.rgba(Theme.primaryFill.r, Theme.primaryFill.g,
                                  Theme.primaryFill.b, root.hovered ? 0.95 : 0.45)
                      : Theme.borderMuted
         curveDepth: Theme.curveContainer
+        highQualityEdges: true
         elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone
 
 
@@ -147,7 +162,9 @@ Button {
         Icon {
             visible: !root.busy && root.iconGlyph.length > 0 && root.brandImageSource.toString().length === 0
             text: root.iconGlyph
-            color: !root.visuallyDisabled && !root.primary ? Theme.inkMuted : root.foreground
+            color: root.protocolChoice && root.selected ? Theme.accent
+                   : !root.visuallyDisabled && !root.primary
+                     ? Theme.inkMuted : root.foreground
             preferredSize: Theme.iconSize
         }
 

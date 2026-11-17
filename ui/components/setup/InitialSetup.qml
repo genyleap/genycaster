@@ -1498,6 +1498,7 @@ Item {
                         Layout.fillWidth: true
                         onboardingStyle: true
                         networkShowcase: true
+                        protocolChoice: true
                         title: qsTrId("genycaster.settings.hypersnap_label")
                         subtitle: qsTrId("genycaster.setup.registration_hypersnap_description")
                         iconGlyph: "quilibrium/hypersnap"
@@ -1519,6 +1520,7 @@ Item {
                         Layout.fillWidth: true
                         onboardingStyle: true
                         networkShowcase: true
+                        protocolChoice: true
                         title: qsTrId("genycaster.setup.registration_neynar_label")
                         subtitle: qsTrId("genycaster.setup.registration_neynar_description")
                         iconGlyph: "brands/farcaster"
@@ -2331,22 +2333,30 @@ Item {
                     rowSpacing: Theme.space2
                     columnSpacing: Theme.space2
                     layoutDirection: Theme.uiDirection
-                    ActionButton {
+                    SetupActionCard {
                         objectName: "setupRecoverHyperSnap"
                         Layout.fillWidth: true
-                        compact: true
+                        compactCard: true
+                        onboardingStyle: true
+                        protocolChoice: true
+                        showChevron: false
+                        showSelectionMark: false
                         selected: root.recoveryProtocol === "hypersnap-v2"
                         iconGlyph: "quilibrium/hypersnap"
-                        text: qsTrId("genycaster.settings.hypersnap_label")
+                        title: qsTrId("genycaster.settings.hypersnap_label")
                         onClicked: root.recoveryProtocol = "hypersnap-v2"
                     }
-                    ActionButton {
+                    SetupActionCard {
                         objectName: "setupRecoverFarcaster"
                         Layout.fillWidth: true
-                        compact: true
+                        compactCard: true
+                        onboardingStyle: true
+                        protocolChoice: true
+                        showChevron: false
+                        showSelectionMark: false
                         selected: root.recoveryProtocol === "farcaster-snapchain"
                         iconGlyph: "brands/farcaster"
-                        text: qsTrId("genycaster.settings.farcaster_label")
+                        title: qsTrId("genycaster.settings.farcaster_label")
                         onClicked: root.recoveryProtocol = "farcaster-snapchain"
                     }
                 }

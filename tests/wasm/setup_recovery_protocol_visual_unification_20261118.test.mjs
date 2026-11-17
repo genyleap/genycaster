@@ -1,0 +1,59 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const read = p => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+const extract = (source, marker, next) => {
+  const from = source.indexOf(marker);
+  assert.ok(from !== -1, marker);
+  const to = next ? source.indexOf(next, from + marker.length) : -1;
+  return source.slice(from, to < 0 ? undefined : to);
+};
+
+test('Recovery CTA and both recovery provider choices use one card family', () => {
+  const setup = read('ui/components/setup/InitialSetup.qml');
+  const recover = extract(setup, 'id: signInStage', 'id: verifyingStage');
+  const cta = extract(recover, 'setupEmphasis: true', 'ColumnLayout {\n                visible: root.showRecovery');
+  assert.match(cta, /compactCard: true|setupEmphasis: true/);
+  assert.match(cta, /iconGlyph: "system\/lock"/);
+  for (const [name, value] of [
+    ['setupRecoverHyperSnap', 'hypersnap-v2'],
+    ['setupRecoverFarcaster', 'farcaster-snapchain'],
+  ]) {
+    const choice = extract(recover, 'objectName: "' + name + '"', 'onClicked: root.recoveryProtocol =');
+    assert.match(choice, /compactCard: true/);
+    assert.match(choice, /onboardingStyle: true/);
+    assert.match(choice, /protocolChoice: true/);
+    assert.match(choice, /showChevron: false/);
+    assert.match(choice, /showSelectionMark: false/);
+    assert.ok(choice.includes('root.recoveryProtocol === "' + value + '"'));
+  }
+  assert.match(recover, /SetupActionCard \{\s*objectName: "setupRecoverHyperSnap"/);
+  assert.match(recover, /SetupActionCard \{\s*objectName: "setupRecoverFarcaster"/);
+  assert.doesNotMatch(recover, /ActionButton \{\s*objectName: "setupRecover(?:HyperSnap|Farcaster)"/);
+});
+
+test('Provider registration cards share the same protocol selection material', () => {
+  const setup = read('ui/components/setup/InitialSetup.qml');
+  for(const name of ['setupRegisterHyperSnap', 'setupRegisterNeynar']) {
+    const card = extract(setup, 'objectName: "' + name + '"', 'onClicked:');
+    assert.match(card, /networkShowcase: true/);
+    assert.match(card, /protocolChoice: true/);
+  }
+});
+
+test('SetupActionCard single material owns geometry, strokes, fill and focus', () => {
+  const card = read('ui/components/setup/SetupActionCard.qml');
+  assert.match(card, /property bool protocolChoice: false/);
+  assert.match(card, /background: NeonCard \{/);
+  assert.match(card, /root.protocolChoice && root.selected\s*\?\s*\(root.down \? Theme.primarySurfaceHover : Theme.primarySurface\)/);
+  assert.match(card, /root.protocolChoice \|\| root.setupEmphasis \|\| root.networkShowcase/);
+  assert.match(card, /Theme.strokeHairline/);
+  assert.match(card, /root.selected \|\| root.setupEmphasis \? Theme.accent/);
+  assert.match(card, /curveDepth: Theme.curveContainer/);
+  assert.match(card, /highQualityEdges: true/);
+  assert.match(card, /Accessible.role: root.protocolChoice \? Accessible.RadioButton : Accessible.Button/);
+  assert.match(card, /focused: Theme.keyboardFocusVisible\(root\)/);
+  assert.match(card, /externalHovered: root.hovered/);
+  assert.match(card, /neonColor: root.neutralPrimary[\s\S]*?root.selected \|\| root.setupEmphasis \? Theme.accent/);
+});
