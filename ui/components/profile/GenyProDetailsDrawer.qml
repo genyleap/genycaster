@@ -57,6 +57,15 @@ GenyDrawer {
         && (openProofConnections.cloudSessionBusy
             || openProofConnections.accountProofBusy)
     readonly property int monthlyUsdCents: Number(plan.price_usd_cents || 0)
+    // A successful, server-validated public plan is the only pricing source.
+    // Missing pricing must not make a payment method look actionable.
+    readonly property bool priceKnown: monthlyUsdCents > 0
+    readonly property bool priceLoading: !priceKnown && openProofConnections
+        && openProofConnections.proPlanBusy
+    readonly property bool priceUnavailable: !priceKnown && !priceLoading
+    readonly property bool paymentOptionsReady: priceKnown
+        && plan.payment_available === true && cloudReady && membershipVerified
+        && !eligible
     readonly property string monthlyUsd: monthlyUsdCents > 0
         ? (monthlyUsdCents / 100).toFixed(2) : "—"
     readonly property bool quotePresent: Boolean(paymentQuote.id)
@@ -387,7 +396,7 @@ GenyDrawer {
                     objectName: "genyProNeutralEligibilitySummary"
                     visible: root.membershipVerified
                     Layout.fillWidth: true
-                    implicitHeight: priceColumn.implicitHeight + Theme.space4 * 2
+                    implicitHeight: priceColumn.implicitHeight + Theme.space3 * 2
                     fillColor: Theme.surfaceRaised
                     borderColor: Theme.borderSubtle
                     borderWidth: Theme.strokeHairline
@@ -397,20 +406,27 @@ GenyDrawer {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: Theme.space4
-                        spacing: Theme.space2
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space1
                         DirectionAwareLabel {
+                            objectName: "genyProCompactPriceHeadline"
                             Layout.fillWidth: true
+                            Layout.minimumWidth: 0
                             text: root.eligible ? qsTrId("genycaster.pro.status_verified")
-                                : root.monthlyUsdCents > 0
-                                ? qsTrId("genycaster.pro.monthly_price").arg(root.monthlyUsd)
-                                : openProofConnections && openProofConnections.proPlanBusy
-                                  ? qsTrId("genycaster.pro.price_loading")
-                                  : qsTrId("genycaster.pro.price_unavailable")
-                            font.pixelSize: root.checkoutActive ? Theme.typeTitle3Size
-                                                                 : Theme.typeTitle1Size
-                            font.weight: Theme.weightBold
+                                : root.priceKnown
+                                  ? qsTrId("genycaster.pro.monthly_price").arg(root.monthlyUsd)
+                                  : root.priceLoading
+                                    ? qsTrId("genycaster.pro.price_loading")
+                                    : qsTrId("genycaster.pro.price_unavailable")
+                            // Avoid the old unbounded Title1 headline clipping
+                            // at narrow drawer widths and in long translations.
+                            font.pixelSize: root.priceKnown && !root.checkoutActive
+                                ? Theme.typeTitle3Size : Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
                             color: Theme.textPrimary
+                            wrapMode: Text.WordWrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
@@ -621,7 +637,7 @@ GenyDrawer {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.pro.checkout_choose_currency")
-                        color: Theme.textPrimary
+                        color: root.paymentOptionsReady ? Theme.textPrimary : Theme.textSecondary
                         font.pixelSize: Theme.typeLabelSize
                         font.weight: Theme.weightDemiBold
                     }
@@ -636,17 +652,23 @@ GenyDrawer {
                                 required property string modelData
                                 readonly property bool chosen: root.selectedAsset === modelData
                                 Layout.fillWidth: true
-                                implicitHeight: Theme.scaleUi(50)
-                                focusPolicy: Qt.StrongFocus
-                                hoverEnabled: !root.compact
+                                implicitHeight: Theme.scaleUi(44)
+                                enabled: root.paymentOptionsReady
+                                opacity: enabled ? 1.0 : 0.52
+                                focusPolicy: enabled ? Qt.StrongFocus : Qt.NoFocus
+                                hoverEnabled: enabled && !root.compact
                                 Accessible.name: modelData
-                                Accessible.description: chosen ? qsTrId("genycaster.pro.checkout_selected") : ""
+                                Accessible.description: chosen && enabled
+                                    ? qsTrId("genycaster.pro.checkout_selected") : ""
                                 onClicked: root.selectedAsset = modelData
                                 background: Superellipse {
                                     curveDepth: Theme.curveControl
-                                    fillColor: chosen ? Theme.surfaceMuted : Theme.surfaceRaised
-                                    borderColor: chosen ? Theme.accent : Theme.borderSubtle
-                                    borderWidth: chosen ? Theme.strokeEmphasis : Theme.strokeHairline
+                                    fillColor: chosen && root.paymentOptionsReady
+                                        ? Theme.surfaceMuted : Theme.surfaceRaised
+                                    borderColor: chosen && root.paymentOptionsReady
+                                        ? Theme.accent : Theme.borderSubtle
+                                    borderWidth: chosen && root.paymentOptionsReady
+                                        ? Theme.strokeEmphasis : Theme.strokeHairline
                                 }
                                 contentItem: RowLayout {
                                     layoutDirection: Theme.uiDirection
@@ -669,6 +691,7 @@ GenyDrawer {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        visible: root.paymentOptionsReady
                         text: root.selectedAsset === "USDC"
                               ? qsTrId("genycaster.pro.checkout_usdc_hint")
                               : qsTrId("genycaster.pro.checkout_geny_hint")
