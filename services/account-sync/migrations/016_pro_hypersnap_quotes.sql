@@ -14,14 +14,22 @@ ALTER TABLE pro_quotes
 
 ALTER TABLE pro_quotes
   ADD CONSTRAINT pro_quotes_subject_check CHECK (
-    subject ~ '^farcaster:[1-9][0-9]{0,18}$'
-    OR CASE
-      WHEN issuer = 'hypersnap:native-registry'
-        AND subject ~ '^hypersnap:[1-9][0-9]{9,15}$'
-      THEN split_part(subject, ':', 2)::numeric
-        BETWEEN 4294967296 AND 9007199254740991
-      ELSE false
-    END
+    CASE WHEN issuer = 'hypersnap:native-registry' THEN
+      CASE WHEN subject ~ '^hypersnap:[1-9][0-9]{9,15}
+
+INSERT INTO schema_migrations(version) VALUES(16)
+  ON CONFLICT DO NOTHING;
+COMMIT;
+ THEN
+        split_part(subject, ':', 2)::numeric
+          BETWEEN 4294967296 AND 9007199254740991
+      ELSE false END
+    ELSE subject ~ '^farcaster:[1-9][0-9]{0,18}
+
+INSERT INTO schema_migrations(version) VALUES(16)
+  ON CONFLICT DO NOTHING;
+COMMIT;
+ END
   );
 
 INSERT INTO schema_migrations(version) VALUES(16)
