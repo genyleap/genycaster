@@ -695,17 +695,25 @@ Item {
     // bridge property directly into the lazily-instantiated route produced a QML
     // binding cycle during notificationsChanged delivery on Qt 6.11.
     property bool notificationBusySnapshot: false
-    readonly property bool localeSettingsOpen: localePopupLoader.item !== null && localePopupLoader.item.opened
-    readonly property bool dataStorageSettingsOpen: dataStoragePopupLoader.item !== null && dataStoragePopupLoader.item.opened
+    readonly property bool localeSettingsOpen: !!localePopupLoader && !!localePopupLoader.item
+                                              && localePopupLoader.item.opened
+    readonly property bool dataStorageSettingsOpen: !!dataStoragePopupLoader && !!dataStoragePopupLoader.item
+                                                   && dataStoragePopupLoader.item.opened
     property bool setupReviewOpen: false
     readonly property bool initialSetupOpen: !!initialSetup && initialSetup.visible
     readonly property bool overlayOpen: root.initialSetupOpen || root.localeSettingsOpen || root.dataStorageSettingsOpen
-                                        || composerDrawer.opened || accountPopup.opened
-                                        || renderingSettingsPopup.opened || taskManagerPopup.opened || feedbackDialog.opened
-                                        || miniAppHost.walletBrowserPickerActive
-                                        || proWalletHost.walletBrowserPickerActive
-                                             || searchPalette.opened || mobileCreateMenu.opened || contextDrawer.opened
-                                             || mediaGallery.opened || signOutConfirm.opened
+                                         || (composerDrawer && composerDrawer.opened)
+                                         || (accountPopup && accountPopup.opened)
+                                         || (renderingSettingsPopup && renderingSettingsPopup.opened)
+                                         || (taskManagerPopup && taskManagerPopup.opened)
+                                         || (feedbackDialog && feedbackDialog.opened)
+                                         || (miniAppHost && miniAppHost.walletBrowserPickerActive)
+                                         || (proWalletHost && proWalletHost.walletBrowserPickerActive)
+                                         || (searchPalette && searchPalette.opened)
+                                         || (mobileCreateMenu && mobileCreateMenu.opened)
+                                         || (contextDrawer && contextDrawer.opened)
+                                         || (mediaGallery && mediaGallery.opened)
+                                         || (signOutConfirm && signOutConfirm.opened)
 
     Timer {
         id: notificationBadgePoll
