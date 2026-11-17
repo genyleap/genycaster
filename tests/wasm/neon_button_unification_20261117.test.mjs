@@ -47,3 +47,17 @@ test('other onboarding choices share a single NeonCard body with contrast-aware 
     assert.match(choice, /root\.selected \? 2/);
     assert.match(choice, /neonStrength: Theme\.neonCardStrength/);
 });
+
+
+test('white Setup CTA rims are neutral in idle, hover and keyboard focus', () => {
+    const action = read('ui/components/controls/ActionButton.qml');
+    const choice = read('ui/components/setup/SetupActionCard.qml');
+    const setup = read('ui/components/setup/SetupPrimaryButton.qml');
+    assert.match(setup, /^ActionButton \{/m);
+    for (const source of [action, choice]) {
+        assert.match(source, /neonColor: (?:control|root)\.neutralPrimary\s*\?\s*Theme\.inkMuted/);
+        assert.doesNotMatch(source, /(?:control|root)\.neutralPrimary\s*\?\s*Qt\.lighter\(Theme\.accent/);
+        assert.match(source, /(?:control|root)\.neutralPrimary\s*\?\s*Qt\.rgba\(Theme\.inkMuted\.r, Theme\.inkMuted\.g, Theme\.inkMuted\.b/);
+        assert.match(source, /Theme\.keyboardFocusVisible\((?:control|root)\)[\s\S]*?(?:control|root)\.neutralPrimary\s*\?\s*Theme\.inkMuted/);
+    }
+});

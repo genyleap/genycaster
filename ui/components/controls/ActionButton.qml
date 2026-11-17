@@ -294,8 +294,8 @@ Button {
         ambientNeon: control.prominent || control.selected || control.positive
                      || control.destructiveFilled || control.neutralPrimary
         neonBusy: control.busy
-        // Bright fills need a light glint regardless of the page palette;
-        // an ink-filled neutral CTA uses an accent-tinted dark-edge glint.
+        // White/neutral CTA edges must stay achromatic. Accent-filled
+        // controls keep their own saturated rim; neither leaks into neutral.
         inverted: control.neutralPrimary ? Theme.dark
                   : (control.prominent || control.positive || control.destructiveFilled)
                     ? !Theme.dark : false
@@ -314,7 +314,7 @@ Button {
                          ? Math.min(0.80, Theme.neonAmbientStrength * 1.9)
                          : Theme.neonAmbientStrength
         neonColor: control.neutralPrimary
-                   ? Qt.lighter(Theme.accent, 1.30)
+                   ? Theme.inkMuted
                    : control.destructiveFilled
                      ? Qt.lighter(Theme.danger, 1.20)
                    : control.positive
@@ -352,13 +352,14 @@ Button {
                      : (!control.quiet && !control.destructive
                         ? Theme.strokeStandard : 0)
         borderColor: Theme.keyboardFocusVisible(control)
-                     ? (control.destructiveFilled ? Qt.lighter(Theme.danger, 1.28)
+                     ? (control.neutralPrimary ? Theme.inkMuted
+                        : control.destructiveFilled ? Qt.lighter(Theme.danger, 1.28)
                         : control.positive ? Qt.lighter(Theme.success, 1.28)
                         : control.prominent ? Qt.lighter(Theme.primaryFill, 1.28)
                         : Theme.focus)
                      : control.neutralPrimary
-                       ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
-                                 control.hovered ? 0.84 : 0.34)
+                       ? Qt.rgba(Theme.inkMuted.r, Theme.inkMuted.g, Theme.inkMuted.b,
+                                 control.hovered ? 0.68 : 0.42)
                      : control.destructiveFilled
                        ? Qt.rgba(Theme.danger.r, Theme.danger.g, Theme.danger.b,
                                  control.hovered ? 0.90 : 0.40)
