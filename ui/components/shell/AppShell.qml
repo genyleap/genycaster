@@ -10,9 +10,13 @@ Item {
 
     property var pendingBuzz: ({})
     property string lastDisplayedBuzzId: ""
+    property double buzzPendingSendFid: 0
+    property string buzzFeedbackCode: ""
     function showNextBuzz() {
         if (!root.visible || initialSetup.visible || genyBuzzToast.opened
-            || !openProofConnections || !openProofConnections.cloudAuthorizationReady)
+            || !openProofConnections || !openProofConnections.cloudAuthorizationReady
+            || !openProofConnections.genyBuzzPreferencesReady
+            || openProofConnections.genyBuzzPreferences.enabled !== true)
             return
         const rows = openProofConnections.genyBuzzInbox || []
         for (const event of rows) {
@@ -2213,18 +2217,16 @@ Item {
                                                     ? openProofConnections.genyBuzzPreferences.enabled === true : false
                                                 buzzBusy: openProofConnections
                                                     ? openProofConnections.genyBuzzBusy : false
-                                                buzzError: openProofConnections
-                                                    ? String(openProofConnections.genyBuzzError || "") : ""
-                                                buzzLastSentFid: openProofConnections
-                                                    ? Number(openProofConnections.genyBuzzLastSentFid || 0) : 0
                                                 onBuzzEnabledRequested: enabled => {
                                                     if (openProofConnections)
                                                         openProofConnections.setGenyBuzzEnabled(enabled)
                                                 }
                                                 onBuzzRequested: (fid,kind) => {
-                                                    if (openProofConnections)
-                                                        openProofConnections.sendGenyBuzz(
-                                                            Math.floor(fid),kind,"profile")
+                                                    if (!openProofConnections) return
+                                                    root.buzzPendingSendFid = Math.floor(fid)
+                                                    root.buzzFeedbackCode = ""
+                                                    openProofConnections.sendGenyBuzz(
+                                                        Math.floor(fid),kind,"profile")
                                                 }
                                                 onMuteRequested: (fid,muted) => {
                                                     if (openProofConnections)
@@ -3521,15 +3523,81 @@ Item {
     Connections {
         target: openProofConnections
         function onGenyBuzzChanged() {
-            if (!openProofConnections || !openProofConnections.cloudAuthorizationReady
-                || (openProofConnections.genyBuzzPreferencesReady
-                    && openProofConnections.genyBuzzPreferences.enabled !== true)) {
+            if (!openProofConnections || !openProofConnections.cloudAuthorizationReady) {
+                genyBuzzToast.close()
+                genyBuzzFeedbackToast.close()
+                root.pendingBuzz = ({})
+                root.lastDisplayedBuzzId = ""
+                root.buzzPendingSendFid = 0
+                return
+            }
+            if (openProofConnections.genyBuzzPreferencesReady
+                && openProofConnections.genyBuzzPreferences.enabled !== true) {
                 genyBuzzToast.close()
                 root.pendingBuzz = ({})
                 root.lastDisplayedBuzzId = ""
-                return
+            }
+            // Only a reply to an actual Send Buzz gesture can display this
+            // feedback. Other account/polling changes must never do so.
+            if (root.buzzPendingSendFid > 0
+                && !openProofConnections.genyBuzzBusy) {
+                const code = String(openProofConnections.genyBuzzError || "")
+                const delivered = Number(openProofConnections.genyBuzzLastSentFid || 0)
+                    === root.buzzPendingSendFid
+                if (code.length > 0 || delivered) {
+                    root.buzzPendingSendFid = 0
+                    root.buzzFeedbackCode = delivered ? "sent" : code
+                    genyBuzzFeedbackToast.open()
+                }
             }
             root.showNextBuzz()
+        }
+    }
+    Popup {
+        id: genyBuzzFeedbackToast
+        objectName: "genyBuzzSendFeedback"
+        parent: Overlay.overlay
+        z: 15001
+        modal: false
+        focus: false
+        padding: Theme.space3
+        width: parent ? Math.min(360, parent.width-Theme.space3*2) : 330
+        x: parent ? (Theme.rtl ? Theme.space3
+            : Math.max(Theme.space3,parent.width-width-Theme.space3)) : 0
+        y: Theme.space3
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: PopupSurface { curveDepth: Theme.curveContainer }
+        Timer {
+            interval: 4600
+            repeat: false
+            running: genyBuzzFeedbackToast.opened
+            onTriggered: genyBuzzFeedbackToast.close()
+        }
+        contentItem: RowLayout {
+            spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
+            Icon {
+                text: root.buzzFeedbackCode === "sent"
+                    ? Theme.iconSpark : Theme.iconWarning
+                color: root.buzzFeedbackCode === "sent"
+                    ? Theme.positive : Theme.negative
+                preferredSize: Theme.iconSize
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: root.buzzFeedbackCode === "sent"
+                    ? qsTrId("genycaster.buzz.sent")
+                    : root.buzzFeedbackCode === "buzz_rate_limited"
+                      ? qsTrId("genycaster.buzz.slow_down")
+                      : root.buzzFeedbackCode === "buzz_not_available"
+                        ? qsTrId("genycaster.buzz.not_available")
+                        : root.buzzFeedbackCode === "buzz_unavailable"
+                          ? qsTrId("genycaster.buzz.service_unavailable")
+                          : qsTrId("genycaster.buzz.error")
+                color: Theme.textPrimary
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+            }
         }
     }
     Popup {
