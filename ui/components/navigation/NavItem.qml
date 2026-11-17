@@ -7,6 +7,7 @@ Button {
     id: control
 
     property bool selected: false
+    property NeonReflectionSource reflectionSource: null
     property string iconGlyph: ""
     property string badgeText: ""
     property bool badgeDot: false
@@ -139,6 +140,8 @@ Button {
             strength: control.sharedPointerActive
                       ? Theme.neonControlStrength * control.sharedStrength
                       : Theme.neonControlStrength
+            reflectionSource: control.reflectionSource
+            reflectionStrength: Theme.neonReflectionStrength
             reach: 145
             cornerRadius: Theme.curveControl
             borderInset: 0
