@@ -76,6 +76,31 @@ test('price oracle accepts exact canonical token key and fails closed on bad rat
   const broken=createProRateReader({fetchImpl:async()=>new Response('{"data":{"attributes":{"token_prices":{}}}}')});
   await assert.rejects(broken(),/invalid_decimal/);
 });
+test('rate reader recovers from one transient 503 without trusting a stale rate',async()=>{
+  let calls=0;
+  const reader=createProRateReader({fetchImpl:async()=>{
+    calls++;
+    if(calls===1)return new Response('unavailable',{status:503});
+    return Response.json({data:{attributes:{token_prices:{[token]:'0.00059'}}}});
+  }});
+  const rate=await reader();
+  assert.equal(rate.priceUsd,'0.00059');
+  assert.equal(calls,2,'a transient 503 permits exactly one retry');
+  let throttledCalls=0;
+  const throttled=createProRateReader({fetchImpl:async()=>{
+    throttledCalls++;
+    return new Response('rate limit',{status:429});
+  }});
+  await assert.rejects(throttled(),/billing_upstream_unavailable/);
+  assert.equal(throttledCalls,1,'never retry HTTP 429');
+  let badCalls=0;
+  const invalid=createProRateReader({fetchImpl:async()=>{
+    badCalls++;
+    return Response.json({data:{attributes:{token_prices:{[token]:'0'}}}});
+  }});
+  await assert.rejects(invalid(),/invalid_pro_rate/);
+  assert.equal(badCalls,1,'never retry an invalid price');
+});
 test('Base token contract, chain ID and decimals are checked before every new pricing window',async()=>{
   let clock=0;let calls=0;
   const fetchImpl=async(url,request)=>{
