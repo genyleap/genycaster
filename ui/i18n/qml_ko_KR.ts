@@ -7649,8 +7649,12 @@ Company | https://company.com</source>
             <translation>Pro 가격 불러오는 중…</translation>
         </message>
         <message id="genycaster.pro.price_unavailable">
-            <source>Current Pro price is unavailable. Please retry.</source>
-            <translation>현재 Pro 가격을 불러올 수 없습니다. 다시 시도하세요.</translation>
+            <source>Pro price unavailable</source>
+            <translation>Pro 가격을 확인할 수 없습니다</translation>
+        </message>
+        <message id="genycaster.pro.price_retry_hint">
+            <source>Live pricing could not be loaded. Try again in a moment.</source>
+            <translation>현재 가격을 불러오지 못했습니다. 잠시 후 다시 시도하세요.</translation>
         </message>
         <message id="genycaster.pro.connect_to_pay">
             <source>Connect account</source>
