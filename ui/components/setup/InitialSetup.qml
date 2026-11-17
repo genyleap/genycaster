@@ -1119,7 +1119,9 @@ Item {
                ? desktopBrandPane.width + (parent.width - desktopBrandPane.width - width) / 2
                : (parent.width - width) / 2
             text: root.actionText()
-            neutralPrimary: true
+            // The primary stage action uses the same brand-filled surface as
+            // the other prominent CTAs, rather than a flat white slab.
+            neutralPrimary: false
             enabled: !root.stageTransitioning && root.actionEnabled()
             showArrow: root.currentStep === 0
             onClicked: root.nextStep()
