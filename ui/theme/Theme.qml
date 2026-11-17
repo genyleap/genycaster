@@ -39,6 +39,30 @@ QtObject {
     }
     readonly property bool neonEnabled: neonPreferences.enabled
     readonly property bool neonMotionEnabled: neonEnabled && !reduceMotion && !powerSave
+    // Content-derived reflections: no fixed accent is substituted for sampled
+    // artwork. Capture is disabled when energy-saving/transparency preferences
+    // require an inexpensive, opaque surface.
+    property Settings reflectionPreferences: Settings {
+        category: "ChromaticReflections"
+        property bool enabled: true
+        property bool reduceTransparency: false
+        property real intensity: 1.0
+    }
+    readonly property bool reflectionsEnabled: neonEnabled && reflectionPreferences.enabled
+    readonly property bool reduceTransparency: reflectionPreferences.reduceTransparency
+    readonly property real reflectionGain: reflectionsEnabled && !reduceTransparency
+        && !powerSave ? Math.max(0, Math.min(1, reflectionPreferences.intensity)) : 0
+    readonly property real reflectionIntensity: Math.max(0, Math.min(1, reflectionPreferences.intensity))
+    readonly property real reflectionStrength: dark ? 0.22 : 0.16
+    readonly property real neonReflectionStrength: 1.0
+    readonly property real reflectionReach: 185
+    readonly property real reflectionBlurRadius: 48
+    function setReflectionsEnabled(enabled) { reflectionPreferences.enabled = Boolean(enabled) }
+    function setReduceTransparency(enabled) { reflectionPreferences.reduceTransparency = Boolean(enabled) }
+    function setReflectionIntensity(intensity) {
+        if (!Number.isFinite(Number(intensity))) return
+        reflectionPreferences.intensity = Math.max(0, Math.min(1, Number(intensity)))
+    }
     // Kit v0.4.5 material semantics, backed by GenyCaster's active theme.
     // A neutral ambient rim is intentionally quieter than an active glint.
     readonly property real neonControlStrength: dark ? 0.52 : 0.38
