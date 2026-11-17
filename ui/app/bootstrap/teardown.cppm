@@ -3,7 +3,7 @@
  * @brief       Native QML shutdown sequencing.
  *
  * @details
- * After producers stop and bootstrap joins, destroys QQuickPopup objects, releases QQuickOverlay before its host window, detaches visual roots, then destroys QML roots.
+ * After producers stop and bootstrap joins, releases QML-owned scene items while their window lives, then remaining Popups and overlays, followed by the QML window roots.
  *
  * @author      Kambiz Asadzadeh
  * @since       07 Nov 2026
@@ -21,10 +21,10 @@ export namespace genycaster::ui::bootstrap {
      * @brief Destroy all loaded QML roots while a GUI dispatcher still exists.
      *
      * Invoke only after stopping producers and joining runtime bootstrap.
-     * Deletes QQuickPopup objects before the associated QQuickOverlay, while
-     * both the overlay and QQuickWindow are alive. Then detaches remaining
-     * visual items, destroys QObject-owned QML roots, and drains deferred
-     * cleanup. Does not hide the native window early or restart the event loop.
+     * Deletes QML visual owners before standalone Popups and their associated
+     * QQuickOverlay, keeping the QQuickWindow alive throughout. This avoids
+     * dangling QML popup bindings and forbids manual setParentItem() teardown.
+     * Finally destroys QObject-owned roots and drains deferred cleanup.
      *
      * @param engine Engine whose root objects are to be released.
      * @param mainWindow Deprecated window hint; kept for ABI/source compatibility.
