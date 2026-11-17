@@ -77,3 +77,35 @@ test("NixOS flake remains at the repository root and CI scripts stay separate", 
     assert.match(readme, /root \x60flake\.nix\x60 is the NixOS package entrypoint/);
     assert.match(readme, /The \x60ci\/\x60 directory holds source validation/);
 });
+
+test("popup-host QML bindings stay null-safe during native scene destruction", () => {
+    const adaptive = read("ui/components/controls/GenyAdaptiveDialog.qml");
+    const tasks = read("ui/components/apps/TaskManagerPopup.qml");
+    const shell = read("ui/components/shell/AppShell.qml");
+    const composer = read("ui/components/composer/ComposerDrawer.qml");
+    const video = read("ui/components/media/GenyVideoPlayer.qml");
+    const profile = read("ui/components/profile/ProfileSurface.qml");
+    const multi = read("ui/components/controls/GenyMultiSelect.qml");
+    const combo = read("ui/components/controls/GenyComboBox.qml");
+    const filter = read("ui/components/controls/FilterDropdown.qml");
+    const stats = read("ui/components/home/StatsPanel.qml");
+    const edit = read("ui/components/controls/BidiTextArea.qml");
+
+    for (const qml of [adaptive, tasks])
+        assert.match(qml, /\(desktopDialog && desktopDialog\.opened\)/);
+    assert.match(shell, /\(composerDrawer && composerDrawer\.opened\)/);
+    assert.match(shell, /widgetsOpen: !!contextDrawer && contextDrawer\.visible/);
+    assert.match(shell, /accountScroll \? accountScroll\.availableWidth : 0/);
+    assert.match(shell, /nativeRecoveryScroll \? nativeRecoveryScroll\.availableWidth : 0/);
+    assert.match(composer, /topicFilterNeedle: topicSearch/);
+    assert.doesNotMatch(composer, /topicSearch\.text\.trim\(\)/);
+    assert.match(video, /\(qualityPopup && qualityPopup\.opened\)/);
+    assert.match(video, /fullscreenHost \? fullscreenHost\.top : null/);
+    assert.match(profile, /!profileStatusEditor \|\| profileStatusEditor\.selectedMood/);
+    assert.match(multi, /readonly property bool pickerVisible: !!picker && picker\.visible/);
+    for (const qml of [combo, filter])
+        assert.match(qml, /readonly property bool popupVisible: !!control\.popup && control\.popup\.visible/);
+    assert.match(stats, /width: periodMenu \? periodMenu\.width/);
+    assert.match(edit, /if \(selectionBar\) selectionBar\.close\(\)/);
+    assert.doesNotMatch(edit, /(?<!\) )selectionBar\.close\(\)/);
+});
