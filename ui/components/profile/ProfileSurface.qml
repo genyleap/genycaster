@@ -1447,11 +1447,12 @@ Item {
           id: profileHeaderComponent
           ColumnLayout {
             width: root.readList.width
-            // No phantom top gutter after the hidden own-profile action row.
-            spacing: root.compact && root.isOwnProfile ? 0 : Theme.space2
+            // Keep Back and Profile Options reachable for own profiles on
+            // mobile; GenyBuzz consent cannot depend on desktop-only actions.
+            spacing: Theme.space2
 
             RowLayout {
-                visible: !(root.compact && root.isOwnProfile)
+                visible: true
                 Layout.fillWidth: true
                 Layout.leftMargin: root.profileContentX
                 Layout.rightMargin: root.profileContentX
