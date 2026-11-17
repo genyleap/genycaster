@@ -8016,5 +8016,17 @@ Company | https://company.com</source>
             <source>Could not prepare payment. No transaction was sent. Please retry.</source>
             <translation>भुगतान की तैयारी नहीं हो सकी। कोई लेनदेन नहीं भेजा गया। फिर कोशिश करें।</translation>
         </message>
+        <message id="genycaster.pro.checkout_verify_wallet">
+            <source>Verify wallet</source>
+            <translation>वॉलेट सत्यापित करें</translation>
+        </message>
+        <message id="genycaster.pro.checkout_verifying_wallet">
+            <source>Verifying wallet…</source>
+            <translation>वॉलेट सत्यापित किया जा रहा है…</translation>
+        </message>
+        <message id="genycaster.pro.wallet_verification_unavailable">
+            <source>Wallet verification is unavailable or was declined. No payment was made. Retry.</source>
+            <translation>वॉलेट सत्यापन उपलब्ध नहीं है या अस्वीकार कर दिया गया। कोई भुगतान नहीं हुआ। फिर प्रयास करें।</translation>
+        </message>
     </context>
 </TS>
