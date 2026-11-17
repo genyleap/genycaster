@@ -646,6 +646,17 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
           await client.query('ROLLBACK');
           return {status:'not_available'};
         }
+        // Respect the recipient's private Do Not Disturb status even when
+        // the profile note is not public. No notification bypass is allowed.
+        const status=await client.query(`SELECT payload->>'mood' AS mood
+          FROM notifications WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+            AND source='genycaster' AND kind='profile_status'
+            AND deleted_at IS NULL LIMIT 1`,
+          [recipient.issuer,recipient.subject,PROFILE_STATUS_ROW]);
+        if(status.rows[0]?.mood==='dnd') {
+          await client.query('ROLLBACK');
+          return {status:'not_available'};
+        }
         // App-owned mutes deny Buzz in both directions, regardless of the
         // transport used to render the sending entry point.
         const preferences=await client.query(`SELECT issuer,subject,payload
@@ -705,6 +716,11 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         'SELECT enabled FROM genybuzz_preferences WHERE issuer=$1 AND subject=$2',
         [issuer,subject]);
       if(consent.rows[0]?.enabled!==true)return [];
+      const mood=await pool.query(`SELECT payload->>'mood' AS mood
+        FROM notifications WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+          AND source='genycaster' AND kind='profile_status'
+          AND deleted_at IS NULL LIMIT 1`,[issuer,subject,PROFILE_STATUS_ROW]);
+      if(mood.rows[0]?.mood==='dnd')return [];
       const result=await pool.query(`SELECT id::text,sender_subject,context,
           created_at FROM genybuzz_events
         WHERE recipient_issuer=$1 AND recipient_subject=$2
