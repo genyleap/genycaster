@@ -20,14 +20,17 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
         && released > joined && returned > released,
         "the main thread must stop producers, join workers and explicitly release the scene graph");
 
-    const overlayDetach = teardown.indexOf('child->setParentItem(nullptr);');
+    const sceneDetach = teardown.indexOf('child->setParentItem(nullptr);');
     const roots = teardown.indexOf("engine.rootObjects()");
     const destroy = teardown.indexOf("delete root;");
     const drain = teardown.indexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
     const collect = teardown.indexOf("engine.collectGarbage();");
-    assert.ok(overlayDetach >= 0 && roots > overlayDetach
+    assert.ok(sceneDetach >= 0 && roots > sceneDetach
         && destroy > roots && drain > destroy && collect > drain,
-        "detach the overlay while its native window is alive, then destroy QML and drain deletions");
+        "detach the entire visual scene while its native window is alive, then destroy QML and drain deletions");
+    assert.match(teardown, /!child->inherits\("QQuickOverlay"\)/);
+    assert.match(teardown, /for \(QObject\* const root : engine\.rootObjects\(\)\)/);
+    assert.match(teardown, /child->parentItem\(\) == content/);
     assert.doesNotMatch(teardown, /mainWindow->hide\(\)/,
         "hiding Cocoa before QQuickOverlay destruction invalidates its window association");
     assert.doesNotMatch(teardown,/mainWindow->releaseResources\(\)/,
