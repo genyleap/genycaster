@@ -87,8 +87,7 @@ Item {
     property bool buzzPreferencesReady: false
     property bool buzzEnabled: false
     property bool buzzBusy: false
-    property string buzzError: ""
-    property double buzzLastSentFid: 0
+
     readonly property string buzzTargetKind:
         Number(root.activeDetail.fid || 0) >= 4294967296 ? "hypersnap" : "farcaster"
     // Account-owned data must not be dereferenced after its QML context
@@ -1563,7 +1562,7 @@ Item {
                                         Layout.fillWidth: true
                                         quiet: true
                                         alignStart: true
-                                        iconGlyph: Theme.iconNotification
+                                        iconGlyph: Theme.iconSpark
                                         text: root.buzzEnabled
                                             ? qsTrId("genycaster.buzz.disable")
                                             : qsTrId("genycaster.buzz.enable")
@@ -1581,27 +1580,17 @@ Item {
                                         Layout.fillWidth: true
                                         quiet: true
                                         alignStart: true
-                                        iconGlyph: Theme.iconNotification
-                                        text: root.buzzLastSentFid===Number(root.activeDetail.fid)
-                                            ? qsTrId("genycaster.buzz.sent")
-                                            : qsTrId("genycaster.buzz.send")
+                                        iconGlyph: Theme.iconSpark
+                                        text: qsTrId("genycaster.buzz.send")
                                         enabled: root.buzzAuthorizationReady && !root.buzzBusy
                                         busy: root.buzzBusy
-                                        onClicked: root.buzzRequested(
-                                            Number(root.activeDetail.fid),root.buzzTargetKind)
-                                    }
-                                    DirectionAwareLabel {
-                                        Layout.fillWidth: true
-                                        visible: root.buzzError.length>0
-                                            && root.buzzAuthorizationReady
-                                        text: root.buzzError==="buzz_rate_limited"
-                                            ? qsTrId("genycaster.buzz.slow_down")
-                                            : root.buzzError==="buzz_not_available"
-                                              ? qsTrId("genycaster.buzz.not_available")
-                                              : qsTrId("genycaster.buzz.error")
-                                        color: Theme.negative
-                                        font.pixelSize: Theme.typeCaptionSize
-                                        wrapMode: Text.WordWrap
+                                        onClicked: {
+                                            // This is an action, not a persistent menu status.
+                                            // Close the menu before presenting asynchronous feedback.
+                                            sharePopup.close()
+                                            root.buzzRequested(Number(root.activeDetail.fid),
+                                                               root.buzzTargetKind)
+                                        }
                                     }
                                     ActionButton {
                                         visible: !root.isOwnProfile
