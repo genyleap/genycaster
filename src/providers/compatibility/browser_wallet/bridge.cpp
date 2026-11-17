@@ -117,7 +117,11 @@ constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
     const bool hasAccountAccessGrant)
 {
     if (method == "eth_requestAccounts") {
-        return !hasAccountAccessGrant;
+        // Never silently replay an account-connection request after a cached
+        // Mini App origin grant: re-entry requires a fresh explicit click.
+        // The wallet extension may legitimately answer without a popup when
+        // the selected account is already approved.
+        return true;
     }
     if (method == "personal_sign"
         || method == "eth_decrypt" || method == "eth_getEncryptionPublicKey") {
@@ -214,44 +218,54 @@ constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
     std::string page = R"html(<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wallet approval · GenyCaster</title><style nonce=")html";
     page += nonce;
     page += R"html(">
-:root{color-scheme:dark;font:14px/1.5 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
+:root{color-scheme:dark;--accent:#168bff;--accent-soft:#102c48;--canvas:#10141c;--panel:#1b2330;--raised:#242e3d;--line:#354356;--ink:#f3f7fc;--muted:#a5b3c7;--danger:#ff8f9c;--success:#87edbf;font:14px/1.48 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111116;color:#f4f3fa;padding:16px}
-main{width:min(100%,420px);background:#202027;border:1px solid #363640;border-radius:18px;padding:22px;box-shadow:0 18px 60px #0005}
-h1{font-size:1.27rem;letter-spacing:-.02em;line-height:1.2;margin:0 0 14px}
-h2{font-size:1.02rem;line-height:1.4;margin:5px 0 8px}
-.app{padding:11px 12px;border:1px solid #393944;border-radius:11px;background:#292930;margin-bottom:14px}
-#app-name{display:block;font-weight:700}
-#origin{font-size:.78rem;color:#aaaab9;overflow-wrap:anywhere;line-height:1.3;margin-top:3px}
-.label{display:block;font-size:.73rem;font-weight:650;color:#ada4c5;margin-bottom:6px}
-#options{display:block;width:100%;font:inherit;font-weight:600;color:#f5f4fb;background:#2f2e3a;border:1px solid #585362;border-radius:10px;padding:10px;margin-bottom:5px;cursor:pointer}
-button{font:inherit;cursor:pointer;border-radius:10px;padding:10px 12px;border:1px solid #494854;color:#f6f5fa;background:#303038}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at 18% 6%,#163555 0%,transparent 46%),var(--canvas);color:var(--ink)}
+main{width:min(100%,460px);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:0 24px 70px #030a1588}
+.brand{display:flex;align-items:center;gap:10px;color:#99c9ff;font-size:.77rem;font-weight:750;letter-spacing:.09em;text-transform:uppercase;margin-bottom:12px}
+.brand-mark{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--accent-soft);border:1px solid #295b8d;font-size:16px}
+h1{font-size:1.55rem;letter-spacing:-.035em;line-height:1.22;margin:0 0 5px;font-weight:750}
+.subtitle{color:var(--muted);margin:0 0 19px;font-size:.87rem}
+h2{font-size:1.03rem;line-height:1.4;margin:7px 0 7px}
+.app{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--raised);margin-bottom:20px}
+#app-name{display:block;font-size:1rem;font-weight:750}
+#origin{font-size:.82rem;color:var(--muted);overflow-wrap:anywhere;margin-top:3px}
+.label{display:block;font-size:.77rem;font-weight:650;color:var(--muted);margin-bottom:9px}
+#options{display:grid;gap:8px;max-height:225px;overflow-y:auto}
+button{font:inherit;cursor:pointer;border-radius:12px;padding:11px 14px;border:1px solid var(--line);color:var(--ink);background:var(--raised);-webkit-appearance:none;appearance:none}
 button:disabled{opacity:.55;cursor:not-allowed}
-button:hover:enabled,#options:hover{border-color:#a38dff}
-button:focus-visible,#options:focus-visible,summary:focus-visible{outline:2px solid #bca9ff;outline-offset:2px}
-#request{margin:15px 0 0;padding:13px;border:1px solid #41404c;border-radius:12px;background:#27272f}
+button:hover:enabled{border-color:#5e9cde}
+button:focus-visible,summary:focus-visible{outline:2px solid #77bcff;outline-offset:2px}
+.wallet-option{display:flex;align-items:center;gap:12px;width:100%;text-align:start;min-height:50px}
+.wallet-option[aria-checked="true"]{background:var(--accent-soft);border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.wallet-dot{width:16px;height:16px;border:2px solid #8597ad;border-radius:50%;display:block;flex:none}
+.wallet-option[aria-checked="true"] .wallet-dot{border:5px solid var(--accent);background:white}
+.wallet-name{flex:1;font-weight:650;overflow-wrap:anywhere}
+.wallet-tag{font-size:.69rem;color:var(--muted);letter-spacing:.01em}
+#request{margin:17px 0 0;padding:15px;border:1px solid var(--line);border-radius:14px;background:var(--raised)}
 #request[hidden],#message[hidden]{display:none}
-#kind{font-size:.73rem;color:#b8a3ff;font-weight:650}
-#message{max-height:92px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:.78rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px;border-radius:8px;background:#19191f;color:#dcdbe8;margin:9px 0}
-details{font-size:.77rem;color:#aaa9b6;margin:8px 0}
+#kind{font-size:.73rem;color:#81bdff;font-weight:700}
+#message{max-height:100px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:.79rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:11px;border-radius:9px;background:var(--canvas);color:var(--ink);margin:10px 0}
+details{font-size:.8rem;color:var(--muted);margin:12px 0 0}
 summary{cursor:pointer}
-pre{background:#18181e;padding:10px;border-radius:8px;white-space:pre-wrap;overflow:auto;overflow-wrap:anywhere;max-height:160px;font:.72rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:#deddea}
-.actions{display:flex;gap:8px;margin-top:14px}
-.actions button{flex:1;text-align:center}
-#approve{background:#8159e7;border-color:#8159e7;color:white;font-weight:700}
-#status,#wallet{font-size:.78rem;color:#aaaab5;line-height:1.4;margin:8px 0 0}
-#status.error,#wallet.error{color:#ffa1aa}
-#status.ok,#wallet.ok{color:#9ae6b7}
-.help{margin:14px 0 0;font-size:.75rem;line-height:1.45;color:#a8a7b2}
-@media(max-width:450px){main{padding:17px}body{padding:10px}}
-@media(prefers-reduced-motion:no-preference){button,#options{transition:border-color .15s ease}}
-</style></head><body><main><h1>Wallet approval</h1><section class="app"><strong id="app-name">)html";
+pre{background:var(--canvas);padding:10px;border-radius:8px;white-space:pre-wrap;overflow:auto;overflow-wrap:anywhere;max-height:160px;font:.73rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
+.actions{display:flex;gap:9px;margin-top:16px}
+.actions button{flex:1;text-align:center;min-height:44px}
+#approve{background:var(--accent);border-color:var(--accent);color:white;font-weight:750}
+#approve:hover:enabled{background:#319cff}
+#status,#wallet{font-size:.8rem;color:var(--muted);line-height:1.5;margin:10px 0 0;overflow-wrap:anywhere}
+#status.error,#wallet.error{color:var(--danger)}
+#status.ok,#wallet.ok{color:var(--success)}
+.help{margin:17px 0 0;font-size:.8rem;line-height:1.5;color:var(--muted)}
+@media(max-width:450px){main{padding:18px}body{padding:10px}.actions{flex-wrap:wrap}}
+@media(prefers-reduced-motion:no-preference){button{transition:border-color .15s ease,background .15s ease}}
+</style></head><body><main><div class="brand"><span class="brand-mark" aria-hidden="true">✦</span>GenyCaster</div><h1>Wallet approval</h1><p class="subtitle">Connect securely using your selected browser wallet.</p><section class="app"><strong id="app-name">)html";
     page += htmlEscape(appName);
     page += R"html(</strong><div id="origin">)html";
     page += htmlEscape(origin);
     page += R"html(</div></section>
-<label class="label" for="options">Wallet</label>
-<select id="options" aria-label="Choose wallet" disabled><option>Searching for wallets…</option></select>
+<span class="label" id="wallet-label">Choose your wallet</span>
+<div id="options" role="radiogroup" aria-labelledby="wallet-label" aria-busy="true"></div>
 <p id="wallet" role="status" aria-live="polite">Looking for wallets…</p>
 <section id="request" hidden><div id="kind">Explicit approval required</div>
 <h2 id="method">Wallet request</h2>
@@ -304,7 +318,8 @@ const describe=async()=>{
     if(stopped||selected!==chosen)return;
     wallet.className='ok';
     wallet.textContent=Array.isArray(accounts)&&accounts[0]
-      ? 'Wallet connected' : 'Connect in your wallet when prompted';
+      ? 'Already connected · '+String(accounts[0]).slice(0,6)+'…'+String(accounts[0]).slice(-4)
+      : 'Ready to connect. Select your wallet, then approve the request.';
   }catch(error){
     if(stopped||selected!==chosen)return;
     wallet.className='error';wallet.textContent=String(error?.message||error);
@@ -314,7 +329,11 @@ const select=index=>{
   if(busy)return;
   detach();selected=providers[index];
   if(!selected)return;
-  options.value=String(index);
+  for(const button of options.querySelectorAll('.wallet-option')){
+    const active=Number(button.dataset.index)===index;
+    button.setAttribute('aria-checked',String(active));
+    button.tabIndex=active?0:-1;
+  }
   if(typeof selected.provider.on==='function')for(const event of events){
     const callback=value=>{
       if(stopped)return;
@@ -332,14 +351,34 @@ const add=(name,provider)=>{
       ||providers.length>=12)return;
   const entry={name:String(name||'Browser wallet').slice(0,64),provider};
   const index=providers.push(entry)-1;
-  if(index===0){options.replaceChildren();options.disabled=false;}
-  const item=document.createElement('option');
-  item.value=String(index);
-  item.textContent=entry.name;
+  const item=document.createElement('button');
+  item.type='button';
+  item.className='wallet-option';
+  item.setAttribute('role','radio');
+  item.setAttribute('aria-checked','false');
+  item.tabIndex=-1;
+  item.dataset.index=String(index);
+  const dot=document.createElement('span');dot.className='wallet-dot';dot.setAttribute('aria-hidden','true');
+  const title=document.createElement('span');title.className='wallet-name';title.textContent=entry.name;
+  const hint=document.createElement('span');hint.className='wallet-tag';hint.textContent='Extension';
+  item.append(dot,title,hint);
+  item.addEventListener('click',()=>select(index));
   options.append(item);
+  options.setAttribute('aria-busy','false');
   if(!selected)select(index);
 };
-options.addEventListener('change',()=>select(Number(options.value)));
+options.addEventListener('keydown',event=>{
+  if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'
+      &&event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
+  if(!providers.length||busy)return;
+  event.preventDefault();
+  const index=providers.findIndex(item=>item===selected);
+  const delta=(event.key==='ArrowDown'||event.key==='ArrowRight')?1:-1;
+  const next=(index+delta+providers.length)%providers.length;
+  select(next);
+  const target=options.querySelector('[data-index="'+next+'"]');
+  if(target)target.focus();
+});
 window.addEventListener('eip6963:announceProvider',event=>{
   const detail=event.detail;
   if(detail&&detail.info&&typeof detail.info.name==='string')
@@ -383,7 +422,7 @@ const execute=async()=>{
   const request=current;
   const showApproval=Boolean(request.requiresApproval);
   if(!undelivered){
-    if(showApproval)show('Waiting for wallet approval…');
+    if(showApproval)show('Opening '+selected.name+'… Check the wallet extension for any approval prompt.');
     try{
       undelivered={transportId:request.transportId,result:
         await selected.provider.request({method:request.method,params:request.params})};
@@ -400,7 +439,9 @@ const execute=async()=>{
     if(showApproval){
       lastConsentResultShown=true;
       show(response.error?(response.error.code===4001?'Request declined.':'Wallet request failed.')
-        :'Approved. Return to GenyCaster.',response.error?'error':'ok');
+        :(request.method==='eth_requestAccounts'
+            ? 'Wallet connected. Return to GenyCaster.'
+            : 'Approved. Return to GenyCaster.'),response.error?'error':'ok');
     }
     completed();
   }catch(error){
@@ -458,9 +499,10 @@ const poll=async()=>{
     // layout jumps and looked like a page refresh after confirmation.
     box.hidden=!rpc.requiresApproval;
     if(rpc.requiresApproval) lastConsentResultShown=false;
-    approve.textContent=rpc.requiresApproval?'Continue to wallet':'Use selected wallet';
+    approve.textContent=rpc.method==='eth_requestAccounts'?'Connect selected wallet'
+      :rpc.requiresApproval?'Open selected wallet':'Use selected wallet';
     if(rpc.requiresApproval)
-      show('Confirm in your wallet.');
+      show('Select a wallet above, then choose '+approve.textContent+'.');
     if(!rpc.requiresApproval&&selected)execute();
   }catch(error){
     if(!stopped)show(String(error?.message||error),'error');
