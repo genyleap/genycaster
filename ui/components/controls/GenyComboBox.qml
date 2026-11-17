@@ -25,6 +25,8 @@ ComboBox {
     readonly property real naturalPopupWidth: Math.min(popupMaximumWidth,
                                                        Math.max(width, naturalWidth + Theme.space3))
 
+    readonly property bool popupVisible: !!control.popup && control.popup.visible
+
     implicitHeight: Theme.controlHeight
     implicitWidth: Math.max(260, Math.min(480, naturalWidth))
     leftPadding: Theme.rtl ? Theme.space8 : Theme.space4
@@ -68,7 +70,7 @@ ComboBox {
 
         Superellipse {
             anchors.fill: parent
-            fillColor: control.hovered || control.popup.visible ? Theme.castHover : "transparent"
+            fillColor: control.hovered || control.popupVisible ? Theme.castHover : "transparent"
             curveDepth: Theme.curveCompact
             Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
         }
@@ -76,29 +78,29 @@ ComboBox {
         Icon {
             anchors.centerIn: parent
             text: Theme.iconChevronDown
-            color: control.popup.visible ? Theme.accent : Theme.inkMuted
+            color: control.popupVisible ? Theme.accent : Theme.inkMuted
             preferredSize: Theme.typeCaptionSize
-            rotation: control.popup.visible ? 180 : 0
+            rotation: control.popupVisible ? 180 : 0
             Behavior on rotation { NumberAnimation { duration: Theme.motionStandard; easing.type: Easing.OutCubic } }
         }
     }
 
     background: NeonSurface {
         interactive: control.enabled
-        ambientNeon: control.popup.visible
-        focused: Theme.keyboardFocusVisible(control) || control.popup.visible
+        ambientNeon: control.popupVisible
+        focused: Theme.keyboardFocusVisible(control) || control.popupVisible
         neonStrength: Theme.neonControlStrength
-        neonColor: control.popup.visible
+        neonColor: control.popupVisible
             ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.34)
             : "transparent"
-        fillColor: control.popup.visible ? Theme.surfaceElevated
+        fillColor: control.popupVisible ? Theme.surfaceElevated
                   : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
-        borderWidth: Theme.keyboardFocusVisible(control) || control.popup.visible ? 2 : 1
-        borderColor: Theme.keyboardFocusVisible(control) || control.popup.visible ? Theme.focus : Theme.borderMuted
+        borderWidth: Theme.keyboardFocusVisible(control) || control.popupVisible ? 2 : 1
+        borderColor: Theme.keyboardFocusVisible(control) || control.popupVisible ? Theme.focus : Theme.borderMuted
         curveDepth: Theme.curveControl
         elevation: Theme.elevationControl
-        shadowColor: Theme.keyboardFocusVisible(control) || control.popup.visible ? Theme.focusHalo : Theme.shadow
-        shadowOpacityScale: control.popup.visible ? 1.10 : 0.88
+        shadowColor: Theme.keyboardFocusVisible(control) || control.popupVisible ? Theme.focusHalo : Theme.shadow
+        shadowOpacityScale: control.popupVisible ? 1.10 : 0.88
     }
 
     delegate: ItemDelegate {
@@ -163,7 +165,7 @@ ComboBox {
         contentItem: ListView {
             clip: true
             implicitHeight: contentHeight
-            model: control.popup.visible ? control.delegateModel : null
+            model: control.popupVisible ? control.delegateModel : null
             currentIndex: control.highlightedIndex
             highlightMoveDuration: Theme.motionFast
             ScrollBar.vertical: GenyScrollBar {}
