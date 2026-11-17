@@ -11,6 +11,8 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QNetworkCookie>
+#include <QNetworkCookieJar>
 #include <QRegularExpression>
 #include <QCryptographicHash>
 #include <QSettings>
@@ -502,6 +504,37 @@ void OpenProofConnectionsController::restoreAccountSession()
 {
     if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl)
         || m_sessionRevoking || m_sessionRequest || m_accountProofSigning) return;
+#if !defined(Q_OS_WASM)
+    // Native Qt's account session is kept in QNetworkAccessManager's in-memory
+    // cookie jar. A fresh process has no session cookie, so probing the
+    // protected GET /api/v1/cloud/session only produces an expected 401
+    // (and a misleading qt.network.http2 "Host requires authentication").
+    // Start the one-use, server-verified signer challenge directly instead.
+    // Crucially, this never treats a missing cookie as authentication:
+    // only the successful signed proof AND subsequent same-origin cookie GET
+    // may set m_cloudSessionVerified.
+    const auto cookieJar = m_network.cookieJar();
+    const auto cookies = cookieJar ? cookieJar->cookiesForUrl(m_cloudUrl)
+                                   : QList<QNetworkCookie>{};
+    const bool hasAccountCookie = std::any_of(cookies.cbegin(), cookies.cend(),
+        [](const QNetworkCookie& cookie) {
+            return cookie.name() == QByteArrayLiteral("__Host-genycaster-account");
+        });
+    if (!hasAccountCookie) {
+        if (m_accountProofSigner && !m_accountProofAttempted
+            && !m_accountProofRequest) {
+            beginSignedAccountSession();
+        } else if (!m_accountProofRequest) {
+            // A server that did not set or retain the HttpOnly cookie cannot
+            // be considered authenticated, even if it accepted a proof.
+            m_accountProofError = m_accountProofSigner
+                ? QStringLiteral("account_session_unavailable")
+                : QStringLiteral("account_signer_unavailable");
+            emit stateChanged();
+        }
+        return;
+    }
+#endif
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/session"));
     auto request=QNetworkRequest{url};
