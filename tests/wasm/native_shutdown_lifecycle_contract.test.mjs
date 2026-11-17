@@ -20,23 +20,26 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
         && released > joined && returned > released,
         "the main thread must stop producers, join workers and explicitly release the scene graph");
 
+    const sceneCleanup = teardown.indexOf('child->inherits("QQuickOverlay")');
+    const sceneDelete = teardown.indexOf('delete item.data();');
     const popupCleanup = teardown.indexOf('obj->inherits("QQuickPopup")');
     const popupDelete = teardown.indexOf('delete popup;');
     const overlayCleanup = teardown.indexOf('obj->inherits("QQuickOverlay")');
     const overlayDelete = teardown.indexOf('delete overlay.data();');
-    const sceneDetach = teardown.indexOf('child->setParentItem(nullptr);');
     const roots = teardown.indexOf("engine.rootObjects()");
     const destroy = teardown.indexOf("delete root;");
     const drain = teardown.lastIndexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
     const collect = teardown.indexOf("engine.collectGarbage();");
-    assert.ok(popupCleanup >= 0 && popupDelete > popupCleanup
+    assert.ok(sceneCleanup >= 0 && sceneDelete > sceneCleanup
+        && popupCleanup > sceneDelete && popupDelete > popupCleanup
         && overlayCleanup > popupDelete && overlayDelete > overlayCleanup
-        && sceneDetach > overlayDelete && roots > sceneDetach
-        && destroy > roots && collect > destroy && drain > collect,
-        "destroy Popups, then Overlay, then detach the scene before deleting QML roots");
-    assert.match(teardown, /for \(QObject\* const root : engine\.rootObjects\(\)\)/);
-    assert.match(teardown, /child->parentItem\(\) == content/);
+        && roots > overlayDelete && destroy > roots
+        && collect > destroy && drain > collect,
+        "destroy QML owners, remaining Popups, Overlay, and only then QML windows");
+    assert.match(teardown, /for \\(QObject\\* const root : engine\\.rootObjects\\(\\)\\)/);
     assert.match(teardown, /QPointer<QObject>/);
+    assert.doesNotMatch(teardown, /setParentItem\\(nullptr\\)/,
+        "Qt 6.12 macOS crashes when visual teardown disconnects attached overlays");
     assert.doesNotMatch(teardown, /mainWindow->hide\(\)/,
         "hiding Cocoa before QQuickOverlay destruction invalidates its window association");
     assert.doesNotMatch(teardown,/mainWindow->releaseResources\(\)/,
