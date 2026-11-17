@@ -7649,8 +7649,12 @@ Company | https://company.com</source>
             <translation>प्रो की कीमत लोड हो रही है…</translation>
         </message>
         <message id="genycaster.pro.price_unavailable">
-            <source>Current Pro price is unavailable. Please retry.</source>
-            <translation>प्रो की मौजूदा कीमत उपलब्ध नहीं है। दोबारा कोशिश करें।</translation>
+            <source>Pro price unavailable</source>
+            <translation>प्रो की कीमत उपलब्ध नहीं है</translation>
+        </message>
+        <message id="genycaster.pro.price_retry_hint">
+            <source>Live pricing could not be loaded. Try again in a moment.</source>
+            <translation>वर्तमान कीमत लोड नहीं हो सकी। थोड़ी देर बाद फिर प्रयास करें।</translation>
         </message>
         <message id="genycaster.pro.connect_to_pay">
             <source>Connect account</source>
