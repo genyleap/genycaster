@@ -6,6 +6,7 @@ import Farcaster.Client
 Item {
     id: root
 
+    property NeonReflectionSource reflectionSource: null
     property string mode: "feed"
     property bool authenticated: false
     property bool busy: false
@@ -67,6 +68,15 @@ Item {
         anchors.fill: parent
         color: Theme.background
     }
+    NeonReflection {
+        anchors.fill: parent
+        reflectionSource: root.reflectionSource
+        strength: Theme.reflectionStrength * 0.80
+        cornerRadius: 0
+        borderInset: 0
+        edgeStrength: 0.60
+        edgeWidth: 1
+    }
 
     ScrollView {
         id: socialSidebarScroll
@@ -84,7 +94,11 @@ Item {
                 Layout.preferredHeight: Theme.space1
             }
 
-            Superellipse {
+            NeonSurface {
+                reflectionSource: root.reflectionSource
+                reflectionStrength: Theme.reflectionStrength * 0.72
+                reflectedBorder: true
+                interactive: false
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space2
                 Layout.rightMargin: Theme.space2
@@ -119,7 +133,11 @@ Item {
                 TapHandler { onTapped: root.searchRequested() }
             }
 
-            Superellipse {
+            NeonSurface {
+                reflectionSource: root.reflectionSource
+                reflectionStrength: Theme.reflectionStrength * 0.72
+                reflectedBorder: true
+                interactive: false
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space2
                 Layout.rightMargin: Theme.space2
@@ -265,7 +283,11 @@ Item {
                 offline: root.offline
             }
 
-            Superellipse {
+            NeonSurface {
+                reflectionSource: root.reflectionSource
+                reflectionStrength: Theme.reflectionStrength * 0.72
+                reflectedBorder: true
+                interactive: false
                 visible: root.recentProfiles.length > 0
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space2
