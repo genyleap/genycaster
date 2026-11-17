@@ -7965,5 +7965,45 @@ Company | https://company.com</translation>
             <source>Done</source>
             <translation>Done</translation>
         </message>
+        <message id="genycaster.buzz.enable">
+            <source>Enable GenyBuzz</source>
+            <translation>Enable GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.disable">
+            <source>Disable GenyBuzz</source>
+            <translation>Disable GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.send">
+            <source>Send Buzz</source>
+            <translation>Send Buzz</translation>
+        </message>
+        <message id="genycaster.buzz.sent">
+            <source>Buzz sent</source>
+            <translation>Buzz sent</translation>
+        </message>
+        <message id="genycaster.buzz.slow_down">
+            <source>Too many Buzzes. Try again later.</source>
+            <translation>Too many Buzzes. Try again later.</translation>
+        </message>
+        <message id="genycaster.buzz.not_available">
+            <source>Buzz is unavailable for this account.</source>
+            <translation>Buzz is unavailable for this account.</translation>
+        </message>
+        <message id="genycaster.buzz.error">
+            <source>Could not send Buzz. Try again.</source>
+            <translation>Could not send Buzz. Try again.</translation>
+        </message>
+        <message id="genycaster.buzz.received">
+            <source>GenyBuzz</source>
+            <translation>GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.from_fid">
+            <source>Attention nudge from FID %1</source>
+            <translation>Attention nudge from FID %1</translation>
+        </message>
+        <message id="genycaster.buzz.view">
+            <source>View</source>
+            <translation>View</translation>
+        </message>
     </context>
 </TS>
