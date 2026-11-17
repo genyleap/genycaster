@@ -118,7 +118,9 @@ test('GenyBuzz remains app-owned, opt-in and DM-context-ready without a protocol
 test('GenyBuzz strings are present in all compiled translations',()=>{
   const ids=['enable','disable','send','sent','slow_down','not_available',
     'error','received','from_fid','view','service_unavailable'];
-  const proErrors=['quote_wallet_required','quote_retry_notice'];
+  const proErrors=['quote_wallet_required','quote_retry_notice',
+    'checkout_verify_wallet','checkout_verifying_wallet',
+    'wallet_verification_unavailable'];
   for(const locale of ['en_US','fa_IR','de_DE','ja_JP','ko_KR','zh_CN',
     'hi_IN','ar_SA','es_ES','fr_FR','pt_BR','ru_RU']){
     const file=read('ui/i18n/qml_'+locale+'.ts');
