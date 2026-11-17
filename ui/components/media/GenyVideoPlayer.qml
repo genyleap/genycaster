@@ -341,7 +341,7 @@ Item {
     readonly property bool failed: (activation.activated && !activation.recovering
                                     && player.error !== MediaPlayer.NoError)
                                    || activation.stalled
-    readonly property bool fullscreen: root.fullscreenEnabled && fullscreenPopup.opened
+    readonly property bool fullscreen: root.fullscreenEnabled && (fullscreenPopup && fullscreenPopup.opened)
     readonly property int playbackState: player.playbackState
     readonly property int mediaStatus: player.mediaStatus
     readonly property real position: player.position
@@ -1788,7 +1788,7 @@ Item {
 
                     Superellipse {
                         anchors.fill: parent
-                        fillColor: qualityPopup.opened || qualityHover.hovered
+                        fillColor: (qualityPopup && qualityPopup.opened) || qualityHover.hovered
                             ? Theme.mediaPlayerChromeHover : "transparent"
                         borderWidth: Theme.keyboardFocusVisible(qualityButton) ? Theme.strokeEmphasis : 0
                         borderColor: Theme.accent
@@ -1800,7 +1800,7 @@ Item {
                         anchors.centerIn: parent
                         visible: stage.width >= 400
                         text: root.qualityLabel(root.preferredQuality)
-                        color: qualityPopup.opened ? Theme.accent : Theme.mediaPlayerInk
+                        color: (qualityPopup && qualityPopup.opened) ? Theme.accent : Theme.mediaPlayerInk
                         font.family: Theme.latinFontFamily
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold
@@ -1938,7 +1938,7 @@ Item {
     readonly property bool hoverActive: hoverHandler.hovered
     readonly property bool controlFocused: playbackButton.activeFocus || seekControl.activeFocus
         || muteButton.activeFocus || volumeSlider.activeFocus || qualityButton.activeFocus
-        || fullscreenButton.activeFocus || qualityPopup.opened
+        || fullscreenButton.activeFocus || (qualityPopup && qualityPopup.opened)
     readonly property bool chromeWanted: root.showChrome && root.userActivated
                                          && root.hasSource && !root.failed
                                          && (root.hoverActive || root.chromePinned || root.controlFocused
@@ -2152,9 +2152,9 @@ Item {
             }
 
             PlayerIconButton {
-                anchors.top: fullscreenHost.top
+                anchors.top: fullscreenHost ? fullscreenHost.top : null
                 anchors.topMargin: Theme.space4
-                anchors.right: fullscreenHost.right
+                anchors.right: fullscreenHost ? fullscreenHost.right : null
                 anchors.rightMargin: Theme.space4
                 z: 30
                 iconGlyph: Theme.iconCompress
@@ -2173,9 +2173,9 @@ Item {
         stallWatchdog.stop()
         adaptiveDownshift.stop()
         adaptiveUpgrade.stop()
-        if (qualityPopup.opened)
+        if ((qualityPopup && qualityPopup.opened))
             qualityPopup.close()
-        if (fullscreenPopup.opened)
+        if ((fullscreenPopup && fullscreenPopup.opened))
             fullscreenPopup.close()
         player.stop()
         activation.activated = false
