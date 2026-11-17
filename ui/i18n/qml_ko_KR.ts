@@ -8016,5 +8016,17 @@ Company | https://company.com</source>
             <source>Could not prepare payment. No transaction was sent. Please retry.</source>
             <translation>결제를 준비하지 못했습니다. 거래는 전송되지 않았습니다. 다시 시도하세요.</translation>
         </message>
+        <message id="genycaster.pro.checkout_verify_wallet">
+            <source>Verify wallet</source>
+            <translation>지갑 인증</translation>
+        </message>
+        <message id="genycaster.pro.checkout_verifying_wallet">
+            <source>Verifying wallet…</source>
+            <translation>지갑 인증 중…</translation>
+        </message>
+        <message id="genycaster.pro.wallet_verification_unavailable">
+            <source>Wallet verification is unavailable or was declined. No payment was made. Retry.</source>
+            <translation>지갑 인증을 사용할 수 없거나 거부되었습니다. 결제는 진행되지 않았습니다. 다시 시도하세요.</translation>
+        </message>
     </context>
 </TS>
