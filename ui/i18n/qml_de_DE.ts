@@ -7649,8 +7649,12 @@ Company | https://company.com</source>
             <translation>Pro-Preis wird geladen…</translation>
         </message>
         <message id="genycaster.pro.price_unavailable">
-            <source>Current Pro price is unavailable. Please retry.</source>
-            <translation>Aktueller Pro-Preis nicht verfügbar. Bitte erneut versuchen.</translation>
+            <source>Pro price unavailable</source>
+            <translation>Pro-Preis nicht verfügbar</translation>
+        </message>
+        <message id="genycaster.pro.price_retry_hint">
+            <source>Live pricing could not be loaded. Try again in a moment.</source>
+            <translation>Der aktuelle Preis konnte nicht geladen werden. Bitte später erneut versuchen.</translation>
         </message>
         <message id="genycaster.pro.connect_to_pay">
             <source>Connect account</source>
