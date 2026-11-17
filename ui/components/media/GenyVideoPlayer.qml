@@ -2152,10 +2152,11 @@ Item {
             }
 
             PlayerIconButton {
-                anchors.top: fullscreenHost ? fullscreenHost.top : null
-                anchors.topMargin: Theme.space4
-                anchors.right: fullscreenHost ? fullscreenHost.right : null
-                anchors.rightMargin: Theme.space4
+                // Anchors require a QQuickAnchorLine, never null. Popup content
+                // is destroyed before this binding on native Qt shutdown.
+                // Use stable local geometry instead of a conditional anchor.
+                x: Math.max(0, (parent ? parent.width : 0) - width - Theme.space4)
+                y: Theme.space4
                 z: 30
                 iconGlyph: Theme.iconCompress
                 accessibleText: qsTrId("genycaster.player.exit_fullscreen")
