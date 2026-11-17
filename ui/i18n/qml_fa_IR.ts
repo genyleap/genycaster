@@ -4901,6 +4901,22 @@ Company | https://company.com</source>
             <source>Play emoji once when visible, then keep them still to save energy.</source>
             <translation>ایموجی‌ها هنگام دیده‌شدن یک بار پخش شوند و سپس برای صرفه‌جویی در انرژی ثابت بمانند.</translation>
         </message>
+        <message id="genycaster.settings.chromatic_reflections">
+            <source>Content-aware reflections</source>
+            <translation>بازتاب‌های رنگیِ محتوامحور</translation>
+        </message>
+        <message id="genycaster.settings.chromatic_reflections_description">
+            <source>Reflect nearby colors on sidebars, headers and panels.</source>
+            <translation>بازتاب رنگ‌های محتوای مجاور روی سایدبار، هدر و پنل‌ها.</translation>
+        </message>
+        <message id="genycaster.settings.reflection_intensity">
+            <source>Reflection intensity</source>
+            <translation>شدت انعکاس</translation>
+        </message>
+        <message id="genycaster.settings.reduce_reflection_transparency">
+            <source>Reduce transparency</source>
+            <translation>کاهش شفافیت</translation>
+        </message>
         <message id="genycaster.settings.neon_effects">
             <source>Neon edge lighting</source>
             <translation>نورپردازی نئونی لبه‌ها</translation>
