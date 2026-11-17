@@ -5,6 +5,7 @@ import {createSignerSessionProof} from './signer_session_proof.mjs';
 import {serverDeployment, trustedOrigin} from '../deployment_config.mjs';
 import {validateFeedback} from './feedback.mjs';
 import {handleGenyBuzz} from './genybuzz.mjs';
+import {handleProWalletProof} from './pro_wallet_proof.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 import {createGithubCalendarReader} from './github_contributions.mjs';
 import {calculateStreaks,eligibleStreakDay,STREAK_START_DAY} from './streaks.mjs';
@@ -580,6 +581,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'entitlements','geny/assets','pro/plan','pro/quote','pro/verify',
       'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
       'muted_profiles','feedback','buzz','buzz/preferences','buzz/inbox','buzz/ack',
+      'pro/wallet/challenge','pro/wallet/verify','pro/wallets',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
@@ -694,6 +696,9 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       if (await handleGenyBuzz({
         entity,request,response,owner,issuer:upstream,store,readBody,respond
       })) return true;
+      if(await handleProWalletProof({
+        entity,request,response,owner,store,readBody,respond
+      }))return true;
       if(entity==='feedback') {
         if(typeof store.feedbackReady!=='function' || !store.feedbackReady()) {
           respond(response,503,{error:'feedback_unavailable'});return true;
@@ -746,11 +751,24 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         if(asset!=='GENY' && asset!=='USDC') {
           respond(response,400,{error:'unsupported_payment_asset'});return true;
         }
-        let payerWallets;
+        let payerWallets=[];
+        // An explicit EIP-191 proof creates an app-owned verified payer.
+        // Existing protocol verifications remain valid; simply connecting a
+        // wallet never inserts either category of trusted payer.
         try {
-          payerWallets=await resolveProPaymentWallets(owner);
-          if(!Array.isArray(payerWallets) || payerWallets.length===0) {
-            respond(response,422,{error:'verified_wallet_required'});return true;
+          const appWallets=store.proWalletReady?.()
+            ?await store.getProWallets(owner):[];
+          let protocolWallets=[];
+          let providerFailed=false;
+          try{protocolWallets=await resolveProPaymentWallets(owner);}
+          catch{providerFailed=true;}
+          payerWallets=[...new Set([...appWallets,...protocolWallets]
+            .filter(address=>typeof address==='string'
+              && /^0x[0-9a-f]{40}$/.test(address)))].slice(0,100);
+          if(!payerWallets.length) {
+            respond(response,providerFailed?503:422,{
+              error:providerFailed?'wallet_verification_unavailable':'verified_wallet_required'
+            });return true;
           }
         }catch {
           respond(response,503,{error:'wallet_verification_unavailable'});return true;
