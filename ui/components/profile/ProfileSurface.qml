@@ -2041,146 +2041,146 @@ Item {
                             // including when the translated badge changes width.
                             layoutDirection: Qt.LeftToRight
 
-                        DirectionAwareLabel {
-                            id: profileDisplayName
-                            objectName: "profileDisplayName"
-                            Layout.minimumWidth: 0
-                            Layout.preferredWidth: Math.min(implicitWidth, Math.max(0,
-                                profileIdentityFlow.width
-                                - (profileFollowAction.visible ? profileFollowAction.implicitWidth : 0)
-                                - (followsYouBadge.visible ? followsYouBadge.implicitWidth : 0)
-                                - (genyHolderBadge.visible ? genyHolderBadge.implicitWidth : 0)
-                                - Theme.space2 * 4))
-                            Layout.maximumWidth: Layout.preferredWidth
-                            Layout.alignment: Qt.AlignVCenter
-                            // An FID is unique only within its verified identity namespace.
-                            // A large numeric FID is not proof of HyperSnap ownership.
-                            // Public profile reads currently expose no verified issuer field;
-                            // only the active account's authenticated identity can be labeled.
-                            text: root.activeDetail.displayName
-                                  || (root.showUsername ? root.activeDetail.username : "")
-                                  || (root.isOwnProfile && root.accountIsNativeCustody
-                                      ? qsTrId("genycaster.settings.hypersnap_label")
-                                      : qsTrId("genycaster.side_nav.profile"))
-                            color: Theme.ink
-                            font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
-                            font.weight: Theme.weightBold
-                            horizontalAlignment: Theme.textStartAlignment
-                            wrapMode: Text.NoWrap
-                            elide: Text.ElideRight
-                        }
-
-                        Item {
-                            id: followsYouBadge
-                            objectName: "profileFollowsYouBadge"
-                            visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
-                                     && !root.isOwnProfile
-                            implicitWidth: followsYouText.implicitWidth + Theme.space2 * 2
-                            implicitHeight: Math.max(Theme.scaleUi(19),
-                                followsYouText.implicitHeight + Theme.scaleUi(4))
-                            Layout.preferredWidth: implicitWidth
-                            Layout.preferredHeight: implicitHeight
-                            Layout.alignment: Qt.AlignVCenter
-
-                            Superellipse {
-                                anchors.fill: parent
-                                fillColor: Theme.surfaceRaised
-                                borderWidth: 1
-                                borderColor: Theme.borderStrong
-                                curveDepth: Math.round(height / 2)
+                            DirectionAwareLabel {
+                                id: profileDisplayName
+                                objectName: "profileDisplayName"
+                                Layout.minimumWidth: 0
+                                Layout.preferredWidth: Math.min(implicitWidth, Math.max(0,
+                                    profileIdentityFlow.width
+                                    - (profileFollowAction.visible ? profileFollowAction.implicitWidth : 0)
+                                    - (followsYouBadge.visible ? followsYouBadge.implicitWidth : 0)
+                                    - (genyHolderBadge.visible ? genyHolderBadge.implicitWidth : 0)
+                                    - Theme.space2 * 4))
+                                Layout.maximumWidth: Layout.preferredWidth
+                                Layout.alignment: Qt.AlignVCenter
+                                // An FID is unique only within its verified identity namespace.
+                                // A large numeric FID is not proof of HyperSnap ownership.
+                                // Public profile reads currently expose no verified issuer field;
+                                // only the active account's authenticated identity can be labeled.
+                                text: root.activeDetail.displayName
+                                      || (root.showUsername ? root.activeDetail.username : "")
+                                      || (root.isOwnProfile && root.accountIsNativeCustody
+                                          ? qsTrId("genycaster.settings.hypersnap_label")
+                                          : qsTrId("genycaster.side_nav.profile"))
+                                color: Theme.ink
+                                font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
+                                font.weight: Theme.weightBold
+                                horizontalAlignment: Theme.textStartAlignment
+                                wrapMode: Text.NoWrap
+                                elide: Text.ElideRight
                             }
 
-                            Label {
-                                id: followsYouText
-                                anchors.centerIn: parent
-                                text: qsTrId("genycaster.profile.follows_you")
-                                color: Theme.inkMuted
-                                font.pixelSize: Math.max(Theme.scaleUi(10),
-                                    Theme.typeCaptionSize - Theme.scaleUi(2))
-                                font.weight: Theme.weightDemiBold
-                            }
-                        }
+                            Item {
+                                id: followsYouBadge
+                                objectName: "profileFollowsYouBadge"
+                                visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
+                                         && !root.isOwnProfile
+                                implicitWidth: followsYouText.implicitWidth + Theme.space2 * 2
+                                implicitHeight: Math.max(Theme.scaleUi(19),
+                                    followsYouText.implicitHeight + Theme.scaleUi(4))
+                                Layout.preferredWidth: implicitWidth
+                                Layout.preferredHeight: implicitHeight
+                                Layout.alignment: Qt.AlignVCenter
 
-                        // Reserved for a future server-signed, wallet-bound GENY
-                        // holding attestation. Never display from editable metadata.
-                        Rectangle {
-                            id: genyHolderBadge
-                            objectName: "verifiedGenyHolderBadge"
-                            visible: root.genyHolderAttested
-                            implicitWidth: holderBadgeContent.implicitWidth + Theme.space3
-                            implicitHeight: Math.max(25, holderBadgeContent.implicitHeight + Theme.space1)
-                            Layout.preferredWidth: implicitWidth
-                            Layout.preferredHeight: implicitHeight
-                            Layout.alignment: Qt.AlignVCenter
-                            radius: implicitHeight / 2
-                            color: Theme.verifiedGenyBadgeBackground
-                            border.color: Theme.verifiedGenyBadgeBorder
-                            border.width: 1
-                            Row {
-                                id: holderBadgeContent
-                                anchors.centerIn: parent
-                                spacing: Theme.space1
-                                Icon {
-                                    text: Theme.iconCheck
-                                    color: Theme.verifiedGenyBadgeInk
-                                    preferredSize: Theme.typeCaptionSize
-                                    anchors.verticalCenter: parent.verticalCenter
+                                Superellipse {
+                                    anchors.fill: parent
+                                    fillColor: Theme.surfaceRaised
+                                    borderWidth: 1
+                                    borderColor: Theme.borderStrong
+                                    curveDepth: Math.round(height / 2)
                                 }
+
                                 Label {
-                                    text: qsTrId("genycaster.brand.geny_ticker")
-                                    color: Theme.verifiedGenyBadgeInk
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    font.weight: Theme.weightBold
+                                    id: followsYouText
+                                    anchors.centerIn: parent
+                                    text: qsTrId("genycaster.profile.follows_you")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Math.max(Theme.scaleUi(10),
+                                        Theme.typeCaptionSize - Theme.scaleUi(2))
+                                    font.weight: Theme.weightDemiBold
                                 }
                             }
-                            ToolTip.visible: genyHolderBadgeHover.hovered
-                            ToolTip.text: qsTrId("genycaster.profile.verified_geny_holder")
-                            HoverHandler { id: genyHolderBadgeHover }
-                        }
 
-
-                        Item {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                        }
-
-                        ActionButton {
-                            id: profileFollowAction
-                            objectName: "profileFollowAction"
-                            Layout.preferredWidth: implicitWidth
-                            Layout.preferredHeight: implicitHeight
-                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-                            // Unknown is not a confirmed negative relationship.
-                            // Keep the button discoverable without blind protocol writes.
-                            visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
-                                     && !Boolean(root.activeDetail.blockedByMe)
-                            // Do not strand Follow in a disabled state when the
-                            // relationship endpoint cannot yet provide evidence.
-                            // The protocol writer still performs signer checks.
-                            enabled: !root.busy && !Boolean(root.activeDetail.blocksMe)
-                            busy: !Boolean(root.activeDetail.followingKnown) && root.busy
-                            compact: true
-                            implicitHeight: Theme.scaleUi(30)
-                            leftPadding: Theme.space2
-                            rightPadding: Theme.space2
-                            iconSize: Theme.scaleUi(14)
-                            iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
-                            text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
-                            selected: Boolean(root.activeDetail.followingByMe)
-                            prominent: !Boolean(root.activeDetail.followingByMe)
-                            Accessible.description: !Boolean(root.activeDetail.followingKnown)
-                                                    ? qsTrId("genycaster.search.relationship_unknown")
-                                                    : Boolean(root.activeDetail.followingByMe)
-                                                      ? qsTrId("genycaster.profile.unfollow") : text
-                            onClicked: {
-                                if (!root.interactionsAvailable) {
-                                    root.authenticationRequested()
-                                    return
+                            // Reserved for a future server-signed, wallet-bound GENY
+                            // holding attestation. Never display from editable metadata.
+                            Rectangle {
+                                id: genyHolderBadge
+                                objectName: "verifiedGenyHolderBadge"
+                                visible: root.genyHolderAttested
+                                implicitWidth: holderBadgeContent.implicitWidth + Theme.space3
+                                implicitHeight: Math.max(25, holderBadgeContent.implicitHeight + Theme.space1)
+                                Layout.preferredWidth: implicitWidth
+                                Layout.preferredHeight: implicitHeight
+                                Layout.alignment: Qt.AlignVCenter
+                                radius: implicitHeight / 2
+                                color: Theme.verifiedGenyBadgeBackground
+                                border.color: Theme.verifiedGenyBadgeBorder
+                                border.width: 1
+                                Row {
+                                    id: holderBadgeContent
+                                    anchors.centerIn: parent
+                                    spacing: Theme.space1
+                                    Icon {
+                                        text: Theme.iconCheck
+                                        color: Theme.verifiedGenyBadgeInk
+                                        preferredSize: Theme.typeCaptionSize
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                    Label {
+                                        text: qsTrId("genycaster.brand.geny_ticker")
+                                        color: Theme.verifiedGenyBadgeInk
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        font.weight: Theme.weightBold
+                                    }
                                 }
-                                root.followingMutationRequested(
-                                    Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
+                                ToolTip.visible: genyHolderBadgeHover.hovered
+                                ToolTip.text: qsTrId("genycaster.profile.verified_geny_holder")
+                                HoverHandler { id: genyHolderBadgeHover }
                             }
-                        }
+
+
+                            Item {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                            }
+
+                            ActionButton {
+                                id: profileFollowAction
+                                objectName: "profileFollowAction"
+                                Layout.preferredWidth: implicitWidth
+                                Layout.preferredHeight: implicitHeight
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                                // Unknown is not a confirmed negative relationship.
+                                // Keep the button discoverable without blind protocol writes.
+                                visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
+                                         && !Boolean(root.activeDetail.blockedByMe)
+                                // Do not strand Follow in a disabled state when the
+                                // relationship endpoint cannot yet provide evidence.
+                                // The protocol writer still performs signer checks.
+                                enabled: !root.busy && !Boolean(root.activeDetail.blocksMe)
+                                busy: !Boolean(root.activeDetail.followingKnown) && root.busy
+                                compact: true
+                                implicitHeight: Theme.scaleUi(30)
+                                leftPadding: Theme.space2
+                                rightPadding: Theme.space2
+                                iconSize: Theme.scaleUi(14)
+                                iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
+                                text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
+                                selected: Boolean(root.activeDetail.followingByMe)
+                                prominent: !Boolean(root.activeDetail.followingByMe)
+                                Accessible.description: !Boolean(root.activeDetail.followingKnown)
+                                                        ? qsTrId("genycaster.search.relationship_unknown")
+                                                        : Boolean(root.activeDetail.followingByMe)
+                                                          ? qsTrId("genycaster.profile.unfollow") : text
+                                onClicked: {
+                                    if (!root.interactionsAvailable) {
+                                        root.authenticationRequested()
+                                        return
+                                    }
+                                    root.followingMutationRequested(
+                                        Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
+                                }
+                            }
 
                         } // Name and follows-you remain adjacent; Follow is at the far right
 
