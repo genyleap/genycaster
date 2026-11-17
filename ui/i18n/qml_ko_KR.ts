@@ -4880,6 +4880,22 @@ Company | https://company.com</source>
             <source>Play emoji once when visible, then keep them still to save energy.</source>
             <translation>이모지가 나타날 때 한 번만 재생하고 이후에는 멈춰서 전력을 절약합니다.</translation>
         </message>
+        <message id="genycaster.settings.chromatic_reflections">
+            <source>Content-aware reflections</source>
+            <translation>콘텐츠 기반 색상 반사</translation>
+        </message>
+        <message id="genycaster.settings.chromatic_reflections_description">
+            <source>Reflect nearby colors on sidebars, headers and panels.</source>
+            <translation>주변 콘텐츠의 색상을 사이드바, 헤더, 패널에 반사합니다.</translation>
+        </message>
+        <message id="genycaster.settings.reflection_intensity">
+            <source>Reflection intensity</source>
+            <translation>반사 강도</translation>
+        </message>
+        <message id="genycaster.settings.reduce_reflection_transparency">
+            <source>Reduce transparency</source>
+            <translation>투명도 줄이기</translation>
+        </message>
         <message id="genycaster.settings.neon_effects">
             <source>Neon edge lighting</source>
             <translation>네온 테두리 조명</translation>
