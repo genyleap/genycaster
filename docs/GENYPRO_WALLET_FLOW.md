@@ -41,13 +41,21 @@ only shown when no branded provider is announced.
 ## Deployment requirements
 
 Database schema **15** must be applied under a database administrator account
-before the app-owned payer proof route can work. Schema **14** is the separate
-GenyBuzz rollout. The restricted runtime role does not have CREATE privileges;
-never grant it arbitrary DDL rights.
+before the app-owned payer proof route can work. **Schema 16 is additionally
+required for native HyperSnap Pro quotes.** Migration 012 accepted only
+`farcaster:<FID>` subjects, so wallet proof could succeed while every
+`hypersnap:<FID>` payment quote failed with an upstream 503. Migration 016
+preserves Farcaster subjects and accepts only canonical
+`hypersnap:native-registry` issuer + `hypersnap:<FID>` within the safe FID
+range. It does not weaken wallet signature validation or payment receipts.
+Schema **14** is the separate GenyBuzz rollout. The restricted runtime role
+does not have schema-altering privileges; never grant it arbitrary DDL rights.
 
 1. Back up the current PostgreSQL database. Check migration state.
-2. Apply `014_genybuzz.sql` and `015_pro_wallet_proof.sql` using a
-   database administrator account. Both are transactional and additive.
+2. Apply `014_genybuzz.sql`, `015_pro_wallet_proof.sql` and
+   `016_pro_hypersnap_quotes.sql` in order using a database administrator
+   account. The last migration replaces only one quoted-identity CHECK constraint.
+   Keep the API runtime role unprivileged.
 3. Deploy the updated Account API alongside the updated native/WASM client.
    Check authenticated route responses and the separate health endpoint.
 4. Run the `services/account-sync/test/pro_wallet_proof.test.mjs`,
@@ -58,7 +66,10 @@ never grant it arbitrary DDL rights.
 6. Restart and sign in again to verify that verified payer state is durable.
 
 Until migration 15 and the API release are active, a new wallet cannot be
-linked through this first-party proof route. The client must report an error
+linked through this first-party proof route. Until migration 16 is applied,
+HyperSnap Native wallet proof may succeed but quote creation must fail closed.
+Restart the account API after applying schema 16 so its startup schema capability
+check can see the new migration. The client must report an error
 rather than pretend Pro was granted. Restarting the old API cannot create
 new routes.
 
