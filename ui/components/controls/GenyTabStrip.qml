@@ -26,7 +26,7 @@ Item {
     }
 
     Superellipse {
-        visible: root.segmented
+        visible: false // No background plate behind tab collections.
         anchors.fill: parent
         fillColor: Theme.surfaceMuted
         borderWidth: 1

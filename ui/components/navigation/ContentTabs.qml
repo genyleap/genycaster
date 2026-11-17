@@ -2,8 +2,8 @@ import QtQuick
 import QtQuick.Layouts
 import Farcaster.Client
 
-// Hover softly changes only the label color: no rectangles, scale or layout
-// transitions. The persistent underline moves only after a real selection.
+// Typographic tabs: hover and selection change the label color only.
+// No backing plate or underline competes with the surrounding card material.
 Item {
     id: root
     property string currentMode: "for-you"
@@ -70,19 +70,8 @@ Item {
                 // Own the underline in each tab's coordinate system. A shared
                 // sibling underline can bind before Repeater.itemAt(0) exists,
                 // leaving the first selection stuck at the left edge.
-                Rectangle {
-                    objectName: "contentTabUnderline"
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.bottom: parent.bottom
-                    width: Math.min(42, Math.max(20, parent.width - Theme.space3 * 2))
-                    height: 3
-                    radius: 1.5
-                    color: Theme.accent
-                    opacity: tabButton.selected ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                    }
-                }
+                // Active and hovered states remain typographic only.
+                // No persistent underline or backing plate is rendered.
                 TapHandler {
                     gesturePolicy: TapHandler.ReleaseWithinBounds
                     onTapped: {

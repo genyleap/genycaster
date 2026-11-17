@@ -78,11 +78,11 @@ test('notification portraits route to the exact FID and groups use one counter r
     assert.match(notifications,/root\.inspectActors\(notificationRow\.modelData\)/);
 });
 
-test('Explorer underline is owned by each selected tab and mirrors naturally',()=>{
+test('Explorer tabs render selection through text color without a background or underline',()=>{
     const tabs=read('ui/components/navigation/ContentTabs.qml');
-    assert.match(tabs,/id: tabButton[\s\S]*?objectName: "contentTabUnderline"/);
-    assert.match(tabs,/anchors\.horizontalCenter: parent\.horizontalCenter/);
-    assert.match(tabs,/opacity: tabButton\.selected \? 1 : 0/);
+    assert.match(tabs,/color: tabButton\.selected \? Theme\.accent/);
+    assert.doesNotMatch(tabs,/contentTabUnderline/);
+    assert.doesNotMatch(tabs,/Rectangle\s*\{/);
     assert.doesNotMatch(tabs,/itemAt\(root\.selectedIndex\)/);
 });
 
@@ -101,7 +101,7 @@ test('Settings uses shared responsive navigation and Home has functional activit
     assert.match(settings,/component SettingsNavigationTab: Button/);
     assert.equal((settings.match(/delegate: SettingsNavigationTab \{/g)||[]).length,3);
     assert.match(settings,/Math\.min\(920, Math\.max\(0, parent\.width - Theme\.space4 \* 2\)\)/);
-    assert.match(home,/component HomeActivityCard: Superellipse/);
+    assert.match(home,/component HomeActivityCard: NeonCard/);
     assert.match(home,/root\.notificationUnreadCount > 0/);
     assert.match(home,/onClicked: root\.notificationsRequested\(\)/);
     assert.match(home,/onClicked: root\.channelsRequested\(\)/);

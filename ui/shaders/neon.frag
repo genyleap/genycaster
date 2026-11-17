@@ -93,8 +93,11 @@ void main()
         extent - vec2(2.0 * inset), surfaceParameters.z,
         surfaceParameters.w, cornerFlags);
     // Exact one-pixel superellipse rim: no broad inward halo or raised tube.
-    float aa = max(length(vec2(dFdx(sdf), dFdy(sdf))), 0.001);
-    float borderCore = 1.0 - smoothstep(0.5 - aa * 0.5,
+    // Pixel-footprint AA preserves subpixel edges at fractional DPR/scales.
+    // The core covers a centered one-pixel stroke; the transition spans the
+    // full derivative footprint instead of abruptly clipping rounded corners.
+    float aa = max(fwidth(sdf), 0.001);
+    float borderCore = 1.0 - smoothstep(max(0.0, 0.5 - aa * 0.5),
                                        0.5 + aa * 0.5, abs(sdf));
 
     vec2 delta = pixel - focusParameters.xy;

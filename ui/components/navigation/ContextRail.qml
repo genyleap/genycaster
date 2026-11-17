@@ -142,7 +142,9 @@ Item {
         default property alias content: body.data
 
         fillColor: Theme.contextRailCard
-        borderWidth: 0
+        // A real antialiased stroke anchors the halo to the same outline.
+        borderWidth: Theme.strokeHairline
+        borderColor: Theme.borderMuted
         curveDepth: Theme.curveModal
         elevation: Theme.elevationNone
         implicitHeight: body.implicitHeight + Theme.space3 * 2

@@ -42,7 +42,7 @@ Button {
                 Layout.preferredHeight: Theme.scaleUi(16)
                 Layout.alignment: Qt.AlignVCenter
                 preferredSize: Theme.scaleUi(15)
-                color: control.selected ? (control.segmented ? Theme.ink : Theme.accent)
+                color: control.selected ? Theme.accent
                                         : (control.hovered ? Theme.ink : Theme.inkMuted)
                 Behavior on color {
                     ColorAnimation { duration: Theme.reduceMotion ? 0 : 110 }
@@ -51,7 +51,7 @@ Button {
             Label {
                 Layout.fillWidth: true
                 text: control.text
-                color: control.selected ? (control.segmented ? Theme.ink : Theme.accent)
+                color: control.selected ? Theme.accent
                                         : (control.hovered ? Theme.ink : Theme.inkMuted)
                 Behavior on color {
                     ColorAnimation { duration: Theme.reduceMotion ? 0 : 110 }
@@ -67,19 +67,21 @@ Button {
     }
 
     background: NeonStatePlate {
-        selected: control.segmented && control.selected
+        // Tabs are typographic navigation: selection changes ink only.
+        selected: false
         // Unsegmented tabs (Dashboard, Explorer, Composer) are interactive
         // too. The old segmented-only predicate left them visually inert.
         hovered: control.hovered
         pressed: control.down
         focused: Theme.keyboardFocusVisible(control)
         selectedFill: Theme.surfaceRaised
-        hoverFill: Theme.surfaceHover
-        pressedFill: Theme.surfacePressed
+        hoverFill: "transparent"
+        pressedFill: "transparent"
+        neonOnHover: false
         cornerRadius: Theme.curveControl
 
         Superellipse {
-            visible: !control.segmented && control.showSelectionIndicator
+            visible: false // Selection is expressed solely by text/icon color.
             opacity: control.selected ? 1 : 0
             Behavior on opacity {
                 NumberAnimation { duration: Theme.motionFast; easing.type: Easing.InOutCubic }
