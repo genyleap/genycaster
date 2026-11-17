@@ -112,6 +112,17 @@ GenyDrawer {
         root.lastRequestedAsset = root.selectedAsset
         openProofConnections.requestProPaymentQuote(root.selectedAsset)
     }
+    function openQuotedCheckout() {
+        // The quote response advances the UI, never initiates wallet payment.
+        // A separate, explicit click is required to authorize a transaction.
+        if (!root.opened || !root.purchaseIntent || root.checkoutOpen
+            || !root.quoteForSelection || root.eligible) return
+        root.checkoutOpen = true
+        root.purchaseIntent = false
+        root.displayedQuoteId = String(root.paymentQuote.id)
+        root.manualExpanded = !root.walletAvailable
+        detailsViewport.contentY = 0
+    }
     function prepareQuote() {
         if (!root.opened || !root.purchaseIntent || root.checkoutOpen || root.eligible
             || !root.canRequestQuote || root.busy || root.quoteForSelection
@@ -166,10 +177,7 @@ GenyDrawer {
                 if (!root.busy) root.requestCurrentQuote()
                 return
             }
-            root.checkoutOpen = true
-            root.displayedQuoteId = String(root.paymentQuote.id)
-            root.manualExpanded = !root.walletAvailable
-            if (root.walletAvailable && !root.busy) proCheckout.pay()
+            root.openQuotedCheckout()
             return
         }
         if (root.txSubmitted) {
@@ -193,6 +201,8 @@ GenyDrawer {
         if (!membershipVerified) return qsTrId("genycaster.pro.check_status")
         if (monthlyUsdCents <= 0) return qsTrId("genycaster.pro.refresh_price")
         if (!cloudReady) return qsTrId("genycaster.pro.restore_secure_session")
+        if (!checkoutActive && plan.payment_available !== true)
+            return qsTrId("genycaster.pro.payment_unavailable")
         if (!checkoutActive) return qsTrId("genycaster.pro.checkout_continue")
         if (txSubmitted) return qsTrId("genycaster.pro.checkout_check_payment")
         if (!quoteValid) return qsTrId("genycaster.pro.checkout_new_quote")
@@ -264,7 +274,18 @@ GenyDrawer {
             Qt.callLater(() => proCheckout.cancel())
     }
     onCanRequestQuoteChanged: root.prepareQuote()
-    onBusyChanged: root.prepareQuote()
+    onBusyChanged: {
+        if (!root.busy && root.purchaseIntent && !root.quoteForSelection
+            && openProofConnections
+            && String(openProofConnections.proBillingError || "").length > 0) {
+            // A failed request must not remain latched as an attempted asset.
+            // Do not auto-retry a failed payment quote.
+            root.purchaseIntent = false
+            root.lastRequestedAsset = ""
+        } else {
+            root.prepareQuote()
+        }
+    }
     onSelectedAssetChanged: {
         root.lastRequestedAsset = ""
         root.prepareQuote()
@@ -280,6 +301,7 @@ GenyDrawer {
                 root.paymentHash = ""
             }
         }
+        root.openQuotedCheckout()
         root.prepareQuote()
     }
     // No refresh from generic account stateChanged: it includes unrelated
@@ -1092,6 +1114,16 @@ GenyDrawer {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
+                    visible: !root.checkoutActive && openProofConnections
+                        && String(openProofConnections.proBillingError || "").length > 0
+                        && openProofConnections.proBillingError !== "payment_pending"
+                    text: qsTrId("genycaster.pro.billing_error")
+                    color: Theme.negative
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
                     visible: root.monthlyUsdCents > 0 && root.plan.payment_available === false
                     text: qsTrId("genycaster.pro.payment_unavailable")
                     color: Theme.negative
@@ -1133,6 +1165,8 @@ GenyDrawer {
                     ? Theme.iconWallet : ""
                 busy: root.busy
                 enabled: !root.busy
+                    && (root.eligible || !root.membershipVerified || !root.cloudReady
+                        || root.checkoutActive || root.canRequestQuote)
                     && !(openProofConnections && openProofConnections.proPlanBusy)
                     && !(root.appSignedIn && root.restoringSession)
                     && (root.eligible || !root.checkoutActive || root.txSubmitted
