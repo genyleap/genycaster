@@ -20,14 +20,18 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
         && released > joined && returned > released,
         "the main thread must stop producers, join workers and explicitly release the scene graph");
 
-    const releaseResources = teardown.indexOf("mainWindow->releaseResources();");
+    const overlayDetach = teardown.indexOf('child->setParentItem(nullptr);');
+    const hide = teardown.indexOf('mainWindow->hide();');
     const roots = teardown.indexOf("engine.rootObjects()");
     const destroy = teardown.indexOf("delete root;");
     const drain = teardown.indexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
     const collect = teardown.indexOf("engine.collectGarbage();");
-    assert.ok(releaseResources >= 0 && roots > releaseResources
-        && destroy > roots && drain > destroy && collect > drain,
-        "QML teardown must release the window, destroy roots and drain deferred Qt deletion");
+    assert.ok(overlayDetach >= 0 && hide > overlayDetach
+        && roots > hide && destroy > roots && drain > destroy && collect > drain,
+        "detach the overlay while the window is alive, then destroy QML and drain deletions");
+    assert.doesNotMatch(teardown,/mainWindow->releaseResources\(\)/,
+        "releasing the scene graph ahead of Qt Quick overlay teardown caused a macOS crash");
+    assert.doesNotMatch(teardown,/setPersistentGraphics\(false\)|setPersistentSceneGraph\(false\)/);
     assert.match(main, /#include <QEvent>/);
     assert.doesNotMatch(segment, /#if defined\(Q_OS_ANDROID\)/);
     assert.doesNotMatch(segment, /qInstallMessageHandler|QT_LOGGING_RULES|QT_FATAL_WARNINGS=0/);
