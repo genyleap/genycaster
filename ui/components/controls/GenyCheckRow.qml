@@ -14,8 +14,8 @@ Button {
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
 
-    topPadding: Theme.space3
-    bottomPadding: Theme.space3
+    topPadding: Theme.space2
+    bottomPadding: Theme.space2
     leftPadding: Theme.space3
     rightPadding: Theme.space3
     implicitHeight: Math.max(Theme.touchTarget,
@@ -45,26 +45,26 @@ Button {
 
     contentItem: RowLayout {
         id: choiceContent
-        spacing: Theme.space3
+        spacing: Theme.space2
         layoutDirection: Theme.uiDirection
 
         // A visible outline even in Light mode, and an accessible tick
         // whose contrast follows the currently selected accent palette.
         Superellipse {
-            Layout.preferredWidth: Theme.scaleUi(24)
-            Layout.preferredHeight: Theme.scaleUi(24)
+            Layout.preferredWidth: Theme.scaleUi(20)
+            Layout.preferredHeight: Theme.scaleUi(20)
             Layout.alignment: Qt.AlignVCenter
             fillColor: control.checked ? Theme.accent : Theme.surface
             borderColor: control.checked ? Theme.accent : Theme.borderStrong
             borderWidth: Theme.strokeStandard
-            curveDepth: Theme.scaleUi(6)
+            curveDepth: Theme.scaleUi(5)
 
             Icon {
                 anchors.centerIn: parent
                 visible: control.checked
                 text: Theme.iconCheck
                 color: Theme.contrastInk(Theme.accent)
-                preferredSize: Theme.scaleUi(16)
+                preferredSize: Theme.scaleUi(14)
                 Accessible.ignored: true
             }
         }
@@ -75,8 +75,11 @@ Button {
             Layout.alignment: Qt.AlignVCenter
             text: control.label
             color: control.enabled ? Theme.ink : Theme.inkDisabled
-            font.pixelSize: Theme.typeBodySize
-            font.weight: Theme.weightMedium
+            // A consent checkbox is a setting label, not a section heading.
+            font.pixelSize: Theme.typeLabelSize
+            font.weight: Font.Normal
+            lineHeight: 1.25
+            lineHeightMode: Text.ProportionalHeight
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap
         }
