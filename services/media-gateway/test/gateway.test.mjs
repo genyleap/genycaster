@@ -458,16 +458,16 @@ test('browser token insight route enforces public token identity and first-party
     const invalid = await fetch(origin + '/v1/browser/tokens?network=base&address=localhost');
     assert.equal(invalid.status, 400);
     const preflight = await fetch(origin + '/v1/browser/tokens', {
-      method: 'OPTIONS', headers: { origin: 'https://caster.genyleap.com' },
+      method: 'OPTIONS', headers: { origin: 'https://genycaster.xyz' },
     });
     assert.equal(preflight.status, 204);
-    assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://caster.genyleap.com');
+    assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://genycaster.xyz');
     const rejected = await fetch(origin + '/v1/browser/tokens', {
       method: 'OPTIONS', headers: { origin: 'https://evil.test' },
     });
     assert.equal(rejected.status, 403);
     const url = origin + '/v1/browser/tokens?network=base&address=' + tokenAddress;
-    const first = await fetch(url, { headers: { origin: 'https://caster.genyleap.com' } });
+    const first = await fetch(url, { headers: { origin: 'https://genycaster.xyz' } });
     assert.equal(first.status, 200);
     const snapshot = await first.json();
     assert.equal(snapshot.network, 'base');
@@ -567,7 +567,7 @@ test('browser OpenProof provider catalog is CORS-safe, bounded and excludes prov
   await withGateway(async({origin}) => {
     const path = '/v1/browser/openproof/providers';
     const preflight = await fetch(origin+path,{method:'OPTIONS',headers:{
-      origin:'https://caster.genyleap.com',
+      origin:'https://genycaster.xyz',
       'access-control-request-method':'GET'
     }});
     assert.equal(preflight.status,204);
@@ -618,7 +618,7 @@ test('browser OpenProof account handoff binds provider and local return path ser
   await withGateway(async ({ origin }) => {
     const base = '/v1/browser/openproof/connections/handoff';
     const preflight = await fetch(origin + base, {method:'OPTIONS', headers: {
-      origin:'https://caster.genyleap.com', 'access-control-request-method':'POST',
+      origin:'https://genycaster.xyz', 'access-control-request-method':'POST',
       'access-control-request-headers':'authorization,content-type'
     }});
     assert.equal(preflight.status,204);
@@ -793,12 +793,12 @@ test('browser cast view endpoint enforces bounded batch POST and trusted CORS',a
   await withGateway(async ({origin})=>{
     const url=origin+'/v1/browser/cast-views';
     const preflight=await fetch(url,{method:'OPTIONS',headers:{
-      origin:'https://caster.genyleap.com',
+      origin:'https://genycaster.xyz',
       'access-control-request-method':'POST',
       'access-control-request-headers':'content-type',
     }});
     assert.equal(preflight.status,204);
-    assert.equal(preflight.headers.get('access-control-allow-origin'),'https://caster.genyleap.com');
+    assert.equal(preflight.headers.get('access-control-allow-origin'),'https://genycaster.xyz');
     const denied=await fetch(url,{method:'OPTIONS',headers:{
       origin:'https://untrusted.example',
       'access-control-request-method':'POST',
@@ -806,11 +806,11 @@ test('browser cast view endpoint enforces bounded batch POST and trusted CORS',a
     assert.equal(denied.status,403);
     const cast={castId:hash,authorFid:321969,text:'Remember when the early Farcaster client supported'};
     const result=await fetch(url,{method:'POST',headers:{
-      origin:'https://caster.genyleap.com',
+      origin:'https://genycaster.xyz',
       'content-type':'application/json',
     },body:JSON.stringify({casts:[cast]})});
     assert.equal(result.status,200);
-    assert.equal(result.headers.get('access-control-allow-origin'),'https://caster.genyleap.com');
+    assert.equal(result.headers.get('access-control-allow-origin'),'https://genycaster.xyz');
     assert.deepEqual(await result.json(),{counts:{[hash]:1300}});
     assert.deepEqual(requests[0],[cast]);
     const wrongMethod=await fetch(url,{method:'GET'});
@@ -834,17 +834,17 @@ test('read-only browser cast reactions endpoint enforces CORS, rate, and the bat
   await withGateway(async({origin})=>{
     const url=origin+'/v1/browser/cast-reactions';
     const options=await fetch(url,{method:'OPTIONS',headers:{
-      origin:'https://caster.genyleap.com',
+      origin:'https://genycaster.xyz',
       'access-control-request-method':'POST',
       'access-control-request-headers':'content-type',
     }});
     assert.equal(options.status,204);
-    assert.equal(options.headers.get('access-control-allow-origin'),'https://caster.genyleap.com');
+    assert.equal(options.headers.get('access-control-allow-origin'),'https://genycaster.xyz');
     const rejected=await fetch(url,{method:'OPTIONS',headers:{origin:'https://unknown.example'}});
     assert.equal(rejected.status,403);
     const body={viewerFid:234616,casts:[hash]};
     const response=await fetch(url,{method:'POST',headers:{
-      origin:'https://caster.genyleap.com','content-type':'application/json'
+      origin:'https://genycaster.xyz','content-type':'application/json'
     },body:JSON.stringify(body)});
     assert.equal(response.status,200);
     assert.deepEqual(await response.json(),{reactions:{[hash]:{liked:true,recasted:true}}});
@@ -873,9 +873,9 @@ test('direct Farcaster phrase-recovery broker endpoints pass only fixed proofs, 
   await withGateway(async({origin})=>{
     const prefix='/v1/browser/farcaster/recovery/';
     const opts={method:'POST',headers:{'content-type':'application/json',
-      origin:'https://caster.genyleap.com'}};
+      origin:'https://genycaster.xyz'}};
     const preflight=await fetch(origin+prefix+'start',{method:'OPTIONS',
-      headers:{origin:'https://caster.genyleap.com'}});
+      headers:{origin:'https://genycaster.xyz'}});
     assert.equal(preflight.status,204);
     assert.equal(preflight.headers.get('access-control-allow-origin'),'*');
     const attack=await fetch(origin+prefix+'start',{...opts,body:JSON.stringify({
