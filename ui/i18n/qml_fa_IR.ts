@@ -7965,5 +7965,45 @@ Company | https://company.com</source>
             <source>Done</source>
             <translation>انجام شد</translation>
         </message>
+        <message id="genycaster.buzz.enable">
+            <source>Enable GenyBuzz</source>
+            <translation>فعال‌کردن GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.disable">
+            <source>Disable GenyBuzz</source>
+            <translation>غیرفعال‌کردن GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.send">
+            <source>Send Buzz</source>
+            <translation>ارسال باز</translation>
+        </message>
+        <message id="genycaster.buzz.sent">
+            <source>Buzz sent</source>
+            <translation>باز ارسال شد</translation>
+        </message>
+        <message id="genycaster.buzz.slow_down">
+            <source>Too many Buzzes. Try again later.</source>
+            <translation>تعداد بازها زیاد است. بعداً دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.buzz.not_available">
+            <source>Buzz is unavailable for this account.</source>
+            <translation>باز برای این حساب در دسترس نیست.</translation>
+        </message>
+        <message id="genycaster.buzz.error">
+            <source>Could not send Buzz. Try again.</source>
+            <translation>ارسال باز انجام نشد. دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.buzz.received">
+            <source>GenyBuzz</source>
+            <translation>GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.from_fid">
+            <source>Attention nudge from FID %1</source>
+            <translation>درخواست توجه از FID %1</translation>
+        </message>
+        <message id="genycaster.buzz.view">
+            <source>View</source>
+            <translation>مشاهده</translation>
+        </message>
     </context>
 </TS>
