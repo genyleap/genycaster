@@ -21,7 +21,8 @@ void check(bool condition, const char* message) {
     if (!condition) qFatal("%s", message);
 }
 
-QJsonObject cast(const int daysOld, const bool reply, const int likes) {
+QJsonObject cast(const int daysOld, const bool reply, const int likes,
+                 const QJsonValue& fid = QJsonValue{42}) {
     const QJsonObject reactions{
         {QStringLiteral("likes_count"), likes},
         {QStringLiteral("recasts_count"), likes / 3}
@@ -32,7 +33,7 @@ QJsonObject cast(const int daysOld, const bool reply, const int likes) {
                         (daysOld == 12 ? QLatin1Char('c') :
                          daysOld == 40 ? QLatin1Char('d') :
                          daysOld == 400 ? QLatin1Char('e') : QLatin1Char('a')))},
-        {QStringLiteral("author"), QJsonObject{{QStringLiteral("fid"), 42}}},
+        {QStringLiteral("author"), QJsonObject{{QStringLiteral("fid"), fid}}},
         {QStringLiteral("timestamp"), QDateTime::currentDateTimeUtc()
             .addDays(-daysOld).toString(Qt::ISODateWithMs)},
         {QStringLiteral("type"), reply ? QStringLiteral("reply") : QStringLiteral("cast")},
@@ -83,19 +84,31 @@ int main(int argc, char** argv) {
                     ++requestCount;
                     QJsonObject output{};
                     if (url.path() == QLatin1String("/v2/farcaster/user")) {
-                        const int fid = query.queryItemValue(QStringLiteral("fid")).toInt();
-                        output = QJsonObject{{QStringLiteral("user"),
-                            QJsonObject{{QStringLiteral("fid"), fid},
-                                        {QStringLiteral("follower_count"), 18},
-                                        {QStringLiteral("following_count"), 9}}}};
+                        const QString fid = query.queryItemValue(QStringLiteral("fid"));
+                        // HyperSnap returns large native FIDs as strings and
+                        // audience statistics inside user.profile.
+                        output = fid == QLatin1String("4294967296")
+                            ? QJsonObject{{QStringLiteral("user"),
+                                QJsonObject{{QStringLiteral("fid"), fid},
+                                            {QStringLiteral("profile"), QJsonObject{
+                                                {QStringLiteral("follower_count"), 11},
+                                                {QStringLiteral("following_count"), 10}}}}}}
+                            : QJsonObject{{QStringLiteral("user"),
+                                QJsonObject{{QStringLiteral("fid"), fid.toInt()},
+                                            {QStringLiteral("follower_count"), 18},
+                                            {QStringLiteral("following_count"), 9}}}};
                     } else if (url.path() == QLatin1String("/v2/farcaster/feed/user/casts")) {
-                        const int fid = query.queryItemValue(QStringLiteral("fid")).toInt();
+                        const QString fid = query.queryItemValue(QStringLiteral("fid"));
+                        const auto large = QJsonValue{QStringLiteral("4294967296")};
                         output = QJsonObject{
-                            {QStringLiteral("casts"), fid == 42
+                            {QStringLiteral("casts"), fid == QLatin1String("42")
                                 ? QJsonArray{cast(2, false, 6), cast(5, true, 20),
                                              cast(12, false, 9), cast(40, false, 40),
                                              cast(400, false, 100)}
-                                : QJsonArray{}},
+                                : fid == QLatin1String("4294967296")
+                                  ? QJsonArray{cast(2, false, 6, large),
+                                               cast(5, true, 20, large)}
+                                  : QJsonArray{}},
                             {QStringLiteral("next"), QJsonObject{}}
                         };
                     } else if (url.path() == QLatin1String("/v1/castsByFid")) {
@@ -138,6 +151,21 @@ int main(int argc, char** argv) {
     check(summary.value(QStringLiteral("followers")).toLongLong() == 18,
           "Current followers from the matching FID");
     check(stats.topCasts().size() == 1, "7-day top cast is scoped");
+
+    stats.load(QStringLiteral("4294967296"), QStringLiteral("hypersnap-v2"), origin, 7);
+    waitFor(stats);
+    const auto native = stats.summary();
+    check(stats.state() == QLatin1String("ready"), "Large HyperSnap FID fully parsed");
+    check(native.value(QStringLiteral("casts")).toInt() == 1,
+          "HyperSnap string-FID cast must not be silently discarded");
+    check(native.value(QStringLiteral("replies")).toInt() == 1,
+          "HyperSnap string-FID reply must not be silently discarded");
+    check(native.value(QStringLiteral("engagement")).toLongLong() == 10,
+          "Only native posts actually fetched count toward engagement");
+    check(native.value(QStringLiteral("followers")).toInt() == 11
+          && native.value(QStringLiteral("following")).toInt() == 10,
+          "HyperSnap audience counts come from the nested profile object");
+    check(stats.topCasts().size() == 1, "Native top casts are FID scoped");
 
     stats.load(QStringLiteral("42"), QStringLiteral("hypersnap-v2"), origin, 30);
     waitFor(stats);
