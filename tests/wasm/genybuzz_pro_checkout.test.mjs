@@ -57,6 +57,36 @@ test('Continue opens a wallet selector on the user gesture, never a silent trans
   assert.match(pro,/qsTrId\("genycaster\.pro\.quote_retry_notice"\)/);
 });
 
+test('Pro wallet verification signs an account-bound challenge before requesting a quote',()=>{
+  const proof=read('services/account-sync/pro_wallet_proof.mjs');
+  const migration15=read('services/account-sync/migrations/015_pro_wallet_proof.sql');
+  const bridge=read('src/providers/compatibility/browser_wallet/bridge.cpp');
+  const icon=read('ui/wasm/genycaster-icon.svg');
+  assert.match(proof,/Ethereum Signed Message/);
+  assert.match(proof,/Account issuer:/);
+  assert.match(proof,/verifyProWalletSignature/);
+  assert.match(migration15,/consumed_at/);
+  assert.match(migration15,/CREATE TABLE IF NOT EXISTS pro_wallets/);
+  assert.match(header,/Q_INVOKABLE void requestProWalletChallenge/);
+  assert.match(header,/Q_PROPERTY\(bool proWalletVerified/);
+  assert.match(controller,/\/api\/v1\/cloud\/pro\/wallet\/challenge/);
+  assert.match(controller,/\/api\/v1\/cloud\/pro\/wallet\/verify/);
+  assert.match(checkout,/void ProCheckoutController::signWalletChallenge\(/);
+  assert.match(checkout,/request\(QStringLiteral\("personal_sign"\)/);
+  assert.match(pro,/onProWalletChallengeReady\(id, message\)/);
+  assert.match(pro,/onProWalletVerificationCompleted\(\)/);
+  assert.match(pro,/root\.walletVerified/);
+  assert.match(pro,/root\.quoteAttempted[\s\S]*root\.lastRequestedAsset === root\.selectedAsset/);
+  assert.match(cloud,/store\.getProWallets\(owner\)/);
+  assert.match(bridge,/@media\(prefers-color-scheme:dark\)/);
+  assert.match(bridge,/Signature approved\. Return to GenyCaster/);
+  // The local approval page must use the G-arrow logo paths, not a Unicode
+  // star or an unrelated generic brand placeholder.
+  for(const [,path] of icon.matchAll(/<path fill="[^"]+" d="([^"]+)"/g))
+    assert.ok(bridge.includes(path),'missing canonical brand geometry');
+  assert.doesNotMatch(bridge,/brand-mark" aria-hidden="true">✦/);
+});
+
 test('GenyBuzz remains app-owned, opt-in and DM-context-ready without a protocol writer',()=>{
   assert.match(cloud,/handleGenyBuzz\(/);
   assert.match(migration,/CREATE TABLE IF NOT EXISTS genybuzz_preferences/);
