@@ -141,7 +141,16 @@ test('consent page keeps a confirmed approval steady through a follow-up read an
      return method==='eth_chainId'?'0x1':
        ['0x1111111111111111111111111111111111111111'];
    },on(){},removeListener(){}};
- const win={ethereum:wallet,addEventListener(){},dispatchEvent(){}};
+ const eventHandlers=new Map();
+ const win={ethereum:wallet,
+   addEventListener(type,callback){eventHandlers.set(type,callback);},
+   dispatchEvent(event){
+     if(event.type==='eip6963:requestProvider')
+       eventHandlers.get('eip6963:announceProvider')?.({
+         detail:{info:{name:'Rabby Wallet'},provider:wallet}
+       });
+   }
+ };
  const next=[
    {method:'eth_requestAccounts',requiresApproval:true,transportId:1,params:[]},
    {method:'eth_chainId',requiresApproval:false,transportId:2,params:[]}
