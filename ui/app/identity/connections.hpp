@@ -87,6 +87,12 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool mutedProfilesReady READ mutedProfilesReady NOTIFY mutedProfilesChanged)
     Q_PROPERTY(bool mutedProfilesBusy READ mutedProfilesBusy NOTIFY mutedProfilesChanged)
     Q_PROPERTY(QString mutedProfilesError READ mutedProfilesError NOTIFY mutedProfilesChanged)
+    Q_PROPERTY(QVariantMap genyBuzzPreferences READ genyBuzzPreferences NOTIFY genyBuzzChanged)
+    Q_PROPERTY(bool genyBuzzPreferencesReady READ genyBuzzPreferencesReady NOTIFY genyBuzzChanged)
+    Q_PROPERTY(QVariantList genyBuzzInbox READ genyBuzzInbox NOTIFY genyBuzzChanged)
+    Q_PROPERTY(bool genyBuzzBusy READ genyBuzzBusy NOTIFY genyBuzzChanged)
+    Q_PROPERTY(QString genyBuzzError READ genyBuzzError NOTIFY genyBuzzChanged)
+    Q_PROPERTY(qulonglong genyBuzzLastSentFid READ genyBuzzLastSentFid NOTIFY genyBuzzChanged)
     Q_PROPERTY(QVariantList streakLeaderboard READ streakLeaderboard NOTIFY streakChanged)
     Q_PROPERTY(QString publicActivitySource READ publicActivitySource NOTIFY streakChanged)
     Q_PROPERTY(QString publicActivityGithubLogin READ publicActivityGithubLogin NOTIFY streakChanged)
@@ -242,6 +248,20 @@ public:
     [[nodiscard]] QString mutedProfilesError() const { return m_mutedProfilesError; }
     Q_INVOKABLE void fetchMutedProfiles();
     Q_INVOKABLE void setProfileMuted(qulonglong targetFid, bool muted);
+    // Product-owned nudge extension. 'dm' is a future entry context, NOT
+    // a protocol send or a requirement for a message transport.
+    [[nodiscard]] QVariantMap genyBuzzPreferences() const { return m_buzzPreferences; }
+    [[nodiscard]] bool genyBuzzPreferencesReady() const noexcept { return m_buzzPreferencesReady; }
+    [[nodiscard]] QVariantList genyBuzzInbox() const { return m_buzzInbox; }
+    [[nodiscard]] bool genyBuzzBusy() const noexcept { return m_buzzSend || m_buzzPreferenceWrite; }
+    [[nodiscard]] QString genyBuzzError() const { return m_buzzError; }
+    [[nodiscard]] qulonglong genyBuzzLastSentFid() const noexcept { return m_buzzLastSentFid; }
+    Q_INVOKABLE void fetchGenyBuzzPreferences();
+    Q_INVOKABLE void setGenyBuzzEnabled(bool enabled);
+    Q_INVOKABLE void sendGenyBuzz(qulonglong targetFid, const QString& targetKind,
+                                  const QString& context = QStringLiteral("profile"));
+    Q_INVOKABLE void fetchGenyBuzzInbox();
+    Q_INVOKABLE void acknowledgeGenyBuzz(const QString& id);
     [[nodiscard]] QVariantList streakLeaderboard() const { return m_streakLeaderboard; }
     [[nodiscard]] bool streakLeaderboardBusy() const noexcept { return m_streakLeaderboardRead != nullptr; }
     [[nodiscard]] QString publicActivitySource() const { return m_publicActivitySource; }
@@ -377,6 +397,7 @@ public:
 
 signals:
     void mutedProfilesChanged();
+    void genyBuzzChanged();
     void proPlanChanged();
     void proEntitlementsChanged();
     void proBillingChanged();
@@ -472,6 +493,17 @@ private:
     QPointer<QNetworkReply> m_streakPreferencesRead{};
     QPointer<QNetworkReply> m_mutedProfilesRead{};
     QPointer<QNetworkReply> m_mutedProfilesWrite{};
+    QPointer<QNetworkReply> m_buzzPreferenceRead{};
+    QPointer<QNetworkReply> m_buzzPreferenceWrite{};
+    QPointer<QNetworkReply> m_buzzSend{};
+    QPointer<QNetworkReply> m_buzzInboxRead{};
+    QPointer<QNetworkReply> m_buzzAck{};
+    QVariantMap m_buzzPreferences{};
+    QVariantList m_buzzInbox{};
+    QString m_buzzError{};
+    bool m_buzzPreferencesReady{};
+    qint64 m_buzzPreferencesFetchedAt{};
+    qulonglong m_buzzLastSentFid{};
     QStringList m_mutedProfileFids{};
     QString m_mutedProfilesError{};
     qlonglong m_mutedProfilesRevision{};
