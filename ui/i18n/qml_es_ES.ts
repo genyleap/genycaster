@@ -7965,5 +7965,45 @@ Empresa | https://company.com</translation>
             <source>Done</source>
             <translation>Listo</translation>
         </message>
+        <message id="genycaster.buzz.enable">
+            <source>Enable GenyBuzz</source>
+            <translation>Activar GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.disable">
+            <source>Disable GenyBuzz</source>
+            <translation>Desactivar GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.send">
+            <source>Send Buzz</source>
+            <translation>Enviar Buzz</translation>
+        </message>
+        <message id="genycaster.buzz.sent">
+            <source>Buzz sent</source>
+            <translation>Buzz enviado</translation>
+        </message>
+        <message id="genycaster.buzz.slow_down">
+            <source>Too many Buzzes. Try again later.</source>
+            <translation>Demasiados Buzz. Inténtalo más tarde.</translation>
+        </message>
+        <message id="genycaster.buzz.not_available">
+            <source>Buzz is unavailable for this account.</source>
+            <translation>Buzz no está disponible para esta cuenta.</translation>
+        </message>
+        <message id="genycaster.buzz.error">
+            <source>Could not send Buzz. Try again.</source>
+            <translation>No se pudo enviar Buzz. Inténtalo de nuevo.</translation>
+        </message>
+        <message id="genycaster.buzz.received">
+            <source>GenyBuzz</source>
+            <translation>GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.from_fid">
+            <source>Attention nudge from FID %1</source>
+            <translation>Aviso de atención de FID %1</translation>
+        </message>
+        <message id="genycaster.buzz.view">
+            <source>View</source>
+            <translation>Ver</translation>
+        </message>
     </context>
 </TS>
