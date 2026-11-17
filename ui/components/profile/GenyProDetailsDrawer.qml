@@ -221,6 +221,9 @@ GenyDrawer {
         if (eligible) return qsTrId("genycaster.pro.checkout_done")
         if (!appSignedIn) return qsTrId("genycaster.pro.connect_to_pay")
         if (restoringSession) return qsTrId("genycaster.pro.check_status")
+        if (openProofConnections && openProofConnections.proWalletBusy
+            || proCheckout && proCheckout.phase === "signing_wallet_proof")
+            return qsTrId("genycaster.pro.checkout_verifying_wallet")
         if (signerAuthorizationNeeded) return qsTrId("genycaster.shell.enable_interactions")
         if (!membershipVerified) return qsTrId("genycaster.pro.check_status")
         if (monthlyUsdCents <= 0) return qsTrId("genycaster.pro.refresh_price")
