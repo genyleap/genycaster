@@ -77,6 +77,12 @@ test('GenyBuzz API requires verified owner, explicit opt-in and bounded methods'
     assert.deepEqual((await(await call('buzz/preferences')).json()).preferences,
       {enabled:false,revision:0});
     assert.equal((await call('buzz/preferences','POST')).status,405);
+    assert.equal((await fetch(url+'buzz',{method:'POST',headers:{
+      authorization:'Bearer verified','content-type':'text/plain'
+    },body:'target_fid=53'})).status,415);
+    assert.equal((await call('buzz','POST',{
+      target_fid:'53',target_kind:'farcaster',context:'profile',sender_fid:'42'
+    })).status,400);
     assert.equal((await call('buzz/preferences','PUT',{enabled:'yes',revision:0})).status,400);
     assert.equal((await call('buzz/preferences','PUT',{enabled:true,revision:0,extra:1})).status,400);
     assert.equal((await call('buzz/preferences','PUT',{enabled:true,revision:0})).status,200);
