@@ -85,7 +85,7 @@ test('Unsegmented tabs and Settings navigation provide transient glints', () => 
     assert.match(state, /externalHovered: plate\.hovered && plate\.neonOnHover/);
     assert.match(state, /ambientNeon: false/);
     assert.match(settings, /background: NeonStatePlate \{[\s\S]{0,200}selected: navTab\.selected/);
-    assert.match(settings, /hovered: presetHover\.hovered/);
+    assert.match(settings, /hovered: navTab\.hovered/);
     assert.match(nav, /neonOnHover: false/);
 });
 
