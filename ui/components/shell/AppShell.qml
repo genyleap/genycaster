@@ -1426,6 +1426,7 @@ Item {
         layoutDirection: Theme.uiDirection
 
         SideNavigation {
+            reflectionSource: workspaceReflection
             visible: root.desktop
             Layout.fillHeight: true
             Layout.preferredWidth: root.desktopNavigationWidth
@@ -1472,6 +1473,7 @@ Item {
         }
 
         CompactNavigationRail {
+            reflectionSource: workspaceReflection
             visible: root.compactDesktop || root.narrow
             Layout.fillHeight: true
             Layout.preferredWidth: 76
@@ -1527,11 +1529,26 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
+            // Exactly one GPU capture of the reading canvas feeds neighboring
+            // navigation chrome and inspector surfaces. The captured subtree
+            // excludes the sidebar, mobile header, and context rail; never
+            // capture shellContent or this Item (self-capture would recurse).
+            NeonReflectionSource {
+                id: workspaceReflection
+                objectName: "workspaceChromaticReflectionSource"
+                sourceItem: readingBackdrop
+                active: shellContent.visible && root.visible
+                    && (root.desktop || root.compactDesktop || root.mobile)
+                    && !root.initialSetupOpen
+                blurRadius: root.mobile ? 24 : Theme.reflectionBlurRadius
+            }
+
             ColumnLayout {
                 anchors.fill: parent
                 spacing: 0
 
                 AppHeader {
+                    reflectionSource: workspaceReflection
                     // Breathing room between the device status-safe-area, brand
                     // chrome and the first content card. Safe area itself is
                     // already handled by the WASM viewport, so don't double it.
@@ -2557,6 +2574,7 @@ Item {
 
                             sourceComponent: Component {
                                 ContextRail {
+                                    reflectionSource: workspaceReflection
                                     identityName: presentationBridge.isAuthenticated ? presentationBridge.identityName : ""
                                     accountName: presentationBridge.accountName
                                     accountFid: presentationBridge.accountFid
