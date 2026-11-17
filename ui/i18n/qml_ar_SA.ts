@@ -7649,8 +7649,12 @@ Company | https://company.com</source>
             <translation>جارٍ تحميل سعر برو…</translation>
         </message>
         <message id="genycaster.pro.price_unavailable">
-            <source>Current Pro price is unavailable. Please retry.</source>
-            <translation>سعر برو الحالي غير متاح. حاول مرة أخرى.</translation>
+            <source>Pro price unavailable</source>
+            <translation>سعر Pro غير متاح</translation>
+        </message>
+        <message id="genycaster.pro.price_retry_hint">
+            <source>Live pricing could not be loaded. Try again in a moment.</source>
+            <translation>تعذّر تحميل السعر المباشر. حاول مرة أخرى بعد قليل.</translation>
         </message>
         <message id="genycaster.pro.connect_to_pay">
             <source>Connect account</source>
