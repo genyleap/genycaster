@@ -18,6 +18,7 @@ GenyDrawer {
     property bool purchaseIntent: false
     // An old verification failure must not be shown as a new quote failure.
     property bool quoteAttempted: false
+    property bool walletAttempted: false
     property string displayedQuoteId: ""
     property bool showBenefits: false
     property bool manualExpanded: false
@@ -184,6 +185,7 @@ GenyDrawer {
                 // EIP-1193 account picker (WASM). The server quote follows
                 // connection; payment itself requires a second explicit click.
                 if (root.walletAvailable && !root.walletConnected) {
+                    root.walletAttempted = true
                     proCheckout.connectWallet()
                     return
                 }
@@ -267,6 +269,7 @@ GenyDrawer {
     onOpened: {
         purchaseIntent = false
         quoteAttempted = false
+        walletAttempted = false
         checkoutOpen = false
         lastRequestedAsset = ""
         manualExpanded = false
@@ -331,7 +334,8 @@ GenyDrawer {
         function onWalletConnectedSuccessfully() {
             // A completed account-picker response may fetch the quote, but
             // never authorize eth_sendTransaction without a fresh button click.
-            root.prepareQuote()
+            if (root.quoteForSelection) root.openQuotedCheckout()
+            else root.prepareQuote()
         }
     }
     // No refresh from generic account stateChanged: it includes unrelated
@@ -510,8 +514,8 @@ GenyDrawer {
                             objectName: "genyProWalletConnectError"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            visible: !root.checkoutActive && proCheckout
-                                && String(proCheckout.error || "").length > 0
+                            visible: root.walletAttempted && !root.checkoutActive
+                                && proCheckout && String(proCheckout.error || "").length > 0
                             text: root.walletErrorMessage()
                             color: Theme.negative
                             font.pixelSize: Theme.typeCaptionSize
