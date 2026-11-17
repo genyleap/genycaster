@@ -8004,5 +8004,17 @@ Company | https://company.com</source>
             <source>View</source>
             <translation>보기</translation>
         </message>
+        <message id="genycaster.buzz.service_unavailable">
+            <source>GenyBuzz is temporarily unavailable. Try again later.</source>
+            <translation>GenyBuzz 서비스를 일시적으로 사용할 수 없습니다. 나중에 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.pro.quote_wallet_required">
+            <source>Link a verified wallet to your account before paying.</source>
+            <translation>결제하기 전에 인증된 지갑을 계정에 연결하세요.</translation>
+        </message>
+        <message id="genycaster.pro.quote_retry_notice">
+            <source>Could not prepare payment. No transaction was sent. Please retry.</source>
+            <translation>결제를 준비하지 못했습니다. 거래는 전송되지 않았습니다. 다시 시도하세요.</translation>
+        </message>
     </context>
 </TS>
