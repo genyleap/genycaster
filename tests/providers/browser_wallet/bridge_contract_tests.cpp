@@ -116,7 +116,12 @@ void testBridgeRoutesWalletRequestsAndEvents()
     assert(page.body().find("Test Mini App") != std::string::npos);
     assert(page.body().find("https://mini.example") != std::string::npos);
     assert(page.body().find("Explicit approval required") != std::string::npos);
-    assert(page.body().find("<select id=\"options\"") != std::string::npos);
+    // The wallet chooser is a styled, accessible GenyCaster control, not a
+    // platform/browser-native select widget.
+    assert(page.body().find("role=\"radiogroup\"") != std::string::npos);
+    assert(page.body().find("<select id=\"options\"") == std::string::npos);
+    assert(page.body().find("className='wallet-option'") != std::string::npos);
+    assert(page.body().find("request.method==='eth_requestAccounts'") != std::string::npos);
     assert(page.body().find("Why is this a local page?") != std::string::npos);
     assert(page.body().find("Your private key stays there.") != std::string::npos);
     assert(page.body().find("window.ethereum.request") != std::string::npos);
