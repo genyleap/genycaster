@@ -89,7 +89,10 @@ export async function handleProWalletProof({entity,request,response,owner,store,
   if(!saved || !verifyProWalletSignature(saved.message,input.signature,saved.address)){
     respond(response,403,{error:'wallet_signature_invalid'});return true;
   }
-  await store.saveProWallet(owner,saved.address);
+  const verified=await store.saveProWallet(owner,saved.address);
+  if(!verified){
+    respond(response,503,{error:'wallet_proof_unavailable'});return true;
+  }
   respond(response,200,{wallet:{address:saved.address,verified:true}});
   return true;
 }
