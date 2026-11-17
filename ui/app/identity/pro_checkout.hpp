@@ -32,6 +32,7 @@ class ProCheckoutController final : public QObject {
     Q_PROPERTY(QString txHash READ txHash NOTIFY changed)
     Q_PROPERTY(QString quoteId READ quoteId NOTIFY changed)
     Q_PROPERTY(bool walletAvailable READ walletAvailable NOTIFY changed)
+    Q_PROPERTY(bool walletConnected READ walletConnected NOTIFY changed)
 public:
     using RpcComplete = std::function<void(QJsonValue, QString)>;
     using RpcRequest = std::function<void(QString, QJsonArray, RpcComplete)>;
@@ -47,12 +48,20 @@ public:
     [[nodiscard]] QString txHash() const { return m_txHash; }
     [[nodiscard]] QString quoteId() const { return m_quoteId; }
     [[nodiscard]] bool walletAvailable() const noexcept { return static_cast<bool>(m_begin); }
+    [[nodiscard]] bool walletConnected() const noexcept {
+        return m_session && !m_busy && m_phase == QLatin1String("connected")
+               && !m_payer.isEmpty();
+    }
 
     /** @brief Must be invoked by a user button; never triggered by new quote binding. */
+    /** Connect an explicitly selected external wallet before requesting a quote.
+     * No transfer or chain switch is permitted during this preflight. */
+    Q_INVOKABLE void connectWallet();
     Q_INVOKABLE void pay();
     Q_INVOKABLE void cancel();
 signals:
     void changed();
+    void walletConnectedSuccessfully();
     void transactionSubmitted(const QString& quoteId, const QString& txHash);
 private:
     void request(const QString& method, QJsonArray parameters, RpcComplete callback);
