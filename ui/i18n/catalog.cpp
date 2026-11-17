@@ -4,6 +4,26 @@ namespace {
 
 void registerTranslationSourceMetadata()
 {
+    //% "Enable GenyBuzz"
+    (void)qtTrId("genycaster.buzz.enable");
+    //% "Disable GenyBuzz"
+    (void)qtTrId("genycaster.buzz.disable");
+    //% "Send Buzz"
+    (void)qtTrId("genycaster.buzz.send");
+    //% "Buzz sent"
+    (void)qtTrId("genycaster.buzz.sent");
+    //% "Too many Buzzes. Try again later."
+    (void)qtTrId("genycaster.buzz.slow_down");
+    //% "Buzz is unavailable for this account."
+    (void)qtTrId("genycaster.buzz.not_available");
+    //% "Could not send Buzz. Try again."
+    (void)qtTrId("genycaster.buzz.error");
+    //% "GenyBuzz"
+    (void)qtTrId("genycaster.buzz.received");
+    //% "Attention nudge from FID %1"
+    (void)qtTrId("genycaster.buzz.from_fid");
+    //% "View"
+    (void)qtTrId("genycaster.buzz.view");
     //% "Application version %1"
     (void)qtTrId("genycaster.update.version_number");
     //% "Alpha release channel"
