@@ -39,7 +39,7 @@ Item {
     }
     function openChoices() {
         // Touch-first choices: opening must never request the soft keyboard.
-        if (picker.visible) picker.close()
+        if (control.pickerVisible) picker.close()
         else picker.open()
     }
 
@@ -47,6 +47,8 @@ Item {
     readonly property var visibleValues: (selectedValues || []).slice(0, previewCount)
     readonly property int hiddenCount: Math.max(0, (selectedValues || []).length - visibleValues.length)
     readonly property var availableOptions: options || []
+
+    readonly property bool pickerVisible: !!picker && picker.visible
 
     implicitHeight: 50
     implicitWidth: 310
@@ -58,16 +60,16 @@ Item {
     NeonSurface {
         anchors.fill: parent
         interactive: openButton.enabled
-        ambientNeon: picker.visible
+        ambientNeon: control.pickerVisible
         externalHovered: openButton.hovered
-        focused: Theme.keyboardFocusVisible(openButton) || picker.visible
+        focused: Theme.keyboardFocusVisible(openButton) || control.pickerVisible
         neonStrength: Theme.neonControlStrength
-        neonColor: picker.visible
+        neonColor: control.pickerVisible
             ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.35)
             : "transparent"
-        fillColor: picker.visible ? Theme.surfaceElevated : Theme.surfaceRaised
-        borderWidth: picker.visible || Theme.keyboardFocusVisible(openButton) ? 2 : 1
-        borderColor: picker.visible || Theme.keyboardFocusVisible(openButton)
+        fillColor: control.pickerVisible ? Theme.surfaceElevated : Theme.surfaceRaised
+        borderWidth: control.pickerVisible || Theme.keyboardFocusVisible(openButton) ? 2 : 1
+        borderColor: control.pickerVisible || Theme.keyboardFocusVisible(openButton)
                      ? Theme.focus : Theme.borderMuted
         curveDepth: Theme.curveControl
     }
@@ -165,8 +167,8 @@ Item {
 
         Icon {
             text: Theme.iconChevronDown
-            color: picker.visible ? Theme.accent : Theme.inkMuted
-            rotation: picker.visible ? 180 : 0
+            color: control.pickerVisible ? Theme.accent : Theme.inkMuted
+            rotation: control.pickerVisible ? 180 : 0
             preferredSize: Theme.iconSize
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
