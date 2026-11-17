@@ -8004,5 +8004,17 @@ Company | https://company.com</source>
             <source>View</source>
             <translation>Просмотр</translation>
         </message>
+        <message id="genycaster.buzz.service_unavailable">
+            <source>GenyBuzz is temporarily unavailable. Try again later.</source>
+            <translation>GenyBuzz временно недоступен. Попробуйте позже.</translation>
+        </message>
+        <message id="genycaster.pro.quote_wallet_required">
+            <source>Link a verified wallet to your account before paying.</source>
+            <translation>Перед оплатой привяжите к аккаунту подтверждённый кошелёк.</translation>
+        </message>
+        <message id="genycaster.pro.quote_retry_notice">
+            <source>Could not prepare payment. No transaction was sent. Please retry.</source>
+            <translation>Не удалось подготовить платёж. Транзакция не отправлена. Попробуйте ещё раз.</translation>
+        </message>
     </context>
 </TS>
