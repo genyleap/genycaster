@@ -50,12 +50,12 @@ int main(int argc, char** argv)
     // Reproduce multi-root Qt Quick Controls teardown, too. The original
     // implementation detached the primary window's overlay only.
     engine.loadData(QByteArrayLiteral(
-        "import QtQuick\\n"
-        "import QtQuick.Controls\\n"
-        "ApplicationWindow { objectName: \\"secondWindow\\"; visible: true;"
+        "import QtQuick\n"
+        "import QtQuick.Controls\n"
+        "ApplicationWindow { objectName: \"secondWindow\"; visible: true;"
         " width: 220; height: 150;"
         " Popup { width: 85; height: 50; modal: true; visible: true;"
-        " contentItem: Text { text: \\"More popups\\" } } }"),
+        " contentItem: Text { text: \"More popups\" } } }"),
         QUrl{QStringLiteral("inmemory:/second-teardown.qml")});
     if (engine.rootObjects().size() != 2) return 4;
     auto* const second = qobject_cast<QQuickWindow*>(engine.rootObjects().constLast());
