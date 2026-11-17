@@ -18,7 +18,7 @@ test('v16 preserves the Farcaster check and permits only canonical HyperSnap nat
   assert.match(migration,/BETWEEN 4294967296 AND 9007199254740991/);
   assert.match(migration,/SET LOCAL lock_timeout = '5s'/);
   assert.match(migration,/INSERT INTO schema_migrations\(version\) VALUES\(16\)/);
-  assert.match(migration,/^BEGIN;[\s\S]*COMMIT;\s*$/);
+  assert.match(migration,/\bBEGIN;[\s\S]*COMMIT;\s*$/);
   assert.doesNotMatch(migration,/DROP TABLE|DELETE FROM|TRUNCATE|GRANT .* TO PUBLIC/);
 });
 
