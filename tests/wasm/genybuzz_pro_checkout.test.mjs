@@ -27,7 +27,7 @@ test('Continue advances automatically when the quote succeeds, without auto-payi
     pro.indexOf('    function primaryLabel()'));
   assert.match(proceed,/root\.openQuotedCheckout\(\)/);
   const beforePayment=proceed.slice(0,proceed.indexOf('if (root.txSubmitted)'));
-  assert.doesNotMatch(beforePayment,/proCheckout\\.pay\\(/,
+  assert.equal(beforePayment.includes('proCheckout.pay('),false,
     'pressing Continue must first show the quote rather than auto-pay');
   assert.match(pro,/visible: root\.quoteAttempted && !root\.checkoutActive/);
   assert.match(pro,/objectName: "genyProWalletConnectError"/);
