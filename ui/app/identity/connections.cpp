@@ -1790,9 +1790,9 @@ void OpenProofConnectionsController::setGenyBuzzEnabled(const bool enabled)
         if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto value=QJsonDocument::fromJson(bytes).object()
             .value(QStringLiteral("preferences")).toObject();
-        const auto revision=value.value(QStringLiteral("revision")).toInteger(-1);
+        const auto returnedRevision=value.value(QStringLiteral("revision")).toInteger(-1);
         if (status==200 && value.value(QStringLiteral("enabled")).isBool()
-            && revision>=0) {
+            && returnedRevision>=0) {
             m_buzzPreferences=value.toVariantMap();
             m_buzzPreferencesReady=true;
             m_buzzPreferencesFetchedAt=QDateTime::currentMSecsSinceEpoch();
@@ -1855,13 +1855,13 @@ void OpenProofConnectionsController::sendGenyBuzz(
             ?reply->readAll():QByteArray{};
         reply->deleteLater();
         if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
-        const auto payload=QJsonDocument::fromJson(bytes).object();
-        if (status==201 && payload.value(QStringLiteral("item")).isObject()) {
+        const auto responsePayload=QJsonDocument::fromJson(bytes).object();
+        if (status==201 && responsePayload.value(QStringLiteral("item")).isObject()) {
             m_buzzLastSentFid=targetFid;
             m_buzzError.clear();
         } else {
             m_buzzLastSentFid=0;
-            const auto code=payload.value(QStringLiteral("error")).toString();
+            const auto code=responsePayload.value(QStringLiteral("error")).toString();
             m_buzzError=code==QStringLiteral("buzz_rate_limited")
                 ||code==QStringLiteral("buzz_not_available")?code
                 :QStringLiteral("buzz_unavailable");
