@@ -1,6 +1,4 @@
 #version 440
-// Adapted from the user-supplied Genyleap Neon UI Kit v0.4.5.
-// Two-pass separable Gaussian: matching the reference's tight sampling.
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 layout(std140, binding = 0) uniform buf {
@@ -11,6 +9,7 @@ layout(std140, binding = 0) uniform buf {
 layout(binding = 1) uniform sampler2D source;
 void main()
 {
+    // Dense Gaussian (sigma 16.5), paired linear taps.
     vec4 result = texture(source, qt_TexCoord0);
     float total = 1.0;
     for (int i = 1; i <= 47; i += 2) {
