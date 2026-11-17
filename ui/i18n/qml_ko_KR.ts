@@ -8016,6 +8016,14 @@ Company | https://company.com</source>
             <source>Could not prepare payment. No transaction was sent. Please retry.</source>
             <translation>결제를 준비하지 못했습니다. 거래는 전송되지 않았습니다. 다시 시도하세요.</translation>
         </message>
+        <message id="genycaster.pro.quote_rate_unavailable">
+            <source>Live GENY pricing is temporarily unavailable. Retry or choose USDC. No transaction was sent.</source>
+            <translation>현재 GENY 가격을 일시적으로 확인할 수 없습니다. 다시 시도하거나 USDC를 선택하세요. 거래는 전송되지 않았습니다.</translation>
+        </message>
+        <message id="genycaster.pro.quote_chain_unavailable">
+            <source>Base network validation is temporarily unavailable. No transaction was sent. Please retry.</source>
+            <translation>Base 네트워크 검증을 일시적으로 사용할 수 없습니다. 거래는 전송되지 않았습니다. 다시 시도하세요.</translation>
+        </message>
         <message id="genycaster.pro.checkout_verify_wallet">
             <source>Verify wallet</source>
             <translation>지갑 인증</translation>
