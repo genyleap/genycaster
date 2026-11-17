@@ -6,6 +6,7 @@ import Farcaster.Client
 Rectangle {
     id: root
 
+    property NeonReflectionSource reflectionSource: null
     property string activeView: "feed"
     property string activeFeed: "following"
     property string shellRoute: ""
@@ -25,7 +26,7 @@ Rectangle {
     implicitWidth: 76
     color: Theme.backgroundPrimary
 
-    Superellipse {
+    NeonSurface {
         id: railSurface
         anchors.fill: parent
         anchors.margins: Theme.space1
@@ -35,6 +36,9 @@ Rectangle {
         curveDepth: Theme.shapeSurface
         elevation: Theme.elevationControl
         shadowOpacityScale: 0.42
+        reflectionSource: root.reflectionSource
+        reflectedBorder: true
+        interactive: false
     }
 
     ColumnLayout {
