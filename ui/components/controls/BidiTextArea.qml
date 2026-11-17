@@ -29,12 +29,12 @@ TextArea {
 
     function resetSelection() {
         selectionDelay.stop()
-        selectionBar.close()
+        if (selectionBar) selectionBar.close()
         root.deselect() // TextEdit.deselect(): selection only, never erases draft.
     }
     function dismissSelectionActions() {
         selectionDelay.stop()
-        selectionBar.close()
+        if (selectionBar) selectionBar.close()
         selectionPressActive = false
         selectionGestureActive = false
         selectionHandleDragging = false
@@ -166,7 +166,7 @@ TextArea {
         root.selectionReleaseRetries = 0
         if (selectedText.length === 0) {
             selectionDelay.stop()
-            selectionBar.close()
+            if (selectionBar) selectionBar.close()
         } else if (!selectionHandleDragging && root.visible) {
             // The selection signal, not onReleased, is the reliable completion
             // path for canvas-based touch selection in browser runtimes.
@@ -183,13 +183,13 @@ TextArea {
         // Let the finger lift before presenting the toolbar: otherwise the
         // popup steals the gesture that should extend the text selection.
         selectionDelay.stop()
-        selectionBar.close()
+        if (selectionBar) selectionBar.close()
     }
     onPressed: mouse => {
         root.selectionPressActive = true
         root.selectionReleaseRetries = 0
         selectionDelay.stop()
-        selectionBar.close()
+        if (selectionBar) selectionBar.close()
     }
     onReleased: mouse => {
         root.selectionPressActive = false
@@ -206,7 +206,7 @@ TextArea {
             // The selection can outlive the keyboard's temporary focus owner.
             if (root.selectedText.length === 0) {
                 selectionDelay.stop()
-                selectionBar.close()
+                if (selectionBar) selectionBar.close()
             }
         }
     }
@@ -274,7 +274,7 @@ TextArea {
                         pressDeltaY = point.y - grip.caretRect.y
                         root.selectionHandleDragging = true
                         selectionDelay.stop()
-                        selectionBar.close()
+                        if (selectionBar) selectionBar.close()
                     }
                     onPositionChanged: mouse => {
                         if (!pressed) return
@@ -331,7 +331,7 @@ TextArea {
                     // Use the browser clipboard bridge on WebAssembly;
                     // TextArea.copy() alone can stop at Qt's virtual clipboard.
                     presentationBridge.copyText(root.selectedText)
-                    selectionBar.close()
+                    if (selectionBar) selectionBar.close()
                 }
             }
             ActionButton {
@@ -342,7 +342,7 @@ TextArea {
                 onClicked: {
                     presentationBridge.copyText(root.selectedText)
                     root.cut()
-                    selectionBar.close()
+                    if (selectionBar) selectionBar.close()
                 }
             }
             ActionButton {
