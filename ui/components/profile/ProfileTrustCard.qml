@@ -479,6 +479,12 @@ NeonSurface {
                 }
 
                 DirectionAwareLabel {
+                    objectName: "profileStreakValue"
+                    // Inset the current streak from the outer card edge;
+                    // mirror the trailing margin in RTL without shifting
+                    // the icon/title group or changing the card's padding.
+                    Layout.rightMargin: Theme.rtl ? 0 : Theme.space3
+                    Layout.leftMargin: Theme.rtl ? Theme.space3 : 0
                     text: root.streakKnown
                         ? LocaleFormat.formatInteger(root.streakCurrent) : "—"
                     color: root.streakActive ? Theme.streak : Theme.textTertiary
