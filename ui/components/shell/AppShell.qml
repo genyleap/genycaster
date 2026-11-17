@@ -170,7 +170,7 @@ Item {
                 contentWidth: availableWidth
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 GridLayout {
-                    width: nativeRecoveryScroll.availableWidth
+                    width: nativeRecoveryScroll ? nativeRecoveryScroll.availableWidth : 0
                     columns: nativeRecoveryScroll.width < Theme.scaleUi(420) ? 3 : 4
                     columnSpacing: Theme.space2
                     rowSpacing: Theme.space2
@@ -194,7 +194,7 @@ Item {
                                 objectName: "nativeSignerRecoveryWord" + (index + 1)
                                 Layout.fillWidth: true
                                 forceLeftToRight: true
-                                echoMode: interactionAuthorizationDialog.showRecoveryWords
+                                echoMode: interactionAuthorizationDialog && interactionAuthorizationDialog.showRecoveryWords
                                           ? TextInput.Normal : TextInput.Password
                                 maximumLength: 4095
                                 inputMethodHints: Qt.ImhSensitiveData
@@ -698,7 +698,7 @@ Item {
     readonly property bool localeSettingsOpen: localePopupLoader.item !== null && localePopupLoader.item.opened
     readonly property bool dataStorageSettingsOpen: dataStoragePopupLoader.item !== null && dataStoragePopupLoader.item.opened
     property bool setupReviewOpen: false
-    readonly property bool initialSetupOpen: initialSetup.visible
+    readonly property bool initialSetupOpen: !!initialSetup && initialSetup.visible
     readonly property bool overlayOpen: root.initialSetupOpen || root.localeSettingsOpen || root.dataStorageSettingsOpen
                                         || composerDrawer.opened || accountPopup.opened
                                         || renderingSettingsPopup.opened || taskManagerPopup.opened || feedbackDialog.opened
@@ -2487,7 +2487,7 @@ Item {
                             activeFeed: presentationBridge.activeFeed
                             shellRoute: root.shellRoute
                             primaryDestination: root.primaryDestination
-                            widgetsOpen: contextDrawer.visible
+                            widgetsOpen: !!contextDrawer && contextDrawer.visible
                             onWidgetsRequested: {
                                 if (contextDrawer.visible) contextDrawer.close()
                                 else contextDrawer.open()
@@ -2978,10 +2978,10 @@ Item {
         contentItem: Item {
             ColumnLayout {
                 anchors.fill: parent
-                anchors.leftMargin: accountPopup.bottomSheet ? Theme.mobileGutter : Theme.space5
-                anchors.rightMargin: accountPopup.bottomSheet ? Theme.mobileGutter : Theme.space5
-                anchors.topMargin: accountPopup.bottomSheet ? Theme.space3 : Theme.space5
-                anchors.bottomMargin: accountPopup.bottomSheet ? Theme.space3 : Theme.space5
+                anchors.leftMargin: accountPopup && accountPopup.bottomSheet ? Theme.mobileGutter : Theme.space5
+                anchors.rightMargin: accountPopup && accountPopup.bottomSheet ? Theme.mobileGutter : Theme.space5
+                anchors.topMargin: accountPopup && accountPopup.bottomSheet ? Theme.space3 : Theme.space5
+                anchors.bottomMargin: accountPopup && accountPopup.bottomSheet ? Theme.space3 : Theme.space5
                 spacing: Theme.space3
 
                 RowLayout {
@@ -3039,7 +3039,7 @@ Item {
                     ScrollBar.vertical: GenyScrollBar {}
 
                     ColumnLayout {
-                        width: accountScroll.availableWidth
+                        width: accountScroll ? accountScroll.availableWidth : 0
                         spacing: Theme.space3
 
                         Superellipse {
