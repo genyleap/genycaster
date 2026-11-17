@@ -65,10 +65,42 @@ test('Pro checkout uses verified server quote and never grants itself locally',(
  assert.match(cpp,/fetchProEntitlements\(true\)/);
  assert.match(button,/running: control\.busy && control\.spinIconWhileBusy/);
 });
+test('Pro price failure is compact, non-clipping and never exposes a payable amount',()=>{
+ const drawer=read('ui/components/profile/GenyProDetailsDrawer.qml');
+ assert.match(drawer,/readonly property bool priceKnown: monthlyUsdCents > 0/);
+ assert.match(drawer,/readonly property bool priceLoading: !priceKnown/);
+ assert.match(drawer,/readonly property bool priceUnavailable: !priceKnown && !priceLoading/);
+ assert.match(drawer,/readonly property bool paymentOptionsReady: priceKnown/);
+ assert.match(drawer,/plan\.payment_available === true && cloudReady && membershipVerified/);
+ assert.match(drawer,/objectName: "genyProCompactPriceHeadline"/);
+ assert.match(drawer,/font\.pixelSize: root\.priceKnown && !root\.checkoutActive/);
+ assert.match(drawer,/wrapMode: Text\.WordWrap\s*maximumLineCount: 2/);
+ assert.doesNotMatch(drawer,/root\.checkoutActive \? Theme\.typeTitle3Size\s*:\s*Theme\.typeTitle1Size/);
+ assert.match(drawer,/objectName: "genyProPriceUnavailableHint"/);
+ assert.match(drawer,/visible: !root\.eligible && root\.priceUnavailable/);
+ assert.match(drawer,/qsTrId\("genycaster\.pro\.price_retry_hint"\)/);
+ assert.match(drawer,/enabled: root\.paymentOptionsReady/);
+ assert.match(drawer,/opacity: enabled \? 1\.0 : 0\.52/);
+ assert.match(drawer,/visible: root\.paymentOptionsReady/);
+ assert.match(drawer,/if \(monthlyUsdCents <= 0\) return qsTrId\("genycaster\.pro\.refresh_price"\)/);
+ assert.match(drawer,/openProofConnections\.fetchProPlan\(true\)/);
+ assert.match(drawer,/if \(!root\.canRequestQuote \|\| root\.busy\) return/);
+});
+
+test('compact Streak value has a mirrored inset on the trailing card edge',()=>{
+ const card=read('ui/components/profile/ProfileTrustCard.qml');
+ const i=card.indexOf('objectName: "profileStreakValue"');
+ assert.ok(i>=0,'streak amount must have a named target');
+ const value=card.slice(i,i+480);
+ assert.match(value,/Layout\.rightMargin: Theme\.rtl \? 0 : Theme\.space3/);
+ assert.match(value,/Layout\.leftMargin: Theme\.rtl \? Theme\.space3 : 0/);
+ assert.match(value,/LocaleFormat\.formatInteger\(root\.streakCurrent\)/);
+});
+
 test('Pro descriptions are translated and contain no unfilled %1 in feature details',()=>{
  const locales=['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR','hi_IN',
   'ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
- const keys=['status_verified','monthly_price','manual_renewal',
+ const keys=['status_verified','monthly_price','manual_renewal','price_retry_hint',
   'verify_payment','checkout_continue','checkout_open_wallet','checkout_usdc_hint',
   'payment_instructions',
   'feature_miniapps_title','feature_miniapps_desc','feature_collections_desc',
