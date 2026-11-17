@@ -8005,5 +8005,17 @@ Entreprise | https://company.com</translation>
             <source>View</source>
             <translation>Voir</translation>
         </message>
+        <message id="genycaster.buzz.service_unavailable">
+            <source>GenyBuzz is temporarily unavailable. Try again later.</source>
+            <translation>GenyBuzz est temporairement indisponible. Réessayez plus tard.</translation>
+        </message>
+        <message id="genycaster.pro.quote_wallet_required">
+            <source>Link a verified wallet to your account before paying.</source>
+            <translation>Associez un portefeuille vérifié à votre compte avant de payer.</translation>
+        </message>
+        <message id="genycaster.pro.quote_retry_notice">
+            <source>Could not prepare payment. No transaction was sent. Please retry.</source>
+            <translation>Impossible de préparer le paiement. Aucune transaction n’a été envoyée. Réessayez.</translation>
+        </message>
     </context>
 </TS>
