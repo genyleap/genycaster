@@ -6,6 +6,7 @@ import Farcaster.Client
 Rectangle {
     id: root
 
+    property NeonReflectionSource reflectionSource: null
     property bool isAuthenticated: false
     property bool writeReady: false
     property bool writeBusy: false
@@ -28,6 +29,28 @@ Rectangle {
     LayoutMirroring.childrenInherit: false
 
     readonly property int gutter: Theme.gutter(root.width)
+
+    // Put the neutral hairline underneath the chromatic divider so the
+    // neighboring page actually supplies visible color at the lower edge.
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: 1
+        color: Theme.borderMuted
+        opacity: 0.52
+    }
+    NeonReflection {
+        anchors.fill: parent
+        reflectionSource: root.reflectionSource
+        strength: Theme.reflectionStrength * (root.compact ? 0.78 : 1)
+        cornerRadius: 0
+        borderInset: 0
+        edgeStrength: 0.88
+        edgeWidth: 1
+        edgeInset: 0.5
+        bottomEdgeOnly: true
+    }
 
     // All brand geometry is explicit, rather than nested RTL RowLayouts:
     // layout mirroring must never distribute the wordmark away from its icon.
@@ -131,6 +154,7 @@ Rectangle {
             // Feedback stays beside notifications on the mobile header; it is
             // not buried in the desktop-only footer or a settings submenu.
             ActionButton {
+                reflectionSource: root.reflectionSource
                 visible: root.compact
                 compact: true
                 quiet: true
@@ -141,6 +165,7 @@ Rectangle {
             }
 
             ActionButton {
+                reflectionSource: root.reflectionSource
                 compact: true
                 quiet: true
                 selected: root.notificationsSelected
@@ -155,6 +180,7 @@ Rectangle {
             }
 
             ActionButton {
+                reflectionSource: root.reflectionSource
                 compact: true
                 quiet: true
                 iconOnly: true
@@ -165,6 +191,7 @@ Rectangle {
             }
 
             ActionButton {
+                reflectionSource: root.reflectionSource
                 // Signed-in mobile users reach Profile from the bottom tab.
                 visible: !root.compact || !root.isAuthenticated
                 compact: true
@@ -183,12 +210,4 @@ Rectangle {
         }
     }
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 1
-        color: Theme.borderMuted
-        opacity: 0.72
-    }
 }
