@@ -221,8 +221,8 @@ constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
 :root{color-scheme:light dark;--accent:#007aff;--accent-soft:#e7f2ff;--canvas:#f5f7fa;--panel:#fff;--raised:#f6f8fb;--line:#e1e6ed;--ink:#181c23;--muted:#657181;--danger:#c93849;--success:#187c60;font:14px/1.45 -apple-system,BlinkMacSystemFont,Inter,"Segoe UI",ui-sans-serif,system-ui,sans-serif}
 @media(prefers-color-scheme:dark){:root{--accent:#0a84ff;--accent-soft:#132b47;--canvas:#11141c;--panel:#1b202a;--raised:#252c39;--line:#394556;--ink:#f3f5f9;--muted:#a4afbf;--danger:#ff919e;--success:#7bdcb5}}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:grid;place-items:center;padding:18px;background:var(--canvas);color:var(--ink)}
-main{width:min(100%,438px);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 12px 38px #00000018}
+body{margin:0;min-height:100vh;min-height:100svh;display:grid;place-items:center;padding:clamp(10px,3vw,22px);background:var(--canvas);color:var(--ink)}
+main{width:min(100%,430px);min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 10px 30px #00000013}
 .brand{display:flex;align-items:center;gap:10px;color:var(--ink);font-size:.79rem;font-weight:750;letter-spacing:.025em;margin-bottom:13px}
 .brand-mark{display:block;width:32px;height:32px;flex:none;border-radius:9px}
 .brand-mark svg{display:block;width:100%;height:100%}
@@ -233,17 +233,17 @@ h2{font-size:.99rem;line-height:1.35;margin:7px 0}
 #app-name{display:block;font-size:.96rem;font-weight:700}
 #origin{font-size:.78rem;color:var(--muted);overflow-wrap:anywhere;margin-top:2px}
 .label{display:block;font-size:.78rem;font-weight:650;color:var(--muted);margin-bottom:8px}
-#options{display:grid;gap:7px;max-height:196px;overflow-y:auto}
+#options{display:grid;gap:7px;max-height:min(364px,46svh);overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;min-width:0;padding-inline-end:3px}
 button{font:inherit;cursor:pointer;border-radius:11px;padding:10px 12px;border:1px solid var(--line);color:var(--ink);background:var(--raised);-webkit-appearance:none;appearance:none}
 button:disabled{opacity:.58;cursor:not-allowed}
 button:hover:enabled{border-color:var(--accent)}
 button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.wallet-option{display:flex;align-items:center;gap:11px;width:100%;text-align:start;min-height:46px}
+.wallet-option{display:grid;grid-template-columns:16px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;min-width:0;min-height:46px;text-align:start}
 .wallet-option[aria-checked="true"]{background:var(--accent-soft);border-color:var(--accent)}
 .wallet-dot{width:15px;height:15px;border:2px solid var(--muted);border-radius:50%;display:block;flex:none}
 .wallet-option[aria-checked="true"] .wallet-dot{border:5px solid var(--accent);background:var(--panel)}
-.wallet-name{flex:1;font-weight:620;overflow-wrap:anywhere}
-.wallet-tag{font-size:.72rem;color:var(--muted)}
+.wallet-name{min-width:0;font-weight:620;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wallet-tag{min-width:0;white-space:nowrap;font-size:.72rem;color:var(--muted)}
 #request{margin:14px 0 0;padding:13px;border:1px solid var(--line);border-radius:13px;background:var(--raised)}
 #request[hidden],#message[hidden]{display:none}
 #kind{font-size:.72rem;color:var(--accent);font-weight:700}
@@ -261,8 +261,12 @@ pre{background:var(--canvas);padding:9px;border-radius:8px;white-space:pre-wrap;
 #status,#wallet{font-size:.79rem;color:var(--muted);line-height:1.45;margin:10px 0 0;overflow-wrap:anywhere}
 #status.error,#wallet.error{color:var(--danger)}
 #status.ok,#wallet.ok{color:var(--success)}
-.help{margin:14px 0 0;font-size:.76rem;line-height:1.45;color:var(--muted)}
-@media(max-width:450px){main{padding:17px}body{padding:9px}.actions{flex-wrap:wrap}}
+.help{margin:12px 0 0;font-size:.76rem;line-height:1.45;color:var(--muted)}
+.result-ready #wallet-label,.result-ready #options,.result-ready #wallet,.result-ready .subtitle,.result-ready .help{display:none}
+.result-ready #status{margin-top:0;font-weight:620}
+.result-ready .app{margin-bottom:14px}
+@media(max-width:450px){main{padding:18px}body{padding:10px}.wallet-tag{display:none}.wallet-option{grid-template-columns:16px minmax(0,1fr)}.actions{flex-wrap:wrap}}
+@media(max-height:560px){body{align-items:start}#options{max-height:45svh}}
 @media(prefers-reduced-motion:no-preference){button{transition:border-color .15s ease,background .15s ease}}
 </style></head><body><main><div class="brand"><span class="brand-mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="48 48 416 416"><path fill="#101010" d="M 158 56 H 354 C 410.33 56 456 101.67 456 158 V 354 C 456 410.33 410.33 456 354 456 H 158 C 101.67 456 56 410.33 56 354 V 158 C 56 101.67 101.67 56 158 56 Z"/><path fill="#FFFFFF" d="M 366 204 C 342 157 298 128 249 128 C 178.30 128 121 185.30 121 256 C 121 326.70 178.30 384 249 384 C 294 384 331.8 365.4 354.3 349.5 L 322.0 315.2 C 303.6 330.2 281.4 336 249 336 C 204.82 336 169 300.18 169 256 C 169 211.82 204.82 176 249 176 C 278 176 299.5 185 315.5 204 Z"/><path fill="#BEBEBE" d="M 254 231 H 376 C 382.08 231 385 233.92 385 240 V 362 C 385 367.7 383.1 367.25 379.4 363.3 C 341.2 321.9 296.6 280.8 252.2 245.8 C 245.6 240.8 247.0 231 254 231 Z"/></svg></span>GenyCaster</div><h1>Wallet approval</h1><p class="subtitle">Connect securely using your selected browser wallet.</p><section class="app"><strong id="app-name">)html";
     page += htmlEscape(appName);
@@ -469,6 +473,8 @@ const execute=async()=>{
               ? 'Signature approved. Return to GenyCaster to continue checkout.'
               : 'Approved. Return to GenyCaster.'),response.error?'error':'ok');
     }
+    if(showApproval && !response.error && request.method!=='eth_requestAccounts')
+      document.body.classList.add('result-ready');
     completed();
   }catch(error){
     busy=false;approve.disabled=false;reject.disabled=false;
@@ -524,7 +530,10 @@ const poll=async()=>{
     // Reopening the consent card for each background RPC caused visible
     // layout jumps and looked like a page refresh after confirmation.
     box.hidden=!rpc.requiresApproval;
-    if(rpc.requiresApproval) lastConsentResultShown=false;
+    if(rpc.requiresApproval){
+      lastConsentResultShown=false;
+      document.body.classList.remove('result-ready');
+    }
     approve.textContent=rpc.method==='eth_requestAccounts'?'Connect selected wallet'
       :rpc.requiresApproval?'Open selected wallet':'Use selected wallet';
     if(rpc.requiresApproval)
