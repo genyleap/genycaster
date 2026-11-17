@@ -13,7 +13,9 @@ export function validateBuzzTarget(input, issuer) {
       || !Number.isSafeInteger(Number(input.target_fid))
       || Number(input.target_fid)>MAX_SAFE_FID
       || !['farcaster','hypersnap'].includes(input.target_kind)
-      || !['profile','dm'].includes(input.context)
+      // v1 is profile-only. A forged "dm" context must not bypass
+      // future conversation membership authorization.
+      || input.context!=='profile'
       || (input.target_kind==='hypersnap'
           && Number(input.target_fid)<NATIVE_FID_START))return null;
   // Identity is an application-account key. We never publish this as a
