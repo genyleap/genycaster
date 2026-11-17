@@ -1785,8 +1785,9 @@ void OpenProofConnectionsController::sendGenyBuzz(
         || targetFid==m_viewerFid
         || (targetKind!=QStringLiteral("farcaster")
             && targetKind!=QStringLiteral("hypersnap"))
-        || (context!=QStringLiteral("profile")
-            && context!=QStringLiteral("dm"))) {
+        // No DM-context sending until the server can verify conversation
+        // membership; a caller must not manufacture that relationship.
+        || context!=QStringLiteral("profile")) {
         m_buzzError=QStringLiteral("buzz_unavailable");
         emit genyBuzzChanged();
         return;
