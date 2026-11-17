@@ -189,6 +189,6 @@ test('consent page keeps a confirmed approval steady through a follow-up read an
  }
  assert.deepEqual(posted.map(entry=>entry.transportId),[1,2]);
  assert.equal(element('request').hidden,true);
- assert.equal(statuses.at(-1),'Wallet connected. Return to GenyCaster.');
+ assert.equal(statuses.at(-1),'Wallet connected. Complete the next verification request here.');
  assert.equal(queue.length,0);
 });
