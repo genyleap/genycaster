@@ -6,6 +6,7 @@
 #include <QPointer>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QQuickItem>
 #include <QUrl>
 
 import genycaster.ui.bootstrap.teardown;
@@ -14,9 +15,15 @@ int main(int argc, char** argv)
 {
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
+    // Build the same Qt Quick Controls overlay hierarchy implicated by the
+    // macOS 27/Qt 6.12 crash, not a bare Window without any Popup.
     engine.loadData(QByteArrayLiteral(
         "import QtQuick\n"
-        "Window { objectName: \"teardownWindow\"; visible: false; width: 32; height: 32 }"),
+        "import QtQuick.Controls\n"
+        "ApplicationWindow { objectName: \"teardownWindow\"; visible: true;"
+        " width: 180; height: 120;"
+        " Popup { id: confirmation; width: 80; height: 48; modal: true;"
+        " visible: true; contentItem: Text { text: \"Approval\" } } }"),
         QUrl{QStringLiteral("inmemory:/teardown.qml")});
     // Some Qt backends finish QML loading on the next event-loop turn.
     // Wait for construction instead of treating deferred incubation as failure.
