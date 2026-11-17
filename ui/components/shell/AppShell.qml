@@ -3521,7 +3521,9 @@ Item {
     Connections {
         target: openProofConnections
         function onGenyBuzzChanged() {
-            if (!openProofConnections || !openProofConnections.cloudAuthorizationReady) {
+            if (!openProofConnections || !openProofConnections.cloudAuthorizationReady
+                || (openProofConnections.genyBuzzPreferencesReady
+                    && openProofConnections.genyBuzzPreferences.enabled !== true)) {
                 genyBuzzToast.close()
                 root.pendingBuzz = ({})
                 root.lastDisplayedBuzzId = ""
