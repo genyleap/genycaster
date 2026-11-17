@@ -10,8 +10,9 @@ HyperSnap/Snapchain, wallet transaction, or OpenProof identity mutation.
   HyperSnap registration uses its separately verified account-session issuer.
 - **GenyCaster account API:** owns consent, throttling, event storage,
   acknowledgement and private inbox.
-- **UI:** `profile` currently triggers a nudge; `dm` is reserved as a future
-  entry context into the **same** service, not a separate backend transport.
+- **UI:** `profile` is the only permitted v1 send context. `dm` is reserved as a future
+  entry context into the **same** service, but is rejected until verified
+  conversation membership exists server-side.
 - **Delivery:** currently first-party authenticated app polling (30 seconds
   while visible). Push/background notification, cross-client interoperability,
   audio and haptics are not promised by v1.
@@ -29,7 +30,7 @@ protocol signature or cross-protocol DM.
 |---|---|---|
 | `/api/v1/cloud/buzz/preferences` | GET | Private opt-in state, including revision |
 | `/api/v1/cloud/buzz/preferences` | PUT | `{enabled:boolean,revision:integer}` with optimistic concurrency |
-| `/api/v1/cloud/buzz` | POST | `{target_fid:string,target_kind:string,context:"profile"\|"dm"}` |
+| `/api/v1/cloud/buzz` | POST | `{target_fid:string,target_kind:string,context:"profile"}` |
 | `/api/v1/cloud/buzz/inbox` | GET | At most 20 unacknowledged, unexpired events |
 | `/api/v1/cloud/buzz/ack` | POST | `{id:uuid}`, recipient-owned acknowledgement |
 
@@ -46,8 +47,9 @@ client-provided sender FID, or subscription privilege is accepted.
   send. Both app-owned mute sets are checked on the server.
 - A recipient with a private DND profile mood cannot receive new nudges.
   Inbox polling is suppressed during DND without exposing that status to senders.
-- A sender may send at most **one Buzz per recipient every 60 seconds**,
-  **five total per hour**. A recipient may receive at most **ten per hour**.
+- A sender may send at most **one Buzz per recipient every six hours**,
+  **four total per hour** and **twelve in 24 hours**. A recipient may receive
+  at most **four per hour** and **twelve in 24 hours** across all senders.
   Limits are transactionally serialized with ordered PostgreSQL advisory locks.
 - Disabled users do not receive polling results. DND/system notification rules
   are not bypassed: v1 uses only an in-app, dismissible notification.
@@ -80,6 +82,9 @@ product-owned sender allowlist.
    responsive Pro/GenyBuzz menus, low-motion mode, and both RTL/LTR interfaces.
 
 The server does not automatically run schema migrations or enable reception.
+Authenticated mutations accept only JSON. Production operations can set
+`GENYCASTER_BUZZ_SEND_DISABLED=1` and restart the API to immediately stop
+new sends without disabling private preferences or inbox acknowledgements.
 Do not advertise remote delivery until a live two-account test passes.
 
 ## Future DM integration
