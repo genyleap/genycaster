@@ -12,32 +12,50 @@ module genycaster.ui.bootstrap.teardown;
 namespace genycaster::ui::bootstrap {
 void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
 {
-    // Crash 2026-11-17 (macOS/Qt 6.12): deleting the ApplicationWindow
-    // destroyed QQuickOverlay after the QQuickWindow's graphics/window state
-    // had already been invalidated, faulting in QQuickItemPrivate::derefWindow.
-    // Do not force releaseResources() or disable scene persistence before the
-    // QML object tree has been destroyed. Qt releases the graph itself when
-    // the last QQuickWindow dies.
-    if (mainWindow) {
-        mainWindow->setPersistentGraphics(true);
-        mainWindow->setPersistentSceneGraph(true);
+    // macOS / Qt 6.12: QQuickWindow::~QQuickWindow() clears its internal
+    // contentItem pointer *before* deleting the QQuickRootItem. Its QObject
+    // descendants (notably QQuickOverlay and QQuickPopupItem) must therefore
+    // lose their visual window association while QQuickWindow is still alive.
+    // Detaching only the overlay was insufficient: the remaining QML scene
+    // could reparent popup items during teardown, leaving a QQuickOverlay
+    // attached when its destructor called QQuickItemPrivate::derefWindow().
+    // Keep QObject ownership unchanged; the engine still deletes each root.
+    const auto detachScene = [](QQuickWindow* const window) {
+        if (!window) return;
+        window->setPersistentGraphics(true);
+        window->setPersistentSceneGraph(true);
+        QQuickItem* const content = window->contentItem();
+        if (!content) return;
 
-        // QQuickOverlay is an item owned by the content item. Detach its
-        // *visual* parent while QQuickWindow is still fully valid; keep the
-        // QObject parent intact so Qt still destroys it exactly once.
-        // Never construct a new overlay during shutdown.
-        if (QQuickItem* const content = mainWindow->contentItem()) {
-            for (QQuickItem* const child : content->childItems()) {
-                if (child && child->inherits("QQuickOverlay"))
-                    child->setParentItem(nullptr);
-            }
+        // Detach application content before overlays. Content and popup
+        // callbacks can mutate childItems(), so take a fresh snapshot for
+        // the overlays rather than holding iterators across reparenting.
+        for (QQuickItem* const child : content->childItems()) {
+            if (child && child->parentItem() == content
+                && !child->inherits("QQuickOverlay"))
+                child->setParentItem(nullptr);
         }
-        // Do not call hide() before deleting the QML root here: on macOS,
-        // the platform window may tear down its native surface immediately,
-        // leaving a live Qt Quick Controls overlay to dereference an already
-        // invalid window during QQuickApplicationWindow destruction.
-        // Deleting the root closes the native window as its final step.
+        // This includes every overlay still on the root visual scene.
+        // Never delete the overlay directly: active QML Popup objects own
+        // references to it and must be destroyed through QObject ownership.
+        for (QQuickItem* const child : content->childItems()) {
+            if (child && child->parentItem() == content)
+                child->setParentItem(nullptr);
+        }
+    };
+
+    // More than one QML root/window can be loaded into the same engine.
+    // The old code detached only mainWindow, leaving other overlays attached.
+    // Iterate the actual roots while each native window is fully valid.
+    bool handledMainWindow = false;
+    for (QObject* const root : engine.rootObjects()) {
+        if (auto* const window = qobject_cast<QQuickWindow*>(root)) {
+            detachScene(window);
+            handledMainWindow = handledMainWindow || window == mainWindow;
+        }
     }
+    if (mainWindow && !handledMainWindow)
+        detachScene(mainWindow);
 
     // Do not defer root deletion until the QQmlApplicationEngine destructor:
     // its referenced runtime may already have been released by then.
