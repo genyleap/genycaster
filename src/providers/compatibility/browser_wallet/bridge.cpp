@@ -114,7 +114,7 @@ constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
 
 [[nodiscard]] bool sensitiveMethod(
     const std::string_view method,
-    const bool hasAccountAccessGrant)
+    [[maybe_unused]] const bool hasAccountAccessGrant)
 {
     if (method == "eth_requestAccounts") {
         // Never silently replay an account-connection request after a cached
