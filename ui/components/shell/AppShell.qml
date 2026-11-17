@@ -3536,7 +3536,32 @@ Item {
         y: Theme.space3
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         background: PopupSurface { curveDepth: Theme.curveContainer }
+        onOpened: {
+            // One lightweight, non-repeating attention pulse; no scene blur,
+            // window shake, CPU-heavy shadow or persistent animation.
+            if (!Theme.reduceMotion && !Theme.powerSave)
+                genyBuzzIconPulse.restart()
+        }
         onClosed: root.showNextBuzz()
+        SequentialAnimation {
+            id: genyBuzzIconPulse
+            running: false
+            NumberAnimation {
+                target: genyBuzzToastGlyph
+                property: "scale"
+                from: 0.88
+                to: 1.12
+                duration: 110
+                easing.type: Easing.OutQuad
+            }
+            NumberAnimation {
+                target: genyBuzzToastGlyph
+                property: "scale"
+                to: 1.0
+                duration: 150
+                easing.type: Easing.OutCubic
+            }
+        }
         Timer {
             interval: 4800
             repeat: false
@@ -3547,6 +3572,7 @@ Item {
             spacing: Theme.space2
             layoutDirection: Theme.uiDirection
             Icon {
+                id: genyBuzzToastGlyph
                 text: Theme.iconNotification
                 color: Theme.accent
                 preferredSize: Theme.iconSizeLarge
