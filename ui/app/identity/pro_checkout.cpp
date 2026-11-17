@@ -158,6 +158,44 @@ void ProCheckoutController::connectWallet()
     });
 }
 
+void ProCheckoutController::signWalletChallenge(
+    const QString& challengeId,const QString& message)
+{
+    // This request follows the server challenge. Wallet approval still needs
+    // a separate explicit click in the bridge (the signature is never silent).
+    if(!walletConnected() || !m_account || m_busy ||
+       !m_account->cloudAuthorizationReady() ||
+       challengeId.size()!=36 ||
+       !message.startsWith(QStringLiteral(
+           "GenyCaster Pro — verify payment wallet\\n")) ||
+       !message.contains(QStringLiteral("Wallet: ")+m_payer) ||
+       message.size()>2500)return;
+    m_busy=true;
+    m_phase=QStringLiteral("signing_wallet_proof");
+    emit changed();
+    const QString hexMessage=QStringLiteral("0x")+
+        QString::fromLatin1(message.toUtf8().toHex());
+    request(QStringLiteral("personal_sign"),
+            QJsonArray{hexMessage,m_payer},
+            [this,challengeId](QJsonValue signature,QString error) {
+        if(!error.isEmpty() || !signature.isString()) {
+            finishError(error.isEmpty()?QStringLiteral("wallet_signature_failed"):error);
+            return;
+        }
+        static const QRegularExpression signaturePattern{
+            QStringLiteral("^0x[0-9a-fA-F]{130}$")};
+        if(!signaturePattern.match(signature.toString()).hasMatch()){
+            finishError(QStringLiteral("wallet_signature_invalid"));
+            return;
+        }
+        m_busy=false;
+        m_phase=QStringLiteral("connected");
+        emit changed();
+        if(m_account)
+            m_account->confirmProWalletSignature(challengeId,signature.toString());
+    });
+}
+
 void ProCheckoutController::pay()
 {
     if (m_busy || (m_session && !walletConnected())) return;
