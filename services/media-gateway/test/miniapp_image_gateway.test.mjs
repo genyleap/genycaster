@@ -70,12 +70,12 @@ test('browser image upload preflight is restricted to first-party GenyCaster ori
   await withServer(async (_state,base)=>{
     for(const pathname of ['/v1/uploads','/v1/uploads/complete','/v1/uploads/ticket_123/parts/1']){
       const ok=await fetch(base+pathname,{method:'OPTIONS',headers:{
-        origin:'https://caster.genyleap.com',
+        origin:'https://genycaster.xyz',
         'access-control-request-method':'POST',
         'access-control-request-headers':'content-type,x-genycaster-signature'
       }});
       assert.equal(ok.status,204);
-      assert.equal(ok.headers.get('access-control-allow-origin'),'https://caster.genyleap.com');
+      assert.equal(ok.headers.get('access-control-allow-origin'),'https://genycaster.xyz');
       assert.match(ok.headers.get('access-control-allow-headers'),/x-genycaster-signature/);
       const blocked=await fetch(base+pathname,{method:'OPTIONS',headers:{
         origin:'https://attacker.example'
