@@ -318,8 +318,9 @@ GenyDrawer {
             && String(openProofConnections.proWalletError || "").length > 0) {
             root.purchaseIntent = false
             root.lastRequestedAsset = ""
-        } else if (!root.busy && root.purchaseIntent && !root.quoteForSelection
-            && openProofConnections
+        } else if (!root.busy && root.purchaseIntent && root.quoteAttempted
+            && root.lastRequestedAsset === root.selectedAsset
+            && !root.quoteForSelection && openProofConnections
             && String(openProofConnections.proBillingError || "").length > 0) {
             // A failed request must not remain latched as an attempted asset.
             // Do not auto-retry a failed payment quote.
