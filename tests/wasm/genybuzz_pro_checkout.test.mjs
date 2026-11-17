@@ -31,6 +31,9 @@ test('Continue advances automatically when the quote succeeds, without auto-payi
     'pressing Continue must first show the quote rather than auto-pay');
   assert.match(pro,/visible: root\.quoteAttempted && !root\.checkoutActive/);
   assert.match(pro,/objectName: "genyProWalletConnectError"/);
+  assert.match(pro,/function quoteErrorMessage\(\)/);
+  assert.match(pro,/genycaster\.pro\.quote_rate_unavailable/);
+  assert.match(pro,/genycaster\.pro\.quote_chain_unavailable/);
   assert.match(pro,/root\.purchaseIntent = false\s*\n\s*root\.lastRequestedAsset = ""/);
 });
 
@@ -126,7 +129,8 @@ test('GenyBuzz strings are present in all compiled translations',()=>{
     'error','received','from_fid','view','service_unavailable'];
   const proErrors=['quote_wallet_required','quote_retry_notice',
     'checkout_verify_wallet','checkout_verifying_wallet',
-    'wallet_verification_unavailable'];
+    'wallet_verification_unavailable','quote_rate_unavailable',
+    'quote_chain_unavailable'];
   for(const locale of ['en_US','fa_IR','de_DE','ja_JP','ko_KR','zh_CN',
     'hi_IN','ar_SA','es_ES','fr_FR','pt_BR','ru_RU']){
     const file=read('ui/i18n/qml_'+locale+'.ts');
