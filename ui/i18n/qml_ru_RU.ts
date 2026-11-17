@@ -8016,5 +8016,17 @@ Company | https://company.com</source>
             <source>Could not prepare payment. No transaction was sent. Please retry.</source>
             <translation>Не удалось подготовить платёж. Транзакция не отправлена. Попробуйте ещё раз.</translation>
         </message>
+        <message id="genycaster.pro.checkout_verify_wallet">
+            <source>Verify wallet</source>
+            <translation>Подтвердить кошелёк</translation>
+        </message>
+        <message id="genycaster.pro.checkout_verifying_wallet">
+            <source>Verifying wallet…</source>
+            <translation>Проверка кошелька…</translation>
+        </message>
+        <message id="genycaster.pro.wallet_verification_unavailable">
+            <source>Wallet verification is unavailable or was declined. No payment was made. Retry.</source>
+            <translation>Проверка кошелька недоступна или отклонена. Оплата не проводилась. Повторите попытку.</translation>
+        </message>
     </context>
 </TS>
