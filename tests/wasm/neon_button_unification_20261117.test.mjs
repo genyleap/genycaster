@@ -55,9 +55,23 @@ test('white Setup CTA rims are neutral in idle, hover and keyboard focus', () =>
     const setup = read('ui/components/setup/SetupPrimaryButton.qml');
     assert.match(setup, /^ActionButton \{/m);
     for (const source of [action, choice]) {
-        assert.match(source, /neonColor: (?:control|root)\.neutralPrimary\s*\?\s*Theme\.inkMuted/);
+        assert.match(source, /neonColor: (?:control|root)\.neutralPrimary\s*\?\s*Theme\.ink/);
         assert.doesNotMatch(source, /(?:control|root)\.neutralPrimary\s*\?\s*Qt\.lighter\(Theme\.accent/);
-        assert.match(source, /(?:control|root)\.neutralPrimary\s*\?\s*Qt\.rgba\(Theme\.inkMuted\.r, Theme\.inkMuted\.g, Theme\.inkMuted\.b/);
+        assert.match(source, /(?:control|root)\.neutralPrimary\s*\?\s*Qt\.rgba\(Theme\.ink\.r, Theme\.ink\.g, Theme\.ink\.b/);
         assert.match(source, /Theme\.keyboardFocusVisible\((?:control|root)\)[\s\S]*?(?:control|root)\.neutralPrimary\s*\?\s*Theme\.inkMuted/);
+        assert.match(source, /(?:control|root)\.neutralPrimary\s*\?\s*\((?:control|root)\.hovered\s*\?\s*Theme\.strokeHairline\s*:\s*0\)/);
     }
+});
+
+
+test('language wheel separates adjacent selectable tiles without changing snap geometry', () => {
+    const language = read('ui/components/setup/SetupLanguageSelector.qml');
+    assert.match(language, /id: picker[\s\S]*?spacing: Theme\.space2/);
+    assert.match(language, /height: root\.rowHeight/);
+    assert.match(language, /preferredHighlightBegin: \(height - root\.rowHeight\) \/ 2/);
+    assert.match(language, /preferredHighlightEnd: \(height \+ root\.rowHeight\) \/ 2/);
+    assert.match(language, /anchors\.topMargin: Theme\.space1/);
+    assert.match(language, /anchors\.bottomMargin: Theme\.space1/);
+    assert.match(language, /neonColor: languageRow\.selected \? Theme\.ink : "transparent"/);
+    assert.match(language, /onMovementEnded: root\.choose\(currentIndex\)/);
 });

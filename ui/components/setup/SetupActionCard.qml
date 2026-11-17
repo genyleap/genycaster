@@ -89,7 +89,7 @@ Button {
                          ? Math.min(0.80, Theme.neonAmbientStrength * 1.9)
                          : Theme.neonAmbientStrength
         neonColor: root.neutralPrimary
-            ? Theme.inkMuted
+            ? Theme.ink
             : root.primary
               ? Qt.lighter(Theme.primaryFill, 1.28)
             : root.selected ? Theme.accent : "transparent"
@@ -104,6 +104,7 @@ Button {
                      : root.down ? Theme.surfacePressed
                                  : root.hovered ? Theme.surfaceHover : Theme.surface
         borderWidth: Theme.keyboardFocusVisible(root) ? 2
+                     : root.neutralPrimary ? (root.hovered ? Theme.strokeHairline : 0)
                      : root.setupEmphasis ? Theme.strokeHairline
                      : root.selected ? 2
                      : root.primary && !root.visuallyDisabled
@@ -112,8 +113,8 @@ Button {
                      ? (root.neutralPrimary ? Theme.inkMuted : Theme.focus)
                      : root.unavailable ? Theme.setupActionUnavailableBorder
                      : root.neutralPrimary
-                       ? Qt.rgba(Theme.inkMuted.r, Theme.inkMuted.g, Theme.inkMuted.b,
-                                 root.hovered ? 0.68 : 0.42)
+                       ? Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b,
+                                 root.hovered ? 0.32 : 0.0)
                      : root.selected ? Theme.accent
                      : root.primary || root.setupEmphasis
                        ? Qt.rgba(Theme.primaryFill.r, Theme.primaryFill.g,

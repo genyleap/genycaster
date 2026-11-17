@@ -314,7 +314,7 @@ Button {
                          ? Math.min(0.80, Theme.neonAmbientStrength * 1.9)
                          : Theme.neonAmbientStrength
         neonColor: control.neutralPrimary
-                   ? Theme.inkMuted
+                   ? Theme.ink
                    : control.destructiveFilled
                      ? Qt.lighter(Theme.danger, 1.20)
                    : control.positive
@@ -345,9 +345,13 @@ Button {
                 return control.hovered || control.down ? Theme.castHover : "transparent"
             return control.down ? Theme.surfacePressed : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
         }
+        // An ink-filled neutral CTA has no permanent grey tube. Keep
+        // a fine outline only under hover; the white Neon rim owns its edge.
         borderWidth: Theme.keyboardFocusVisible(control) ? 2
+                     : control.neutralPrimary
+                       ? (control.hovered ? Theme.strokeHairline : 0)
                      : control.prominent || control.destructiveFilled
-                       || control.positive || control.neutralPrimary || control.selected
+                       || control.positive || control.selected
                        ? Theme.strokeHairline
                      : (!control.quiet && !control.destructive
                         ? Theme.strokeStandard : 0)
@@ -358,8 +362,8 @@ Button {
                         : control.prominent ? Qt.lighter(Theme.primaryFill, 1.28)
                         : Theme.focus)
                      : control.neutralPrimary
-                       ? Qt.rgba(Theme.inkMuted.r, Theme.inkMuted.g, Theme.inkMuted.b,
-                                 control.hovered ? 0.68 : 0.42)
+                       ? Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b,
+                                 control.hovered ? 0.32 : 0.0)
                      : control.destructiveFilled
                        ? Qt.rgba(Theme.danger.r, Theme.danger.g, Theme.danger.b,
                                  control.hovered ? 0.90 : 0.40)

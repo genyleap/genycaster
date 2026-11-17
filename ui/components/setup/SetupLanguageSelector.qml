@@ -99,7 +99,9 @@ Item {
                 height: parent.height
                 model: root.model
                 clip: true
-                spacing: 0
+                // Real inter-row space: distinct language tiles must not
+                // touch even while the wheel snaps or translates the list.
+                spacing: Theme.space2
                 boundsBehavior: Flickable.StopAtBounds
                 flickableDirection: Flickable.VerticalFlick
                 snapMode: ListView.SnapToItem
@@ -147,6 +149,8 @@ Item {
                         anchors.fill: parent
                         anchors.leftMargin: Theme.space1
                         anchors.rightMargin: Theme.space1
+                        anchors.topMargin: Theme.space1
+                        anchors.bottomMargin: Theme.space1
                         interactive: !picker.moving
                         deferredNeon: !languageRow.selected
                         ambientNeon: languageRow.selected
@@ -159,9 +163,9 @@ Item {
                             languageRow, languagePointer.point.position.x,
                             languagePointer.point.position.y).y
                         neonStrength: Theme.neonCardStrength
-                        neonColor: languageRow.selected
-                            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.72)
-                            : "transparent"
+                        // Language choices use a neutral luminous rim,
+                        // not an unrelated blue outline around the selected row.
+                        neonColor: languageRow.selected ? Theme.ink : "transparent"
                         fillColor: languageRow.selected ? Theme.surfaceMuted
                                    : languagePointer.hovered ? Theme.surfaceHover : "transparent"
                         borderWidth: languageRow.selected ? Theme.strokeStandard
