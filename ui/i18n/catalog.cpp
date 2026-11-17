@@ -20,6 +20,14 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.pro.quote_rate_unavailable");
     //% "Base network validation is temporarily unavailable. No transaction was sent. Please retry."
     (void)qtTrId("genycaster.pro.quote_chain_unavailable");
+    //% "Content-aware reflections"
+    (void)qtTrId("genycaster.settings.chromatic_reflections");
+    //% "Reflect nearby colors on sidebars, headers and panels."
+    (void)qtTrId("genycaster.settings.chromatic_reflections_description");
+    //% "Reflection intensity"
+    (void)qtTrId("genycaster.settings.reflection_intensity");
+    //% "Reduce transparency"
+    (void)qtTrId("genycaster.settings.reduce_reflection_transparency");
     //% "Enable GenyBuzz"
     (void)qtTrId("genycaster.buzz.enable");
     //% "Disable GenyBuzz"
