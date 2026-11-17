@@ -429,6 +429,16 @@ GenyDrawer {
                             elide: Text.ElideRight
                         }
                         DirectionAwareLabel {
+                            objectName: "genyProPriceUnavailableHint"
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            visible: !root.eligible && root.priceUnavailable
+                            text: qsTrId("genycaster.pro.price_retry_hint")
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
                             Layout.fillWidth: true
                             visible: !root.eligible && !root.checkoutActive
                             text: qsTrId("genycaster.pro.manual_renewal")
