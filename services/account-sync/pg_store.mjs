@@ -37,7 +37,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13,14,15)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13,14,15,16)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -55,6 +55,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const neynarRegistrationReady=versions.has(13);
   const buzzReady=versions.has(14);
   const proWalletReady=versions.has(15);
+  const proMultiProtocolQuoteReady=versions.has(16);
   let buzzCleanupAt=0;
   async function pruneExpiredBuzz() {
     if(!buzzReady || Date.now()<buzzCleanupAt)return;
@@ -70,6 +71,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   return {
     close:()=>pool.end(),
     proBillingReady:()=>proBillingReady,
+    proMultiProtocolQuoteReady:()=>proMultiProtocolQuoteReady,
     proWalletReady:()=>proWalletReady,
     neynarRegistrationReady:()=>neynarRegistrationReady,
     buzzReady:()=>buzzReady,
