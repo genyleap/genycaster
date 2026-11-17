@@ -16,6 +16,10 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.pro.quote_wallet_required");
     //% "Could not prepare payment. No transaction was sent. Please retry."
     (void)qtTrId("genycaster.pro.quote_retry_notice");
+    //% "Live GENY pricing is temporarily unavailable. Retry or choose USDC. No transaction was sent."
+    (void)qtTrId("genycaster.pro.quote_rate_unavailable");
+    //% "Base network validation is temporarily unavailable. No transaction was sent. Please retry."
+    (void)qtTrId("genycaster.pro.quote_chain_unavailable");
     //% "Enable GenyBuzz"
     (void)qtTrId("genycaster.buzz.enable");
     //% "Disable GenyBuzz"
