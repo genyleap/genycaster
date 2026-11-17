@@ -22,15 +22,16 @@ test('GenyBuzz target is an account identity, never client-provided issuer or si
     target_fid:'53',target_kind:'farcaster',context:'profile'
   },issuer),{issuer,subject:'farcaster:53',context:'profile'});
   assert.deepEqual(validateBuzzTarget({
-    target_fid:'4294967296',target_kind:'hypersnap',context:'dm'
+    target_fid:'4294967296',target_kind:'hypersnap',context:'profile'
   },issuer),{issuer:'hypersnap:native-registry',
-    subject:'hypersnap:4294967296',context:'dm'});
+    subject:'hypersnap:4294967296',context:'profile'});
   for(const target of [
     {target_fid:'0',target_kind:'farcaster',context:'profile'},
     {target_fid:'01',target_kind:'farcaster',context:'profile'},
     {target_fid:'9007199254740992',target_kind:'farcaster',context:'profile'},
     {target_fid:'53',target_kind:'hypersnap',context:'profile'},
     {target_fid:'53',target_kind:'farcaster',context:'wallet'},
+    {target_fid:'53',target_kind:'farcaster',context:'dm'},
     {target_fid:'53',target_kind:'farcaster',context:'profile',
       issuer:'https://attacker.example'},
   ])assert.equal(validateBuzzTarget(target,issuer),null);
@@ -144,6 +145,9 @@ test('GenyBuzz requires additive schema and serializes sender/recipient budgets'
     assert.match(result.id,/^[0-9a-f-]{36}$/);
     assert.equal(sql.filter(row=>row.text.includes('pg_advisory_xact_lock')).length,2);
     assert.ok(sql.some(row=>row.text.includes('recipient_count')));
+    assert.ok(sql.some(row=>row.text.includes('sender_day_count')));
+    assert.ok(sql.some(row=>row.text.includes('recipient_day_count')));
+    assert.ok(sql.some(row=>row.text.includes('6 hours')));
     assert.ok(sql.some(row=>row.text.includes('muted_profiles')));
     assert.ok(sql.some(row=>row.text.includes('COMMIT')));
     await store.ackBuzz(owner,result.id);
