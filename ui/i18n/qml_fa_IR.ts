@@ -8017,5 +8017,17 @@ Company | https://company.com</source>
             <source>Could not prepare payment. No transaction was sent. Please retry.</source>
             <translation>آماده‌سازی پرداخت ناموفق بود. هیچ تراکنشی ارسال نشد. دوباره تلاش کنید.</translation>
         </message>
+        <message id="genycaster.pro.checkout_verify_wallet">
+            <source>Verify wallet</source>
+            <translation>تأیید کیف پول</translation>
+        </message>
+        <message id="genycaster.pro.checkout_verifying_wallet">
+            <source>Verifying wallet…</source>
+            <translation>در حال تأیید کیف پول…</translation>
+        </message>
+        <message id="genycaster.pro.wallet_verification_unavailable">
+            <source>Wallet verification is unavailable or was declined. No payment was made. Retry.</source>
+            <translation>تأیید کیف پول در دسترس نیست یا رد شد. هیچ پرداختی انجام نشده است. دوباره تلاش کنید.</translation>
+        </message>
     </context>
 </TS>
