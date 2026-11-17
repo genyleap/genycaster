@@ -2072,6 +2072,7 @@ Item {
 
                         Item {
                             id: followsYouBadge
+                            objectName: "profileFollowsYouBadge"
                             visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
                                      && !root.isOwnProfile
                             implicitWidth: followsYouText.implicitWidth + Theme.space2 * 2
