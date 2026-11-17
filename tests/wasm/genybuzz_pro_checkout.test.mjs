@@ -24,8 +24,9 @@ test('Continue advances automatically when the quote succeeds, without auto-payi
   const proceed=pro.slice(pro.indexOf('    function proceed()'),
     pro.indexOf('    function primaryLabel()'));
   assert.match(proceed,/root\.openQuotedCheckout\(\)/);
-  assert.doesNotMatch(proceed.slice(0,proceed.indexOf('if \(root\.txSubmitted\)')),
-    /if \(root\.walletAvailable[^\n]*proCheckout\.pay\(/);
+  const beforePayment=proceed.slice(0,proceed.indexOf('if (root.txSubmitted)'));
+  assert.doesNotMatch(beforePayment,/proCheckout\\.pay\\(/,
+    'pressing Continue must first show the quote rather than auto-pay');
   assert.match(pro,/visible: !root\.checkoutActive && openProofConnections\s*\n\s*&& String\(openProofConnections\.proBillingError/);
   assert.match(pro,/root\.purchaseIntent = false\s*\n\s*root\.lastRequestedAsset = ""/);
 });
@@ -44,6 +45,8 @@ test('GenyBuzz remains app-owned, opt-in and DM-context-ready without a protocol
   assert.match(controller,/cancelNetworkReply\(m_buzzInboxRead, this\)/);
   assert.match(profile,/objectName: "genyBuzzReceiveToggle"/);
   assert.match(profile,/objectName: "genyBuzzSendFromProfile"/);
+  assert.match(profile,/visible: true\\s*\\n\\s*Layout\\.fillWidth: true/,
+    'own mobile profile must expose actions');
   assert.match(shell,/openProofConnections\.sendGenyBuzz\(/);
   assert.match(shell,/objectName: "genyBuzzIncomingToast"/);
   assert.match(shell,/openProofConnections\.acknowledgeGenyBuzz/);
