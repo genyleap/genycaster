@@ -8005,5 +8005,17 @@ Company | https://company.com</source>
             <source>View</source>
             <translation>مشاهده</translation>
         </message>
+        <message id="genycaster.buzz.service_unavailable">
+            <source>GenyBuzz is temporarily unavailable. Try again later.</source>
+            <translation>سرویس GenyBuzz موقتاً در دسترس نیست. بعداً دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.pro.quote_wallet_required">
+            <source>Link a verified wallet to your account before paying.</source>
+            <translation>پیش از پرداخت، یک کیف پول تأییدشده به حساب خود متصل کنید.</translation>
+        </message>
+        <message id="genycaster.pro.quote_retry_notice">
+            <source>Could not prepare payment. No transaction was sent. Please retry.</source>
+            <translation>آماده‌سازی پرداخت ناموفق بود. هیچ تراکنشی ارسال نشد. دوباره تلاش کنید.</translation>
+        </message>
     </context>
 </TS>
