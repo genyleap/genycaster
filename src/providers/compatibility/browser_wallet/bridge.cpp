@@ -247,7 +247,10 @@ button:focus-visible,summary:focus-visible{outline:2px solid #77bcff;outline-off
 #kind{font-size:.73rem;color:#81bdff;font-weight:700}
 #message{max-height:100px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:.79rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:11px;border-radius:9px;background:var(--canvas);color:var(--ink);margin:10px 0}
 details{font-size:.8rem;color:var(--muted);margin:12px 0 0}
-summary{cursor:pointer}
+summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-weight:600}
+summary::-webkit-details-marker{display:none}
+summary::before{content:'›';display:inline-grid;place-items:center;width:14px;height:16px;color:var(--accent);font-size:18px;line-height:1}
+details[open]>summary::before{transform:rotate(90deg)}
 pre{background:var(--canvas);padding:10px;border-radius:8px;white-space:pre-wrap;overflow:auto;overflow-wrap:anywhere;max-height:160px;font:.73rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
 .actions{display:flex;gap:9px;margin-top:16px}
 .actions button{flex:1;text-align:center;min-height:44px}
