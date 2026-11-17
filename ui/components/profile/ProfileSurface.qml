@@ -2023,30 +2023,36 @@ Item {
                     x: root.profileContentX
                     spacing: Theme.space1
 
-                    GridLayout {
+                    ColumnLayout {
                         objectName: "profileIdentityRow"
                         Layout.fillWidth: true
-                        columns: root.profileContentWidth >=
-                            profileDisplayName.implicitWidth + identityLinkSlot.fullLinkWidth
-                                + Theme.space3 ? 2 : 1
-                        columnSpacing: Theme.space3
-                        rowSpacing: Theme.space1
-                        layoutDirection: Theme.uiDirection
+                        spacing: Theme.space1
 
-                        Flow {
+                        RowLayout {
                             id: profileIdentityFlow
                             objectName: "profileIdentityLeading"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            Layout.preferredHeight: implicitHeight
+                            Layout.preferredHeight: Math.max(
+                                profileDisplayName.implicitHeight, profileFollowAction.implicitHeight)
                             spacing: Theme.space2
-                            layoutDirection: Theme.uiDirection
+                            // Keep the Follow control physically right-aligned.
+                            // The name and its relationship badge remain together,
+                            // including when the translated badge changes width.
+                            layoutDirection: Qt.LeftToRight
 
                         DirectionAwareLabel {
                             id: profileDisplayName
                             objectName: "profileDisplayName"
-                            width: Math.min(implicitWidth, profileIdentityFlow.width)
-                            height: implicitHeight
+                            Layout.minimumWidth: 0
+                            Layout.preferredWidth: Math.min(implicitWidth, Math.max(0,
+                                profileIdentityFlow.width
+                                - (profileFollowAction.visible ? profileFollowAction.implicitWidth : 0)
+                                - (followsYouBadge.visible ? followsYouBadge.implicitWidth : 0)
+                                - (genyHolderBadge.visible ? genyHolderBadge.implicitWidth : 0)
+                                - Theme.space2 * 4))
+                            Layout.maximumWidth: Layout.preferredWidth
+                            Layout.alignment: Qt.AlignVCenter
                             // An FID is unique only within its verified identity namespace.
                             // A large numeric FID is not proof of HyperSnap ownership.
                             // Public profile reads currently expose no verified issuer field;
@@ -2068,10 +2074,12 @@ Item {
                             id: followsYouBadge
                             visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
                                      && !root.isOwnProfile
-                            implicitWidth: followsYouText.implicitWidth + Theme.space3
-                            implicitHeight: Math.max(22, followsYouText.implicitHeight + Theme.space1)
-                            width: implicitWidth
-                            height: implicitHeight
+                            implicitWidth: followsYouText.implicitWidth + Theme.space2 * 2
+                            implicitHeight: Math.max(Theme.scaleUi(19),
+                                followsYouText.implicitHeight + Theme.scaleUi(4))
+                            Layout.preferredWidth: implicitWidth
+                            Layout.preferredHeight: implicitHeight
+                            Layout.alignment: Qt.AlignVCenter
 
                             Superellipse {
                                 anchors.fill: parent
@@ -2086,7 +2094,8 @@ Item {
                                 anchors.centerIn: parent
                                 text: qsTrId("genycaster.profile.follows_you")
                                 color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
+                                font.pixelSize: Math.max(Theme.scaleUi(10),
+                                    Theme.typeCaptionSize - Theme.scaleUi(2))
                                 font.weight: Theme.weightDemiBold
                             }
                         }
@@ -2099,8 +2108,9 @@ Item {
                             visible: root.genyHolderAttested
                             implicitWidth: holderBadgeContent.implicitWidth + Theme.space3
                             implicitHeight: Math.max(25, holderBadgeContent.implicitHeight + Theme.space1)
-                            width: implicitWidth
-                            height: implicitHeight
+                            Layout.preferredWidth: implicitWidth
+                            Layout.preferredHeight: implicitHeight
+                            Layout.alignment: Qt.AlignVCenter
                             radius: implicitHeight / 2
                             color: Theme.verifiedGenyBadgeBackground
                             border.color: Theme.verifiedGenyBadgeBorder
@@ -2128,9 +2138,17 @@ Item {
                         }
 
 
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                        }
+
                         ActionButton {
-                            width: implicitWidth
-                            height: implicitHeight
+                            id: profileFollowAction
+                            objectName: "profileFollowAction"
+                            Layout.preferredWidth: implicitWidth
+                            Layout.preferredHeight: implicitHeight
+                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             // Unknown is not a confirmed negative relationship.
                             // Keep the button discoverable without blind protocol writes.
                             visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
@@ -2163,7 +2181,7 @@ Item {
                             }
                         }
 
-                        } // Left-aligned name, badges, and follow actions
+                        } // Name and follows-you remain adjacent; Follow is at the far right
 
                         Item {
                             id: identityLinkSlot
@@ -2282,7 +2300,7 @@ Item {
                             }
                         }
 
-                    } // Full-width identity row
+                    } // Full-width identity header and trailing links
 
                     RowLayout {
                         objectName: "profileUsernameAndLinksRow"
