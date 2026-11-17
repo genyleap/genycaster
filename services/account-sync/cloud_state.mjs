@@ -743,6 +743,12 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         if(!store.proBillingReady?.() || !billingPolicy.enabled) {
           respond(response,503,{error:'billing_not_configured'});return true;
         }
+        // Native HyperSnap identity must never be rewritten as Farcaster just
+        // to fit the legacy schema. Fail explicitly until migration 016 lands.
+        if(owner.issuer==='hypersnap:native-registry'
+            && store.proMultiProtocolQuoteReady?.()===false) {
+          respond(response,503,{error:'billing_schema_upgrade_required'});return true;
+        }
         if(!String(request.headers['content-type']||'').startsWith('application/json')) {
           respond(response,415,{error:'unsupported_media_type'});return true;
         }
