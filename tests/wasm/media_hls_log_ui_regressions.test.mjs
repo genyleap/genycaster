@@ -108,14 +108,26 @@ test('consent page keeps a confirmed approval steady through a follow-up read an
  const script=bridge.slice(a,b).replace(
    'const base=")html";\n    page += basePath;\n    page += R"html(";','const base="/session/test";');
  const elements={};
- const element=id=>elements[id]??(elements[id]={
-   textContent:'',className:'',hidden:id==='request',disabled:id==='options',
-   value:'',listeners:{},
+ const fakeNode=()=>({
+   textContent:'',className:'',hidden:false,disabled:false,children:[],
+   listeners:{},dataset:{},attrs:{},tabIndex:0,
+   setAttribute(name,value){this.attrs[name]=String(value);},
    addEventListener(event,callback){this.listeners[event]=callback;},
    replaceChildren(){this.children=[];},
-   append(node){(this.children??=[]).push(node);}
+   append(...nodes){this.children.push(...nodes);},
+   querySelectorAll(selector){
+     return this.children.filter(node=>selector==='.wallet-option'
+       && node.className==='wallet-option');
+   },
+   querySelector(selector){
+     const match=/^\\[data-index="([0-9]+)"\\]$/.exec(selector);
+     return match?this.children.find(node=>node.dataset.index===match[1]):null;
+   }
  });
- const doc={getElementById:element,createElement:()=>({textContent:'',value:''})};
+ const element=id=>elements[id]??(elements[id]=Object.assign(fakeNode(),{
+   hidden:id==='request'
+ }));
+ const doc={getElementById:element,createElement:fakeNode};
  const statuses=[];
  const status=element('status');
  Object.defineProperty(status,'textContent',{
@@ -160,6 +172,6 @@ test('consent page keeps a confirmed approval steady through a follow-up read an
  }
  assert.deepEqual(posted.map(entry=>entry.transportId),[1,2]);
  assert.equal(element('request').hidden,true);
- assert.equal(statuses.at(-1),'Approved. Return to GenyCaster.');
+ assert.equal(statuses.at(-1),'Wallet connected. Return to GenyCaster.');
  assert.equal(queue.length,0);
 });
