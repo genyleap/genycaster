@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 from ci.enable_genycaster_xyz_cloud_api import (
     CERT, HOST, MARKER, PROXY, ROOT, revised_config,
+    wait_until_proxy_ready,
 )
 
 
@@ -47,6 +49,26 @@ class GenycasterDomainApiTests(unittest.TestCase):
             revised_config(sample().replace(ROOT, 'root /somewhere-else;', 1))
         with self.assertRaises(ValueError):
             revised_config(sample().replace(MARKER, MARKER+PROXY))
+
+    def test_reload_readiness_retries_old_worker_404_before_success(self) -> None:
+        with patch('ci.enable_genycaster_xyz_cloud_api.probe',
+                   side_effect=[RuntimeError('HTTPS 404, expected 200'),
+                                RuntimeError('HTTPS 404, expected 200'),
+                                None]) as probe:
+            with patch('ci.enable_genycaster_xyz_cloud_api.time.sleep') as sleep:
+                wait_until_proxy_ready()
+        self.assertEqual(probe.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+        probe.assert_called_with('/api/v1/cloud/pro/plan', '200')
+
+    def test_reload_readiness_fails_closed_when_workers_never_ready(self) -> None:
+        with patch('ci.enable_genycaster_xyz_cloud_api.probe',
+                   side_effect=RuntimeError('HTTPS 404, expected 200')) as probe:
+            with patch('ci.enable_genycaster_xyz_cloud_api.time.sleep') as sleep:
+                with self.assertRaisesRegex(RuntimeError, '404'):
+                    wait_until_proxy_ready()
+        self.assertEqual(probe.call_count, 15)
+        self.assertEqual(sleep.call_count, 14)
 
     def test_rejects_uncertified_or_unreviewed_templates(self) -> None:
         with self.assertRaises(ValueError):
