@@ -33,7 +33,7 @@ test('the shader carries four independent corner flags matching the Superellipse
   assert.match(shader,/roundedCorners\.x : roundedCorners\.y/);
   assert.match(shader,/roundedCorners\.z : roundedCorners\.w/);
   assert.match(shader,/clamp\(radius \* enabledCorner/);
-  assert.match(shader,/surfaceParameters\.z, surfaceParameters\.w, cornerFlags/);
+  assert.match(shader,/surfaceParameters\.z,\s*surfaceParameters\.w, cornerFlags/);
   assert.match(halo,/root\.curveTopLeft \? 1 : 0/);
   assert.match(halo,/root\.curveBottomLeft \? 1 : 0/);
   for (const corner of ['TopLeft','TopRight','BottomLeft','BottomRight'])
