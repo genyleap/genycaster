@@ -6,6 +6,7 @@ import Farcaster.Client
 Rectangle {
     id: root
 
+    property NeonReflectionSource reflectionSource: null
     property string activeView: "feed"
     property string activeFeed: "following"
     property string shellRoute: ""
@@ -119,7 +120,7 @@ Rectangle {
     implicitWidth: Theme.navigationWidth
     color: "transparent"
 
-    Superellipse {
+    NeonSurface {
         id: navigationSurface
         anchors.fill: parent
         anchors.margins: Theme.space2
@@ -127,6 +128,11 @@ Rectangle {
         borderWidth: 1
         borderColor: Theme.borderMuted
         curveDepth: Theme.shapeSurface
+        reflectionSource: root.reflectionSource
+        reflectionStrength: Theme.reflectionStrength
+        reflectedBorder: true
+        interactive: false
+        ambientNeon: false
     }
 
     // GenyHub's common pointer field: glints continue smoothly across gaps
@@ -147,6 +153,8 @@ Rectangle {
         cornerRadius: navigationSurface.curveDepth
         borderInset: navigationSurface.borderWidth / 2
         strength: Theme.neonPanelStrength
+        reflectionSource: root.reflectionSource
+        reflectionStrength: Theme.neonReflectionStrength
         reach: 185
     }
 
@@ -252,6 +260,7 @@ Rectangle {
                 spacing: Theme.space1
 
                 NavItem {
+                    reflectionSource: root.reflectionSource
                     objectName: "sidebarAction-following"
                     Layout.fillWidth: true
                     sharedPointerActive: sidebarPointer.hovered
@@ -265,6 +274,7 @@ Rectangle {
                     onClicked: root.followingRequested()
                 }
                 NavItem {
+                    reflectionSource: root.reflectionSource
                     objectName: "sidebarAction-trending"
                     Layout.fillWidth: true
                     sharedPointerActive: sidebarPointer.hovered
@@ -278,6 +288,7 @@ Rectangle {
                     onClicked: root.trendingRequested()
                 }
                 NavItem {
+                    reflectionSource: root.reflectionSource
                     objectName: "sidebarAction-apps"
                     Layout.fillWidth: true
                     sharedPointerActive: sidebarPointer.hovered
@@ -291,6 +302,7 @@ Rectangle {
                     onClicked: root.routeRequested("apps")
                 }
                 NavItem {
+                    reflectionSource: root.reflectionSource
                     objectName: "sidebarAction-channels"
                     Layout.fillWidth: true
                     sharedPointerActive: sidebarPointer.hovered
@@ -304,6 +316,7 @@ Rectangle {
                     onClicked: root.routeRequested("channels")
                 }
                 NavItem {
+                    reflectionSource: root.reflectionSource
                     objectName: "sidebarAction-notifications"
                     Layout.fillWidth: true
                     sharedPointerActive: sidebarPointer.hovered
@@ -320,6 +333,7 @@ Rectangle {
                     onClicked: root.routeRequested("notifications")
                 }
                 NavItem {
+                    reflectionSource: root.reflectionSource
                     objectName: "sidebarAction-bookmarks"
                     Layout.fillWidth: true
                     sharedPointerActive: sidebarPointer.hovered
@@ -333,6 +347,7 @@ Rectangle {
                     onClicked: root.routeRequested("bookmarks")
                 }
                 NavItem {
+                    reflectionSource: root.reflectionSource
                     objectName: "sidebarAction-profile"
                     Layout.fillWidth: true
                     sharedPointerActive: sidebarPointer.hovered
@@ -346,6 +361,7 @@ Rectangle {
                     onClicked: root.isAuthenticated ? root.profileRequested() : root.accountRequested()
                 }
                 NavItem {
+                    reflectionSource: root.reflectionSource
                     objectName: "sidebarAction-settings"
                     Layout.fillWidth: true
                     sharedPointerActive: sidebarPointer.hovered
