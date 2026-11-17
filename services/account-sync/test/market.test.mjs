@@ -113,14 +113,14 @@ test('rate-limited keyless first fetch is negatively cached and does not hammer 
   const first=await read();
   assert.equal(first.partial,true);
   assert.deepEqual(first.metrics,{});
-  assert.equal(calls,7,'six CMC calls and one alternative fallback');
+  assert.equal(calls,9,'six CMC calls, alternative sentiment, two CoinGecko fallbacks');
   await read();
-  assert.equal(calls,7,'retry cooldown must prevent an immediate flood');
+  assert.equal(calls,9,'retry cooldown must prevent an immediate flood');
   clock+=60_001;
   await read();
-  assert.equal(calls,14,'one new bounded attempt per metric after retry cooldown');
+  assert.equal(calls,18,'one new bounded attempt per provider after retry cooldown');
   await read();
-  assert.equal(calls,14,'second failure doubles the cooldown');
+  assert.equal(calls,18,'second failure doubles the cooldown');
 });
 test('a failed refresh retains the last valid CMC data as stale with no error leakage',async()=>{
   let clock=Date.now(),failure=false;
@@ -156,6 +156,64 @@ test('optional price and historical requests do not invalidate complete core mar
   assert.equal(optionalCalls,2);
   await read();
   assert.equal(optionalCalls,2,'optional requests are subject to retry cooldown');
+});
+
+test('rate-limited CMC market falls back only to measured CoinGecko global and spot prices',async()=>{
+  let cmcCalls=0,geckoCalls=0;
+  const fakeFetch=async url=>{
+    if(url.startsWith('https://pro-api.coinmarketcap.com/')){
+      cmcCalls++;return new Response('',{status:429});
+    }
+    if(url.includes('api.alternative.me/'))
+      return json({data:[{value:'12',value_classification:'Extreme Fear',timestamp:'1794902400'}]});
+    if(url==='https://api.coingecko.com/api/v3/global'){
+      geckoCalls++;
+      return json({data:{total_market_cap:{usd:2_100_000_000_000},
+        total_volume:{usd:68_000_000_000},market_cap_percentage:{btc:61.3,eth:10.4},
+        updated_at:1794902400}});
+    }
+    if(url.startsWith('https://api.coingecko.com/api/v3/coins/markets')){
+      geckoCalls++;
+      return json([
+        {id:'bitcoin',current_price:64650,price_change_percentage_24h:-0.2},
+        {id:'ethereum',current_price:1837,price_change_percentage_24h:0.4},
+        {id:'solana',current_price:97,price_change_percentage_24h:-1.1}
+      ]);
+    }
+    throw Error('unexpected upstream');
+  };
+  const read=createMarketReader({key:'',fetchImpl:fakeFetch});
+  const first=await read();
+  assert.equal(first.metrics.global.source,'CoinGecko');
+  assert.equal(first.metrics.global.market_cap_usd,2_100_000_000_000);
+  assert.equal(first.metrics.global.volume_24h_usd,68_000_000_000);
+  assert.equal(first.metrics.sentiment.source,'Alternative.me');
+  assert.equal(first.metrics.prices.source,'CoinGecko');
+  assert.deepEqual(first.metrics.prices.assets.map(a=>a.symbol),['BTC','ETH','SOL']);
+  assert.equal(first.metrics.season,undefined,'do not invent a CMC season index');
+  assert.equal(first.metrics.cmc100,undefined,'do not invent a CMC100 index');
+  assert.equal(first.partial,true,'accurately mark the CMC-only indicators missing');
+  assert.equal(cmcCalls,6);
+  assert.equal(geckoCalls,2);
+  await read();
+  assert.equal(cmcCalls,6);
+  assert.equal(geckoCalls,2,'fallback must respect cache TTL');
+});
+test('malformed or rate-limited CoinGecko fallbacks are rejected without synthetic values',async()=>{
+  const read=createMarketReader({key:'',fetchImpl:async url=>{
+    if(url.startsWith('https://pro-api.coinmarketcap.com/'))
+      return new Response('rate limited',{status:429});
+    if(url.includes('alternative.me'))return json({data:[{value:'30',timestamp:'1794902400'}]});
+    if(url.endsWith('/global'))
+      return json({data:{total_market_cap:{usd:NaN},total_volume:{usd:1000},
+        market_cap_percentage:{btc:99,eth:5},updated_at:1794902400}});
+    if(url.includes('/coins/markets'))return new Response('',{status:429});
+    throw Error('unknown request');
+  }});
+  const result=await read();
+  assert.equal(result.metrics.global,undefined);
+  assert.equal(result.metrics.prices,undefined);
+  assert.equal(result.partial,true);
 });
 
 test('public snapshot HTTP endpoint stays GET-only and needs no user account cookies',async()=>{
