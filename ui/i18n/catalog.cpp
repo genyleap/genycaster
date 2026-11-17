@@ -6,6 +6,12 @@ void registerTranslationSourceMetadata()
 {
     //% "GenyBuzz is temporarily unavailable. Try again later."
     (void)qtTrId("genycaster.buzz.service_unavailable");
+    //% "Verify wallet"
+    (void)qtTrId("genycaster.pro.checkout_verify_wallet");
+    //% "Verifying wallet…"
+    (void)qtTrId("genycaster.pro.checkout_verifying_wallet");
+    //% "Wallet verification is unavailable or was declined. No payment was made. Retry."
+    (void)qtTrId("genycaster.pro.wallet_verification_unavailable");
     //% "Link a verified wallet to your account before paying."
     (void)qtTrId("genycaster.pro.quote_wallet_required");
     //% "Could not prepare payment. No transaction was sent. Please retry."
