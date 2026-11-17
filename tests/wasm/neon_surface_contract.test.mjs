@@ -29,7 +29,7 @@ test('shared overlay freezes workspace only and never captures the overlay tree'
     assert.match(blur, /id: horizontalPass/);
     assert.match(blur, /id: intermediate/);
     assert.match(blur, /gaussian\.frag\.qsb/g);
-    assert.match(blur, /sourceItem: horizontalPass/);
+    assert.match(blur, /sourceItem: root\.nativeGaussian \? horizontalPass : null/);
     assert.match(blur, /root\.useBrowserSnapshot/);
     assert.match(blur, /root\.refreshSnapshot\(\)/);
     assert.doesNotMatch(blur, /sourceItem:\s*(?:Window\.contentItem|Overlay\.overlay)/);
@@ -127,7 +127,7 @@ test('Neon is present on visible common controls, selected tabs and dashboard ca
     assert.match(mobileDock, /ambientNeon: destination\.active/);
     assert.match(desktopNav, /hovered: control\.hovered/);
     assert.match(field, /ambientNeon: root\.activeFocus/);
-    assert.match(combo, /ambientNeon: control\.popup\.visible/);
+    assert.match(combo, /ambientNeon: control\.popupVisible/);
     assert.match(switchControl, /ambientNeon: control\.checked/);
     const halo = read('ui/components/visual/NeonHalo.qml');
     const geometry = read('ui/components/visual/NeonGeometry.js');
@@ -153,8 +153,9 @@ test('Neon is present on visible common controls, selected tabs and dashboard ca
     assert.match(desktopNav, /hoverCapable: true/);
     assert.match(plate, /duration: plate\.hovered \? Theme\.materialHoverInDuration/);
     const shader = read('ui/shaders/neon.frag');
-    assert.match(shader, /one logical pixel core/);
-    assert.match(shader, /mix\(localized, 0\.32, steadyActivity\)/);
+    assert.match(shader, /Exact one-pixel superellipse rim/);
+    assert.match(shader, /mix\(localized, ambient, steadyActivity\)/);
+    assert.match(shader, /reflectedEdgeMaterial/);
 });
 
 test('Neon activity never shadows public busy state on data components', () => {
