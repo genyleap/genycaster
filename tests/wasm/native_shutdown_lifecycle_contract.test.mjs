@@ -21,14 +21,15 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
         "the main thread must stop producers, join workers and explicitly release the scene graph");
 
     const overlayDetach = teardown.indexOf('child->setParentItem(nullptr);');
-    const hide = teardown.indexOf('mainWindow->hide();');
     const roots = teardown.indexOf("engine.rootObjects()");
     const destroy = teardown.indexOf("delete root;");
     const drain = teardown.indexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
     const collect = teardown.indexOf("engine.collectGarbage();");
-    assert.ok(overlayDetach >= 0 && hide > overlayDetach
-        && roots > hide && destroy > roots && drain > destroy && collect > drain,
-        "detach the overlay while the window is alive, then destroy QML and drain deletions");
+    assert.ok(overlayDetach >= 0 && roots > overlayDetach
+        && destroy > roots && drain > destroy && collect > drain,
+        "detach the overlay while its native window is alive, then destroy QML and drain deletions");
+    assert.doesNotMatch(teardown, /mainWindow->hide\(\)/,
+        "hiding Cocoa before QQuickOverlay destruction invalidates its window association");
     assert.doesNotMatch(teardown,/mainWindow->releaseResources\(\)/,
         "releasing the scene graph ahead of Qt Quick overlay teardown caused a macOS crash");
     assert.doesNotMatch(teardown,/setPersistentGraphics\(false\)|setPersistentSceneGraph\(false\)/);
