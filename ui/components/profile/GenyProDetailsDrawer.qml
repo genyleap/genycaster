@@ -526,45 +526,6 @@ GenyDrawer {
                             wrapMode: Text.WordWrap
                         }
                         DirectionAwareLabel {
-                            objectName: "genyProQuoteRequestError"
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            visible: root.quoteAttempted && !root.checkoutActive
-                                && openProofConnections
-                                && String(openProofConnections.proBillingError || "").length > 0
-                                && openProofConnections.proBillingError !== "payment_pending"
-                            text: String(openProofConnections.proBillingError || "")
-                                    === "verified_wallet_required"
-                                ? qsTrId("genycaster.pro.quote_wallet_required")
-                                : qsTrId("genycaster.pro.quote_retry_notice")
-                            color: Theme.negative
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            objectName: "genyProWalletConnectError"
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            visible: root.walletAttempted && !root.checkoutActive
-                                && proCheckout && String(proCheckout.error || "").length > 0
-                            text: root.walletErrorMessage()
-                            color: Theme.negative
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            objectName: "genyProWalletProofError"
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            visible: root.walletAttempted && !root.checkoutActive
-                                && openProofConnections
-                                && String(openProofConnections.proWalletError || "").length > 0
-                            text: qsTrId("genycaster.pro.wallet_verification_unavailable")
-                            color: Theme.negative
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
                             Layout.fillWidth: true
                             visible: !root.eligible && !root.checkoutActive
                             text: qsTrId("genycaster.pro.manual_renewal")
@@ -834,6 +795,50 @@ GenyDrawer {
                         color: Theme.textSecondary
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
+                    }
+
+                    // Payment failures belong beside the payment method, not inside
+                    // the subscription price tile. Quote/verification are distinct.
+                    DirectionAwareLabel {
+                        objectName: "genyProQuoteRequestError"
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        visible: root.quoteAttempted && !root.checkoutActive
+                            && openProofConnections
+                            && String(openProofConnections.proBillingError || "").length > 0
+                            && openProofConnections.proBillingError !== "payment_pending"
+                        text: String(openProofConnections.proBillingError || "")
+                                === "verified_wallet_required"
+                            ? qsTrId("genycaster.pro.quote_wallet_required")
+                            : qsTrId("genycaster.pro.quote_retry_notice")
+                        color: Theme.negative
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+
+                    DirectionAwareLabel {
+                        objectName: "genyProWalletConnectError"
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        visible: root.walletAttempted && !root.checkoutActive
+                            && proCheckout && String(proCheckout.error || "").length > 0
+                        text: root.walletErrorMessage()
+                        color: Theme.negative
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+
+                    DirectionAwareLabel {
+                        objectName: "genyProWalletProofError"
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        visible: root.walletAttempted && !root.checkoutActive
+                            && openProofConnections
+                            && String(openProofConnections.proWalletError || "").length > 0
+                        text: qsTrId("genycaster.pro.wallet_verification_unavailable")
+                        color: Theme.negative
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
                     }
 
                     // Value proposition does not dominate payment. Expand on demand.
