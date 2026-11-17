@@ -8016,6 +8016,14 @@ Company | https://company.com</source>
             <source>Could not prepare payment. No transaction was sent. Please retry.</source>
             <translation>无法准备付款。未发送任何交易，请重试。</translation>
         </message>
+        <message id="genycaster.pro.quote_rate_unavailable">
+            <source>Live GENY pricing is temporarily unavailable. Retry or choose USDC. No transaction was sent.</source>
+            <translation>暂时无法获取 GENY 实时价格。请重试或选择 USDC。尚未发送任何交易。</translation>
+        </message>
+        <message id="genycaster.pro.quote_chain_unavailable">
+            <source>Base network validation is temporarily unavailable. No transaction was sent. Please retry.</source>
+            <translation>Base 网络验证暂时不可用。尚未发送任何交易，请重试。</translation>
+        </message>
         <message id="genycaster.pro.checkout_verify_wallet">
             <source>Verify wallet</source>
             <translation>验证钱包</translation>
