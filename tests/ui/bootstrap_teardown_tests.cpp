@@ -47,9 +47,43 @@ int main(int argc, char** argv)
     if (!window) return 2;
     QPointer<QObject> tracked = window;
 
+    // Reproduce multi-root Qt Quick Controls teardown, too. The original
+    // implementation detached the primary window's overlay only.
+    engine.loadData(QByteArrayLiteral(
+        "import QtQuick\\n"
+        "import QtQuick.Controls\\n"
+        "ApplicationWindow { objectName: \\"secondWindow\\"; visible: true;"
+        " width: 220; height: 150;"
+        " Popup { width: 85; height: 50; modal: true; visible: true;"
+        " contentItem: Text { text: \\"More popups\\" } } }"),
+        QUrl{QStringLiteral("inmemory:/second-teardown.qml")});
+    if (engine.rootObjects().size() != 2) return 4;
+    auto* const second = qobject_cast<QQuickWindow*>(engine.rootObjects().constLast());
+    if (!second) return 5;
+    QPointer<QObject> trackedSecond = second;
+
+    int attachedVisualRoots = 0;
+    int detachedVisualRoots = 0;
+    int overlays = 0;
+    for (QQuickWindow* const itemWindow : {window, second}) {
+        QQuickItem* const content = itemWindow->contentItem();
+        if (!content) return 6;
+        for (QQuickItem* const child : content->childItems()) {
+            if (!child || child->window() != itemWindow) continue;
+            ++attachedVisualRoots;
+            if (child->inherits("QQuickOverlay")) ++overlays;
+            QObject::connect(child, &QQuickItem::windowChanged, &app,
+                [&detachedVisualRoots](QQuickWindow* const changedWindow) {
+                    if (!changedWindow) ++detachedVisualRoots;
+                });
+        }
+    }
+    if (overlays != 2 || attachedVisualRoots < 4) return 7;
+
     // Called after all worker threads and network producers have stopped.
     genycaster::ui::bootstrap::releaseQmlRoots(engine, window);
-    if (tracked || !engine.rootObjects().isEmpty()) return 3;
+    if (tracked || trackedSecond || !engine.rootObjects().isEmpty()) return 3;
+    if (detachedVisualRoots < attachedVisualRoots) return 8;
 
     // A second idle engine must be a safe no-op.
     QQmlApplicationEngine empty;
