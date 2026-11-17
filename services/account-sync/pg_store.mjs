@@ -53,6 +53,18 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const proBillingReady=versions.has(12);
   const neynarRegistrationReady=versions.has(13);
   const buzzReady=versions.has(14);
+  let buzzCleanupAt=0;
+  async function pruneExpiredBuzz() {
+    if(!buzzReady || Date.now()<buzzCleanupAt)return;
+    buzzCleanupAt=Date.now()+60_000;
+    // Bounded opportunistic cleanup, not an unbounded per-request DELETE.
+    // Every inbox read independently excludes expired events.
+    try {
+      await pool.query(`DELETE FROM genybuzz_events WHERE id IN
+        (SELECT id FROM genybuzz_events
+         WHERE expires_at<now() ORDER BY expires_at LIMIT 64)`);
+    }catch{} // Maintenance failure must not interrupt an authenticated inbox.
+  }
   return {
     close:()=>pool.end(),
     proBillingReady:()=>proBillingReady,
@@ -711,6 +723,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
     },
     async listBuzzInbox({issuer,subject}) {
       if(!buzzReady)throw new Error('buzz_unavailable');
+      await pruneExpiredBuzz();
       // Disabled users receive nothing, including delayed inbox polling.
       const consent=await pool.query(
         'SELECT enabled FROM genybuzz_preferences WHERE issuer=$1 AND subject=$2',
