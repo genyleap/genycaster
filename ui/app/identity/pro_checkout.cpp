@@ -167,7 +167,7 @@ void ProCheckoutController::signWalletChallenge(
        !m_account->cloudAuthorizationReady() ||
        challengeId.size()!=36 ||
        !message.startsWith(QStringLiteral(
-           "GenyCaster Pro — verify payment wallet\\n")) ||
+           "GenyCaster Pro — verify payment wallet\n")) ||
        !message.contains(QStringLiteral("Wallet: ")+m_payer) ||
        message.size()>2500)return;
     m_busy=true;
