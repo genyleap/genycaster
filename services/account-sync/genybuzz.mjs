@@ -35,6 +35,12 @@ export async function handleGenyBuzz({
   if (typeof store.buzzReady!=='function' || !store.buzzReady()) {
     respond(response,503,{error:'buzz_unavailable'});return true;
   }
+  // No simple cross-site form encoding can reach an account mutation.
+  // A valid cookie-bound request already needs its separate CSRF token.
+  if (request.method!=='GET' && request.method!=='HEAD' &&
+      !String(request.headers['content-type']||'').startsWith('application/json')) {
+    respond(response,415,{error:'unsupported_media_type'});return true;
+  }
   if (entity==='buzz/preferences') {
     if (request.method==='GET') {
       respond(response,200,{preferences:await store.getBuzzPreferences(owner)});
@@ -83,6 +89,11 @@ export async function handleGenyBuzz({
   }
   if (request.method!=='POST') {
     respond(response,405,{error:'method_not_allowed'});return true;
+  }
+  // Emergency server-side stop: only the operator can change this environment
+  // setting. Existing preferences and inbox/ack remain usable while disabled.
+  if (process.env.GENYCASTER_BUZZ_SEND_DISABLED==='1') {
+    respond(response,503,{error:'buzz_unavailable'});return true;
   }
   const target=validateBuzzTarget(await readBody(request,512),issuer);
   if (!target) {
