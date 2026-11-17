@@ -32,7 +32,11 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
                     child->setParentItem(nullptr);
             }
         }
-        mainWindow->hide();
+        // Do not call hide() before deleting the QML root here: on macOS,
+        // the platform window may tear down its native surface immediately,
+        // leaving a live Qt Quick Controls overlay to dereference an already
+        // invalid window during QQuickApplicationWindow destruction.
+        // Deleting the root closes the native window as its final step.
     }
 
     // Do not defer root deletion until the QQmlApplicationEngine destructor:
