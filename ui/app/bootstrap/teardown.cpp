@@ -70,15 +70,13 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
 
     // Multiple QML roots/windows can coexist. Each needs its own Popup and
     // Overlay teardown while its QQuickWindow is still fully valid.
-    bool handledMainWindow = false;
+    // engine.rootObjects() is authoritative. Do not dereference a raw
+    // mainWindow pointer if its QML root was already destroyed on close.
+    Q_UNUSED(mainWindow);
     for (QObject* const root : engine.rootObjects()) {
-        if (auto* const window = qobject_cast<QQuickWindow*>(root)) {
+        if (auto* const window = qobject_cast<QQuickWindow*>(root))
             releaseWindowScene(window);
-            handledMainWindow = handledMainWindow || window == mainWindow;
-        }
     }
-    if (mainWindow && !handledMainWindow)
-        releaseWindowScene(mainWindow);
 
     // Do not defer root deletion until the QQmlApplicationEngine destructor:
     // its referenced runtime may already have been released by then.
