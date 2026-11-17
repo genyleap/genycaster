@@ -75,7 +75,7 @@ test('GenyBuzz remains app-owned, opt-in and DM-context-ready without a protocol
   assert.doesNotMatch(profile,/root\.buzzError/);
   assert.match(shell,/objectName: "genyBuzzSendFeedback"/);
   assert.match(shell,/root\.buzzPendingSendFid/);
-  assert.match(profile,/visible: true\\s*\\n\\s*Layout\\.fillWidth: true/,
+  assert.match(profile,/visible: true\s*\n\s*Layout\.fillWidth: true/,
     'own mobile profile must expose actions');
   assert.match(shell,/openProofConnections\.sendGenyBuzz\(/);
   assert.match(shell,/objectName: "genyBuzzIncomingToast"/);
