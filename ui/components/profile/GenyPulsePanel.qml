@@ -222,14 +222,17 @@ Item {
             Layout.fillWidth: true
             spacing: Theme.space2
 
-        Rectangle {
+        NeonSurface {
             visible: root.detailMode || root.previewSource !== "github"
             Layout.fillWidth: true
             implicitHeight: farcasterContent.implicitHeight + Theme.space3*2
-            radius: Theme.space3
-            color: Theme.surfaceMuted
-            border.width: 1
-            border.color: Theme.borderMuted
+            interactive: true
+            ambientNeon: true
+            neonStrength: Theme.neonCardStrength
+            curveDepth: Theme.space3
+            fillColor: Theme.surfaceMuted
+            borderWidth: Theme.strokeHairline
+            borderColor: pointerActive ? Theme.borderDefault : Theme.borderMuted
 
             ColumnLayout {
                 id: farcasterContent
@@ -355,14 +358,17 @@ Item {
                 && root.githubLinked)
             spacing: Theme.space2
 
-            Rectangle {
+            NeonSurface {
                 visible: root.githubLinked
                 Layout.fillWidth: true
                 implicitHeight: githubContent.implicitHeight + Theme.space3*2
-                radius: Theme.space3
-                color: Theme.surfaceMuted
-                border.width: 1
-                border.color: Theme.borderMuted
+                interactive: true
+                ambientNeon: true
+                neonStrength: Theme.neonCardStrength
+                curveDepth: Theme.space3
+                fillColor: Theme.surfaceMuted
+                borderWidth: Theme.strokeHairline
+                borderColor: pointerActive ? Theme.borderDefault : Theme.borderMuted
 
                 ColumnLayout {
                     id: githubContent
@@ -585,14 +591,17 @@ Item {
                 }
             }
 
-            Rectangle {
+            NeonSurface {
                 visible: root.hasOnchainActivity
                 Layout.fillWidth: true
                 implicitHeight: walletContent.implicitHeight + Theme.space3*2
-                radius: Theme.space3
-                color: Theme.surfaceMuted
-                border.width: 1
-                border.color: Theme.borderMuted
+                interactive: true
+                ambientNeon: true
+                neonStrength: Theme.neonCardStrength
+                curveDepth: Theme.space3
+                fillColor: Theme.surfaceMuted
+                borderWidth: Theme.strokeHairline
+                borderColor: pointerActive ? Theme.borderDefault : Theme.borderMuted
 
                 RowLayout {
                     layoutDirection: Theme.uiDirection

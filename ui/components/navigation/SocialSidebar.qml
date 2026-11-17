@@ -88,7 +88,8 @@ Item {
 
         ColumnLayout {
             width: socialSidebarScroll.availableWidth
-            spacing: Theme.space2
+            // A full inter-card gutter separates independent Neon boundaries.
+            spacing: Theme.space3
 
             Item {
                 Layout.preferredHeight: Theme.space1
@@ -98,11 +99,15 @@ Item {
                 reflectionSource: root.reflectionSource
                 reflectionStrength: Theme.reflectionStrength * 0.72
                 reflectedBorder: true
-                interactive: false
+                interactive: true
+                neonStrength: Theme.neonCardStrength
                 Layout.fillWidth: true
-                Layout.leftMargin: Theme.space2
-                Layout.rightMargin: Theme.space2
+                Layout.leftMargin: Theme.space3
+                Layout.rightMargin: Theme.space3
                 implicitHeight: 44
+                // Only search interaction needs the shader; idle search is cheap.
+                ambientNeon: false
+                deferredNeon: true
                 fillColor: searchHover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
                 borderWidth: Theme.strokeHairline
                 borderColor: searchHover.hovered ? Theme.borderDefault : Theme.borderSubtle
@@ -137,15 +142,17 @@ Item {
                 reflectionSource: root.reflectionSource
                 reflectionStrength: Theme.reflectionStrength * 0.72
                 reflectedBorder: true
-                interactive: false
+                interactive: true
+                ambientNeon: true
+                neonStrength: Theme.neonCardStrength
                 Layout.fillWidth: true
-                Layout.leftMargin: Theme.space2
-                Layout.rightMargin: Theme.space2
+                Layout.leftMargin: Theme.space3
+                Layout.rightMargin: Theme.space3
                 implicitHeight: profileColumn.implicitHeight + Theme.space3 * 2
                 Layout.alignment: Qt.AlignTop
                 fillColor: Theme.surfaceRaised
                 borderWidth: Theme.strokeHairline
-                borderColor: Theme.borderSubtle
+                borderColor: pointerActive ? Theme.borderDefault : Theme.borderSubtle
                 curveDepth: Theme.curveContainer
 
                 ColumnLayout {
@@ -272,10 +279,12 @@ Item {
             }
 
             FeedPulseCard {
+                reflectionSource: root.reflectionSource
+                reflectionStrength: Theme.reflectionStrength * 0.72
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignTop
-                Layout.leftMargin: Theme.space2
-                Layout.rightMargin: Theme.space2
+                Layout.leftMargin: Theme.space3
+                Layout.rightMargin: Theme.space3
                 rows: root.feedRows
                 scopeMode: root.mode === "profile" ? "profile" : "feed"
                 busy: root.busy
@@ -287,15 +296,17 @@ Item {
                 reflectionSource: root.reflectionSource
                 reflectionStrength: Theme.reflectionStrength * 0.72
                 reflectedBorder: true
-                interactive: false
+                interactive: true
+                ambientNeon: true
+                neonStrength: Theme.neonCardStrength
                 visible: root.recentProfiles.length > 0
                 Layout.fillWidth: true
-                Layout.leftMargin: Theme.space2
-                Layout.rightMargin: Theme.space2
+                Layout.leftMargin: Theme.space3
+                Layout.rightMargin: Theme.space3
                 implicitHeight: recentColumn.implicitHeight + Theme.space3 * 2
                 fillColor: Theme.surfaceRaised
                 borderWidth: Theme.strokeHairline
-                borderColor: Theme.borderSubtle
+                borderColor: pointerActive ? Theme.borderDefault : Theme.borderSubtle
                 curveDepth: Theme.curveContainer
 
                 ColumnLayout {

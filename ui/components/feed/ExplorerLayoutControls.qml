@@ -3,9 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-// One compact display-and-filter toolbar for Explorer and Profile. The
-// segmented surface keeps the selection stable instead of painting a row of
-// unrelated buttons. All labels remain translated and support RTL.
+// Shared text-only layout selector for Explorer and Profile. Selection and
+// hover change ink, never paint an opaque segmented backing over the feed.
 Item {
     id: root
     property string layoutMode: "magazine"
@@ -24,64 +23,53 @@ Item {
         spacing: Theme.space2
         layoutDirection: Theme.uiDirection
 
-        Superellipse {
+        Item {
             id: segments
             objectName: "magazineViewSegments"
-            // Equal segment widths prevent the wider translated option
-            // from shifting the icon/text center of its neighbor.
+            // Both options use the same width so translated strings remain
+            // centered; no background rectangle is part of the selector.
             readonly property real segmentWidth: Math.max(
                 magazineChoice.implicitWidth, timelineChoice.implicitWidth)
-            Layout.preferredWidth: segmentWidth * 2 + 12
+            Layout.preferredWidth: segmentWidth * 2 + Theme.space2
             Layout.preferredHeight: Theme.compactControlHeight + 4
-            implicitWidth: segmentWidth * 2 + 12
+            implicitWidth: segmentWidth * 2 + Theme.space2
             implicitHeight: Theme.compactControlHeight + 4
-            curveDepth: Theme.curveControl
-            fillColor: Theme.surfaceMuted
-            borderWidth: Theme.strokeHairline
-            borderColor: Theme.borderSubtle
 
             RowLayout {
                 id: segmentChoices
                 anchors.fill: parent
-                anchors.margins: 4
-                spacing: 2
+                spacing: Theme.space2
                 layoutDirection: Theme.uiDirection
 
-                ActionButton {
+                GenyTabButton {
                     id: magazineChoice
                     objectName: "explorerMagazineChoice"
                     Layout.preferredWidth: segments.segmentWidth
-                    Layout.preferredHeight: Theme.compactControlHeight - 4
+                    Layout.preferredHeight: Theme.compactControlHeight
                     Layout.alignment: Qt.AlignVCenter
-                    compact: true
-                    quiet: true
-                    elevated: false
-                    iconSize: Theme.iconSizeSmall
-                    balancedIcon: !root.condensed
+                    minimumWidth: root.condensed ? 40 : 72
                     iconOnly: root.condensed
+                    dense: root.condensed
+                    segmented: false
+                    showSelectionIndicator: false
                     selected: root.layoutMode !== "timeline"
-                    customSelectedSurface: Theme.surfaceRaised
-                    customSelectedColor: Theme.ink
                     iconGlyph: Theme.iconApps
                     text: qsTrId("genycaster.explorer.magazine")
                     onClicked: root.layoutRequested("magazine")
                 }
 
-                ActionButton {
+                GenyTabButton {
                     id: timelineChoice
                     objectName: "explorerTimelineChoice"
                     Layout.preferredWidth: segments.segmentWidth
-                    Layout.preferredHeight: Theme.compactControlHeight - 4
+                    Layout.preferredHeight: Theme.compactControlHeight
                     Layout.alignment: Qt.AlignVCenter
-                    compact: true
-                    quiet: true
-                    elevated: false
-                    iconSize: Theme.iconSizeSmall
-                    balancedIcon: !root.condensed
+                    minimumWidth: root.condensed ? 40 : 72
                     iconOnly: root.condensed
+                    dense: root.condensed
+                    segmented: false
+                    showSelectionIndicator: false
                     selected: root.layoutMode === "timeline"
-                    customSelectedSurface: Theme.surfaceRaised
-                    customSelectedColor: Theme.ink
                     iconGlyph: Theme.iconList
                     text: qsTrId("genycaster.explorer.timeline")
                     onClicked: root.layoutRequested("timeline")

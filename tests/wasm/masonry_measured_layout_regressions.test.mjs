@@ -65,9 +65,9 @@ test('shared view/filter controls follow the compact rounded reference in Explor
     const translations = ['en_US', 'fa_IR', 'ar_SA', 'de_DE', 'es_ES',
         'fr_FR', 'hi_IN', 'ja_JP', 'ko_KR', 'pt_BR', 'ru_RU', 'zh_CN'];
 
-    assert.match(controls, /Superellipse \{\s*id: segments/);
+    assert.match(controls, /Item \{\s*id: segments/);
     assert.match(controls, /objectName: "magazineViewSegments"/);
-    assert.match(controls, /customSelectedSurface: Theme\.surfaceRaised/);
+    assert.match(controls, /GenyTabButton \{/);
     assert.match(controls, /objectName: "magazineToolbarFilter"/);
     assert.match(controls, /onClicked: root\.filterRequested\(\)/);
     assert.match(explorer, /filterAvailable: root\.filterAvailable/);

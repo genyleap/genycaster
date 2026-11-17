@@ -27,7 +27,7 @@ test("Magazine/Timeline segments have the same optical width and symmetric text/
                                          + (id === "magazineChoice" ? "magazine" : "timeline") + '")'));
         assert.match(item, /Layout\.preferredWidth: segments\.segmentWidth/);
         assert.match(item, /Layout\.alignment: Qt\.AlignVCenter/);
-        assert.match(item, /balancedIcon: !root\.condensed/);
+        assert.match(item, /iconOnly: root\.condensed/);
     }
     assert.match(controls, /layoutDirection: Theme\.uiDirection/);
     assert.match(controls, /onClicked: root\.layoutRequested\("magazine"\)/);

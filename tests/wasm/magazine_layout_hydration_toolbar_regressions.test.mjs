@@ -101,10 +101,10 @@ test('artwork reveals with opacity only after decode; miniature avatars avoid ex
   assert.match(tile, /smoothReveal: true/);
 });
 
-test('Magazine view/filter toolbar matches one segmented surface across Explorer and Profile', () => {
-  assert.match(toolbar, /id: segments[\s\S]*?fillColor: Theme\.surfaceMuted/);
-  assert.match(toolbar, /id: segmentChoices[\s\S]*?anchors\.margins: 4/);
-  assert.match(toolbar, /customSelectedSurface: Theme\.surfaceRaised/);
+test('Magazine view/filter toolbar uses background-free tabs in Explorer and Profile', () => {
+  assert.match(toolbar, /Item \{\s*id: segments/);
+  assert.match(toolbar, /id: segmentChoices[\s\S]*?spacing: Theme\.space2/);
+  assert.match(toolbar, /showSelectionIndicator: false/);
   assert.match(toolbar, /objectName: "explorerMagazineChoice"/);
   assert.match(toolbar, /objectName: "explorerTimelineChoice"/);
   assert.match(toolbar, /objectName: "magazineToolbarFilter"/);

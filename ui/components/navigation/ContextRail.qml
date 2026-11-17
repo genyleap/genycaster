@@ -144,7 +144,7 @@ Item {
         fillColor: Theme.contextRailCard
         // A real antialiased stroke anchors the halo to the same outline.
         borderWidth: Theme.strokeHairline
-        borderColor: Theme.borderMuted
+        borderColor: card.pointerActive ? Theme.borderDefault : Theme.borderMuted
         curveDepth: Theme.curveModal
         elevation: Theme.elevationNone
         implicitHeight: body.implicitHeight + Theme.space3 * 2

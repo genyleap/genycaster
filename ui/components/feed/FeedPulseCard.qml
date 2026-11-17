@@ -5,9 +5,10 @@ import Farcaster.Client
 
 NeonSurface {
     id: root
+    interactive: true
     ambientNeon: true
     neonBusy: root.loading
-    neonStrength: Theme.neonPanelStrength
+    neonStrength: Theme.neonCardStrength
 
     property var rows: []
     property bool busy: false
@@ -129,7 +130,8 @@ NeonSurface {
     }
 
     fillColor: Theme.contextRailCard
-    borderWidth: 0
+    borderWidth: Theme.strokeHairline
+    borderColor: root.pointerActive ? Theme.borderDefault : Theme.borderMuted
     curveDepth: Theme.curveModal
     implicitHeight: 214
 

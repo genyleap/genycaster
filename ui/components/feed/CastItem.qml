@@ -479,8 +479,12 @@ Item {
                 externalPointerY: magazineCardPointer.point.position.y
                 neonStrength: Theme.neonCardStrength
                 fillColor: root.magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
-                borderWidth: 0
-                borderColor: "transparent"
+                // Center a real hairline stroke inside the clipping slot so
+                // its antialiasing and Neon shader share one coherent edge.
+                borderWidth: root.magazineCard ? Theme.strokeHairline : 0
+                borderColor: root.magazineCard
+                    ? (magazineCardSurface.pointerActive ? Theme.borderDefault : Theme.borderMuted)
+                    : "transparent"
                 curveDepth: Theme.curveContainer
             }
 

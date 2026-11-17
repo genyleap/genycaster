@@ -9,6 +9,7 @@ Button {
     property bool selected: false
     // Optional semantic icon; legacy tabs remain unchanged when omitted.
     property string iconGlyph: ""
+    property bool iconOnly: false
     property real minimumWidth: 72
     property bool dense: false
     property bool segmented: true
@@ -49,6 +50,7 @@ Button {
                 }
             }
             Label {
+                visible: !control.iconOnly
                 Layout.fillWidth: true
                 text: control.text
                 color: control.selected ? Theme.accent

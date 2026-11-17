@@ -702,7 +702,7 @@ test("Profile and Explorer share Stats desktop outer gutters without changing ph
     assert.match(shell, /spacing: root\.wide \? \(root\.expandedWorkspace \? Theme\.space1 : Theme\.space3\) : 0/);
     assert.match(shell, /Layout\.maximumWidth: root\.expandedSocialWorkspace\s*\n\s*&& presentationBridge\.activeView === "feed"\s*\n\s*\? root\.availableSocialWidth/);
     assert.match(shell, /Layout\.maximumWidth: root\.expandedSocialWorkspace\s*\n\s*\? root\.availableSocialWidth : root\.adaptiveProfileWidth/);
-    assert.match(profile, /readonly property int profileMargin: root\.compact \? Theme\.mobileGutter : Theme\.space3/);
+    assert.match(profile, /readonly property int profileMargin: root\.compact \? Theme\.mobileGutter : Theme\.space4/);
     assert.match(profile, /readonly property int profileContentLimit: root\.compact \? 760 : 1280/);
     assert.match(explorer, /readonly property int gutter: root\.compact \? Theme\.gutter\(root\.width\) : Theme\.space3/);
     assert.doesNotMatch(shell, /readonly property bool expandedSocialWorkspace: root\.mobile/);
