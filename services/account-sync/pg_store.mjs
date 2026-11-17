@@ -1,6 +1,7 @@
 // The database role for this pool is restricted to the application datastore.
 // No JOIN to OpenProof tables, provider credentials, or protocol signer keys.
-import {randomUUID} from 'node:crypto';
+import {randomUUID,randomBytes} from 'node:crypto';
+import {proWalletMessage} from './pro_wallet_proof.mjs';
 import {STREAK_START_DAY,eligibleStreakDay} from './streaks.mjs';
 import {createNeynarRegistrationLedger} from './neynar_registration_store.mjs';
 // Internal singleton row inside the existing per-account notifications table.
@@ -36,7 +37,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13,14)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13,14,15)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -53,6 +54,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const proBillingReady=versions.has(12);
   const neynarRegistrationReady=versions.has(13);
   const buzzReady=versions.has(14);
+  const proWalletReady=versions.has(15);
   let buzzCleanupAt=0;
   async function pruneExpiredBuzz() {
     if(!buzzReady || Date.now()<buzzCleanupAt)return;
@@ -68,10 +70,65 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   return {
     close:()=>pool.end(),
     proBillingReady:()=>proBillingReady,
+    proWalletReady:()=>proWalletReady,
     neynarRegistrationReady:()=>neynarRegistrationReady,
     buzzReady:()=>buzzReady,
     neynarRegistrationLedger:neynarRegistrationReady
       ?createNeynarRegistrationLedger(pool):null,
+    async getProWallets({issuer,subject}) {
+      if(!proWalletReady)return [];
+      const result=await pool.query(`SELECT address FROM pro_wallets
+        WHERE issuer=$1 AND subject=$2 ORDER BY verified_at DESC LIMIT 20`,
+        [issuer,subject]);
+      return result.rows.map(row=>row.address);
+    },
+    async createProWalletChallenge({issuer,subject},address) {
+      if(!proWalletReady)throw new Error('pro_wallet_unavailable');
+      const client=await pool.connect();
+      try{
+        await client.query('BEGIN');
+        // Serialize rate limits for one account even with concurrent clients.
+        await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
+          ['pro_wallet_proof',issuer+'|'+subject]);
+        const count=await client.query(`SELECT COUNT(*)::int AS total
+          FROM pro_wallet_challenges WHERE issuer=$1 AND subject=$2
+          AND created_at > now()-interval '1 hour'`,[issuer,subject]);
+        if(Number(count.rows[0]?.total||0)>=8){
+          await client.query('ROLLBACK');return null;
+        }
+        const id=randomUUID();
+        const expires=new Date(Date.now()+5*60_000).toISOString();
+        const nonce=randomBytes(16).toString('hex');
+        const message=proWalletMessage({issuer,subject},address,nonce,expires);
+        await client.query(`INSERT INTO pro_wallet_challenges
+          (id,issuer,subject,address,message,expires_at)
+          VALUES($1::uuid,$2,$3,$4,$5,$6::timestamptz)`,
+          [id,issuer,subject,address,message,expires]);
+        await client.query('COMMIT');
+        return {id,message,expires_at:expires,address};
+      }catch(error){
+        try{await client.query('ROLLBACK');}catch{}
+        throw error;
+      }finally{client.release();}
+    },
+    async consumeProWalletChallenge({issuer,subject},id) {
+      if(!proWalletReady)throw new Error('pro_wallet_unavailable');
+      const result=await pool.query(`UPDATE pro_wallet_challenges SET consumed_at=now()
+        WHERE id=$1::uuid AND issuer=$2 AND subject=$3
+          AND consumed_at IS NULL AND expires_at>now()
+        RETURNING address,message`,[id,issuer,subject]);
+      return result.rows[0]||null;
+    },
+    async saveProWallet({issuer,subject},address) {
+      if(!proWalletReady)throw new Error('pro_wallet_unavailable');
+      // A signed proof is required by the HTTP handler before calling here.
+      const result=await pool.query(`INSERT INTO pro_wallets
+        (issuer,subject,address) VALUES($1,$2,$3)
+        ON CONFLICT(issuer,subject,address)
+        DO UPDATE SET verified_at=now() RETURNING address`,
+        [issuer,subject,address]);
+      return result.rows[0]?.address===address;
+    },
     // Subscription state is authoritative even when the GENY price oracle is
     // offline. Time-based expiry is checked by PostgreSQL on every Pro write.
     async getProSubscription({issuer,subject}) {
