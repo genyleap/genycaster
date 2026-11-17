@@ -307,7 +307,9 @@ void testAccountAccessConsentIsRememberedPerOrigin()
     assert(secondNext.result() == http::status::ok);
     const auto secondPayload = json::parse(secondNext.body(), parseError);
     assert(!parseError && secondPayload.is_object());
-    assert(!secondPayload.as_object().at("requiresApproval").as_bool());
+    // Even a remembered origin grant must not silently drive a new connection
+    // request through the browser without a fresh click.
+    assert(secondPayload.as_object().at("requiresApproval").as_bool());
     const auto& secondTransportValue = secondPayload.as_object().at("transportId");
     const std::uint64_t secondTransportId = secondTransportValue.is_uint64()
         ? secondTransportValue.as_uint64()
