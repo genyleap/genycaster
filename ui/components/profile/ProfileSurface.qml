@@ -1562,7 +1562,7 @@ Item {
                                         Layout.fillWidth: true
                                         quiet: true
                                         alignStart: true
-                                        iconGlyph: Theme.iconBell
+                                        iconGlyph: Theme.iconNotification
                                         text: root.buzzEnabled
                                             ? qsTrId("genycaster.buzz.disable")
                                             : qsTrId("genycaster.buzz.enable")
@@ -1580,7 +1580,7 @@ Item {
                                         Layout.fillWidth: true
                                         quiet: true
                                         alignStart: true
-                                        iconGlyph: Theme.iconBell
+                                        iconGlyph: Theme.iconNotification
                                         text: root.buzzLastSentFid===Number(root.activeDetail.fid)
                                             ? qsTrId("genycaster.buzz.sent")
                                             : qsTrId("genycaster.buzz.send")
