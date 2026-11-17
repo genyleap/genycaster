@@ -120,8 +120,9 @@ test('consent page keeps a confirmed approval steady through a follow-up read an
        && node.className==='wallet-option');
    },
    querySelector(selector){
-     const match=/^\\[data-index="([0-9]+)"\\]$/.exec(selector);
-     return match?this.children.find(node=>node.dataset.index===match[1]):null;
+     const index=selector.startsWith('[data-index="') && selector.endsWith('"]')
+       ? selector.slice(13,-2) : null;
+     return index!==null?this.children.find(node=>node.dataset.index===index):null;
    }
  });
  const element=id=>elements[id]??(elements[id]=Object.assign(fakeNode(),{
