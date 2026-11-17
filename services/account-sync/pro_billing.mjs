@@ -103,7 +103,14 @@ async function safeJson(fetchImpl,url,{method='GET',body,limit=16_384}={}) {
   const r=await fetchImpl(url,{method,redirect:'error',signal:AbortSignal.timeout(6500),
     headers:{'Accept':'application/json','Content-Type':'application/json'},
     ...(body?{body:JSON.stringify(body)}:{})});
-  if(!r.ok || Number(r.headers?.get?.('content-length')||0)>limit)
+  if(!r.ok) {
+    const error=new Error('billing_upstream_unavailable');
+    // One bounded retry is safe for a read-only oracle on transient 5xx.
+    // HTTP 429 is intentionally not retried: respect upstream rate limits.
+    error.retryable=[502,503,504].includes(r.status);
+    throw error;
+  }
+  if(Number(r.headers?.get?.('content-length')||0)>limit)
     throw new Error('billing_upstream_unavailable');
   const text=await r.text();
   if(text.length>limit)throw new Error('billing_upstream_unavailable');
@@ -116,7 +123,15 @@ export function createProRateReader({fetchImpl=globalThis.fetch,now=Date.now}={}
     if(cache && cache.until>now())return cache;
     if(pending)return pending;
     pending=(async()=>{
-      const document=await safeJson(fetchImpl,PRICE_URL);
+      let document;
+      try {document=await safeJson(fetchImpl,PRICE_URL);}
+      catch(error) {
+        if(!error?.retryable)throw error;
+        // Never fall back to a stale or invented price. The second live
+        // response must still pass the same strict decimal/contract checks.
+        await new Promise(resolve=>setTimeout(resolve,200));
+        document=await safeJson(fetchImpl,PRICE_URL);
+      }
       const pairs=document?.data?.attributes?.token_prices;
       const raw=pairs?.[GENY]??pairs?.[GENY.toLowerCase()];
       const price=String(raw||'');
