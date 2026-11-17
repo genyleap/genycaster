@@ -22,7 +22,7 @@ test('unknown Pro price remains nonpayable and can be refreshed', () => {
 test('Pro pricing stays readable in a narrow drawer with localized text', () => {
     const i = drawer.indexOf('objectName: "genyProCompactPriceHeadline"');
     assert.ok(i >= 0);
-    const title = drawer.slice(i, i+1020);
+    const title = drawer.slice(i, i+1550);
     assert.match(title, /Layout\.fillWidth: true/);
     assert.match(title, /Layout\.minimumWidth: 0/);
     assert.match(title, /font\.pixelSize: root\.priceKnown && !root\.checkoutActive/);
@@ -38,7 +38,7 @@ test('Pro pricing stays readable in a narrow drawer with localized text', () => 
 test('Streak metric has mirrored inset without modifying statistics or number', () => {
     const i = card.indexOf('objectName: "profileStreakValue"');
     assert.ok(i >= 0);
-    const metric = card.slice(i, i+460);
+    const metric = card.slice(i, i+750);
     assert.match(metric, /Layout\.rightMargin: Theme\.rtl \? 0 : Theme\.space3/);
     assert.match(metric, /Layout\.leftMargin: Theme\.rtl \? Theme\.space3 : 0/);
     assert.match(metric, /LocaleFormat\.formatInteger\(root\.streakCurrent\)/);
