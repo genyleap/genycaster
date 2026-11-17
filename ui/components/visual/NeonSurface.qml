@@ -1,5 +1,6 @@
 import QtQuick
 import Farcaster.Client
+import "NeonGeometry.js" as NeonGeometry
 
 // One material owner for the surface, its focus outline, and its Neon rim.
 // Adapted from the user-provided Genyleap Neon UI Kit v0.4.5 NeonSurface.
@@ -9,6 +10,12 @@ Superellipse {
     id: material
 
     property bool interactive: false
+    property NeonReflectionSource reflectionSource: null
+    property rect reflectionRect: NeonGeometry.translatedRect(material,
+        reflectionSource ? reflectionSource.sourceItem : null)
+    property real reflectionStrength: Theme.reflectionStrength
+    property real neonReflectionStrength: Theme.neonReflectionStrength
+    property bool reflectedBorder: true
     property bool ambientNeon: false
     // Virtualized Cast cards defer the GPU shader until actual pointer entry,
     // then keep it alive through the exit fade, unlike dashboard cards.
@@ -81,6 +88,28 @@ Superellipse {
         blocking: false
     }
 
+    // The chromatic body and stationary border are independent of pointer
+    // lighting. Only allocate for explicit adjacent sources, not every cast.
+    Loader {
+        anchors.fill: parent
+        active: material.visible && Theme.reflectionGain > 0
+            && !!material.reflectionSource && material.reflectionSource.capturing
+            && !material.focused
+        sourceComponent: NeonReflection {
+            anchors.fill: parent
+            reflectionSource: material.reflectionSource
+            sampleRect: material.reflectionRect
+            strength: material.reflectionStrength
+            cornerRadius: material.curveDepth
+            cornerPower: material.exponent
+            borderInset: material.borderWidth / 2
+            edgeStrength: material.reflectedBorder && material.borderWidth > 0 ? 0.72 : 0
+            edgeWidth: Math.max(1, material.borderWidth)
+            edgeInset: material.borderWidth / 2
+            reach: Theme.reflectionReach
+        }
+    }
+
     Loader {
         anchors.fill: parent
         active: material.visible && Theme.neonEnabled
@@ -101,6 +130,11 @@ Superellipse {
             borderInset: material.borderWidth / 2
             inverted: material.inverted
             tintColor: material.neonColor
+            reflectionSource: material.reflectionSource
+            reflectionRect: material.reflectionRect
+            reflectionStrength: material.neonReflectionStrength
+            reflectionReach: Theme.reflectionReach
+            suppressed: material.focused
             strength: material.neonStrength * (material.proximityPointerActive
                 ? material.proximityStrength : 1)
             ambientStrength: material.ambientStrength
