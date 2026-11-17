@@ -7964,5 +7964,45 @@ Company | https://company.com</source>
             <source>Done</source>
             <translation>पूर्ण</translation>
         </message>
+        <message id="genycaster.buzz.enable">
+            <source>Enable GenyBuzz</source>
+            <translation>GenyBuzz चालू करें</translation>
+        </message>
+        <message id="genycaster.buzz.disable">
+            <source>Disable GenyBuzz</source>
+            <translation>GenyBuzz बंद करें</translation>
+        </message>
+        <message id="genycaster.buzz.send">
+            <source>Send Buzz</source>
+            <translation>Buzz भेजें</translation>
+        </message>
+        <message id="genycaster.buzz.sent">
+            <source>Buzz sent</source>
+            <translation>Buzz भेजा गया</translation>
+        </message>
+        <message id="genycaster.buzz.slow_down">
+            <source>Too many Buzzes. Try again later.</source>
+            <translation>बहुत ज़्यादा Buzz भेजे गए हैं। बाद में फिर कोशिश करें।</translation>
+        </message>
+        <message id="genycaster.buzz.not_available">
+            <source>Buzz is unavailable for this account.</source>
+            <translation>इस खाते के लिए Buzz उपलब्ध नहीं है।</translation>
+        </message>
+        <message id="genycaster.buzz.error">
+            <source>Could not send Buzz. Try again.</source>
+            <translation>Buzz नहीं भेजा जा सका। फिर कोशिश करें।</translation>
+        </message>
+        <message id="genycaster.buzz.received">
+            <source>GenyBuzz</source>
+            <translation>GenyBuzz</translation>
+        </message>
+        <message id="genycaster.buzz.from_fid">
+            <source>Attention nudge from FID %1</source>
+            <translation>FID %1 से ध्यान आकर्षित करने का संकेत</translation>
+        </message>
+        <message id="genycaster.buzz.view">
+            <source>View</source>
+            <translation>देखें</translation>
+        </message>
     </context>
 </TS>
