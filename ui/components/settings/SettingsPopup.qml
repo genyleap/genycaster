@@ -1840,7 +1840,6 @@ GenyAdaptiveDialog {
                                         text: LocaleFormat.formatInteger(Math.round(Theme.reflectionIntensity * 100)) + "%"
                                         color: Theme.inkMuted
                                         font.pixelSize: Theme.typeCaptionSize
-                                        font.tabularFigures: true
                                     }
                                 }
                             }
