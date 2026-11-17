@@ -597,7 +597,10 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         period_days:billingPolicy.periodDays,
         chain_id:billingPolicy.chainId,
         token_symbol:'GENY',payment_assets:['GENY','USDC'],
-        payment_available:Boolean(billingPolicy.enabled && store.proBillingReady?.()),
+        // Do not advertise an actionable checkout when one-use EIP-191
+        // payer verification cannot be persisted in the database.
+        payment_available:Boolean(billingPolicy.enabled && store.proBillingReady?.()
+          && store.proWalletReady?.()),
         billing_mode:'monthly_payment'
       }});
       return true;
