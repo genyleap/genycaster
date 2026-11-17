@@ -44,13 +44,16 @@ client-provided sender FID, or subscription privilege is accepted.
   another user's preference or registration status.
 - A recipient who muted the sender, or a sender who muted the recipient, cannot
   send. Both app-owned mute sets are checked on the server.
+- A recipient with a private DND profile mood cannot receive new nudges.
+  Inbox polling is suppressed during DND without exposing that status to senders.
 - A sender may send at most **one Buzz per recipient every 60 seconds**,
   **five total per hour**. A recipient may receive at most **ten per hour**.
   Limits are transactionally serialized with ordered PostgreSQL advisory locks.
 - Disabled users do not receive polling results. DND/system notification rules
   are not bypassed: v1 uses only an in-app, dismissible notification.
-- Events expire from inbox queries after **24 hours**. Expired event rows
-  require scheduled/operational cleanup (see maintenance note below).
+- Events expire from inbox queries after **24 hours**. The API performs
+  opportunistic index-backed cleanup in batches of 64, no more often than once
+  a minute per service process. Operational maintenance may supplement this.
 - The event contains only verified sender account identity and context, no
   arbitrary message body or untrusted links. There is no Pro-only bypass.
 
@@ -69,9 +72,10 @@ product-owned sender allowlist.
    identity issuer.
 3. Deploy corresponding native/WASM clients. In-app notifications do not work
    with an older, unupdated client.
-4. Schedule server-side cleanup, e.g. delete expired `genybuzz_events` rows
-   in bounded batches through a restricted maintenance role. Expiry is enforced
-   by all reads independently of cleanup.
+4. Confirm bounded expiry cleanup runs under ordinary authenticated inbox
+   traffic; optionally supplement with scheduled maintenance in deployments
+   where no active clients poll. Expiry is enforced on reads independently
+   of physical row deletion.
 5. Test account switching, logout, muted recipients, concurrent send limits,
    responsive Pro/GenyBuzz menus, low-motion mode, and both RTL/LTR interfaces.
 
