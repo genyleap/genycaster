@@ -24,10 +24,25 @@ constexpr int timeoutMs = 12000;
 constexpr qint64 cacheMs = 2 * 60 * 1000;
 constexpr qint64 farcasterEpochMs = 1609459200000LL;
 
+// HyperSnap v2 serializes large FIDs as decimal strings to preserve JSON
+// precision; Neynar/Snapchain may use numeric JSON values. Never accept
+// fractional, signed, scientific-notation or out-of-range identifiers.
 qint64 nonnegative(const QJsonValue& value) {
-    const double n = value.toDouble(-1);
-    return std::isfinite(n) && n >= 0 && n < 9007199254740991.0
-        ? static_cast<qint64>(n) : 0;
+    constexpr qulonglong maximumSafeInteger = 9007199254740991ULL;
+    if (value.isString()) {
+        const QString text = value.toString();
+        if (text.isEmpty() || text.size() > 16) return 0;
+        for (const QChar digit : text)
+            if (digit < QLatin1Char('0') || digit > QLatin1Char('9'))
+                return 0;
+        bool ok = false;
+        const qulonglong parsed = text.toULongLong(&ok, 10);
+        return ok && parsed <= maximumSafeInteger ? static_cast<qint64>(parsed) : 0;
+    }
+    if (!value.isDouble()) return 0;
+    const double n = value.toDouble();
+    return std::isfinite(n) && n >= 0 && n <= static_cast<double>(maximumSafeInteger)
+        && std::floor(n) == n ? static_cast<qint64>(n) : 0;
 }
 QString safeText(const QJsonValue& value) {
     return value.isString() ? value.toString() : QString{};
@@ -168,9 +183,19 @@ void StatsController::getProfile() {
             const auto profile = payload.value(QStringLiteral("user")).toObject();
             if (QString::number(static_cast<qulonglong>(nonnegative(profile.value(
                     QStringLiteral("fid"))))) == m_fid) {
-                m_followers = nonnegative(profile.value(QStringLiteral("follower_count")));
-                m_following = nonnegative(profile.value(QStringLiteral("following_count")));
-                m_fetchedProfile = true;
+                // HyperSnap nests audience counts under user.profile, while
+                // some indexed providers return them on the user directly.
+                // Missing counts stay unknown instead of becoming false zeros.
+                const auto nested = profile.value(QStringLiteral("profile")).toObject();
+                const auto& counts = nested.isEmpty() ? profile : nested;
+                const auto followers = counts.value(QStringLiteral("follower_count"));
+                const auto following = counts.value(QStringLiteral("following_count"));
+                if ((followers.isDouble() || followers.isString())
+                    && (following.isDouble() || following.isString())) {
+                    m_followers = nonnegative(followers);
+                    m_following = nonnegative(following);
+                    m_fetchedProfile = true;
+                }
             }
         }
         reply->deleteLater();
