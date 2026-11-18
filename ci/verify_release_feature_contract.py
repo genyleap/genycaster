@@ -40,6 +40,44 @@ def blockers() -> list[str]:
                 errors.append(f"{feature}: disabled in at least one platform's "
                               "product composition / Release configuration")
 
+    # Search is already an implemented product path on every advertised Qt
+    # target. Do not let merely setting -DSEARCH=ON advertise it if the
+    # presentation bridge, provider-neutral read pipeline or cache disappears.
+    if all("-DFARCASTER_ENABLE_SEARCH=ON" in block
+           for block in (linux, macos, windows, android, web)):
+        search_contract = {
+            "src/application/configured_features.cpp.in": (
+                ".hasSearch = @FARCASTER_ENABLE_SEARCH_CPP@",),
+            "ui/components/shell/AppShell.qml": (
+                "SearchPalette {",
+                "onSuggestionsRequested: query => presentationBridge.requestSearchSuggestions(query)",),
+            "src/presentation/qt/presentation_bridge.cpp": (
+                "void PresentationBridge::requestSearchSuggestions(",
+                "void PresentationBridge::clearSearchSuggestions()",
+                "if (query.trimmed() != m_searchQuery)",),
+            "ui/app/runtime/bindings.cpp": (
+                "runtime->cancelSearchRequest();",
+                "runtime->service->openSearch(",
+                "bridge.applySearchSuggestions(",
+                "runtime->keepSearchRequest(",),
+            "src/application/read_async_service.cpp": (
+                "ReadService::openSearch(",
+                "m_store.searchCachedProfiles(query.text, query.limit)",
+                "m_store.searchCachedChannels(query.text, query.limit)",
+                "m_gateway.search(",
+                "putChannelSuggestions(",
+                "failedMetadata("),
+            "src/storage/read_store.cpp": (
+                "SqliteReadStore::searchCachedProfiles(",
+                "SqliteReadStore::searchCachedChannels("),
+        }
+        for path, required in search_contract.items():
+            source = read(path)
+            if any(token not in source for token in required):
+                errors.append(f"SEARCH: enabled but required runtime path is "
+                              f"missing or incomplete: {path}")
+
+
     if "-DFARCASTER_ENABLE_MINIAPPS=ON" not in linux or (
             "-DGENYCASTER_REQUIRE_LINUX_MINIAPP_HOST=ON" not in linux):
         errors.append("Linux: native Mini Apps not required by Release")
