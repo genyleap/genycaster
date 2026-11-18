@@ -340,8 +340,11 @@ test('native desktop and mobile recovery use 24 styled secret word slots', () =>
 
 test('shared theme, native project icons and all three theme modes are present', () => {
   assert.match(setup, /qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg/);
-  for(const token of ['Theme.accent','Theme.accentInk','Theme.ink',
-                       'appearanceController.setThemeMode','Theme.ink'])
+  // Setup uses semantic light/dark surface ink and the contrast resolver;
+  // the former Theme.accentInk alias is no longer a valid Setup token.
+  for(const token of ['Theme.accent', 'Theme.accentSurfaceInk',
+                       'Theme.contrastInk(Theme.accent)', 'Theme.ink',
+                       'appearanceController.setThemeMode'])
     assert.ok(setup.includes(token));
   assert.match(setup, /model: root.greetings/);
 });
