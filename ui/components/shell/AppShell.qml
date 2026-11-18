@@ -1619,11 +1619,12 @@ Item {
                                     visible: presentationBridge.isBusy && !root.initialSetupOpen
                                     clip: true
 
-                                    Rectangle {
+                                    Superellipse {
                                         width: Math.max(44, parent.width * 0.24)
                                         height: parent.height
-                                        radius: 1.5
-                                        color: Theme.accent
+                                        curveDepth: height / 2
+                                        exponent: 2
+                                        fillColor: Theme.accent
                                         x: -width
                                         SequentialAnimation on x {
                                             running: workspaceActivity.visible && !Theme.reduceMotion
