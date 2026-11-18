@@ -275,7 +275,7 @@ Item {
                                 anchors.centerIn: parent
                                 visible: optionButton.selected
                                 text: Theme.iconCheck
-                                color: Theme.accentInk
+                                color: Theme.accentSurfaceInk
                                 preferredSize: 13
                             }
                         }

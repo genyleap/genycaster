@@ -2997,7 +2997,7 @@ Item {
                     Icon {
                         anchors.centerIn: parent
                         text: Theme.iconCheck
-                        color: Theme.accentInk
+                        color: Theme.accentSurfaceInk
                         preferredSize: 36
                     }
                 }

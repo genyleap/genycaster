@@ -490,7 +490,7 @@ Item {
                             Icon {
                                 anchors.centerIn: parent
                                 text: String(destinationCard.modelData.icon || "")
-                                color: destinationCard.selected ? Theme.accentInk : Theme.inkMuted
+                                color: destinationCard.selected ? Theme.accentSurfaceInk : Theme.inkMuted
                                 preferredSize: Theme.iconSizeSmall
                             }
                         }

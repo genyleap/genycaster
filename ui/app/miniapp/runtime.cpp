@@ -181,6 +181,28 @@ constexpr qint64 manifestCacheTtlMs = 5 * 60 * 1000;
     return manifest;
 }
 
+// Farcaster's official hosted manifests redirect from the publisher's
+// /.well-known endpoint to api.farcaster.xyz/miniapps/hosted-manifest/<id>.
+// Keep the publisher as the association origin, NOT the redirect server.
+// Reject arbitrary cross-origin redirects; this is not a generic URL fetcher.
+[[nodiscard]] bool allowedManifestRedirect(const QUrl& current,
+                                           const QUrl& destination,
+                                           const QString& publisherHost)
+{
+    if (!publicHttps(destination) || !publicHttps(current)
+        || destination.userInfo().size() > 0) {
+        return false;
+    }
+    if (destination.host().compare(current.host(), Qt::CaseInsensitive) == 0) {
+        return true;
+    }
+    return current.host().compare(publisherHost, Qt::CaseInsensitive) == 0
+        && destination.host().compare(QStringLiteral("api.farcaster.xyz"), Qt::CaseInsensitive) == 0
+        && destination.path().startsWith(QStringLiteral("/miniapps/hosted-manifest/"))
+        && destination.path().size() > QStringLiteral("/miniapps/hosted-manifest/").size()
+        && !destination.hasQuery() && !destination.hasFragment();
+}
+
 [[nodiscard]] QString htmlAttribute(const QString& tag, const QString& attribute)
 {
     const QRegularExpression expression{
@@ -896,7 +918,12 @@ private:
                 active->reply = nullptr;
                 reply->deleteLater();
                 if (status >= 300 && status < 400 && !redirect.isEmpty()) {
-                    resolveManifest(*active, url.resolved(redirect), redirects + 1, requestedLaunch);
+                    const QUrl destination = url.resolved(redirect);
+                    if (!allowedManifestRedirect(url, destination, requestedLaunch.host())) {
+                        fail(*active, qtTrId("genycaster.miniapp.invalid_manifest"));
+                        return;
+                    }
+                    resolveManifest(*active, destination, redirects + 1, requestedLaunch);
                     return;
                 }
                 if (error != QNetworkReply::NoError || status != 200
@@ -911,7 +938,10 @@ private:
                     return;
                 }
                 const QJsonObject manifest = document.object();
-                if (!validAccountAssociationEnvelope(manifest, url.host())) {
+                // A hosted manifest is delivered by api.farcaster.xyz, but
+                // accountAssociation.payload.domain must identify the
+                // publisher whose /.well-known endpoint redirected here.
+                if (!validAccountAssociationEnvelope(manifest, requestedLaunch.host())) {
                     fail(*active, qtTrId("genycaster.miniapp.invalid_manifest"));
                     return;
                 }

@@ -59,6 +59,8 @@ PROVIDER_AWARE_PRESENTATION = {
     "ui/app/identity/connections.cpp",
     "ui/app/identity/native_registration.cpp",
     "ui/app/social/channel_administration.cpp",
+    # Farcaster hosted Mini App manifest redirect adapter; audited below.
+    "ui/app/miniapp/runtime.cpp",
 }
 # These named bootstrap adapters resolve explicit user-selected Read/Write
 # protocols and are never imported into the provider-neutral core or QML.
@@ -116,6 +118,14 @@ VERIFIED_PROVIDER_BOUNDARY_INVARIANTS = {
     "ui/app/social/channel_administration.cpp": (
         'm_contract == QLatin1String("neynar-v2")',
         'm_contract == QLatin1String("hypersnap-v2")',
+    ),
+    "ui/app/miniapp/runtime.cpp": (
+        "bool allowedManifestRedirect(",
+        "!publicHttps(destination) || !publicHttps(current)",
+        'QStringLiteral("api.farcaster.xyz")',
+        'QStringLiteral("/miniapps/hosted-manifest/")',
+        "current.host().compare(publisherHost, Qt::CaseInsensitive) == 0",
+        "validAccountAssociationEnvelope(manifest, requestedLaunch.host())",
     ),
 }
 

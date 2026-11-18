@@ -375,7 +375,11 @@ QtObject {
     readonly property color accentHover: dark ? Qt.lighter(presetAccent, 1.05) : Qt.darker(presetAccent, 1.04)
     readonly property color primaryFillHover: dark ? Qt.lighter(presetFill, 1.06) : Qt.darker(presetFill, 1.035)
     readonly property color primaryPressed: Qt.darker(presetFill, 1.10)
+    // accentInk belongs to primaryFill (which can be neutral/white).
+    // Never reuse it on an accent-blue surface: use the actual backdrop
+    // to select a legible glyph foreground, including custom themes.
     readonly property color accentInk: contrastInk(presetFill)
+    readonly property color accentSurfaceInk: contrastInk(presetAccent)
     readonly property color primarySurface: dark
         ? Qt.rgba(presetAccent.r, presetAccent.g, presetAccent.b, 0.18)
         : Qt.rgba(presetAccent.r, presetAccent.g, presetAccent.b, 0.095)
