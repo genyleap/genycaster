@@ -128,13 +128,14 @@ GenyAdaptiveDialog {
                                      ? Theme.weightDemiBold : Font.Normal
                     }
                     background: Item {
-                        Rectangle {
+                        Superellipse {
                             anchors.bottom: parent.bottom
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width
                             height: 2
-                            radius: 1
-                            color: Theme.accent
+                            curveDepth: height / 2
+                            exponent: 2
+                            fillColor: Theme.accent
                             visible: root.activeTab === feedbackTab.index
                         }
                     }
