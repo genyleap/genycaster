@@ -76,14 +76,29 @@ class LinuxDistroBrandAssetsTest(unittest.TestCase):
         start = qml.index('id: identityPrimaryLink')
         end = qml.index('id: identityMoreLinks', start)
         link = qml[start:end]
-        self.assertIn("wrapMode: Text.NoWrap", link)
-        self.assertIn("elide: Text.ElideNone", link)
-        self.assertIn("profileLinkMetrics.advanceWidth", link)
-        self.assertNotIn("Text.WrapAnywhere", link)
-        self.assertIn("clip: false", link)
-        self.assertIn("Layout.minimumWidth: Layout.preferredWidth", link)
+        # The visible inline URL must remain a single unelided line. Its
+        # nested tooltip intentionally wraps long URLs; checking the entire
+        # Button block would falsely attribute the tooltip's WrapAnywhere
+        # to the primary Label and fail the hosted CI gate.
+        label_start = link.index("id: identityLinkText")
+        tooltip_start = link.index("ToolTip {", label_start)
+        inline_label = link[label_start:tooltip_start]
+        tooltip = link[tooltip_start:]
+        self.assertIn("wrapMode: Text.NoWrap", inline_label)
+        self.assertIn("elide: Text.ElideNone", inline_label)
+        self.assertIn("profileLinkMetrics.advanceWidth", inline_label)
+        self.assertNotIn("Text.WrapAnywhere", inline_label)
+        self.assertIn("clip: false", inline_label)
+        self.assertIn("Layout.minimumWidth: Layout.preferredWidth", inline_label)
+        self.assertIn("wrapMode: Text.WrapAnywhere", tooltip)
+        # The current responsive profile header uses a dedicated identity
+        # ColumnLayout, not the retired width-switched GridLayout. Keep the
+        # link slot's minimum bound to the actual viewport while preserving
+        # its unelided intrinsic maximum and the separate follow/name row.
+        self.assertIn('objectName: "profileIdentityRow"', qml)
+        self.assertIn('id: profileIdentityFlow', qml)
         self.assertIn("Layout.minimumWidth: Math.min(fullLinkWidth, root.profileContentWidth)", qml)
-        self.assertIn("columns: root.profileContentWidth >=", qml)
+        self.assertIn("Layout.maximumWidth: fullLinkWidth", qml)
         self.assertNotIn("root.profileContentWidth * 0.76", qml)
         self.assertIn("Layout.minimumWidth: implicitWidth", qml[end:end + 500])
 
