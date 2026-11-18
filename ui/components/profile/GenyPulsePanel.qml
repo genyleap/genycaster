@@ -246,11 +246,11 @@ Item {
                     layoutDirection: Theme.uiDirection
                     Layout.fillWidth: true
                     spacing: Theme.space2
-                    Rectangle {
+                    Superellipse {
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
-                        radius: 9
-                        color: Theme.pulseFarcasterIconSurface
+                        curveDepth: 9
+                        fillColor: Theme.pulseFarcasterIconSurface
                         Icon {
                             anchors.centerIn: parent
                             text: Theme.iconCompose
@@ -305,7 +305,7 @@ Item {
                                 spacing: root.castsGapSize
                                 Repeater {
                                     model: 7
-                                    delegate: Rectangle {
+                                    delegate: Superellipse {
                                         required property int index
                                         readonly property int day: root.firstDay + parent.index*7 + index
                                         readonly property bool inYear:
@@ -316,8 +316,8 @@ Item {
                                             && day<Number(root.farcasterData.knownFromDay || root.castsYearStartDay)
                                         width: root.cellSize
                                         height: root.cellHeight
-                                        radius: 2
-                                        color: !inYear ? "transparent" :
+                                        curveDepth: 2
+                                        fillColor: !inYear ? "transparent" :
                                             unobserved ? (Theme.pulseUnobservedTile) :
                                             root.tileColor(root.farcasterReady ? value : 0, "farcaster")
                                         MouseArea {
@@ -382,11 +382,11 @@ Item {
                         layoutDirection: Theme.uiDirection
                         Layout.fillWidth: true
                         spacing: Theme.space2
-                        Rectangle {
+                        Superellipse {
                             Layout.preferredWidth: 30
                             Layout.preferredHeight: 30
-                            radius: 9
-                            color: Theme.pulseBrandIconBackground
+                            curveDepth: 9
+                            fillColor: Theme.pulseBrandIconBackground
                             Image {
                                 anchors.centerIn: parent
                                 width: 21
@@ -533,7 +533,7 @@ Item {
                                     spacing: root.githubGapSize
                                     Repeater {
                                         model: 7
-                                        delegate: Rectangle {
+                                        delegate: Superellipse {
                                             required property int index
                                             readonly property int day:
                                                 root.githubGridStart+parent.index*7+index
@@ -548,13 +548,13 @@ Item {
                                                 root.githubContributionDays[date] || ({})
                                             width: root.githubTileWidth
                                             height: root.githubTileHeight
-                                            radius: 2
-                                            color: inYear
+                                            curveDepth: 2
+                                            fillColor: inYear
                                                 ? root.githubTileColor(Number(datum.level || 0))
                                                 : "transparent"
                                             opacity: root.githubRange==="1y" || inRange ? 1 : 0.7
-                                            border.width: root.githubRange!=="1y" && inRange ? 1 : 0
-                                            border.color: Theme.pulseGithubRangeBorder
+                                            borderWidth: root.githubRange!=="1y" && inRange ? 1 : 0
+                                            borderColor: Theme.pulseGithubRangeBorder
                                             MouseArea {
                                                 anchors.fill: parent
                                                 enabled: parent.inYear
@@ -611,11 +611,11 @@ Item {
                     anchors.top: parent.top
                     anchors.margins: Theme.space3
                     spacing: Theme.space2
-                    Rectangle {
+                    Superellipse {
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
-                        radius: 9
-                        color: Theme.pulseBrandIconBackground
+                        curveDepth: 9
+                        fillColor: Theme.pulseBrandIconBackground
                         Image {
                             anchors.centerIn: parent
                             width: 16
