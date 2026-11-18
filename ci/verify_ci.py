@@ -17,8 +17,8 @@ def main() -> None:
     assert re.search(r"^on:\n  workflow_dispatch:", workflow, re.M)
     # Release-candidate validation runs one coordinated matrix, not one
     # GitHub Actions invocation per platform (GenyConnect-style orchestration).
-    dispatch = workflow.split("  workflow_dispatch:\\n", 1)[1].split("  push:\\n", 1)[0]
-    assert re.search(r"(?m)^        default: all$\\n        options:$\\n          - all$", dispatch)
+    dispatch = workflow.split("  workflow_dispatch:\n", 1)[1].split("  push:\n", 1)[0]
+    assert re.search(r"(?m)^        default: all$\n        options:$\n          - all$", dispatch)
     assert "confirm_full_matrix:" in dispatch
     assert not FORBIDDEN_CORE_JOB.search(workflow)
     assert "confirm_full_matrix:" in workflow
