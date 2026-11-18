@@ -224,11 +224,13 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - macOS ARM64 [#44375093726](https://github.com/genyleap/genycaster/actions/runs/44375093726)
   **CANCELLED** at `79a99565`; no completed same-commit macOS acceptance.
 - Repair on `main`: `c4212d87` and `757884da` install Qt WebEngine
-  6.140 from its separate official Windows x64/ARM64 extension archives
-  with pinned version stamps, upstream checksum validation, and required
-  Qt WebEngine runtime checks. `f9bc8c21` adds workflow/architecture
-  selection regressions. **This change has NOT yet been run in hosted Windows
-  CI**; do not report Windows PASS without a fresh supported run.
+  6.140 from the official separate extension archives, preserving upstream
+  checksum validation and required runtime checks. `36c479b4` selects
+  the **native** Windows ARM64 feed (`windows_arm64`, not the Windows x64-host
+  cross-compiled feed), matching the native ARM64 base Qt kit.
+  `f9bc8c21` and `b6007d9e` guard the exact x86_64/ARM64 archive
+  selection in preflight tests. **No hosted Windows CI has run after these
+  fixes**; do not report Windows PASS without a fresh supported run.
 - Targeted Web CI run [#44334629613](https://github.com/genyleap/genycaster/actions/runs/44334629613)
   on `27b285ac` **failed** in the gate at obsolete Python profile URL
   layout assertions. WebAssembly job was skipped.
