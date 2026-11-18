@@ -93,13 +93,13 @@ NeonCard {
                 font.weight: Theme.weightDemiBold
                 color: Theme.textPrimary
             }
-            Rectangle { width: 7; height: 7; radius: 3.5; color: Theme.accent }
+            Superellipse { width: 7; height: 7; curveDepth: width / 2; exponent: 2; fillColor: Theme.accent }
             DirectionAwareLabel {
                 text: qsTrId("genycaster.stats.casts")
                 font.pixelSize: Theme.typeCaptionSize
                 color: Theme.textSecondary
             }
-            Rectangle { width: 7; height: 7; radius: 3.5; color: root.replyInk }
+            Superellipse { width: 7; height: 7; curveDepth: width / 2; exponent: 2; fillColor: root.replyInk }
             DirectionAwareLabel {
                 text: qsTrId("genycaster.stats.replies")
                 font.pixelSize: Theme.typeCaptionSize
@@ -323,11 +323,12 @@ NeonCard {
                             Layout.fillWidth: true
                             layoutDirection: Theme.uiDirection
                             spacing: Theme.space2
-                            Rectangle {
+                            Superellipse {
                                 width: 7
                                 height: 7
-                                radius: width / 2
-                                color: Theme.accent
+                                curveDepth: width / 2
+                                exponent: 2
+                                fillColor: Theme.accent
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
@@ -348,11 +349,12 @@ NeonCard {
                             Layout.fillWidth: true
                             layoutDirection: Theme.uiDirection
                             spacing: Theme.space2
-                            Rectangle {
+                            Superellipse {
                                 width: 7
                                 height: 7
-                                radius: width / 2
-                                color: root.replyInk
+                                curveDepth: width / 2
+                                exponent: 2
+                                fillColor: root.replyInk
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
