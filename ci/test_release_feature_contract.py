@@ -81,5 +81,38 @@ class ReleaseFeatureContractTest(unittest.TestCase):
             self.assertTrue(any(item.startswith("SEARCH:") for item in blockers()))
 
 
+    def test_release_channels_requires_genuine_discovery_and_role_guards(self):
+        self.assertFalse(any(item.startswith("CHANNELS:") for item in blockers()))
+
+    def test_channels_flag_alone_cannot_bypass_verified_moderator_authorization(self):
+        original = feature_contract.read
+
+        def missing_role_proof(path):
+            source = original(path)
+            if path == "ui/app/social/channel_administration.cpp":
+                return source.replace("m_roleVerified && m_canModerate",
+                                      "m_canModerate")
+            return source
+
+        with patch.object(feature_contract, "read", side_effect=missing_role_proof):
+            self.assertTrue(any(item.startswith("CHANNELS:") for item in blockers()))
+
+    def test_channels_release_cannot_skip_wasm(self):
+        original = feature_contract.read
+
+        def missing_wasm_channels(path):
+            source = original(path)
+            if path == ".github/workflows/ci.yml":
+                source = source.replace(
+                    '            -DFARCASTER_ENABLE_CHANNELS=ON\\n'
+                    '          cmake --build build/web',
+                    '          cmake --build build/web',
+                )
+            return source
+
+        with patch.object(feature_contract, "read", side_effect=missing_wasm_channels):
+            self.assertTrue(any(item.startswith("CHANNELS:") for item in blockers()))
+
+
 if __name__ == "__main__":
     unittest.main()
