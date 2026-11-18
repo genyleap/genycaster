@@ -233,17 +233,19 @@ ColumnLayout {
                     font.pixelSize: Theme.typeCaptionSize
                 }
             }
-            Rectangle {
+            Superellipse {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 4
-                radius: 2
-                color: Theme.borderMuted
-                Rectangle {
+                curveDepth: height / 2
+                exponent: 2
+                fillColor: Theme.borderMuted
+                Superellipse {
                     width: parent.width * (root.liveHealthRows.length > 0
                             ? root.checkedNodes / root.liveHealthRows.length : 0)
                     height: parent.height
-                    radius: parent.radius
-                    color: Theme.positive
+                    curveDepth: parent.curveDepth
+                    exponent: 2
+                    fillColor: Theme.positive
                     Behavior on width {
                         NumberAnimation {
                             duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
@@ -284,15 +286,15 @@ ColumnLayout {
                             visible: String(modelData.status) === "healthy"
                             Repeater {
                                 model: 4
-                                delegate: Rectangle {
+                                delegate: Superellipse {
                                     required property int index
                                     width: 5
                                     height: 5 + (index + 1) * 3
-                                    radius: 2
+                                    curveDepth: 2
                                     Layout.alignment: Qt.AlignBottom
-                                    color: index < root.responseBars(Number(modelData.latencyMs))
+                                    fillColor: index < root.responseBars(Number(modelData.latencyMs))
                                            ? Theme.positive : Theme.borderMuted
-                                    Behavior on color {
+                                    Behavior on fillColor {
                                         ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionStandard }
                                     }
                                 }
