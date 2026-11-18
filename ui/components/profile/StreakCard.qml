@@ -118,7 +118,7 @@ Item {
     Component {
         id: milestoneBadgeTile
 
-        Rectangle {
+        Superellipse {
             id: badgeTile
             required property var modelData
             readonly property int threshold: Number(modelData.threshold_days || 0)
@@ -134,12 +134,12 @@ Item {
             Layout.minimumWidth: 0
             Layout.preferredWidth: implicitWidth
             Layout.preferredHeight: tileHeight
-            radius: Theme.curveControl
-            color: root.inspectedMilestone === threshold || badgeTile.earned
+            curveDepth: Theme.curveControl
+            fillColor: root.inspectedMilestone === threshold || badgeTile.earned
                 ? Theme.streakSurface : Theme.surfaceMuted
-            border.color: root.inspectedMilestone === threshold
+            borderColor: root.inspectedMilestone === threshold
                 ? Theme.streak : (badgeTile.earned ? Theme.streakTrack : Theme.borderMuted)
-            border.width: root.inspectedMilestone === threshold ? 1.5
+            borderWidth: root.inspectedMilestone === threshold ? 1.5
                 : (badgeTile.earned ? 1 : 0)
 
             ColumnLayout {
@@ -156,14 +156,15 @@ Item {
                     Layout.preferredWidth: Theme.scaleUi(48)
                     Layout.preferredHeight: Theme.scaleUi(48)
 
-                    Rectangle {
+                    Superellipse {
                         anchors.fill: parent
-                        radius: width / 2
-                        color: badgeTile.earned
+                        curveDepth: width / 2
+                        exponent: 2
+                        fillColor: badgeTile.earned
                             ? Theme.streakSurface : Theme.surfaceElevated
-                        border.color: badgeTile.earned
+                        borderColor: badgeTile.earned
                             ? Theme.streak : Theme.borderMuted
-                        border.width: badgeTile.earned ? 1.5 : 1
+                        borderWidth: badgeTile.earned ? 1.5 : 1
                     }
                     Icon {
                         anchors.centerIn: parent
@@ -172,16 +173,17 @@ Item {
                         color: badgeTile.earned ? Theme.streak : Theme.inkMuted
                         opacity: badgeTile.earned ? 1 : 0.5
                     }
-                    Rectangle {
+                    Superellipse {
                         visible: !badgeTile.earned
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
                         width: Theme.scaleUi(22)
                         height: width
-                        radius: width / 2
-                        color: Theme.surfaceMuted
-                        border.color: Theme.borderMuted
-                        border.width: 1
+                        curveDepth: width / 2
+                        exponent: 2
+                        fillColor: Theme.surfaceMuted
+                        borderColor: Theme.borderMuted
+                        borderWidth: 1
                         Icon {
                             anchors.centerIn: parent
                             text: "system/lock"
@@ -212,17 +214,19 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                 }
                 Item { Layout.fillHeight: true; Layout.minimumHeight: 0 }
-                Rectangle {
+                Superellipse {
                     Layout.fillWidth: true
                     Layout.preferredHeight: Theme.scaleUi(4)
-                    radius: height / 2
-                    color: Theme.streakTrack
-                    Rectangle {
+                    curveDepth: height / 2
+                    exponent: 2
+                    fillColor: Theme.streakTrack
+                    Superellipse {
                         x: Theme.rtl ? parent.width - width : 0
                         width: parent.width * badgeTile.completed
                         height: parent.height
-                        radius: parent.radius
-                        color: Theme.streak
+                        curveDepth: parent.curveDepth
+                        exponent: 2
+                        fillColor: Theme.streak
                     }
                 }
             }
@@ -338,12 +342,13 @@ Item {
                     Layout.preferredWidth: Theme.scaleUi(root.compact ? 106 : 120)
                     Layout.preferredHeight: Layout.preferredWidth
 
-                    Rectangle {
+                    Superellipse {
                         anchors.centerIn: parent
                         width: parent.width * 0.94
                         height: width
-                        radius: width / 2
-                        color: Theme.streakGlow
+                        curveDepth: width / 2
+                        exponent: 2
+                        fillColor: Theme.streakGlow
                         opacity: root.current > 0 ? (Theme.dark ? 0.11 : 0.13) : 0.025
                         scale: 1
                         SequentialAnimation on scale {
@@ -353,12 +358,13 @@ Item {
                             NumberAnimation { from: 1.07; to: 0.98; duration: 1900; easing.type: Easing.InOutSine }
                         }
                     }
-                    Rectangle {
+                    Superellipse {
                         anchors.centerIn: parent
                         width: parent.width * 0.79
                         height: width
-                        radius: width / 2
-                        color: Theme.streakGlow
+                        curveDepth: width / 2
+                        exponent: 2
+                        fillColor: Theme.streakGlow
                         opacity: root.current > 0 ? (Theme.dark ? 0.13 : 0.16) : 0.025
                         scale: 1
                         SequentialAnimation on scale {
@@ -368,14 +374,15 @@ Item {
                             NumberAnimation { from: 0.96; to: 1.06; duration: 1420; easing.type: Easing.InOutSine }
                         }
                     }
-                    Rectangle {
+                    Superellipse {
                         anchors.centerIn: parent
                         width: parent.width * 0.69
                         height: width
-                        radius: width / 2
-                        color: Theme.streakSurface
-                        border.color: Theme.streak
-                        border.width: 1
+                        curveDepth: width / 2
+                        exponent: 2
+                        fillColor: Theme.streakSurface
+                        borderColor: Theme.streak
+                        borderWidth: 1
                         Icon {
                             anchors.centerIn: parent
                             text: Theme.iconStreakFlame
@@ -423,20 +430,22 @@ Item {
                 horizontalAlignment: Theme.textStartAlignment
             }
 
-            Rectangle {
+            Superellipse {
                 Layout.fillWidth: true
                 visible: root.nextMilestone > 0
                 height: Theme.scaleUi(4)
-                radius: height / 2
-                color: Theme.streakTrack
-                Rectangle {
+                curveDepth: height / 2
+                exponent: 2
+                fillColor: Theme.streakTrack
+                Superellipse {
                     // Advance the milestone bar from the reading start.
                     x: Theme.rtl ? parent.width - width : 0
                     height: parent.height
                     width: parent.width * Math.min(1,
                         Math.max(0, root.current / Math.max(1, root.nextMilestone)))
-                    radius: parent.radius
-                    color: Theme.streak
+                    curveDepth: parent.curveDepth
+                    exponent: 2
+                    fillColor: Theme.streak
                 }
             }
 
@@ -460,29 +469,31 @@ Item {
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                         }
-                        Rectangle {
+                        Superellipse {
                             Layout.alignment: Qt.AlignHCenter
                             width: Theme.scaleUi(root.compact ? 32 : 35)
                             height: width
-                            radius: width / 2
-                            color: modelData.completed
+                            curveDepth: width / 2
+                            exponent: 2
+                            fillColor: modelData.completed
                                 ? Theme.streakSurface : Theme.surfaceMuted
-                            border.color: modelData.completed
+                            borderColor: modelData.completed
                                 ? Theme.streak : Theme.borderMuted
-                            border.width: modelData.completed ? 2 : 1
+                            borderWidth: modelData.completed ? 2 : 1
                             Icon {
                                 anchors.centerIn: parent
                                 text: modelData.completed ? Theme.iconCheck : ""
                                 preferredSize: 15
                                 color: Theme.streak
                             }
-                            Rectangle {
+                            Superellipse {
                                 visible: !modelData.completed
                                 anchors.centerIn: parent
                                 width: Theme.scaleUi(8)
                                 height: width
-                                radius: width / 2
-                                color: modelData.future ? Theme.inkSubtle
+                                curveDepth: width / 2
+                                exponent: 2
+                                fillColor: modelData.future ? Theme.inkSubtle
                                     : Theme.inkMuted
                                 opacity: modelData.future ? 0.24 : 0.4
                             }
@@ -654,15 +665,15 @@ Item {
                     spacing: Theme.space2
                     Repeater {
                         model: root.leaderboardEntries
-                        delegate: Rectangle {
+                        delegate: Superellipse {
                             required property var modelData
                             Layout.fillWidth: true
                             Layout.preferredHeight: Theme.scaleUi(root.compact ? 62 : 68)
-                            radius: Theme.curveCompact
-                            color: Theme.surfaceMuted
-                            border.color: Number(modelData.rank) === 1
+                            curveDepth: Theme.curveCompact
+                            fillColor: Theme.surfaceMuted
+                            borderColor: Number(modelData.rank) === 1
                                 ? Theme.streak : Theme.borderMuted
-                            border.width: Number(modelData.rank) === 1 ? 1 : 0
+                            borderWidth: Number(modelData.rank) === 1 ? 1 : 0
 
                             RowLayout {
                                 objectName: "streakLeaderboardIdentityRow"
