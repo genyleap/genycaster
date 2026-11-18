@@ -457,20 +457,22 @@ ColumnLayout {
                                 font.weight: Theme.weightDemiBold
                             }
                         }
-                        Rectangle {
+                        Superellipse {
                             id: dominanceTrack
                             Layout.fillWidth: true
                             Layout.preferredHeight: 6
-                            radius: 3
-                            color: Theme.surfaceMuted
-                            Rectangle {
+                            curveDepth: height / 2
+                            exponent: 2
+                            fillColor: Theme.surfaceMuted
+                            Superellipse {
                                 anchors.left: Theme.rtl ? undefined : parent.left
                                 anchors.right: Theme.rtl ? parent.right : undefined
                                 height: parent.height
                                 width: root.hasGlobal ? dominanceTrack.width
                                     * Math.max(0, Math.min(100,Number(dominanceRow.modelData.percentage))) / 100 : 0
-                                radius: parent.radius
-                                color: dominanceRow.modelData.fill
+                                curveDepth: parent.curveDepth
+                                exponent: 2
+                                fillColor: dominanceRow.modelData.fill
                                 Behavior on width {
                                     enabled: !Theme.reduceMotion
                                     NumberAnimation { duration: 420; easing.type: Easing.OutCubic }
