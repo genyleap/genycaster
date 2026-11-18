@@ -160,7 +160,11 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   evidence remains incomplete.
 - GenyCaster [#6](https://github.com/genyleap/genycaster/issues/6):
   funded registrations, all-platform installed runtime, OS signing and release
-  acceptance unverified.
+  acceptance unverified. **Backend-first deployment requirement:** account-sync
+  must return `issuer` and `subject` in verified cookie/proof responses
+  before shipping stricter native/browser clients (older service responses
+  fail closed). See `docs/OPENPROOF_AND_SERVICES.md`. No production service
+  was deployed during this execution.
 - GenyCaster [#9](https://github.com/genyleap/genycaster/issues/9):
   `ci/verify_release_feature_contract.py --strict` still blocks **CHAT,
   WALLET and privileged Android Mini App SDK host**. Do not bypass these.
@@ -241,9 +245,18 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   Shell syntax, 4/4 targeted source tests, CI and architecture guards PASS.
   A fresh hosted run is required to establish actual compiler availability.
 - Targeted Linux x86_64 [#44370887947](https://github.com/genyleap/genycaster/actions/runs/44370887947)
-  at `a38716f7` (which includes both fallback stages) is in progress
-  at last check. Its preflight gate PASS; native build/pkg outcome NOT
-  VERIFIED. Re-evaluate it before another retry.
+  at `a38716f7` (both fallback stages): preflight PASS, **signed GCC16
+  installation + Qt install + Mini App swap compile/tests passed**; native
+  Qt client Build step in progress at last check. AppImage/DEB packaging
+  and artifact still NOT verified.
+- Second targeted Android arm64 [#44371457383](https://github.com/genyleap/genycaster/actions/runs/44371457383)
+  at `c0dce6fb` CANCELLED during Android SDK provisioning (unconfirmed
+  cancellation cause). It did **not** reach native compilation or APK
+  artifact; do not repeat without understanding cancellation/runners.
+- Targeted WebAssembly [#44371998350](https://github.com/genyleap/genycaster/actions/runs/44371998350)
+  at `c0dce6fb` is in progress after preflight PASS, qualifying the
+  stricter account-cookie client code and updated WalletConnect assets.
+  Await actual Qt/C++/WASM artifact before claiming current-source success.
 - No successful all-target CI, notarized/signed release or post-security-change
   installed-device tests are evidenced. Source-only checks and a successful
   gate do **not** authorize a version tag.
@@ -251,9 +264,12 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 ## Exact next executable tasks
 
 1. Android [#44366606796](https://github.com/genyleap/genycaster/actions/runs/44366606796)
-   was cancelled during compilation and produced no artifact. Run a later
-   targeted Android ARM64 build on a stable SHA, not in parallel with another
-   active Android job; inspect signed APK and runtime separately.
+   was cancelled during compilation; a later targeted
+   [#44371457383](https://github.com/genyleap/genycaster/actions/runs/44371457383)
+   was cancelled during tool provisioning. Neither produced an APK, cause
+   unconfirmed. The earlier [#44361231825](https://github.com/genyleap/genycaster/actions/runs/44361231825)
+   succeeded on prior SHA. Investigate cancellation source before paying for
+   another full Android runner; real-device app/miniapp remains unverified.
 2. Inspect active [#44370887947](https://github.com/genyleap/genycaster/actions/runs/44370887947)
    at exact `a38716f7` (SHA256-pinned native x86 fallback; both signed
    PPA metadata and signed package-download failure branches covered).
@@ -263,9 +279,11 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
    failed on APT package download timeout exit 124. Do not duplicate
    the active job. Verify native GCC16.2/GLIBC/C++26 smokes, AppImage
    and DEB artifact before qualifying Linux.
-3. The WebAssembly build is CI-verified only through `8a8a18db`; run
-   a targeted same-SHA Web CI after other fixes stabilize, and verify the
-   new browser cookie issuer/subject flow with a physical EIP-1193 wallet.
+3. WebAssembly [#44371998350](https://github.com/genyleap/genycaster/actions/runs/44371998350)
+   is already running on `c0dce6fb` (which contains the new cookie
+   policy). Inspect its final build+artifact; do not dispatch a duplicate.
+   Verify the same cookie scope in browser with a physical EIP-1193 wallet,
+   and deploy account-sync service **before** deploying those clients.
 4. Security dependency graph is 0 open. Preserve patches and verify
    macOS/Windows/Android/Linux installed runtimes before release.
 5. Continue real Wallet/CHAT/Android privileged host implementation for #9

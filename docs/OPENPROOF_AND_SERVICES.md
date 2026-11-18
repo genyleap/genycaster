@@ -132,6 +132,33 @@ server-validated credentials and an authenticated linked FID, never a raw
 client-submitted identity. Migrations and schema live in
 `services/account-sync/migrations/`.
 
+### Protocol-scoped account-session rollout (security contract)
+
+The app-owned `GET /api/v1/cloud/session` and successful
+`POST /api/v1/cloud/session/proof` return the verified session tuple
+`{fid, issuer, subject, csrf_token}`. The `fid` is a **decimal string**,
+not a JavaScript numeric authority. Browser custody sign-in requires the
+configured OpenProof `issuer` and exact `subject=farcaster:<fid>`.
+Native Qt allows that Farcaster tuple or a separately verified
+`issuer=hypersnap:native-registry` +
+`subject=hypersnap:<fid>` tuple with native FIDs beginning at `2^32`.
+A numeric FID match **alone** cannot establish an authenticated session
+or imply that the native identity has been linked to an OpenProof account.
+
+**Deployment ordering:** publish the updated
+`services/account-sync/` API before distributing clients that enforce the
+tuple. Older service responses omit issuer/subject, so new clients
+deliberately **fail closed** instead of accepting an ambiguous cookie.
+The server's response-field addition is backward compatible with
+existing clients. Do not silently relax client checks to compensate for
+a stale deployment. Verify fresh proof, cookie restore, sign-out and
+cross-protocol account switching in a restricted staging environment,
+then carry out a controlled backend-first rollout. Production service
+mutation or live paid onboarding was **not performed** by this source
+change. This cookie policy is not the missing OpenProof native-FID verifier
+required by [GenyCaster #4](https://github.com/genyleap/genycaster/issues/4)
+and [OpenProof #52](https://github.com/genyleap/openproof/issues/52).
+
 The local SQLite cache/outbox is a responsive/offline client store, **not**
 a separate user-operated sync system. App-owned edits reconcile
 automatically with the authenticated account service. Outages must not
