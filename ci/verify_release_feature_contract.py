@@ -19,7 +19,6 @@ def read(path: str) -> str:
 
 
 def blockers() -> list[str]:
-    cmake = read("CMakeLists.txt")
     ui = read("ui/CMakeLists.txt")
     workflow = read(".github/workflows/ci.yml")
     wasm = read("cmake/platform/WebAssembly/configure.cmake")
@@ -31,14 +30,14 @@ def blockers() -> list[str]:
     android = workflow.split("  android:\n", 1)[1].split("  ios:\n", 1)[0]
     web = workflow.split("  web:\n", 1)[1].split("  publish:\n", 1)[0]
 
-    # Every advertised product capability must exist in the published
-    # FeatureSet, not just as an unconnected QML navigation item.
+    # Version-tag builds must explicitly opt in on every advertised target.
+    # Never derive Release feature admission from a mutable CMake default:
+    # flipping an OFF default to ON must not bypass this fail-closed gate.
     for feature in ("CHANNELS", "CHAT", "SEARCH", "WALLET"):
-        if re.search(rf"option\(FARCASTER_ENABLE_{feature}\b[^\n]*\bOFF\)", cmake):
-            option = f"-DFARCASTER_ENABLE_{feature}=ON"
-            if any(option not in block for block in (linux, macos, windows, android, web)):
-                errors.append(f"{feature}: disabled in at least one platform's "
-                              "product composition / Release configuration")
+        option = f"-DFARCASTER_ENABLE_{feature}=ON"
+        if any(option not in block for block in (linux, macos, windows, android, web)):
+            errors.append(f"{feature}: disabled in at least one platform's "
+                          "product composition / Release configuration")
 
     # Channels discovery is a real Qt route, not an advertised stub. Browsing,
     # signed membership selection, and privileged administration must stay

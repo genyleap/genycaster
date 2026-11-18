@@ -2,6 +2,7 @@
 """Ensure partial-platform feature support cannot be mistaken for a Release."""
 from __future__ import annotations
 
+import re
 import unittest
 from unittest.mock import patch
 
@@ -38,6 +39,32 @@ class ReleaseFeatureContractTest(unittest.TestCase):
         self.assertFalse(any(item.startswith("Linux:") for item in current))
         self.assertFalse(any(item.startswith("macOS:") for item in current))
 
+
+    def test_cmake_default_on_cannot_hide_missing_release_feature(self):
+        original = feature_contract.read
+
+        def weakened_release(path):
+            source = original(path)
+            if path == "CMakeLists.txt":
+                source, replaced = re.subn(
+                    r'(option\(FARCASTER_ENABLE_CHANNELS\b[^\n]*\b)OFF\)',
+                    r'\1ON)',
+                    source,
+                )
+                self.assertEqual(replaced, 1)
+            if path == ".github/workflows/ci.yml":
+                source = source.replace(
+                    "-DFARCASTER_ENABLE_CHANNELS=ON",
+                    "-DFARCASTER_ENABLE_CHANNELS=OFF",
+                    1,
+                )
+            return source
+
+        with patch.object(feature_contract, "read", side_effect=weakened_release):
+            self.assertTrue(
+                any(item.startswith("CHANNELS:") for item in blockers()),
+                "Release validation must not trust a changed CMake default",
+            )
 
     def test_release_search_is_enabled_with_a_real_read_pipeline(self):
         workflow = feature_contract.read(".github/workflows/ci.yml")
