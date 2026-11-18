@@ -556,6 +556,8 @@ struct Pending final {
     capability::wallet::EthereumRpcCompletion completion{};
     Clock::time_point created{};
     std::string origin{};
+    std::uint64_t authorizationEpoch{};
+    std::uint64_t sessionGeneration{};
     bool delivered{};
 };
 
@@ -705,6 +707,8 @@ public:
                     .completion = std::move(completion),
                     .created = Clock::now(),
                     .origin = m_origin,
+                    .authorizationEpoch = m_authorizationEpoch,
+                    .sessionGeneration = m_sessionGeneration,
                     .delivered = false,
                 });
                 if (!m_pageLaunched) {
@@ -962,6 +966,30 @@ private:
             return;
         }
 
+        // A callback from an old session or consent epoch cannot re-authorize
+        // an origin after revoke, chain change, account switch or disconnect.
+        const auto authorizedReceipt = [this, &pending]() {
+            return m_active && m_origin == pending.origin
+                && m_sessionGeneration == pending.sessionGeneration
+                && m_authorizationEpoch == pending.authorizationEpoch;
+        };
+        bool validReceipt = false;
+        {
+            std::scoped_lock lock{m_mutex};
+            validReceipt = authorizedReceipt();
+        }
+        if (!validReceipt) {
+            // Never invoke a client callback while holding the bridge mutex.
+            if (pending.completion) {
+                pending.completion(rpcError(pending.request.id, 4100,
+                    "Wallet consent changed before this operation completed."));
+            }
+            writeText(socket, http::status::gone, "Wallet consent changed.");
+            return;
+        }
+
+        std::vector<Pending> cancelled{};
+        bool appliedRevocation = false;
         capability::wallet::EthereumRpcResponse response{};
         response.id = pending.request.id;
         if (const auto* errorValue = object.if_contains("error"); errorValue != nullptr && errorValue->is_object()) {
@@ -1001,15 +1029,26 @@ private:
                 }
             }
             if (pending.request.method == "wallet_revokePermissions") {
-                // EIP-2255 revocation is meaningful only after a successful
-                // provider response. Never continue disclosing eth_accounts or
-                // permitting signature RPCs on a stale, remembered origin grant.
+                // A successful EIP-2255 revoke invalidates this origin and
+                // all operations issued under its previous consent epoch.
                 std::scoped_lock lock{m_mutex};
-                m_accountAccessGrants.erase(pending.origin);
-                m_grantedAccountByOrigin.erase(pending.origin);
+                if (authorizedReceipt()) {
+                    m_accountAccessGrants.erase(pending.origin);
+                    m_grantedAccountByOrigin.erase(pending.origin);
+                    ++m_authorizationEpoch;
+                    appliedRevocation = true;
+                    for (auto it = m_pending.begin(); it != m_pending.end();) {
+                        if (it->second.origin == pending.origin) {
+                            cancelled.push_back(std::move(it->second));
+                            it = m_pending.erase(it);
+                        } else {
+                            ++it;
+                        }
+                    }
+                }
             } else if (grantedAccounts) {
                 std::scoped_lock lock{m_mutex};
-                if (m_active && m_origin == pending.origin) {
+                if (authorizedReceipt()) {
                     m_accountAccessGrants.insert(pending.origin);
                     if (!grantedAddress.empty())
                         m_grantedAccountByOrigin[pending.origin] = grantedAddress;
@@ -1020,6 +1059,21 @@ private:
         } else {
             response.error = capability::wallet::EthereumRpcError{
                 .code = 4200, .message = "Wallet response omitted both result and error.", .details = {}};
+        }
+        {
+            std::scoped_lock lock{m_mutex};
+            if (!m_active || m_origin != pending.origin
+                || m_sessionGeneration != pending.sessionGeneration
+                || (m_authorizationEpoch != pending.authorizationEpoch && !appliedRevocation)) {
+                response = rpcError(pending.request.id, 4100,
+                    "Wallet consent changed before this operation completed.");
+            }
+        }
+        for (auto& invalidated : cancelled) {
+            if (invalidated.completion) {
+                invalidated.completion(rpcError(invalidated.request.id, 4100,
+                    "Wallet authorization was revoked before completion."));
+            }
         }
         if (pending.completion) pending.completion(std::move(response));
         writeText(socket, http::status::ok, "ok");
@@ -1045,6 +1099,7 @@ private:
             return;
         }
         capability::wallet::EthereumWalletEventSink sink{};
+        std::vector<Pending> cancelled{};
         {
             std::scoped_lock lock{m_mutex};
             if (!m_active) {
@@ -1073,10 +1128,23 @@ private:
                     || known->second != announced;
             }
             if (principalChanged) {
-                m_accountAccessGrants.erase(m_origin);
-                m_grantedAccountByOrigin.erase(m_origin);
+                // The external wallet's selected account/chain is shared by
+                // all Mini App origins; no previously remembered grant can
+                // survive a change of global wallet principal.
+                m_accountAccessGrants.clear();
+                m_grantedAccountByOrigin.clear();
+                ++m_authorizationEpoch;
+                for (auto& entry : m_pending)
+                    cancelled.push_back(std::move(entry.second));
+                m_pending.clear();
             }
             sink = m_eventSink;
+        }
+        for (auto& invalidated : cancelled) {
+            if (invalidated.completion) {
+                invalidated.completion(rpcError(invalidated.request.id, 4100,
+                    "Wallet account or chain changed before completion."));
+            }
         }
         if (sink) {
             sink(capability::wallet::EthereumWalletEvent{
@@ -1133,6 +1201,7 @@ private:
     std::uint16_t m_port{};
     std::uint64_t m_nextTransportId{};
     std::uint64_t m_sessionGeneration{};
+    std::uint64_t m_authorizationEpoch{};
     bool m_active{};
     bool m_pageLaunched{};
     std::map<std::uint64_t, Pending> m_pending{};
