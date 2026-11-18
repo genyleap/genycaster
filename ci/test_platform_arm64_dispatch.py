@@ -64,6 +64,14 @@ class Arm64DispatchTest(unittest.TestCase):
         self.assertIn("apt-get install -y --no-install-recommends",script)
         self.assertIn("gcc-16 g++-16 lld",script)
         self.assertIn("timeout 180s",script)
+        # APT may verify the PPA index then hang while fetching 288 MB of
+        # signed GCC packages. Both failure stages must be able to select the
+        # exact same SHA-pinned fallback instead of ending the CI run at 124.
+        self.assertIn("if ! sudo timeout 180s apt-get install",script)
+        self.assertIn("Signed GCC16 PPA package download failed",script)
+        self.assertEqual(script.count('install_linux_gcc16_conda.sh'),2)
+        self.assertNotIn("--allow-unauthenticated",script)
+        self.assertNotIn("Acquire::AllowInsecureRepositories",script)
         self.assertIn("Dir::Etc::sourcelist=/etc/apt/sources.list.d/genycaster-toolchain-r.list",script)
         self.assertIn("bash ci/prepare_ubuntu_apt.sh",linux)
         self.assertIn("sudo timeout 240s apt-get install",linux)

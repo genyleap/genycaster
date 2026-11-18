@@ -134,10 +134,26 @@ if [[ -z "$selected" ]]; then
   echo "::error::No reachable, correctly signed GCC16 PPA archive or verified GitHub runner fallback. Refusing the wrong C++26 toolchain." >&2
   exit 1
 fi
-sudo timeout 180s apt-get install -y --no-install-recommends \
+# A correctly signed PPA index is not enough: downloading GCC16 requires
+# hundreds of MB and can time out independently (exit 124, observed on the
+# hosted x86_64 runner). Reuse the same verified native compiler fallback if
+# package installation fails; never claim the partial APT transaction passed.
+if ! sudo timeout 180s apt-get install -y --no-install-recommends \
   -o Acquire::Retries=1 \
   -o Acquire::https::Timeout=12 \
-  gcc-16 g++-16 lld
+  gcc-16 g++-16 lld; then
+  case "$(dpkg --print-architecture)" in
+    amd64|arm64)
+      if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+        echo "::warning::Signed GCC16 PPA package download failed; verifying pinned native conda-forge GCC16"
+        bash "$(dirname "${BASH_SOURCE[0]}")/install_linux_gcc16_conda.sh"
+        exit 0
+      fi
+      ;;
+  esac
+  echo "::error::Signed GCC16 PPA install failed; no verified native fallback available" >&2
+  exit 1
+fi
 gcc-16 --version | head -1
 g++-16 --version | head -1
 ld.lld --version

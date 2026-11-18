@@ -197,8 +197,11 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   `GenyCaster-android-arm64-v8a` (54,562,190 artifact bytes).
   This is NOT real-device installation or privileged Android Mini App host.
 - Targeted Android arm64 [#44366606796](https://github.com/genyleap/genycaster/actions/runs/44366606796)
-  on `26642ee4`: **source gate PASS**, APK build still running
-  at last check; final deployment + artifact result remains unverified.
+  on `26642ee4`: **source gate PASS; job CANCELLED** while compiling
+  C++/QML object 1268/1415 at 2026-11-18T18:22:42Z, before the APK
+  artifact step. The job log reports only "The operation was canceled."
+  (no compiler diagnostic or confirmed cancellation cause). Do not
+  characterize this as a passing APK nor assume a compiler failure.
 - Targeted Linux x86_64 [#44366618826](https://github.com/genyleap/genycaster/actions/runs/44366618826)
   on `26642ee4`: **source gate PASS, native package FAIL** at "Install Linux
   build and deployment tools". The signed Canonical GCC16 PPA
@@ -215,22 +218,33 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   strict TLS; the fallback was **not yet runtime-tested on a hosted x86
   runner**. `bash -n` PASS, 83/83 Linux/matrix/Release policy unit
   tests PASS, architecture + CI guards PASS.
+- First repaired Linux x86 CI [#44368695933](https://github.com/genyleap/genycaster/actions/runs/44368695933)
+  at `180bb215`: **FAIL**, again in toolchain preparation. The PPA
+  recovered its signed InRelease and Packages index after transient HTTP
+  503, but the 288 MB GCC16 APT download was too slow and
+  `timeout 180s apt-get install` exited **124**. No C++ code compiled.
+  The next scoped correction routes *this separate package-download
+  failure* into the same verified native GCC16 fallback (both architectures).
+  Shell syntax, 4/4 targeted source tests, CI and architecture guards PASS.
+  A fresh hosted run is required to establish actual compiler availability.
 - No successful all-target CI, notarized/signed release or post-security-change
   installed-device tests are evidenced. Source-only checks and a successful
   gate do **not** authorize a version tag.
 
 ## Exact next executable tasks
 
-1. Inspect Android arm64 [#44366606796](https://github.com/genyleap/genycaster/actions/runs/44366606796)
-   on `26642ee4` through completed APK artifact upload, not just its
-   currently passing preflight.
-2. After committing the verified x86 GCC16 fallback and reconciling upstream,
-   dispatch one **new** targeted Linux x86_64 job on that commit.
-   Verify micromamba native x86 binary SHA256, conda package availability,
-   C++26 module/GLIBC/SQLite/Qt header smokes, and actual AppImage/DEB.
-   Fix real CI failures without skipping TLS, compiler version or packaging.
-   Prior run [#44366618826](https://github.com/genyleap/genycaster/actions/runs/44366618826)
-   failed on Canonical's unavailable signed PPA before compilation.
+1. Android [#44366606796](https://github.com/genyleap/genycaster/actions/runs/44366606796)
+   was cancelled during compilation and produced no artifact. Run a later
+   targeted Android ARM64 build on a stable SHA, not in parallel with another
+   active Android job; inspect signed APK and runtime separately.
+2. After committing the **APT package-download** fallback, dispatch one
+   new targeted Linux x86_64 job on that SHA. Prior
+   [#44366618826](https://github.com/genyleap/genycaster/actions/runs/44366618826)
+   failed on signed PPA metadata HTTP 503 / TLS mismatch, and repaired
+   [#44368695933](https://github.com/genyleap/genycaster/actions/runs/44368695933)
+   failed on signed APT's separate 180-second 288 MB package timeout.
+   Verify x86 pinned micromamba/GCC16.2 packages, glibc/SQLite/C++26
+   smokes, AppImage/DEB, and actual artifact. Do not fake a green build.
 3. The WebAssembly build is CI-verified only through `8a8a18db`; run
    a targeted same-SHA Web CI after other fixes stabilize, and verify the
    new browser cookie issuer/subject flow with a physical EIP-1193 wallet.
