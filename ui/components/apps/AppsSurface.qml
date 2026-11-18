@@ -238,11 +238,23 @@ Item {
                         root.proVerified ? "verify"
                         : root.proEntitlements.status === "verified" ? "basic" : "verify")
                 } else {
-                    root.showLaunchError(miniAppHost.errorText, isQuota ? "full" : "")
+                    // A failure belongs to its attempted Mini App, not the
+                    // entire Explorer catalogue; show which origin failed.
+                    const failingName = String(root.pendingLaunchApp
+                        && root.pendingLaunchApp.name || "").trim()
+                    root.showLaunchError(failingName && !isQuota
+                        ? failingName + " — " + miniAppHost.errorText
+                        : miniAppHost.errorText, isQuota ? "full" : "")
                 }
                 root.pendingLaunchApp = null
-            } else if (miniAppHost.active && root.pendingLaunchApp !== null) {
-                miniAppCatalog.recordRecentUse(root.pendingLaunchApp)
+            } else if (miniAppHost.active) {
+                // The last failed launch is no longer relevant once another
+                // document has successfully started.
+                root.launchErrorText = ""
+                root.quotaErrorKind = ""
+                launchErrorTimeout.stop()
+                if (root.pendingLaunchApp !== null)
+                    miniAppCatalog.recordRecentUse(root.pendingLaunchApp)
                 root.pendingLaunchApp = null
             }
         }

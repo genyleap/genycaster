@@ -78,7 +78,7 @@ jobs:
           # Fail before expensive Qt installs if Neon pointer geometry or the
           # QML lifetime contract regresses.
           node --test tests/wasm/neon_geometry_behavior.test.mjs tests/wasm/neon_surface_contract.test.mjs tests/wasm/neon_video_surface_coverage.test.mjs tests/wasm/neon_global_setup_coverage.test.mjs
-          node --test tests/wasm/miniapp_swap_preflight_20261118.test.mjs tests/wasm/miniapp_swap_quote_contract_20261118.test.mjs tests/wasm/miniapp_swap_execution_20261118.test.mjs tests/wasm/miniapp_swap_qml_alias_20261118.test.mjs
+          node --test tests/wasm/miniapp_swap_preflight_20261118.test.mjs tests/wasm/miniapp_swap_quote_contract_20261118.test.mjs tests/wasm/miniapp_swap_execution_20261118.test.mjs tests/wasm/miniapp_swap_qml_alias_20261118.test.mjs tests/wasm/miniapp_signin_diagnostics_20261118.test.mjs tests/wasm/miniapp_hosted_manifest_icon_contrast_20261118.test.mjs
           node --test services/swap-quote/quote.test.mjs services/account-sync/test/cloud_state.test.mjs
       # Gate is the only job that must pass before Qt/toolchain installations.
       # Catch known source regressions while they cost seconds, not macOS hours.

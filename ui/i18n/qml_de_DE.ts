@@ -1,6 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="de_DE" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.signin_wallet_title">
+            <source>Mini App sign-in could not be verified</source>
+            <translation>Mini-App-Anmeldung konnte nicht verifiziert werden</translation>
+        </message>
+        <message id="genycaster.miniapp.signin_wallet_description">
+            <source>Connect the Farcaster custody wallet or an authorized Farcaster auth-address wallet for your current FID, then try Sign in again. A separate EVM wallet cannot sign in as this Farcaster account. If the wallet is already linked, check network access and try again.</source>
+            <translation>Verbinden Sie die Farcaster-Custody-Wallet oder eine autorisierte Farcaster-Auth-Address-Wallet Ihrer aktuellen FID und versuchen Sie es erneut. Eine unabhängige EVM-Wallet kann diese Farcaster-Identität nicht bestätigen. Falls die Wallet bereits verknüpft ist, prüfen Sie Ihre Netzwerkverbindung.</translation>
+        </message>
         <message id="genycaster.miniapp.swap.max_slippage">
             <source>Maximum slippage (basis points: 10–300)</source>
             <translation>Maximale Slippage (Basispunkte: 10–300)</translation>

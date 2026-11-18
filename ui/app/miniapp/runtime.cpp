@@ -526,6 +526,7 @@ private:
         QString providerUuid{};
         QElapsedTimer rateWindow{};
         int messageCount{};
+        int swapReadinessRetries{};
         quint64 documentGeneration{};
         quint64 readyGeneration{};
         QString handoffSourceTaskId{};
@@ -1029,6 +1030,23 @@ private:
                     if (!supportedCapabilities.contains(requiredCapability)) {
                         missingCapabilities.push_back(requiredCapability);
                     }
+                }
+                // The account API feature probe is async. Do not reject a
+                // valid, signed manifest during the first frames of startup
+                // solely because the Base Swap readiness probe has not returned.
+                // Keep the signed manifest requirement and bound the retry.
+                if (missingCapabilities.contains(QStringLiteral("actions.swapToken"))
+                    && !m_controller.swapAvailabilityResolved()
+                    && active->swapReadinessRetries++ < 12) {
+                    const QString taskId=active->taskId;
+                    QTimer::singleShot(450,this,[this,taskId,requestedLaunch] {
+                        Session* const pending=find(taskId);
+                        if (pending && !pending->failed && !pending->browser
+                            && !pending->reply)
+                            resolveManifest(*pending,
+                                manifestUrlForHost(requestedLaunch),0,requestedLaunch);
+                    });
+                    return;
                 }
                 if (!missingChains.isEmpty() || !missingCapabilities.isEmpty()) {
                     fail(*active, unsupportedRequirementsText(missingCapabilities, missingChains));
@@ -2305,12 +2323,14 @@ private:
                         {QStringLiteral("type"), QStringLiteral("rejected_by_user")}}}
                 }), document);
             } else {
+                m_controller.reportMiniAppSignInVerificationFailed();
                 session->browser->reply(errorResponse(id, QStringLiteral(
                     "Sign in failed: the wallet proof could not be verified for this FID. "
                     "Use a current Farcaster custody/auth address wallet and retry.")), document);
             }
             return;
         }
+        m_controller.dismissMiniAppSignInVerificationFailed();
         session->browser->reply(rawResponse(id, QJsonObject{
             {QStringLiteral("result"), QJsonObject{
                 {QStringLiteral("message"), message},

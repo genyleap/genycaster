@@ -12,6 +12,27 @@ const MAX_RESPONSE_BYTES = 16 * 1024;
 const DISCOVERY_TTL_MS = 5 * 60_000;
 const PROVIDER_ID = /^[a-z][a-z0-9-]{0,39}$/;
 
+// Composition helper shared by the executable and the pinned production
+// runner. It never reads a third-party aggregator key or signs transactions.
+export function createBaseSwapBackend(
+  rpcUrl = process.env.GENYCASTER_BASE_RPC_URL
+    || process.env.GENYCASTER_GENY_RPC_URL || 'https://mainnet.base.org',
+  fetchImpl = globalThis.fetch
+) {
+  const swapRpc = createRpcClient(rpcUrl, fetchImpl);
+  const swapQuoteProvider = input => fetchFirmQuote(input, rpcUrl, {fetch:fetchImpl});
+  const swapQuoteStatus = async () => {
+    const [chain, routerCode] = await Promise.all([
+      swapRpc('eth_chainId', []),
+      swapRpc('eth_getCode', [swapContracts.ROUTER, 'latest'])
+    ]);
+    return BigInt(chain) === 8453n
+      && typeof routerCode === 'string' && /^0x[0-9a-fA-F]{64,}$/.test(routerCode);
+  };
+  return {swapQuoteProvider, swapQuoteStatus};
+}
+
+
 export function normalizeCatalog(raw) {
   if (!raw || !Array.isArray(raw.providers) || !Array.isArray(raw.challenge_providers))
     throw new Error('invalid-provider-catalog');
@@ -215,20 +236,7 @@ if (process.argv[1] && import.meta.url === new URL('file://' + process.argv[1]).
   // A direct Base Ethereum JSON-RPC endpoint replaces the commercial 0x
   // aggregator. The public endpoint is rate-limited; self-hosted RPCs can
   // be selected with GENYCASTER_BASE_RPC_URL for production traffic.
-  const baseRpcUrl=process.env.GENYCASTER_BASE_RPC_URL
-    || process.env.GENYCASTER_GENY_RPC_URL || 'https://mainnet.base.org';
-  const swapRpc=createRpcClient(baseRpcUrl);
-  const swapQuoteProvider=(input)=>fetchFirmQuote(input,baseRpcUrl);
-  // Read-only chain and deployed router checks. Do not advertise the SDK
-  // capability solely because an RPC URL was configured.
-  const swapQuoteStatus=async()=>{
-    const [chain,routerCode]=await Promise.all([
-      swapRpc('eth_chainId',[]),
-      swapRpc('eth_getCode',[swapContracts.ROUTER,'latest'])
-    ]);
-    return BigInt(chain)===8453n
-      && typeof routerCode==='string' && /^0x[0-9a-fA-F]{64,}$/.test(routerCode);
-  };
+  const {swapQuoteProvider, swapQuoteStatus} = createBaseSwapBackend();
   createAccountApi({catalogUrl: origin,store,registrationRelay,swapQuoteProvider,swapQuoteStatus,
     issuer:serverDeployment().openProofIssuer,
     publicOrigin:serverDeployment().publicOrigin,

@@ -31,7 +31,9 @@ class MiniAppHostController final : public QObject {
     Q_PROPERTY(int sessionLimit READ sessionLimit NOTIFY sessionLimitChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY stateChanged)
     Q_PROPERTY(QString launchUrl READ launchUrl NOTIFY stateChanged)
+    Q_PROPERTY(bool miniAppSignInVerificationFailed READ miniAppSignInVerificationFailed NOTIFY miniAppSignInVerificationFailedChanged)
     Q_PROPERTY(bool swapAvailable READ swapAvailable NOTIFY swapAvailabilityChanged)
+    Q_PROPERTY(bool swapAvailabilityResolved READ swapAvailabilityResolved NOTIFY swapAvailabilityChanged)
     Q_PROPERTY(bool swapRequestActive READ swapRequestActive NOTIFY swapRequestChanged)
     Q_PROPERTY(QString swapRequestId READ swapRequestId NOTIFY swapRequestChanged)
     Q_PROPERTY(QVariantMap swapRequest READ swapRequest NOTIFY swapRequestChanged)
@@ -113,7 +115,11 @@ public:
     Q_INVOKABLE void cancelComposeCast(const QString& requestId);
 
     /** @brief The runtime owns one untrusted swap intent; QML cannot execute it. */
+    [[nodiscard]] bool miniAppSignInVerificationFailed() const noexcept;
+    void reportMiniAppSignInVerificationFailed();
+    Q_INVOKABLE void dismissMiniAppSignInVerificationFailed();
     [[nodiscard]] bool swapAvailable() const noexcept;
+    [[nodiscard]] bool swapAvailabilityResolved() const noexcept;
     void setSwapAvailable(bool available);
     [[nodiscard]] bool swapRequestActive() const noexcept;
     [[nodiscard]] QString swapRequestId() const;
@@ -168,6 +174,8 @@ signals:
     void composeCastCompleted(const QString& requestId, const QVariantMap& result);
     void composeCastCancelled(const QString& requestId);
 
+    void miniAppSignInVerificationFailedChanged();
+
     /** Emitted only for a user-declined intent, never a signing confirmation. */
     void swapAvailabilityChanged();
     void swapTokenCancelled(const QString& requestId);
@@ -211,7 +219,9 @@ private:
     QString m_swapRequestId{};
     QVariantMap m_swapQuote{};
     QString m_swapQuoteError{};
+    bool m_miniAppSignInVerificationFailed{};
     bool m_swapAvailable{};
+    bool m_swapAvailabilityResolved{};
     bool m_swapQuoteBusy{};
     QString m_swapStage{};
     QString m_swapTxHash{};

@@ -3784,6 +3784,56 @@ Item {
         compact: root.mobile
     }
 
+    // A third-party Mini App may only authenticate as the active Farcaster FID
+    // when the connected EVM wallet is that FID's custody or active auth address.
+    // Expose an actionable first-party explanation instead of pretending that
+    // an unverifiable signature succeeded or only logging a generic rejection.
+    GenyAdaptiveDialog {
+        id: miniAppSignInFailureDialog
+        parent: Overlay.overlay
+        blurSourceItem: shellContent
+        width: root.mobile ? (parent ? parent.width : 440) : 450
+        height: 258
+        mobileHeightRatio: 0.62
+        closePolicy: Popup.CloseOnEscape
+        onDidClose: miniAppHost.dismissMiniAppSignInVerificationFailed()
+
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.miniapp.signin_wallet_title")
+                color: Theme.ink
+                font.pixelSize: Theme.typeTitle3Size
+                font.weight: Theme.weightBold
+                wrapMode: Text.WordWrap
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                text: qsTrId("genycaster.miniapp.signin_wallet_description")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeLabelSize
+                wrapMode: Text.WordWrap
+            }
+            ActionButton {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.locale.close")
+                onClicked: miniAppHost.dismissMiniAppSignInVerificationFailed()
+            }
+        }
+
+        Connections {
+            target: miniAppHost
+            function onMiniAppSignInVerificationFailedChanged() {
+                if (miniAppHost.miniAppSignInVerificationFailed)
+                    miniAppSignInFailureDialog.open()
+                else
+                    miniAppSignInFailureDialog.close()
+            }
+        }
+    }
+
     WalletBrowserPicker {
         id: walletBrowserPicker
         parent: Overlay.overlay

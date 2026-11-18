@@ -382,11 +382,30 @@ void MiniAppHostController::setSessionLimit(const int limit)
 QString MiniAppHostController::errorText() const { return m_error; }
 QString MiniAppHostController::launchUrl() const { return m_launchUrl; }
 
+bool MiniAppHostController::miniAppSignInVerificationFailed() const noexcept
+{
+    return m_miniAppSignInVerificationFailed;
+}
+void MiniAppHostController::reportMiniAppSignInVerificationFailed()
+{
+    if (m_miniAppSignInVerificationFailed) return;
+    m_miniAppSignInVerificationFailed=true;
+    emit miniAppSignInVerificationFailedChanged();
+}
+void MiniAppHostController::dismissMiniAppSignInVerificationFailed()
+{
+    if (!m_miniAppSignInVerificationFailed) return;
+    m_miniAppSignInVerificationFailed=false;
+    emit miniAppSignInVerificationFailedChanged();
+}
+
 bool MiniAppHostController::swapAvailable() const noexcept { return m_swapAvailable; }
+bool MiniAppHostController::swapAvailabilityResolved() const noexcept { return m_swapAvailabilityResolved; }
 
 void MiniAppHostController::setSwapAvailable(const bool available)
 {
-    if (m_swapAvailable == available) return;
+    if (m_swapAvailabilityResolved && m_swapAvailable == available) return;
+    m_swapAvailabilityResolved = true;
     m_swapAvailable = available;
     emit swapAvailabilityChanged();
 }

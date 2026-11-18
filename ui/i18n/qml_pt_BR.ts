@@ -1,6 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="pt_BR" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.signin_wallet_title">
+            <source>Mini App sign-in could not be verified</source>
+            <translation>Não foi possível verificar o login do miniapp</translation>
+        </message>
+        <message id="genycaster.miniapp.signin_wallet_description">
+            <source>Connect the Farcaster custody wallet or an authorized Farcaster auth-address wallet for your current FID, then try Sign in again. A separate EVM wallet cannot sign in as this Farcaster account. If the wallet is already linked, check network access and try again.</source>
+            <translation>Conecte a carteira de custódia Farcaster ou uma carteira de endereço de autenticação autorizado para seu FID atual e tente novamente. Uma carteira EVM não vinculada não pode assinar por esta conta Farcaster. Se já estiver vinculada, verifique a rede.</translation>
+        </message>
         <message id="genycaster.miniapp.swap.max_slippage">
             <source>Maximum slippage (basis points: 10–300)</source>
             <translation>Slippage máximo (pontos-base: 10–300)</translation>

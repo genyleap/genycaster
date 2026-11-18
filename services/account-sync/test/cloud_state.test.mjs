@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createAccountApi} from '../server.mjs';
+import {createAccountApi, createBaseSwapBackend} from '../server.mjs';
 import {validLinkedInUrl,validateCloudItem} from '../cloud_state.mjs';
 
 const principal='farcaster:42';
@@ -316,4 +316,28 @@ test('swap capability fails closed when on-chain Base RPC or router is unreachab
     assert.equal(checks,1,'health check result is cached to protect public RPC');
   },{swapQuoteProvider:async()=>({}),
      swapQuoteStatus:async()=>{checks++;throw new Error('wrong_rpc_or_router_missing');}});
+});
+
+test('production swap composition uses direct Base JSON-RPC and verifies deployed Router',async()=>{
+  const seen=[];
+  const transport=async(_url,request)=>{
+    const body=JSON.parse(request.body);
+    seen.push({method:body.method,params:body.params});
+    const result=body.method==='eth_chainId'?'0x2105'
+      :body.method==='eth_getCode'?'0x'+'12'.repeat(64):'0x0';
+    return new Response(JSON.stringify({jsonrpc:'2.0',id:body.id,result}),{
+      headers:{'Content-Type':'application/json'}});
+  };
+  const provider=createBaseSwapBackend('https://example.test',transport);
+  assert.equal(await provider.swapQuoteStatus(),true);
+  assert.deepEqual(seen.map(r=>r.method),['eth_chainId','eth_getCode']);
+  assert.equal(seen[1].params[0],'0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24');
+  const unavailable=createBaseSwapBackend('https://example.test',async(_url,request)=>{
+    const body=JSON.parse(request.body);
+    return new Response(JSON.stringify({
+      jsonrpc:'2.0',id:body.id,
+      result:body.method==='eth_chainId'?'0x1':'0x'
+    }));
+  });
+  assert.equal(await unavailable.swapQuoteStatus(),false);
 });

@@ -179,7 +179,8 @@ test('native SIWF is advertised only when a real wallet and verified account are
   assert.match(runtime, /if \(supportsSignIn && wallet != nullptr && wallet->available\(\)\)/);
   assert.match(runtime, /result\.push_back\(QStringLiteral\("actions\.signIn"\)\)/);
   assert.match(runtime, /m_controller\.user\(\)\.value\(QStringLiteral\("fid"\)\)/);
-  assert.match(runtime, /capabilities\(m_wallet, signInAvailable\(\)\)/);
+  assert.match(runtime, /capabilities\(m_wallet, signInAvailable\(\), m_controller\.swapAvailable\(\)\)/);
+  assert.match(runtime, /if \(supportsSignIn && wallet != nullptr && wallet->available\(\)\)/);
   assert.match(runtime, /beginSignIn\(session, id, argument, document\)/);
   assert.match(runtime, /"eth_requestAccounts"/);
   assert.match(runtime, /"personal_sign"/);

@@ -13,7 +13,7 @@ test('SDK swap capability is advertised only with a reachable authenticated-quot
   assert.match(api,/available:await readyToSwap\(\)/);
   assert.match(api,/swapQuoteStatus\(\)/);
   assert.match(api,/swapRpc\('eth_chainId'/);
-  assert.match(api,/swapRpc\('eth_getCode',\[swapContracts.ROUTER/);
+  assert.match(api,/swapRpc\('eth_getCode',\s*\[swapContracts.ROUTER/);
   assert.match(controller,/void OpenProofConnectionsController::refreshSwapAvailability\(\)/);
   assert.match(controller,/QStringLiteral\("\/api\/v1\/cloud\/swap\/status"\)/);
   assert.match(controller,/ManualRedirectPolicy/);

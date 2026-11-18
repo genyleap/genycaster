@@ -1,6 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.signin_wallet_title">
+            <source>Mini App sign-in could not be verified</source>
+            <translation>ورود به مینی‌اپ تأیید نشد</translation>
+        </message>
+        <message id="genycaster.miniapp.signin_wallet_description">
+            <source>Connect the Farcaster custody wallet or an authorized Farcaster auth-address wallet for your current FID, then try Sign in again. A separate EVM wallet cannot sign in as this Farcaster account. If the wallet is already linked, check network access and try again.</source>
+            <translation>کیف پول حضانتی فارکستر یا کیف پول آدرس احراز هویت مجاز مربوط به FID فعلی را متصل کنید و دوباره ورود را امتحان کنید. کیف پول EVM نامرتبط نمی‌تواند به‌جای این حساب فارکستر امضا کند. اگر کیف پول از قبل متصل است، اتصال شبکه را بررسی و دوباره تلاش کنید.</translation>
+        </message>
         <message id="genycaster.miniapp.swap.max_slippage">
             <source>Maximum slippage (basis points: 10–300)</source>
             <translation>حداکثر لغزش قیمت (واحد پایهٔ درصد: ۱۰ تا ۳۰۰)</translation>

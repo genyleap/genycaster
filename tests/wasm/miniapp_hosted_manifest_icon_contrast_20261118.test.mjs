@@ -20,7 +20,7 @@ test('Farcaster hosted manifests retain publisher-domain ownership after officia
   assert.doesNotMatch(runtime,/validAccountAssociationEnvelope\(manifest, url\.host\(\)\)/);
 });
 
-test('Manifest requirements remain enforced: never silently advertise unimplemented swaps',()=>{
+test('Manifest requirements enforce backend-confirmed Base Swap and never silently advertise unavailable capabilities',()=>{
   const runtime=read('ui/app/miniapp/runtime.cpp');
   assert.match(runtime,/QStringLiteral\("wallet\.getEthereumProvider"\)/);
   assert.match(runtime,/if \(!missingChains\.isEmpty\(\) \|\| !missingCapabilities\.isEmpty\(\)\)/);
@@ -28,7 +28,11 @@ test('Manifest requirements remain enforced: never silently advertise unimplemen
   assert.match(runtime,/if \(!validAccountAssociationEnvelope\(manifest, requestedLaunch\.host\(\)\)\)/);
   const caps=runtime.slice(runtime.indexOf('[[nodiscard]] QJsonArray capabilities('),
                            runtime.indexOf('[[nodiscard]] QJsonArray chains('));
-  assert.doesNotMatch(caps,/actions\.swapToken/);
+  assert.match(caps,/if \(supportsSwap && wallet != nullptr && wallet->available\(\)\)/);
+  assert.match(caps,/std::string\{"eip155:8453"\}/);
+  assert.match(caps,/actions\.swapToken/);
+  assert.match(runtime,/!m_controller.swapAvailabilityResolved\(\)/);
+  assert.match(runtime,/active->swapReadinessRetries\+\+ < 12/);
 });
 
 test('Selected Mini App icons use foreground derived from their blue surface, not neutral CTA fill',()=>{

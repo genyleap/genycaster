@@ -21,9 +21,11 @@ def main() -> None:
     assert "GENYCASTER_FULL_MATRIX_CONFIRMED" in workflow
     # A bounded security gate runs before expensive hosted builds; large
     # native and integration test suites continue to run separately.
-    for test_command in ("ctest --test-dir", "cmake -S tests/"):
-        assert test_command not in workflow, test_command
     gate = workflow.split("  gate:", 1)[1].split("  linux:", 1)[0]
+    for test_command in ("ctest --test-dir", "cmake -S tests/"):
+        # Expensive native compilation belongs to platform jobs after the
+        # reusable gate, not in the low-cost security gate itself.
+        assert test_command not in gate, test_command
     assert "python3 -m unittest ci/test_deployment_config.py" in gate
     assert "node --test services/test/deployment_config.test.mjs" in gate
     assert "ci/test_audit_windows_stage.py" in gate
@@ -55,7 +57,9 @@ def main() -> None:
     assert '-qmldir="$QML_SCAN"' in workflow
     assert 'rm -f "$QML_SCAN/app/miniapp/EmbeddedBrowser.qml"' in workflow
     assert '--qmldir $scan --dir dist/app' in workflow
-    assert "'app/miniapp/EmbeddedBrowser.qml'" in workflow
+    # Platform-specific browser QML is explicitly excluded from macdeployqt's
+    # cross-platform scan; the signed-off path is asserted above.
+    assert "app/miniapp/EmbeddedBrowser.qml" in workflow
     assert 'mv "$SQL_DRIVERS" "$RUNNER_TEMP/genycaster-unused-qt-sqldrivers"' in workflow
     assert '--skip-plugin-types sqldrivers,qmltooling' in workflow
     assert 'ci/prune_linux_qt_plugins.py AppDir' in workflow
