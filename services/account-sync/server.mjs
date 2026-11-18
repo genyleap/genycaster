@@ -1,7 +1,7 @@
 import http from 'node:http';
 import {serverDeployment} from '../deployment_config.mjs';
 import {createCloudHandler} from './cloud_state.mjs';
-import {fetchFirmQuote} from '../swap-quote/quote.mjs';
+import {fetchFirmQuote,createRpcClient,constants as swapContracts} from '../swap-quote/quote.mjs';
 import {createMarketReader} from './market.mjs';
 import {createNeynarRegistrationHttpHandler} from './neynar_registration_http.mjs';
 import {createNeynarRegistrationRelay} from './neynar_registration_relay.mjs';
@@ -39,6 +39,7 @@ export function createAccountApi({
   marketReader = undefined,
   registrationRelay = null,
   swapQuoteProvider = null,
+  swapQuoteStatus = undefined,
 } = {}) {
   const endpoint = new URL(catalogUrl);
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password
@@ -61,6 +62,21 @@ export function createAccountApi({
     ?createNeynarRegistrationHttpHandler({relay:registrationRelay,publicOrigin}):null;
   let cached = null;
   let pending = null;
+  let swapStatusCached={expires:0,value:false};
+  let swapStatusPending=null;
+  async function readyToSwap() {
+    if (!swapQuoteProvider || !store) return false;
+    if (Date.now() < swapStatusCached.expires) return swapStatusCached.value;
+    if (swapStatusPending) return swapStatusPending;
+    swapStatusPending=Promise.resolve().then(
+      ()=>swapQuoteStatus ? swapQuoteStatus() : true
+    ).catch(()=>false).then(value=>{
+      const ready=value===true;
+      swapStatusCached={expires:Date.now()+(ready?90_000:15_000),value:ready};
+      return ready;
+    }).finally(()=>{swapStatusPending=null;});
+    return swapStatusPending;
+  }
   async function catalog() {
     if (cached && cached.until > now()) return cached.data;
     if (pending) return pending;
@@ -94,15 +110,15 @@ export function createAccountApi({
     res.setHeader('X-Content-Type-Options','nosniff');
     res.setHeader('Content-Type','application/json; charset=utf-8');
     const path = new URL(req.url, 'http://localhost').pathname;
-    // Only the boolean backend readiness is public. The 0x API key and
-    // private account quote endpoint are never exposed to the browser.
+    // Only direct Base on-chain quote readiness is public. Neither wallet
+    // credentials nor the authenticated quote endpoint are exposed.
     if (path === '/api/v1/cloud/swap/status') {
       if (req.method !== 'GET') {
         res.writeHead(405,{'Allow':'GET'}).end(JSON.stringify({error:'method_not_allowed'}));
         return;
       }
       res.writeHead(200).end(JSON.stringify({
-        available:Boolean(swapQuoteProvider && store), chainId:8453
+        available:await readyToSwap(), chainId:8453
       }));
       return;
     }
@@ -196,12 +212,24 @@ if (process.argv[1] && import.meta.url === new URL('file://' + process.argv[1]).
       authorizeEnrollment:voucher.authorize
     });
   }
-  // The 0x key stays in the account-sync backend; credentials must NEVER be
-  // packaged with the Qt app, embedded Mini Apps or WASM JavaScript.
-  const quoteKey=process.env.GENYCASTER_0X_API_KEY;
-  const swapQuoteProvider=quoteKey
-    ? (input)=>fetchFirmQuote(input,quoteKey) : null;
-  createAccountApi({catalogUrl: origin,store,registrationRelay,swapQuoteProvider,
+  // A direct Base Ethereum JSON-RPC endpoint replaces the commercial 0x
+  // aggregator. The public endpoint is rate-limited; self-hosted RPCs can
+  // be selected with GENYCASTER_BASE_RPC_URL for production traffic.
+  const baseRpcUrl=process.env.GENYCASTER_BASE_RPC_URL
+    || process.env.GENYCASTER_GENY_RPC_URL || 'https://mainnet.base.org';
+  const swapRpc=createRpcClient(baseRpcUrl);
+  const swapQuoteProvider=(input)=>fetchFirmQuote(input,baseRpcUrl);
+  // Read-only chain and deployed router checks. Do not advertise the SDK
+  // capability solely because an RPC URL was configured.
+  const swapQuoteStatus=async()=>{
+    const [chain,routerCode]=await Promise.all([
+      swapRpc('eth_chainId',[]),
+      swapRpc('eth_getCode',[swapContracts.ROUTER,'latest'])
+    ]);
+    return BigInt(chain)===8453n
+      && typeof routerCode==='string' && /^0x[0-9a-fA-F]{64,}$/.test(routerCode);
+  };
+  createAccountApi({catalogUrl: origin,store,registrationRelay,swapQuoteProvider,swapQuoteStatus,
     issuer:serverDeployment().openProofIssuer,
     publicOrigin:serverDeployment().publicOrigin,
     browserGateway:serverDeployment().browserGateway,

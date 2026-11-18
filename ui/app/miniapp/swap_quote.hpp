@@ -1,12 +1,11 @@
 /*!
  * @file        ui/app/miniapp/swap_quote.hpp
- * @brief       Validated Base Swap quote and exact-allowance transaction builder.
+ * @brief       Strict Base Uniswap v2 on-chain quote and ABI verification.
  *
  * @details
- * Parses the account-authenticated 0x quote broker response, enforces the
- * audited Base AllowanceHolder, short expiry, caller ownership and exact token
- * base-unit semantics. Constructs unsigned wallet transactions; no private
- * keys, automatic approvals or transaction broadcast occur in this component.
+ * Reconstructs every swap selector, argument, route and amount locally.
+ * No commercial aggregator, dynamic transaction target, external approval
+ * spender, wallet key or implicit signing permission is accepted.
  *
  * @author      Kambiz Asadzadeh
  * @since       18 Nov 2026
@@ -18,18 +17,20 @@
 #include "swap_intent.hpp"
 
 #include <QDateTime>
-#include <QJsonObject>
 #include <QJsonArray>
+#include <QJsonObject>
 #include <QRegularExpression>
 #include <QString>
+#include <QStringList>
 #include <QVariantMap>
 
 #include <optional>
 #include <utility>
 
 namespace farcaster::platform::miniapp {
-inline constexpr auto baseAllowanceHolder =
-    "0x0000000000001ff3684f28c67538d4d072c22734";
+
+inline constexpr auto baseSwapRouter = "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24";
+inline constexpr auto baseWrappedEther = "0x4200000000000000000000000000000000000006";
 
 [[nodiscard]] inline bool validAddress(const QString& value)
 {
@@ -50,8 +51,7 @@ inline constexpr auto baseAllowanceHolder =
     return value == QStringLiteral("0") || validUint256(value);
 }
 
-// Exact decimal-to-hex conversion without doubles or platform-dependent
-// 64-bit truncation; handles all valid unsigned 256-bit amounts.
+// Exact decimal-to-hex conversion; never round via a floating point number.
 [[nodiscard]] inline QString decimalToHex256(QString decimal)
 {
     if (!validUint256OrZero(decimal)) return {};
@@ -74,17 +74,76 @@ inline constexpr auto baseAllowanceHolder =
     return output;
 }
 
+[[nodiscard]] inline QString abiUint(const QString& decimal)
+{
+    const QString encoded=decimalToHex256(decimal);
+    return encoded.isEmpty() || encoded.size() > 64 ? QString{}
+        : encoded.rightJustified(64,QLatin1Char('0'));
+}
+[[nodiscard]] inline QString abiAddress(const QString& address)
+{
+    return validAddress(address)
+        ? address.mid(2).toLower().rightJustified(64,QLatin1Char('0')) : QString{};
+}
+[[nodiscard]] inline bool isNativeSwapToken(const QString& token)
+{
+    return token == QStringLiteral("eip155:8453/native");
+}
+[[nodiscard]] inline QString contractForSwapToken(const QString& token)
+{
+    if (isNativeSwapToken(token)) return QString::fromLatin1(baseWrappedEther);
+    constexpr char prefix[] = "eip155:8453/erc20:";
+    if (!token.startsWith(QString::fromLatin1(prefix))) return {};
+    const QString address=token.mid(sizeof(prefix)-1);
+    return validAddress(address) ? address : QString{};
+}
+
 [[nodiscard]] inline QString exactApprovalCalldata(const QString& spender,
                                                     const QString& amount)
 {
     if (!validAddress(spender) || !validUint256(amount)
-        || spender.compare(QString::fromLatin1(baseAllowanceHolder),
+        || spender.compare(QString::fromLatin1(baseSwapRouter),
                            Qt::CaseInsensitive) != 0) return {};
-    const QString hexAmount = decimalToHex256(amount);
-    if (hexAmount.isEmpty() || hexAmount.size() > 64) return {};
-    return QStringLiteral("0x095ea7b3")
-        + spender.mid(2).toLower().rightJustified(64, QLatin1Char('0'))
-        + hexAmount.rightJustified(64, QLatin1Char('0'));
+    return QStringLiteral("0x095ea7b3")+abiAddress(spender)+abiUint(amount);
+}
+
+[[nodiscard]] inline QString encodeSwapCalldata(
+    const SwapIntent& intent,const QString& taker,const QString& minBuy,
+    const QStringList& path,const qint64 deadline)
+{
+    if (!validAddress(taker) || !validUint256(minBuy)
+        || !validUint256(intent.sellAmount) || deadline<=0
+        || path.size()<2 || path.size()>3) return {};
+    const QString first=contractForSwapToken(intent.sellToken);
+    const QString last=contractForSwapToken(intent.buyToken);
+    if (first.isEmpty() || last.isEmpty()
+        || first.compare(last,Qt::CaseInsensitive)==0
+        || path.front().compare(first,Qt::CaseInsensitive)!=0
+        || path.back().compare(last,Qt::CaseInsensitive)!=0
+        || (path.size()==3
+            && (path.at(1).compare(QString::fromLatin1(baseWrappedEther),
+                                   Qt::CaseInsensitive)!=0
+                || first.compare(QString::fromLatin1(baseWrappedEther),
+                                 Qt::CaseInsensitive)==0
+                || last.compare(QString::fromLatin1(baseWrappedEther),
+                                Qt::CaseInsensitive)==0))) return {};
+    QString pathWords=abiUint(QString::number(path.size()));
+    for (const QString& part:path) {
+        const QString address=abiAddress(part);
+        if (address.isEmpty()) return {};
+        pathWords+=address;
+    }
+    const QString recipient=abiAddress(taker);
+    const QString until=abiUint(QString::number(deadline));
+    if (isNativeSwapToken(intent.sellToken)) {
+        return QStringLiteral("0x7ff36ab5")
+            +abiUint(minBuy)+abiUint(QStringLiteral("128"))
+            +recipient+until+pathWords;
+    }
+    return (isNativeSwapToken(intent.buyToken)
+                ?QStringLiteral("0x18cbafe5"):QStringLiteral("0x38ed1739"))
+        +abiUint(intent.sellAmount)+abiUint(minBuy)
+        +abiUint(QStringLiteral("160"))+recipient+until+pathWords;
 }
 
 struct ValidatedSwapQuote final {
@@ -111,83 +170,97 @@ struct ValidatedSwapQuote final {
                 {QStringLiteral("totalNetworkFee"),totalNetworkFee},
                 {QStringLiteral("requiresApproval"),requiresApproval},
                 {QStringLiteral("expiresAt"),expiresAtMs},
-                {QStringLiteral("spender"),QString::fromLatin1(baseAllowanceHolder)}};
+                {QStringLiteral("spender"),QString::fromLatin1(baseSwapRouter)}};
     }
 
     [[nodiscard]] QJsonObject swapTransaction() const
     {
+        // Let the selected EIP-1193 wallet estimate the execution gas; the
+        // RPC quote's gas figure is displayed for guidance, not a gas cap.
         return {{QStringLiteral("from"),taker},
                 {QStringLiteral("chainId"),QStringLiteral("0x2105")},
                 {QStringLiteral("to"),to},
                 {QStringLiteral("data"),data},
-                {QStringLiteral("value"),QStringLiteral("0x")+decimalToHex256(value)},
-                {QStringLiteral("gas"),QStringLiteral("0x")+decimalToHex256(gas)}};
+                {QStringLiteral("value"),QStringLiteral("0x")+decimalToHex256(value)}};
     }
 
     [[nodiscard]] QJsonObject approvalTransaction() const
     {
         return {{QStringLiteral("from"),taker},
                 {QStringLiteral("chainId"),QStringLiteral("0x2105")},
-                {QStringLiteral("to"),sellToken.mid(QStringLiteral("eip155:8453/erc20:").size())},
+                {QStringLiteral("to"),contractForSwapToken(sellToken)},
                 {QStringLiteral("data"),exactApprovalCalldata(
-                    QString::fromLatin1(baseAllowanceHolder), sellAmount)},
+                    QString::fromLatin1(baseSwapRouter),sellAmount)},
                 {QStringLiteral("value"),QStringLiteral("0x0")}};
     }
 };
 
 [[nodiscard]] inline std::optional<ValidatedSwapQuote> validateSwapQuote(
-    const QJsonObject& quote, const SwapIntent& intent, const QString& taker,
-    const qint64 nowMs = QDateTime::currentMSecsSinceEpoch())
+    const QJsonObject& quote,const SwapIntent& intent,const QString& taker,
+    const qint64 nowMs=QDateTime::currentMSecsSinceEpoch())
 {
-    const auto field = [&quote](const char* key) {
+    const auto field=[&quote](const char* key) {
         return quote.value(QString::fromLatin1(key)).toString();
     };
-    if (quote.value(QStringLiteral("chainId")).toInt() != 8453
+    if (field("provider")!=QStringLiteral("uniswap-v2-onchain")
+        || quote.value(QStringLiteral("chainId")).toInt()!=8453
         || !validAddress(taker)
-        || field("taker").compare(taker, Qt::CaseInsensitive) != 0
-        || field("sellToken").compare(intent.sellToken, Qt::CaseInsensitive) != 0
-        || field("buyToken").compare(intent.buyToken, Qt::CaseInsensitive) != 0
+        || field("taker").compare(taker,Qt::CaseInsensitive)!=0
+        || field("sellToken").compare(intent.sellToken,Qt::CaseInsensitive)!=0
+        || field("buyToken").compare(intent.buyToken,Qt::CaseInsensitive)!=0
         || !validUint256(field("sellAmount"))
-        || field("sellAmount") != intent.sellAmount
+        || field("sellAmount")!=intent.sellAmount
         || !validUint256(field("buyAmount"))
         || !validUint256(field("minBuyAmount"))
         || !validUint256OrZero(field("totalNetworkFee"))
-        || field("spender").compare(QString::fromLatin1(baseAllowanceHolder),
-                                    Qt::CaseInsensitive) != 0
+        || field("spender").compare(QString::fromLatin1(baseSwapRouter),
+                                    Qt::CaseInsensitive)!=0
         || !quote.value(QStringLiteral("requiresApproval")).isBool()
-        || !quote.value(QStringLiteral("expiresAt")).isDouble()) return std::nullopt;
-    const qint64 expiry = static_cast<qint64>(
+        || !quote.value(QStringLiteral("expiresAt")).isDouble()
+        || !quote.value(QStringLiteral("deadline")).isDouble()) return std::nullopt;
+
+    const qint64 expiry=static_cast<qint64>(
         quote.value(QStringLiteral("expiresAt")).toDouble());
-    if (expiry <= nowMs || expiry > nowMs + 25'000) return std::nullopt;
-    const QJsonObject tx = quote.value(QStringLiteral("transaction")).toObject();
-    const QString to = tx.value(QStringLiteral("to")).toString();
-    const QString data = tx.value(QStringLiteral("data")).toString();
-    const QString value = tx.value(QStringLiteral("value")).toString();
-    const QString gas = tx.value(QStringLiteral("gas")).toString();
-    // 0x transaction.to may be a dynamic Settler. Only approval spender
-    // is fixed to AllowanceHolder; both are independently checked.
-    if (!validAddress(to)
-        || to.compare(taker, Qt::CaseInsensitive) == 0
+    const qint64 deadline=static_cast<qint64>(
+        quote.value(QStringLiteral("deadline")).toDouble());
+    if (expiry<=nowMs || expiry>nowMs+25'000
+        || deadline<=nowMs/1000 || deadline>nowMs/1000+190) return std::nullopt;
+    const auto greater=[](const QString& a,const QString& b) {
+        return a.size()>b.size() || (a.size()==b.size() && a>b);
+    };
+    if (greater(field("minBuyAmount"),field("buyAmount")))
+        return std::nullopt;
+
+    const QJsonArray route=quote.value(QStringLiteral("route")).toArray();
+    QStringList path;
+    for(const QJsonValue& part:route) {
+        if (!part.isString()) return std::nullopt;
+        path.append(part.toString());
+    }
+    const QString expected=encodeSwapCalldata(
+        intent,taker,field("minBuyAmount"),path,deadline);
+    if (expected.isEmpty()) return std::nullopt;
+    const QJsonObject tx=quote.value(QStringLiteral("transaction")).toObject();
+    const QString to=tx.value(QStringLiteral("to")).toString();
+    const QString data=tx.value(QStringLiteral("data")).toString();
+    const QString value=tx.value(QStringLiteral("value")).toString();
+    const QString gas=tx.value(QStringLiteral("gas")).toString();
+    if (to.compare(QString::fromLatin1(baseSwapRouter),Qt::CaseInsensitive)!=0
+        || data.compare(expected,Qt::CaseInsensitive)!=0
         || !validHexCalldata(data) || !validUint256OrZero(value)
         || !validUint256(gas)) return std::nullopt;
-    if (intent.sellToken.endsWith(QStringLiteral("/native"))) {
-        if (value != intent.sellAmount
+    if (isNativeSwapToken(intent.sellToken)) {
+        if (value!=intent.sellAmount
             || quote.value(QStringLiteral("requiresApproval")).toBool())
             return std::nullopt;
-    } else if (value != QStringLiteral("0")) return std::nullopt;
-    // Numeric comparisons use padded decimal strings, NEVER double.
-    const auto greater = [](const QString& a, const QString& b) {
-        return a.size() > b.size() || (a.size() == b.size() && a > b);
-    };
-    if (greater(field("minBuyAmount"), field("buyAmount")))
-        return std::nullopt;
+    } else if (value!=QStringLiteral("0")) return std::nullopt;
     return ValidatedSwapQuote{
-        .taker = taker, .sellToken = intent.sellToken, .buyToken = intent.buyToken,
-        .sellAmount = intent.sellAmount, .buyAmount = field("buyAmount"),
-        .minBuyAmount = field("minBuyAmount"), .totalNetworkFee = field("totalNetworkFee"),
-        .to = to, .data = data, .value = value, .gas = gas,
-        .requiresApproval = quote.value(QStringLiteral("requiresApproval")).toBool(),
-        .expiresAtMs = expiry,
+        .taker=taker,.sellToken=intent.sellToken,.buyToken=intent.buyToken,
+        .sellAmount=intent.sellAmount,.buyAmount=field("buyAmount"),
+        .minBuyAmount=field("minBuyAmount"),.totalNetworkFee=field("totalNetworkFee"),
+        .to=to,.data=data,.value=value,.gas=gas,
+        .requiresApproval=quote.value(QStringLiteral("requiresApproval")).toBool(),
+        .expiresAtMs=expiry,
     };
 }
 } // namespace farcaster::platform::miniapp

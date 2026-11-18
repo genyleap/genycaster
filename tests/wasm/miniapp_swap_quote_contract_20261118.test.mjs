@@ -37,9 +37,9 @@ test('quote is bound to current Mini App document, account, chain, amount and to
   assert.match(validation,/field\("taker"\)\.compare\(taker/);
   assert.match(validation,/field\("sellToken"\)\.compare\(intent\.sellToken/);
   assert.match(validation,/field\("buyToken"\)\.compare\(intent\.buyToken/);
-  assert.match(validation,/field\("sellAmount"\) != intent\.sellAmount/);
-  assert.match(validation,/expiry <= nowMs \|\| expiry > nowMs \+ 25'000/);
-  assert.match(validation,/baseAllowanceHolder/);
+  assert.match(validation,/field\("sellAmount"\)!=intent\.sellAmount/);
+  assert.match(validation,/expiry<=nowMs \|\| expiry>nowMs\+25'000/);
+  assert.match(validation,/baseSwapRouter/);
 });
 
 test('UI offers editable quote request but no invisible execution or token approvals',()=>{
@@ -64,14 +64,18 @@ test('UI offers editable quote request but no invisible execution or token appro
   assert.match(capabilities,/actions\.swapToken/);
 });
 
-test('0x permissions are always scoped to AllowanceHolder, execution address remains dynamic',()=>{
+test('on-chain Uniswap V2 Router02 binds calldata, fixed approval spender and Base route',()=>{
   const quote=read('services/swap-quote/quote.mjs');
   const cpp=read('ui/app/miniapp/swap_quote.hpp');
-  assert.match(quote,/quote\.allowanceTarget, ALLOWANCE_HOLDER/);
-  assert.match(quote,/issues\.allowance/);
-  assert.match(quote,/eq\(allowance\.spender, ALLOWANCE_HOLDER\)/);
-  assert.match(quote,/transaction: \{to: tx\.to\.toLowerCase\(\)/);
+  assert.match(quote,/0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24/);
+  assert.match(quote,/selectors\.getAmountsOut/);
+  assert.match(quote,/eth_call/);
+  assert.match(quote,/eth_estimateGas/);
+  assert.match(quote,/eth_gasPrice/);
+  assert.match(quote,/requiresApproval=!!sellContract && allowance/);
+  assert.doesNotMatch(quote,/api\.0x\.org|0x-api-key|ALLOWANCE_HOLDER/);
   assert.match(cpp,/QStringLiteral\("0x095ea7b3"\)/);
-  assert.match(cpp,/baseAllowanceHolder/);
-  assert.match(cpp,/validAddress\(to\)/);
+  assert.match(cpp,/baseSwapRouter/);
+  assert.match(cpp,/const QString expected=encodeSwapCalldata/);
+  assert.match(cpp,/data\.compare\(expected,Qt::CaseInsensitive\)!=0/);
 });

@@ -10,7 +10,10 @@ test('SDK swap capability is advertised only with a reachable authenticated-quot
   const main=file('ui/app/main.cpp');
   const runtime=file('ui/app/miniapp/runtime.cpp');
   assert.match(api,/path === '\/api\/v1\/cloud\/swap\/status'/);
-  assert.match(api,/available:Boolean\(swapQuoteProvider && store\)/);
+  assert.match(api,/available:await readyToSwap\(\)/);
+  assert.match(api,/swapQuoteStatus\(\)/);
+  assert.match(api,/swapRpc\('eth_chainId'/);
+  assert.match(api,/swapRpc\('eth_getCode',\[swapContracts.ROUTER/);
   assert.match(controller,/void OpenProofConnectionsController::refreshSwapAvailability\(\)/);
   assert.match(controller,/QStringLiteral\("\/api\/v1\/cloud\/swap\/status"\)/);
   assert.match(controller,/ManualRedirectPolicy/);
@@ -82,7 +85,7 @@ test('wallet transactions include Base chain ID and exact approval address, not 
   assert.equal((quote.match(/QStringLiteral\("0x2105"\)/g)||[]).length,2);
   assert.match(quote,/QStringLiteral\("0x095ea7b3"\)/);
   assert.match(quote,/exactApprovalCalldata\(/);
-  assert.match(quote,/baseAllowanceHolder/);
+  assert.match(quote,/baseSwapRouter/);
   assert.match(quote,/decimalToHex256\(/);
 });
 

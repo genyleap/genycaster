@@ -245,7 +245,7 @@ test('portable connection labels cannot fabricate verified OpenProof authority',
 });
 
 test('swap quote requires authenticated owner, POST and a configured provider',async()=>{
-  const quote={chainId:8453,requiresApproval:true,transaction:{to:'0x0000000000001ff3684f28c67538d4d072c22734'}};
+  const quote={chainId:8453,requiresApproval:true,transaction:{to:'0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24'}};
   const calls=[];
   await withServer(async request=>{
     assert.equal((await request('swap/quote','GET')).status,405);
@@ -303,4 +303,17 @@ test('swap readiness is a public boolean backed by both authenticated cloud and 
     assert.equal(status.status,200);
     assert.deepEqual(await status.json(),{available:false,chainId:8453});
   });
+});
+
+test('swap capability fails closed when on-chain Base RPC or router is unreachable',async()=>{
+  let checks=0;
+  await withServer(async request=>{
+    const first=await request('swap/status','GET',undefined,'Bearer bad');
+    assert.equal(first.status,200);
+    assert.deepEqual(await first.json(),{available:false,chainId:8453});
+    const second=await request('swap/status','GET',undefined,'Bearer bad');
+    assert.deepEqual(await second.json(),{available:false,chainId:8453});
+    assert.equal(checks,1,'health check result is cached to protect public RPC');
+  },{swapQuoteProvider:async()=>({}),
+     swapQuoteStatus:async()=>{checks++;throw new Error('wrong_rpc_or_router_missing');}});
 });

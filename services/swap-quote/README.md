@@ -1,86 +1,85 @@
-# GenyCaster Base Swap — Farcaster `actions.swapToken`
+# GenyCaster Mini App Swap — direct Uniswap V2 on Base
 
-## Deployment gate
+## Provider model
 
-`actions.swapToken` is advertised to Mini Apps only when **both** conditions
-are met: (1) an EIP-1193 wallet supporting Base (CAIP-2 `eip155:8453`)
-is available and (2) the account-sync API's read-only
-`GET /api/v1/cloud/swap/status` confirms the backend quote provider and
-cloud identity store are configured. The client refreshes this health
-capability on startup and every two minutes. Without either prerequisite
-the capability remains **disabled**; no phantom SDK support.
+The swap and quote path is direct Ethereum JSON-RPC plus the on-chain
+Uniswap V2 Router02 contract. **No paid or commercial swap API key,
+aggregator, subscription, or proprietary trading provider is required.**
 
-Provide `GENYCASTER_0X_API_KEY` only in the account-sync backend's secrets
-environment. **Never** ship it inside Qt binaries, wasm artifacts, QML,
-Mini App JS, CI logs, or the remote Mini App. Configure a real 0x v2 key
-from the 0x Dashboard. Restart the account-sync service after deployment
-to load the new server code and environment. The backend requires a
-verified GenyCaster/OpenProof principal via bearer token or secure cookie
-plus CSRF for `POST /api/v1/cloud/swap/quote`. Native Qt traffic has no
-browser `Origin` header; cross-origin browser POSTs are rejected.
+Official addresses (Base chain ID 8453):
+- Router02: 0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24
+- WETH9: 0x4200000000000000000000000000000000000006
+- Reference: https://developers.uniswap.org/docs/protocols/v2/deployments
+- Router ABI: https://github.com/Uniswap/v2-periphery/blob/master/contracts/interfaces/IUniswapV2Router02.sol
 
-The optional `services/swap-quote/server.mjs` standalone broker is
-loopback-only and requires its separate server-to-server ingress token. It
-is not required by the account-sync integration.
+The server queries getAmountsOut(uint256,address[]) through eth_call.
+Quotes select the best liquid direct pair or WETH-bridged path (at most
+two hops). Transaction calldata for swapExactTokensForTokens,
+swapExactTokensForETH and swapExactETHForTokens is built deterministically.
+The Qt client independently reproduces that calldata, checks every
+argument and refuses untrusted recipients or approval spenders.
 
-## Execution
+## Deployment configuration
 
-1. The Mini App proposes a sell token, buy token, and optional raw base-unit
-   amount. The host opens a **first-party** modal and lets the user edit
-   all prefilled values. Only Base CAIP-19 token IDs are accepted.
-2. User connects an EIP-1193 wallet. The host verifies live account and
-   `eth_chainId = 0x2105`, then requests a firm 0x v2 AllowanceHolder quote
-   through the authenticated account-sync API. 0x keys stay server-side.
-3. The server validates token pair, 256-bit amount, taker, slippage,
-   liquidity, balance, gas, network fee and allowance spender. The Qt
-   runtime **independently** validates chain, address, quote expiry, amounts,
-   router and allowance spender before using any quote.
-4. The host displays minimum output, fees, required approval and an exact
-   confirmation button. ERC-20 approvals are **not automatic**: each
-   approval requires a separate user click and wallet confirmation. The
-   `approve(address,uint256)` calldata grants only the exact amount to
-   Base AllowanceHolder
-   `0x0000000000001ff3684f28c67538d4d072c22734`.
-   The 0x execution `transaction.to` can be a *different Settler*.
-   **Never grant token allowances to the Settler.**
-5. The host waits for a mined Base receipt with `status = 0x1` and
-   matching transaction hash, sender, receiver and block. On confirmed
-   approval, the previous quote is discarded and a **new firm quote** is
-   fetched. The swap cannot proceed automatically; the user sees it and
-   must explicitly tap **Confirm token swap**.
-6. Immediately before swap, the host rechecks account and network and
-   rejects stale quotes. The wallet signs/broadcasts via `eth_sendTransaction`.
-   The host waits for a confirmed mined receipt and only then resolves
-   Farcaster `{success:true,swap:{transactions:[approval?,swapHash]}}`.
-   Reverts, invalid receipts, declined signatures and timeouts never
-   fabricate successes.
+GENYCASTER_BASE_RPC_URL: optional HTTPS Base JSON-RPC endpoint. Uses
+the existing GENYCASTER_GENY_RPC_URL if available, otherwise the public
+https://mainnet.base.org endpoint. No API credential is needed. The
+network is verified with eth_chainId and the router bytecode check
+before the SDK capability is advertised.
 
-Once `eth_sendTransaction` has been submitted, dismissing the first-party
-modal or switching Mini Apps is blocked until the receipt is checked.
-A broadcast transaction itself **cannot be cancelled**; users should
-verify its hash on a trusted Base block explorer if the network times
-out. No wallet private keys, recovery words or on-chain signature
-capabilities are passed to the Mini App SDK.
+The public Base RPC is free but rate-limited and explicitly **not
+suitable for production load** (Base docs, as of November 2026).
+Genyleap may host its own RPC node or use an existing properly
+provisioned endpoint for reliable high-volume traffic. This is an RPC
+infrastructure concern, not a paid swap API dependency.
 
-## Validation
+The account-sync endpoint POST /api/v1/cloud/swap/quote remains
+OpenProof-authenticated, user-scoped, rate-limited and protected by
+CSRF for browser cookie sessions. The embedded Mini App receives no
+secret tokens, quote authority, calldata parameters or direct wallet
+signing ability. An optional loopback-only standalone broker is
+available for private server-to-server deployments.
 
-```sh
-node --test services/swap-quote/quote.test.mjs \
-  services/account-sync/test/cloud_state.test.mjs \
-  tests/wasm/miniapp_swap_preflight_20261118.test.mjs \
-  tests/wasm/miniapp_swap_quote_contract_20261118.test.mjs \
-  tests/wasm/miniapp_swap_execution_20261118.test.mjs
+## Trading costs and coverage
 
-cmake -S tests/miniapp -B build/swap-intent-check -G Ninja \
-  -DCMAKE_PREFIX_PATH=/path/to/Qt/6.12.0/gcc_64
-cmake --build build/swap-intent-check --target swap_runtime_compile --parallel 1
-cmake --build build/swap-intent-check --target swap_host_compile --parallel 1
-cmake --build build/swap-intent-check --target swap_intent_contract swap_quote_contract --parallel 1
-ctest --test-dir build/swap-intent-check --output-on-failure
-```
+The swap service has no usage fee or trading API charge. **Swaps are
+not economically free**: Base network gas, liquidity-pool trading
+fees and price impact still apply. The current implementation routes
+Uniswap **V2 pools only**; it cannot promise liquidity in V3/V4-only
+markets or support fee-on-transfer/rebasing tokens.
 
-**Launch condition:** Successful offline tests and compilation are not a
-substitute for an end-to-end transaction with a real funded test wallet on
-Base and a live authenticated 0x key. Do not call this deployment live
-ready until the backend status reports available and the EIP-1193
-approval / quote refresh / swap / receipt flow is exercised safely.
+Users see exact input, expected output, minimum output based on their
+10–300 basis point slippage, and estimated network fee. Missing pools,
+insufficient balance and failed simulation are rejected, not
+reported as successful quotes.
+
+## Transaction lifecycle
+
+1. Check current wallet account, chain ID and authenticated account.
+2. Get on-chain quote, verify Router02, exact amount, route, 20-second
+   freshness, contract deadline and user-selected slippage.
+3. If required, user explicitly approves **only the exact ERC-20
+   sell amount to Router02**, with an individual wallet confirmation.
+4. Wait for mined successful approval receipt, refresh the quote and
+   require a **second independent click** for the actual swap.
+5. Revalidate wallet account and Base network before any wallet send.
+   Let the EIP-1193 wallet estimate the actual transaction gas.
+6. Check the mined swap receipt and respond with Farcaster SDK
+   success only after a successful, matching on-chain transaction.
+   Reverts, declined transactions, timeouts and navigation invalidations
+   cannot fabricate success.
+
+## Local validation
+
+Run:
+
+  node --test services/swap-quote/quote.test.mjs services/account-sync/test/cloud_state.test.mjs tests/wasm/miniapp_swap_preflight_20261118.test.mjs tests/wasm/miniapp_swap_quote_contract_20261118.test.mjs tests/wasm/miniapp_swap_execution_20261118.test.mjs
+
+  cmake -S tests/miniapp -B build/swap-intent-check -G Ninja -DCMAKE_PREFIX_PATH=/path/to/Qt/6.12.0/gcc_64
+  cmake --build build/swap-intent-check --parallel 1
+  ctest --test-dir build/swap-intent-check --output-on-failure
+
+Before public distribution of the financial feature, execute read-only
+live Base RPC validation and controlled low-value trades with a funded
+test wallet. No keys, seed phrases or private signing material should
+be stored by this service.

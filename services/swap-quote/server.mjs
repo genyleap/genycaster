@@ -13,9 +13,10 @@ function constantTimeMatch(a, b) {
     && timingSafeEqual(first, second);
 }
 
-export function createQuoteServer({apiKey, accessToken, fetchImpl = fetch} = {}) {
-  if (!apiKey || !accessToken || accessToken.length < 32)
-    throw new Error('Swap quote broker requires a 0x key and a 32+ character private ingress token');
+export function createQuoteServer({rpcUrl = 'https://mainnet.base.org',
+    accessToken, fetchImpl = fetch} = {}) {
+  if (!accessToken || accessToken.length < 32)
+    throw new Error('Swap quote broker requires a 32+ character private ingress token');
   const rate = new Map();
   const respond = (res, status, value) => {
     res.writeHead(status, {
@@ -27,14 +28,14 @@ export function createQuoteServer({apiKey, accessToken, fetchImpl = fetch} = {})
   };
   return createServer(async (req, res) => {
     if (req.url === '/healthz' && req.method === 'GET') {
-      respond(res, 200, {ok:true, provider:'0x-v2', chainId:8453});
+      respond(res, 200, {ok:true, provider:'uniswap-v2-onchain', chainId:8453});
       return;
     }
     if (req.url !== '/v1/quote' || req.method !== 'POST') {
       respond(res, 404, {error:'not_found'});
       return;
     }
-    // Never expose the 0x key to a native app, iframe, or a browser. A
+    // Never expose untrusted RPC endpoints to native clients or Mini Apps. A
     // production gateway must authenticate an OpenProof user then set this
     // server-to-server token. The broker binds to loopback by default.
     if (!constantTimeMatch(req.headers['x-genycaster-broker-token'], accessToken)) {
@@ -71,7 +72,7 @@ export function createQuoteServer({apiKey, accessToken, fetchImpl = fetch} = {})
         chunks.push(chunk);
       }
       const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      const quote = await fetchFirmQuote(parsed, apiKey, {fetch:fetchImpl});
+      const quote = await fetchFirmQuote(parsed, rpcUrl, {fetch:fetchImpl});
       respond(res, 200, quote);
     } catch(error) {
       const code=String(error?.message || 'quote_failed');
@@ -85,7 +86,7 @@ export function createQuoteServer({apiKey, accessToken, fetchImpl = fetch} = {})
 if (process.argv[1] && import.meta.url === new URL('file://' + process.argv[1]).href) {
   const port = Number(process.env.GENYCASTER_SWAP_BROKER_PORT || 18765);
   const app=createQuoteServer({
-    apiKey: process.env.GENYCASTER_0X_API_KEY,
+    rpcUrl: process.env.GENYCASTER_BASE_RPC_URL || 'https://mainnet.base.org',
     accessToken: process.env.GENYCASTER_SWAP_BROKER_TOKEN,
   });
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Invalid broker port');
