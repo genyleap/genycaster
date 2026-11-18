@@ -152,6 +152,24 @@ the browser API uses host-only cookies and remains CSRF-protected. When DNS
 or TLS is missing, **do not upload the WASM files to an alternative domain**
 or weaken the release gate. The build artifact can still be verified offline.
 
+**Dedicated HTTPS vhost readiness:** An HTTPS 200 response alone is not
+sufficient: a wildcard/default server may serve the unrelated Genyleap
+status page. The reviewed app vhost exposes a non-credential readiness
+marker at `/.well-known/genycaster-ready` with the exact body
+`genycaster-app-v1`. Verify it on the public origin before the first build
+and deploy:
+
+```bash
+curl --fail --silent --show-error \
+  https://app.genycaster.xyz/.well-known/genycaster-ready
+# expected: genycaster-app-v1
+```
+
+`ci/build_deploy_wasm_server.sh --web-root ...` enforces this check before
+Qt configuration, including for initial deployment to an empty site. A
+successful marker proves that traffic reaches the reviewed vhost; it does not
+replace TLS trust, account-service origin verification or release acceptance.
+
 The deploy step stages the full archive outside the public root, installs
 new immutable WASM first, atomically replaces mutable assets with backups,
 and promotes `genycaster.html` last. Existing content-hashed WASM
