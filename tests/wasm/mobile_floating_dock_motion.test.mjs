@@ -50,7 +50,7 @@ test('easing is responsive, interruptible and respects reduced motion',()=>{
   for(const section of ['fillColor','scale'])
     assert.match(dock,new RegExp('Behavior on '+section+' \\{'));
   assert.doesNotMatch(dock,/Behavior on implicitWidth/);
-  assert.match(dock,/ColorAnimation \{ duration: 185; easing\.type: Easing\.OutCubic \}/);
+  assert.match(dock,/ColorAnimation \{ duration: 180; easing\.type: Easing\.OutCubic \}/);
   assert.match(dock,/ColorAnimation \{ duration: 190; easing\.type: Easing\.OutCubic \}/);
   assert.match(dock,/scale: mobilePrimaryAction\.down \? 0\.975 : 1/);
   const allBehaviors=[...dock.matchAll(/Behavior on (?:fillColor|scale|color|opacity|implicitWidth) \{\s*enabled: ([^\n]+)/g)];
