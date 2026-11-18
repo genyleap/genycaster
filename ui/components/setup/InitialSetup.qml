@@ -1223,7 +1223,7 @@ Item {
                     fillMode: Image.PreserveAspectFit
                     sourceSize: Qt.size(160, 160)
                     smooth: true
-                    mipmap: true
+                    mipmap: false
                 }
             }
             DirectionAwareLabel {

@@ -991,10 +991,18 @@ private:
                     fail(*active, qtTrId("genycaster.miniapp.invalid_manifest"));
                     return;
                 }
-                const QJsonObject app = manifest.value(QStringLiteral("miniapp")).isObject()
+                const bool currentMiniApp = manifest.value(QStringLiteral("miniapp")).isObject();
+                const QJsonObject app = currentMiniApp
                     ? manifest.value(QStringLiteral("miniapp")).toObject()
                     : manifest.value(QStringLiteral("frame")).toObject();
-                if (app.value(QStringLiteral("version")).toString() != QStringLiteral("1")
+                const QString version = app.value(QStringLiteral("version")).toString();
+                // Neynar's public directory still includes signed legacy
+                // Farcaster frame manifests with version "next" (e.g. UpOnly).
+                // Accept that documented legacy wire format ONLY under the
+                // "frame" key. Modern "miniapp" manifests stay version "1".
+                const bool supportedVersion = version == QStringLiteral("1")
+                    || (!currentMiniApp && version == QStringLiteral("next"));
+                if (!supportedVersion
                     || app.value(QStringLiteral("name")).toString().trimmed().isEmpty()) {
                     fail(*active, qtTrId("genycaster.miniapp.invalid_manifest"));
                     return;

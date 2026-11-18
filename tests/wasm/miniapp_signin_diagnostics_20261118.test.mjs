@@ -50,3 +50,34 @@ test('explorer error is scoped to failing app and cleared on next successful lau
   assert.match(apps,/else if \(miniAppHost\.active\) \{/);
   assert.match(apps,/launchErrorTimeout\.stop\(\)/);
 });
+
+
+test('native Mini App drawer is hidden before SIWF error modal and restored only after dismissal',()=>{
+  const shell=read('ui/components/shell/AppShell.qml');
+  const task=read('ui/app/miniapp/tasks.hpp');
+  const runtime=read('ui/app/miniapp/runtime.cpp');
+  const start=shell.indexOf('id: miniAppSignInFailureDialog');
+  const end=shell.indexOf('id: walletBrowserPicker',start);
+  assert.ok(start>0 && end>start);
+  const dialog=shell.slice(start,end);
+  assert.match(dialog,/popupZ: 22000/);
+  assert.match(dialog,/property string suspendedTaskId: ""/);
+  assert.match(dialog,/onMiniAppSignInVerificationFailedChanged\(\)/);
+  assert.match(dialog,/miniAppTaskManager\.minimizeTask\(String\(current\.taskId\)\)/);
+  assert.match(dialog,/miniAppSignInFailureDialog\.open\(\)/);
+  assert.ok(dialog.indexOf('miniAppTaskManager.minimizeTask(')
+    < dialog.indexOf('miniAppSignInFailureDialog.open()'));
+  assert.match(dialog,/onDidClose: \{/);
+  assert.match(dialog,/miniAppTaskManager\.focusTask\(taskId\)/);
+  assert.match(task,/Q_INVOKABLE void minimizeTask\(const QString& taskId\)/);
+  assert.match(task,/Q_INVOKABLE void focusTask\(const QString& taskId\)/);
+  assert.match(runtime,/target->browser->setVisible\(false\)/);
+  assert.doesNotMatch(dialog,/miniAppHost\.close\(\)/);
+});
+
+test('detail sheet avoids null geometry binding during teardown',()=>{
+  const apps=read('ui/components/apps/AppsSurface.qml');
+  assert.match(apps,/width: detailScroll \? detailScroll\.width : 0/);
+  assert.match(apps,/\(detailScroll \? detailScroll\.width : 0\)/);
+  assert.doesNotMatch(apps,/^\s*width: detailScroll\.width\s*$/m);
+});

@@ -48,3 +48,18 @@ test('Selected Mini App icons use foreground derived from their blue surface, no
   assert.match(setup,/id: completionBadge[\s\S]*?fillColor: Theme\.accent[\s\S]*?color: Theme\.accentSurfaceInk/);
   assert.match(apps,/text: Theme\.iconCheck[\s\S]*?color: Theme\.accent/);
 });
+
+
+test('legacy signed Farcaster frame.version next is accepted without weakening current Mini App v1 rules',()=>{
+  // Live publisher example: f.upon.ly/.well-known/farcaster.json currently
+  // exposes an accountAssociation + frame.version "next" in Neynar's index.
+  const runtime=read('ui/app/miniapp/runtime.cpp');
+  assert.match(runtime,/const bool currentMiniApp = manifest\.value\(QStringLiteral\("miniapp"\)\)\.isObject\(\)/);
+  assert.match(runtime,/const QString version = app\.value\(QStringLiteral\("version"\)\)\.toString\(\)/);
+  assert.match(runtime,/version == QStringLiteral\("1"\)/);
+  assert.match(runtime,/\(!currentMiniApp && version == QStringLiteral\("next"\)\)/);
+  assert.match(runtime,/if \(!supportedVersion/);
+  assert.match(runtime,/validAccountAssociationEnvelope\(manifest, requestedLaunch\.host\(\)\)/);
+  assert.match(runtime,/if \(!missingChains\.isEmpty\(\) \|\| !missingCapabilities\.isEmpty\(\)\)/);
+  assert.match(runtime,/const bool supportedVersion = version == QStringLiteral\("1"\)/);
+});

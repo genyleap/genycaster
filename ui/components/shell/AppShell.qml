@@ -3792,11 +3792,24 @@ Item {
         id: miniAppSignInFailureDialog
         parent: Overlay.overlay
         blurSourceItem: shellContent
-        width: root.mobile ? (parent ? parent.width : 440) : 450
-        height: 258
-        mobileHeightRatio: 0.62
+        popupZ: 22000
+        contentPadding: Theme.space4
+        dimBackground: true
+        property string suspendedTaskId: ""
+        width: root.mobile ? (parent ? parent.width : 440) : 490
+        height: root.mobile ? 300 : 270
+        mobileHeightRatio: 0.82
         closePolicy: Popup.CloseOnEscape
-        onDidClose: miniAppHost.dismissMiniAppSignInVerificationFailed()
+        onDidClose: {
+            const taskId = suspendedTaskId
+            suspendedTaskId = ""
+            miniAppHost.dismissMiniAppSignInVerificationFailed()
+            // Native macOS drawers are AppKit NSViews above the Qt scene.
+            // Restore the SAME Mini App after the QML modal has dismissed,
+            // never navigate to an unrelated app or retain wallet authority.
+            if (taskId.length > 0)
+                miniAppTaskManager.focusTask(taskId)
+        }
 
         contentItem: ColumnLayout {
             spacing: Theme.space3
@@ -3826,10 +3839,20 @@ Item {
         Connections {
             target: miniAppHost
             function onMiniAppSignInVerificationFailedChanged() {
-                if (miniAppHost.miniAppSignInVerificationFailed)
+                if (miniAppHost.miniAppSignInVerificationFailed) {
+                    // A QML Popup cannot cover the native WKWebView drawer.
+                    // Minimize that exact runtime-owned session first, then
+                    // open the first-party explanation on the visible shell.
+                    const current = (miniAppTaskManager.tasks || []).find(
+                        task => task.foreground === true)
+                    if (current && String(current.taskId || "").length > 0) {
+                        miniAppSignInFailureDialog.suspendedTaskId = String(current.taskId)
+                        miniAppTaskManager.minimizeTask(String(current.taskId))
+                    }
                     miniAppSignInFailureDialog.open()
-                else
+                } else {
                     miniAppSignInFailureDialog.close()
+                }
             }
         }
     }

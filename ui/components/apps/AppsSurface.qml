@@ -1464,7 +1464,7 @@ Item {
         // a blank shelf above the fixed Open action. Long details scroll.
         height: parent ? (mobilePresentation
             ? Math.min(parent.height * 0.92, Math.max(360,
-                detailsColumn.implicitHeight + Theme.scaleUi(150)))
+                (detailsColumn ? detailsColumn.implicitHeight : 0) + Theme.scaleUi(150)))
             : parent.height) : 640
 
         ColumnLayout {
@@ -1489,14 +1489,16 @@ Item {
                 Layout.fillHeight: true
                 clip: true
                 contentWidth: width
-                contentHeight: detailsColumn.implicitHeight + Theme.space3
+                contentHeight: detailsColumn ? detailsColumn.implicitHeight + Theme.space3 : 0
                 boundsBehavior: Flickable.StopAtBounds
 
                 ColumnLayout {
                     id: detailsColumn
                     x: 0
                     y: 0
-                    width: detailScroll.width
+                    // During Drawer teardown the Flickable id can already be
+                    // null while this layout's last geometry binding runs.
+                    width: detailScroll ? detailScroll.width : 0
                     spacing: Theme.space3
 
                     SuperellipseImage {
@@ -1505,7 +1507,7 @@ Item {
                         // Match the actual banner ratio instead of cutting off
                         // its edges with a fixed-height, center-cropped box.
                         Layout.preferredHeight: visible ? Math.max(112, Math.min(280,
-                            detailScroll.width * (detailCover.sourceImplicitWidth > 0
+                            (detailScroll ? detailScroll.width : 0) * (detailCover.sourceImplicitWidth > 0
                                 && detailCover.sourceImplicitHeight > 0
                                 ? detailCover.sourceImplicitHeight / detailCover.sourceImplicitWidth
                                 : 0.52))) : 0

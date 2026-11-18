@@ -62,7 +62,11 @@ Rectangle {
                 sourceSize.width: 128
                 sourceSize.height: 128
                 fillMode: Image.PreserveAspectFit
-                mipmap: true
+                // The SVG is rasterized at a bounded resolution; changing
+                // mipmap state before image data exists warns in Qt 6.12.
+                // Smooth downsampling is sufficient for this small mark.
+                smooth: true
+                mipmap: false
                 Accessible.name: qsTrId("genycaster.app.genycaster")
             }
         }
