@@ -2150,13 +2150,14 @@ GenyDrawer {
                             spacing: Theme.space2
                             layoutDirection: Theme.uiDirection
 
-                            Rectangle {
+                            Superellipse {
                                 Layout.preferredWidth: 28
                                 Layout.preferredHeight: 28
-                                radius: 14
-                                color: Theme.primarySurface
-                                border.width: Theme.strokeHairline
-                                border.color: Theme.accent
+                                curveDepth: width / 2
+                                exponent: 2
+                                fillColor: Theme.primarySurface
+                                borderWidth: Theme.strokeHairline
+                                borderColor: Theme.accent
                                 Label {
                                     anchors.centerIn: parent
                                     text: LocaleFormat.formatInteger(threadRow.index + 2)
