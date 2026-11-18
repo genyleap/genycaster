@@ -263,6 +263,22 @@ test('WASM package rejects a generated host with a missing lazy WalletConnect bu
   }
 });
 
+test('PWA caches only the first-party WalletConnect module, never wallet or account data',()=>{
+  const source=readFileSync(new URL(
+    '../../ui/wasm/genycaster-sw.js',import.meta.url),'utf8');
+  const before=source.slice(0,source.indexOf('self.addEventListener("install"'));
+  const origin='https://genycaster.xyz';
+  const allowed=new Function('self',before+'\nreturn allowed;')({
+    location:{href:origin+'/genycaster-sw.js',origin}
+  });
+  assert.equal(allowed(new URL(origin+'/genycaster-walletconnect.mjs')),true);
+  assert.equal(allowed(new URL(origin+'/miniapp-host-bridge.mjs')),true);
+  assert.equal(allowed(new URL('https://untrusted.example/genycaster-walletconnect.mjs')),false);
+  assert.equal(allowed(new URL(origin+'/wallet-session.json')),false);
+  assert.equal(allowed(new URL(origin+'/private-key.json')),false);
+  assert.match(source,/request\.credentials==="include"/);
+});
+
 test('CMake builds both first-party Mini App and lazy WalletConnect bundles after npm ci',()=>{
   const cmake=readFileSync(new URL('../../ui/CMakeLists.txt',import.meta.url),'utf8');
   const marker='COMMENT "Bundling pinned Farcaster Mini App host SDK';

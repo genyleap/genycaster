@@ -19,7 +19,9 @@ const PUBLIC_FILES=new Set([
     // Deployment authority is never stored in offline caches.
     "farcaster_recovery.mjs","recovery-phrase-dialog.mjs",
     "vendor/noble-secp256k1.mjs","vendor/bip39-english.mjs",
-    "miniapp-host-bridge.mjs",
+    // Cached only as first-party static code; requests still need live
+    // WalletConnect relay approval and per-origin wallet consent.
+    "miniapp-host-bridge.mjs","genycaster-walletconnect.mjs",
 ]);
 const scopePath=new URL("./",self.location.href).pathname;
 const allowed=(url)=>url.origin===self.location.origin &&
