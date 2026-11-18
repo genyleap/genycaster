@@ -40,6 +40,40 @@ Popup {
     property int activeSessionIndex: -1
     ListModel { id: miniAppSessions }
 
+    // QtWebView exposes URL changes but no pre-navigation veto on Android.
+    // This public-only fallback must never gain signer/wallet authority:
+    // immediately clear a document if it leaves its launch origin.
+    function publicOrigin(candidate) {
+        const value = String(candidate || "").trim()
+        const match = /^https:\/\/([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)(?::443)?(?=[\/?#]|$)/i.exec(value)
+        if (!match) return ""
+        const host = match[1].toLowerCase()
+        if (host.indexOf(".") < 1 || host.includes("..")
+                || /^(?:[0-9]+\.){3}[0-9]+$/.test(host)
+                || host.endsWith(".") || host.endsWith(".local")
+                || host.endsWith(".internal") || host.endsWith(".localhost")
+                || host.endsWith(".test") || host.endsWith(".invalid"))
+            return ""
+        return "https://" + host
+    }
+
+    function blockForeignNavigation(index, destination) {
+        if (index < 0 || index >= miniAppSessions.count) return true
+        const session = miniAppSessions.get(index)
+        if (Boolean(session.blocked)) return true
+        const original = root.publicOrigin(session.url)
+        const target = root.publicOrigin(destination)
+        if (original.length > 0 && target === original) return false
+        // Hide and clear the navigated WebView, rather than resetting the
+        // URL to the launch page and accidentally entering a redirect loop.
+        miniAppSessions.setProperty(index, "blocked", true)
+        if (index === root.activeSessionIndex) {
+            root.loadError = qsTrId("genycaster.miniapp.unavailable")
+            miniAppHost.setState(true, root.loadError)
+        }
+        return true
+    }
+
     background: Superellipse {
         fillColor: Theme.surface
         curveDepth: root.miniAppFullscreen ? 0 : Theme.scaleUi(18)
@@ -54,8 +88,9 @@ Popup {
         const item = miniAppSessions.get(index)
         root.launchUrl = item.url
         root.launchTitle = item.title
-        root.loadError = ""
-        miniAppHost.setState(true)
+        root.loadError = Boolean(item.blocked)
+            ? qsTrId("genycaster.miniapp.unavailable") : ""
+        miniAppHost.setState(true, root.loadError)
     }
 
     function removeSession(index) {
@@ -92,6 +127,12 @@ Popup {
             const name = String(title || url)
             for (let i=0;i<miniAppSessions.count;i++) {
                 if (miniAppSessions.get(i).url === url) {
+                    // Only an explicit new launch can replace a blocked
+                    // document; never silently reattach its old WebView.
+                    if (Boolean(miniAppSessions.get(i).blocked)) {
+                        miniAppSessions.remove(i)
+                        break
+                    }
                     root.open()
                     root.activate(i)
                     return
@@ -102,7 +143,7 @@ Popup {
                 miniAppHost.setState(root.opened,root.loadError)
                 return
             }
-            miniAppSessions.append({url:String(url), title:name})
+            miniAppSessions.append({url:String(url), title:name, blocked:false})
             root.open()
             root.activate(miniAppSessions.count-1)
         }
@@ -166,6 +207,9 @@ Popup {
                     iconGlyph: Theme.iconRefresh
                     text: qsTrId("genycaster.feed_header.refresh")
                     onClicked: {
+                        if (root.activeSessionIndex < 0
+                                || Boolean(miniAppSessions.get(root.activeSessionIndex).blocked))
+                            return
                         const current=liveWebViews.itemAt(root.activeSessionIndex)
                         if (current) current.reload()
                     }
@@ -241,9 +285,16 @@ Popup {
                 WebView {
                     anchors.fill: parent
                     visible: root.opened && index === root.activeSessionIndex
-                    url: String(model.url)
+                             && !Boolean(model.blocked)
+                    url: model.blocked ? "" : String(model.url)
+                    onUrlChanged: function(nextUrl) {
+                        if (Boolean(model.blocked) || String(nextUrl).length === 0)
+                            return
+                        if (root.blockForeignNavigation(index, nextUrl)) stop()
+                    }
                     onLoadingChanged: function(request) {
-                        if (index !== root.activeSessionIndex) return
+                        if (index !== root.activeSessionIndex || Boolean(model.blocked))
+                            return
                         if (request.status === WebView.LoadFailedStatus) {
                             root.loadError = request.errorString ||
                                 qsTrId("genycaster.miniapp.unavailable")

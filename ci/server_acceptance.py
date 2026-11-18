@@ -60,6 +60,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("node", "--test", "tests/wasm/cast_magazine_only_neon_20261118.test.mjs")),
     ("Platform gallery masks and flick-safe provider image continuity",
      ("node", "--test", "tests/wasm/image_mask_flick_audit_contract_20261118.test.mjs")),
+    ("Android public Mini App WebView launch-origin and navigation isolation",
+     ("node", "--test", "tests/wasm/android_webview_origin_lock_20261118.test.mjs")),
     ("Async resource limits", ("python3", "ci/check_async_resource_contract.py")),
     ("Data storage policies", ("python3", "ci/check_data_storage_contract.py")),
     ("Media upload policies", ("python3", "ci/check_media_upload_contract.py")),
