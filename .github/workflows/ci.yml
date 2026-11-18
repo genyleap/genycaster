@@ -287,6 +287,7 @@ jobs:
             -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_ENABLE_SEARCH=ON \
+            -DFARCASTER_ENABLE_CHANNELS=ON \
             -DFARCASTER_ENABLE_MINIAPPS=ON \
             -DGENYCASTER_REQUIRE_LINUX_MINIAPP_HOST=ON \
             -DGENYCASTER_FETCH_QTKEYCHAIN=ON \
@@ -492,6 +493,7 @@ jobs:
             -DOPENSSL_USE_STATIC_LIBS=TRUE \
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_ENABLE_SEARCH=ON \
+            -DFARCASTER_ENABLE_CHANNELS=ON \
             -DFARCASTER_ENABLE_MINIAPPS=ON \
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON || {
               echo "::error::macOS CMake configuration failed; SDK probe details:"
@@ -743,6 +745,7 @@ jobs:
             "-DGENYCASTER_WINDOWS_PACKAGE_ARCH=${{ matrix.arch }}" `
             "-DFARCASTER_BUILD_TESTS=OFF" `
             "-DFARCASTER_ENABLE_SEARCH=ON" `
+            "-DFARCASTER_ENABLE_CHANNELS=ON" `
             "-DFARCASTER_ENABLE_MINIAPPS=ON" `
             "-DGENYCASTER_FETCH_QTKEYCHAIN=ON" `
             "-DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON"
@@ -1096,6 +1099,7 @@ jobs:
             "-DGENYCASTER_ANDROID_OPENSSL_ROOT=$PWD/build/android-deps"
             -DFARCASTER_BUILD_TESTS=OFF
             -DFARCASTER_ENABLE_SEARCH=ON
+            -DFARCASTER_ENABLE_CHANNELS=ON
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
             -DQT_ANDROID_DEPLOY_RELEASE=ON
           )
@@ -1351,7 +1355,8 @@ jobs:
             "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR" \
             "-DQT_HOST_PATH=$QT_HOST_PATH" \
             -DFARCASTER_BUILD_TESTS=OFF \
-            -DFARCASTER_ENABLE_SEARCH=ON
+            -DFARCASTER_ENABLE_SEARCH=ON \
+            -DFARCASTER_ENABLE_CHANNELS=ON
           cmake --build build/web --target genycaster_wasm_asset_refresh --parallel 3
           mkdir -p dist
           python3 ci/package_web.py \

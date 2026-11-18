@@ -40,6 +40,47 @@ def blockers() -> list[str]:
                 errors.append(f"{feature}: disabled in at least one platform's "
                               "product composition / Release configuration")
 
+    # Channels discovery is a real Qt route, not an advertised stub. Browsing,
+    # signed membership selection, and privileged administration must stay
+    # separated: unverified membership/roles must never grant write authority.
+    if all("-DFARCASTER_ENABLE_CHANNELS=ON" in block
+           for block in (linux, macos, windows, android, web)):
+        channels_contract = {
+            "src/application/configured_features.cpp.in": (
+                ".hasChannels = @FARCASTER_ENABLE_CHANNELS_CPP@",),
+            "ui/CMakeLists.txt": (
+                "components/social/ChannelsSurface.qml",
+                "app/social/channels.cpp",
+                "app/social/channel_administration.cpp",),
+            "ui/app/main.cpp": (
+                "channelBrowserControllerOwner",
+                "channelAdministrationControllerOwner",
+                '{"channelBrowser", &channelBrowser}',
+                '{"channelAdmin", &channelAdmin}',),
+            "ui/components/shell/AppShell.qml": (
+                'active: root.shellRoute === "channels"',
+                "channelSource: channelBrowser",
+                "adminSource: channelAdmin",),
+            "ui/components/social/ChannelsSurface.qml": (
+                "channelSource.configureReadSource(readContract, readEndpoint)",
+                "root.channelSource.refreshDiscovery()",
+                "Boolean(channel.roleKnown) && Boolean(channel.isModerator)",),
+            "ui/app/social/channels.cpp": (
+                "void ChannelPickerController::refreshDiscovery()",
+                "if (m_viewerFid == 0) return {};",
+                "const auto it = m_members.constFind(id);",),
+            "ui/app/social/channel_administration.cpp": (
+                'm_contract != QLatin1String("neynar-v2")',
+                'm_writeProviderId != QLatin1String("neynar-managed")',
+                "m_roleVerified && m_canModerate",
+                "No verified pending invitation for this channel",),
+        }
+        for path, required in channels_contract.items():
+            source = read(path)
+            if any(token not in source for token in required):
+                errors.append(f"CHANNELS: enabled but required scoped runtime "
+                              f"or signer authorization is missing: {path}")
+
     # Search is already an implemented product path on every advertised Qt
     # target. Do not let merely setting -DSEARCH=ON advertise it if the
     # presentation bridge, provider-neutral read pipeline or cache disappears.
