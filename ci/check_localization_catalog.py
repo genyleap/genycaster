@@ -36,6 +36,9 @@ INTENTIONALLY_IDENTICAL_IDS = {
     "genycaster.composer.fid",
     # The product brand and numeric version are proper identifiers, not prose.
     "genycaster.brand.genyleap",
+    # GenyBuzz is a protected product feature name; translate its supporting
+    # messages, not the canonical service mark shown in notifications.
+    "genycaster.buzz.received",
     "genycaster.pro.title",
     "genycaster.pro.short",
     # This analytics title consists only of the product name and a value token.

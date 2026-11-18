@@ -30,12 +30,12 @@ Item {
                 width: active ? 26 : 12
                 height: 16
 
-                Rectangle {
+                Superellipse {
                     anchors.centerIn: parent
                     width: marker.active ? 26 : 7
                     height: marker.active ? 5 : 7
-                    radius: height / 2
-                    color: marker.active ? Theme.accent
+                    curveDepth: height / 2
+                    fillColor: marker.active ? Theme.accent
                            : marker.completed ? Theme.inkMuted : Theme.borderMuted
 
                     Behavior on width {
@@ -50,7 +50,7 @@ Item {
                             easing.type: Easing.OutCubic
                         }
                     }
-                    Behavior on color {
+                    Behavior on fillColor {
                         ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionStandard }
                     }
                 }

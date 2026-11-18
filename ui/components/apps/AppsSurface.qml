@@ -1128,6 +1128,7 @@ Item {
                                                     pill: true
                                                     elevated: false
                                                     busy: cardCell.launchBusy || cardCell.proCheckBusy
+                                                    positive: cardCell.runtimeState === "foreground"
                                                     enabled: !cardCell.launchBusy && !cardCell.proCheckBusy
                                                     text: cardCell.proCheckBusy ? qsTrId("genycaster.pro.check_status")
                                                         : cardCell.launchBusy ? qsTrId("genycaster.apps.opening")
@@ -1315,6 +1316,7 @@ Item {
                                                 pill: true
                                                 elevated: false
                                                 busy: cardCell.launchBusy || cardCell.proCheckBusy
+                                                positive: cardCell.runtimeState === "foreground"
                                                 enabled: !cardCell.launchBusy && !cardCell.proCheckBusy
                                                 text: cardCell.proCheckBusy ? qsTrId("genycaster.pro.check_status")
                                                       : cardCell.launchBusy ? qsTrId("genycaster.apps.opening")

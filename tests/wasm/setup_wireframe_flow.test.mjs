@@ -552,7 +552,7 @@ test('shared marker geometry maintains a common vertical center for pill and eig
   assert.match(component,/height: 16/);
   assert.match(component,/width: marker\.active \? 26 : 7/);
   assert.match(component,/height: marker\.active \? 5 : 7/);
-  assert.match(component,/Behavior on color/);
+  assert.match(component,/Behavior on fillColor/);
   assert.match(component,/Theme\.reduceMotion/);
 });
 
@@ -936,12 +936,14 @@ test('HyperSnap native signer authorization is local, one-use and registry-bound
   assert.match(shell,/!presentationBridge.nativeCustodySignerAvailable/);
   assert.match(bridge,/m_accountIdentityIssuer != QStringLiteral\("hypersnap:native-registry"\)/);
   assert.match(bridge,/emit nativeHyperSnapSignerAuthorizationRequested\(std::move\(recoveryWords\)\)/);
-  assert.match(shell,/accountIdentityIssuer === "hypersnap:native-registry"/);
-  assert.match(shell,/objectName: "nativeSignerRecoveryWords"/);
-  assert.match(shell,/echoMode: TextInput.Password/);
+  assert.match(shell,/readonly property bool nativeAccount:\s*presentationBridge\.nativeCustodyAccount/);
+  assert.match(shell,/objectName: "nativeSignerRecoveryGrid"/);
+  assert.match(shell,/id: nativeSignerWordGrid/);
+  assert.match(shell,/model: 24/);
+  assert.match(shell,/showRecoveryWords[\s\S]*?TextInput.Normal : TextInput.Password/);
   assert.match(shell,/Qt.ImhSensitiveData/);
-  assert.match(shell,/presentationBridge.authorizeNativeHyperSnapSigner\(nativeSignerWords.text\)/);
-  assert.match(shell,/nativeSignerWords.clear\(\)/);
+  assert.match(shell,/presentationBridge.authorizeNativeHyperSnapSigner\(\s*interactionAuthorizationDialog.recoveryPhrase\(\)\)/);
+  assert.match(shell,/interactionAuthorizationDialog.clearRecoveryWords\(\)/);
   const native=runtime.slice(runtime.indexOf('PresentationBridge::nativeHyperSnapSignerAuthorizationRequested'),
                              runtime.indexOf('PresentationBridge::signerProvisionRequested'));
   assert.match(native,/identityIssuer != "hypersnap:native-registry"/);

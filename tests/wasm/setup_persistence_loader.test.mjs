@@ -135,7 +135,7 @@ test('completed Setup is independent of a volatile session and signer revocation
     assert.match(observer,/browserSigner->start\(QStringLiteral\("restore"\)/);
     const setup=read('ui/components/setup/InitialSetup.qml');
     assert.doesNotMatch(setup,/guestSelected|continue_as_guest/);
-    assert.match(setup,/if \(currentStep === 5\) return authenticated \|\| reviewMode/);
+    assert.match(setup,/if \(currentStep === 5\) return reviewMode \|\| \(authenticated\s*&& \(accountIntent !== "new" \|\| signerReady\)\)/);
     assert.match(setup,/signal closeReviewRequested\(\)/);
 });
 function fakeElement() {

@@ -177,13 +177,17 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("components/controls/GenyCheckRow.qml", Path("ui/CMakeLists.txt").read_text())
         # Backup verification, irreversible publish consent, and recovery\n        # reveal/signer consent must all use the shared accessible control.\n        self.assertEqual(setup.count("GenyCheckRow {"), 4)\n        self.assertIn('objectName: "setupNativeRegistrationConsent"', setup)
         self.assertIn("Accessible.role: Accessible.CheckBox", checkbox)
-        self.assertIn("spacing: Theme.space3", checkbox)
+        self.assertIn("spacing: Theme.space2", checkbox)
         self.assertIn("checkable: true", checkbox)
-        self.assertIn("Superellipse {", checkbox)
-        self.assertIn("fillColor: control.checked ? Theme.ink", checkbox)
-        self.assertIn("borderColor: Theme.inkMuted", checkbox)
-        self.assertIn("color: Theme.surface", checkbox)
-        self.assertIn("font.pixelSize: Theme.typeCaptionSize", checkbox)
+        # The checked state and focus use the canonical accessible neon row;
+        # the older detached checkbox tile is no longer the design contract.
+        self.assertIn("background: NeonSurface {", checkbox)
+        self.assertIn("interactive: control.enabled", checkbox)
+        self.assertIn(": control.checked ? Theme.surfaceSelected", checkbox)
+        self.assertIn(": control.checked ? Theme.accent : Theme.borderMuted", checkbox)
+        self.assertIn("Accessible.role: Accessible.CheckBox", checkbox)
+        self.assertIn("color: Theme.contrastInk(Theme.accent)", checkbox)
+        self.assertIn("font.pixelSize: Theme.typeLabelSize", checkbox)
         self.assertNotIn("Rectangle {", checkbox)
         self.assertNotIn("ColorAnimation", checkbox)
         self.assertIn("id: audienceSelectionPill", home)
@@ -203,21 +207,25 @@ class PipelineTests(unittest.TestCase):
         actions = (qml / "controls/ActionButton.qml").read_text(encoding="utf-8")
         self.assertIn("ColorAnimation", shared_tabs)
         self.assertIn("ColorAnimation", actions)
-        # NeonStatePlate now owns the hover and selection material. The old
-        # text-only predicate was intentionally replaced by the shared state
-        # surface; preserve its behavior instead of blocking the new design.
+        # Selection material is opt-in for explicit filled tab groups, while
+        # ordinary tabs remain typographic and retain curved hit testing.
         self.assertIn("background: NeonStatePlate", shared_tabs)
-        self.assertIn("selected: control.segmented && control.selected", shared_tabs)
+        self.assertIn("containmentMask: background", shared_tabs)
+        self.assertIn("property bool filledTabs: false", shared_tabs)
+        self.assertIn("selected: control.filledTabs && control.selected", shared_tabs)
         self.assertIn("hovered: control.hovered", shared_tabs)
-        self.assertIn("selectedFill: Theme.surfaceRaised", shared_tabs)
-        self.assertIn("hoverFill: Theme.surfaceHover", shared_tabs)
-        self.assertIn("visible: !control.segmented && control.showSelectionIndicator", shared_tabs)
+        self.assertIn("selectedFill: Theme.primarySurface", shared_tabs)
+        self.assertIn('hoverFill: control.filledTabs ? Theme.surfaceHover : "transparent"', shared_tabs)
+        self.assertIn("neonOnHover: control.filledTabs", shared_tabs)
         avatar = (qml / "content/Avatar.qml").read_text(encoding="utf-8")
         story = (qml / "feed/StoryItem.qml").read_text(encoding="utf-8")
         self.assertIn("visible: !avatarImage.ready", avatar)
         self.assertIn("opacity: 1.0", story)
         self.assertNotIn("scale: presetHover.hovered", settings)
-        # The current tab control owns one stable underline per tab. It\n        # fades on selection instead of animating a shared sibling position.\n        self.assertIn('objectName: "contentTabUnderline"', tabs)\n        self.assertIn("Behavior on opacity", tabs)
+        # The feed tabs intentionally remain background-free; no extra
+        # underline floats below the selected text.
+        self.assertNotIn('objectName: "contentTabUnderline"', tabs)
+        self.assertIn("font.weight: Theme.weightDemiBold", tabs)
         self.assertIn("font.weight: Theme.weightDemiBold", tabs)
         self.assertIn("id: audienceSelectionPill", home)
         feed = (qml / "feed/FeedSurface.qml").read_text(encoding="utf-8")

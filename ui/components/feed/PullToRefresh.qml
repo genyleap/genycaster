@@ -55,15 +55,15 @@ Item {
         }
     }
 
-    Rectangle {
+    Superellipse {
         width: 40
         height: 40
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        radius: 20
-        color: Theme.primarySurface
-        border.color: Theme.borderSubtle
-        border.width: 1
+        curveDepth: 20
+        fillColor: Theme.primarySurface
+        borderColor: Theme.borderSubtle
+        borderWidth: 1
 
         Icon {
             anchors.centerIn: parent

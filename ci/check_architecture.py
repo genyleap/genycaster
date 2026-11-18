@@ -38,6 +38,10 @@ QML_IO = re.compile(
 PROVIDER_SELECTION_QML = {
     "ui/components/settings/NodeManagementPanel.qml",
     "ui/components/settings/ProviderProfilesPanel.qml",
+    # Explicit identity/provider selection and verified-owner badge presentation.
+    # QML_IO still rejects any direct network or database I/O in these files.
+    "ui/components/setup/InitialSetup.qml",
+    "ui/components/profile/ProfileSurface.qml",
 }
 PROVIDER_AWARE_PRESENTATION = {
     "ui/app/settings/providers.cpp",
@@ -49,6 +53,12 @@ PROVIDER_AWARE_PRESENTATION = {
     "tests/ui/stats_controller_tests.cpp",
     "ui/app/runtime/bindings.cpp",  # Selected-node social relationship binding.
     "tests/ui/provider_profiles_controller_tests.cpp",
+    # Provider-aware account/presentation adapters map verified identity or
+    # configured network contract to an end-user route, not a generic domain.
+    "src/presentation/qt/presentation_bridge.cpp",
+    "ui/app/identity/connections.cpp",
+    "ui/app/identity/native_registration.cpp",
+    "ui/app/social/channel_administration.cpp",
 }
 # These named bootstrap adapters resolve explicit user-selected Read/Write
 # protocols and are never imported into the provider-neutral core or QML.
@@ -64,8 +74,50 @@ PROVIDER_AWARE_BOOTSTRAP = {
     "tests/ui/provider_endpoints_tests.cpp",
     "tests/ui/provider_profiles_tests.cpp",
     "tests/ui/provider_routes_tests.cpp",
+    # Session custody checks must compare a verified issuer exactly. They
+    # cannot delegate authorization solely to a UI-provided protocol choice.
+    "src/application/session.cpp",
+    "src/application/signer.cpp",
+    # Named custody ceremony regression fixtures deliberately assert both
+    # provider behavior and issuer mismatch rejection.
+    "tests/custody_recovery/hypersnap_transport.cpp",
+    "tests/custody_recovery/native_onboard.cpp",
+    "tests/unit/session_tests.cpp",
 }
 
+
+# Explicit provider-aware exceptions must carry their real security and
+# ownership contracts. This is not a blanket bypass of the lexical boundary:
+# removing issuer validation or the destination allowlist must fail CI too.
+VERIFIED_PROVIDER_BOUNDARY_INVARIANTS = {
+    "src/application/session.cpp": (
+        "acceptVerifiedNativeCustody(",
+        "session.identityIssuer != NativeIssuer",
+        "session.identitySubject != expectedSubject",
+        "session.fid.value < FirstNativeFid",
+    ),
+    "src/application/signer.cpp": (
+        'session->identityIssuer == "hypersnap:native-registry"',
+        "&& !oneShotAuthorizer",
+    ),
+    "src/presentation/qt/presentation_bridge.cpp": (
+        "bool PresentationBridge::nativeCustodyAccount()",
+        'm_accountIdentityIssuer == QStringLiteral("hypersnap:native-registry")',
+    ),
+    "ui/app/identity/connections.cpp": (
+        "trustedHttpsEndpoint(m_cloudUrl)",
+        'targetKind!=QStringLiteral("farcaster")',
+        'targetKind!=QStringLiteral("hypersnap")',
+        "m_network.post(request,",
+    ),
+    "ui/app/identity/native_registration.cpp": (
+        "std::make_unique<HyperSnapRegistrationTransport>",
+    ),
+    "ui/app/social/channel_administration.cpp": (
+        'm_contract == QLatin1String("neynar-v2")',
+        'm_contract == QLatin1String("hypersnap-v2")',
+    ),
+}
 
 # Textual project headers are exceptional boundaries, never the default architecture.
 # Isolated external module/BMI compatibility boundaries may use the dialect required by
@@ -352,6 +404,19 @@ for path in ROOT.rglob("*"):
             add(path, "provider/backend semantic leaked into QML")
         if QML_IO.search(text):
             add(path, "QML must not own network, websocket, or database I/O")
+
+# Reconcile each named exception with positive source evidence. A future
+# refactor that drops the actual issuer/custody/endpoint check is a regression
+# even if the file continues to mention a provider in a label or comment.
+for rel, required in VERIFIED_PROVIDER_BOUNDARY_INVARIANTS.items():
+    source = ROOT / rel
+    if not source.is_file():
+        violations.append(f"{rel}: missing audited provider boundary")
+        continue
+    verified_text = without_comments(source.read_text(encoding="utf-8"))
+    for marker in required:
+        if marker not in verified_text:
+            add(source, f"audited provider boundary missing invariant: {marker}")
 
 # Root build baseline is part of the pinned engineering contract.
 root_cmake = ROOT / "CMakeLists.txt"

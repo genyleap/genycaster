@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 import json, re, sys
+from qml_delimiter_balance import parentheses_balanced
 
 root = Path(__file__).resolve().parents[1]
 ui = root / 'ui'
@@ -158,7 +159,7 @@ for p in ui.rglob('*.qml'):
     # Lightweight raw delimiter balance catches accidental edit damage.
     if text.count('{') != text.count('}'):
         errors.append(f'Brace imbalance: {rel}')
-    if text.count('(') != text.count(')'):
+    if not parentheses_balanced(text):
         errors.append(f'Parenthesis imbalance: {rel}')
     if text.count('[') != text.count(']'):
         errors.append(f'Bracket imbalance: {rel}')
@@ -216,8 +217,11 @@ tab_button = (ui/'components'/'controls'/'GenyTabButton.qml').read_text(encoding
 if ('containmentMask: background' not in tab_button
         or 'background: NeonStatePlate' not in tab_button
         or 'cornerRadius: Theme.curveControl' not in tab_button
-        or 'selected: control.segmented && control.selected' not in tab_button):
-    errors.append('GenyTabButton must retain the curved NeonStatePlate background and hit-test mask')
+        or 'property bool filledTabs: false' not in tab_button
+        or 'selected: control.filledTabs && control.selected' not in tab_button
+        or 'neonOnHover: control.filledTabs' not in tab_button
+        or 'hoverFill: control.filledTabs ? Theme.surfaceHover : "transparent"' not in tab_button):
+    errors.append('GenyTabButton must preserve curved hit testing and opt-in composer backgrounds')
 
 superellipse = (ui/'components'/'visual'/'Superellipse.qml').read_text(encoding='utf-8')
 geny_spinner = (ui/'components'/'controls'/'GenySpinner.qml').read_text(encoding='utf-8')
@@ -618,8 +622,13 @@ if code_text_match and re.search(r'^\s*lineHeight\s*:', code_text_match.group('b
 if "line-height:1.5" not in code_block_view:
     errors.append('CodeBlockView must preserve code line spacing through its sanitized <pre> rich-text style')
 
-if 'GenyDrawer {' not in locale_popup or 'bottomSheet:' not in locale_popup:
-    errors.append('R6 settings must use the responsive drawer architecture')
+# The current user-approved Settings experience fills the viewport on
+# desktop and mobile: this avoids an expensive blurred backdrop.
+if ('GenyAdaptiveDialog {' not in locale_popup
+        or 'desktopFullScreen: true' not in locale_popup
+        or 'mobileFullScreen: true' not in locale_popup
+        or 'id: mobileSettingsIndex' not in locale_popup):
+    errors.append('Settings must keep a full-viewport responsive presentation')
 
 # Mini App multi-window lifecycle and media hot-path regression contracts.
 miniapp_runtime = (ui/'app'/'miniapp'/'runtime.cpp').read_text(encoding='utf-8')
@@ -889,9 +898,11 @@ if ('GenyModal {' not in adaptive_dialog
         or 'GenyAdaptiveDialog {' not in feedback_dialog):
     errors.append('Transient settings/feedback dialogs must use a true bottom Drawer on mobile and a centered modal on desktop')
 locale_settings = (ui/'components'/'settings'/'SettingsPopup.qml').read_text(encoding='utf-8')
-if ('readonly property bool mobilePresentation: parent ? parent.width < Theme.breakpointMobile' not in locale_settings
-        or 'bottomSheet: mobilePresentation' not in locale_settings):
-    errors.append('Settings presentation must use the same semantic mobile breakpoint as all other adaptive dialogs')
+if ('readonly property bool mobilePresentation: viewportWidth > 0' not in locale_settings
+        or 'viewportWidth < Theme.breakpointMobile' not in locale_settings
+        or 'desktopFullScreen: true' not in locale_settings
+        or 'mobileFullScreen: true' not in locale_settings):
+    errors.append('Settings must use the semantic mobile breakpoint in both fullscreen layouts')
 
 action_button = (ui/'components'/'controls'/'ActionButton.qml').read_text(encoding='utf-8')
 apps_surface = (ui/'components'/'apps'/'AppsSurface.qml').read_text(encoding='utf-8')

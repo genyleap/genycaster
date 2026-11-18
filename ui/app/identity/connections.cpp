@@ -1817,7 +1817,8 @@ void OpenProofConnectionsController::sendGenyBuzz(
         || targetFid==0 || targetFid>9'007'199'254'740'991ULL
         || targetFid==m_viewerFid
         || (targetKind!=QStringLiteral("farcaster")
-            && targetKind!=QStringLiteral("hypersnap"))
+            && targetKind!=QStringLiteral("hypersnap")
+            && targetKind!=QStringLiteral("auto"))
         // No DM-context sending until the server can verify conversation
         // membership; a caller must not manufacture that relationship.
         || context!=QStringLiteral("profile")) {

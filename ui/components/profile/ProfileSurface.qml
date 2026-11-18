@@ -88,8 +88,9 @@ Item {
     property bool buzzEnabled: false
     property bool buzzBusy: false
 
-    readonly property string buzzTargetKind:
-        Number(root.activeDetail.fid || 0) >= 4294967296 ? "hypersnap" : "farcaster"
+    // Namespace comes from the cloud's consenting recipient lookup, never
+    // from a public FID's numeric magnitude or unverified profile metadata.
+    readonly property string buzzTargetKind: "auto"
     // Account-owned data must not be dereferenced after its QML context
     // service has been destroyed. Empty snapshots are explicitly unknown,
     // never fabricated verified entitlements or activity.

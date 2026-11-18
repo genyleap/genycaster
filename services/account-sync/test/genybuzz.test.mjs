@@ -25,6 +25,9 @@ test('GenyBuzz target is an account identity, never client-provided issuer or si
     target_fid:'4294967296',target_kind:'hypersnap',context:'profile'
   },issuer),{issuer:'hypersnap:native-registry',
     subject:'hypersnap:4294967296',context:'profile'});
+  assert.deepEqual(validateBuzzTarget({
+    target_fid:'53',target_kind:'auto',context:'profile'
+  },issuer),{issuer:null,subject:null,context:'profile',fid:'53'});
   for(const target of [
     {target_fid:'0',target_kind:'farcaster',context:'profile'},
     {target_fid:'01',target_kind:'farcaster',context:'profile'},
@@ -138,8 +141,13 @@ test('GenyBuzz requires additive schema and serializes sender/recipient budgets'
     },
     release(){}
   };
+  let recipientRows=[{issuer,subject:'farcaster:53'}];
   const pool={
     async query(text,params){
+      if(text.includes('FROM genybuzz_preferences WHERE enabled=true')) {
+        sql.push({text,params});
+        return {rows:recipientRows};
+      }
       sql.push({text,params});
       if(text.includes('SELECT version FROM schema_migrations'))
         return {rows:[{version:3},{version:14}]};
@@ -155,6 +163,23 @@ test('GenyBuzz requires additive schema and serializes sender/recipient budgets'
   const store=await createPgStore('postgres://unused',{poolFactory:()=>pool});
   try{
     assert.equal(store.buzzReady(),true);
+    assert.deepEqual(await store.resolveBuzzTarget('53',issuer,'profile'),{
+      issuer,subject:'farcaster:53',context:'profile'
+    });
+    assert.equal(sql.at(-1).params.length,2);
+    recipientRows=[
+      {issuer,subject:'farcaster:4294967296'},
+      {issuer:'hypersnap:native-registry',subject:'hypersnap:4294967296'}
+    ];
+    assert.equal(await store.resolveBuzzTarget('4294967296',issuer,'profile'),null,
+      'ambiguous FID namespaces never auto-select a recipient');
+    recipientRows=[{issuer:'hypersnap:native-registry',subject:'hypersnap:4294967296'}];
+    assert.deepEqual(await store.resolveBuzzTarget('4294967296',issuer,'profile'),{
+      issuer:'hypersnap:native-registry',subject:'hypersnap:4294967296',context:'profile'
+    });
+    assert.equal(sql.at(-1).params.length,4);
+    recipientRows=[];
+    assert.equal(await store.resolveBuzzTarget('53',issuer,'profile'),null);
     assert.deepEqual(await store.getBuzzPreferences(owner),{enabled:false,revision:0});
     assert.deepEqual(await store.putBuzzPreferences(owner,{enabled:true,revision:0}),
       {enabled:true,revision:1});

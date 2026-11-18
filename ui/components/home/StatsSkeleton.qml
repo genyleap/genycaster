@@ -36,23 +36,23 @@ ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: Theme.space3
                     spacing: Theme.space3
-                    Rectangle {
+                    Superellipse {
                         Layout.preferredWidth: parent.width * 0.44
                         Layout.preferredHeight: 12
-                        radius: 6
-                        color: Theme.surfaceMuted
+                        curveDepth: 6
+                        fillColor: Theme.surfaceMuted
                     }
-                    Rectangle {
+                    Superellipse {
                         Layout.preferredWidth: parent.width * 0.68
                         Layout.preferredHeight: 28
-                        radius: 7
-                        color: Theme.surfaceMuted
+                        curveDepth: 7
+                        fillColor: Theme.surfaceMuted
                     }
-                    Rectangle {
+                    Superellipse {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 9
-                        radius: 5
-                        color: Theme.surfaceMuted
+                        curveDepth: 5
+                        fillColor: Theme.surfaceMuted
                     }
                 }
             }
@@ -70,19 +70,19 @@ ColumnLayout {
             anchors.fill: parent
             anchors.margins: Theme.space4
             spacing: Theme.space3
-            Rectangle {
+            Superellipse {
                 Layout.preferredWidth: parent.width * 0.35
                 Layout.preferredHeight: 14
-                radius: 6
-                color: Theme.surfaceMuted
+                curveDepth: 6
+                fillColor: Theme.surfaceMuted
             }
             Repeater {
                 model: 3
-                delegate: Rectangle {
+                delegate: Superellipse {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 9
-                    radius: 4
-                    color: Theme.surfaceMuted
+                    curveDepth: 4
+                    fillColor: Theme.surfaceMuted
                 }
             }
         }
@@ -98,17 +98,17 @@ ColumnLayout {
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: Theme.space4
-            Rectangle {
+            Superellipse {
                 Layout.preferredWidth: parent.width * 0.32
                 Layout.preferredHeight: 14
-                radius: 6
-                color: Theme.surfaceMuted
+                curveDepth: 6
+                fillColor: Theme.surfaceMuted
             }
             Item { Layout.fillWidth: true; Layout.fillHeight: true }
-            Rectangle {
+            Superellipse {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 2
-                color: Theme.surfaceMuted
+                fillColor: Theme.surfaceMuted
             }
         }
     }

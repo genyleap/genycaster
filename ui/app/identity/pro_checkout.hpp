@@ -59,6 +59,7 @@ public:
     /** Connect an explicitly selected external wallet before requesting a quote.
      * No transfer or chain switch is permitted during this preflight. */
     Q_INVOKABLE void connectWallet();
+
     /** Sign a one-time app-owned wallet proof, not an ERC-20 transaction. */
     Q_INVOKABLE void signWalletChallenge(const QString& challengeId,
                                          const QString& message);

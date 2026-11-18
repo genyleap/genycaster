@@ -21,10 +21,10 @@ Label {
     rightPadding: Theme.space2
     topPadding: 2
     bottomPadding: 2
-    background: Rectangle {
-        radius: height / 2
-        color: Theme.surfaceMuted
-        border.width: Theme.strokeHairline
-        border.color: Theme.borderMuted
+    background: Superellipse {
+        curveDepth: height / 2
+        fillColor: Theme.surfaceMuted
+        borderWidth: Theme.strokeHairline
+        borderColor: Theme.borderMuted
     }
 }

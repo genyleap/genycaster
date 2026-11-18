@@ -681,6 +681,28 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       const row=result.rows[0];
       return {enabled:row?.enabled===true,revision:Number(row?.revision||0)};
     },
+    // Resolve public profile recipients exclusively from their consented,
+    // verified account keys. No FID-range inference, cross-account joins,
+    // or client-controlled issuer. Zero or two matches have one response.
+    async resolveBuzzTarget(fid, accountIssuer, context) {
+      if(!buzzReady)throw new Error('buzz_unavailable');
+      const isNative=BigInt(fid)>=4294967296n;
+      const matches=await pool.query(`SELECT issuer,subject
+        FROM genybuzz_preferences WHERE enabled=true AND (
+          (issuer=$1 AND subject=$2)
+          ${isNative?'OR (issuer=$3 AND subject=$4)':''}
+        ) LIMIT 2`,
+        isNative
+          ?[accountIssuer,'farcaster:'+fid,'hypersnap:native-registry','hypersnap:'+fid]
+          :[accountIssuer,'farcaster:'+fid]);
+      if(matches.rows.length!==1)return null;
+      const identity=matches.rows[0];
+      const authorized=identity.issuer===accountIssuer
+        && identity.subject==='farcaster:'+fid
+        || isNative && identity.issuer==='hypersnap:native-registry'
+           && identity.subject==='hypersnap:'+fid;
+      return authorized?{issuer:identity.issuer,subject:identity.subject,context}:null;
+    },
     async putBuzzPreferences({issuer,subject},{enabled,revision}) {
       if(!buzzReady)throw new Error('buzz_unavailable');
       const result=await pool.query(`INSERT INTO genybuzz_preferences

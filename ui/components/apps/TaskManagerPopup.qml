@@ -299,7 +299,7 @@ Item {
                                     visible: taskCard.foreground
                                     compact: true
                                     quiet: true
-                                    positive: true
+                                    positive: taskCard.foreground
                                     iconOnly: true
                                     iconGlyph: Theme.iconCompress
                                     text: qsTrId("genycaster.task_manager.minimize")

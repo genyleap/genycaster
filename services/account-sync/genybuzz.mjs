@@ -12,12 +12,16 @@ export function validateBuzzTarget(input, issuer) {
       || typeof input.target_fid!=='string' || !FID.test(input.target_fid)
       || !Number.isSafeInteger(Number(input.target_fid))
       || Number(input.target_fid)>MAX_SAFE_FID
-      || !['farcaster','hypersnap'].includes(input.target_kind)
+      || !['farcaster','hypersnap','auto'].includes(input.target_kind)
       // v1 is profile-only. A forged "dm" context must not bypass
       // future conversation membership authorization.
       || input.context!=='profile'
       || (input.target_kind==='hypersnap'
           && Number(input.target_fid)<NATIVE_FID_START))return null;
+  // "auto" resolves only consenting account identities on the server.
+  // The client must not classify public identities using numerical FID ranges.
+  if(input.target_kind==='auto')
+    return {issuer:null,subject:null,context:input.context, fid:input.target_fid};
   // Identity is an application-account key. We never publish this as a
   // HyperSnap/Snapchain message or infer signing authority from the FID.
   return {
@@ -95,9 +99,21 @@ export async function handleGenyBuzz({
   if (process.env.GENYCASTER_BUZZ_SEND_DISABLED==='1') {
     respond(response,503,{error:'buzz_unavailable'});return true;
   }
-  const target=validateBuzzTarget(await readBody(request,512),issuer);
-  if (!target) {
+  const input=await readBody(request,512);
+  const validated=validateBuzzTarget(input,issuer);
+  if (!validated) {
     respond(response,400,{error:'invalid_buzz_target'});return true;
+  }
+  // Only the authenticated account datastore can resolve a public FID to
+  // a recipient's proven identity. Ambiguous or nonconsenting matches receive
+  // the same generic response; callers cannot enumerate account namespaces.
+  const target=input.target_kind==='auto'
+    ? (typeof store.resolveBuzzTarget==='function'
+      ? await store.resolveBuzzTarget(validated.fid,issuer,validated.context)
+      : null)
+    : validated;
+  if (!target) {
+    respond(response,403,{error:'buzz_not_available'});return true;
   }
   if (owner.issuer===target.issuer && owner.subject===target.subject) {
     respond(response,400,{error:'cannot_buzz_self'});return true;
