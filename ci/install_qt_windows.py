@@ -28,6 +28,28 @@ ARCHIVE_LAYOUTS = {
     "arm64": ("windows_arm64", "qt6_6120", "win64_msvc2022_arm64"),
 }
 
+# Qt WebEngine 6.140 is distributed separately from the Qt 6.12 desktop
+# component index. These are the official standalone extension directories,
+# verified against download.qt.io for BOTH Windows architectures.
+WEBENGINE_LAYOUTS = {
+    "x86_64": ("msvc2022_64", "win64_msvc2022_64", "6.12.0-0-202609281005"),
+    "arm64": ("msvc2022_arm64", "win64_msvc2022_arm64_cross_compiled",
+              "6.12.0-0-202611110526"),
+}
+
+
+def webengine_archive_layout(
+    architecture: str,
+) -> tuple[str, dict[str, tuple[str, ...]], str]:
+    folder, suffix, stamp = WEBENGINE_LAYOUTS[architecture]
+    base = ("https://download.qt.io/online/qtsdkrepository/windows_x86/"
+            "extensions/qtwebengine/6120/61400/" + folder + "/")
+    groups = {
+        f"extensions.qtwebengine.6120.61400.{suffix}":
+            ("qtwebengine", "qtwebview_qtwebengine_plugin"),
+    }
+    return base, groups, stamp
+
 
 def archive_layout(architecture: str) -> tuple[str, dict[str, tuple[str, ...]]]:
     platform, leaf, suffix = ARCHIVE_LAYOUTS[architecture]
@@ -61,14 +83,18 @@ class Hrefs(HTMLParser):
                 self.hrefs.append(value)
 
 
-def archives_from_index(html: str, required: tuple[str, ...]) -> list[str]:
+def archives_from_index(
+    html: str, required: tuple[str, ...], *, stamp: str = STAMP
+) -> list[str]:
     links = Hrefs()
     links.feed(html)
-    names = [link for link in links.hrefs if link.startswith(STAMP)
+    names = [link for link in links.hrefs if link.startswith(stamp)
              and link.endswith(".7z") and "/" not in link]
     selected: list[str] = []
     for component in required:
-        matches = [name for name in names if name[len(STAMP):].startswith(component + "-")]
+        matches = [name for name in names
+                   if name[len(stamp):].startswith(component + "-")
+                   or name[len(stamp):] == component + ".7z"]
         if len(matches) != 1:
             raise ValueError(
                 f"Expected one pinned 6.12 MSVC archive for {component}, found {matches}"
@@ -102,13 +128,19 @@ def main() -> int:
     parser.add_argument("--architecture", choices=tuple(ARCHIVE_LAYOUTS),
                         default="x86_64")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--webengine-only", action="store_true",
+                        help="Install official Qt WebEngine 6.140 MSVC extension into existing Qt")
     args = parser.parse_args()
-    base, groups = archive_layout(args.architecture)
+    if args.webengine_only:
+        base, groups, stamp = webengine_archive_layout(args.architecture)
+    else:
+        base, groups = archive_layout(args.architecture)
+        stamp = STAMP
     packages: list[tuple[str, str]] = []
     for package, components in groups.items():
         index = urljoin(base, package + "/")
         html = read_url(index).decode("utf-8")
-        for archive in archives_from_index(html, components):
+        for archive in archives_from_index(html, components, stamp=stamp):
             packages.append((package, archive))
     if args.dry_run:
         for package, archive in packages:
@@ -145,6 +177,22 @@ def main() -> int:
                      "bin/qmake.exe"):
         if not (root / relative).is_file():
             raise ValueError(f"Installed Qt is incomplete: {root / relative}")
+    if args.webengine_only:
+        required = (
+            "lib/cmake/Qt6WebEngineCore/Qt6WebEngineCoreConfig.cmake",
+            "lib/cmake/Qt6WebEngineQuick/Qt6WebEngineQuickConfig.cmake",
+            "lib/cmake/Qt6WebEngineWidgets/Qt6WebEngineWidgetsConfig.cmake",
+        )
+        for relative in required:
+            if not (root / relative).is_file():
+                raise ValueError(f"Official WebEngine extension incomplete: {root / relative}")
+        if not any((root / relative).is_file() for relative in (
+            "bin/QtWebEngineProcess.exe", "libexec/QtWebEngineProcess.exe"
+        )):
+            raise ValueError("Official WebEngine extension missing QtWebEngineProcess.exe")
+        configured_root = os.environ.get("QT_ROOT_DIR")
+        if configured_root and Path(configured_root).resolve() != root.resolve():
+            raise ValueError("WebEngine extension installed into a different Qt prefix")
     print(f"Qt {VERSION} installed: {root}")
     github_env = os.environ.get("GITHUB_ENV")
     if github_env:
