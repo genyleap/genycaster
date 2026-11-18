@@ -35,13 +35,37 @@ export function asEthereumProvider(universal){
     throw denied('Invalid WalletConnect transport');
   const subscriptions=new Map();
   const session=()=>hasEvmAccounts(universal.session)?universal.session:null;
+  // WalletConnect can retire or replace a session while a relay request is
+  // in flight, even without a timely disconnect event. Snapshot the *actual*
+  // approved EVM principals, methods, topic and default chain before dispatch.
+  // A stale result must never cross the Mini App host consent boundary.
+  const scope=()=>{
+    const active=session();
+    if(!active)return '';
+    const names=Object.entries(active.namespaces)
+      .filter(([key])=>key==='eip155'||key.startsWith('eip155:'))
+      .map(([key,ns])=>[key,
+        [...(ns.accounts||[])].sort(),
+        [...(ns.chains||[])].sort(),
+        [...(ns.methods||[])].sort()
+      ]).sort(([left],[right])=>left.localeCompare(right));
+    let defaultChain='';
+    try{
+      const raw=universal.rpcProviders?.eip155?.getDefaultChain?.();
+      if(raw!==undefined)defaultChain=canonicalEvmChain(raw);
+    }catch{return '';}
+    return JSON.stringify([active.topic||'',names,defaultChain]);
+  };
   return {
     get session(){return session();},
     async request(payload){
-      if(!session())throw denied('WalletConnect EVM session is not connected');
+      const initial=scope();
+      if(!initial)throw denied('WalletConnect EVM session is not connected');
       if(!payload||typeof payload.method!=='string')
         throw denied('Invalid WalletConnect RPC request',4200);
       const result=await universal.request(payload);
+      if(scope()!==initial)
+        throw denied('WalletConnect account, chain or session changed during request',4100);
       if(payload.method!=='eth_chainId')return result;
       const chain=canonicalEvmChain(result);
       if(!chain)throw denied('WalletConnect returned an invalid EVM chain');

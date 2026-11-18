@@ -82,6 +82,49 @@ test('empty EVM session and malformed chain response fail closed',async()=>{
   await assert.rejects(eip.request({method:'eth_chainId'}),e=>e.code===4900);
 });
 
+test('a late wallet signature is discarded after silent session revocation',async()=>{
+  const {universal}=fakeUniversal();
+  let resolveSignature;
+  universal.request=()=>new Promise(resolve=>{resolveSignature=resolve;});
+  const eip=asEthereumProvider(universal);
+  const pending=eip.request({method:'personal_sign',params:['0x01',address]});
+  universal.session=null; // the transport may not emit disconnect in time
+  resolveSignature('0xstale');
+  await assert.rejects(pending,e=>e.code===4100);
+});
+
+test('a replaced topic or approved account cannot inherit an older RPC',async()=>{
+  const {universal}=fakeUniversal();
+  universal.session.topic='old-topic';
+  let resolveSignature;
+  universal.request=()=>new Promise(resolve=>{resolveSignature=resolve;});
+  const eip=asEthereumProvider(universal);
+  const pending=eip.request({method:'personal_sign',params:['0x01',address]});
+  universal.session={...session(),topic:'new-topic'};
+  resolveSignature('0xstale');
+  await assert.rejects(pending,e=>e.code===4100);
+  let complete;
+  universal.request=()=>new Promise(resolve=>{complete=resolve;});
+  const again=eip.request({method:'personal_sign',params:['0x01',address]});
+  universal.session.namespaces.eip155.accounts=[
+    'eip155:1:0x00000000000000000000000000000000000000b2'];
+  complete('0xstale-too');
+  await assert.rejects(again,e=>e.code===4100);
+});
+
+test('silent default-chain rotation invalidates an in-flight signing result',async()=>{
+  const {universal}=fakeUniversal();
+  let chain='1';
+  universal.rpcProviders={eip155:{getDefaultChain:()=>chain}};
+  let finish;
+  universal.request=()=>new Promise(resolve=>{finish=resolve;});
+  const eip=asEthereumProvider(universal);
+  const pending=eip.request({method:'personal_sign',params:['0x01',address]});
+  chain='8453';
+  finish('0xstale');
+  await assert.rejects(pending,e=>e.code===4100);
+});
+
 test('account/chain/disconnect events remain revocable and listeners are detachable',()=>{
   const {universal,bus}=fakeUniversal();
   const eip=asEthereumProvider(universal);
