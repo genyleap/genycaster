@@ -82,6 +82,10 @@ jobs:
           # Reject stale Mini App RPC results before installing any Qt SDK.
           node --test tests/wasm/wallet_async_revocation_20261118.test.mjs
           node --test services/swap-quote/quote.test.mjs services/account-sync/test/cloud_state.test.mjs
+          # Pin and exercise the actual protocol-auth verifier package before
+          # any costly Qt install; its wrapper must not restore vulnerable Zod 3.
+          npm ci --prefix services/quick-auth --ignore-scripts --no-audit --no-fund
+          npm test --prefix services/quick-auth
       # Gate is the only job that must pass before Qt/toolchain installations.
       # Catch known source regressions while they cost seconds, not macOS hours.
       - name: Confirm explicit full-matrix budget approval

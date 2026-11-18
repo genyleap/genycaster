@@ -11,5 +11,8 @@
   },
   "dependencies": {
     "@farcasterorg/quick-auth": "0.2.0"
+  },
+  "overrides": {
+    "@farcaster/quick-auth": "0.1.0"
   }
 }
