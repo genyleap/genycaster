@@ -1953,20 +1953,21 @@ Item {
                                         ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
                                     }
                                 }
-                                Rectangle {
+                                Superellipse {
                                     anchors.right: parent.right
                                     anchors.bottom: parent.bottom
                                     anchors.rightMargin: -2
                                     anchors.bottomMargin: -2
                                     width: Theme.scaleUi(13)
                                     height: width
-                                    radius: width / 2
+                                    curveDepth: width / 2
+                                    exponent: 2
                                     // Blue indicates a previously linked OpenProof
                                     // account; green indicates current live proof.
                                     // The tooltip still discloses cached provenance.
-                                    color: socialBadge.liveVerified ? Theme.success : Theme.accent
-                                    border.color: Theme.surface
-                                    border.width: 1
+                                    fillColor: socialBadge.liveVerified ? Theme.success : Theme.accent
+                                    borderColor: Theme.surface
+                                    borderWidth: 1
                                     Icon {
                                         anchors.centerIn: parent
                                         text: Theme.iconCheck
@@ -2104,7 +2105,7 @@ Item {
 
                             // Reserved for a future server-signed, wallet-bound GENY
                             // holding attestation. Never display from editable metadata.
-                            Rectangle {
+                            Superellipse {
                                 id: genyHolderBadge
                                 objectName: "verifiedGenyHolderBadge"
                                 visible: root.genyHolderAttested
@@ -2113,10 +2114,11 @@ Item {
                                 Layout.preferredWidth: implicitWidth
                                 Layout.preferredHeight: implicitHeight
                                 Layout.alignment: Qt.AlignVCenter
-                                radius: implicitHeight / 2
-                                color: Theme.verifiedGenyBadgeBackground
-                                border.color: Theme.verifiedGenyBadgeBorder
-                                border.width: 1
+                                curveDepth: implicitHeight / 2
+                                exponent: 2
+                                fillColor: Theme.verifiedGenyBadgeBackground
+                                borderColor: Theme.verifiedGenyBadgeBorder
+                                borderWidth: 1
                                 Row {
                                     id: holderBadgeContent
                                     anchors.centerIn: parent
@@ -2134,8 +2136,25 @@ Item {
                                         font.weight: Theme.weightBold
                                     }
                                 }
-                                ToolTip.visible: genyHolderBadgeHover.hovered
-                                ToolTip.text: qsTrId("genycaster.profile.verified_geny_holder")
+                                // Use the same themed popup chrome as the Pro badge,
+                                // not the operating system's attached tooltip.
+                                ToolTip {
+                                    visible: genyHolderBadgeHover.hovered && genyHolderBadge.visible
+                                    delay: 400
+                                    timeout: 3500
+                                    padding: Theme.space2
+                                    contentItem: DirectionAwareLabel {
+                                        text: qsTrId("genycaster.profile.verified_geny_holder")
+                                        color: Theme.textPrimary
+                                        font.pixelSize: Theme.typeCaptionSize
+                                    }
+                                    background: PopupSurface {
+                                        curveDepth: Theme.curveCompact
+                                        fillColor: Theme.surfaceElevated
+                                        borderColor: Theme.borderMuted
+                                        borderWidth: 1
+                                    }
+                                }
                                 HoverHandler { id: genyHolderBadgeHover }
                             }
 
@@ -2263,9 +2282,26 @@ Item {
                                             verticalAlignment: Text.AlignVCenter
                                         }
                                     }
-                                    ToolTip.visible: hovered
-                                        && identityLinkText.width + 1 < profileLinkMetrics.advanceWidth
-                                    ToolTip.text: root.displayUrl(root.primaryProfileLinkUrl)
+                                    ToolTip {
+                                        visible: identityPrimaryLink.hovered
+                                            && identityLinkText.width + 1 < profileLinkMetrics.advanceWidth
+                                        delay: 400
+                                        timeout: 3500
+                                        width: Math.min(Theme.scaleUi(360), root.profileContentWidth)
+                                        padding: Theme.space2
+                                        contentItem: DirectionAwareLabel {
+                                            text: root.displayUrl(root.primaryProfileLinkUrl)
+                                            color: Theme.textPrimary
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            wrapMode: Text.WrapAnywhere
+                                        }
+                                        background: PopupSurface {
+                                            curveDepth: Theme.curveCompact
+                                            fillColor: Theme.surfaceElevated
+                                            borderColor: Theme.borderMuted
+                                            borderWidth: 1
+                                        }
+                                    }
                                     Accessible.role: Accessible.Link
                                     Accessible.name: root.primaryProfileLinkUrl
                                     onClicked: root.externalRequested(root.primaryProfileLinkUrl)
