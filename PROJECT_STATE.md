@@ -6,6 +6,8 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 
 ## Verified baseline
 
+- Latest verified Home/Mobile UI regression remediation:
+  `e89c6e1dec204ed5453423cc58e904a4ce6bd21d` (50/50 focused Node tests).
 - Browser wallet async-consent security commit:
   `5c724735e588bda19a6b88b09d75422f3a427d6f`.
 - Latest tested UI Neon gate remediation: `cc2b2f57381575d55b2f3462426ccff6593e0787`
@@ -23,7 +25,7 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - HyperSnap exact native uint64 FID/height merge:
   `35550e73ce9447e2650e99e4f7dab21346c053ce` (PR #39).
 - Repository was clean and tracking `origin/main` immediately after the
-  `27b285ac` push. Re-check HEAD/upstream before subsequent edits.
+  `e89c6e1d` push. Re-check HEAD/upstream before subsequent edits.
 
 ## Completed and locally verified in the latest execution
 
@@ -62,6 +64,12 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   The `cc2b2f57` correction passes the exact four-file hosted Neon
   regression command **23/23**, plus 11/11 focused Magazine/Settings
   tests, architecture, CI source policy, and 183-QML design audit.
+- A broader independent Home/Mobile/Wallet/Android WebView test batch initially
+  failed three obsolete Home/Card/Drawer source assertions (47/50). The
+  `e89c6e1d` correction retains actual Home shortcut semantics and separate
+  Search, ambient Neon activity cards, and Qt Drawer edge-consistent corner/
+  inset geometry. The complete targeted suite then **50/50 PASS**.
+  No real-device visual or security E2E implied.
 - **No native/browser installed-device wallet E2E** or new full hosted CI
   has been claimed for these commits.
 
