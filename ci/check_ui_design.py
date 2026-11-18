@@ -405,7 +405,11 @@ for token in (
     'property bool admitted: false',
     'active: tileSlot.admitted',
     'interval: 16 + tileSlot.index * 32',
-    'useLayeredMask: false',
+    # Per-pixel masks are retained only on browser tiles and aspect-fitted
+    # single images; dynamic aspect discovery skips its extra ambient pass.
+    'useLayeredMask: Qt.platform.os === "wasm"',
+    '|| root.visibleCount === 1',
+    'ambientEnabled: root.visibleCount === 1 && !root.dynamicAspectDiscovery',
 ):
     if token not in gallery_layout:
         errors.append(f'GalleryLayout scroll-time tile admission missing {token!r}')
@@ -421,11 +425,17 @@ if ('boundsBehavior: Flickable.DragOverBounds' not in profile_surface
         or 'height: stableRows.count === 0' not in feed_surface
         or 'id: stateContent' not in (root/'ui/components/controls/EmptyState.qml').read_text()):
     errors.append('Feed/profile pull-to-refresh and measurable list footer contracts regressed')
-if 'Item {\n            id: messageSurface' not in cast_item \
-        or 'HoverHandler { id: messageHover }' in cast_item \
-        or 'anchors.leftMargin: root.contentRtl ? Theme.space3 : 58' not in cast_item \
-        or 'anchors.rightMargin: root.contentRtl ? 58 : Theme.space3' not in cast_item:
-    errors.append('Cast timeline must keep its transparent message wrapper as a plain Item, avoid hover recoloring, and use a direction-aware content divider')
+# Timeline rows retain a non-painting Item; only viewport-admitted Magazine
+# cards instantiate Neon. Nested cast direction and symmetric adaptive gutters
+# replace the legacy hard-coded 58px content-divider indentation.
+if ('Item {\\n            id: messageSurface' not in cast_item
+        or 'HoverHandler { id: messageHover }' in cast_item
+        or 'visible: root.magazineCard' not in cast_item
+        or 'fillColor: root.magazineCard ? Theme.surfaceRaised : "transparent"' not in cast_item
+        or 'interactive: root.magazineCard && !root.scrollMoving' not in cast_item
+        or 'anchors.leftMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4' not in cast_item
+        or 'anchors.rightMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4' not in cast_item):
+    errors.append('Cast timeline must keep a plain non-painting Item and reserve GPU Neon surfaces for Magazine cards')
 if 'root.modelData.parentCastId || ""' in cast_item and 'text: root.ltrText(root.modelData.parentCastId' in cast_item:
     errors.append('Reply context must not expose raw parent cast identifiers')
 
