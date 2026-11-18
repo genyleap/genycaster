@@ -46,8 +46,8 @@ test('pending RPCs are scoped to their immutable session and authorization epoch
   assert.match(pending,/std::uint64_t sessionGeneration\{\}/);
   assert.match(bridge,/\.authorizationEpoch = m_authorizationEpoch/);
   assert.match(bridge,/\.sessionGeneration = m_sessionGeneration/);
-  assert.match(bridge,/pending\.authorizationEpoch == m_authorizationEpoch/);
-  assert.match(bridge,/pending\.sessionGeneration == m_sessionGeneration/);
+  assert.match(bridge,/m_authorizationEpoch == pending\.authorizationEpoch/);
+  assert.match(bridge,/m_sessionGeneration == pending\.sessionGeneration/);
   assert.match(bridge,/m_pending\.erase\(it\)/);
   assert.match(bridge,/m_pending\.clear\(\)/);
 });
