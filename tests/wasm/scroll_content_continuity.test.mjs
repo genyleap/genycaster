@@ -84,11 +84,39 @@ test('gallery and supporting tiles schedule once even while the viewport keeps m
         assert.equal(timer.starts, 1, file + ' does not starve or continually restart admission');
     }
 });
-test('payload refresh does not tear down a cast supporting subtree', () => {
+test('payload refresh preserves admitted supporting subtree and new links wait until rest', () => {
     const cast = read('CastItem');
-    assert.doesNotMatch(cast, /supportingAdmitted/);
-    assert.doesNotMatch(cast, /onSupportingEmbedsChanged:/);
+    assert.match(cast, /property bool supportingAdmitted: false/);
+    assert.match(cast, /property string admittedSupportingIdentity: ""/);
+    assert.match(cast, /onSupportingEmbedsChanged:/);
+    assert.match(cast, /if \(root\.admittedSupportingIdentity !== identity\)/);
+    assert.match(cast, /if \(!root\.supportingAdmitted && !root\.scrollMoving && root\.visible\)/);
     assert.match(cast, /active: !root\.mediaFirst && root\.supportingEmbeds\.length > 0/);
+    const root = {
+        supportingEmbeds: [{url: 'https://example.org/article'}],
+        mediaFirst: true,
+        supportingAdmitted: true,
+        scrollMoving: true,
+        visible: true,
+    };
+    const supportingAdmissionTimer = {
+        starts: 0, stops: 0,
+        start() { ++this.starts; }, stop() { ++this.stops; },
+    };
+    root.scheduleSupportingAdmission = method(cast, 'scheduleSupportingAdmission',
+        {root, supportingAdmissionTimer});
+    root.scheduleSupportingAdmission();
+    assert.equal(root.supportingAdmitted, true);
+    assert.equal(supportingAdmissionTimer.starts, 0,
+        'a previously admitted preview must not be re-incubated during a flick');
+    root.scrollMoving = false;
+    root.scheduleSupportingAdmission();
+    assert.equal(supportingAdmissionTimer.starts, 0,
+        'counter refresh after a flick must retain the existing subtree');
+    root.supportingAdmitted = false;
+    root.scheduleSupportingAdmission();
+    assert.equal(supportingAdmissionTimer.starts, 1,
+        'only new supporting identities are scheduled when scrolling stops');
 });
 test('wallet picker applies mirroring to its content Item, never the Popup object', () => {
     const picker = read('WalletBrowserPicker');
