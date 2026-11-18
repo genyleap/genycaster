@@ -106,6 +106,67 @@ constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
     return address;
 }
 
+// Normalize the security principal *at the wallet bridge boundary* rather
+// than trusting Mini App discovery or an individual Qt/WebKit call site.
+// URLs with credentials, paths, encoded authorities, ports other than HTTPS's
+// default and local/IP destinations must never identify a signer grant.
+[[nodiscard]] std::optional<std::string> canonicalWalletOrigin(std::string_view raw)
+{
+    constexpr std::string_view scheme{"https://"};
+    if (raw.size() < scheme.size() + 3U || raw.size() > 261U)
+        return std::nullopt;
+
+    std::string value{raw};
+    for (char& character : value) {
+        if (character >= 'A' && character <= 'Z')
+            character = static_cast<char>(character - 'A' + 'a');
+    }
+    if (!value.starts_with(scheme)) return std::nullopt;
+    std::string_view authority{value};
+    authority.remove_prefix(scheme.size());
+    if (authority.find_first_of("/?#@\\% \t\r\n") != std::string_view::npos)
+        return std::nullopt;
+
+    // Explicitly accept only the canonical HTTPS port. Normalize :443 out,
+    // so callers cannot create two consent principals for one web origin.
+    if (const auto colon = authority.find(':'); colon != std::string_view::npos) {
+        if (authority.substr(colon) != ":443") return std::nullopt;
+        authority = authority.substr(0, colon);
+    }
+    if (authority.size() < 3U || authority.size() > 253U
+        || authority.find('.') == std::string_view::npos)
+        return std::nullopt;
+
+    bool allNumeric = true;
+    std::size_t start{};
+    while (start < authority.size()) {
+        const auto dot = authority.find('.', start);
+        const auto end = dot == std::string_view::npos ? authority.size() : dot;
+        const auto label = authority.substr(start, end - start);
+        const auto alphaNumeric = [](const char c) {
+            return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+        };
+        if (label.empty() || label.size() > 63U
+            || !alphaNumeric(label.front()) || !alphaNumeric(label.back()))
+            return std::nullopt;
+        for (const char character : label) {
+            if (!alphaNumeric(character) && character != '-')
+                return std::nullopt;
+            if (character < '0' || character > '9')
+                allNumeric = false;
+        }
+        start = end + 1U;
+    }
+    if (allNumeric) return std::nullopt; // IPv4/numbered-host ambiguity.
+
+    constexpr std::array<std::string_view, 5> deniedSuffixes{
+        ".local", ".localhost", ".internal", ".test", ".invalid"};
+    for (const auto suffix : deniedSuffixes) {
+        if (authority.ends_with(suffix)) return std::nullopt;
+    }
+    return std::string{scheme} + std::string{authority};
+}
+
 [[nodiscard]] bool validMethod(const std::string_view method)
 {
     return method == "personal_sign" || method == "net_version" || method == "web3_clientVersion"
@@ -589,11 +650,14 @@ public:
         std::string appName,
         std::string origin) override
     {
-        if (appName.empty() || origin.empty()) {
+        const auto canonicalOrigin = canonicalWalletOrigin(origin);
+        if (appName.empty() || !canonicalOrigin) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::InvalidArgument,
-                "A Mini App wallet session requires a non-empty application name and origin."));
+                "A Mini App wallet session requires an application name and an exact public HTTPS origin."));
         }
+        // Do not close an existing session if a new caller supplies an
+        // invalid origin: an invalid launch is never allowed to revoke it.
         endSession();
         auto token = randomHex(TokenBytes);
         auto nonce = randomHex(16U);
@@ -603,7 +667,7 @@ public:
         m_token = std::move(*token);
         m_nonce = std::move(*nonce);
         m_appName = std::move(appName);
-        m_origin = std::move(origin);
+        m_origin = std::move(*canonicalOrigin);
         m_active = true;
         m_pageLaunched = false;
         ++m_sessionGeneration;
