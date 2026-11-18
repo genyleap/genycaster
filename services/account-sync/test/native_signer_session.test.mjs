@@ -10,7 +10,7 @@ const farcasterFid='321969';
 const {publicKey,privateKey}=generateKeyPairSync('ed25519');
 const key=publicKey.export({format:'der',type:'spki'}).subarray(-32).toString('hex');
 const now=Date.parse('2026-11-16T12:00:00Z');
-function signer(originToTrust, signerScope=['MESSAGE_TYPE_CAST_ADD']) {
+function signer(originToTrust, signerScope=['MESSAGE_TYPE_CAST_ADD'], clockMs=now) {
   const requests=[];
   const fetchImpl=async url=>{
     const actual=new URL(url);
@@ -20,7 +20,7 @@ function signer(originToTrust, signerScope=['MESSAGE_TYPE_CAST_ADD']) {
     return new Response(JSON.stringify({signers:[{
       fid:actual.searchParams.get('fid'),key,keyType:1,
       source:'SIGNER_SOURCE_OFFCHAIN',scopes:signerScope,
-      expiresAt:Math.floor(now/1000)-1609459200+600,
+      expiresAt:Math.floor(clockMs/1000)-1609459200+600,
     }]}),{status:200,headers:{'content-type':'application/json'}});
   };
   return {fetchImpl,requests};
@@ -42,6 +42,105 @@ test('Native HyperSnap account session proves active native Signer on HyperSnap 
     subject:'hypersnap:'+nativeFid,fid:nativeFid});
   assert.equal(registry.requests.length,1);
 });
+test('native signer session preserves unsigned uint64 FIDs without Number precision loss',async()=>{
+  const aboveJsSafe='9007199254740993';       // 2^53+1 (unrepresentable as Number)
+  const maxUint64='18446744073709551615';    // 2^64-1
+  for(const fid of [aboveJsSafe,maxUint64]){
+    const registry=signer('https://haatz.quilibrium.com');
+    const owner=await proof(fid,registry.fetchImpl);
+    assert.deepEqual(owner,{
+      issuer:'hypersnap:native-registry',
+      subject:'hypersnap:'+fid,fid
+    });
+    assert.equal(registry.requests[0].searchParams.get('fid'),fid);
+  }
+  const verifier=createSignerSessionProof({
+    issuer:'https://openproof.genyleap.com',
+    snapchainOrigin:'https://snapchain.genyleap.com',
+    hypersnapOrigin:'https://haatz.quilibrium.com'
+  });
+  for(const fid of [
+    '0','00','0001','01','-1',' 1','1e18','18446744073709551616',
+    '99999999999999999999','184467440737095516150',
+    '0x1000000000000000','321969.0',null,1,9007199254740993
+  ])assert.throws(()=>verifier.issue(fid),/invalid_fid/,String(fid));
+
+  let queries=0;
+  const wrongRegistry=async url=>{
+    queries++;
+    const exact=new URL(url).searchParams.get('fid');
+    return Response.json({signers:[{
+      fid:Number(exact), // unsafe JSON-number identity is not authoritative
+      key,keyType:1,source:'SIGNER_SOURCE_ONCHAIN'
+    }]});
+  };
+  await assert.rejects(proof(aboveJsSafe,wrongRegistry),/unregistered_signer/);
+  // 2^53 is exactly representable, but numeric wire format still cannot
+  // establish an injective mapping of every canonical uint64 identity.
+  await assert.rejects(proof('9007199254740992',wrongRegistry),/unregistered_signer/);
+  assert.equal(queries,2);
+});
+
+test('native uint64 account cookie roundtrip retains exact principal and refuses CSRF-less writes',async()=>{
+  const fid='9007199254740993',origin='https://caster.genyleap.com';
+  const sessions=new Map();
+  const store={
+    async createSession(owner,digest,csrf){
+      sessions.set(digest,{...owner,csrf_token:csrf});
+    },
+    async getSession(digest){return sessions.get(digest)||null;}
+  };
+  const registry=signer('https://haatz.quilibrium.com',
+    ['MESSAGE_TYPE_CAST_ADD'],Date.now());
+  const handler=createCloudHandler({
+    store,issuer:'https://openproof.genyleap.com',
+    publicOrigin:origin,
+    snapchainOrigin:'https://snapchain.genyleap.com',
+    hypersnapOrigin:'https://haatz.quilibrium.com',
+    fetchImpl:registry.fetchImpl
+  });
+  const server=createServer((request,response)=>
+    handler(request,response,new URL(request.url,'http://localhost').pathname));
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+server.address().port+'/api/v1/cloud/';
+  try{
+    const submit=async(path,body)=>fetch(base+path,{
+      method:'POST',headers:{origin,'content-type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    const challenge=await submit('session/challenge',{fid});
+    assert.equal(challenge.status,200);
+    const issued=await challenge.json();
+    assert.equal(issued.fid,fid);
+    const bytes=Buffer.from('genycaster-account-session-v1\n'+fid+'\n'+issued.nonce);
+    const granted=await submit('session/proof',{
+      fid,nonce:issued.nonce,public_key:key,
+      signature:sign(null,bytes,privateKey).toString('hex')
+    });
+    assert.equal(granted.status,200);
+    const owner=await granted.json();
+    assert.deepEqual({fid:owner.fid,issuer:owner.issuer,subject:owner.subject},{
+      fid,issuer:'hypersnap:native-registry',subject:'hypersnap:'+fid
+    });
+    const cookie=granted.headers.get('set-cookie').split(';')[0];
+    const restored=await fetch(base+'session',{headers:{cookie}});
+    assert.equal(restored.status,200);
+    const session=await restored.json();
+    assert.deepEqual({fid:session.fid,issuer:session.issuer,subject:session.subject},{
+      fid,issuer:'hypersnap:native-registry',subject:'hypersnap:'+fid
+    });
+    assert.equal(registry.requests.length,1);
+    const rejected=await fetch(base+'session',{
+      method:'DELETE',headers:{cookie}
+    });
+    assert.equal(rejected.status,401,'no CSRF no capability');
+    await rejected.arrayBuffer();
+  }finally{
+    server.closeAllConnections();
+    await new Promise(resolve=>server.close(resolve));
+  }
+});
+
 test('Farcaster account session remains bound to Snapchain',async()=>{
   const registry=signer('https://snapchain.genyleap.com');
   const owner=await proof(farcasterFid,registry.fetchImpl);

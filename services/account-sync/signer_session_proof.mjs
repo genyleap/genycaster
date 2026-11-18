@@ -4,7 +4,16 @@
 import {createPublicKey,randomBytes,verify} from 'node:crypto';
 import {serverDeployment,trustedOrigin} from '../deployment_config.mjs';
 
-const FID=/^[1-9][0-9]{0,18}$/;
+// Native HyperSnap uses uint64 FIDs. JavaScript Number silently rounds
+// registry identities above 2^53; keep every principal as canonical decimal
+// text and use BigInt for namespace/bounds checks. Numeric JSON registry FIDs
+// beyond MAX_SAFE_INTEGER cannot attest identity (String() is lossy).
+const FID=/^[1-9][0-9]{0,19}$/;
+export const MAX_UINT64_FID=(1n<<64n)-1n;
+export const FIRST_NATIVE_HYPERSNAP_FID=1n<<32n;
+export function isCanonicalUint64Fid(fid){
+  return typeof fid==='string' && FID.test(fid) && BigInt(fid)<=MAX_UINT64_FID;
+}
 const NONCE=/^[A-Za-z0-9_-]{43}$/;
 const HEX32=/^[0-9a-f]{64}$/;
 const HEX64=/^[0-9a-f]{128}$/;
@@ -45,8 +54,15 @@ async function checkSigner(fid,key,fetchImpl,nowMs,snapchainOrigin) {
     if(!Array.isArray(body?.signers)||body.signers.length>100)
       bad(503,'signer_registry_unavailable');
     for(const signer of body.signers) {
+      // Registry APIs may use JSON decimal strings or safe JSON numbers.
+      // Never convert an *unsafe* JSON number back to a uint64 principal:
+      // serialization may already have rounded a distinct native identity.
+      const registryFid=signer?.fid;
+      if(typeof registryFid!=='string' &&
+          !(typeof registryFid==='number' && Number.isSafeInteger(registryFid)))
+        continue;
       if(String(signer?.key||'').toLowerCase().replace(/^0x/,'')!==key ||
-          String(signer?.fid)!==fid || Number(signer?.keyType)!==1)continue;
+          String(registryFid)!==fid || Number(signer?.keyType)!==1)continue;
       if(signer.source==='SIGNER_SOURCE_ONCHAIN')return true;
       if(signer.source!=='SIGNER_SOURCE_OFFCHAIN')continue;
       if(!Array.isArray(signer.scopes) ||
@@ -81,7 +97,7 @@ export function createSignerSessionProof({
     for(const [nonce,row] of pending)if(row.expires<=time)pending.delete(nonce);
   }
   function issue(fid) {
-    if(typeof fid!=='string'||!FID.test(fid)||!Number.isSafeInteger(Number(fid)))
+    if(!isCanonicalUint64Fid(fid))
       bad(400,'invalid_fid');
     prune();
     if(pending.size>=MAX_CHALLENGES)bad(429,'challenge_limit');
@@ -90,7 +106,7 @@ export function createSignerSessionProof({
     return {fid,nonce,expires_in:90};
   }
   async function prove({fid,nonce,public_key:publicKey,signature}={}) {
-    if(typeof fid!=='string'||!FID.test(fid) ||
+    if(!isCanonicalUint64Fid(fid) ||
        typeof nonce!=='string'||!NONCE.test(nonce) ||
        typeof publicKey!=='string'||!HEX32.test(publicKey) ||
        typeof signature!=='string'||!HEX64.test(signature))
@@ -106,7 +122,7 @@ export function createSignerSessionProof({
       bad(401);
     // This namespace is allocated by HyperSnap's native registry, not
     // Optimism IdRegistry. A signed proof cannot silently cross the two.
-    const native=Number(fid)>=4294967296;
+    const native=BigInt(fid)>=FIRST_NATIVE_HYPERSNAP_FID;
     const registryOrigin=native?trustedHyperSnap:trustedSnapchain;
     if(!await checkSigner(fid,publicKey,fetchImpl,now(),registryOrigin))
       bad(401,'unregistered_signer');

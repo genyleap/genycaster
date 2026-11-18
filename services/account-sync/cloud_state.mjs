@@ -1,7 +1,8 @@
 // Genycaster-owned cloud state. OpenProof authorizes the principal, but never
 // stores these app-specific preferences, drafts, bookmarks or schedules.
 import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
-import {createSignerSessionProof} from './signer_session_proof.mjs';
+import {createSignerSessionProof,isCanonicalUint64Fid,
+  FIRST_NATIVE_HYPERSNAP_FID} from './signer_session_proof.mjs';
 import {serverDeployment, trustedOrigin} from '../deployment_config.mjs';
 import {validateFeedback} from './feedback.mjs';
 import {handleGenyBuzz} from './genybuzz.mjs';
@@ -17,9 +18,6 @@ import {createLeaderboardProfileReader} from './leaderboard_profiles.mjs';
 
 const SESSION_COOKIE='__Host-genycaster-account';
 const SESSION_LIFETIME=30*24*60*60;
-// HyperSnap native registry allocates FIDs beginning at the first uint32
-// overflow (2^32). This namespace boundary is NOT OpenProof account linkage.
-const FIRST_NATIVE_HYPERSNAP_FID=2 ** 32;
 function sessionToken(request) {
   const cookies=String(request.headers.cookie||'').split(';');
   const match=cookies.map(value=>value.trim()).find(value=>
@@ -535,16 +533,16 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       // The signed account proof issues protocol-scoped sessions. HyperSnap
       // native FIDs use their own verified signer registry and issuer; never
       // mistake them for a linked OpenProof/Farcaster identity.
-      const match=/^(farcaster|hypersnap):([1-9][0-9]{0,18})$/
+      const match=/^(farcaster|hypersnap):([1-9][0-9]{0,19})$/
         .exec(String(session?.subject||''));
-      if(!match || !Number.isSafeInteger(Number(match[2])))return null;
+      if(!match || !isCanonicalUint64Fid(match[2]))return null;
       // The cookie datastore must not accept a different issuer merely
       // because its subject begins with "farcaster:". A forged or stale
       // protocol-scoped row must fail closed before private data or writes.
       const issuerMatches=match[1]==='farcaster'
         ? session.issuer===upstream
         : session.issuer==='hypersnap:native-registry'
-          && Number(match[2])>=FIRST_NATIVE_HYPERSNAP_FID;
+          && BigInt(match[2])>=FIRST_NATIVE_HYPERSNAP_FID;
       if(!issuerMatches)return null;
       // Browsers automatically attach cookies: non-GET operations additionally
       // require a secret returned only to the same-origin account client.
