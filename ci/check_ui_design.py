@@ -676,24 +676,39 @@ if 'QtQuick.Effects' in video_player or 'layer.effect: MultiEffect' in video_pla
 if 'return stableRows.count < root.filterTargetCount' not in feed_surface:
     errors.append('Filtered feed prefetch must reuse stableRows instead of reclassifying sourceRows during scroll')
 superellipse_image = (ui/'components'/'visual'/'SuperellipseImage.qml').read_text(encoding='utf-8')
-if ('if (current !== requested || (!root.ready && !root.loadFailed))' not in superellipse_image
-        or 'if (!root.ready && !root.loadFailed)' not in superellipse_image
-        or 'root.activeSource = ""' not in superellipse_image):
-    errors.append('SuperellipseImage must detach unfinished QML image consumers during flicks so texture preparation cannot enter the scroll frame')
+# A new identity can detach an obsolete QML texture, but an identical
+# already-admitted provider request survives repeated flicks. Only an
+# unstarted source may be paused; frame admission remains asynchronous.
+if ('if (current !== requested)' not in superellipse_image
+        or 'if (current.length > 0)' not in superellipse_image
+        or 'root.activeSource = ""' not in superellipse_image
+        or 'if (root.activeSource.toString().length === 0)' not in superellipse_image
+        or 'sourceStartTimer.stop()' not in superellipse_image
+        or 'root.deferNewLoadsWhileScrolling && root.scrollMoving' not in superellipse_image
+        or 'root.synchronizePresentation()' not in superellipse_image):
+    errors.append('SuperellipseImage must detach obsolete image identities but preserve in-flight same-source requests across flicks')
 remote_cancel_block = remote_provider.split('void cancel() override', 1)[1].split('void setOperation', 1)[0]
 if ('m_cancelled.store(true' not in remote_cancel_block
         or 'm_control->cancel()' in remote_cancel_block
         or 'operation->cancel()' in remote_cancel_block):
     errors.append('QML image cancellation must detach presentation without aborting already-admitted bounded provider work; post-fling reads should hit provider cache')
 embed_preview = (ui/'components'/'media'/'EmbedPreview.qml').read_text(encoding='utf-8')
+# Timeline previews incubate asynchronously; Magazine previews are created
+# synchronously only after the *outer* card's viewport admission to avoid
+# destroying pending QML incubators on rapid magazine recycling.
 if ('property bool metadataUpdatePending: false' not in embed_preview
+        or 'if (root.scrollMoving)' not in embed_preview
+        or 'root.metadataUpdatePending = true' not in embed_preview
         or 'root.acceptLinkMetadata(preview)' not in embed_preview
-        or 'asynchronous: true' not in embed_preview):
-    errors.append('EmbedPreview must defer metadata-driven renderer changes during scroll and incubate renderer swaps asynchronously')
-if ('asynchronous: true' not in link_preview_media
+        or 'if (root.metadataUpdatePending)' not in embed_preview
+        or 'asynchronous: !root.magazineCard' not in embed_preview):
+    errors.append('EmbedPreview must defer moving-scroll metadata and asynchronously incubate Timeline (not admitted Magazine) previews')
+if ('asynchronous: !root.magazineCard' not in link_preview_media
         or 'property bool resolvedPreviewPending: false' not in link_preview_media
+        or 'if (root.resolvedPreviewPending)' not in link_preview_media
+        or 'root.pendingResolvedPreview = preview' not in link_preview_media
         or 'enabled: !root.scrollMoving' not in link_preview_media):
-    errors.append('LinkPreview must defer metadata/hover churn while scrolling and incubate rich cards asynchronously')
+    errors.append('LinkPreview must defer scroll metadata and hover churn while preserving Timeline/Magazine loader admission')
 if ('asynchronous: true' not in profile_surface
         or 'rowIncubationHeight' not in profile_surface
         or 'if (!profileList.moving)' not in profile_surface):
@@ -707,8 +722,9 @@ if ('id: spriteEmojiLoader' not in rich_inline_text
         or 'active: emojiOverlay.spriteFallbackArmed && !lottieEmoji.animationReady' not in rich_inline_text
         or 'visible: active && !lottieEmoji.animationReady' not in rich_inline_text
         or 'spriteFallbackTimer' in rich_inline_text
-        or 'asynchronous: true' not in rich_inline_text):
-    errors.append('Inline emoji must keep exactly one overlay renderer: sprite fallback is failure-driven, never timer-driven or layered over healthy Lottie')
+        or 'asynchronous: false' not in rich_inline_text
+        or 'textLayout.setEmojiAnimated(emojiPosition, emojiGeneration, false)' not in rich_inline_text):
+    errors.append('Inline emoji must use bounded synchronous sprite fallback only after Lottie failure and detach ownership on delegate destruction')
 animated_emoji_lottie = (ui/'components'/'media'/'AnimatedEmojiLottie.qml').read_text(encoding='utf-8')
 if ('animations.paused: !root.animationActive && !root.playbackCompleted' not in animated_emoji_lottie
         or 'animations.restart()' in animated_emoji_lottie):
@@ -750,8 +766,17 @@ if ('readonly property int filterPrefetchLimit: 8' not in feed_surface
     errors.append('Sparse Explorer semantic tabs must retain the bounded eight-page/per-filter and sixteen-page global prefetch budget')
 # A single shared caption Loader now precedes media for every cast, rather
 # than duplicating caption subtrees for visual vs text-only casts.
-if cast_item.count('asynchronous: true') < 4:
-    errors.append('CastItem rich text/media/supporting subtrees must incubate asynchronously instead of blocking delegate creation')
+# Rich text is a small native document subtree and deliberately synchronous:
+# rapid row recycling otherwise invalidates its QML incubator mid-frame.
+# Large media/supporting cards stay async on Timeline; Magazine only admits
+# the outer delegate near the viewport and creates nested cards synchronously.
+if (cast_item.count('asynchronous: !root.magazineCard') < 3
+        or 'id: castTextBody' not in cast_item
+        or 'asynchronous: false' not in cast_item
+        or 'active: root.mediaFirst && root.supportingEmbeds.length > 0' not in cast_item
+        or '&& root.supportingAdmitted' not in cast_item
+        or 'active: !root.mediaFirst && root.supportingEmbeds.length > 0' not in cast_item):
+    errors.append('CastItem must admit only supporting embeds and incubate heavy Timeline media without recycled Magazine incubator churn')
 if ('objectName: "castTextBody"' not in cast_item or
         'objectName: "castVisualMedia"' not in cast_item or
         cast_item.index('objectName: "castTextBody"') >= cast_item.index('objectName: "castVisualMedia"')):
@@ -900,9 +925,13 @@ if ': (root.compact ? 56 : 64)' not in profile_surface:
     errors.append('Profile no-banner state must stay compact instead of reserving a decorative hero void')
 if 'Theme.space9 + 72' in detail_surface:
     errors.append('DetailSurface must not append the legacy oversized bottom dead-space reservation')
-if ('implicitHeight: messageRow.implicitHeight + Theme.space2' not in cast_item
-        or 'implicitHeight: messageContent.implicitHeight + Theme.space2 * 2' not in cast_item):
-    errors.append('CastItem vertical rhythm must retain the compact desktop density contract')
+# Responsive Magazine and compact cards have distinct spacing; a fixed
+# non-Magazine desktop reserve must never leak into mobile or Magazine rows.
+if ('implicitHeight: messageRow.implicitHeight + (root.magazineCard ? 0 : Theme.space3)' not in cast_item
+        or 'implicitHeight: messageContent.implicitHeight + (root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4) * 2' not in cast_item
+        or 'anchors.leftMargin: root.magazineCard ? 0 : root.compact ? Theme.space2 : Theme.space3' not in cast_item
+        or 'anchors.rightMargin: root.magazineCard ? 0 : root.compact ? Theme.space2 : Theme.space3' not in cast_item):
+    errors.append('CastItem must retain responsive compact/Magazine vertical and horizontal rhythm')
 
 rendering_popup = (ui/'components'/'settings'/'RenderingPopup.qml').read_text(encoding='utf-8')
 adaptive_dialog = (ui/'components'/'controls'/'GenyAdaptiveDialog.qml').read_text(encoding='utf-8')
