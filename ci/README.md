@@ -10,15 +10,23 @@ pull-request, schedule, or release-edit triggers**.
 |---|---|---|
 | Ordinary commit pushed to main | No | No |
 | Pull request | No | No |
-| Actions > GenyCaster cross-platform builds > Run workflow | Selected platform only | No |
+| Actions > GenyCaster CI and Release > Run workflow | All requested targets in one run (default) | No |
 | Push of vMAJOR.MINOR.PATCH-rcN version tag | All required platforms | Only if all jobs succeed |
 
-The manual run offers `web` (default), `linux`, `macos`,
-`windows`, `android`, `ios`, `nixos`, and `all`. Selecting `all`
-requires checking **confirm_full_matrix** to acknowledge its macOS/Windows
-runner cost. Each family can be built separately without running every
-architecture. Repeat manual runs of the same family/ref cancel the older
-in-progress run; version-tag releases are never cancelled.
+**One invocation is the release-candidate validation unit**, as in
+GenyConnect: one shared preflight gate fans out to Linux x86_64/ARM64,
+macOS arm64/Intel, Windows x86_64/ARM64, Android arm64-v8a and
+site-only WASM, uploading all artifacts into a single Actions run.
+`all` is the default manual selection, and requires
+**confirm_full_matrix=true** so the expensive runners are intentional.
+The `linux`, `macos`, `windows`, `android`, and `web` selections are
+**diagnostics only**, not release orchestration. iOS/NixOS likewise
+run only when explicitly selected and are not part of the seven-target
+release matrix. Never dispatch a separate CI run per release platform.
+Release-tag pushes use that same full matrix automatically, then one
+`publish` job waits for and checks every required artifact.
+Repeat diagnostic runs of the same ref/selection cancel superseded
+manual work; version-tag release jobs are never cancelled.
 
 The shared **gate** validates the version tag, main-branch ancestry and
 full-matrix budget consent. Dedicated unit, integration, cryptographic,
@@ -161,16 +169,27 @@ configuration is unchanged.
 ## Billing discipline
 
 GitHub Free has a finite monthly Actions compute allowance. The organization
-may exhaust its allowance even though the billable subtotal is $0. Keep
-manual `web`/single-family runs as the normal build workflow;
-the `all` checkbox is a deliberate expensive release-candidate check.
+may exhaust its allowance even though the billable subtotal is $0. Use a single `all` invocation when validating a release candidate;
+the confirmation flag is a deliberate expensive release-candidate check.
+Single-family invocations exist only to diagnose failures, never to
+replace the unified release run.
 A paid budget increase is **not** required for VPS-local WASM builds.
 
 ## How to build without releasing
 
-Open GitHub > Actions > GenyCaster cross-platform builds > Run workflow.
-Choose a platform. For a full candidate build choose `all`. This never
-publishes a GitHub release even if you manually run it from a tag.
+Open GitHub > Actions > **GenyCaster CI and Release** > Run workflow.
+Keep the default `all`, check `confirm_full_matrix`, and launch **once**.
+Alternatively, via GitHub CLI:
+
+```bash
+gh workflow run ci.yml --repo genyleap/genycaster --ref main \
+  -f platform=all -f target_arch=all -f confirm_full_matrix=true
+```
+
+One run fans out to the complete release-target matrix and aggregates
+the build evidence in that run. This manual validation **never publishes**
+a Release, even if invoked from a tag. Only a validated version-tag push
+is eligible to publish after signing, feature, runtime and artifact gates.
 
 ## How to publish a version-tag candidate
 
