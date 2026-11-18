@@ -21,7 +21,10 @@ test('Node Management is its own settings destination on desktop and mobile', ()
   assert.match(settings, /NodeManagementPanel\s*\{/);
   assert.doesNotMatch(settings, /ProviderProfilesPanel\s*\{/);
   assert.match(settings, /readSettingsScroll/);
-  assert.match(settings, /nodeSettingsScroll\]/);
+  // Lazy settings pages scroll through mounted content; they no longer keep all
+  // inactive ScrollViews alive in a direct nodeSettingsScroll array.
+  assert.match(settings, /nodePage\.item\]/);
+  assert.match(settings, /page\.contentItem\.contentY = 0/);
 });
 
 test('the active read route and pending choice are distinguishable', () => {
