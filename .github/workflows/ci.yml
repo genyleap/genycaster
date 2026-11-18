@@ -1,15 +1,18 @@
-name: GenyCaster cross-platform builds
+name: GenyCaster CI and Release
 
-# Only manual invocations and version-tag pushes trigger cross-platform builds.
-# Never run the full matrix for ordinary commits or pull requests.
+# One dispatch validates the complete requested native + WASM release matrix.
+# Jobs execute in parallel inside a SINGLE workflow run, then upload artifacts.
+# A version tag runs the identical matrix and publishes only after all gates pass.
+# Targeted platform dispatches remain available for debugging, never publishing.
+# Do not run the expensive full matrix for ordinary commits or pull requests.
 on:
   workflow_dispatch:
     inputs:
       platform:
-        description: Build platform (never publishes a Release)
+        description: Full release matrix (all), or a single-platform diagnostic (never publishes)
         type: choice
         required: true
-        default: web
+        default: all
         options:
           - all
           - linux
@@ -29,7 +32,7 @@ on:
           - x86_64
           - arm64
       confirm_full_matrix:
-        description: Confirm costly all-platform build (uses multiple macOS/Windows runners)
+        description: Confirm one coordinated full native + WASM validation run
         required: false
         type: boolean
         default: false
@@ -1211,7 +1214,7 @@ jobs:
     name: iOS arm64 unsigned device app (CI only)
     needs: gate
     # Unsigned .app archives are NOT installable release IPA packages.
-    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'ios')
+    if: github.event_name == 'workflow_dispatch' && inputs.platform == 'ios'
     runs-on: macos-15
     timeout-minutes: 120
     steps:
@@ -1302,7 +1305,7 @@ jobs:
   nixos:
     name: NixOS native package
     needs: gate
-    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'nixos')
+    if: github.event_name == 'workflow_dispatch' && inputs.platform == 'nixos'
     strategy:
       fail-fast: false
       matrix:
