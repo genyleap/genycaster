@@ -32,6 +32,35 @@ class WindowsWebEngineExtensionTest(unittest.TestCase):
                         "".join(f'<a href="{name.replace(WEBENGINE_STAMP, "unreviewed-")}">'
                                 'archive</a>' for name in archives), archives)
 
+    def test_webengine_uses_qt_base_installation_root_not_derived_version_folder(self):
+        from unittest.mock import patch
+        from ci.install_qt_webengine_windows import main, extension_layout
+        import sys
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = root / "lib/cmake/Qt6/Qt6Config.cmake"
+            config.parent.mkdir(parents=True)
+            config.write_text("# official base Qt marker")
+            fake_7z = root / "7z.exe"
+            fake_7z.write_bytes(b"fixture")
+            _, archives = extension_layout("x86_64")
+            listing = "".join(f'<a href="{name}"></a>' for name in archives)
+            with patch.object(sys, "argv", [
+                    "install_qt_webengine_windows.py",
+                    "--destination", str(root),
+                    "--architecture", "x86_64"]), \
+                 patch("ci.install_qt_webengine_windows.read_url",
+                       return_value=listing.encode()), \
+                 patch("ci.install_qt_webengine_windows.shutil.which",
+                       return_value=str(fake_7z)), \
+                 patch("ci.install_qt_webengine_windows.download_archive"), \
+                 patch("ci.install_qt_webengine_windows.subprocess.run"), \
+                 patch("ci.install_qt_webengine_windows.check_installation") as verify:
+                # Use the actual Qt base archive layout. Any made-up
+                # 6.12.0/msvc2022_* subdirectory must fail this regression.
+                self.assertEqual(main(), 0)
+                verify.assert_called_once_with(root)
+
     def test_sdk_host_fails_closed_on_partial_extension(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

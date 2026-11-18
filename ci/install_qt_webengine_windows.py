@@ -88,7 +88,11 @@ def main() -> int:
     if not Path(executable).is_file():
         raise ValueError("7-Zip is required for official Qt WebEngine installation")
     destination = args.destination.resolve()
-    root = destination / "6.12.0" / ARCHITECTURES[args.architecture][1]
+    # ci/install_qt_windows.py extracts official Qt base archives directly
+    # into --destination, and exports QT_ROOT_DIR=that exact directory.
+    # Do not invent a 6.12.0/msvc2022_* subdirectory: the hosted Windows
+    # runner verified the actual Qt6Config.cmake resides at Qt/lib/cmake.
+    root = destination
     if not (root / "lib/cmake/Qt6/Qt6Config.cmake").is_file():
         raise ValueError(f"Install the matching official Qt 6.12 SDK first: {root}")
     cache = destination / ".webengine-archive-cache"
