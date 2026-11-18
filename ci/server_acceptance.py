@@ -38,6 +38,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("node", "--test", "tests/wasm/drawer_selection_semantic_surface_contract_20261118.test.mjs")),
     ("Mini App, navigation, composer and media QSG surface geometry",
      ("node", "--test", "tests/wasm/semantic_small_surfaces_20261118.test.mjs")),
+    ("Deferred mixed-media cast supporting-card admission",
+     ("node", "--test", "tests/wasm/cast_mixed_supporting_admission_20261118.test.mjs")),
     ("Profile link and node progress retained QSG shapes",
      ("node", "--test", "tests/wasm/profile_node_retained_round_surfaces_20261118.test.mjs")),
     ("Async resource limits", ("python3", "ci/check_async_resource_contract.py")),
