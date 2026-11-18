@@ -102,8 +102,8 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         # requested native architectures and the site-only WebAssembly job.
         # Individual diagnostic runs must never publish a Release.
         s = WORKFLOW.read_text(encoding="utf-8")
-        dispatch = s.split("  workflow_dispatch:\\n", 1)[1].split("  push:\\n", 1)[0]
-        self.assertIn("        default: all\\n        options:\\n          - all", dispatch)
+        dispatch = s.split("  workflow_dispatch:\n", 1)[1].split("  push:\n", 1)[0]
+        self.assertIn("        default: all\n        options:\n          - all", dispatch)
         self.assertIn("confirm_full_matrix:", dispatch)
         gate = job_source(s, "gate", "linux")
         self.assertIn("GENYCASTER_FULL_MATRIX_CONFIRMED", gate)
@@ -122,8 +122,8 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
             source = job_source(s, optional, following)
             self.assertIn("inputs.platform == '" + optional + "'", source)
             self.assertNotIn("inputs.platform == 'all'", source)
-        publish = s.split("\\n  publish:\\n", 1)[1]
-        self.assertEqual(s.count("\\n  publish:\\n"), 1)
+        publish = s.split("\n  publish:\n", 1)[1]
+        self.assertEqual(s.count("\n  publish:\n"), 1)
         self.assertIn("needs: [gate, linux, macos, windows, android, web]", publish)
         self.assertIn("github.event_name == 'push'", publish)
         self.assertIn("actions/download-artifact@v4", publish)
