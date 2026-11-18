@@ -64,6 +64,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("node", "--test", "tests/wasm/android_webview_origin_lock_20261118.test.mjs")),
     ("Native EIP-1193 wallet origin, revoke and chain-change permission gates",
      ("node", "--test", "tests/wasm/wallet_origin_revocation_contract_20261118.test.mjs")),
+    ("Canonical HTTPS wallet origin validation and native bridge boundary",
+     ("node", "--test", "tests/wasm/wallet_canonical_origin_contract_20261118.test.mjs")),
     ("Async resource limits", ("python3", "ci/check_async_resource_contract.py")),
     ("Data storage policies", ("python3", "ci/check_data_storage_contract.py")),
     ("Media upload policies", ("python3", "ci/check_media_upload_contract.py")),

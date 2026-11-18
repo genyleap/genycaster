@@ -11,6 +11,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <vector>
 
 import farcaster.capability.wallet;
 import farcaster.foundation.result;
@@ -767,6 +768,71 @@ void testRevocationAndChainEventsCancelOutstandingRpc()
     assert(afterChange.get().resultJson == "[]");
 }
 
+
+void testCanonicalWalletOriginIsEnforcedAtBridgeBoundary()
+{
+    using provider::compatibility::browser_wallet::bridge::Config;
+    using provider::compatibility::browser_wallet::bridge::makeBridge;
+
+    std::promise<std::string> launchPromise{};
+    auto launched = launchPromise.get_future();
+    auto bridge = makeBridge(Config{
+        .launch = [&launchPromise](const std::string& url) -> foundation::result::Status {
+            launchPromise.set_value(url);
+            return {};
+        },
+        .supportedChains = {"eip155:1"},
+        .requestTimeout = std::chrono::seconds{3},
+    });
+    assert(bridge);
+
+    // No caller (including Pro checkout and Mini App runtime) may bypass
+    // validation by passing URL components masquerading as an origin.
+    const std::vector<std::string_view> invalid{
+        "", "mini.example", "http://mini.example", "javascript:alert(1)",
+        "https://", "https://localhost", "https://mini.example.local",
+        "https://mini.example.internal", "https://mini.example.test",
+        "https://mini.example.invalid", "https://127.0.0.1",
+        "https://192.168.1.1", "https://mini.example:8080",
+        "https://mini.example:0443", "https://mini.example:4433",
+        "https://mini.example/", "https://mini.example/path",
+        "https://mini.example?query=1", "https://mini.example#fragment",
+        "https://evil.example@mini.example", "https://mini.example@evil.example",
+        "https://mini.example\\\\@evil.example",
+        "https://mini%2eexample", "https://mini..example",
+        "https://.mini.example", "https://mini.example.",
+        "https://-mini.example", "https://mini-.example",
+        "https://mini_example.com", "https://[::1]",
+    };
+    for (const auto origin : invalid) {
+        assert(!(*bridge)->beginSession("Untrusted Mini App", std::string{origin}));
+    }
+    assert(!(*bridge)->beginSession("", "https://mini.example"));
+    // A default port and scheme/host case are normalized into one identity.
+    assert((*bridge)->beginSession("Canonical Mini App", "HTTPS://MINI.EXAMPLE:443"));
+    // A malformed subsequent launch must not silently tear down the active
+    // session or replace its exact principal.
+    assert(!(*bridge)->beginSession("Hostile Redirect", "http://evil.example"));
+
+    std::promise<capability::wallet::EthereumRpcResponse> connectedPromise{};
+    auto connected = connectedPromise.get_future();
+    (*bridge)->request({
+        .id = 401U, .method = "eth_requestAccounts", .paramsJson = "[]",
+    }, [&connectedPromise](auto result) {
+        connectedPromise.set_value(std::move(result));
+    });
+    assert(launched.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto local = parseLoopbackUrl(launched.get());
+    const auto page = request(local, http::verb::get, local.target);
+    assert(page.result() == http::status::ok);
+    assert(page.body().find("https://mini.example") != std::string::npos);
+    assert(page.body().find("HTTPS://MINI.EXAMPLE:443") == std::string::npos);
+
+    (*bridge)->endSession();
+    assert(connected.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(connected.get().error->code == 4900);
+}
+
 } // namespace
 
 int main()
@@ -776,6 +842,7 @@ int main()
     testAccountPrivacyUntilExplicitPermission();
     testOriginGrantRevocationAndChainChangedRequireFreshConsent();
     testRevocationAndChainEventsCancelOutstandingRpc();
+    testCanonicalWalletOriginIsEnforcedAtBridgeBoundary();
     testBridgeRejectsUnsupportedChainBeforeWallet();
     testPassiveChainDiscoveryDoesNotOpenBrowser();
     testClosingBridgeWithHalfOpenHttpConnectionIsBounded();

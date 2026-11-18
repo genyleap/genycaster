@@ -43,9 +43,13 @@ struct Config final {
  *
  * The bridge binds only to 127.0.0.1 and never receives private keys. The first
  * account-access request for each Mini App origin requires explicit host consent;
- * that grant is remembered only for this bridge process and is revoked on wallet
- * disconnect. Signing and transaction methods always require an explicit approval
- * click before the request reaches `window.ethereum`.
+ * that grant is remembered only for this bridge process and is revoked on
+ * permission revoke, chain/principal change and wallet disconnect. Origins are
+ * independently checked at beginSession: public HTTPS authority only (no
+ * credentials, path, query, fragment, private host, or non-default port), then
+ * lowercased and normalized for a single consent principal. An invalid new
+ * origin leaves any existing session untouched. Signing and transaction methods
+ * always require an explicit approval click before reaching `window.ethereum`.
  */
 [[nodiscard]] foundation::result::Result<std::unique_ptr<capability::wallet::IEthereumWalletBridge>>
 makeBridge(Config config);
