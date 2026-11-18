@@ -251,14 +251,17 @@ TextArea {
                     height: Math.max(14, grip.caretRect.height * 0.7)
                     color: Theme.nativeSelectionAccent
                 }
-                Rectangle {
+                // Keep a true circular grip in the shared scene-graph shape
+                // renderer without a legacy Rectangle.radius primitive.
+                Superellipse {
                     anchors.centerIn: parent
                     width: 14
                     height: 14
-                    radius: 7
-                    color: Theme.nativeSelectionAccent
-                    border.width: 2
-                    border.color: Theme.editorSurface
+                    curveDepth: width / 2
+                    exponent: 2
+                    fillColor: Theme.nativeSelectionAccent
+                    borderWidth: 2
+                    borderColor: Theme.editorSurface
                 }
                 MouseArea {
                     anchors.fill: parent
