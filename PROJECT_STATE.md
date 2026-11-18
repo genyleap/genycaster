@@ -6,6 +6,13 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 
 ## Verified baseline
 
+- Latest browser-native custody ABI isolation:
+  `e1e5c43b46c19a0a0df6f040e81f2c4cb47d3dfe`
+  (WASM fail-closed non-signing controller; no OpenSSL/custody module import,
+  browser-native QML ABI remains registered; strict release gate unchanged).
+- Patched Quick Auth dependency chain:
+  `9a06626fed542e00fa44ecba670138a80cda3f38` (explicit upstream
+  `@farcaster/quick-auth@0.1.0`, Zod 4.6.7 and runtime test).
 - Latest verified Home/Mobile UI regression remediation:
   `e89c6e1dec204ed5453423cc58e904a4ce6bd21d` (50/50 focused Node tests).
 - Browser wallet async-consent security commit:
@@ -25,7 +32,7 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - HyperSnap exact native uint64 FID/height merge:
   `35550e73ce9447e2650e99e4f7dab21346c053ce` (PR #39).
 - Repository was clean and tracking `origin/main` immediately after the
-  `e89c6e1d` push. Re-check HEAD/upstream before subsequent edits.
+  `e1e5c43b` push. Re-check HEAD/upstream before subsequent edits.
 
 ## Completed and locally verified in the latest execution
 
@@ -70,6 +77,16 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   Search, ambient Neon activity cards, and Qt Drawer edge-consistent corner/
   inset geometry. The complete targeted suite then **50/50 PASS**.
   No real-device visual or security E2E implied.
+- `e1e5c43b` isolates the browser-native custody compatibility ABI and
+  refuses mnemonic creation/restore/export/signing. Static source boundaries,
+  async wallet consent tests, all QML checks and release/CI guards passed:
+  **40/40 Node**; **13/13 Python release/workflow**, UI design **183 QML**.
+  No native OpenSSL methods or custody module are compiled in this WASM
+  controller. The security-sensitive **C++ browser binary is not yet
+  verified**; the hosted build is running.
+- Quick Auth upstream override is independently npm-installed and tested:
+  **7/7 PASS**, `npm audit --omit=dev` **0 findings** for that package.
+  `.github/workflows/ci.yml` enforces the runtime test before Qt setup.
 - **No native/browser installed-device wallet E2E** or new full hosted CI
   has been claimed for these commits.
 
@@ -87,13 +104,16 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - GenyCaster [#9](https://github.com/genyleap/genycaster/issues/9):
   `ci/verify_release_feature_contract.py --strict` still blocks **CHAT,
   WALLET and privileged Android Mini App SDK host**. Do not bypass these.
-- Dependabot currently reports **three high-severity alerts**: Zod in
-  `services/quick-auth/package-lock.json` and
-  `ui/wasm/host-sdk/package-lock.json`, plus picomatch in the WASM host
-  dependency chain. Direct lockfile inspection finds Zod 4.6.7 at the root
-  but nested 3.x installations; picomatch 2.3.2 is transitive through
-  WalletConnect/unstorage/anymatch. Published picomatch advisory currently
-  lists no fixed version. No vulnerability is claimed closed.
+- GitHub Dependabot last reported **three open high-severity alerts**:
+  Quick Auth Zod (#1, patched on `main` at `9a06626f`, not yet shown as
+  closed in the API), browser host nested Zod (#2: exact pinned 3.22.4
+  through Reown AppKit Wallet; vulnerable range is <4.6.6), and
+  picomatch (#3, 2.3.2 through WalletConnect/unstorage/anymatch).
+  Picomatch GHSA-fc5q-39xc-vjpf was **withdrawn** by GitHub at
+  2026-11-18T15:38:56Z; its Dependabot alert still needs reconciliation.
+  A scratch global Zod 4 override caused incompatible/invalid npm dependency
+  resolution; it was **not** applied. Do not treat a major-version override
+  as proof of safe WalletConnect/Reown runtime behavior.
 
 ## Hosted CI evidence (not current-HEAD release qualification)
 
@@ -108,19 +128,24 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   on `98934849` **failed** at two stale Neon source assertions in
   `neon_video_surface_coverage.test.mjs`. WebAssembly job was skipped.
 - Targeted Web CI run [#44336446437](https://github.com/genyleap/genycaster/actions/runs/44336446437)
-  on `cc2b2f57`: **gate PASS**, WebAssembly job currently **in progress**
-  (last inspected at host Qt ShaderTools installation). This is not a
-  completed artifact, runtime smoke or version-tag release.
+  on `cc2b2f57`: **gate PASS**, **WASM build failed** scanning
+  `ui/app/identity/native_wallet.cpp`: `openssl/crypto.h` missing.
+  Root cause: OpenSSL-backed native custody source was added to the
+  executable even though the WebAssembly protocol-signing module is absent.
+- Targeted Web CI run [#44344815130](https://github.com/genyleap/genycaster/actions/runs/44344815130)
+  on `e1e5c43b`: **gate PASS**, WASM job last checked **in progress**
+  (building verified Qt Multimedia toolchain). Pending actual compilation,
+  packaging and smoke results; do not claim it succeeded.
 - No successful all-target CI, notarized/signed release or post-security-change
   installed-device tests are evidenced. Source-only checks and a successful
   gate do **not** authorize a version tag.
 
 ## Exact next executable tasks
 
-1. Finish inspecting targeted WebAssembly CI [#44336446437](https://github.com/genyleap/genycaster/actions/runs/44336446437):
-   gate has PASS, but Qt cross-build and artifact smoke are still running.
-   Fix any actual failed job before accepting a Web artifact; do not rerun
-   an already active workflow or equate dispatch/gate with success.
+1. Finish inspecting targeted WebAssembly CI [#44344815130](https://github.com/genyleap/genycaster/actions/runs/44344815130):
+   gate PASS; the patched WASM binary build, packaging and artifact smoke
+   are still running. Fix compiler/runtime errors from actual job logs
+   before accepting the artifact; do not rerun an active workflow.
 2. Refresh `origin/main` and Dependabot state; inspect nested vulnerable
    Zod and picomatch dependents. Prefer compatible upstream updates or verified
    removal; do not force an incompatible major override or claim an unpatched
