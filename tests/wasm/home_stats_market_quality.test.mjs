@@ -549,7 +549,9 @@ test("stats popover selection is inset like native action menus, not painted aga
     assert.ok(menuStart >= 0);
     const menu = panel.slice(menuStart, panel.indexOf('id: periodChoice', menuStart) + 900);
     assert.match(menu, /padding: Theme\.space2/);
-    assert.match(menu, /width: periodMenu\.width - periodMenu\.leftPadding\s*\n\s*- periodMenu\.rightPadding/);
+    // Inner delegates may outlive their parent popup briefly during teardown.
+    // Preserve the null guard while asserting the same padding inset geometry.
+    assert.match(menu, /width: periodMenu \? periodMenu\.width - periodMenu\.leftPadding\s*\n\s*- periodMenu\.rightPadding : 0/);
     assert.match(menu, /height: 38/);
     assert.match(menu, /background: PopupSurface \{/);
     assert.match(menu, /fillColor: Theme\.surfaceElevated/);
