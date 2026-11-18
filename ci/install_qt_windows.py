@@ -32,18 +32,19 @@ ARCHIVE_LAYOUTS = {
 # component index. These are the official standalone extension directories,
 # verified against download.qt.io for BOTH Windows architectures.
 WEBENGINE_LAYOUTS = {
-    "x86_64": ("msvc2022_64", "win64_msvc2022_64", "6.12.0-0-202609281005"),
-    "arm64": ("msvc2022_arm64", "win64_msvc2022_arm64_cross_compiled",
-              "6.12.0-0-202611110526"),
+    "x86_64": ("windows_x86", "msvc2022_64",
+               "win64_msvc2022_64", "6.12.0-0-202609281005"),
+    "arm64": ("windows_arm64", "msvc2022_arm64",
+              "win64_msvc2022_arm64", "6.12.0-0-202611110526"),
 }
 
 
 def webengine_archive_layout(
     architecture: str,
 ) -> tuple[str, dict[str, tuple[str, ...]], str]:
-    folder, suffix, stamp = WEBENGINE_LAYOUTS[architecture]
-    base = ("https://download.qt.io/online/qtsdkrepository/windows_x86/"
-            "extensions/qtwebengine/6120/61400/" + folder + "/")
+    platform, folder, suffix, stamp = WEBENGINE_LAYOUTS[architecture]
+    base = ("https://download.qt.io/online/qtsdkrepository/"
+            f"{platform}/extensions/qtwebengine/6120/61400/{folder}/")
     groups = {
         f"extensions.qtwebengine.6120.61400.{suffix}":
             ("qtwebengine", "qtwebview_qtwebengine_plugin"),
