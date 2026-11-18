@@ -30,7 +30,10 @@ test('Home routes Explorer, Search, Apps, Channels and Pro without inert Wallet 
 
 test('Home activity card replaces inert token promotions with live, navigable actions',()=>{
  const home=qml('HomeDashboard');
- assert.match(home,/component HomeActivityCard: Superellipse/);
+ assert.match(home,/component HomeActivityCard: NeonCard/);
+ assert.match(home,/component HomeActivityCard: NeonCard \{[\s\S]*?interactive: true/);
+ assert.match(home,/component HomeActivityCard: NeonCard \{[\s\S]*?ambientNeon: true/);
+ assert.match(home,/neonStrength: Theme\.neonCardStrength/);
  assert.equal((home.match(/HomeActivityCard \{/g)||[]).length,2);
  assert.match(home,/objectName: "homeActivityCard"/);
  assert.match(home,/root\.notificationUnreadCount > 0/);

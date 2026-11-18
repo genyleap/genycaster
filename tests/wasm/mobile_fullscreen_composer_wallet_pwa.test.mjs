@@ -6,12 +6,15 @@ import {readFileSync} from 'node:fs';
 const qml = file => readFileSync(new URL('../../ui/components/' + componentPath(file) + '.qml', import.meta.url), 'utf8');
 const wasm = file => readFileSync(new URL('../../ui/wasm/' + file, import.meta.url), 'utf8');
 
-test('Home replaces Trends with locked Wallet and removes Agent and Studio', () => {
+test('Home offers implemented shortcuts with Search available as a separate action', () => {
  const home=qml('HomeDashboard');
- for(const id of ['explorer','search','apps','wallet'])
+ for(const id of ['explorer','channels','apps','pro'])
    assert.match(home,new RegExp('destination: "'+id+'"'));
- assert.doesNotMatch(home,/destination: "trends"|key: "agent"|key: "studio"/);
+ assert.doesNotMatch(home,/destination: "wallet"|destination: "trends"|key: "agent"|key: "studio"/);
+ assert.match(home,/if \(destination === "search"\) root\.searchRequested\(\)/);
+ assert.match(home,/onClicked: root\.searchRequested\(\)/);
  assert.match(home,/objectName: "homeActivityCard"/);
+ assert.match(home,/component HomeActivityCard: NeonCard/);
  assert.match(home,/enabled: !shortcut.locked/);
 });
 
@@ -49,14 +52,21 @@ test('Full-height mobile composer retains publishing, replies, saved drafts and 
     }
 });
 
-test('Floating Create sheet has rounded bottom corners and real outside margin', () => {
+test('Floating Create sheet curves exposed corners and preserves attached Drawer edge', () => {
     const base=qml('GenyDrawer'), menu=qml('MobileCreateMenu'), theme=readFileSync(new URL('../../ui/theme/Theme.qml',import.meta.url),'utf8');
     assert.match(base,/property bool floatingSheet: false/);
-    assert.match(base,/leftInset: floatingSheet \? Theme\.space3 : 0/);
-    assert.match(base,/bottomInset: floatingSheet \? Theme\.space3 : 0/);
-    assert.match(base,/curveBottomLeft: !control\.fullScreen && \(control\.floatingSheet/);
+    // An edge-attached Qt Drawer must not add an external inset on its
+    // originating edge: this would desynchronize gesture and sheet geometry.
+    assert.match(base,/leftInset: floatingSheet && edge !== Qt\.LeftEdge \? Theme\.space3 : 0/);
+    assert.match(base,/rightInset: floatingSheet && edge !== Qt\.RightEdge \? Theme\.space3 : 0/);
+    assert.match(base,/bottomInset: floatingSheet && edge !== Qt\.BottomEdge \? Theme\.space3 : 0/);
+    assert.match(base,/curveTopLeft: !control\.fullScreen && \(control\.bottomSheet \|\| control\.edge !== Qt\.LeftEdge\)/);
+    assert.match(base,/curveTopRight: !control\.fullScreen && \(control\.bottomSheet \|\| control\.edge !== Qt\.RightEdge\)/);
+    assert.match(base,/curveBottomLeft: !control\.fullScreen && !control\.bottomSheet && control\.edge !== Qt\.LeftEdge/);
+    assert.match(base,/curveBottomRight: !control\.fullScreen && !control\.bottomSheet && control\.edge !== Qt\.RightEdge/);
     assert.match(base,/curveDepth: control\.fullScreen \? 0/);
     assert.match(theme,/curveSheetFloating: scaleUi\(36\)/);
+    assert.match(menu,/bottomSheet: true/);
     assert.match(menu,/floatingSheet: true/);
     assert.match(menu,/objectName: "createUnifiedActions"/);
     assert.match(menu,/available: false/);
