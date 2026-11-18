@@ -187,11 +187,18 @@ test('mobile wallet-browser links use original HTTPS Mini App URL, never localho
  assert.equal(new URL(coinbase.href).hostname,'go.cb-w.com');
  assert.equal(new URL(coinbase.href).searchParams.get('cb_url'),source);
  for(const bad of ['http://127.0.0.1:64141/session/test',
-    'https://localhost/session/test','https://192.168.1.10',
+    'https://localhost/session/test','https://localhost./session/test',
+    'https://192.168.1.10','https://8.8.8.8/',
+    'https://[::1]/','https://[fc00::1]/','https://[fe80::1]/',
+    'https://example.com./','https://private.internal/',
+    'https://example.invalid/','https://mini.test/',
+    'https://service.corp/','https://router.home.arpa/',
     'javascript:alert(1)','https://example.com:8443/x',
     'https://username:pass@example.com','not-an-url']){
    assert.deepEqual(mobileWalletBrowserLinks(bad,'iPhone'),[]);
  }
+ assert.equal(mobileWalletBrowserLinks('https://bücher.example.com/','Android').length,2,
+   'IDNA DNS names must remain usable after URL punycode normalization');
  const copy=walletApprovalCopy('fa-IR');
  assert.equal(copy.direction,'rtl');
  assert.match(copy.externalExplanation,/جنی‌کستر/);

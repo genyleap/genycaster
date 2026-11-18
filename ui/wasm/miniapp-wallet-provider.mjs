@@ -258,12 +258,23 @@ export function mobileWalletBrowserLinks(launchUrl, userAgent='') {
   if(!/Android|iPhone|iPad|iPod/i.test(String(userAgent))) return [];
   let url;
   try { url=new URL(String(launchUrl)); } catch { return []; }
-  if(url.protocol!=='https:' || url.username || url.password ||
-     !url.hostname || url.port || url.hostname==='localhost' ||
-     url.hostname.endsWith('.localhost') || url.hostname.endsWith('.local') ||
-     /^(?:127\.|10\.|192\.168\.|169\.254\.)/.test(url.hostname) ||
-     /^172\.(?:1[6-9]|2\d|3[01])\./.test(url.hostname) ||
-     /^\d+\.\d+\.\d+\.\d+$/.test(url.hostname)) return [];
+  // A wallet deep link is a separate browser session: never hand it a
+  // loopback, private-network or ambiguously spelled authority. URL parsing
+  // canonicalizes hexadecimal/octal IPv4 forms but not bracketed IPv6 or
+  // trailing-root-dot DNS; require public DNS labels rather than an IP literal.
+  const hostname=url.hostname.toLowerCase();
+  const labels=hostname.split('.');
+  const reservedSuffixes=new Set([
+    'localhost','local','internal','test','invalid','example',
+    'home','lan','corp','arpa','onion'
+  ]);
+  if(url.protocol!=='https:' || url.username || url.password || url.port ||
+     hostname.endsWith('.') || hostname.includes(':') ||
+     labels.length<2 || reservedSuffixes.has(labels.at(-1)) ||
+     /^\d+$/.test(labels.at(-1)) ||
+     /^\d+\.\d+\.\d+\.\d+$/.test(hostname) ||
+     labels.some(label=>!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))
+    return [];
   return [
     {id:'metamask',name:'MetaMask',
      href:'https://link.metamask.io/dapp/'+encodeURIComponent(
