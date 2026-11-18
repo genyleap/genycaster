@@ -405,10 +405,18 @@ for token in (
     'property bool admitted: false',
     'active: tileSlot.admitted',
     'interval: 16 + tileSlot.index * 32',
-    'useLayeredMask: false',
 ):
     if token not in gallery_layout:
         errors.append(f'GalleryLayout scroll-time tile admission missing {token!r}')
+# Single images need an exact alpha mask across native and WASM. Browser
+# multi-image tiles use the same mask to avoid platform-specific corner gaps;
+# native multi-image tiles can use the cheaper vector inverse cover.
+if ('useLayeredMask: Qt.platform.os === "wasm"' not in gallery_layout
+        or '|| root.visibleCount === 1' not in gallery_layout
+        or 'property bool useLayeredMask: false' not in gallery_tile
+        or 'clipToSuperellipse: root.useLayeredMask' not in gallery_tile
+        or 'visible: !root.useLayeredMask && preview.ready' not in gallery_tile):
+    errors.append('Gallery masks must preserve single-image/WASM curves and cheap native multi-image tiles')
 # Drag overshoot is required for pull-to-refresh on mobile. Ordinary
 # wheel/flick movements remain bounded by Qt; the empty state is a measured
 # list footer rather than an overlaid negative-height card.
@@ -672,10 +680,19 @@ if 'QtQuick.Effects' in video_player or 'layer.effect: MultiEffect' in video_pla
 if 'return stableRows.count < root.filterTargetCount' not in feed_surface:
     errors.append('Filtered feed prefetch must reuse stableRows instead of reclassifying sourceRows during scroll')
 superellipse_image = (ui/'components'/'visual'/'SuperellipseImage.qml').read_text(encoding='utf-8')
-if ('if (current !== requested || (!root.ready && !root.loadFailed))' not in superellipse_image
-        or 'if (!root.ready && !root.loadFailed)' not in superellipse_image
+# An in-flight provider request is allowed to finish during wheel/touch bursts.
+# QML reattaches to the same cache-backed source rather than cancel/restart
+# every time scrollMoving toggles. Only stale identities are detached, and
+# large-texture presentation is admitted through a bounded frame budget.
+if ('if (current !== requested)' not in superellipse_image
+        or 'if (current.length > 0)' not in superellipse_image
+        or 'if (root.scrollMoving && root.deferNewLoadsWhileScrolling)' not in superellipse_image
+        or 'if (root.activeSource.toString().length === 0)' not in superellipse_image
+        or 'sourceStartTimer.stop()' not in superellipse_image
+        or 'root.synchronizePresentation()' not in superellipse_image
+        or 'renderingController.requestMediaPresentation(root, root.presentationGeneration)' not in superellipse_image
         or 'root.activeSource = ""' not in superellipse_image):
-    errors.append('SuperellipseImage must detach unfinished QML image consumers during flicks so texture preparation cannot enter the scroll frame')
+    errors.append('SuperellipseImage must retain same-source inflight work across flicks, clear stale identities and frame-pace decode presentation')
 remote_cancel_block = remote_provider.split('void cancel() override', 1)[1].split('void setOperation', 1)[0]
 if ('m_cancelled.store(true' not in remote_cancel_block
         or 'm_control->cancel()' in remote_cancel_block
