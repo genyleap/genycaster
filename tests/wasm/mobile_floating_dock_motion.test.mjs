@@ -54,7 +54,9 @@ test('easing is responsive, interruptible and respects reduced motion',()=>{
   assert.match(dock,/ColorAnimation \{ duration: 190; easing\.type: Easing\.OutCubic \}/);
   assert.match(dock,/scale: mobilePrimaryAction\.down \? 0\.975 : 1/);
   const allBehaviors=[...dock.matchAll(/Behavior on (?:fillColor|scale|color|opacity|implicitWidth) \{\s*enabled: ([^\n]+)/g)];
-  assert.ok(allBehaviors.length>=5);
+  // The simplified dock has exactly four motion behaviors; no fifth
+  // full-width footer/material animation is created during composition.
+  assert.equal(allBehaviors.length, 4);
   assert.ok(allBehaviors.every(match=>match[1].trim()==='root.animateDock'));
 });
 
