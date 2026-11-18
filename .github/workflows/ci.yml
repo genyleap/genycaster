@@ -78,6 +78,7 @@ jobs:
           # Fail before expensive Qt installs if Neon pointer geometry or the
           # QML lifetime contract regresses.
           node --test tests/wasm/neon_geometry_behavior.test.mjs tests/wasm/neon_surface_contract.test.mjs tests/wasm/neon_video_surface_coverage.test.mjs tests/wasm/neon_global_setup_coverage.test.mjs
+          node --test tests/wasm/miniapp_swap_preflight_20261118.test.mjs
       # Gate is the only job that must pass before Qt/toolchain installations.
       # Catch known source regressions while they cost seconds, not macOS hours.
       - name: Confirm explicit full-matrix budget approval
@@ -183,6 +184,15 @@ jobs:
             --modules qtwebchannel qtpositioning qtserialport qtwebengine \
             --noarchives --outputdir "$qt_base"
           python3 ci/preflight_linux_miniapp_host.py --qt-root "$QT_ROOT_DIR"
+      - name: Compile and test Mini App Base swap intent validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CC=gcc-16 CXX=g++-16
+          cmake -S tests/miniapp -B build/miniapp-swap -G Ninja \
+            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/miniapp-swap --parallel 2
+          ctest --test-dir build/miniapp-swap --output-on-failure
       - name: Check Qt Multimedia deployment dependencies
         shell: bash
         run: |

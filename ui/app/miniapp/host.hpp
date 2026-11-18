@@ -31,6 +31,9 @@ class MiniAppHostController final : public QObject {
     Q_PROPERTY(int sessionLimit READ sessionLimit NOTIFY sessionLimitChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY stateChanged)
     Q_PROPERTY(QString launchUrl READ launchUrl NOTIFY stateChanged)
+    Q_PROPERTY(bool swapRequestActive READ swapRequestActive NOTIFY swapRequestChanged)
+    Q_PROPERTY(QString swapRequestId READ swapRequestId NOTIFY swapRequestChanged)
+    Q_PROPERTY(QVariantMap swapRequest READ swapRequest NOTIFY swapRequestChanged)
     Q_PROPERTY(bool walletBrowserPickerActive READ walletBrowserPickerActive NOTIFY walletBrowserPickerChanged)
     Q_PROPERTY(bool walletBrowserWaiting READ walletBrowserWaiting NOTIFY walletBrowserPickerChanged)
     Q_PROPERTY(QString walletBrowserAppName READ walletBrowserAppName NOTIFY walletBrowserPickerChanged)
@@ -103,6 +106,14 @@ public:
     /** @brief Completes a Mini App composeCast request without publishing. */
     Q_INVOKABLE void cancelComposeCast(const QString& requestId);
 
+    /** @brief The runtime owns one untrusted swap intent; QML cannot execute it. */
+    [[nodiscard]] bool swapRequestActive() const noexcept;
+    [[nodiscard]] QString swapRequestId() const;
+    [[nodiscard]] QVariantMap swapRequest() const;
+    void presentSwapRequest(const QString& requestId, const QVariantMap& details);
+    void clearSwapRequest(const QString& requestId);
+    Q_INVOKABLE void cancelSwapToken(const QString& requestId);
+
     /** @brief Runtime asks the shell to open Genycaster's visible composer. */
     void requestComposeCast(const QString& requestId, const QVariantMap& options);
 
@@ -132,6 +143,10 @@ signals:
     void composeCastRequested(const QString& requestId, const QVariantMap& options);
     void composeCastCompleted(const QString& requestId, const QVariantMap& result);
     void composeCastCancelled(const QString& requestId);
+
+    /** Emitted only for a user-declined intent, never a signing confirmation. */
+    void swapTokenCancelled(const QString& requestId);
+    void swapRequestChanged();
     void stateChanged();
 
     /** @brief Public SDK user metadata changed without an account switch. */
@@ -160,6 +175,8 @@ private:
     bool m_walletBrowserWaiting{};
     QVariantList m_walletBrowserOptions{};
     QVariantMap m_user{};
+    QVariantMap m_swapRequest{};
+    QString m_swapRequestId{};
 #if defined(Q_OS_WASM)
     QTimer m_browserVisibilityTimer{};
 #endif

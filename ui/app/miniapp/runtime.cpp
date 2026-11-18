@@ -4,6 +4,7 @@ module;
 #include "host.hpp"
 #include "browser.hpp"
 #include "tasks.hpp"
+#include "swap_intent.hpp"
 
 #include <QByteArray>
 #include <QDateTime>
@@ -412,6 +413,8 @@ public:
             });
         connect(&m_controller, &MiniAppHostController::composeCastCancelled, this,
             [this](const QString& requestId) { cancelComposeCast(requestId); });
+        connect(&m_controller, &MiniAppHostController::swapTokenCancelled, this,
+            [this](const QString& requestId) { cancelSwapToken(requestId); });
         connect(&m_taskManager, &MiniAppTaskManagerController::focusRequested, this,
             [this](const QString& taskId) {
                 // Task Manager is a Qt modal while Mini Apps are native WebKit surfaces.
@@ -469,6 +472,12 @@ private:
         bool closeAfter{};
     };
 
+    struct PendingSwap final {
+        QJsonValue outerId{};
+        QString document{};
+        quint64 generation{};
+    };
+
     struct Session final {
         QString taskId{};
         QString title{};
@@ -499,6 +508,7 @@ private:
         bool pendingSignIn{};
         quint64 signInSequence{};
         QHash<QString, PendingCompose> pendingCompose{};
+        QHash<QString, PendingSwap> pendingSwaps{};
     };
 
     struct ManifestCacheEntry final {
@@ -801,6 +811,9 @@ private:
             rejectOpenMiniAppHandoff(sourceTaskId, sourceGeneration, outerId, document, error);
             return;
         }
+        if (!session.pendingSwaps.isEmpty() && session.browser && session.foreground)
+            session.browser->setVisible(true);
+        revokeSwapIntents(session);
         stopReply(session);
         session.failed = true;
         if (session.browser) {
@@ -1096,6 +1109,9 @@ private:
             if (active == nullptr) {
                 return;
             }
+            if (!active->pendingSwaps.isEmpty() && active->foreground && active->browser)
+                active->browser->setVisible(true);
+            revokeSwapIntents(*active);
             ++active->documentGeneration;
             ++active->readyGeneration;
             active->documentToken.clear();
@@ -1173,6 +1189,10 @@ private:
     {
         Session* const current = foreground();
         if (m_foregroundTaskId != target.taskId) {
+            if (current && !current->pendingSwaps.isEmpty()) {
+                const QString requestId = current->pendingSwaps.cbegin().key();
+                cancelSwapToken(requestId);
+            }
             endWalletSession();
         }
 
@@ -1225,6 +1245,8 @@ private:
         if (target == nullptr || !target->browser) {
             return;
         }
+        if (!target->pendingSwaps.isEmpty())
+            cancelSwapToken(target->pendingSwaps.cbegin().key());
         target->foreground = false;
         target->minimized = true;
         target->browser->setVisible(false);
@@ -1255,6 +1277,7 @@ private:
             return;
         }
         Session& session = **iterator;
+        revokeSwapIntents(session);
         stopReply(session);
         if (m_walletTaskId == taskId) {
             endWalletSession();
@@ -1277,10 +1300,12 @@ private:
     {
         endWalletSession();
         for (auto& session : m_sessions) {
+            revokeSwapIntents(*session);
             stopReply(*session);
             m_taskManager.removeTask(session->taskId);
         }
         m_composeRequestToTask.clear();
+        m_swapRequestToTask.clear();
         m_foregroundTaskId.clear();
         m_focusIntentTaskId.clear();
         m_sessions.clear();
@@ -1344,6 +1369,7 @@ private:
         const QString method = path.first().toString();
         const bool requiresForegroundAttention =
             method == QStringLiteral("signIn")
+            || method == QStringLiteral("swapToken")
             || method == QStringLiteral("viewProfile")
             || method == QStringLiteral("viewCast")
             || method == QStringLiteral("openMiniApp")
@@ -1450,9 +1476,101 @@ private:
                 "Genycaster does not advertise addMiniApp until Farcaster-signed server events and notification delivery are available"));
         } else if (method == QStringLiteral("composeCast")) {
             composeCast(session, id, argument, document);
+        } else if (method == QStringLiteral("swapToken")) {
+            beginSwapToken(session, id, argument, document);
         } else {
             reject(QStringLiteral("Genycaster does not support this SDK method: ") + method.left(80));
         }
+    }
+
+    // Revocation belongs to the runtime, not QML. A navigation destroys
+    // the original SDK document's authority and pending user intent.
+    void revokeSwapIntents(Session& session)
+    {
+        for (auto it = session.pendingSwaps.cbegin(); it != session.pendingSwaps.cend(); ++it) {
+            m_swapRequestToTask.remove(it.key());
+            m_controller.clearSwapRequest(it.key());
+        }
+        session.pendingSwaps.clear();
+    }
+
+    void beginSwapToken(Session& session, const QJsonValue& outerId,
+                        const QJsonValue& argument, const QString& document)
+    {
+        QString rejection{};
+        const auto intent = platform::miniapp::parseSwapIntent(argument, rejection);
+        if (!intent) {
+            session.browser->reply(errorResponse(outerId, rejection), document);
+            return;
+        }
+        // Preflight only: no trusted quote/approval/execution provider is
+        // configured. Never advertise actions.swapToken until one exists.
+        const auto unavailable = [&](const QString& code) {
+            session.browser->reply(rawResponse(outerId, QJsonObject{
+                {QStringLiteral("success"), false},
+                {QStringLiteral("reason"), QStringLiteral("swap_failed")},
+                {QStringLiteral("error"), QJsonObject{{QStringLiteral("error"), code}}}
+            }), document);
+        };
+        if (m_wallet == nullptr || !m_wallet->available()) {
+            unavailable(QStringLiteral("wallet_unavailable"));
+            return;
+        }
+        const auto walletChains = m_wallet->supportedChains();
+        if (std::ranges::find(walletChains, std::string{"eip155:8453"}) == walletChains.end()) {
+            unavailable(QStringLiteral("unsupported_chain"));
+            return;
+        }
+        if (!m_swapRequestToTask.isEmpty() || m_controller.swapRequestActive()
+            || m_controller.walletBrowserPickerActive() || m_controller.walletBrowserWaiting()
+            || session.pendingSignIn || !session.pendingCompose.isEmpty()) {
+            session.browser->reply(errorResponse(
+                outerId, QStringLiteral("Another wallet or host approval is in progress")), document);
+            return;
+        }
+        const QString requestId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        session.pendingSwaps.insert(requestId, PendingSwap{
+            .outerId = outerId,
+            .document = document,
+            .generation = session.documentGeneration,
+        });
+        m_swapRequestToTask.insert(requestId, session.taskId);
+        QVariantMap preview = intent->toVariantMap();
+        preview.insert(QStringLiteral("appName"), session.title.left(96));
+        preview.insert(QStringLiteral("origin"), session.launchUrl.adjusted(
+            QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment)
+                .toString(QUrl::FullyEncoded));
+        // Native WKWebView is layered above QML; conceal the document only
+        // while the first-party swap consent surface is being displayed.
+        session.browser->setVisible(false);
+        m_controller.presentSwapRequest(requestId, preview);
+    }
+
+    void cancelSwapToken(const QString& requestId)
+    {
+        const QString taskId = m_swapRequestToTask.take(requestId);
+        Session* session = find(taskId);
+        m_controller.clearSwapRequest(requestId);
+        if (session == nullptr || !session->browser) return;
+        auto pending = session->pendingSwaps.find(requestId);
+        if (pending == session->pendingSwaps.end()) return;
+        const PendingSwap response = pending.value();
+        session->pendingSwaps.erase(pending);
+        if (session->documentGeneration != response.generation) return;
+        // The SDK defines rejection as a resolved union result, never a
+        // success with fabricated transaction hashes.
+        session->browser->reply(rawResponse(response.outerId, QJsonObject{
+            {QStringLiteral("success"), false},
+            {QStringLiteral("reason"), QStringLiteral("rejected_by_user")},
+        }), response.document);
+        QTimer::singleShot(0, this, [this, taskId, generation = response.generation] {
+            Session* current = find(taskId);
+            if (current && current->foreground && current->browser
+                && current->documentGeneration == generation
+                && !m_controller.swapRequestActive()) {
+                current->browser->setVisible(true);
+            }
+        });
     }
 
     void composeCast(Session& session,
@@ -2048,6 +2166,7 @@ private:
     QString m_walletTaskId{};
     QString m_walletChooserHiddenTaskId{};
     QHash<QString, QString> m_composeRequestToTask{};
+    QHash<QString, QString> m_swapRequestToTask{};
     QHash<QString, ManifestCacheEntry> m_manifestCache{};
     std::size_t m_allowedSessions{1U};
 };

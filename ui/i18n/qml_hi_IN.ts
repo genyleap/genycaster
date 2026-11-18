@@ -1,6 +1,30 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.swap.title">
+            <source>Token swap requested</source>
+            <translation>टोकन स्वैप का अनुरोध</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.network_base">
+            <source>Network: Base</source>
+            <translation>नेटवर्क: Base</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.sell_token">
+            <source>Sell token</source>
+            <translation>बेचने वाला टोकन</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.buy_token">
+            <source>Buy token</source>
+            <translation>खरीदने वाला टोकन</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.amount_base_units">
+            <source>Amount (base units)</source>
+            <translation>राशि (मूल इकाइयों में)</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_unavailable">
+            <source>A trusted swap quote and execution service is not available yet. No wallet transaction has been created, signed, or sent.</source>
+            <translation>विश्वसनीय स्वैप कोटेशन और निष्पादन सेवा अभी उपलब्ध नहीं है। वॉलेट का कोई लेनदेन बनाया, हस्ताक्षरित या भेजा नहीं गया है।</translation>
+        </message>
         <message id="genycaster.setup.opp_wallet_pending">
             <source>Registering your HyperSnap custody wallet with Genyleap through OpenProof…</source>
             <translation>OpenProof के ज़रिए HyperSnap कस्टडी वॉलेट को Genyleap में पंजीकृत किया जा रहा है…</translation>

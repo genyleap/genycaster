@@ -1,6 +1,30 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.swap.title">
+            <source>Token swap requested</source>
+            <translation>トークンスワップのリクエスト</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.network_base">
+            <source>Network: Base</source>
+            <translation>ネットワーク: Base</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.sell_token">
+            <source>Sell token</source>
+            <translation>売却トークン</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.buy_token">
+            <source>Buy token</source>
+            <translation>購入トークン</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.amount_base_units">
+            <source>Amount (base units)</source>
+            <translation>数量（最小単位）</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_unavailable">
+            <source>A trusted swap quote and execution service is not available yet. No wallet transaction has been created, signed, or sent.</source>
+            <translation>信頼できるスワップ見積もり・実行サービスはまだ利用できません。ウォレット取引の作成、署名、送信は行われていません。</translation>
+        </message>
         <message id="genycaster.setup.opp_wallet_pending">
             <source>Registering your HyperSnap custody wallet with Genyleap through OpenProof…</source>
             <translation>OpenProof経由でHyperSnapカストディウォレットをGenyleapに登録しています…</translation>

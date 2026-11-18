@@ -10,6 +10,7 @@ if(NOT qmlformat)
     message(FATAL_ERROR "Qt qmlformat not found; set QT_QMLFORMAT_EXECUTABLE")
 endif()
 foreach(file IN ITEMS
+    ui/components/apps/MiniAppSwapPreflight.qml
     ui/components/shell/AppShell.qml
     ui/components/profile/GenyProDetailsDrawer.qml
     ui/components/settings/SettingsPopup.qml

@@ -1,6 +1,30 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.swap.title">
+            <source>Token swap requested</source>
+            <translation>请求兑换代币</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.network_base">
+            <source>Network: Base</source>
+            <translation>网络：Base</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.sell_token">
+            <source>Sell token</source>
+            <translation>卖出代币</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.buy_token">
+            <source>Buy token</source>
+            <translation>买入代币</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.amount_base_units">
+            <source>Amount (base units)</source>
+            <translation>数量（最小单位）</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_unavailable">
+            <source>A trusted swap quote and execution service is not available yet. No wallet transaction has been created, signed, or sent.</source>
+            <translation>可信的兑换报价和执行服务尚不可用。尚未创建、签名或发送任何钱包交易。</translation>
+        </message>
         <message id="genycaster.setup.opp_wallet_pending">
             <source>Registering your HyperSnap custody wallet with Genyleap through OpenProof…</source>
             <translation>正在通过 OpenProof 将 HyperSnap 托管钱包注册到 Genyleap…</translation>

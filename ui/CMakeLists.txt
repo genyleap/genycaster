@@ -170,6 +170,7 @@ set(farcasterQmlFiles
     components/shell/StatusStrip.qml
     components/shell/StatusFooter.qml
     components/apps/TaskManagerPopup.qml
+    components/apps/MiniAppSwapPreflight.qml
     components/settings/WalletBrowserPicker.qml
     components/settings/RenderingPopup.qml
     components/shell/SystemStatusCard.qml

@@ -3776,6 +3776,14 @@ Item {
         source: active ? "qrc:/qt/qml/Farcaster/Client/components/AndroidMiniAppWebView.qml" : ""
     }
 
+    // SDK swap requests never share the untrusted embedded browser surface.
+    MiniAppSwapPreflight {
+        id: miniAppSwapPreflight
+        parent: Overlay.overlay
+        blurSourceItem: shellContent
+        compact: root.mobile
+    }
+
     WalletBrowserPicker {
         id: walletBrowserPicker
         parent: Overlay.overlay

@@ -380,6 +380,38 @@ void MiniAppHostController::setSessionLimit(const int limit)
 }
 QString MiniAppHostController::errorText() const { return m_error; }
 QString MiniAppHostController::launchUrl() const { return m_launchUrl; }
+
+bool MiniAppHostController::swapRequestActive() const noexcept
+{
+    return !m_swapRequestId.isEmpty();
+}
+
+QString MiniAppHostController::swapRequestId() const { return m_swapRequestId; }
+QVariantMap MiniAppHostController::swapRequest() const { return m_swapRequest; }
+
+void MiniAppHostController::presentSwapRequest(
+    const QString& requestId, const QVariantMap& details)
+{
+    if (requestId.isEmpty() || !m_swapRequestId.isEmpty()) return;
+    m_swapRequestId = requestId;
+    m_swapRequest = details;
+    emit swapRequestChanged();
+}
+
+void MiniAppHostController::clearSwapRequest(const QString& requestId)
+{
+    if (requestId.isEmpty() || m_swapRequestId != requestId) return;
+    m_swapRequestId.clear();
+    m_swapRequest.clear();
+    emit swapRequestChanged();
+}
+
+void MiniAppHostController::cancelSwapToken(const QString& requestId)
+{
+    if (requestId.isEmpty() || requestId != m_swapRequestId) return;
+    clearSwapRequest(requestId);
+    emit swapTokenCancelled(requestId);
+}
 QVariantMap MiniAppHostController::user() const { return m_user; }
 void MiniAppHostController::setState(bool active, const QString& error) {
     if (m_active == active && m_error == error) { return; }
