@@ -4,6 +4,24 @@
 
 Provider and feature independence must be executable policy rather than documentation-only intent.
 
+## Public v1 product and Mini App capability profile
+
+The initial Release deliberately sets `FARCASTER_ENABLE_CHAT=OFF` and
+`FARCASTER_ENABLE_WALLET=OFF` on every build target. These flags describe
+optional **standalone product modules**, not the native custody/recovery
+wallet, protocol message signer, or already implemented external EIP-1193
+wallet integration used by supported Mini App runtimes. Both wallet security
+boundaries and per-origin consent continue to be mandatory where applicable.
+
+On Android the shipped Mini App capability is **public HTTPS WebView only**,
+locked to the original launch origin and with no privileged SDK, wallet
+provider, JS bridge, or signer authority. The Android Release CMake
+configuration explicitly sets `GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only`.
+Any configuration claiming a full Android Mini App SDK fails at configure
+time; it cannot be accepted simply by setting `FARCASTER_ENABLE_MINIAPPS=ON`.
+Desktop hosts and browser WASM provide their distinct, audited SDK/wallet
+paths, subject to real-device acceptance before public release.
+
 ## Platform CMake ownership
 
 Shared CMake checks remain at `cmake/` while target-specific toolchain,

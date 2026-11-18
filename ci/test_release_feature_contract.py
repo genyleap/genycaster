@@ -17,15 +17,18 @@ class ReleaseFeatureContractTest(unittest.TestCase):
         current = blockers()
         ui = read("ui/CMakeLists.txt")
         wasm = read("cmake/platform/WebAssembly/configure.cmake")
-        for platform, definition in (
-            ("Windows", "GENYCASTER_HAS_WINDOWS_MINIAPP_HOST=1"),
-            ("Android", "GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=1"),
-        ):
-            if definition not in ui:
-                self.assertTrue(
-                    any(item.startswith(platform + ":") for item in current),
-                    f"Missing Mini App SDK backend not reported for {platform}",
-                )
+        if "GENYCASTER_HAS_WINDOWS_MINIAPP_HOST=1" not in ui:
+            self.assertTrue(
+                any(item.startswith("Windows:") for item in current),
+                "A missing Windows Mini App SDK host must block Release",
+            )
+        # Android v1 intentionally admits an origin-locked public WebView,
+        # not a privileged SDK or EIP-1193 wallet provider.
+        if "GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=1" not in ui:
+            self.assertFalse(
+                any(item.startswith("Android:") for item in current),
+                "The audited Android public-only variant is a valid v1 scope",
+            )
         if "set(FARCASTER_ENABLE_MINIAPPS OFF CACHE BOOL" in wasm:
             app = read("src/application/CMakeLists.txt")
             browser_feature = ("if(EMSCRIPTEN AND FARCASTER_BUILD_UI)" in app
@@ -132,14 +135,109 @@ class ReleaseFeatureContractTest(unittest.TestCase):
             source = original(path)
             if path == ".github/workflows/ci.yml":
                 source = source.replace(
-                    '            -DFARCASTER_ENABLE_CHANNELS=ON\n'
-                    '          cmake --build build/web',
-                    '          cmake --build build/web',
+                    '            -DFARCASTER_ENABLE_CHANNELS=ON \\\n'
+                    '            -DFARCASTER_ENABLE_CHAT=OFF',
+                    '            -DFARCASTER_ENABLE_CHAT=OFF',
                 )
             return source
 
         with patch.object(feature_contract, "read", side_effect=missing_wasm_channels):
             self.assertTrue(any(item.startswith("CHANNELS:") for item in blockers()))
+
+    def test_release_defers_standalone_chat_and_wallet_without_disabling_custody(self):
+        workflow = feature_contract.read(".github/workflows/ci.yml")
+        blocks = (
+            workflow.split("  linux:\n", 1)[1].split("  macos:\n", 1)[0],
+            workflow.split("  macos:\n", 1)[1].split("  windows:\n", 1)[0],
+            workflow.split("  windows:\n", 1)[1].split("  android:\n", 1)[0],
+            workflow.split("  android:\n", 1)[1].split("  ios:\n", 1)[0],
+            workflow.split("  web:\n", 1)[1].split("  publish:\n", 1)[0],
+        )
+        for block in blocks:
+            for feature in ("CHAT", "WALLET"):
+                self.assertIn(f"-DFARCASTER_ENABLE_{feature}=OFF", block)
+        self.assertFalse(any(message.startswith(("CHAT:", "WALLET:")) for message in blockers()))
+        self.assertIn("FARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON", workflow)
+        self.assertIn("app/identity/native_wallet.cpp", feature_contract.read("ui/CMakeLists.txt"))
+
+    def test_deferred_features_cannot_be_implicitly_enabled_on_one_target(self):
+        original = feature_contract.read
+
+        for feature in ("CHAT", "WALLET"):
+            def incorrectly_advertised(path):
+                source = original(path)
+                if path == ".github/workflows/ci.yml":
+                    source = source.replace(
+                        f"-DFARCASTER_ENABLE_{feature}=OFF",
+                        f"-DFARCASTER_ENABLE_{feature}=ON", 1)
+                return source
+
+            with self.subTest(feature=feature):
+                with patch.object(feature_contract, "read", side_effect=incorrectly_advertised):
+                    self.assertTrue(
+                        any(message.startswith(feature + ":") for message in blockers()))
+
+    def test_android_requires_explicit_public_only_scope_and_unprivileged_qml(self):
+        self.assertFalse(any(message.startswith("Android:") for message in blockers()))
+        original = feature_contract.read
+
+        modifications = (
+            (".github/workflows/ci.yml",
+             "-DGENYCASTER_ANDROID_MINIAPP_SCOPE=public-only",
+             "-DGENYCASTER_ANDROID_MINIAPP_SCOPE=full-sdk"),
+            ("ui/components/apps/AndroidWebView.qml",
+             "function blockForeignNavigation(index, destination)",
+             "function navigateWithoutOriginCheck(index, destination)"),
+            ("ui/components/apps/AndroidWebView.qml",
+             "import QtWebView",
+             "import QtWebChannel\nimport QtWebView"),
+            ("CMakeLists.txt",
+             'if(NOT GENYCASTER_ANDROID_MINIAPP_SCOPE STREQUAL "public-only")',
+             'if(FALSE)'),
+        )
+        for target, before, after in modifications:
+            def weakened(path):
+                source = original(path)
+                if path == target:
+                    self.assertIn(before, source)
+                    return source.replace(before, after, 1)
+                return source
+            with self.subTest(path=target, mutation=after):
+                with patch.object(feature_contract, "read", side_effect=weakened):
+                    self.assertTrue(
+                        any(message.startswith("Android:") for message in blockers()))
+
+    def test_android_cmake_refuses_claims_of_privileged_mini_app_sdk(self):
+        source = feature_contract.read("CMakeLists.txt")
+        self.assertIn('if(FARCASTER_ENABLE_MINIAPPS)', source)
+        self.assertIn("Android has no privileged Mini App SDK host.", source)
+        self.assertIn('if(NOT GENYCASTER_ANDROID_MINIAPP_SCOPE STREQUAL "public-only")', source)
+
+    def test_external_wallet_transport_is_required_despite_deferred_wallet_product(self):
+        self.assertFalse(
+            any(message.startswith("EXTERNAL_WALLET:") for message in blockers()))
+        original = feature_contract.read
+        mutations = (
+            ("ui/wasm/miniapp-wallet-provider.mjs",
+             "export function createMiniAppEthereumProvider(",
+             "export function removedEthereumProvider("),
+            ("ui/wasm/host-sdk/walletconnect-entry.mjs",
+             "export async function connectWalletConnect(",
+             "export async function unsupportedWalletConnect("),
+            ("ui/app/miniapp/runtime.cpp",
+             "m_wallet->request(", "m_wallet->unavailable("),
+        )
+        for target, before, after in mutations:
+            def missing_bridge(path):
+                source = original(path)
+                if path == target:
+                    self.assertIn(before, source)
+                    return source.replace(before, after)
+                return source
+            with self.subTest(path=target):
+                with patch.object(feature_contract, "read", side_effect=missing_bridge):
+                    self.assertTrue(any(
+                        message.startswith("EXTERNAL_WALLET:") for message in blockers()))
 
 
 if __name__ == "__main__":

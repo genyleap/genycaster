@@ -33,11 +33,19 @@ def blockers() -> list[str]:
     # Version-tag builds must explicitly opt in on every advertised target.
     # Never derive Release feature admission from a mutable CMake default:
     # flipping an OFF default to ON must not bypass this fail-closed gate.
-    for feature in ("CHANNELS", "CHAT", "SEARCH", "WALLET"):
+    # The initial public build advertises Channels and Search. Chat and the
+    # standalone Wallet product are explicitly deferred; do not confuse them
+    # with the custody/signing/recovery capabilities required by onboarding.
+    for feature in ("CHANNELS", "SEARCH"):
         option = f"-DFARCASTER_ENABLE_{feature}=ON"
         if any(option not in block for block in (linux, macos, windows, android, web)):
             errors.append(f"{feature}: disabled in at least one platform's "
                           "product composition / Release configuration")
+    for feature in ("CHAT", "WALLET"):
+        option = f"-DFARCASTER_ENABLE_{feature}=OFF"
+        if any(option not in block for block in (linux, macos, windows, android, web)):
+            errors.append(f"{feature}: deferred from the initial Release but not "
+                          "explicitly disabled on every platform")
 
     # Channels discovery is a real Qt route, not an advertised stub. Browsing,
     # signed membership selection, and privileged administration must stay
@@ -142,8 +150,37 @@ def blockers() -> list[str]:
                 "QtWebEngineProcess.exe",
                 "qtwebenginequickplugin.dll")):
         errors.append("Windows: no verified origin-bound native Mini App SDK host")
-    if "GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=1" not in ui:
-        errors.append("Android: only unprivileged public WebView, no Mini App SDK host")
+    # Android's v1 Mini App scope is an explicitly advertised public-only
+    # preview, not an EIP-1193 wallet host. This is a supported limitation,
+    # provided that every layer retains the unprivileged origin-lock boundary.
+    # A Release may never claim SDK support just because public pages render.
+    android_scope = "-DGENYCASTER_ANDROID_MINIAPP_SCOPE=public-only"
+    android_qml = read("ui/components/apps/AndroidWebView.qml")
+    shell = read("ui/components/shell/AppShell.qml")
+    cmake = read("CMakeLists.txt")
+    public_only = (
+        android_scope in android
+        and "set(GENYCASTER_ANDROID_MINIAPP_SCOPE \"public-only\" CACHE STRING" in cmake
+        and 'if(NOT GENYCASTER_ANDROID_MINIAPP_SCOPE STREQUAL "public-only")' in cmake
+        and 'if(FARCASTER_ENABLE_MINIAPPS)' in cmake
+        and "components/apps/AndroidWebView.qml" in ui
+        and 'import QtWebView' in android_qml
+        and "function publicOrigin(candidate)" in android_qml
+        and "function blockForeignNavigation(index, destination)" in android_qml
+        and "if (root.blockForeignNavigation(index, nextUrl)) stop()" in android_qml
+        and 'url: model.blocked ? "" : String(model.url)' in android_qml
+        and 'active: Qt.platform.os === "android"' in shell
+        and "AndroidMiniAppWebView.qml" in shell
+        and not re.search(
+            r"runJavaScript\s*\(|addJavascriptInterface|nativeWallet|"
+            r"signOpenProofWalletChallenge|GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST"
+            r"|WebChannel|WebEngine",
+            android_qml, re.IGNORECASE)
+    )
+    if not public_only:
+        errors.append(
+            "Android: public-only Mini App scope is not explicitly declared "
+            "and verified; privileged SDK/wallet access remains unavailable")
 
     # The browser uses its own origin-filtered Farcaster JS iframe host.
     # The native Qt Mini App *runtime* remains intentionally disabled in
@@ -161,6 +198,37 @@ def blockers() -> list[str]:
                  "ui/wasm/miniapp-wallet-provider.mjs"):
         if not (ROOT / path).is_file():
             errors.append(f"Web: missing SDK implementation: {path}")
+
+    # The deferred Wallet *product* is not the Mini App external wallet
+    # transport. A release that disables or disconnects the actual external
+    # provider while advertising Mini App wallet interactions must fail.
+    external_wallet_contract = {
+        "ui/wasm/miniapp-wallet-provider.mjs": (
+            "export function createDiscoveredBrowserWallet(",
+            "export function createMiniAppEthereumProvider(",
+            "walletConnectFactory",
+        ),
+        "ui/wasm/host-sdk/walletconnect-entry.mjs": (
+            "import UniversalProvider from '@walletconnect/universal-provider'",
+            "export async function connectWalletConnect(",
+            "asEthereumProvider(provider)",
+        ),
+        "ui/app/main.cpp": (
+            "FARCASTER_HAS_MINIAPP_EVM_WALLET",
+            "miniAppWalletBridgeOwner = std::move(*walletBridge)",
+            "miniAppHost}](const std::string& url)",
+        ),
+        "ui/app/miniapp/runtime.cpp": (
+            "GenyCaster (External Wallet)",
+            "m_wallet->request(",
+            "ensureWalletSession(session)",
+        ),
+    }
+    for path, required in external_wallet_contract.items():
+        source = read(path)
+        if any(token not in source for token in required):
+            errors.append(f"EXTERNAL_WALLET: Mini App external wallet transport "
+                          f"is missing or disconnected: {path}")
 
     return errors
 

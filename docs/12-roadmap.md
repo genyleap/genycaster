@@ -55,9 +55,19 @@ This page tracks **implementation** independently from **qualification and relea
 
 ### Phase 05 — Mini Apps and wallet permissions
 
-**In progress.** Mini App discovery, hosted sessions and runtime-specific wallet integrations exist in source.
+**In progress.** Mini App discovery, hosted sessions and runtime-specific
+external-wallet integrations exist in source. The **initial public release**
+defers standalone Chat and Wallet product modules but keeps native custody,
+signer authorization, external EIP-1193 and WalletConnect on supported hosts.
+Android v1 explicitly offers **public HTTPS Mini App pages only** through a
+non-privileged QtWebView, not the SDK or in-app wallet RPC. Privileged Android
+Mini Apps and standalone Chat/Wallet are subsequent-release work.
 
-**Remaining:** separate account disclosure from signing, origin/session/account/chain isolation, consent expiry, navigation/disconnect revocation, hostile content handling and native versus WASM parity tests. **Done when:** one Mini App cannot inherit another's approval and reconnecting does not silently authorize signing.
+**Remaining:** installed-host wallet approval and revoke testing, origin/session/account/chain isolation,
+consent expiry, navigation/disconnect revocation, hostile content handling and
+native versus WASM parity tests. **Done when:** one Mini App cannot inherit
+another's approval, reconnecting does not silently authorize signing, and every
+advertised v1 host matches its declared capability scope.
 
 ### Phase 06 — Context widgets and GENY product services
 

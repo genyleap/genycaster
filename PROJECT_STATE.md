@@ -4,6 +4,28 @@ Last reconciled: **2026-11-18**, repository `genyleap/genycaster`, `main`.
 Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 `docs/19-account-registration-test-plan.md` and GitHub issue comments.
 
+## Initial-public-release scope checkpoint (18 November 2026)
+
+- The v1 contract explicitly **defers the standalone Chat and Wallet
+  product compositions**. Both are set OFF in all five public Release target
+  families (Linux, macOS, Windows, Android and WebAssembly); core native
+  custody/recovery and external wallet authorizers are separate and remain.
+  The release feature verifier explicitly fails if EIP-1193 native bridge
+  wiring, browser WalletConnect or the Mini App Ethereum facade is removed.
+- Android v1 **public-only Mini App preview** is explicitly named by
+  `GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only` on the Android Release
+  configuration; CMake rejects a falsely claimed privileged SDK. The QML
+  origin gate must remain intact with no privileged wallet/signer bridge.
+  Do not promote this to a fully qualified Android SDK in release notes.
+- Local release-scope validation after these changes: **strict feature gate
+  PASS**, 88 Python Release/package tests PASS, 58 focused Node Mini App/wallet
+  tests PASS, 44/44 server-acceptance source checks PASS, architecture, CI,
+  localization and 183-QML guards PASS. This **does not** assert signed
+  installers, real-device smoke, official Windows/macOS/Linux release status
+  or OpenProof verified HyperSnap FID linking. No hosted CI was dispatched
+  solely for this product-scope change; remaining blockers #4/#5/#6/#9
+  require their respective acceptance evidence.
+
 ## Verified baseline
 
 - Latest exact uint64 signer-session proof:

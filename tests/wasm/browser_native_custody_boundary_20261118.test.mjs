@@ -43,6 +43,8 @@ test('browser mnemonic paint remains empty while the separate browser wallet SDK
   assert.match(main, /qmlRegisterType<NativeRecoveryWordsItem>\(/);
   assert.match(cmake, /miniapp-wallet-provider\.mjs/);
   const releaseGate = source('ci/verify_release_feature_contract.py');
-  assert.match(releaseGate, /Android: only unprivileged public WebView, no Mini App SDK host/);
-  assert.match(releaseGate, /for feature in \("CHANNELS", "CHAT", "SEARCH", "WALLET"\)/);
+  assert.match(releaseGate, /Android: public-only Mini App scope is not explicitly declared/);
+  assert.match(releaseGate, /for feature in \("CHANNELS", "SEARCH"\)/);
+  assert.match(releaseGate, /for feature in \("CHAT", "WALLET"\)/);
+  assert.match(releaseGate, /GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only/);
 });

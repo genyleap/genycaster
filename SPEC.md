@@ -15,6 +15,32 @@
   See `docs/00-architecture-overview.md`, `docs/01-non-negotiable-invariants.md`,
   `docs/06-feature-compartmentalization.md` and `docs/08-security-auth-and-signing.md`.
 
+## Initial public version scope (v1.0.0-rc1)
+
+The initial release includes the social experience (feeds, profiles, casts,
+channels, search, notifications), account sign-in and protocol-authenticated
+publishing, and supported Mini App hosts. **Chat and the standalone Wallet
+product are deliberately deferred**: every v1 platform explicitly compiles
+`FARCASTER_ENABLE_CHAT=OFF` and `FARCASTER_ENABLE_WALLET=OFF`.
+These flags do not disable protocol custody/recovery, account and signer
+authorization, browser WalletConnect v2, injected EIP-1193 wallets, or
+permission-scoped external wallet bridges used by supported Mini App hosts.
+
+**Android v1 Mini Apps: public HTTPS pages only.** Android's isolated
+QtWebView is not a Farcaster Mini App SDK host: it does not grant Mini Apps
+sign-in, signer access, EIP-1193 RPC or transactions inside GenyCaster.
+External wallet-browser handoff, if offered, is a separate external session
+and must not be represented as an in-app wallet authorization. The Release
+build explicitly uses `GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only`;
+CMake refuses a privileged Android SDK claim until an audited host exists.
+Do not advertise fully functional *privileged* Android Mini Apps for v1.
+
+The scope decision does **not** waive authentication/onboarding correctness,
+OpenProof-native FID linking requirements, wallet-origin and chain consent
+rules on supported hosts, OS signing, live verification or install testing.
+The strict feature gate validates only what v1 explicitly advertises; it is
+not a public-release approval on its own.
+
 ## Non-negotiable behavioral requirements
 
 1. Protocol registration success is established by the appropriate authoritative

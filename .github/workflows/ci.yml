@@ -297,6 +297,8 @@ jobs:
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_ENABLE_SEARCH=ON \
             -DFARCASTER_ENABLE_CHANNELS=ON \
+            -DFARCASTER_ENABLE_CHAT=OFF \
+            -DFARCASTER_ENABLE_WALLET=OFF \
             -DFARCASTER_ENABLE_MINIAPPS=ON \
             -DGENYCASTER_REQUIRE_LINUX_MINIAPP_HOST=ON \
             -DGENYCASTER_FETCH_QTKEYCHAIN=ON \
@@ -503,6 +505,8 @@ jobs:
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_ENABLE_SEARCH=ON \
             -DFARCASTER_ENABLE_CHANNELS=ON \
+            -DFARCASTER_ENABLE_CHAT=OFF \
+            -DFARCASTER_ENABLE_WALLET=OFF \
             -DFARCASTER_ENABLE_MINIAPPS=ON \
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON || {
               echo "::error::macOS CMake configuration failed; SDK probe details:"
@@ -755,6 +759,8 @@ jobs:
             "-DFARCASTER_BUILD_TESTS=OFF" `
             "-DFARCASTER_ENABLE_SEARCH=ON" `
             "-DFARCASTER_ENABLE_CHANNELS=ON" `
+            "-DFARCASTER_ENABLE_CHAT=OFF" `
+            "-DFARCASTER_ENABLE_WALLET=OFF" `
             "-DFARCASTER_ENABLE_MINIAPPS=ON" `
             "-DGENYCASTER_FETCH_QTKEYCHAIN=ON" `
             "-DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON"
@@ -1110,6 +1116,11 @@ jobs:
             -DFARCASTER_ENABLE_SEARCH=ON
             -DFARCASTER_ENABLE_CHANNELS=ON
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
+            -DFARCASTER_ENABLE_CHAT=OFF
+            -DFARCASTER_ENABLE_WALLET=OFF
+            # Android v1 deliberately supports PUBLIC Mini App pages only.
+            # No origin receives Mini App SDK, wallet RPC or signing authority.
+            -DGENYCASTER_ANDROID_MINIAPP_SCOPE=public-only
             -DQT_ANDROID_DEPLOY_RELEASE=ON
           )
           if [[ "$SIGN_RELEASE" == true ]]; then
@@ -1365,7 +1376,9 @@ jobs:
             "-DQT_HOST_PATH=$QT_HOST_PATH" \
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_ENABLE_SEARCH=ON \
-            -DFARCASTER_ENABLE_CHANNELS=ON
+            -DFARCASTER_ENABLE_CHANNELS=ON \
+            -DFARCASTER_ENABLE_CHAT=OFF \
+            -DFARCASTER_ENABLE_WALLET=OFF
           cmake --build build/web --target genycaster_wasm_asset_refresh --parallel 3
           mkdir -p dist
           python3 ci/package_web.py \

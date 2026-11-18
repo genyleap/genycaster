@@ -88,10 +88,14 @@ test('WASM advertises the actual isolated JS mini app SDK without enabling nativ
   assert.match(sdk,/injected\.dispose\(\)/);
 });
 
-test('unsupported platform SDK capability still blocks public release',()=>{
+test('Android public-only scope must be explicit; unsupported privileged SDK claims stay blocked',()=>{
   const code=read('ci/verify_release_feature_contract.py');
-  assert.match(code,/GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=1/);
-  assert.match(code,/Android: only unprivileged public WebView, no Mini App SDK host/);
+  assert.match(code,/public_only = \(/);
+  assert.match(code,/if not public_only:/);
+  assert.match(code,/GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only/);
+  assert.match(code,/Android: public-only Mini App scope is not explicitly declared/);
+  assert.match(code,/blockForeignNavigation/);
+  assert.match(code,/runJavaScript/);
   assert.match(code,/if args\.strict:/);
   assert.match(code,/return 1/);
 });

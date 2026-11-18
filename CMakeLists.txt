@@ -227,6 +227,22 @@ option(FARCASTER_ENABLE_CHAT "Enable chat product composition" OFF)
 option(FARCASTER_ENABLE_SEARCH "Enable search product composition" OFF)
 option(FARCASTER_ENABLE_NOTIFICATIONS "Enable notifications product composition" ON)
 option(FARCASTER_ENABLE_WALLET "Enable wallet product composition" OFF)
+# Android v1 has a public, origin-locked QtWebView, not the privileged
+# Farcaster Mini App SDK. Keep scope explicit and reject unsupported claims.
+if(ANDROID)
+    set(GENYCASTER_ANDROID_MINIAPP_SCOPE "public-only" CACHE STRING
+        "Android Mini App capability: public HTTPS pages only; no SDK or wallet bridge")
+    if(NOT GENYCASTER_ANDROID_MINIAPP_SCOPE STREQUAL "public-only")
+        message(FATAL_ERROR
+            "Android Mini App SDK support is not implemented. "
+            "Use GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only.")
+    endif()
+    if(FARCASTER_ENABLE_MINIAPPS)
+        message(FATAL_ERROR
+            "Android has no privileged Mini App SDK host. "
+            "Do not enable FARCASTER_ENABLE_MINIAPPS on this platform.")
+    endif()
+endif()
 option(FARCASTER_ENABLE_DERIVED_CAST_VIEWS
     "Enable optional public view-count analytics in the Qt client" ON)
 
