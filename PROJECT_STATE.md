@@ -6,6 +6,19 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 
 ## Verified baseline
 
+- Latest backend/native issuer hardening:
+  `a38716f7dba9b469bda6136f0f9bfb253ce615b2` (stored Farcaster
+  cookies must have the independently trusted issuer; HyperSnap native
+  account FIDs must begin at `2^32`, named explicitly in C++ and server;
+  this does not imply OpenProof cross-protocol linkage). Full Account Sync
+  suite: **122 PASS / 1 SKIP / 0 FAIL**; 26/26 focused Node tests, native
+  Qt 6.12 GCC16/C++26 principal test compiled + ran PASS.
+- Latest signed-GCC16 PPA outage fallback:
+  `180bb2156189a789863209f4638604ef8623fc42` (x86_64 plus ARM64
+  pinned micromamba); `5ababde944d8285f3238b037c74782d47a4e0665`
+  (also invoke fallback if signed APT GCC packages themselves time out).
+  83/83 CI/Release Python tests and shell syntax PASS; hosted x86
+  compiler/packaging result still under investigation.
 - Latest protocol-scoped account cookie security correction:
   `26642ee4d7a95fb8675f109c7ac1a1fe59d141a8` (server account proof and
   cookie GET now disclose verified issuer+subject, browser validates the
@@ -57,7 +70,7 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - HyperSnap exact native uint64 FID/height merge:
   `35550e73ce9447e2650e99e4f7dab21346c053ce` (PR #39).
 - Repository was clean and tracking `origin/main` immediately after the
-  `26642ee4` push. Re-check HEAD/upstream before subsequent edits.
+  `a38716f7` push. Re-check HEAD/upstream before subsequent edits.
 
 ## Completed and locally verified in the latest execution
 
@@ -227,6 +240,10 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   failure* into the same verified native GCC16 fallback (both architectures).
   Shell syntax, 4/4 targeted source tests, CI and architecture guards PASS.
   A fresh hosted run is required to establish actual compiler availability.
+- Targeted Linux x86_64 [#44370887947](https://github.com/genyleap/genycaster/actions/runs/44370887947)
+  at `a38716f7` (which includes both fallback stages) is in progress
+  at last check. Its preflight gate PASS; native build/pkg outcome NOT
+  VERIFIED. Re-evaluate it before another retry.
 - No successful all-target CI, notarized/signed release or post-security-change
   installed-device tests are evidenced. Source-only checks and a successful
   gate do **not** authorize a version tag.
@@ -237,14 +254,15 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
    was cancelled during compilation and produced no artifact. Run a later
    targeted Android ARM64 build on a stable SHA, not in parallel with another
    active Android job; inspect signed APK and runtime separately.
-2. After committing the **APT package-download** fallback, dispatch one
-   new targeted Linux x86_64 job on that SHA. Prior
-   [#44366618826](https://github.com/genyleap/genycaster/actions/runs/44366618826)
-   failed on signed PPA metadata HTTP 503 / TLS mismatch, and repaired
+2. Inspect active [#44370887947](https://github.com/genyleap/genycaster/actions/runs/44370887947)
+   at exact `a38716f7` (SHA256-pinned native x86 fallback; both signed
+   PPA metadata and signed package-download failure branches covered).
+   Prior [#44366618826](https://github.com/genyleap/genycaster/actions/runs/44366618826)
+   failed on signed PPA metadata HTTP 503 / TLS mismatch; later
    [#44368695933](https://github.com/genyleap/genycaster/actions/runs/44368695933)
-   failed on signed APT's separate 180-second 288 MB package timeout.
-   Verify x86 pinned micromamba/GCC16.2 packages, glibc/SQLite/C++26
-   smokes, AppImage/DEB, and actual artifact. Do not fake a green build.
+   failed on APT package download timeout exit 124. Do not duplicate
+   the active job. Verify native GCC16.2/GLIBC/C++26 smokes, AppImage
+   and DEB artifact before qualifying Linux.
 3. The WebAssembly build is CI-verified only through `8a8a18db`; run
    a targeted same-SHA Web CI after other fixes stabilize, and verify the
    new browser cookie issuer/subject flow with a physical EIP-1193 wallet.
