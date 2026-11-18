@@ -6,6 +6,12 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 
 ## Verified baseline
 
+- Latest PWA wallet offline public-asset allowlist:
+  `8ebce4d4b99cdd84dbc833a55205339f3ea7f627` (same-origin
+  `genycaster-walletconnect.mjs`; wallet/session/secret routes excluded).
+- Latest wallet silent-session race hardening:
+  `aa6a1dc1282e6c84f9bf1562784f74b5a0fcec93` (reject delayed RPC
+  results following topic, approved account, approved methods or chain change).
 - Latest browser WalletConnect security and completeness fix:
   `8a8a18db09a231f8f870e0e446d2d5528458a4e3`.
   Replaced the unnecessary Reown AppKit/EthereumProvider dependency with
@@ -42,7 +48,7 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - HyperSnap exact native uint64 FID/height merge:
   `35550e73ce9447e2650e99e4f7dab21346c053ce` (PR #39).
 - Repository was clean and tracking `origin/main` immediately after the
-  `8a8a18db` push. Re-check HEAD/upstream before subsequent edits.
+  `8ebce4d4` push. Re-check HEAD/upstream before subsequent edits.
 
 ## Completed and locally verified in the latest execution
 
@@ -108,6 +114,17 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   with esbuild (~503/515 KiB) in an isolated staged npm install. There is
   **no real-wallet/browser-installed E2E evidence**; the new hosted Web run
   is still pending.
+- `aa6a1dc1` rejects stale relay RPC responses if WalletConnect loses its
+  approved session, silently changes session topic, EVM account or selected
+  network before a signature/read returns. New adversarial tests, existing
+  consent suites and actual esbuild compilation passed:
+  **52/52 wallet tests**, native-independent JS check PASS.
+- `8ebce4d4` admits only the same-origin lazy public WalletConnect module
+  in the PWA Service Worker allowlist, retaining the private URL exclusion:
+  **26/26 WalletConnect/PWA asset tests PASS**, syntax/source guards PASS.
+- Five additional source guards were verified on `8a8a18db`: async
+  resources, data storage, media uploads, vNext release and deployment
+  boundaries all PASS.
 - **No native/browser installed-device wallet E2E** or new full hosted CI
   has been claimed for these commits.
 
@@ -125,17 +142,14 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - GenyCaster [#9](https://github.com/genyleap/genycaster/issues/9):
   `ci/verify_release_feature_contract.py --strict` still blocks **CHAT,
   WALLET and privileged Android Mini App SDK host**. Do not bypass these.
-- GitHub Dependabot still exposed **one OPEN High alert**, browser host Zod
-  [#2](https://github.com/genyleap/genycaster/security/dependabot/2),
-  immediately after the `8a8a18db` push, although this commit now removes
-  the entire Reown AppKit + Zod 3 dependency path and lockfile tests assert
-  only fixed Zod 4.6.7. **Recheck Github's analysis rather than manually
-  dismissing the alert or claiming it has closed.**
-  Quick Auth Zod #1 is confirmed **fixed**. Picomatch
-  GHSA-fc5q-39xc-vjpf was withdrawn at 2026-11-18T15:38:56Z and no
-  longer appears in active GitHub alerts; npm's independently cached audit
-  data may still flag its withdrawn advisory. A trial global-major Zod
-  override was **rejected** as incompatible and never shipped.
+- **Zero OPEN GitHub Dependabot alerts** verified on 2026-11-18 after
+  `8a8a18db` via `gh api repos/genyleap/genycaster/dependabot/alerts`.
+  Both Zod alerts [Quick Auth #1 and host SDK #2] are now **fixed** (host
+  source lock has only Zod 4.6.7). The Picomatch advisory
+  GHSA-fc5q-39xc-vjpf was withdrawn at 2026-11-18T15:38:56Z and
+  disappeared from active GitHub findings. An earlier scratch *global*
+  Zod-major override was rejected as incompatible and never shipped.
+  npm advisory caches may still show withdrawn picomatch; GitHub has 0 open.
 
 ## Hosted CI evidence (not current-HEAD release qualification)
 
@@ -173,16 +187,17 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 
 ## Exact next executable tasks
 
-1. Inspect targeted WebAssembly CI [#44354415384](https://github.com/genyleap/genycaster/actions/runs/44354415384),
-   especially real staging of both `miniapp-host-bridge.mjs` and
-   `genycaster-walletconnect.mjs`, JS/HTML package manifest, artifact upload
-   and the exact `8a8a18db` head SHA. Do not create a duplicate active job.
-   On failure, inspect the full failed step and fix the actual source.
-2. Recheck [Dependabot #2](https://github.com/genyleap/genycaster/security/dependabot/2)
-   after GitHub finishes reindexing the new package lock; never manually
-   dismiss an unresolved high-severity alert.
-3. Verify wallet consent on physical browsers and full target matrix after
-   the actual provider and signing implementations are complete.
+1. Finish inspecting targeted WebAssembly CI [#44354415384](https://github.com/genyleap/genycaster/actions/runs/44354415384)
+   at exact `8a8a18db`: secure source gate PASS and browser C++/Qt build
+   still running on last inspection. Require staging of both JS bundles,
+   artifact hash/manifest completeness and success status before acceptance.
+   It does **not** include later `aa6a1dc1` and `8ebce4d4` changes.
+2. Security dependency graph is now clean (0 open). Verify WalletConnect
+   consent using a *real* EIP-1193-compatible wallet on physical browsers.
+   Do not confuse deterministic SDK integration mocks with network-device E2E.
+3. After the active run is complete, run a targeted browser build of the
+   current complete code SHA only if there are no remaining source defects.
+   Inspect uploaded artifact, and then qualify native platform parity.
 4. Continue real Wallet/CHAT/Android host implementation for #9 and verified
    OpenProof native-FID integration after reviewing the server trust contract.
 5. Run the full approved matrix once feature
