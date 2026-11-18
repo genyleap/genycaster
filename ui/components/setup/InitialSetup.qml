@@ -748,15 +748,15 @@ Item {
                         sweepAngle: 106
                     }
                 }
-                Rectangle {
+                Superellipse {
                     readonly property real phase: desktopBrandPane.orbitYaw * Math.PI / 180
                     x: brandOrbit.width * (0.5 + 0.48 * Math.cos(phase)) - width / 2
                     y: brandOrbit.height * (0.5 + 0.48 * Math.sin(phase)) - height / 2
                     width: 5
                     height: 5
-                    radius: 2.5
-                    color: Theme.setupHeroTitleInk
-                    antialiasing: true
+                    curveDepth: width / 2
+                    exponent: 2
+                    fillColor: Theme.setupHeroTitleInk
                 }
             }
 
@@ -2935,10 +2935,10 @@ Item {
                     Item {
                         Layout.preferredWidth: 44
                         Layout.preferredHeight: 44
-                        Rectangle {
+                        Superellipse {
                             anchors.fill: parent
-                            radius: 14
-                            color: Theme.platformAccentColor
+                            curveDepth: 14
+                            fillColor: Theme.platformAccentColor
                         }
                         Icon {
                             anchors.centerIn: parent
