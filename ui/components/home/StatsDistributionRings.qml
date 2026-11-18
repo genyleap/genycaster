@@ -270,11 +270,12 @@ Item {
                     layoutDirection: Theme.uiDirection
                     spacing: Theme.space2
 
-                    Rectangle {
+                    Superellipse {
                         Layout.preferredWidth: 15
                         Layout.preferredHeight: 6
-                        radius: 3
-                        color: modelData.color
+                        curveDepth: height / 2
+                        exponent: 2
+                        fillColor: modelData.color
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
