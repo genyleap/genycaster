@@ -52,8 +52,12 @@ Item {
         if (root.enrichmentActive && root.castChannel.length > 0
                 && root.channelImageUrl.length === 0)
             channelDirectory.ensureChannelImage(root.castChannel)
+        root.scheduleSupportingAdmission()
     }
-    onParentChanged: root.resolveScrollHost()
+    onParentChanged: {
+        root.resolveScrollHost()
+        root.scheduleSupportingAdmission()
+    }
     // Keep the supporting subtree alive across payload revisions and motion.
     // URL/identity changes flow into its existing preview; async Loaders still
     // spread initial construction across frames.
@@ -280,6 +284,57 @@ Item {
     }
     readonly property var visualEmbeds: root.embedPartition.visual
     readonly property var supportingEmbeds: root.embedPartition.supporting
+
+    // Mixed-media supporting cards may instantiate a rich Web/Frame renderer.
+    // Admit their subtree after the feed stops moving, without discarding an
+    // already-admitted card when counters or preview metadata are refreshed.
+    property bool supportingAdmitted: false
+    property string admittedSupportingIdentity: ""
+
+    function supportingIdentity() {
+        return (root.supportingEmbeds || []).map(embed =>
+            root.embedFamily(embed) + ":" + root.normalizedEmbedUrl(embed)).join("|")
+    }
+
+    function scheduleSupportingAdmission() {
+        supportingAdmissionTimer.stop()
+        const supporting = root.supportingEmbeds || []
+        if (supporting.length === 0) {
+            root.supportingAdmitted = false
+            return
+        }
+        // A link-only cast must not wait behind the mixed-image admission gate.
+        if (!root.mediaFirst) {
+            root.supportingAdmitted = true
+            return
+        }
+        if (!root.supportingAdmitted && !root.scrollMoving && root.visible)
+            supportingAdmissionTimer.start()
+    }
+
+    onSupportingEmbedsChanged: {
+        const identity = root.supportingIdentity()
+        if (root.admittedSupportingIdentity !== identity) {
+            root.admittedSupportingIdentity = identity
+            root.supportingAdmitted = false
+        }
+        root.scheduleSupportingAdmission()
+    }
+    onMediaFirstChanged: root.scheduleSupportingAdmission()
+    onScrollMovingChanged: root.scheduleSupportingAdmission()
+    onVisibleChanged: root.scheduleSupportingAdmission()
+
+    Timer {
+        id: supportingAdmissionTimer
+        interval: 48
+        repeat: false
+        onTriggered: {
+            if (!root.scrollMoving && root.visible && root.mediaFirst
+                    && (root.supportingEmbeds || []).length > 0)
+                root.supportingAdmitted = true
+        }
+    }
+
     // A simple single-web-link Cast can place its short author text inside
     // the destination card instead of rendering a detached paragraph above it.
     // Keep rich mentions, long text, galleries, mint pages and other media
@@ -1044,6 +1099,7 @@ Item {
 
                 Loader {
                     active: root.mediaFirst && root.supportingEmbeds.length > 0
+                            && root.supportingAdmitted
                     visible: active
                     // Magazine cards are admitted only near the viewport; avoid
                     // abandoning unfinished rich/embedded QML incubation on
