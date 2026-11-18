@@ -82,7 +82,7 @@ test('Settings fills the desktop viewport and the mobile inspector remains full-
     assert.match(settings, /Layout\.maximumWidth: Theme\.scaleUi\(360\)/);
     assert.match(settings, /id: customAccentCard/);
     assert.match(settings, /implicitHeight: customColorContent\.implicitHeight \+ Theme\.space3 \* 2/);
-    assert.match(settings, /border\.width: themePreset\.selected/);
+    assert.match(settings, /borderWidth: themePreset\.selected/);
     assert.doesNotMatch(settings, /selected: themePreset\.selected\s*\n\s*focused:/);
     assert.match(settings, /onTapped: themePreset\.selectPreset\(\)/);
 });
