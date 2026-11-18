@@ -361,6 +361,8 @@ def main() -> None:
     public_root_docs = {
         "README.md", "AGENTS.md", "CHANGELOG.md", "CODE_OF_CONDUCT.md",
         "CONTRIBUTING.md", "SECURITY.md", "STATUS.md", "THIRD_PARTY_NOTICES.md",
+        # Verified release specification, ordered backlog and execution checkpoint.
+        "SPEC.md", "PLAN.md", "PROJECT_STATE.md",
     }
     assert {p.name for p in Path(".").glob("*.md")} == public_root_docs, (
         "Keep root Markdown limited to canonical public and engineering entry points"
