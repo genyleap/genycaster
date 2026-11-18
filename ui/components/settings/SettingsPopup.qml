@@ -531,16 +531,17 @@ GenyAdaptiveDialog {
             pressedFill: Theme.surfacePressed
             cornerRadius: Theme.curveControl
             neonOnHover: true
-            Rectangle {
+            Superellipse {
                 visible: navTab.selected
                 width: 3
-                radius: 1.5
+                curveDepth: width / 2
+                exponent: 2
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 anchors.topMargin: Theme.space2
                 anchors.bottomMargin: Theme.space2
                 x: Theme.rtl ? parent.width - width : 0
-                color: Theme.accent
+                fillColor: Theme.accent
             }
         }
     }
@@ -1017,14 +1018,14 @@ GenyAdaptiveDialog {
                                     Accessible.name: String(modelData.label)
                                     Accessible.checked: isSelected
 
-                                    Rectangle {
+                                    Superellipse {
                                         anchors.fill: parent
-                                        radius: Theme.curveControl
-                                        color: actionColorChoice.isSelected ? Theme.surfaceSelected
-                                               : colorHover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
-                                        border.width: 1
-                                        border.color: actionColorChoice.isSelected ? Theme.accent : Theme.borderSubtle
-                                        Behavior on color {
+                                        curveDepth: Theme.curveControl
+                                        fillColor: actionColorChoice.isSelected ? Theme.surfaceSelected
+                                                  : colorHover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+                                        borderWidth: 1
+                                        borderColor: actionColorChoice.isSelected ? Theme.accent : Theme.borderSubtle
+                                        Behavior on fillColor {
                                             ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
                                         }
                                     }
@@ -1034,13 +1035,14 @@ GenyAdaptiveDialog {
                                         anchors.rightMargin: Theme.space2
                                         spacing: Theme.space2
                                         layoutDirection: Theme.uiDirection
-                                        Rectangle {
+                                        Superellipse {
                                             Layout.preferredWidth: 19
                                             Layout.preferredHeight: 19
-                                            radius: 9.5
-                                            color: actionColorChoice.modelData.color
-                                            border.width: 1
-                                            border.color: Theme.borderStrong
+                                            curveDepth: width / 2
+                                            exponent: 2
+                                            fillColor: actionColorChoice.modelData.color
+                                            borderWidth: 1
+                                            borderColor: Theme.borderStrong
                                         }
                                         DirectionAwareLabel {
                                             Layout.fillWidth: true
@@ -1248,26 +1250,28 @@ GenyAdaptiveDialog {
                                                 Layout.preferredWidth: 42
                                                 Layout.preferredHeight: 42
 
-                                                Rectangle {
+                                                Superellipse {
                                                     anchors.fill: parent
-                                                    radius: width / 2
-                                                    color: "transparent"
-                                                    border.width: themePreset.selected
-                                                                  || themePreset.activeFocus ? 2
-                                                                  : presetHover.hovered ? 1 : 0
-                                                    border.color: themePreset.activeFocus
-                                                                  ? Theme.focus
-                                                                  : themePreset.selected ? Theme.accent
-                                                                  : Theme.borderStrong
+                                                    curveDepth: width / 2
+                                                    exponent: 2
+                                                    fillColor: "transparent"
+                                                    borderWidth: themePreset.selected
+                                                                 || themePreset.activeFocus ? 2
+                                                                 : presetHover.hovered ? 1 : 0
+                                                    borderColor: themePreset.activeFocus
+                                                                 ? Theme.focus
+                                                                 : themePreset.selected ? Theme.accent
+                                                                 : Theme.borderStrong
                                                 }
-                                                Rectangle {
+                                                Superellipse {
                                                     anchors.centerIn: parent
                                                     width: 32
                                                     height: 32
-                                                    radius: width / 2
-                                                    color: themePreset.presetSwatch
-                                                    border.width: 1
-                                                    border.color: Theme.borderStrong
+                                                    curveDepth: width / 2
+                                                    exponent: 2
+                                                    fillColor: themePreset.presetSwatch
+                                                    borderWidth: 1
+                                                    borderColor: Theme.borderStrong
 
                                                     Icon {
                                                         anchors.centerIn: parent
