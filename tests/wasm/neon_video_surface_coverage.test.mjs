@@ -40,7 +40,16 @@ test('Magazine Cast cards react to the local pointer without changing timeline p
     assert.match(cast, /interactive: root\.magazineCard && !root\.scrollMoving/);
     assert.match(cast, /ambientNeon: root\.magazineCard/);
     assert.match(cast, /externalHovered: magazineCardPointer\.hovered/);
-    assert.match(cast, /fillColor: root\.magazineCard \? Theme\.surfaceRaised : Theme\.backgroundPrimary/);
+    // Timeline stays a non-painting Item: a retained Neon surface is only
+    // visible in Magazine, avoiding per-row GPU shader allocations.
+    const start = cast.indexOf('id: magazineCardSurface');
+    const end = cast.indexOf('ColumnLayout {\n                id: messageContent', start);
+    assert.ok(start >= 0 && end > start);
+    const chrome = cast.slice(start, end);
+    assert.match(cast, /Item\s*\{\s*id: messageSurface/);
+    assert.match(chrome, /visible: root\.magazineCard/);
+    assert.match(chrome, /fillColor: root\.magazineCard \? Theme\.surfaceRaised : "transparent"/);
+    assert.match(chrome, /borderWidth: root\.magazineCard \? Theme\.strokeHairline : 0/);
 });
 
 test('Appearance drawer includes the visible setting and color picker panels', () => {
@@ -54,7 +63,19 @@ test('Appearance drawer includes the visible setting and color picker panels', (
     }
     // Custom accent is now a compact sibling of the palette grid; it still
     // uses the shared material without the old three stacked preview surfaces.
-    assert.match(settings, /NeonSurface \\{\\s*id: customAccentCard[\\s\\S]*?implicitHeight: customColorContent\\.implicitHeight/);
+    // The accent panel is a quiet retained surface: keep it in the palette
+    // grid without an always-on shader or a second full-size preview.
+    const accentIndex = settings.indexOf('id: customAccentCard');
+    const accentStart = settings.lastIndexOf('NeonSurface {', accentIndex);
+    const accentEnd = settings.indexOf('ColumnLayout {', accentIndex);
+    assert.ok(accentStart >= 0 && accentEnd > accentIndex);
+    const accentChrome = settings.slice(accentStart, accentEnd);
+    assert.match(accentChrome, /id: customAccentCard/);
+    assert.match(accentChrome, /interactive: false/);
+    assert.match(accentChrome, /ambientNeon: false/);
+    assert.match(accentChrome, /implicitHeight: customColorContent\.implicitHeight \+ Theme\.space3 \* 2/);
+    assert.match(accentChrome, /Layout\.preferredWidth: colorThemeLayout\.columns === 2/);
+    assert.match(accentChrome, /borderColor: appearanceController\.colorThemeId === "custom"/);
     for (const name of ['DisplayScaleControl','PanelWidthControl']) {
         const source = read('ui/components/settings/'+name+'.qml');
         assert.match(source, /^NeonCard \{/m, name);
