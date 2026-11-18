@@ -130,6 +130,52 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         self.assertIn("python3 ci/release_artifacts.py artifacts release", publish)
         self.assertIn("softprops/action-gh-release@v2", publish)
 
+    def test_windows_release_script_keeps_cmdlet_arguments_parseable(self) -> None:
+        # GitHub Windows x64 #44389704729 failed in pwsh parsing BEFORE
+        # running CMake because -Path and -Pattern were split across lines.
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        script = job_source(workflow, "windows", "android")
+        self.assertIn(
+            "Select-String -Path 'build/native/CMakeCache.txt' "
+            "-Pattern '^FARCASTER_ENABLE_MINIAPPS:BOOL=ON        s = LOCAL.read_text(encoding="utf-8")
+        self.assertEqual(s.count("python3 ci/stage_linux_webengine.py"), 1)
+        self.assertEqual(s.count("python3 ci/bundle_linux_webengine_runtime.py"), 1)
+        self.assertEqual(s.count('cmake --build "$build_dir" --target genycaster'), 1)
+        self.assertEqual(s.count("printf '\\nLocal %s release-equivalent packages:"), 1)
+        self.assertIn("grep -q '^FARCASTER_ENABLE_MINIAPPS:BOOL=ON$'", s)
+
+    def test_only_tag_pushes_publish_and_feature_gate_blocks_partial_release(self) -> None:
+        s = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("    tags:\n      - 'v*'", s)
+        self.assertIn("python3 ci/verify_release_feature_contract.py --strict", s)
+        # Manual development builds remain available, but publishing a tag
+        # cannot bypass architecture, translation, privacy or design gates.
+        gate = job_source(s, "gate", "linux")
+        self.assertIn("run: python3 ci/server_acceptance.py --strict-design", gate)
+        self.assertIn("Refuse an unsigned public release before installing toolchains", gate)
+        self.assertIn("MACOS_DEVELOPER_ID_P12_BASE64", gate)
+        self.assertIn("ANDROID_KEYSTORE_BASE64", gate)
+        # Browser WASM stays a separately verified site artifact, not a
+        # public downloadable installer in GitHub Release assets.
+        from ci.release_artifacts import EXPECTED
+        self.assertNotIn("GenyCaster-web-wasm", EXPECTED)
+        self.assertIn("if: steps.release.outputs.release == 'true'", gate)
+        self.assertIn("          python3 ci/audit_linux_appdir.py AppDir --require-miniapps", s)
+        # Truncated grep commands were accepted as YAML block text, then
+        # silently skipped when the remaining steps were duplicated.
+        self.assertNotRegex(s, re.compile(r"grep -q '\^FARCASTER_ENABLE_MINIAPPS:BOOL=ON\n"))
+
+if __name__ == "__main__":
+    unittest.main()
+ -Quiet",
+            script,
+        )
+        self.assertNotRegex(
+            script, re.compile(r"Select-String[^\\n]*CMakeCache\\.txt\\s*\\n\\s*-Pattern"),
+        )
+        self.assertIn("if (-not (Select-String", script)
+        self.assertIn("Windows Mini App SDK is disabled in Release configuration", script)
+
     def test_local_linux_pipeline_not_repeated(self) -> None:
         s = LOCAL.read_text(encoding="utf-8")
         self.assertEqual(s.count("python3 ci/stage_linux_webengine.py"), 1)
