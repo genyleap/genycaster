@@ -49,6 +49,12 @@ if ($qtConfigs.Count -ne 1) {
 }
 if ($qtConfigs.Count -ne 1) { throw 'Exactly one Qt installation must exist in Qt/.' }
 $env:QT_ROOT_DIR = (Resolve-Path (Join-Path $qtConfigs[0].DirectoryName '../../..')).Path
+# Qt 6.140 WebEngine is an official standalone Extensions product. The
+# Qt 6.12 addon index cannot install it; use our verified pinned installer.
+if (-not (Test-Path (Join-Path $env:QT_ROOT_DIR 'lib/cmake/Qt6WebEngineQuick/Qt6WebEngineQuickConfig.cmake'))) {
+    & python ci/install_qt_webengine_windows.py --destination Qt --architecture $Architecture
+    CheckExit 'Official Qt WebEngine extension'
+}
 $triplet = if ($Architecture -eq 'arm64') { 'arm64-windows' } else { 'x64-windows' }
 $cache = Join-Path $repo 'build/vcpkg-binary-cache'
 New-Item -ItemType Directory -Force $cache | Out-Null

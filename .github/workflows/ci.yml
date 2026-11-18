@@ -70,7 +70,7 @@ jobs:
         run: python3 ci/release_gate.py
       - name: Validate secure deployment configuration and URL boundaries
         run: |
-          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py ci/test_native_runtime_audits.py ci/test_nsis_cpack_config.py ci/test_packaging.py ci/test_linux_cpp_runtime.py ci/test_linux_release_parity.py ci/test_linux_distro_assets.py ci/test_macos_otool_headers.py ci/test_release_feature_contract.py ci/test_release_workflow_integrity.py ci/test_macos_signing_policy.py ci/test_platform_arm64_dispatch.py
+          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py ci/test_native_runtime_audits.py ci/test_nsis_cpack_config.py ci/test_packaging.py ci/test_linux_cpp_runtime.py ci/test_linux_release_parity.py ci/test_linux_distro_assets.py ci/test_macos_otool_headers.py ci/test_release_feature_contract.py ci/test_release_workflow_integrity.py ci/test_macos_signing_policy.py ci/test_platform_arm64_dispatch.py ci/test_qt_webengine_windows.py ci/test_wasm_domain_scope.py
           python3 ci/check_deployment_boundaries.py
           python3 ci/check_media_upload_contract.py
           node --test services/test/deployment_config.test.mjs
@@ -101,6 +101,32 @@ jobs:
             echo "::error::All-platform build requires the full-matrix budget checkbox."
             exit 1
           fi
+      - name: Refuse an unsigned public release before installing toolchains
+        if: steps.release.outputs.release == 'true'
+        shell: bash
+        env:
+          MACOS_DEVELOPER_ID_P12_BASE64: ${{ secrets.MACOS_DEVELOPER_ID_P12_BASE64 }}
+          MACOS_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_P12_PASSWORD }}
+          MACOS_NOTARY_KEY_P8_BASE64: ${{ secrets.MACOS_NOTARY_KEY_P8_BASE64 }}
+          MACOS_NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
+          MACOS_NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Never spend hours on macOS/Android builds that cannot be signed.
+          # The workflow receives secret values from GitHub only, never source.
+          for name in MACOS_DEVELOPER_ID_P12_BASE64 MACOS_DEVELOPER_ID_P12_PASSWORD \
+                      MACOS_NOTARY_KEY_P8_BASE64 MACOS_NOTARY_KEY_ID MACOS_NOTARY_ISSUER_ID \
+                      ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD \
+                      ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Public Release missing mandatory signing material: $name"
+              exit 1
+            fi
+          done
       - name: Refuse a partial cross-platform feature release
         if: steps.release.outputs.release == 'true'
         run: python3 ci/verify_release_feature_contract.py --strict
@@ -661,12 +687,11 @@ jobs:
       - name: Install separately versioned Qt WebEngine extension
         shell: pwsh
         run: |
-          # Qt 6.140 is NOT in Qt 6.12 desktop Updates.xml; use the
-          # official versioned extension archives with upstream SHA1 checks.
-          # The installer selects the correct x64 or ARM64-cross-compiled
-          # package and refuses an incomplete Mini App SDK.
-          python ci/install_qt_windows.py --destination Qt --architecture ${{ matrix.arch }} --webengine-only
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # WebEngine 6.140 lives in the official Extensions repository.
+          # Pin exact x64/ARM64 upstream archives and fail on checksum or
+          # partial SDK installation, not Qt 6.12 addon metadata.
+          python ci/install_qt_webengine_windows.py --destination Qt --architecture ${{ matrix.arch }}
+          if ($LASTEXITCODE -ne 0) { throw 'Official Qt WebEngine extension installation failed' }
           foreach ($config in @('Qt6WebEngineWidgets', 'Qt6WebEngineQuick')) {
             $path = Join-Path $env:QT_ROOT_DIR "lib/cmake/$config/$($config)Config.cmake"
             if (-not (Test-Path $path)) {
@@ -880,9 +905,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # A manual Android ARM64 dispatch must build exactly arm64-v8a,
-        # not silently spend another runner on armeabi-v7a.
-        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.platform == 'android' && inputs.target_arch == 'arm64' && '[{"abi":"arm64-v8a","qt_arch":"android_arm64_v8a","openssl_arch":"arm64","machine":"AArch64"}]' || '[{"abi":"arm64-v8a","qt_arch":"android_arm64_v8a","openssl_arch":"arm64","machine":"AArch64"},{"abi":"armeabi-v7a","qt_arch":"android_armv7","openssl_arch":"arm","machine":"ARM"}]') }}
+        # Both version-tag and manually requested Android builds target
+        # exactly arm64-v8a. Do not charge extra runners for unused ABIs.
+        include: ${{ fromJSON('[{"abi":"arm64-v8a","qt_arch":"android_arm64_v8a","openssl_arch":"arm64","machine":"AArch64"}]') }}
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'android'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -1369,7 +1394,9 @@ jobs:
             -DFARCASTER_ENABLE_SEARCH=ON \
             -DFARCASTER_ENABLE_CHANNELS=ON \
             -DFARCASTER_ENABLE_CHAT=OFF \
-            -DFARCASTER_ENABLE_WALLET=OFF
+            -DFARCASTER_ENABLE_WALLET=OFF \
+            "-DGENYCASTER_PUBLIC_ORIGIN=https://app.genycaster.xyz" \
+            "-DGENYCASTER_SIWF_ORIGIN=https://app.genycaster.xyz"
           cmake --build build/web --target genycaster_wasm_asset_refresh --parallel 3
           mkdir -p dist
           python3 ci/package_web.py \
@@ -1415,7 +1442,7 @@ jobs:
           for name in GenyCaster-linux-x86_64 GenyCaster-linux-arm64 \
                       GenyCaster-macos-arm64 GenyCaster-macos-x86_64 \
                       GenyCaster-windows-x86_64 GenyCaster-windows-arm64 \
-                      GenyCaster-android-arm64-v8a GenyCaster-android-armeabi-v7a \
+                      GenyCaster-android-arm64-v8a \
                       GenyCaster-web-wasm; do
             test -d "artifacts/$name"
             test -n "$(find "artifacts/$name" -type f -print -quit)"

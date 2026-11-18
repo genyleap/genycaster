@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createAccountApi, createBaseSwapBackend} from '../server.mjs';
+import {request as httpRequest} from 'node:http';
 import {validLinkedInUrl,validateCloudItem} from '../cloud_state.mjs';
 
 const principal='farcaster:42';
@@ -282,6 +283,20 @@ test('native session cookie with CSRF may quote without Origin; browser cross-or
       'x-genycaster-csrf':csrf,'content-type':'application/json',...headers},
     body:JSON.stringify({sellToken:'eip155:8453/native'}),
   });
+  // Node fetch replaces Host with the transport hostname; use the raw
+  // HTTP client to exercise the Nginx-forwarded public Host/Origin tuple.
+  const sendPublicHost=(headers={})=>new Promise((resolve,reject)=>{
+    const url=new URL(path);
+    const req=httpRequest({hostname:url.hostname,port:url.port,path:url.pathname,
+      method:'POST',headers:{host:'app.genycaster.xyz',
+        cookie:'__Host-genycaster-account='+cookie,
+        'x-genycaster-csrf':csrf,'content-type':'application/json',
+        origin:'https://app.genycaster.xyz','sec-fetch-site':'same-origin',
+        ...headers}},
+      response=>{response.resume();response.on('end',()=>resolve(response.statusCode));});
+    req.on('error',reject);
+    req.end(JSON.stringify({sellToken:'eip155:8453/native'}));
+  });
   try{
     const valid=await send();
     assert.equal(valid.status,200,'Qt native cookie+CSRF is sufficient without browser Origin');
@@ -301,6 +316,13 @@ test('native session cookie with CSRF may quote without Origin; browser cross-or
     assert.equal(wrongSubject.status,401);
     await wrongSubject.arrayBuffer();
     storedSubject=principal;
+    // Dedicated WASM hostname has its own host-only cookie, same-origin
+    // browser request and app-specific Nginx Host header.
+    assert.equal(await sendPublicHost(),200);
+    assert.equal(await sendPublicHost({host:'genycaster.xyz'}),403);
+    assert.equal(await sendPublicHost({
+      origin:'https://app.genycaster.xyz.evil.invalid'}),403);
+    assert.equal(await sendPublicHost({'sec-fetch-site':'cross-site'}),403);
     assert.equal((await send({'x-genycaster-csrf':'x'.repeat(43)})).status,401);
     assert.equal((await send({origin:'https://evil.invalid',
       'sec-fetch-site':'cross-site'})).status,403);

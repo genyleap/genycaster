@@ -4,6 +4,32 @@ Last reconciled: **2026-11-18**, repository `genyleap/genycaster`, `main`.
 Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 `docs/19-account-registration-test-plan.md` and GitHub issue comments.
 
+## Release delivery preparation checkpoint (18 November 2026)
+
+- Requested platforms: macOS Intel/ARM64; Windows x64/ARM64; Linux
+  x86_64/ARM64; Android **arm64-v8a only**; site-only WASM on
+  **app.genycaster.xyz**. The native GitHub Release assembler must
+  publish only seven primary installation targets. WebAssembly stays an
+  Actions delivery artifact for that independent domain, never a GH
+  Release installer.
+- Windows WebEngine failure is traced to Qt 6.140's independent Extensions
+  repository. Pinned x64/ARM64 official paths and upstream SHA1-checked
+  installer are implemented; real hosted Windows installation still needs
+  verification. Original failed x86_64 run: 44375085212.
+- The VPS currently has **no resolving app.genycaster.xyz DNS record**,
+  active TLS certificate, or enabled app vhost. The dedicated
+  `ci/app_genycaster_nginx.conf` and strictly app-only WASM deployment
+  guard are prepared; **no public WASM rollout** until DNS/TLS/host
+  validation succeeds. The account API now checks the exact app Origin
+  plus matching Host without weakening CSRF; production must be updated
+  before app-domain enrollment is advertised.
+- No repository-level GitHub Actions signing Secrets were returned by the
+  repository inspection. Tagged release gates now check required macOS
+  Developer ID/notary and Android keystore credentials before expensive
+  toolchain builds. Do not tag or claim a public release until actual
+  secrets, signed package verification, live/installed qualification and
+  native HyperSnap OPP linking (#4) are complete.
+
 ## Initial-public-release scope checkpoint (18 November 2026)
 
 - The v1 contract explicitly **defers the standalone Chat and Wallet

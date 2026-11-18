@@ -24,10 +24,36 @@ while (($#)); do
         *) echo "Unsupported public deployment key: $key" >&2; exit 2 ;;
       esac
       shift 2 ;;
-    --help|-h) echo "Usage: bash ci/build_deploy_wasm_server.sh [--build-dir /absolute/path] [--web-root /absolute/path] [--define GENYCASTER_PUBLIC_ORIGIN=https://app.example.org]"; exit 0 ;;
+    --help|-h) echo "Usage: GENYCASTER_SITE_URL=https://app.genycaster.xyz bash ci/build_deploy_wasm_server.sh [--build-dir /absolute/path] [--web-root /var/www/app.genycaster.xyz/public]"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
+
+# WebAssembly production is explicitly confined to app.genycaster.xyz.
+# Never treat the company landing site (genycaster.xyz) as a WASM web root.
+# Check these before running a potentially lengthy server-side Qt build.
+if [[ -n "$web_root" ]]; then
+  app_origin="https://app.genycaster.xyz"
+  if [[ "${GENYCASTER_SITE_URL:-}" != "$app_origin" ]]; then
+    echo "WASM deployment requires GENYCASTER_SITE_URL=$app_origin" >&2
+    exit 2
+  fi
+  if [[ "$web_root" != "/var/www/app.genycaster.xyz/public" ]]; then
+    echo "WASM deployment must target the dedicated app.genycaster.xyz web root" >&2
+    exit 2
+  fi
+  for definition in "${deployment_defines[@]}"; do
+    if [[ "$definition" == -DGENYCASTER_PUBLIC_ORIGIN=* &&
+          "$definition" != "-DGENYCASTER_PUBLIC_ORIGIN=$app_origin" ]] ||
+       [[ "$definition" == -DGENYCASTER_SIWF_ORIGIN=* &&
+          "$definition" != "-DGENYCASTER_SIWF_ORIGIN=$app_origin" ]]; then
+      echo "Cross-origin WASM deployment is not permitted: $definition" >&2
+      exit 2
+    fi
+  done
+  deployment_defines+=("-DGENYCASTER_PUBLIC_ORIGIN=$app_origin"
+                      "-DGENYCASTER_SIWF_ORIGIN=$app_origin")
+fi
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 repo_root="$PWD"
@@ -90,6 +116,9 @@ if [[ "$web_root" != /* ]]; then
   echo "--web-root must be an existing absolute path" >&2; exit 2
 fi
 web_root="$(realpath -e "$web_root")"
+if [[ "$web_root" != "/var/www/app.genycaster.xyz/public" ]]; then
+  echo "Resolved WASM root does not match app.genycaster.xyz" >&2; exit 2
+fi
 if [[ ! -d "$web_root" || "$web_root" == "/" ||
       "$web_root" == "$repo_root" || "$web_root" == "$repo_root/"* ]]; then
   echo "Refusing unsafe web root: $web_root" >&2; exit 2

@@ -61,8 +61,8 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
 
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("Install separately versioned Qt WebEngine extension", workflow)
-        self.assertIn("ci/install_qt_windows.py --destination Qt --architecture "
-                      "${{ matrix.arch }} --webengine-only", workflow)
+        self.assertIn("ci/install_qt_webengine_windows.py --destination Qt --architecture "
+                      "${{ matrix.arch }}", workflow)
         self.assertNotIn("python -m aqt install-qt windows desktop 6.12.0", workflow)
         for arch, platform, folder, suffix, stamp in (
             ("x86_64", "windows_x86", "msvc2022_64", "win64_msvc2022_64",
@@ -113,6 +113,13 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         # cannot bypass architecture, translation, privacy or design gates.
         gate = job_source(s, "gate", "linux")
         self.assertIn("run: python3 ci/server_acceptance.py --strict-design", gate)
+        self.assertIn("Refuse an unsigned public release before installing toolchains", gate)
+        self.assertIn("MACOS_DEVELOPER_ID_P12_BASE64", gate)
+        self.assertIn("ANDROID_KEYSTORE_BASE64", gate)
+        # Browser WASM stays a separately verified site artifact, not a
+        # public downloadable installer in GitHub Release assets.
+        from ci.release_artifacts import EXPECTED
+        self.assertNotIn("GenyCaster-web-wasm", EXPECTED)
         self.assertIn("if: steps.release.outputs.release == 'true'", gate)
         self.assertIn("          python3 ci/audit_linux_appdir.py AppDir --require-miniapps", s)
         # Truncated grep commands were accepted as YAML block text, then

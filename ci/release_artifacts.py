@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify each platform produced one nonempty package and aggregate SHA-256."""
+"""Publish native packages only; WASM must be deployed to app.genycaster.xyz."""
 from __future__ import annotations
 
 import hashlib
@@ -15,8 +15,6 @@ EXPECTED = {
     "GenyCaster-windows-x86_64": ".exe",
     "GenyCaster-windows-arm64": ".exe",
     "GenyCaster-android-arm64-v8a": ".apk",
-    "GenyCaster-android-armeabi-v7a": ".apk",
-    "GenyCaster-web-wasm": ".tar.gz",
 }
 
 # Auxiliary deployable packages and updater transport metadata. The primary

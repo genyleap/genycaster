@@ -146,7 +146,7 @@ def blockers() -> list[str]:
                 "-DFARCASTER_ENABLE_MINIAPPS=ON",
                 "farcaster_miniapp_browser",
                 "Install separately versioned Qt WebEngine extension",
-                "--modules qtwebengine --noarchives",
+                "ci/install_qt_webengine_windows.py --destination Qt --architecture",
                 "QtWebEngineProcess.exe",
                 "qtwebenginequickplugin.dll")):
         errors.append("Windows: no verified origin-bound native Mini App SDK host")
@@ -198,6 +198,18 @@ def blockers() -> list[str]:
                  "ui/wasm/miniapp-wallet-provider.mjs"):
         if not (ROOT / path).is_file():
             errors.append(f"Web: missing SDK implementation: {path}")
+    # Keep the WASM origin distinct from the genycaster.xyz company site.
+    if not all(f'-D{key}=https://app.genycaster.xyz' in web
+               for key in ("GENYCASTER_PUBLIC_ORIGIN",
+                           "GENYCASTER_SIWF_ORIGIN")):
+        errors.append("Web: v1 WebAssembly origin must be app.genycaster.xyz")
+    deploy = read("ci/build_deploy_wasm_server.sh")
+    if not all(proof in deploy for proof in (
+            'app_origin="https://app.genycaster.xyz"',
+            '/var/www/app.genycaster.xyz/public',
+            'GENYCASTER_SITE_URL',
+            'Cross-origin WASM deployment is not permitted')):
+        errors.append("Web: production deployment is not confined to app.genycaster.xyz")
 
     # The deferred Wallet *product* is not the Mini App external wallet
     # transport. A release that disables or disconnects the actual external

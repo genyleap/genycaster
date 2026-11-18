@@ -114,9 +114,9 @@ class Arm64DispatchTest(unittest.TestCase):
     def test_manual_android_arm64_requests_only_arm64_v8a(self):
         workflow=(ROOT/".github/workflows/ci.yml").read_text()
         android=workflow.split("  android:\n",1)[1].split("  ios:\n",1)[0]
-        self.assertIn("inputs.platform == 'android' && inputs.target_arch == 'arm64'",android)
-        self.assertIn("'[{\"abi\":\"arm64-v8a\",\"qt_arch\":\"android_arm64_v8a\",\"openssl_arch\":\"arm64\",\"machine\":\"AArch64\"}]'",android)
-        self.assertIn("\"abi\":\"armeabi-v7a\"",android)
+        self.assertIn('fromJSON(\'[{"abi":"arm64-v8a"',android)
+        self.assertIn('"qt_arch":"android_arm64_v8a"', android)
+        self.assertNotIn("armeabi-v7a", android)
         self.assertIn("-DANDROID_ABI=${{ matrix.abi }}",android)
         self.assertIn("apksigner",android)
         self.assertIn("zipalign",android)

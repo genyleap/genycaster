@@ -41,6 +41,22 @@ rules on supported hosts, OS signing, live verification or install testing.
 The strict feature gate validates only what v1 explicitly advertises; it is
 not a public-release approval on its own.
 
+## Requested release delivery targets (2026-11-18)
+
+- **macOS**: `x86_64` (Intel) and `arm64`, DMG plus signed update transport
+- **Windows**: `x86_64` and `arm64`, NSIS installer plus update transport
+- **Linux**: `x86_64` and `arm64`, AppImage, DEB and zsync metadata
+- **Android**: `arm64-v8a` only, release-signed APK (not CI-test-signed)
+- **WebAssembly**: site-only build for `https://app.genycaster.xyz`,
+  **not** an installable GitHub Release download or a replacement for the
+  `genycaster.xyz` company landing site.
+
+All native artifacts must come from the **same tagged source revision** and
+pass post-package and clean-install checks. Web hosting additionally
+requires DNS/TLS, a dedicated app vhost, and an exact origin/host-protected
+account API. Signing, notarization and live registration verification remain
+mandatory and cannot be bypassed by a successful source-only CI gate.
+
 ## Non-negotiable behavioral requirements
 
 1. Protocol registration success is established by the appropriate authoritative

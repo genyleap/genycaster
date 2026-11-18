@@ -65,8 +65,8 @@ the app's language reselects the release content immediately.
 | Linux x86_64 / arm64 | Ubuntu 24.04 x64 / ARM hosted, GCC 16 | Architecture-specific AppImage, DEB and `.zsync` metadata |
 | macOS arm64 / x86_64 | macOS 26 ARM / Intel, LLVM | Architecture-specific DMG and verified self-update transport archive |
 | Windows x86_64 / arm64 | Windows 2022 x64 / Windows 11 ARM, Clang-CL/MSVC ABI | NSIS `.exe` installer and verified self-update transport archive |
-| Android arm64-v8a / armeabi-v7a | Ubuntu 24.04, NDK 27.2.12479018 | ABI-specific APK |
-| WebAssembly | Ubuntu 24.04, Emscripten 5.0.5 | Static-site tar.gz |
+| Android arm64-v8a only | Ubuntu 24.04, NDK 27.2.12479018 | Signed release APK; other Android ABIs excluded |
+| WebAssembly | Ubuntu 24.04, Emscripten 5.0.5 | Verified site artifact for **app.genycaster.xyz only**, not a GitHub Release download |
 | iOS arm64 | macOS 15 + iOS SDK | CI-only unsigned .app archive (not a distributable IPA) |
 | NixOS x86_64 / arm64 | Native Nix GCC 16 + Qt on Linux x64 / ARM | Nix package build and closure manifest |
 
@@ -76,7 +76,9 @@ module/standard-library support; stock Clang 18 with the default libstdc++
 failed on `std::expected` during the first hosted run. All Qt platforms
 explicitly install the qtmultimedia addon; the base Qt archive alone is
 incomplete. Windows uses `ci/install_qt_windows.py` to retrieve the official
-pinned MSVC2022 Qt 6.12 archives with upstream checksums: the 6.12 public
+pinned MSVC2022 Qt 6.12 archives with upstream checksums and
+`ci/install_qt_webengine_windows.py` to retrieve the separately versioned,
+checksum-verified official WebEngine 6.140 extension for x64 and ARM64: the 6.12 public
 repository has component directories but no `Updates.xml` understood by aqt.
 Android compiles OpenSSL 3.5.9 for its target architecture, rather than linking macOS/Linux
 binaries. Emscripten 5.0.5 matches the Qt 6.12 requirement. Linux, Windows
@@ -125,11 +127,23 @@ changing the website**. Only after the archive passes verification, publish
 to the **actual Nginx static root** (check the live vhost configuration first):
 
 ```bash
-GENYCASTER_SITE_URL=https://app.example.com \
-  bash ci/build_deploy_wasm_server.sh --web-root /ACTUAL/NGINX/STATIC/ROOT
+GENYCASTER_SITE_URL=https://app.genycaster.xyz \
+  bash ci/build_deploy_wasm_server.sh --web-root /var/www/app.genycaster.xyz/public
 ```
 
 The process needs write access to the live static directory and its parent.
+**DNS/TLS prerequisite:** `app.genycaster.xyz` must first resolve to the
+VPS through a DNS record controlled by the domain administrator. Prepare the
+dedicated static root `/var/www/app.genycaster.xyz/public`, issue its own
+valid TLS certificate, and activate the reviewed vhost
+[`ci/app_genycaster_nginx.conf`](app_genycaster_nginx.conf) after `nginx -t`.
+The vhost proxies only the app's first-party cloud API to localhost and
+preserves the separate `genycaster.xyz` landing-site vhost. The account
+service must be deployed with the exact app Origin/Host acceptance patch;
+the browser API uses host-only cookies and remains CSRF-protected. When DNS
+or TLS is missing, **do not upload the WASM files to an alternative domain**
+or weaken the release gate. The build artifact can still be verified offline.
+
 The deploy step stages the full archive outside the public root, installs
 new immutable WASM first, atomically replaces mutable assets with backups,
 and promotes `genycaster.html` last. Existing content-hashed WASM

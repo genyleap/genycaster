@@ -336,12 +336,13 @@ def main() -> None:
     assert "token: ${{ github.token }}" in workflow
     assert "prerelease: ${{ contains(github.ref_name, '-') }}" in workflow
     assert "windows-11-arm" in workflow
-    assert "android_armv7" in workflow
+    assert "android_arm64_v8a" in workflow and "android_armv7" not in workflow
     assert "name: iOS arm64 unsigned device app" in workflow
     assert "name: NixOS" in workflow
     assert "GenyCaster-linux-arm64" in workflow
     assert "GenyCaster-windows-arm64" in workflow
-    assert "GenyCaster-android-armeabi-v7a" in workflow
+    assert "GenyCaster-android-arm64-v8a" in workflow
+    assert "GenyCaster-android-armeabi-v7a" not in workflow
     assert '"vcpkg_triplet":"x64-windows"' in workflow
     assert '"vcpkg_triplet":"arm64-windows"' in workflow
     assert "inputs.target_arch == 'arm64'" in workflow
@@ -384,7 +385,7 @@ def main() -> None:
     assert 'shlib_variant => "_3"' in workflow
     assert './Configure "android-genycaster-${{ matrix.openssl_arch }}" shared no-tests' in workflow
     assert '"android-genycaster-arm" =>' in workflow
-    assert "arm64-v8a" in workflow and "armeabi-v7a" in workflow
+    assert "arm64-v8a" in workflow and "armeabi-v7a" not in workflow
     assert "patchelf --set-soname" not in workflow
     assert "patchelf --page-size" not in workflow
     assert 'llvm-readelf" -d "$libdir/$lib" > "$libdir/$lib.dynamic.txt"' in workflow
