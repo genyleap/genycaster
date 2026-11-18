@@ -61,30 +61,30 @@ Item {
             spacing: 4
             Repeater {
                 model: [Theme.marketSeasonWeak, Theme.marketSeasonCooling, Theme.marketSeasonNeutral, Theme.marketSeasonWarming, Theme.accent]
-                delegate: Rectangle {
+                delegate: Superellipse {
                     required property var modelData
                     width: Math.max(0, (track.width - 16) / 5)
                     height: track.height
-                    radius: height / 2
-                    antialiasing: true
-                    color: modelData
+                    curveDepth: height / 2
+                    exponent: 2
+                    fillColor: modelData
                 }
             }
         }
 
-        Rectangle {
+        Superellipse {
             visible: root.available
             width: 17
             height: width
-            radius: width / 2
-            antialiasing: true
+            curveDepth: width / 2
+            exponent: 2
             y: (track.height - height) / 2
             readonly property real logicalFraction: Theme.rtl ? 1-root.progress : root.progress
             x: Math.max(0, Math.min(track.width - width,
                    track.width * logicalFraction - width/2))
-            color: Theme.textPrimary
-            border.color: Theme.surface
-            border.width: 3
+            fillColor: Theme.textPrimary
+            borderColor: Theme.surface
+            borderWidth: 3
             Behavior on x {
                 enabled: !Theme.reduceMotion
                 NumberAnimation { duration: 380; easing.type: Easing.OutCubic }
