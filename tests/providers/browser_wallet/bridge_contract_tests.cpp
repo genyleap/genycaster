@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cstdint>
 #include <future>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -584,6 +585,99 @@ void testBridgeRejectsUnsupportedChainBeforeWallet()
     assert(response.error->code == 4901);
 }
 
+
+void testOriginGrantRevocationAndChainChangedRequireFreshConsent()
+{
+    using provider::compatibility::browser_wallet::bridge::Config;
+    using provider::compatibility::browser_wallet::bridge::makeBridge;
+
+    std::promise<std::string> launchPromise{};
+    auto launched = launchPromise.get_future();
+    auto bridge = makeBridge(Config{
+        .launch = [&launchPromise](const std::string& url) -> foundation::result::Status {
+            launchPromise.set_value(url);
+            return {};
+        },
+        .supportedChains = {"eip155:1", "eip155:8453"},
+        .requestTimeout = std::chrono::seconds{3},
+    });
+    assert(bridge);
+    assert((*bridge)->beginSession("Wallet permissions", "https://permissions.example"));
+
+    const auto rpc = [&bridge](std::uint64_t id, std::string method,
+                               std::string params = "[]") {
+        // Completion may run on the bridge worker after this helper returns:
+        // keep the promise alive by value, never capture a stack reference.
+        auto promise = std::make_shared<std::promise<capability::wallet::EthereumRpcResponse>>();
+        auto result = promise->get_future();
+        (*bridge)->request({
+            .id = id, .method = std::move(method), .paramsJson = std::move(params),
+        }, [promise](auto response) { promise->set_value(std::move(response)); });
+        return result;
+    };
+    auto connect = rpc(201U, "eth_requestAccounts");
+    assert(launched.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto url = parseLoopbackUrl(launched.get());
+    const auto finish = [&url](json::value completion) {
+        const auto next = request(url, http::verb::get, url.target + "/next");
+        assert(next.result() == http::status::ok);
+        boost::system::error_code error{};
+        const auto payload = json::parse(next.body(), error);
+        assert(!error && payload.is_object());
+        const auto value = payload.as_object().at("transportId");
+        const auto id = value.is_uint64() ? value.as_uint64()
+            : static_cast<std::uint64_t>(value.as_int64());
+        const auto posted = request(url, http::verb::post, url.target + "/result",
+            json::serialize(json::object{
+                {"transportId", id},
+                {"result", std::move(completion)},
+            }));
+        assert(posted.result() == http::status::ok);
+    };
+    const json::array approvedAccounts{"0x1111111111111111111111111111111111111111"};
+    finish(approvedAccounts);
+    assert(connect.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(!connect.get().error);
+
+    // A successful EIP-2255 revoke must clear both public-account disclosure
+    // and the remembered signer/RPC grant for exactly this Mini App origin.
+    auto revoke = rpc(202U, "wallet_revokePermissions",
+                                      R"([{"eth_accounts":{}}])");
+    finish(json::array{});
+    assert(revoke.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(!revoke.get().error);
+
+    auto privateAccounts = rpc(203U, "eth_accounts");
+    assert(privateAccounts.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto hidden = privateAccounts.get();
+    assert(!hidden.error && hidden.resultJson == "[]");
+
+    auto blockedSign = rpc(204U, "personal_sign",
+                                           R"(["0x6869","0x1111111111111111111111111111111111111111"])");
+    assert(blockedSign.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(blockedSign.get().error->code == 4100);
+
+    // Reconnecting is explicit, never inherited from a successful revoke.
+    auto reconnect = rpc(205U, "eth_requestAccounts");
+    finish(approvedAccounts);
+    assert(reconnect.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(!reconnect.get().error);
+
+    // A chain switch invalidates the old origin/account permission even if
+    // the provider retains the same public EVM address.
+    const auto switchEvent = request(url, http::verb::post, url.target + "/event",
+        R"({"event":"chainChanged","params":["0x2105"]})");
+    assert(switchEvent.result() == http::status::ok);
+    auto chainAccounts = rpc(206U, "eth_accounts");
+    assert(chainAccounts.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto deniedAccounts = chainAccounts.get();
+    assert(!deniedAccounts.error && deniedAccounts.resultJson == "[]");
+    auto blockedSend = rpc(207U, "eth_sendTransaction",
+                                           R"([{"to":"0x2222222222222222222222222222222222222222"}])");
+    assert(blockedSend.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(blockedSend.get().error->code == 4100);
+}
+
 } // namespace
 
 int main()
@@ -591,6 +685,7 @@ int main()
     testBridgeRoutesWalletRequestsAndEvents();
     testAccountAccessConsentIsRememberedPerOrigin();
     testAccountPrivacyUntilExplicitPermission();
+    testOriginGrantRevocationAndChainChangedRequireFreshConsent();
     testBridgeRejectsUnsupportedChainBeforeWallet();
     testPassiveChainDiscoveryDoesNotOpenBrowser();
     testClosingBridgeWithHalfOpenHttpConnectionIsBounded();

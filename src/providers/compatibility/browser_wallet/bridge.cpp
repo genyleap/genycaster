@@ -1000,13 +1000,22 @@ private:
                     }
                 }
             }
-            if (grantedAccounts) {
+            if (pending.request.method == "wallet_revokePermissions") {
+                // EIP-2255 revocation is meaningful only after a successful
+                // provider response. Never continue disclosing eth_accounts or
+                // permitting signature RPCs on a stale, remembered origin grant.
                 std::scoped_lock lock{m_mutex};
-                m_accountAccessGrants.insert(pending.origin);
-                if (!grantedAddress.empty())
-                    m_grantedAccountByOrigin[pending.origin] = grantedAddress;
-                else
-                    m_grantedAccountByOrigin.erase(pending.origin);
+                m_accountAccessGrants.erase(pending.origin);
+                m_grantedAccountByOrigin.erase(pending.origin);
+            } else if (grantedAccounts) {
+                std::scoped_lock lock{m_mutex};
+                if (m_active && m_origin == pending.origin) {
+                    m_accountAccessGrants.insert(pending.origin);
+                    if (!grantedAddress.empty())
+                        m_grantedAccountByOrigin[pending.origin] = grantedAddress;
+                    else
+                        m_grantedAccountByOrigin.erase(pending.origin);
+                }
             }
         } else {
             response.error = capability::wallet::EthereumRpcError{
@@ -1044,7 +1053,11 @@ private:
             }
             const bool disconnected = *kind == capability::wallet::EthereumWalletEventKind::Disconnect;
             const bool accountChanged = *kind == capability::wallet::EthereumWalletEventKind::AccountsChanged;
-            bool principalChanged = disconnected;
+            const bool chainChanged = *kind == capability::wallet::EthereumWalletEventKind::ChainChanged;
+            // A grant to account A on chain X must never be carried into
+            // chain Y. A repeated chain event is conservatively treated as a
+            // new authority context until the user reconnects explicitly.
+            bool principalChanged = disconnected || chainChanged;
             if (accountChanged) {
                 // The provider may emit accountsChanged with the SAME account
                 // immediately after a successful connect. Do not treat that
