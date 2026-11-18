@@ -590,6 +590,31 @@ elseif(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     else()
         message(STATUS "Native Linux Mini App host disabled: Qt WebEngine/WebChannel absent")
     endif()
+elseif(FARCASTER_ENABLE_MINIAPPS AND WIN32)
+    # Qt WebEngine's off-the-record profile, isolated ApplicationWorld bridge
+    # and origin-locked page are portable Qt APIs. Reuse the audited native
+    # Linux implementation instead of introducing a weaker Windows WebView.
+    # Do not silently package a browser without the SDK transport.
+    find_package(Qt6 6.12 REQUIRED COMPONENTS
+        Widgets WebChannel WebEngineWidgets WebEngineQuick)
+    add_library(farcaster_miniapp_browser STATIC
+        app/miniapp/browser_linux.cpp
+        app/miniapp/browser_linux_quick.cpp)
+    target_compile_features(farcaster_miniapp_browser PUBLIC cxx_std_26)
+    target_link_libraries(farcaster_miniapp_browser PRIVATE
+        Qt6::Core Qt6::Gui Qt6::Network Qt6::Widgets Qt6::Quick Qt6::Qml
+        Qt6::WebChannel Qt6::WebEngineWidgets Qt6::WebEngineQuick)
+    farcaster_enable_warnings(farcaster_miniapp_browser)
+    set(_genycasterMiniAppBrowserAvailable ON)
+    target_link_libraries(genycaster PRIVATE Qt6::Widgets Qt6::WebEngineQuick)
+    target_compile_definitions(genycaster PRIVATE
+        GENYCASTER_HAS_WINDOWS_MINIAPP_HOST=1)
+    set_source_files_properties(app/miniapp/EmbeddedBrowser.qml
+        PROPERTIES QT_RESOURCE_ALIAS "EmbeddedBrowser.qml")
+    qt_add_resources(genycaster genycaster_windows_miniapp_quick
+        PREFIX "/genycaster/miniapp"
+        FILES app/miniapp/EmbeddedBrowser.qml)
+    message(STATUS "Native Windows Mini App host: Qt WebEngine Widgets + Quick + WebChannel")
 endif()
 if(_genycasterMiniAppBrowserAvailable)
     add_library(farcaster_miniapp_runtime STATIC)

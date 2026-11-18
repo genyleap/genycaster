@@ -14,6 +14,9 @@ if(EMSCRIPTEN)
     set(FARCASTER_ENABLE_SIGNER_ATTESTATION_PROVIDER OFF CACHE BOOL "" FORCE)
     set(FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER OFF CACHE BOOL "" FORCE)
     set(FARCASTER_ENABLE_BROWSER_WALLET_BRIDGE OFF CACHE BOOL "" FORCE)
+    # Native Mini App C++ runtime is unavailable inside Qt WebAssembly.
+    # The first-party iframe SDK is bundled by ui/CMakeLists.txt; C++
+    # configuredFeatures reflects that browser capability separately.
     set(FARCASTER_ENABLE_MINIAPPS OFF CACHE BOOL "" FORCE)
     set(FARCASTER_ENABLE_MEDIA_UPLOAD OFF CACHE BOOL "" FORCE)
     set(GENYCASTER_ENABLE_PUBLIC_DATA_PROVIDER OFF CACHE BOOL "" FORCE)

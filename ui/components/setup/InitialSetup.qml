@@ -22,6 +22,11 @@ Item {
     property bool legalConsentAccepted: false
     property string authenticationPhase: "signed-out"
     property string authenticationRoute: "openproof"
+    // A named active route prevents the OpenProof and Farcaster sign-in
+    // options from displaying a shared, misleading busy state.
+    readonly property string activeSignInRoute: root.authenticationInProgress
+        ? (root.authenticationRoute === "farcaster" ? "farcaster"
+           : root.authenticationRoute === "openproof" ? "openproof" : "") : ""
     property bool authenticationApprovalAvailable: false
     property string authenticationErrorText: ""
     property string signerStatusText: ""
@@ -1500,7 +1505,9 @@ Item {
                         networkShowcase: true
                         protocolChoice: true
                         title: qsTrId("genycaster.settings.hypersnap_label")
-                        subtitle: qsTrId("genycaster.setup.registration_hypersnap_description")
+                        subtitle: qsTrId("genycaster.setup.network_hypersnap_category")
+                                      .arg(qsTrId("genycaster.setup.decentralized_label"))
+                                  + "\n" + qsTrId("genycaster.setup.registration_hypersnap_description")
                         iconGlyph: "quilibrium/hypersnap"
                         selected: root.registrationProviderId === "hypersnap-v2"
                         enabled: !neynarRegistration.pending
@@ -1522,7 +1529,9 @@ Item {
                         networkShowcase: true
                         protocolChoice: true
                         title: qsTrId("genycaster.setup.registration_neynar_label")
-                        subtitle: qsTrId("genycaster.setup.registration_neynar_description")
+                        subtitle: qsTrId("genycaster.setup.network_farcaster_category")
+                                      .arg(qsTrId("genycaster.setup.centralized_service_label"))
+                                  + "\n" + qsTrId("genycaster.setup.registration_neynar_description")
                         iconGlyph: "brands/farcaster"
                         selected: root.registrationProviderId === "farcaster-snapchain"
                         enabled: !nativeRegistrationPublisher.pending
@@ -2600,6 +2609,7 @@ Item {
                 onboardingStyle: true
                 brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
                 title: qsTrId("genycaster.shell.continue_with_genyleap")
+                busy: root.authenticationInProgress && root.authenticationRoute === "openproof"
                 enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
                 onClicked: {
                     root.continueWithGenyleap()
@@ -2613,6 +2623,7 @@ Item {
                 onboardingStyle: true
                 iconGlyph: "brands/farcaster"
                 title: qsTrId("genycaster.shell.sign_in_with_farcaster")
+                busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
                 enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
                 onClicked: {
                     root.continueWithFarcaster()
@@ -2686,6 +2697,17 @@ Item {
                 color: Theme.ink
                 font.pixelSize: root.phone ? 25 : 30
                 font.weight: Theme.weightBold
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+            DirectionAwareLabel {
+                visible: root.authenticated && root.authenticationRoute === "farcaster"
+                         && root.accountIdentityIssuer === deploymentEndpoints.openProofIssuer
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.shell.farcaster_sign_in_openproof_verification")
+                color: Theme.accent
+                font.pixelSize: Theme.typeCaptionSize
+                font.weight: Theme.weightDemiBold
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }

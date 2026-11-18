@@ -272,18 +272,25 @@ if 'render/stroke.cpp' not in cmake or 'render/superellipse.cpp' not in cmake:
 # on its content item rather than the GenyModal root object.
 locale_popup = (ui/'components'/'settings'/'SettingsPopup.qml').read_text(encoding='utf-8')
 locale_root_prefix = locale_popup.split('contentItem:', 1)[0]
-if 'Accessible.' in locale_root_prefix:
+# Attached properties on nested visual children are valid. Reject them only
+# at the root Popup indentation, where QObject lacks a QQuickItem surface.
+if re.search(r'^    Accessible\.', locale_root_prefix, re.M):
     errors.append('LocaleSettingsPopup attaches Accessible to Popup instead of its content Item')
-if 'LayoutMirroring.' in locale_root_prefix:
+if re.search(r'^    LayoutMirroring\.', locale_root_prefix, re.M):
     errors.append('LocaleSettingsPopup attaches LayoutMirroring to Popup instead of its content Item')
 if re.search(r'Layout\.(?:maximumWidth|minimumWidth|preferredWidth)\s*:\s*[^\n]*parent\.width', locale_popup):
     errors.append('LocaleSettingsPopup Layout width constraints must not derive from their RowLayout parent width')
 if 'DisplayScaleControl {' not in locale_popup:
     errors.append('Display settings must use the dedicated Genycaster scale control rather than stock slider rows')
-if ('id: settingsTabs' not in locale_popup
-        or 'columns: root.compactLayout ? 5 : root.width >= 720 ? 3 : 2' not in locale_popup
-        or 'implicitHeight: settingsTabs.implicitHeight' not in locale_popup):
-    errors.append('Settings navigation must show complete labels in a two-row desktop grid and retain compact mobile icons')
+if ('component SettingsNavigationTab: Button {' not in locale_popup
+        or 'contentItem: RowLayout {' not in locale_popup
+        or 'text: navTab.text' not in locale_popup
+        or 'id: settingsNavigation' not in locale_popup
+        or 'visible: !root.mobilePresentation' not in locale_popup
+        or 'id: mobileSettingsIndex' not in locale_popup
+        or 'component MobileSettingsGroup: ColumnLayout {' not in locale_popup
+        or 'root.currentSection === Number(modelData.section)' not in locale_popup):
+    errors.append('Settings navigation must retain full desktop labels and grouped mobile destinations')
 
 app_shell = (ui/'components'/'shell'/'AppShell.qml').read_text(encoding='utf-8')
 setup_screen = (ui/'components'/'setup'/'InitialSetup.qml').read_text(encoding='utf-8')
@@ -386,7 +393,8 @@ if ('readonly property rect cornerTargetRect:' not in gallery_tile
         or 'y: root.cornerTargetRect.y' not in gallery_tile):
     errors.append('GalleryTile must round the actual painted PreserveAspectFit image rectangle, not only the reserved tile bounds')
 if ('id: newPostsSlot' not in feed_surface
-        or 'implicitHeight: feedHeaderLoader.implicitHeight + communityNotice.height + newPostsSlot.height' not in feed_surface
+        or '+ newPostsSlot.height' not in feed_surface
+        or 'id: pinnedHeader' not in feed_surface
         or 'header.mapToItem(root, 0, header.height - newPostsBanner.height).y' not in feed_surface
         or 'const header = readList.headerItem' not in feed_surface
         or 'newPostsSlot.mapToItem(root, 0, 0).y' in feed_surface):
@@ -401,15 +409,18 @@ for token in (
 ):
     if token not in gallery_layout:
         errors.append(f'GalleryLayout scroll-time tile admission missing {token!r}')
-if ('boundsBehavior: Flickable.StopAtBounds' not in profile_surface
-        or 'boundsMovement: Flickable.StopAtBounds' not in profile_surface
-        or 'boundsBehavior: Flickable.StopAtBounds' not in feed_surface
-        or 'boundsMovement: Flickable.StopAtBounds' not in feed_surface
+# Drag overshoot is required for pull-to-refresh on mobile. Ordinary
+# wheel/flick movements remain bounded by Qt; the empty state is a measured
+# list footer rather than an overlaid negative-height card.
+if ('boundsBehavior: Flickable.DragOverBounds' not in profile_surface
+        or 'boundsMovement: Flickable.FollowBoundsBehavior' not in profile_surface
+        or 'boundsBehavior: Flickable.DragOverBounds' not in feed_surface
+        or 'boundsMovement: Flickable.FollowBoundsBehavior' not in feed_surface
+        or 'headerPositioning: ListView.InlineHeader' not in feed_surface
         or 'id: feedEmptyState' not in feed_surface
         or 'height: stableRows.count === 0' not in feed_surface
-        or 'headerPositioning: root.compact || stableRows.count === 0' not in feed_surface
         or 'id: stateContent' not in (root/'ui/components/controls/EmptyState.qml').read_text()):
-    errors.append('Feed/profile scrolling must be bounded and empty state inside the list footer')
+    errors.append('Feed/profile pull-to-refresh and measurable list footer contracts regressed')
 if 'Item {\n            id: messageSurface' not in cast_item \
         or 'HoverHandler { id: messageHover }' in cast_item \
         or 'anchors.leftMargin: root.contentRtl ? Theme.space3 : 58' not in cast_item \
@@ -983,14 +994,27 @@ if ('root.authenticationInProgress && root.authenticationRoute === "openproof"' 
         or 'readonly property string activeSignInRoute:' not in setup
         or 'busy: root.authenticationInProgress\n' in setup):
     errors.append('Setup sign-in spinner must be bound to its own auth route, not shared across providers')
-if ('fillColor: stepButton.current ? Theme.surfaceSelected' not in setup
-        or 'stepButton.current || stepButton.hovered' not in setup
-        or 'stepButton.hovered ? Theme.accent : Theme.inkMuted' not in setup):
-    errors.append('Setup sidebar must maintain explicit hover text/icon contrast and active surface')
+# This onboarding uses a single shared eight-step animated progress indicator
+# instead of the removed sidebar step-button list. Require visible selection,
+# accessible progress and keyboard-navigable back action on the actual surface.
+indicator = (ui / 'components' / 'setup' / 'SetupStepIndicator.qml').read_text(encoding='utf-8')
+if ('id: setupProgress' not in setup
+        or 'stepCount: root.progressCount' not in setup
+        or 'currentStep: root.currentStep' not in setup
+        or 'readonly property bool active: index === root.activeIndex' not in indicator
+        or 'fillColor: marker.active ? Theme.accent' not in indicator
+        or 'duration: Theme.reduceMotion ? 0 : Theme.motionStandard' not in indicator
+        or 'id: mobileSetupNav' not in setup
+        or 'anchors.top: root.phone ? mobileSetupNav.top : parent.top' not in setup):
+    errors.append('Setup progress indicator and accessible back-navigation contract regressed')
 if ('readonly property bool visuallyDisabled: !enabled && !busy' not in setup_card):
     errors.append('In-flight sign-in action must retain its primary visual state while non-clickable')
-if ('qsTrId("genycaster.setup.network_farcaster_category").arg(qsTrId("genycaster.setup.centralized_service_label"))' not in setup
-        or 'qsTrId("genycaster.setup.network_hypersnap_category").arg(qsTrId("genycaster.setup.decentralized_label"))' not in setup):
+if (not re.search(
+        r'qsTrId\("genycaster\.setup\.network_farcaster_category"\)\s*'
+        r'\.arg\(qsTrId\("genycaster\.setup\.centralized_service_label"\)\)', setup)
+        or not re.search(
+        r'qsTrId\("genycaster\.setup\.network_hypersnap_category"\)\s*'
+        r'\.arg\(qsTrId\("genycaster\.setup\.decentralized_label"\)\)', setup)):
     errors.append('Setup must distinguish centralized Farcaster from decentralized Hypersnap in translated network labels')
 
 if errors:

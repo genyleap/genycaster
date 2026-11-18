@@ -10,6 +10,10 @@ if(NOT qmlformat)
     message(FATAL_ERROR "Qt qmlformat not found; set QT_QMLFORMAT_EXECUTABLE")
 endif()
 foreach(file IN ITEMS
+    ui/components/shell/AppShell.qml
+    ui/components/profile/GenyProDetailsDrawer.qml
+    ui/components/settings/SettingsPopup.qml
+    ui/components/setup/InitialSetup.qml
     ui/components/feed/FeedSurface.qml
     ui/components/feed/DetailSurface.qml
     ui/components/content/RichCastRenderer.qml

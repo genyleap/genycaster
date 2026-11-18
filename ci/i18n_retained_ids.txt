@@ -136,14 +136,12 @@ genycaster.setup.authentication_explainer
 genycaster.setup.browser_guest_mode
 genycaster.setup.browser_preview_runs_in_guest_read_only_mode_reading
 genycaster.setup.browser_sign_in_verifies_your_genyleap_openproof_account_and
-genycaster.setup.centralized_service_label
 genycaster.setup.choose_network
 genycaster.setup.connection_mode_help
 genycaster.setup.connection_mode_title
 genycaster.setup.consent_recorded
 genycaster.setup.continue_as_guest
 genycaster.setup.continue_without_an_account_to_explore_public_feeds
-genycaster.setup.decentralized_label
 genycaster.setup.direct
 genycaster.setup.farcaster_explainer
 genycaster.setup.farcaster_hosted_node
@@ -167,8 +165,6 @@ genycaster.setup.network_body
 genycaster.setup.network_connection
 genycaster.setup.network_current_note
 genycaster.setup.network_experimental
-genycaster.setup.network_farcaster_category
-genycaster.setup.network_hypersnap_category
 genycaster.setup.network_restart_note
 genycaster.setup.network_retest
 genycaster.setup.network_selected

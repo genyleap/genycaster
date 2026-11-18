@@ -8,7 +8,8 @@
 #include <QDebug>
 #include <QFont>
 #include <QGuiApplication>
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)
+#if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)) \
+ || (defined(Q_OS_WIN) && defined(GENYCASTER_HAS_WINDOWS_MINIAPP_HOST))
 #include <QApplication>
 #include <QtWebEngineQuick>
 #include "miniapp/browser_linux_quick.hpp"
@@ -275,7 +276,8 @@ int main(int argc, char* argv[])
     surfaceFormat.setSamples(RenderingController::sampleCountForProfile(startupRenderProfile));
     QSurfaceFormat::setDefaultFormat(surfaceFormat);
 
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)
+#if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)) \
+ || (defined(Q_OS_WIN) && defined(GENYCASTER_HAS_WINDOWS_MINIAPP_HOST))
     // WebEngine Quick's shared context must exist before QApplication.
     // QWidget is still used exclusively for Separate Window presentation.
     QtWebEngineQuick::initialize();
@@ -1410,7 +1412,8 @@ int main(int argc, char* argv[])
     desktopInstance.setWindow(mainWindow);
 #endif
     renderingController.attachWindow(mainWindow);
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)
+#if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)) \
+ || (defined(Q_OS_WIN) && defined(GENYCASTER_HAS_WINDOWS_MINIAPP_HOST))
     // Native in-window Mini App drawers must use the stable Qt Quick host,
     // not whichever transient Mini App window most recently gained focus.
     farcaster::platform::miniapp::setLinuxMiniAppQuickHost(mainWindow, &engine);

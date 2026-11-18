@@ -170,6 +170,7 @@ Item {
                 contentWidth: availableWidth
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 GridLayout {
+                    layoutDirection: Theme.uiDirection
                     width: nativeRecoveryScroll ? nativeRecoveryScroll.availableWidth : 0
                     columns: nativeRecoveryScroll.width < Theme.scaleUi(420) ? 3 : 4
                     columnSpacing: Theme.space2
@@ -3039,7 +3040,11 @@ Item {
                                  : presentationBridge.authenticationRoute === "recovery"
                                  ? qsTrId("genycaster.setup.recovery_verified")
                                  : presentationBridge.authenticationRoute === "farcaster"
-                                 ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
+                                   && presentationBridge.accountIdentityIssuer === deploymentEndpoints.openProofIssuer
+                                 ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_verification")
+                                   + "\n" + qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
+                                 : presentationBridge.authenticationRoute === "farcaster"
+                                 ? qsTrId("genycaster.shell.this_verified_session_identifies_your_account_protocol")
                                  : presentationBridge.accountIdentityIssuer.length > 0
                                    ? qsTrId("genycaster.shell.openproof_account_farcaster_protocol_identity")
                                    : qsTrId("genycaster.shell.this_verified_session_identifies_your_account_protocol"))

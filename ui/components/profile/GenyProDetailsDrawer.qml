@@ -482,7 +482,7 @@ GenyDrawer {
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             interactive: contentHeight > height
-            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            ScrollBar.vertical: GenyScrollBar { }
 
             ColumnLayout {
                 id: detailsColumn

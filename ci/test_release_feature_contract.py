@@ -24,7 +24,12 @@ class ReleaseFeatureContractTest(unittest.TestCase):
                     f"Missing Mini App SDK backend not reported for {platform}",
                 )
         if "set(FARCASTER_ENABLE_MINIAPPS OFF CACHE BOOL" in wasm:
-            self.assertTrue(any(item.startswith("Web:") for item in current))
+            app = read("src/application/CMakeLists.txt")
+            browser_feature = ("if(EMSCRIPTEN AND FARCASTER_BUILD_UI)" in app
+                               and "set(FARCASTER_ENABLE_MINIAPPS_CPP true)" in app)
+            self.assertEqual(
+                browser_feature, not any(item.startswith("Web:") for item in current),
+                "Native Mini Apps OFF must still advertise a bundled browser SDK")
 
     def test_complete_native_mini_apps_are_required(self):
         current = blockers()

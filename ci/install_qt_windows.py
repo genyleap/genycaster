@@ -40,6 +40,10 @@ def archive_layout(architecture: str) -> tuple[str, dict[str, tuple[str, ...]]]:
         f"qt.qt6.6120.addons.qtshadertools.{suffix}": ("qtshadertools",),
         f"qt.qt6.6120.addons.qtmultimedia.{suffix}": ("qtmultimedia",),
         f"qt.qt6.6120.addons.qtlottie.{suffix}": ("qtlottie",),
+        # Origin-bound Mini App SDK host: both the QWidget and Quick
+        # WebEngine runtimes and their isolated WebChannel transport are
+        # mandatory. A partial install must fail before compilation.
+        f"qt.qt6.6120.addons.qtwebchannel.{suffix}": ("qtwebchannel",),
     }
     return base, packages
 
@@ -137,6 +141,7 @@ def main() -> int:
     root = qt_configs[0].parents[3]
     for relative in ("lib/cmake/Qt6Multimedia/Qt6MultimediaConfig.cmake",
                      "lib/cmake/Qt6Qml/Qt6QmlConfig.cmake",
+                     "lib/cmake/Qt6WebChannel/Qt6WebChannelConfig.cmake",
                      "bin/qmake.exe"):
         if not (root / relative).is_file():
             raise ValueError(f"Installed Qt is incomplete: {root / relative}")

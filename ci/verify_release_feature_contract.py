@@ -48,16 +48,37 @@ def blockers() -> list[str]:
         errors.append("macOS: WKWebView Mini App host not verified by Release")
     # A Windows/Android build must have an actual native SDK host, not only
     # FARCASTER_ENABLE_MINIAPPS=ON or Android's public, bridge-free WebView.
-    if "GENYCASTER_HAS_WINDOWS_MINIAPP_HOST=1" not in ui:
-        errors.append("Windows: no origin-bound native Mini App SDK host")
+    # A release must build and deploy the audited WebEngine runtime,
+    # rather than merely setting a CMake definition.
+    if not all(proof in ui for proof in (
+            "GENYCASTER_HAS_WINDOWS_MINIAPP_HOST=1",
+            "app/miniapp/browser_linux.cpp",
+            "app/miniapp/browser_linux_quick.cpp",
+            "Qt6::WebEngineWidgets Qt6::WebEngineQuick",
+            "genycaster_windows_miniapp_quick")) or not all(
+            proof in windows for proof in (
+                "-DFARCASTER_ENABLE_MINIAPPS=ON",
+                "farcaster_miniapp_browser",
+                "Install separately versioned Qt WebEngine extension",
+                "--modules qtwebengine --noarchives",
+                "QtWebEngineProcess.exe",
+                "qtwebenginequickplugin.dll")):
+        errors.append("Windows: no verified origin-bound native Mini App SDK host")
     if "GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=1" not in ui:
         errors.append("Android: only unprivileged public WebView, no Mini App SDK host")
 
-    # WASM's browser-specific SDK is separate from the C++ native adapter.
-    # Do not claim it is feature-complete when C++ advertises Mini Apps OFF.
-    if re.search(r"set\(FARCASTER_ENABLE_MINIAPPS OFF CACHE BOOL", wasm):
-        errors.append("Web: product FeatureSet explicitly disables Mini Apps "
-                      "even though a separate JS bridge exists")
+    # The browser uses its own origin-filtered Farcaster JS iframe host.
+    # The native Qt Mini App *runtime* remains intentionally disabled in
+    # WASM, but the C++ FeatureSet must advertise the browser counterpart.
+    application = read("src/application/CMakeLists.txt")
+    if re.search(r"set\(FARCASTER_ENABLE_MINIAPPS OFF CACHE BOOL", wasm) and not (
+            "if(EMSCRIPTEN AND FARCASTER_BUILD_UI)" in application
+            and "set(FARCASTER_ENABLE_MINIAPPS_CPP true)" in application
+            and "miniapp-host-bridge-entry.mjs" in ui
+            and "miniapp-wallet-provider.mjs" in ui
+            and "miniapp-host-bridge.mjs" in ui
+            and "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-host-pre.js" in ui):
+        errors.append("Web: browser Mini App SDK and advertised FeatureSet disagree")
     for path in ("ui/wasm/miniapp-host-bridge-entry.mjs",
                  "ui/wasm/miniapp-wallet-provider.mjs"):
         if not (ROOT / path).is_file():

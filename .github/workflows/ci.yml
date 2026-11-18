@@ -630,6 +630,35 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python ci/install_qt_windows.py --destination Qt --architecture ${{ matrix.arch }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install separately versioned Qt WebEngine extension
+        shell: pwsh
+        run: |
+          # Qt 6.12 intentionally no longer ships WebEngine as a 6.12.0
+          # addon: the separately versioned 6.140+ extension is required.
+          # Resolve the official extension for this exact MSVC target.
+          python -m pip install 'aqtinstall==3.3.0'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $qtArch = if ("${{ matrix.arch }}" -eq "arm64") {
+            'win64_msvc2022_arm64'
+          } else {
+            'win64_msvc2022_64'
+          }
+          python -m aqt install-qt windows desktop 6.12.0 $qtArch `
+            --modules qtwebengine --noarchives --outputdir Qt
+          if ($LASTEXITCODE -ne 0) {
+            throw "Official Qt WebEngine extension unavailable for $qtArch; refusing SDK-less release"
+          }
+          foreach ($config in @('Qt6WebEngineWidgets', 'Qt6WebEngineQuick')) {
+            $path = Join-Path $env:QT_ROOT_DIR "lib/cmake/$config/$($config)Config.cmake"
+            if (-not (Test-Path $path)) {
+              throw "Required WebEngine extension component missing: $path"
+            }
+          }
+          $process = @((Join-Path $env:QT_ROOT_DIR 'bin/QtWebEngineProcess.exe'),
+                       (Join-Path $env:QT_ROOT_DIR 'libexec/QtWebEngineProcess.exe'))
+          if (-not @($process | Where-Object { Test-Path $_ }).Count) {
+            throw 'QtWebEngineProcess.exe missing; refusing SDK-less release'
+          }
       - name: Configure vcpkg binary cache
         shell: pwsh
         run: |
@@ -700,9 +729,14 @@ jobs:
             "-DVCPKG_APPLOCAL_DEPS=OFF" `
             "-DGENYCASTER_WINDOWS_PACKAGE_ARCH=${{ matrix.arch }}" `
             "-DFARCASTER_BUILD_TESTS=OFF" `
+            "-DFARCASTER_ENABLE_MINIAPPS=ON" `
             "-DGENYCASTER_FETCH_QTKEYCHAIN=ON" `
             "-DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Select-String -Path build/native/CMakeCache.txt
+              -Pattern '^FARCASTER_ENABLE_MINIAPPS:BOOL=ON$' -Quiet)) {
+            throw 'Windows Mini App SDK is disabled in Release configuration'
+          }
           # Build the source-provided QtKeychain first. Some vcpkg toolchains
           # still perform z-applocal dependency scans despite the OFF switch.
           # The scanner expects a Qt-dependent DLL beside the official Qt
@@ -715,12 +749,14 @@ jobs:
           $qtBin = Join-Path $env:QT_ROOT_DIR 'bin'
           if (-not (Test-Path $qtBin)) { throw "Missing Qt bin directory: $qtBin" }
           Copy-Item $keychainBuilt.FullName (Join-Path $qtBin 'qt6keychain.dll') -Force
+          cmake --build build/native --target farcaster_miniapp_browser --parallel 3
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build/native --target genycaster --parallel 3
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Force dist/app | Out-Null
           Copy-Item build/native/bin/Genycaster.exe dist/app/
-          # Scan only platform-relevant QML: the Linux Quick drawer
-          # imports QtWebEngine, which is not a Windows SDK dependency.
+          # Windows now ships the same origin-bound Qt WebEngine Quick SDK
+          # as Linux; the embedded drawer MUST be included in QML deployment.
           $scan = (Join-Path (Get-Location).Path 'build/windows-qml-scan')
           New-Item -ItemType Directory -Force $scan | Out-Null
           $source = (Resolve-Path 'ui').Path
@@ -729,8 +765,7 @@ jobs:
             ForEach-Object {
               $relative = [System.IO.Path]::GetRelativePath($source, $_.FullName)
               $normalized = $relative.Replace([char]92, [char]47)
-              if ($normalized -in @('app/miniapp/EmbeddedBrowser.qml',
-                                    'components/apps/AndroidWebView.qml')) { return }
+              if ($normalized -in @('components/apps/AndroidWebView.qml')) { return }
               $destination = Join-Path $scan $relative
               New-Item -ItemType Directory -Force (Split-Path $destination) | Out-Null
               Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
@@ -739,6 +774,14 @@ jobs:
             --skip-plugin-types sqldrivers,qmltooling `
             --qmldir $scan --dir dist/app dist/app/Genycaster.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Browser process and QML plugin are security-critical dependencies.
+          # An incomplete SDK host must not be shipped as a working Mini App.
+          $webEngineProcess = Get-ChildItem dist/app -Recurse -File -Filter 'QtWebEngineProcess.exe' |
+            Select-Object -First 1
+          if (-not $webEngineProcess) { throw 'Qt WebEngine process missing from Windows installer stage' }
+          $webEngineQuick = Get-ChildItem dist/app -Recurse -File -Filter 'qtwebenginequickplugin.dll' |
+            Select-Object -First 1
+          if (-not $webEngineQuick) { throw 'Qt WebEngine Quick QML plugin missing from Windows installer stage' }
           # windeployqt bundles Qt but not the non-Qt vcpkg dependency tree.
           # Bundle all DLLs from this build's isolated vcpkg target triplet:
           # libcurl, SQLite and OpenSSL have their own transitive dependencies.

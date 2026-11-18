@@ -6,6 +6,15 @@ foreach(featureName IN ITEMS SOCIAL FEED CHANNELS MINIAPPS CHAT SEARCH NOTIFICAT
     endif()
 endforeach()
 
+# WASM uses the independently bundled Farcaster Mini App *browser* SDK.
+# The native Qt Mini App runtime remains disabled (no OS WebEngine, local
+# secret store or loopback wallet server), but the build installs a real
+# origin-filtered JavaScript iframe host. Report the capability available to
+# the user, not whether a desktop-only C++ runtime was linked.
+if(EMSCRIPTEN AND FARCASTER_BUILD_UI)
+    set(FARCASTER_ENABLE_MINIAPPS_CPP true)
+endif()
+
 if(FARCASTER_SELF_HOSTED_ONLY)
     set(FARCASTER_DEPLOYMENT_PROFILE_CPP StrictSelfHosted)
 else()
