@@ -134,6 +134,7 @@ constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
         authority = authority.substr(0, colon);
     }
     if (authority.size() < 3U || authority.size() > 253U
+        || authority.front() == '.' || authority.back() == '.'
         || authority.find('.') == std::string_view::npos)
         return std::nullopt;
 
