@@ -518,6 +518,9 @@ Item {
             NeonSurface {
                 id: magazineCardSurface
                 anchors.fill: parent
+                // Plain timeline rows are an Item with no card plate. Do not
+                // instantiate this additional QSG paint surface for every cast.
+                visible: root.magazineCard
                 proximityPointerActive: root.magazineCard && root.sharedNeonPointerActive
                 proximityPointerX: magazineCardSurface.mapFromItem(
                     root, root.sharedNeonPointerX, root.sharedNeonPointerY).x
@@ -533,7 +536,7 @@ Item {
                 externalPointerX: magazineCardPointer.point.position.x
                 externalPointerY: magazineCardPointer.point.position.y
                 neonStrength: Theme.neonCardStrength
-                fillColor: root.magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
+                fillColor: root.magazineCard ? Theme.surfaceRaised : "transparent"
                 // Center a real hairline stroke inside the clipping slot so
                 // its antialiasing and Neon shader share one coherent edge.
                 borderWidth: root.magazineCard ? Theme.strokeHairline : 0
