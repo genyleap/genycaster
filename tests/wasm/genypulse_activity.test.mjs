@@ -102,7 +102,7 @@ test('all GitHub time filters preserve the same COLORED annual calendar',()=>{
   assert.match(qmlCalendar,/model: root.githubWeeks/);
   assert.match(qmlCalendar,/inYear\s*\? root.githubTileColor/);
   assert.match(qmlCalendar,/opacity: root.githubRange==="1y" \|\| inRange \? 1 : 0.7/);
-  assert.match(qmlCalendar,/border.width: root.githubRange!=="1y" && inRange \? 1 : 0/);
+  assert.match(qmlCalendar,/borderWidth: root.githubRange!=="1y" && inRange \? 1 : 0/);
   assert.match(qmlCalendar,/enabled: parent.inYear/);
   assert.ok(!qmlCalendar.includes('color: inRange ? root.githubTileColor'));
   assert.ok(!qml.includes('githubGridStart: githubStartRangeDay-'));
