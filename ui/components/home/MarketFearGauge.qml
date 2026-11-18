@@ -94,16 +94,16 @@ Item {
                 }
             }
 
-            Rectangle {
+            Superellipse {
                 visible: root.available
                 readonly property real angle: (180 + root.progress * 180) * Math.PI / 180
                 width: 12
                 height: width
-                radius: width / 2
-                color: Theme.textPrimary
-                border.color: Theme.surface
-                border.width: 2.5
-                antialiasing: true
+                curveDepth: width / 2
+                exponent: 2
+                fillColor: Theme.textPrimary
+                borderColor: Theme.surface
+                borderWidth: 2.5
                 x: dial.width/2 + Math.cos(angle)*dial.arcRadius - width/2
                 y: dial.height/2 + Math.sin(angle)*dial.arcRadius - height/2
                 Behavior on x {
