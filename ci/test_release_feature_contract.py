@@ -42,11 +42,11 @@ class ReleaseFeatureContractTest(unittest.TestCase):
     def test_release_search_is_enabled_with_a_real_read_pipeline(self):
         workflow = feature_contract.read(".github/workflows/ci.yml")
         blocks = (
-            workflow.split("  linux:\\n", 1)[1].split("  macos:\\n", 1)[0],
-            workflow.split("  macos:\\n", 1)[1].split("  windows:\\n", 1)[0],
-            workflow.split("  windows:\\n", 1)[1].split("  android:\\n", 1)[0],
-            workflow.split("  android:\\n", 1)[1].split("  ios:\\n", 1)[0],
-            workflow.split("  web:\\n", 1)[1].split("  publish:\\n", 1)[0],
+            workflow.split("  linux:\n", 1)[1].split("  macos:\n", 1)[0],
+            workflow.split("  macos:\n", 1)[1].split("  windows:\n", 1)[0],
+            workflow.split("  windows:\n", 1)[1].split("  android:\n", 1)[0],
+            workflow.split("  android:\n", 1)[1].split("  ios:\n", 1)[0],
+            workflow.split("  web:\n", 1)[1].split("  publish:\n", 1)[0],
         )
         self.assertTrue(all("-DFARCASTER_ENABLE_SEARCH=ON" in block for block in blocks))
         self.assertFalse(any(item.startswith("SEARCH:") for item in blockers()))
@@ -71,7 +71,7 @@ class ReleaseFeatureContractTest(unittest.TestCase):
             source = original(path)
             if path == ".github/workflows/ci.yml":
                 source = source.replace(
-                    "            -DFARCASTER_ENABLE_SEARCH=ON\\n"
+                    "            -DFARCASTER_ENABLE_SEARCH=ON\n"
                     "            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON",
                     "            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON",
                 )
