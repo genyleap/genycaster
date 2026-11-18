@@ -64,19 +64,19 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         self.assertIn("ci/install_qt_windows.py --destination Qt --architecture "
                       "${{ matrix.arch }} --webengine-only", workflow)
         self.assertNotIn("python -m aqt install-qt windows desktop 6.12.0", workflow)
-        for arch, folder, suffix, stamp in (
-            ("x86_64", "msvc2022_64", "win64_msvc2022_64",
+        for arch, platform, folder, suffix, stamp in (
+            ("x86_64", "windows_x86", "msvc2022_64", "win64_msvc2022_64",
              "6.12.0-0-202609281005"),
-            ("arm64", "msvc2022_arm64", "win64_msvc2022_arm64_cross_compiled",
-             "6.12.0-0-202611110526"),
+            ("arm64", "windows_arm64", "msvc2022_arm64",
+             "win64_msvc2022_arm64", "6.12.0-0-202611110526"),
         ):
             with self.subTest(arch=arch):
                 base, groups, selected_stamp = webengine_archive_layout(arch)
                 self.assertEqual(selected_stamp, stamp)
                 self.assertEqual(
                     base,
-                    "https://download.qt.io/online/qtsdkrepository/windows_x86/"
-                    f"extensions/qtwebengine/6120/61400/{folder}/",
+                    "https://download.qt.io/online/qtsdkrepository/"
+                    f"{platform}/extensions/qtwebengine/6120/61400/{folder}/",
                 )
                 self.assertEqual(
                     list(groups),
