@@ -53,6 +53,20 @@ if [[ -n "$web_root" ]]; then
   done
   deployment_defines+=("-DGENYCASTER_PUBLIC_ORIGIN=$app_origin"
                       "-DGENYCASTER_SIWF_ORIGIN=$app_origin")
+  # Fail before configuring/building Qt if Cloudflare routes this host to a
+  # wildcard/default vhost. A generic HTTPS 200 (e.g. the status site) is
+  # not evidence of the dedicated GenyCaster app virtual host.
+  if ! command -v curl >/dev/null; then
+    echo "WASM deployment requires curl for HTTPS origin verification" >&2
+    exit 2
+  fi
+  marker="$(curl --fail --silent --show-error --connect-timeout 5 --max-time 12 \\
+    --proto '=https' --max-redirs 0 \\
+    "$app_origin/.well-known/genycaster-ready" || true)"
+  if [[ "$marker" != 'genycaster-app-v1' ]]; then
+    echo "WASM deployment rejected: app.genycaster.xyz is not serving the dedicated HTTPS vhost readiness marker" >&2
+    exit 2
+  fi
 fi
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
