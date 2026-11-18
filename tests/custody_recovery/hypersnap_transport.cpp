@@ -13,6 +13,7 @@
 #include <QUrl>
 
 #include <cassert>
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -153,6 +154,49 @@ int main(int argc, char** argv)
             done();
         });
     });
+    // Native FIDs and block numbers are u64 values, never unvalidated
+    // floating-point casts. Keep numeric JSON heights only in their exact
+    // IEEE-754 range; strings may represent a full decimal uint64.
+    const auto verifyExactLookup = [&](QByteArray fidValue, QByteArray blockValue,
+                                       const bool valid,
+                                       const std::uint64_t expectedFid,
+                                       const std::uint64_t expectedHeight) {
+        const QByteArray body = "{\"fid\":" + fidValue
+            + ",\"custodyAddress\":\"" + QByteArray{Custody}
+            + "\",\"blockNumber\":" + blockValue
+            + ",\"message\":{\"data\":{}}}";
+        mock.reply = [body](const QByteArray&) { return response(200, body); };
+        await([&](auto done) {
+            client.lookupByCustody(address, [&, done](auto result) {
+                assert(result.state == (valid ? Transport::LookupState::Confirmed
+                                              : Transport::LookupState::InvalidResponse));
+                if (valid) {
+                    assert(result.fid == expectedFid);
+                    assert(result.blockNumber == expectedHeight);
+                }
+                done();
+            });
+        });
+    };
+    verifyExactLookup("\"4294967296\"", "9007199254740991", true,
+                      ExpectedFid, 9007199254740991ULL);
+    verifyExactLookup("\"4294967296\"", "\"9007199254740993\"", true,
+                      ExpectedFid, 9007199254740993ULL);
+    verifyExactLookup("\"9007199254740993\"", "54321", true,
+                      9007199254740993ULL, 54321);
+    for (const QByteArray invalid : {
+             QByteArray{"0"}, QByteArray{"-1"}, QByteArray{"54321.5"},
+             QByteArray{"9007199254740992"}, QByteArray{"1e100"},
+             QByteArray{"null"}, QByteArray{"true"}, QByteArray{"{}"},
+             QByteArray{"\"01\""}, QByteArray{"\"1.0\""},
+             QByteArray{"\"18446744073709551616\""}
+         }) {
+        verifyExactLookup("\"4294967296\"", invalid, false, 0, 0);
+    }
+    // Multiple representations of the same FID must not become different
+    // canonical identity keys, even with an otherwise valid inclusion.
+    verifyExactLookup("\"04294967296\"", "54321", false, 0, 0);
+
     mock.reply = [](const QByteArray&) {
         return response(200,
             "{\"fid\":\"4294967296\",\"custodyAddress\":"
