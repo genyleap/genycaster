@@ -32,6 +32,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("node", "--test", "tests/wasm/semantic_product_palette_contract.test.mjs")),
     ("Theme palette and RTL-neutral localized process labels",
      ("node", "--test", "tests/wasm/setup_theme_palette_l10n_contract.test.mjs")),
+    ("Shared Drawer motion and BidiTextArea selection grip geometry",
+     ("node", "--test", "tests/wasm/drawer_selection_semantic_surface_contract_20261118.test.mjs")),
     ("Async resource limits", ("python3", "ci/check_async_resource_contract.py")),
     ("Data storage policies", ("python3", "ci/check_data_storage_contract.py")),
     ("Media upload policies", ("python3", "ci/check_media_upload_contract.py")),

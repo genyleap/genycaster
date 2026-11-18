@@ -21,7 +21,7 @@ Drawer {
     readonly property int sheetTopInset: showHandle ? Theme.space5 : 0
     // A predictable, less abrupt motion contract for every shared inspector.
     // Reduced-motion requests bypass both translations and fades.
-    readonly property int sheetMotionDuration: Theme.reduceMotion ? 0 : 275
+    readonly property int sheetMotionDuration: Theme.reduceMotion ? 0 : Theme.motionStandard * 1.8
 
     parent: hostItem ? hostItem : Overlay.overlay
     modal: true
