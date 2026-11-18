@@ -784,8 +784,687 @@ jobs:
             "-DGENYCASTER_FETCH_QTKEYCHAIN=ON" `
             "-DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Select-String -Path build/native/CMakeCache.txt
-              -Pattern '^FARCASTER_ENABLE_MINIAPPS:BOOL=ON$' -Quiet)) {
+          # Keep the PowerShell cmdlet invocation on one physical line:
+          # breaking between -Path and -Pattern is a parser error in pwsh.
+          if (-not (Select-String -Path 'build/native/CMakeCache.txt' -Pattern '^FARCASTER_ENABLE_MINIAPPS:BOOL=ON
+            throw 'Windows Mini App SDK is disabled in Release configuration'
+          }
+          # Build the source-provided QtKeychain first. Some vcpkg toolchains
+          # still perform z-applocal dependency scans despite the OFF switch.
+          # The scanner expects a Qt-dependent DLL beside the official Qt
+          # libraries; stage the real built DLL there before linking the app.
+          cmake --build build/native --target qt6keychain --parallel 3
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $keychainBuilt = Get-ChildItem build/native -Recurse -File -Filter 'qt6keychain.dll' |
+            Select-Object -First 1
+          if (-not $keychainBuilt) { throw 'QtKeychain DLL missing after building its target' }
+          $qtBin = Join-Path $env:QT_ROOT_DIR 'bin'
+          if (-not (Test-Path $qtBin)) { throw "Missing Qt bin directory: $qtBin" }
+          Copy-Item $keychainBuilt.FullName (Join-Path $qtBin 'qt6keychain.dll') -Force
+          cmake --build build/native --target farcaster_miniapp_browser --parallel 3
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/native --target genycaster --parallel 3
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force dist/app | Out-Null
+          Copy-Item build/native/bin/Genycaster.exe dist/app/
+          # Windows now ships the same origin-bound Qt WebEngine Quick SDK
+          # as Linux; the embedded drawer MUST be included in QML deployment.
+          $scan = (Join-Path (Get-Location).Path 'build/windows-qml-scan')
+          New-Item -ItemType Directory -Force $scan | Out-Null
+          $source = (Resolve-Path 'ui').Path
+          Get-ChildItem 'ui' -Recurse -File |
+            Where-Object { $_.Extension -in '.qml', '.js' -or $_.Name -eq 'qmldir' } |
+            ForEach-Object {
+              $relative = [System.IO.Path]::GetRelativePath($source, $_.FullName)
+              $normalized = $relative.Replace([char]92, [char]47)
+              if ($normalized -in @('components/apps/AndroidWebView.qml')) { return }
+              $destination = Join-Path $scan $relative
+              New-Item -ItemType Directory -Force (Split-Path $destination) | Out-Null
+              Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
+            }
+          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release `
+            --skip-plugin-types sqldrivers,qmltooling `
+            --qmldir $scan --dir dist/app dist/app/Genycaster.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Browser process and QML plugin are security-critical dependencies.
+          # An incomplete SDK host must not be shipped as a working Mini App.
+          $webEngineProcess = Get-ChildItem dist/app -Recurse -File -Filter 'QtWebEngineProcess.exe' |
+            Select-Object -First 1
+          if (-not $webEngineProcess) { throw 'Qt WebEngine process missing from Windows installer stage' }
+          $webEngineQuick = Get-ChildItem dist/app -Recurse -File -Filter 'qtwebenginequickplugin.dll' |
+            Select-Object -First 1
+          if (-not $webEngineQuick) { throw 'Qt WebEngine Quick QML plugin missing from Windows installer stage' }
+          # windeployqt bundles Qt but not the non-Qt vcpkg dependency tree.
+          # Bundle all DLLs from this build's isolated vcpkg target triplet:
+          # libcurl, SQLite and OpenSSL have their own transitive dependencies.
+          $vcpkgBin = "$env:VCPKG_INSTALLATION_ROOT/installed/${{ matrix.vcpkg_triplet }}/bin"
+          $runtimeDlls = @(Get-ChildItem $vcpkgBin -File -Filter '*.dll')
+          foreach ($pattern in @('libcrypto*.dll', 'libssl*.dll', '*sqlite*.dll', '*curl*.dll')) {
+            if (@($runtimeDlls | Where-Object { $_.Name -like $pattern }).Count -eq 0) {
+              throw "Required Windows runtime dependency not found: $pattern"
+            }
+          }
+          foreach ($dll in $runtimeDlls) {
+            Copy-Item $dll.FullName dist/app/ -ErrorAction Stop
+          }
+          $keychain = Get-ChildItem build/native -Recurse -File -Filter '*keychain*.dll' |
+            Select-Object -First 1
+          if (-not $keychain) { throw 'Missing QtKeychain runtime DLL' }
+          Copy-Item $keychain.FullName dist/app/
+          # Remove Qt SDK-only directories (headers, import libraries,
+          # build tools), preserve QML/plugins, and refuse mixed x64/ARM64 DLLs.
+          # Run before CPack and before generating runtime update snapshots.
+          python ci/audit_windows_stage.py dist/app ${{ matrix.arch }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Load Main.qml from the actual packaged runtime with the runner's
+          # Qt/vcpkg SDK paths removed. A successful C++ link is not sufficient.
+          & ./ci/smoke_windows_stage.ps1 -Stage dist/app
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # The VC redistributable is executable code installed with elevated
+          # rights. Accept only a Microsoft Authenticode-signed bootstrapper.
+          $vcArch = if ("${{ matrix.arch }}" -eq "arm64") { "arm64" } else { "x64" }
+          $vcRedist = Join-Path (Resolve-Path "dist/app").Path "vc_redist.$vcArch.exe"
+          if (-not (Test-Path $vcRedist)) { throw "Missing Microsoft VC runtime $vcArch" }
+          $vcSig = Get-AuthenticodeSignature -FilePath $vcRedist
+          if ($vcSig.Status -ne "Valid" -or
+              -not $vcSig.SignerCertificate -or
+              $vcSig.SignerCertificate.Subject -notmatch "Microsoft Corporation") {
+            throw "Refusing unsigned or untrusted VC runtime redistributable: $vcRedist"
+          }
+          # NSIS packages the already deployed Qt/QML/keychain/vcpkg DLL
+          # tree. Do not substitute a ZIP of uninstalled files for setup.
+          cpack --config build/native/CPackConfig.cmake -G NSIS -B dist
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $installer = "dist/GenyCaster-v$env:VERSION-windows-${{ matrix.arch }}.exe"
+          if (-not (Test-Path $installer)) { throw "Windows NSIS installer missing" }
+          python ci/verify_platform_package.py windows $installer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hash = (Get-FileHash -Algorithm SHA256 $installer).Hash.ToLowerInvariant()
+          "$hash  $(Split-Path $installer -Leaf)" |
+            Set-Content -Encoding ascii dist/SHA256SUMS
+          # The update transport snapshot excludes the NSIS bootstrap but
+          # retains every deployed runtime dependency and per-file SHA-256.
+          # Installation still uses the verified installer; no unsafe in-place
+          # patching of a running process is attempted.
+          python ci/package_selfupdate.py --platform windows `
+            --arch "${{ matrix.arch }}" --version "$env:VERSION" `
+            --source dist/app --output dist/selfupdate
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python ci/verify_selfupdate_snapshot.py `
+            "dist/selfupdate/GenyCaster-selfupdate-v$env:VERSION-windows-${{ matrix.arch }}.zip"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-windows-${{ matrix.arch }}
+          path: |
+            dist/*.exe
+            dist/selfupdate/*
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+
+  android:
+    name: Android APK
+    needs: gate
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both version-tag and manually requested Android builds target
+        # exactly arm64-v8a. Do not charge extra runners for unused ABIs.
+        include: ${{ fromJSON('[{"abi":"arm64-v8a","qt_arch":"android_arm64_v8a","openssl_arch":"arm64","machine":"AArch64"}]') }}
+    if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'android'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - name: Verify Android build tools and provision missing SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Hosted ubuntu-24.04 already contains Perl, Make, Curl, Python,
+          # tar and the Ninja installed by lukka/get-cmake. Do not run APT
+          # again: transient Ubuntu mirror DNS failures previously killed
+          # Android builds before Qt/NDK configuration.
+          for tool in perl make curl tar python3 ninja cmake java keytool; do
+            command -v "$tool" >/dev/null || {
+              echo "::error::Android build tool unavailable: $tool"
+              exit 1
+            }
+          done
+          sdkmanager_bin="$ANDROID_HOME/cmdline-tools/latest/bin"
+          test -x "$sdkmanager_bin/sdkmanager" || {
+            echo "::error::Android sdkmanager missing: $sdkmanager_bin/sdkmanager"
+            exit 1
+          }
+          export PATH="$sdkmanager_bin:$PATH"
+          echo "$sdkmanager_bin" >> "$GITHUB_PATH"
+          # An already provisioned runner must not contact Google's SDK
+          # index or accept licenses again just to use the same NDK.
+          ndk="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"
+          if [[ -f "$ndk/source.properties" &&
+                -d "$ANDROID_HOME/platforms/android-${ANDROID_API}" &&
+                -x "$ANDROID_HOME/build-tools/35.0.0/apksigner" &&
+                -x "$ANDROID_HOME/build-tools/35.0.0/zipalign" &&
+                -x "$ANDROID_HOME/platform-tools/adb" ]]; then
+            echo "Android SDK/NDK and build tools already installed"
+          else
+            echo "Installing only missing Android SDK packages"
+            # Running sdkmanager with --install against an unavailable
+            # mirror must fail promptly, not consume the full job timeout.
+            timeout 360s "$sdkmanager_bin/sdkmanager" --install \
+              "ndk;${ANDROID_NDK_VERSION}" \
+              "platforms;android-${ANDROID_API}" \
+              "build-tools;35.0.0" "platform-tools"
+          fi
+          test -f "$ndk/source.properties"
+          test -x "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+          echo "ANDROID_NDK_ROOT=$ndk" >> "$GITHUB_ENV"
+      # install-qt-action defaults install-deps=true, which performs an
+      # unbounded apt-get update against azure.archive.ubuntu.com. Hosted
+      # runners repeatedly hung there for twenty minutes. Prepare a signed,
+      # reachable Ubuntu mirror and provision the *same* Qt host libraries
+      # explicitly with bounded network operations instead.
+      - name: Install Android Qt host dependencies from signed Ubuntu mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ci/prepare_ubuntu_apt.sh
+          sudo timeout 180s apt-get install -y --no-install-recommends \
+            -o Acquire::Retries=1 \
+            -o Acquire::http::Timeout=12 \
+            -o Acquire::https::Timeout=12 \
+            build-essential libgl1-mesa-dev libgstreamer-gl1.0-0 libpulse-dev \
+            libxcb-glx0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-render0 libxcb-shape0 \
+            libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 \
+            libxcb-xinerama0 libxcb1 libxkbcommon-dev libxkbcommon-x11-0 \
+            libxcb-xkb-dev libxcb-cursor0
+      - uses: jurplel/install-qt-action@v4
+        id: qt
+        timeout-minutes: 20
+        with:
+          install-deps: false
+          version: ${{ env.QT_VERSION }}
+          target: android
+          arch: ${{ matrix.qt_arch }}
+          modules: qtmultimedia qtwebview
+          cache: true
+          # Qt SDK remains the official 6.12.0 distribution; only its
+          # system-dependency installer is bypassed.
+      - name: Reject Android SDKs without Qt Network TLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          config="$QT_ROOT_DIR/include/QtNetwork/qtnetwork-config.h"
+          test -r "$config" || { echo "::error::Missing Qt Network feature configuration: $config"; exit 1; }
+          grep -E '^#define QT_FEATURE_ssl[[:space:]]+' "$config" || true
+          if ! grep -Eq '^#define QT_FEATURE_ssl[[:space:]]+1([[:space:]]|$)' "$config"; then
+            echo "::error::Qt for Android has SSL disabled; GenyCaster HTTPS transports are fail-closed"
+            exit 1
+          fi
+      # Qt for Android ships the TLS backend, not OpenSSL runtime binaries.
+      # Build the pinned Android ABI libraries inside CI, as part of the
+      # platform job (no developer-machine bootstrap scripts).
+      - name: Prepare Android OpenSSL 3.5.9 libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=3.5.9
+          url="https://github.com/openssl/openssl/releases/download/openssl-${version}/openssl-${version}.tar.gz"
+          work="$RUNNER_TEMP/genycaster-android-openssl"
+          mkdir -p "$work" build/android-deps/include build/android-deps/lib
+          curl --fail --location --retry 3 --silent --show-error \
+            "$url" -o "$work/openssl-${version}.tar.gz"
+          curl --fail --location --retry 3 --silent --show-error \
+            "${url}.sha256" -o "$work/openssl-${version}.tar.gz.sha256"
+          expected="$(awk 'NR==1 {print $1}' "$work/openssl-${version}.tar.gz.sha256")"
+          [[ "$expected" =~ ^[0-9a-fA-F]{64}$ ]] || { echo "::error::Invalid OpenSSL SHA-256"; exit 1; }
+          echo "$expected  $work/openssl-${version}.tar.gz" | sha256sum --check --status
+          tar -xzf "$work/openssl-${version}.tar.gz" -C "$work"
+
+          export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"
+          export ANDROID_NDK_HOME="$ANDROID_NDK_ROOT"
+          toolchain="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          export PATH="$toolchain:$PATH"
+          (
+            cd "$work/openssl-${version}"
+            # NDK r27 defaults to 4 KiB ELF segments. Android 15+ may use
+            # 16 KiB pages; OpenSSL must match the Qt and provider binaries.
+            export LDFLAGS="-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384"
+            # OpenSSL's own shlib_variant names both libraries and their ELF
+            # SONAME/DT_NEEDED links *during* compilation. Do not post-process
+            # native ELF with patchelf: it produced a noncongruent PT_LOAD and
+            # crashed QtLoader at application startup ("sign_ctx" in verneed).
+            # The Android target's .so extension has no version suffix.
+            cat > Configurations/99-genycaster-android.conf <<'OPENSSL_TARGET'
+          my %targets = (
+              "android-genycaster-arm64" => {
+                  inherit_from => [ "android-arm64" ],
+                  shared_extension => ".so",
+                  shlib_variant => "_3",
+              },
+              "android-genycaster-arm" => {
+                  inherit_from => [ "android-arm" ],
+                  shared_extension => ".so",
+                  shlib_variant => "_3",
+              },
+          );
+          OPENSSL_TARGET
+            ./Configure "android-genycaster-${{ matrix.openssl_arch }}" shared no-tests -D__ANDROID_API__="${ANDROID_API}"
+            echo "::group::OpenSSL generated shared-library targets"
+            grep -E '^(SHLIBS|SHLIB_VERSION_NUMBER|SHLIB_INFO|build_libs_nodep):' Makefile || true
+            echo "::endgroup::"
+            make -s -j 4 build_libs
+            echo "::group::OpenSSL actual shared-library outputs"
+            ls -lh libcrypto* libssl*
+            echo "::endgroup::"
+            test -s libcrypto_3.so || { echo "::error::libcrypto_3.so not produced by OpenSSL"; exit 1; }
+            test -s libssl_3.so || { echo "::error::libssl_3.so not produced by OpenSSL"; exit 1; }
+            cp -R include/openssl "$GITHUB_WORKSPACE/build/android-deps/include/"
+            cp -L libcrypto_3.so "$GITHUB_WORKSPACE/build/android-deps/lib/libcrypto_3.so"
+            cp -L libssl_3.so "$GITHUB_WORKSPACE/build/android-deps/lib/libssl_3.so"
+          )
+          libdir="$GITHUB_WORKSPACE/build/android-deps/lib"
+          # Do not use readelf | grep -q under pipefail: grep can exit
+          # before readelf completes, turning a valid ELF into SIGPIPE/141.
+          # Save all diagnostics, and fail with the actual headers if needed.
+          for lib in libcrypto_3.so libssl_3.so; do
+            "$toolchain/llvm-readelf" -h "$libdir/$lib" > "$libdir/$lib.header.txt"
+            "$toolchain/llvm-readelf" -d "$libdir/$lib" > "$libdir/$lib.dynamic.txt"
+            grep -Eq 'Machine:[[:space:]]+${{ matrix.machine }}' "$libdir/$lib.header.txt" || {
+              cat "$libdir/$lib.header.txt"; echo "::error::$lib has an incorrect architecture"; exit 1;
+            }
+            grep -Fq "Library soname: [$lib]" "$libdir/$lib.dynamic.txt" || {
+              cat "$libdir/$lib.dynamic.txt"; echo "::error::$lib has an unexpected SONAME"; exit 1;
+            }
+          done
+          grep -Fq 'Shared library: [libcrypto_3.so]' "$libdir/libssl_3.so.dynamic.txt" || {
+            cat "$libdir/libssl_3.so.dynamic.txt"
+            echo "::error::libssl_3.so does not depend on libcrypto_3.so"
+            exit 1
+          }
+          test -s build/android-deps/include/openssl/opensslv.h
+          echo "Android ${{ matrix.abi }} OpenSSL ${version} verified for APK deployment"
+      - name: Prepare signing for release tags only
+        if: needs.gate.outputs.release == 'true'
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for value in "$KEYSTORE_BASE64" "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD"; do
+            test -n "$value" || { echo "::error::Android signing secrets are missing"; exit 1; }
+          done
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/genycaster-release.keystore"
+          test -s "$RUNNER_TEMP/genycaster-release.keystore"
+          echo "QT_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/genycaster-release.keystore" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_STORE_PASS=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_KEY_PASS=$KEY_PASSWORD" >> "$GITHUB_ENV"
+      - name: Configure and build Android APK
+        shell: bash
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          SIGN_RELEASE: ${{ needs.gate.outputs.release }}
+        run: |
+          set -euo pipefail
+          export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"
+          args=(
+            -S . -B build/android -G Ninja
+            -DCMAKE_BUILD_TYPE=Release
+            "-DCMAKE_TOOLCHAIN_FILE=$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake"
+            "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR"
+            "-DQT_HOST_PATH=$QT_HOST_PATH"
+            -DANDROID_ABI=${{ matrix.abi }}
+            "-DANDROID_PLATFORM=android-${ANDROID_API}"
+            "-DANDROID_SDK_ROOT=$ANDROID_HOME"
+            "-DANDROID_NDK=$ANDROID_NDK_ROOT"
+            "-DGENYCASTER_ANDROID_OPENSSL_ROOT=$PWD/build/android-deps"
+            -DFARCASTER_BUILD_TESTS=OFF
+            -DFARCASTER_ENABLE_SEARCH=ON
+            -DFARCASTER_ENABLE_CHANNELS=ON
+            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
+            -DFARCASTER_ENABLE_CHAT=OFF
+            -DFARCASTER_ENABLE_WALLET=OFF
+            # Android v1 deliberately supports PUBLIC Mini App pages only.
+            # No origin receives Mini App SDK, wallet RPC or signing authority.
+            -DGENYCASTER_ANDROID_MINIAPP_SCOPE=public-only
+            -DQT_ANDROID_DEPLOY_RELEASE=ON
+          )
+          if [[ "$SIGN_RELEASE" == true ]]; then
+            args+=(
+              -DQT_ANDROID_SIGN_APK=ON
+              "-DQT_ANDROID_KEYSTORE_PATH=$QT_ANDROID_KEYSTORE_PATH"
+              "-DQT_ANDROID_KEYSTORE_ALIAS=$QT_ANDROID_KEYSTORE_ALIAS"
+              "-DQT_ANDROID_KEYSTORE_STORE_PASS=$QT_ANDROID_KEYSTORE_STORE_PASS"
+              "-DQT_ANDROID_KEYSTORE_KEY_PASS=$QT_ANDROID_KEYSTORE_KEY_PASS"
+            )
+          fi
+          # Qt Network SSL feature was verified before OpenSSL packaging.
+          cmake "${args[@]}"
+          cmake --build build/android --target genycaster_make_apk --parallel 3
+          mkdir -p dist
+          # Qt's deploy step may produce a native APK and a Gradle APK.
+          # Never select arbitrarily from 'find *.apk' or package Debug.
+          output_dir=build/android/ui/android-build/build/outputs/apk/release
+          if [[ "$SIGN_RELEASE" == true ]]; then
+            mapfile -t apks < <(find "$output_dir" -maxdepth 1 -type f \
+              -name '*-signed.apk' ! -name '*unsigned*' | sort)
+          else
+            apks=("$output_dir/android-build-release-unsigned.apk")
+          fi
+          if [[ ${#apks[@]} -ne 1 || ! -s "${apks[0]}" ]]; then
+            echo "::error::Expected one release APK under $output_dir"
+            find build/android/ui -name '*.apk' -print
+            exit 1
+          fi
+          # Every published CI artifact must be installable. A manually
+          # dispatched build gets a throwaway test signature, never the
+          # protected release key. Only a version tag uses release secrets.
+          signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          test -x "$signer" || { echo "::error::Missing Android apksigner"; exit 1; }
+          selected="${apks[0]}"
+          if [[ "$SIGN_RELEASE" != true ]]; then
+            test_keystore="$RUNNER_TEMP/genycaster-ci-test.p12"
+            keytool -genkeypair -noprompt -storetype PKCS12 \
+              -keystore "$test_keystore" -alias genycaster-ci-test \
+              -keyalg RSA -keysize 3072 -validity 2 \
+              -storepass genycaster-ci-ephemeral -keypass genycaster-ci-ephemeral \
+              -dname "CN=GenyCaster CI Test APK, OU=Not For Release"
+            selected="$RUNNER_TEMP/genycaster-ci-test-signed.apk"
+            "$signer" sign --ks "$test_keystore" \
+              --ks-key-alias genycaster-ci-test \
+              --ks-pass pass:genycaster-ci-ephemeral \
+              --key-pass pass:genycaster-ci-ephemeral \
+              --out "$selected" "${apks[0]}"
+            echo "WARNING: Android manual artifact uses an ephemeral CI TEST key."
+            echo "It is installable for testing, NOT an official release signature."
+          fi
+          "$signer" verify --verbose --print-certs "$selected"
+          # An APK can pass signing and all CMake checks while failing the
+          # native loader on devices with 16 KiB pages.
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$selected"
+          artifact="dist/GenyCaster-v${VERSION}-android-${{ matrix.abi }}.apk"
+          if [[ "$SIGN_RELEASE" != true ]]; then
+            artifact="dist/GenyCaster-v${VERSION}-android-${{ matrix.abi }}-CI-TEST.apk"
+          fi
+          cp "$selected" "$artifact"
+          python3 ci/verify_platform_package.py android "$artifact"
+          (cd dist && sha256sum *.apk > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-android-${{ matrix.abi }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+
+  ios:
+    name: iOS arm64 unsigned device app (CI only)
+    needs: gate
+    # Unsigned .app archives are NOT installable release IPA packages.
+    if: github.event_name == 'workflow_dispatch' && inputs.platform == 'ios'
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - name: Install native C++26 build toolchain
+        run: brew install ninja llvm boost
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: desktop
+          arch: clang_64
+          cache: true
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: ios
+          arch: ios
+          modules: qtmultimedia
+          cache: true
+      - name: Build pinned static OpenSSL for iOS arm64
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=3.5.9
+          url="https://github.com/openssl/openssl/releases/download/openssl-${version}/openssl-${version}.tar.gz"
+          mkdir -p build/ios-openssl
+          curl --fail --location --retry 3 --silent --show-error "${url}" -o build/ios-openssl/openssl.tar.gz
+          curl --fail --location --retry 3 --silent --show-error "${url}.sha256" -o build/ios-openssl/openssl.tar.gz.sha256
+          expected="$(awk 'NR==1 {print $1}' build/ios-openssl/openssl.tar.gz.sha256)"
+          [[ "$expected" =~ ^[0-9a-fA-F]{64}$ ]]
+          echo "$expected  build/ios-openssl/openssl.tar.gz" | shasum -a 256 -c
+          tar -xzf build/ios-openssl/openssl.tar.gz -C build/ios-openssl
+          export CROSS_TOP="$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer"
+          export CROSS_SDK="$(xcrun --sdk iphoneos --show-sdk-version)"
+          export CC="$(xcrun --find clang)"
+          export CFLAGS="-arch arm64 -mios-version-min=18.0"
+          (
+            cd "build/ios-openssl/openssl-${version}"
+            ./Configure ios64-cross no-shared no-tests --prefix="$GITHUB_WORKSPACE/build/ios-openssl/install"
+            make -j 3
+            make install_sw
+          )
+          test -s build/ios-openssl/install/lib/libcrypto.a
+      - name: Compile and inspect unsigned iOS device bundle
+        shell: bash
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: |
+          set -euo pipefail
+          export CC="$(brew --prefix llvm)/bin/clang"
+          export CXX="$(brew --prefix llvm)/bin/clang++"
+          cmake -S . -B build/ios -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            "-DCMAKE_TOOLCHAIN_FILE=$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake" \
+            "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR" \
+            "-DQT_HOST_PATH=$QT_HOST_PATH" \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=18.0 \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+            "-DOPENSSL_ROOT_DIR=$PWD/build/ios-openssl/install" \
+            -DFARCASTER_BUILD_TESTS=OFF \
+            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
+          cmake --build build/ios --target genycaster --parallel 2
+          count="$(find build/ios -type d -name 'Genycaster.app' | wc -l | tr -d ' ')"
+          test "$count" = 1
+          APP="$(find build/ios -type d -name 'Genycaster.app' -print -quit)"
+          test -s "$APP/Info.plist"
+          test -s "$APP/Genycaster"
+          /usr/bin/lipo "$APP/Genycaster" -verify_arch arm64
+          mkdir -p dist
+          tar -czf "dist/GenyCaster-v${VERSION}-ios-arm64-unsigned-app.tar.gz" -C "$(dirname "$APP")" "$(basename "$APP")"
+          python3 ci/verify_platform_package.py ios "dist/GenyCaster-v${VERSION}-ios-arm64-unsigned-app.tar.gz"
+          (cd dist && shasum -a 256 *.tar.gz > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-ios-arm64-unsigned-app
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+
+  nixos:
+    name: NixOS native package
+    needs: gate
+    if: github.event_name == 'workflow_dispatch' && inputs.platform == 'nixos'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31
+      - name: Build native NixOS package
+        run: |
+          set -euo pipefail
+          nix build ".#packages.${{ matrix.system }}.default" --print-build-logs --out-link result
+          test -x result/bin/Genycaster
+          # The Nix wrapper must resolve Qt plugins/QML from its own closure
+          # and open the real application's QML root on a headless runner.
+          QT_QPA_PLATFORM=offscreen QSG_RHI_BACKEND=software \
+            timeout 45s result/bin/Genycaster --smoke-test \
+            --settings-path="$RUNNER_TEMP/genycaster-nix-smoke.ini"
+      - name: Record Nix store closure for reproducibility
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          nix-store -qR result | sort > "dist/GenyCaster-nixos-${{ matrix.system }}-closure.txt"
+          nix path-info -S result > "dist/GenyCaster-nixos-${{ matrix.system }}-size.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-nixos-${{ matrix.system }}-manifest
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  web:
+    name: WebAssembly (single-threaded)
+    needs: gate
+    if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'web'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '5.0.5'
+          actions-cache-folder: emsdk-cache
+      - name: Install system build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build python3
+      - name: Install host Qt ShaderTools (qsb for cross-build)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: desktop
+          arch: linux_gcc_64
+          modules: qtshadertools
+          cache: true
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: wasm
+          arch: wasm_singlethread
+          cache: true
+      - name: Build Qt Multimedia WebAssembly tech-preview from verified source
+        shell: bash
+        run: bash ci/build_qt_wasm_multimedia.sh
+      - name: Build and package browser application
+        shell: bash
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: |
+          set -euo pipefail
+          cmake -S . -B build/web -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            "-DCMAKE_TOOLCHAIN_FILE=$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake" \
+            "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR" \
+            "-DQT_HOST_PATH=$QT_HOST_PATH" \
+            -DFARCASTER_BUILD_TESTS=OFF \
+            -DFARCASTER_ENABLE_SEARCH=ON \
+            -DFARCASTER_ENABLE_CHANNELS=ON \
+            -DFARCASTER_ENABLE_CHAT=OFF \
+            -DFARCASTER_ENABLE_WALLET=OFF \
+            "-DGENYCASTER_PUBLIC_ORIGIN=https://app.genycaster.xyz" \
+            "-DGENYCASTER_SIWF_ORIGIN=https://app.genycaster.xyz"
+          cmake --build build/web --target genycaster_wasm_asset_refresh --parallel 3
+          mkdir -p dist
+          python3 ci/package_web.py \
+            --source build/web/bin \
+            --output "dist/GenyCaster-v${VERSION}-web-wasm.tar.gz"
+          python3 ci/verify_platform_package.py web "dist/GenyCaster-v${VERSION}-web-wasm.tar.gz"
+          (cd dist && sha256sum *.tar.gz > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-web-wasm
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish version-tag release
+    needs: [gate, linux, macos, windows, android, web]
+    if: github.event_name == 'push' && needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Refuse overwriting an existing release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $GITHUB_REF_NAME already exists"
+            exit 1
+          fi
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Verify mandatory packages and aggregate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in GenyCaster-linux-x86_64 GenyCaster-linux-arm64 \
+                      GenyCaster-macos-arm64 GenyCaster-macos-x86_64 \
+                      GenyCaster-windows-x86_64 GenyCaster-windows-arm64 \
+                      GenyCaster-android-arm64-v8a \
+                      GenyCaster-web-wasm; do
+            test -d "artifacts/$name"
+            test -n "$(find "artifacts/$name" -type f -print -quit)"
+          done
+          python3 ci/release_artifacts.py artifacts release
+      - name: Publish versioned Release as GitHub Actions bot
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ github.token }}
+          tag_name: ${{ github.ref_name }}
+          name: GenyCaster ${{ github.ref_name }}
+          body_path: release-notes/${{ github.ref_name }}.md
+          # RC/beta/alpha tags remain prereleases. A stable tag is a normal
+          # Release only after every mandatory platform job passes.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: release/*
+          fail_on_unmatched_files: true
+ -Quiet)) {
             throw 'Windows Mini App SDK is disabled in Release configuration'
           }
           # Build the source-provided QtKeychain first. Some vcpkg toolchains
