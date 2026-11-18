@@ -104,16 +104,16 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - GenyCaster [#9](https://github.com/genyleap/genycaster/issues/9):
   `ci/verify_release_feature_contract.py --strict` still blocks **CHAT,
   WALLET and privileged Android Mini App SDK host**. Do not bypass these.
-- GitHub Dependabot last reported **three open high-severity alerts**:
-  Quick Auth Zod (#1, patched on `main` at `9a06626f`, not yet shown as
-  closed in the API), browser host nested Zod (#2: exact pinned 3.22.4
-  through Reown AppKit Wallet; vulnerable range is <4.6.6), and
-  picomatch (#3, 2.3.2 through WalletConnect/unstorage/anymatch).
-  Picomatch GHSA-fc5q-39xc-vjpf was **withdrawn** by GitHub at
-  2026-11-18T15:38:56Z; its Dependabot alert still needs reconciliation.
+- GitHub Dependabot was rechecked after `331507e1`: **one OPEN High
+  alert** remains, browser host Zod [#2](https://github.com/genyleap/genycaster/security/dependabot/2)
+  (exact Zod 3.22.4 through Reown AppKit Wallet; advisory GHSA-mrhx-c7xc-m3w5
+  affects all Zod versions <4.6.6). Quick Auth Zod #1 is now confirmed
+  **fixed** by GitHub, consistent with `npm audit --omit=dev` 0.
+  Picomatch GHSA-fc5q-39xc-vjpf was **withdrawn** at
+  2026-11-18T15:38:56Z and is no longer returned in the active alerts API.
   A scratch global Zod 4 override caused incompatible/invalid npm dependency
-  resolution; it was **not** applied. Do not treat a major-version override
-  as proof of safe WalletConnect/Reown runtime behavior.
+  resolution; it was **not** applied. Do not treat an unverified major-version
+  override as proof of safe WalletConnect/Reown runtime behavior.
 
 ## Hosted CI evidence (not current-HEAD release qualification)
 
