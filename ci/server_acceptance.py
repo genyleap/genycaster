@@ -68,6 +68,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("node", "--test", "tests/wasm/wallet_canonical_origin_contract_20261118.test.mjs")),
     ("Browser Mini App wallet late-RPC revocation and consent epochs",
      ("node", "--test", "tests/wasm/wallet_async_revocation_20261118.test.mjs")),
+    ("Browser-native custody ABI and fail-closed signer boundary",
+     ("node", "--test", "tests/wasm/browser_native_custody_boundary_20261118.test.mjs")),
     ("HyperSnap exact uint64 native identity and shard-0 inclusion height",
      ("node", "--test", "tests/wasm/hypersnap_uint64_inclusion_contract_20261118.test.mjs")),
     ("Async resource limits", ("python3", "ci/check_async_resource_contract.py")),

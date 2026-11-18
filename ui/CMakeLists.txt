@@ -398,6 +398,16 @@ if(TARGET genycaster_desktop_instance)
 endif()
 unset(_genycasterModuleTarget)
 
+# A browser has no OS-backed signer vault and never compiles the native
+# OpenSSL custody implementation. Keep the same QML type ABI for a readable,
+# fail-closed identity flow; the privileged browser wallet SDK is separate.
+# Never change the all-platform release gate because this surface exists.
+if(EMSCRIPTEN)
+    set(_genycasterCustodyController app/identity/native_wallet_browser.cpp)
+else()
+    set(_genycasterCustodyController app/identity/native_wallet.cpp)
+endif()
+
 qt_add_executable(genycaster
     app/main.cpp
     app/runtime/bindings.cpp
@@ -455,7 +465,7 @@ qt_add_executable(genycaster
     app/identity/native_prepare.hpp
     app/identity/native_publish.cpp
     app/identity/native_publish.hpp
-    app/identity/native_wallet.cpp
+    ${_genycasterCustodyController}
     app/identity/native_wallet.hpp
     app/identity/native_wallet_signer.hpp
     app/identity/neynar_registration.hpp
