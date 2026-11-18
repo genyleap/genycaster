@@ -301,7 +301,10 @@ test('WalletConnect module is self-hosted, loaded lazily and does not overwrite 
  assert.match(host,/walletConnectFactory: async/);
  assert.match(host,/import\('\.\/genycaster-walletconnect\.mjs'\)/);
  assert.match(build,/external:\['\.\/genycaster-walletconnect\.mjs'\]/);
- assert.match(driver,/showQrModal:false/);
+ assert.match(driver,/UniversalProvider\.init\(/);
+ assert.match(driver,/provider\.connect\(\{optionalNamespaces\}\)/);
+ assert.match(driver,/asEthereumProvider\(provider\)/);
+ assert.doesNotMatch(driver,/showQrModal|provider\.signer/);
  assert.match(driver,/provider\.on\('display_uri'/);
  assert.match(driver,/provider\.session/);
  assert.doesNotMatch(driver,/privateKey|mnemonic|signerSecret/);
@@ -423,7 +426,8 @@ test('WalletConnect relay and initialization deadlines are finite and abortable'
  assert.match(source,/INITIALIZE_TIMEOUT_MS=20000/);
  assert.match(source,/WALLET_APPROVAL_TIMEOUT_MS=120000/);
  assert.match(source,/provider\.on\('display_uri',onDisplayUri\)/);
- assert.match(source,/provider\.signer\?\.on\?\.\('display_uri',onDisplayUri\)/);
+ assert.match(source,/provider\.abortPairingAttempt\?\.\(\)/);
+ assert.doesNotMatch(source,/provider\.signer/);
 });
 
 test('mobile wallet handoff is not blocked by asynchronous QR creation',()=>{

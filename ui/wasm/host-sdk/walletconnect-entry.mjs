@@ -1,6 +1,8 @@
-// Reown WalletConnect v2 transport. Bundled on the GenyCaster origin and
-// imported only after explicit user action; never injected into Mini App iframes.
-import { EthereumProvider } from '@walletconnect/ethereum-provider';
+// WalletConnect v2 universal transport. Avoid the unused Reown AppKit UI:
+// its old fixed Zod 3 transitive dependency fails the current security gate.
+// This transport is lazy, self-hosted, and only entered after a user gesture.
+import UniversalProvider from '@walletconnect/universal-provider';
+import {asEthereumProvider} from './walletconnect-eip1193.mjs';
 import QRCode from 'qrcode';
 
 // Project IDs are public dApp identifiers, not wallet secrets.
@@ -13,8 +15,28 @@ const optionalMethods=[
   'wallet_getPermissions','wallet_requestPermissions','wallet_watchAsset',
   'wallet_getCapabilities','wallet_sendCalls','wallet_getCallsStatus'
 ];
+const ethereumEvents=['accountsChanged','chainChanged','disconnect','connect'];
+export const supportedChains=Object.freeze(optionalChains.map(id=>'eip155:'+id));
+const optionalNamespaces={
+  eip155:{
+    chains:[...supportedChains],
+    methods:[...optionalMethods],
+    events:[...ethereumEvents]
+  }
+};
 let initPromise=null;
 let pairingInProgress=false;
+// Reusing the same approved relay session must preserve the EIP-1193
+// transport identity, event subscriptions and origin-grant lifecycle.
+const ethereumFacades=new WeakMap();
+const facadeFor=provider=>{
+  let facade=ethereumFacades.get(provider);
+  if(!facade){
+    facade=asEthereumProvider(provider);
+    ethereumFacades.set(provider,facade);
+  }
+  return facade;
+};
 const INITIALIZE_TIMEOUT_MS=20000;
 const PAIRING_URI_TIMEOUT_MS=20000;
 const WALLET_APPROVAL_TIMEOUT_MS=120000;
@@ -40,10 +62,8 @@ export function withWalletDeadline(promise, timeoutMs, signal, message){
 }
 const initialize=()=>{
   if(!initPromise){
-    initPromise=EthereumProvider.init({
-      projectId,optionalChains,optionalMethods,
-      optionalEvents:['accountsChanged','chainChanged','disconnect','connect'],
-      showQrModal:false,
+    initPromise=UniversalProvider.init({
+      projectId,
       metadata:{
         name:'GenyCaster',
         description:'Your Farcaster Mini Apps, securely connected to your wallet.',
@@ -54,7 +74,6 @@ const initialize=()=>{
   }
   return initPromise;
 };
-export const supportedChains=Object.freeze(optionalChains.map(id=>'eip155:'+id));
 export const createQrImage=uri=>QRCode.toDataURL(uri,{
   errorCorrectionLevel:'M',margin:2,width:240,color:{dark:'#111116',light:'#ffffff'}
 });
@@ -72,9 +91,10 @@ export async function connectWalletConnect({onUri,onStatus,signal}={}){
     initPromise=null;
     throw error;
   }
-  if(provider.session){
+  const eip1193=facadeFor(provider);
+  if(eip1193.session){
     onStatus?.('connected');
-    return provider;
+    return eip1193;
   }
   if(pairingInProgress)throw Object.assign(
     new Error('Another wallet pairing is in progress'),{code:4900});
@@ -87,7 +107,7 @@ export async function connectWalletConnect({onUri,onStatus,signal}={}){
     cancelled=true;
     // Cancel a pending proposal, but do not disconnect any existing
     // authorized WalletConnect session.
-    try{provider.signer?.abortPairingAttempt?.();}catch{}
+    try{provider.abortPairingAttempt?.();}catch{}
   };
   const onDisplayUri=uri=>{
     if(cancelled||signal?.aborted||typeof uri!=='string'||
@@ -99,12 +119,10 @@ export async function connectWalletConnect({onUri,onStatus,signal}={}){
   };
   signal?.addEventListener('abort',onAbort,{once:true});
   provider.on('display_uri',onDisplayUri);
-  // Some versions of the universal provider expose display_uri on the
-  // signer as well. Listening to both avoids a missed pairing proposal.
-  provider.signer?.on?.('display_uri',onDisplayUri);
   try{
     onStatus?.('creating');
-    const connectTask=Promise.resolve().then(()=>provider.connect());
+    const connectTask=Promise.resolve().then(()=>
+      provider.connect({optionalNamespaces}));
     await withWalletDeadline(
       Promise.race([uriReady,connectTask]),PAIRING_URI_TIMEOUT_MS,signal,
       'No WalletConnect pairing link was created. Check the relay and try again.');
@@ -115,19 +133,18 @@ export async function connectWalletConnect({onUri,onStatus,signal}={}){
       'Wallet approval expired. Start a new pairing request.');
     if(cancelled||signal?.aborted)
       throw Object.assign(new Error('Wallet connection cancelled'),{code:4001});
-    if(!provider.session)throw Object.assign(
-      new Error('Wallet did not approve the WalletConnect session'),{code:4900});
+    if(!eip1193.session)throw Object.assign(
+      new Error('Wallet did not approve an EVM WalletConnect session'),{code:4900});
     onStatus?.('connected');
-    return provider;
+    return eip1193;
   }catch(error){
     if(!provider.session){
-      try{provider.signer?.abortPairingAttempt?.();}catch{}
+      try{provider.abortPairingAttempt?.();}catch{}
     }
     throw error;
   }finally{
     pairingInProgress=false;
     provider.removeListener?.('display_uri',onDisplayUri);
-    provider.signer?.removeListener?.('display_uri',onDisplayUri);
     signal?.removeEventListener('abort',onAbort);
   }
 }

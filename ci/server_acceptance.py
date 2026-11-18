@@ -70,6 +70,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("node", "--test", "tests/wasm/wallet_async_revocation_20261118.test.mjs")),
     ("Browser-native custody ABI and fail-closed signer boundary",
      ("node", "--test", "tests/wasm/browser_native_custody_boundary_20261118.test.mjs")),
+    ("Pinned WalletConnect EIP-1193 namespace, EVM consent and complete browser assets",
+     ("node", "--test", "tests/wasm/walletconnect_universal_adapter_20261118.test.mjs")),
     ("HyperSnap exact uint64 native identity and shard-0 inclusion height",
      ("node", "--test", "tests/wasm/hypersnap_uint64_inclusion_contract_20261118.test.mjs")),
     ("Async resource limits", ("python3", "ci/check_async_resource_contract.py")),

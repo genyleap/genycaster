@@ -785,6 +785,12 @@ if(EMSCRIPTEN)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-wallet-provider.mjs"
             "${GENYCASTER_MINIAPP_SDK_STAGE}/miniapp-wallet-provider.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/host-sdk/walletconnect-entry.mjs"
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/walletconnect-entry.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/host-sdk/walletconnect-eip1193.mjs"
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/walletconnect-eip1193.mjs"
         COMMAND ${GENYCASTER_NPM_EXECUTABLE} ci
             --prefix "${GENYCASTER_MINIAPP_SDK_STAGE}"
             --ignore-scripts --no-audit --no-fund
@@ -792,6 +798,13 @@ if(EMSCRIPTEN)
             "${GENYCASTER_MINIAPP_SDK_STAGE}/build.mjs"
             "${GENYCASTER_MINIAPP_SDK_STAGE}/entry.mjs"
             "$<TARGET_FILE_DIR:genycaster>/miniapp-host-bridge.mjs"
+        # The Mini App bridge dynamically imports this on user intent. Without
+        # a local bundle, WalletConnect pairing fails at runtime even when the
+        # compile/link pipeline passes. No CDN fallback or injected signer.
+        COMMAND ${GENYCASTER_NODE_EXECUTABLE}
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/build.mjs"
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/walletconnect-entry.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-walletconnect.mjs"
         COMMENT "Bundling pinned Farcaster Mini App host SDK for first-party WASM delivery"
         VERBATIM
     )

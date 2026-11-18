@@ -101,6 +101,14 @@ public = ["genycaster.html", "qtloader.js", "genycaster.js",
           "miniapp-host-pre.js", "miniapp-host-bridge.mjs",
           "genycaster-walletconnect.mjs", "vendor/hls-1.6.15.min.js",
           "vendor/hls-1.6.15.LICENSE"]
+# The first-party Mini App bridge imports WalletConnect dynamically. Do not
+# publish a superficially valid PWA whose UI offers wallet pairing but whose
+# script is absent: otherwise the user sees a generic module-load failure.
+# Standalone asset fixtures without a Mini App host remain permitted.
+if (directory / "miniapp-host-bridge.mjs").is_file():
+    wallet_bundle = directory / "genycaster-walletconnect.mjs"
+    if not wallet_bundle.is_file() or wallet_bundle.stat().st_size == 0:
+        parser.error("Mini App host requires genycaster-walletconnect.mjs")
 public = [name for name in public if (directory / name).is_file()]
 
 # Cloudflare may cache public .js for hours despite origin revalidation.
