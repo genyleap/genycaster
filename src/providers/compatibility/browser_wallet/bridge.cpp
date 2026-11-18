@@ -973,16 +973,19 @@ private:
                 && m_sessionGeneration == pending.sessionGeneration
                 && m_authorizationEpoch == pending.authorizationEpoch;
         };
+        bool validReceipt = false;
         {
             std::scoped_lock lock{m_mutex};
-            if (!authorizedReceipt()) {
-                if (pending.completion) {
-                    pending.completion(rpcError(pending.request.id, 4100,
-                        "Wallet consent changed before this operation completed."));
-                }
-                writeText(socket, http::status::gone, "Wallet consent changed.");
-                return;
+            validReceipt = authorizedReceipt();
+        }
+        if (!validReceipt) {
+            // Never invoke a client callback while holding the bridge mutex.
+            if (pending.completion) {
+                pending.completion(rpcError(pending.request.id, 4100,
+                    "Wallet consent changed before this operation completed."));
             }
+            writeText(socket, http::status::gone, "Wallet consent changed.");
+            return;
         }
 
         std::vector<Pending> cancelled{};
