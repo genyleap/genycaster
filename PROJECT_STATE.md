@@ -195,8 +195,11 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   fail closed). See `docs/OPENPROOF_AND_SERVICES.md`. No production service
   was deployed during this execution.
 - GenyCaster [#9](https://github.com/genyleap/genycaster/issues/9):
-  `ci/verify_release_feature_contract.py --strict` still blocks **CHAT,
-  WALLET and privileged Android Mini App SDK host**. Do not bypass these.
+  the revised **v1** feature gate PASSES on `2b92bc62`: standalone Chat and
+  Wallet are explicitly deferred, external EIP-1193/WalletConnect remains
+  required, and Android Mini Apps are public-HTTPS-only without privileged
+  bridge. Broader future feature parity and real-device acceptance remain
+  OPEN; do not claim privileged Android signer/SDK support.
 - **Zero OPEN GitHub Dependabot alerts** verified on 2026-11-18 after
   `8a8a18db` via `gh api repos/genyleap/genycaster/dependabot/alerts`.
   Both Zod alerts [Quick Auth #1 and host SDK #2] are now **fixed** (host
@@ -208,10 +211,24 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 
 ## Hosted CI evidence (not current-HEAD release qualification)
 
-- Latest visible workflow run:
-  [#43176994046](https://github.com/genyleap/genycaster/actions/runs/43176994046),
-  **success**, 2026-11-12, head `5b37b436`, **macOS ARM64 only**.
-  Linux, Windows, Android, Web, iOS and publish jobs were skipped.
+- Historical macOS ARM64 workflow
+  [#43176994046](https://github.com/genyleap/genycaster/actions/runs/43176994046)
+  **SUCCESS** at `5b37b436` on 2026-11-12, not today's HEAD.
+- Linux x86_64 [#44370887947](https://github.com/genyleap/genycaster/actions/runs/44370887947)
+  **SUCCESS** on `a38716f7`: compiler/bootstrap, native build, packaging and
+  artifact job complete. This is older than the v1 feature-scope commit.
+- Windows x86_64 [#44375085212](https://github.com/genyleap/genycaster/actions/runs/44375085212)
+  **FAIL** on `79a99565`: Qt WebEngine extension setup used the regular
+  Qt 6.12 `Updates.xml` index, which does not carry Qt WebEngine 6.140.
+  No Windows compiler step was reached. Windows ARM64 remains unqualified.
+- macOS ARM64 [#44375093726](https://github.com/genyleap/genycaster/actions/runs/44375093726)
+  **CANCELLED** at `79a99565`; no completed same-commit macOS acceptance.
+- Repair on `main`: `c4212d87` and `757884da` install Qt WebEngine
+  6.140 from its separate official Windows x64/ARM64 extension archives
+  with pinned version stamps, upstream checksum validation, and required
+  Qt WebEngine runtime checks. `f9bc8c21` adds workflow/architecture
+  selection regressions. **This change has NOT yet been run in hosted Windows
+  CI**; do not report Windows PASS without a fresh supported run.
 - Targeted Web CI run [#44334629613](https://github.com/genyleap/genycaster/actions/runs/44334629613)
   on `27b285ac` **failed** in the gate at obsolete Python profile URL
   layout assertions. WebAssembly job was skipped.
@@ -274,10 +291,9 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   Shell syntax, 4/4 targeted source tests, CI and architecture guards PASS.
   A fresh hosted run is required to establish actual compiler availability.
 - Targeted Linux x86_64 [#44370887947](https://github.com/genyleap/genycaster/actions/runs/44370887947)
-  at `a38716f7` (both fallback stages): preflight PASS, **signed GCC16
-  installation + Qt install + Mini App swap compile/tests passed**; native
-  Qt client Build step in progress at last check. AppImage/DEB packaging
-  and artifact still NOT verified.
+  at `a38716f7`: **SUCCESS** after fallback repairs, including native
+  Linux packaging. It does not qualify a newer main SHA or installed-user
+  system smoke by itself.
 - Second targeted Android arm64 [#44371457383](https://github.com/genyleap/genycaster/actions/runs/44371457383)
   at `c0dce6fb` CANCELLED during Android SDK provisioning (unconfirmed
   cancellation cause). It did **not** reach native compilation or APK
@@ -301,15 +317,10 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
    unconfirmed. The earlier [#44361231825](https://github.com/genyleap/genycaster/actions/runs/44361231825)
    succeeded on prior SHA. Investigate cancellation source before paying for
    another full Android runner; real-device app/miniapp remains unverified.
-2. Inspect active [#44370887947](https://github.com/genyleap/genycaster/actions/runs/44370887947)
-   at exact `a38716f7` (SHA256-pinned native x86 fallback; both signed
-   PPA metadata and signed package-download failure branches covered).
-   Prior [#44366618826](https://github.com/genyleap/genycaster/actions/runs/44366618826)
-   failed on signed PPA metadata HTTP 503 / TLS mismatch; later
-   [#44368695933](https://github.com/genyleap/genycaster/actions/runs/44368695933)
-   failed on APT package download timeout exit 124. Do not duplicate
-   the active job. Verify native GCC16.2/GLIBC/C++26 smokes, AppImage
-   and DEB artifact before qualifying Linux.
+2. Linux x86_64 [#44370887947](https://github.com/genyleap/genycaster/actions/runs/44370887947)
+   is complete and SUCCESS on `a38716f7`; preserve its artifacts/evidence.
+   Qualify Linux ARM64 and any newer exact-head release builds separately,
+   without duplicating the already successful earlier x86 job.
 3. WebAssembly [#44371998350](https://github.com/genyleap/genycaster/actions/runs/44371998350)
    was cancelled during Qt Multimedia installation (preflight PASS, no
    fresh WASM artifact); previous Web [#44354415384](https://github.com/genyleap/genycaster/actions/runs/44354415384)
@@ -320,10 +331,16 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
    backend **before** distributing these clients.
 4. Security dependency graph is 0 open. Preserve patches and verify
    macOS/Windows/Android/Linux installed runtimes before release.
-5. Continue real Wallet/CHAT/Android privileged host implementation for #9
-   and separately verified OpenProof native-FID linking (#4).
-6. Run the full approved matrix only after real feature parity and explicit
-   full-matrix budget authorization; leave #4/#5/#6/#9 open otherwise.
+5. Honor the approved v1 scope: defer standalone Chat/Wallet and Android
+   privileged host, while retaining external-wallet authorization and the
+   Android public-HTTPS-only Mini App viewer. Finish actual OpenProof
+   HyperSnap native-FID verification (#4) and installed-device testing.
+6. Qualify Windows x86_64 and ARM64 from current `main` after the pinned
+   WebEngine installer repair, then macOS Intel/ARM64 and Linux ARM64.
+   Preserve earlier successful WASM/Android artifacts; no redundant builds.
+   The authorized full-matrix budget gate still applies to an `all` run.
+   Keep #4/#5/#6/#9 open until the required live identity, signing,
+   installed-runtime and security acceptance evidence exists.
 
 No paid registration, irreversible on-chain write, production server mutation,
 signing/notarization or public release has been performed by this checkpoint.
