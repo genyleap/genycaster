@@ -46,7 +46,7 @@ GenyAdaptiveDialog {
             text: qsTrId("genycaster.miniapp.swap.title")
             color: Theme.ink
             font.weight: Theme.weightBold
-            font.pixelSize: Theme.typeTitleSize
+            font.pixelSize: Theme.typeTitle3Size
             horizontalAlignment: Text.AlignHCenter
         }
         DirectionAwareLabel {
@@ -71,7 +71,7 @@ GenyAdaptiveDialog {
             color: Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize
         }
-        BidiTextField {
+        DirectionAwareTextField {
             Layout.fillWidth: true
             forceLeftToRight: true
             text: control.sellTokenInput
@@ -88,7 +88,7 @@ GenyAdaptiveDialog {
             color: Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize
         }
-        BidiTextField {
+        DirectionAwareTextField {
             Layout.fillWidth: true
             forceLeftToRight: true
             text: control.buyTokenInput
@@ -105,7 +105,7 @@ GenyAdaptiveDialog {
             color: Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize
         }
-        BidiTextField {
+        DirectionAwareTextField {
             Layout.fillWidth: true
             forceLeftToRight: true
             text: control.sellAmountInput
@@ -124,7 +124,7 @@ GenyAdaptiveDialog {
             color: Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize
         }
-        BidiTextField {
+        DirectionAwareTextField {
             Layout.fillWidth: true
             forceLeftToRight: true
             enabled: !miniAppHost.swapQuoteBusy && !control.transactionLocked

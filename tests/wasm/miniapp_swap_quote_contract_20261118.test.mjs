@@ -45,7 +45,7 @@ test('quote is bound to current Mini App document, account, chain, amount and to
 test('UI offers editable quote request but no invisible execution or token approvals',()=>{
   const dialog=read('ui/components/apps/MiniAppSwapPreflight.qml');
   const runtime=read('ui/app/miniapp/runtime.cpp');
-  assert.match(dialog,/BidiTextField/);
+  assert.match(dialog,/DirectionAwareTextField/);
   assert.match(dialog,/miniAppHost\.beginSwapQuote\(miniAppHost\.swapRequestId/);
   assert.match(dialog,/genycaster\.miniapp\.swap\.min_receive/);
   assert.match(dialog,/genycaster\.miniapp\.swap\.network_fee/);

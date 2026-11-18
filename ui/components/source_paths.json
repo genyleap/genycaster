@@ -109,6 +109,7 @@
   "MiniAppFeaturedCarousel.qml": "apps/FeaturedCarousel.qml",
   "MiniAppLibraryShelves.qml": "apps/LibraryShelves.qml",
   "MiniAppPresentationPreview.qml": "apps/MiniAppPreview.qml",
+  "MiniAppSwapPreflight.qml": "apps/MiniAppSwapPreflight.qml",
   "MobileCreateMenu.qml": "navigation/MobileCreateMenu.qml",
   "ModalHeader.qml": "controls/ModalHeader.qml",
   "NavItem.qml": "navigation/NavItem.qml",
