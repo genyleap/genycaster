@@ -1,6 +1,42 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.swap.max_slippage">
+            <source>Maximum slippage (basis points: 10–300)</source>
+            <translation>最大スリッページ（ベーシスポイント：10～300）</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approve_exact">
+            <source>Approve exact token amount</source>
+            <translation>正確なトークン数量を承認</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.confirm_swap">
+            <source>Confirm token swap</source>
+            <translation>トークンスワップを確認</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.wallet_wait">
+            <source>Waiting for wallet confirmation…</source>
+            <translation>ウォレットの確認待ち…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approval_receipt_wait">
+            <source>Waiting for Base token approval receipt…</source>
+            <translation>Base上のトークン承認確認待ち…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.swap_receipt_wait">
+            <source>Verifying Base swap receipt…</source>
+            <translation>Baseのスワップ取引確認中…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_refreshing">
+            <source>Refreshing quote after token approval…</source>
+            <translation>承認後の見積もりを更新中…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_loading">
+            <source>Retrieving live quote…</source>
+            <translation>最新の見積もりを取得中…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.execution_notice">
+            <source>Review each transaction in your wallet. Your swap is complete only after Base confirms it.</source>
+            <translation>各取引をウォレットで確認してください。スワップはBaseの承認後に完了します。</translation>
+        </message>
         <message id="genycaster.miniapp.swap.get_quote">
             <source>Get live quote</source>
             <translation>リアルタイム見積もりを取得</translation>
@@ -20,10 +56,6 @@
         <message id="genycaster.miniapp.swap.approval_not_required">
             <source>No ERC-20 approval is required.</source>
             <translation>ERC-20承認は不要です。</translation>
-        </message>
-        <message id="genycaster.miniapp.swap.quote_notice">
-            <source>The quote is read-only. Wallet approvals and token transfers are disabled until the secure execution flow is verified.</source>
-            <translation>見積もりは閲覧専用です。安全な実行手順の検証が終わるまで承認と送金は無効です。</translation>
         </message>
         <message id="genycaster.miniapp.swap.title">
             <source>Token swap requested</source>

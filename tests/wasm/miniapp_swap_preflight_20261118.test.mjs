@@ -35,16 +35,21 @@ test('swaps and their UI expire on navigation, backgrounding, failure and teardo
 
 test('declined swaps follow the official rejection union and never fabricate transactions', () => {
   const runtime = read('ui/app/miniapp/runtime.cpp');
-  const body = runtime.slice(runtime.indexOf('void beginSwapToken(Session&'),
+  const body = runtime.slice(runtime.indexOf('void finishSwap(const QString&'),
                              runtime.indexOf('void composeCast(Session&'));
   assert.match(body, /"success"\), false/);
   assert.match(body, /"reason"\), QStringLiteral\("swap_failed"\)/);
   assert.match(body, /"reason"\), QStringLiteral\("rejected_by_user"\)/);
   assert.match(body, /void cancelSwapToken\(const QString& requestId\)/);
-  assert.doesNotMatch(body, /"transactions"\)|eth_sendTransaction|approve\(/);
+  assert.match(body, /"transactions"\),transactions/);
+  assert.match(body, /"swap"\),QJsonObject/);
+  assert.match(body, /void pollSwapReceipt\(const QString& taskId/);
+  assert.match(body, /"eth_sendTransaction"/);
+  assert.match(body, /"eth_getTransactionReceipt"/);
   const caps = runtime.slice(runtime.indexOf('[[nodiscard]] QJsonArray capabilities('),
                              runtime.indexOf('[[nodiscard]] QJsonArray chains('));
-  assert.doesNotMatch(caps, /actions\.swapToken/);
+  assert.match(caps, /if \(supportsSwap && wallet != nullptr && wallet->available\(\)\)/);
+  assert.match(caps, /actions\.swapToken/);
 });
 
 test('first-party QML preflight has no blind-approve button or injected transaction data', () => {
@@ -62,7 +67,10 @@ test('first-party QML preflight has no blind-approve button or injected transact
   assert.match(cmake, /components\/apps\/MiniAppSwapPreflight\.qml/);
   assert.match(dialog, /textFormat: Text\.PlainText/);
   assert.match(dialog, /miniAppHost\.cancelSwapToken\(miniAppHost\.swapRequestId\)/);
-  assert.match(dialog, /genycaster\.miniapp\.swap\.quote_notice/);
+  assert.match(dialog, /genycaster\.miniapp\.swap\.execution_notice/);
+  assert.match(dialog, /miniAppHost\.executeSwapStep\(miniAppHost\.swapRequestId\)/);
+  assert.match(dialog, /genycaster\.miniapp\.swap\.approve_exact/);
+  assert.match(dialog, /genycaster\.miniapp\.swap\.confirm_swap/);
   assert.doesNotMatch(dialog, /sendTransaction|eth_sendTransaction|onClicked:.*approve/i);
 });
 

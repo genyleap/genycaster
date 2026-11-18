@@ -49,6 +49,9 @@ test('accept a normalized firm quote only for audited Base AllowanceHolder',()=>
   assert.equal(quote.transaction.to,'0x7f6cee965959295cc64d0e6c00d99d6532d8e86b');
   assert.equal(quote.sellAmount,'1000000');
   assert.ok(quote.expiresAt>quote.fetchedAt);
+  const officialShape=response();
+  delete officialShape.chainId; // The documented 0x v2 response may omit chainId.
+  assert.equal(normalizeFirmQuote(request(),officialShape).chainId,8453);
   const noApproval=response();
   noApproval.issues.allowance.actual='1000000';
   assert.equal(normalizeFirmQuote(request(),noApproval).requiresApproval,false);
@@ -60,6 +63,7 @@ test('reject quote router, arbitrary approvals, wrong tokens, fake liquidity, va
   wrongChain:{chainId:1},
   spender:{issues:{...response().issues,allowance:{actual:'0',spender:'0x1234567890123456789012345678901234567890'}}},
   balance:{issues:{...response().issues,balance:{actual:-1}}},
+  insufficientBalance:{issues:{...response().issues,balance:{actual:'1'}}},
   mintoken:{minBuyAmount:'600000000000000'},
   liquidity:{liquidityAvailable:false},simulation:{issues:{...response().issues,simulationIncomplete:true}},
   sellamount:{sellAmount:'2000000'},selltoken:{sellToken:constants.NATIVE},

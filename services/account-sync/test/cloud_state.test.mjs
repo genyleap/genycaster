@@ -290,3 +290,17 @@ test('native session cookie with CSRF may quote without Origin; browser cross-or
     assert.equal((await send({'sec-fetch-site':'cross-site'})).status,403);
   }finally{server.close();}
 });
+
+test('swap readiness is a public boolean backed by both authenticated cloud and a configured quote provider',async()=>{
+  await withServer(async request=>{
+    const status=await request('swap/status','GET',undefined,'Bearer bad');
+    assert.equal(status.status,200);
+    assert.deepEqual(await status.json(),{available:true,chainId:8453});
+    assert.equal((await request('swap/status','POST',{},'Bearer bad')).status,405);
+  },{swapQuoteProvider:async()=>({})});
+  await withServer(async request=>{
+    const status=await request('swap/status','GET',undefined,'Bearer bad');
+    assert.equal(status.status,200);
+    assert.deepEqual(await status.json(),{available:false,chainId:8453});
+  });
+});

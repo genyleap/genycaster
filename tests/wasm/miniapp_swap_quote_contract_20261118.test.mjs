@@ -49,7 +49,8 @@ test('UI offers editable quote request but no invisible execution or token appro
   assert.match(dialog,/miniAppHost\.beginSwapQuote\(miniAppHost\.swapRequestId/);
   assert.match(dialog,/genycaster\.miniapp\.swap\.min_receive/);
   assert.match(dialog,/genycaster\.miniapp\.swap\.network_fee/);
-  assert.match(dialog,/genycaster\.miniapp\.swap\.quote_notice/);
+  assert.match(dialog,/genycaster\.miniapp\.swap\.execution_notice/);
+  assert.match(dialog,/miniAppHost\.executeSwapStep\(miniAppHost\.swapRequestId\)/);
   assert.match(dialog,/openProofConnections\.cloudAuthorizationReady/);
   assert.match(dialog,/miniAppHost\.invalidateSwapQuote\(miniAppHost\.swapRequestId\)/);
   const host = read('ui/app/miniapp/host.cpp');
@@ -59,7 +60,8 @@ test('UI offers editable quote request but no invisible execution or token appro
   assert.doesNotMatch(dialog,/eth_sendTransaction|wallet_sendCalls|approve\(/);
   const capabilities=runtime.slice(runtime.indexOf('[[nodiscard]] QJsonArray capabilities('),
     runtime.indexOf('[[nodiscard]] QJsonArray chains('));
-  assert.doesNotMatch(capabilities,/actions\.swapToken/);
+  assert.match(capabilities,/if \(supportsSwap && wallet != nullptr && wallet->available\(\)\)/);
+  assert.match(capabilities,/actions\.swapToken/);
 });
 
 test('0x permissions are always scoped to AllowanceHolder, execution address remains dynamic',()=>{

@@ -6,6 +6,7 @@ module;
 #include "tasks.hpp"
 #include "swap_intent.hpp"
 #include "swap_quote.hpp"
+#include "swap_execution.hpp"
 
 #include <QByteArray>
 #include <QDateTime>
@@ -65,7 +66,8 @@ constexpr int readyTimeoutMs = 20'000;
 constexpr qint64 manifestCacheTtlMs = 5 * 60 * 1000;
 
 [[nodiscard]] QJsonArray capabilities(const capability::wallet::IEthereumWalletBridge* wallet,
-                                      const bool supportsSignIn = false)
+                                      const bool supportsSignIn = false,
+                                      const bool supportsSwap = false)
 {
     QJsonArray result{
         QStringLiteral("actions.ready"),
@@ -81,6 +83,12 @@ constexpr qint64 manifestCacheTtlMs = 5 * 60 * 1000;
     }
     if (supportsSignIn && wallet != nullptr && wallet->available())
         result.push_back(QStringLiteral("actions.signIn"));
+    if (supportsSwap && wallet != nullptr && wallet->available()) {
+        const auto supportedChains=wallet->supportedChains();
+        if (std::ranges::find(supportedChains,std::string{"eip155:8453"})
+            != supportedChains.end())
+            result.push_back(QStringLiteral("actions.swapToken"));
+    }
     return result;
 }
 
@@ -425,6 +433,10 @@ public:
                              const QString& error) {
                     receiveSwapQuote(requestId, quote, error);
                 });
+        connect(&m_controller, &MiniAppHostController::swapExecutionRequested,
+                this, [this](const QString& requestId) {
+                    executeSwapStep(requestId);
+                });
         connect(&m_taskManager, &MiniAppTaskManagerController::focusRequested, this,
             [this](const QString& taskId) {
                 // Task Manager is a Qt modal while Mini Apps are native WebKit surfaces.
@@ -487,7 +499,15 @@ private:
         QString document{};
         quint64 generation{};
         platform::miniapp::SwapIntent intent{};
+        int slippageBps{100};
         QString taker{};
+        std::optional<platform::miniapp::ValidatedSwapQuote> quote{};
+        QString approvalHash{};
+        QString swapHash{};
+        bool processing{};
+        bool awaitingReceipt{};
+        bool approvalReceipt{};
+        int receiptAttempts{};
     };
 
     struct Session final {
@@ -999,7 +1019,7 @@ private:
                     }
                 }
                 QStringList missingCapabilities{};
-                const QJsonArray supportedCapabilities = capabilities(m_wallet, signInAvailable());
+                const QJsonArray supportedCapabilities = capabilities(m_wallet, signInAvailable(), m_controller.swapAvailable());
                 for (const QJsonValue capability : required.toArray()) {
                     if (!capability.isString() || capability.toString().trimmed().isEmpty()) {
                         fail(*active, qtTrId("genycaster.miniapp.invalid_manifest"));
@@ -1230,6 +1250,13 @@ private:
         if (target == nullptr) {
             return;
         }
+        // Do not end the wallet session while a first-party trade is signing
+        // or awaiting a receipt. A different Mini App may not steal it.
+        Session* const previous=foreground();
+        if (previous && previous->taskId!=taskId
+            && std::ranges::any_of(previous->pendingSwaps, [](const auto& item) {
+                return item.processing || item.awaitingReceipt;
+            })) return;
         m_focusIntentTaskId = taskId;
         if (!target->browser) {
             updateTask(*target, QStringLiteral("resolving"));
@@ -1257,6 +1284,9 @@ private:
         if (target == nullptr || !target->browser) {
             return;
         }
+        if (std::ranges::any_of(target->pendingSwaps, [](const auto& item) {
+                return item.processing || item.awaitingReceipt;
+            })) return;
         if (!target->pendingSwaps.isEmpty())
             cancelSwapToken(target->pendingSwaps.cbegin().key());
         target->foreground = false;
@@ -1289,6 +1319,9 @@ private:
             return;
         }
         Session& session = **iterator;
+        if (std::ranges::any_of(session.pendingSwaps, [](const auto& item) {
+                return item.processing || item.awaitingReceipt;
+            })) return;
         revokeSwapIntents(session);
         stopReply(session);
         if (m_walletTaskId == taskId) {
@@ -1405,7 +1438,7 @@ private:
             : args.first().toObject().value(QStringLiteral("value"));
 
         if (method == QStringLiteral("getCapabilities")) {
-            session.browser->reply(rawResponse(id, capabilities(m_wallet, signInAvailable())), document);
+            session.browser->reply(rawResponse(id, capabilities(m_wallet, signInAvailable(), m_controller.swapAvailable())), document);
         } else if (method == QStringLiteral("getChains")) {
             session.browser->reply(rawResponse(id, chains(m_wallet)), document);
         } else if (method == QStringLiteral("ethProviderRequestV2")) {
@@ -1549,7 +1582,21 @@ private:
                 rejected.isEmpty()?QStringLiteral("Complete both Base tokens and the amount"):rejected);
             return;
         }
+        if (pending->processing || !pending->swapHash.isEmpty()) {
+            m_controller.setSwapQuoteError(requestId,
+                QStringLiteral("A swap transaction is already in progress"));
+            return;
+        }
+        bool slippageValid=false;
+        const int slippage=edited.value(QStringLiteral("slippageBps")).toInt(&slippageValid);
+        if (!slippageValid || slippage<10 || slippage>300) {
+            m_controller.setSwapQuoteError(requestId,
+                QStringLiteral("Slippage must be between 10 and 300 basis points"));
+            return;
+        }
+        pending->slippageBps=slippage;
         pending->intent=*intent;
+        pending->quote.reset();
         pending->taker.clear();
         if (!ensureWalletSession(*session)) {
             m_controller.setSwapQuoteError(requestId,
@@ -1603,7 +1650,7 @@ private:
                     {QStringLiteral("buyToken"),intent.buyToken},
                     {QStringLiteral("sellAmount"),intent.sellAmount},
                     {QStringLiteral("taker"),account},
-                    {QStringLiteral("slippageBps"),100},
+                    {QStringLiteral("slippageBps"),pendingQuote->slippageBps},
                 });
             });
         });
@@ -1615,12 +1662,20 @@ private:
         const QString taskId=m_swapRequestToTask.value(requestId);
         Session* const session=find(taskId);
         if (!session || !session->foreground || !session->browser) return;
-        const auto pending=session->pendingSwaps.constFind(requestId);
-        if (pending==session->pendingSwaps.cend()
+        auto pending=session->pendingSwaps.find(requestId);
+        if (pending==session->pendingSwaps.end()
             || pending->generation!=session->documentGeneration
             || pending->taker.isEmpty()) return;
         if (!error.isEmpty()) {
             m_controller.setSwapQuoteError(requestId,error);
+            return;
+        }
+        bool quoteSlippageValid=false;
+        const int quoteSlippage=details.value(QStringLiteral("slippageBps"))
+                                    .toInt(&quoteSlippageValid);
+        if (!quoteSlippageValid || quoteSlippage!=pending->slippageBps) {
+            m_controller.setSwapQuoteError(requestId,
+                QStringLiteral("Swap quote slippage does not match the approved limit"));
             return;
         }
         const auto verified=platform::miniapp::validateSwapQuote(
@@ -1630,10 +1685,304 @@ private:
                 QStringLiteral("The quote failed local wallet safety checks"));
             return;
         }
-        // No signing or sendTransaction here: the executable quote is exposed
-        // only as read-only UI while the explicit approval and receipt state
-        // machine is not yet enabled.
+        if (pending->processing || !pending->swapHash.isEmpty()) return;
+        pending->quote=*verified;
         m_controller.showSwapQuote(requestId,verified->preview());
+    }
+
+    // The host owns all transaction state. Embedded Mini App code never
+    // supplies transaction destination, calldata, spender, or approval amount.
+    void finishSwap(const QString& requestId, const bool success,
+                    const QString& error = {})
+    {
+        const QString taskId=m_swapRequestToTask.take(requestId);
+        Session* const session=find(taskId);
+        m_controller.clearSwapRequest(requestId);
+        if (!session || !session->browser) return;
+        auto it=session->pendingSwaps.find(requestId);
+        if (it==session->pendingSwaps.end()) return;
+        const PendingSwap pending=it.value();
+        session->pendingSwaps.erase(it);
+        if (session->documentGeneration!=pending.generation
+            || !session->foreground) return;
+        QJsonObject result{};
+        if (success && platform::miniapp::validTransactionHash(pending.swapHash)) {
+            QJsonArray transactions{};
+            if (!pending.approvalHash.isEmpty())
+                transactions.append(pending.approvalHash);
+            transactions.append(pending.swapHash);
+            result={{QStringLiteral("success"),true},
+                {QStringLiteral("swap"),QJsonObject{{QStringLiteral("transactions"),transactions}}}};
+        } else {
+            result={{QStringLiteral("success"),false},
+                {QStringLiteral("reason"),error==QStringLiteral("rejected_by_user")
+                    ?QStringLiteral("rejected_by_user"):QStringLiteral("swap_failed")},
+                {QStringLiteral("error"),QJsonObject{
+                    {QStringLiteral("error"),error.isEmpty()
+                        ?QStringLiteral("swap_failed"):error.left(120)}}}};
+        }
+        session->browser->reply(rawResponse(pending.outerId,result),pending.document);
+        QTimer::singleShot(0,this,[this,taskId,generation=pending.generation] {
+            Session* const current=find(taskId);
+            if (current && current->browser && current->foreground
+                && current->documentGeneration==generation)
+                current->browser->setVisible(true);
+        });
+    }
+
+    void pollSwapReceipt(const QString& taskId, const QString& requestId)
+    {
+        Session* const session=find(taskId);
+        if (!session || !session->foreground || m_walletTaskId!=taskId) return;
+        auto pending=session->pendingSwaps.find(requestId);
+        if (pending==session->pendingSwaps.end() || !pending->awaitingReceipt
+            || !pending->processing) return;
+        const bool approval=pending->approvalReceipt;
+        const QString hash=approval?pending->approvalHash:pending->swapHash;
+        if (!platform::miniapp::validTransactionHash(hash)) {
+            finishSwap(requestId,false,QStringLiteral("invalid_transaction_hash"));
+            return;
+        }
+        if (++pending->receiptAttempts>80) {
+            // A broadcast transaction cannot be cancelled by closing the UI.
+            // Return an explicit unknown-status error and preserve the hash in
+            // the error details, so the user can independently investigate.
+            finishSwap(requestId,false,QStringLiteral("receipt_pending_")+hash);
+            return;
+        }
+        const quint64 generation=pending->generation;
+        const QString sender=pending->taker;
+        const QString recipient=approval
+            ? pending->intent.sellToken.mid(QStringLiteral("eip155:8453/erc20:").size())
+            : pending->quote?pending->quote->to:QString{};
+        const auto arguments=QJsonDocument(QJsonArray{hash})
+            .toJson(QJsonDocument::Compact).toStdString();
+        requestSwapWallet(taskId,capability::wallet::EthereumRpcRequest{
+            .id=++m_nextSignInRpcId,
+            .method="eth_getTransactionReceipt",
+            .paramsJson=arguments,
+        },[taskId,requestId,generation,approval,hash,sender,recipient](
+            Impl& runtime,capability::wallet::EthereumRpcResponse response) {
+            Session* const active=runtime.find(taskId);
+            if (!active || !active->foreground
+                || active->documentGeneration!=generation) return;
+            auto pending=active->pendingSwaps.find(requestId);
+            if (pending==active->pendingSwaps.end()
+                || !pending->awaitingReceipt || !pending->processing
+                || pending->approvalReceipt!=approval
+                || (approval?pending->approvalHash:pending->swapHash)!=hash)
+                return;
+            const auto receipt=response.error
+                ?QJsonValue{}:parseJsonValue(response.resultJson);
+            const auto outcome=response.error
+                ?platform::miniapp::ReceiptStatus::Pending
+                :platform::miniapp::validateReceipt(receipt,hash,sender,recipient);
+            switch (outcome) {
+            case platform::miniapp::ReceiptStatus::Pending:
+                QTimer::singleShot(2'500,&runtime,
+                    [&runtime,taskId,requestId,generation] {
+                    Session* const still=runtime.find(taskId);
+                    if (still && still->documentGeneration==generation)
+                        runtime.pollSwapReceipt(taskId,requestId);
+                });
+                break;
+            case platform::miniapp::ReceiptStatus::Invalid:
+            case platform::miniapp::ReceiptStatus::Reverted:
+                if (approval) {
+                    pending->processing=false;
+                    pending->awaitingReceipt=false;
+                    pending->approvalHash.clear();
+                    pending->quote.reset();
+                    runtime.m_controller.setSwapQuoteError(requestId,
+                        outcome==platform::miniapp::ReceiptStatus::Reverted
+                        ?QStringLiteral("Token approval reverted on Base")
+                        :QStringLiteral("Invalid token approval receipt"));
+                } else {
+                    runtime.finishSwap(requestId,false,
+                        outcome==platform::miniapp::ReceiptStatus::Reverted
+                        ?QStringLiteral("swap_transaction_reverted")
+                        :QStringLiteral("invalid_swap_receipt"));
+                }
+                break;
+            case platform::miniapp::ReceiptStatus::Success:
+                pending->awaitingReceipt=false;
+                if (!approval) {
+                    runtime.finishSwap(requestId,true);
+                    return;
+                }
+                // An approved ERC-20 allowance is already on chain. Do not
+                // reuse the pre-approval quote, and never auto-swap afterwards.
+                pending->processing=false;
+                pending->quote.reset();
+                runtime.m_controller.setSwapProgress(requestId,
+                    QStringLiteral("refreshing"),pending->approvalHash);
+                const auto& intent=pending->intent;
+                runtime.m_controller.dispatchSwapQuote(requestId,{
+                    {QStringLiteral("sellToken"),intent.sellToken},
+                    {QStringLiteral("buyToken"),intent.buyToken},
+                    {QStringLiteral("sellAmount"),intent.sellAmount},
+                    {QStringLiteral("taker"),pending->taker},
+                    {QStringLiteral("slippageBps"),pending->slippageBps},
+                });
+                break;
+            }
+        });
+    }
+
+    void sendSwapTransaction(const QString& taskId,const QString& requestId,
+                             const bool approval)
+    {
+        Session* const session=find(taskId);
+        if (!session || !session->browser || !session->foreground) return;
+        auto pending=session->pendingSwaps.find(requestId);
+        if (pending==session->pendingSwaps.end() || !pending->processing
+            || !pending->quote || !pending->swapHash.isEmpty()) return;
+        const auto& quote=*pending->quote;
+        if (quote.expiresAtMs<=QDateTime::currentMSecsSinceEpoch()) {
+            pending->processing=false;
+            pending->quote.reset();
+            m_controller.setSwapQuoteError(requestId,
+                QStringLiteral("Swap price expired. Request a fresh quote."));
+            return;
+        }
+        if (approval!=quote.requiresApproval) {
+            pending->processing=false;
+            m_controller.setSwapQuoteError(requestId,
+                QStringLiteral("Approval state changed. Request a fresh quote."));
+            return;
+        }
+        const QJsonObject transaction=approval
+            ?quote.approvalTransaction():quote.swapTransaction();
+        if (transaction.isEmpty()) {
+            pending->processing=false;
+            m_controller.setSwapQuoteError(requestId,
+                QStringLiteral("Invalid restricted transaction"));
+            return;
+        }
+        m_controller.setSwapProgress(requestId,approval
+            ?QStringLiteral("approving"):QStringLiteral("swapping"));
+        const quint64 generation=pending->generation;
+        const auto arguments=QJsonDocument(QJsonArray{transaction})
+            .toJson(QJsonDocument::Compact).toStdString();
+        requestSwapWallet(taskId,capability::wallet::EthereumRpcRequest{
+            .id=++m_nextSignInRpcId, .method="eth_sendTransaction",
+            .paramsJson=arguments,
+        },[taskId,requestId,generation,approval](
+            Impl& runtime,capability::wallet::EthereumRpcResponse response) {
+            Session* const active=runtime.find(taskId);
+            if (!active || !active->foreground
+                || active->documentGeneration!=generation) return;
+            auto pending=active->pendingSwaps.find(requestId);
+            if (pending==active->pendingSwaps.end()
+                || !pending->processing || !pending->quote) return;
+            const QJsonValue value=parseJsonValue(response.resultJson);
+            const QString hash=value.isString()?value.toString():QString{};
+            if (response.error || !platform::miniapp::validTransactionHash(hash)) {
+                if (approval) {
+                    pending->processing=false;
+                    pending->quote.reset();
+                    runtime.m_controller.setSwapQuoteError(requestId,
+                        response.error && response.error->code==4001
+                        ?QStringLiteral("Approval declined in wallet")
+                        :QStringLiteral("Token approval failed"));
+                } else {
+                    runtime.finishSwap(requestId,false,
+                        response.error && response.error->code==4001
+                        ?QStringLiteral("rejected_by_user")
+                        :QStringLiteral("swap_send_failed"));
+                }
+                return;
+            }
+            pending->approvalReceipt=approval;
+            pending->awaitingReceipt=true;
+            pending->receiptAttempts=0;
+            if (approval) pending->approvalHash=hash;
+            else pending->swapHash=hash;
+            runtime.m_controller.setSwapProgress(requestId,approval
+                ?QStringLiteral("approval_receipt"):QStringLiteral("swap_receipt"),hash);
+            runtime.pollSwapReceipt(taskId,requestId);
+        });
+    }
+
+    void executeSwapStep(const QString& requestId)
+    {
+        const QString taskId=m_swapRequestToTask.value(requestId);
+        Session* const session=find(taskId);
+        if (!session || !session->foreground || !session->browser
+            || m_walletTaskId!=taskId || !m_wallet || !m_wallet->available()) {
+            m_controller.setSwapQuoteError(requestId,
+                QStringLiteral("Wallet session is no longer active"));
+            return;
+        }
+        auto pending=session->pendingSwaps.find(requestId);
+        if (pending==session->pendingSwaps.end() || pending->processing
+            || pending->awaitingReceipt || !pending->quote
+            || !pending->swapHash.isEmpty()) {
+            m_controller.setSwapQuoteError(requestId,
+                QStringLiteral("Request a fresh quote before confirming"));
+            return;
+        }
+        if (pending->quote->expiresAtMs<=QDateTime::currentMSecsSinceEpoch()) {
+            pending->quote.reset();
+            m_controller.setSwapQuoteError(requestId,
+                QStringLiteral("Swap price expired. Request a fresh quote."));
+            return;
+        }
+        if (!pending->approvalHash.isEmpty() && pending->quote->requiresApproval) {
+            pending->quote.reset();
+            m_controller.setSwapQuoteError(requestId,
+                QStringLiteral("Approval has not propagated. Refresh the quote."));
+            return;
+        }
+        pending->processing=true;
+        const quint64 generation=pending->generation;
+        // Revalidate the *live* wallet account and chain immediately before
+        // sending the approval or the swap. A prior connect is not proof the
+        // selected wallet has remained unchanged.
+        requestSwapWallet(taskId,capability::wallet::EthereumRpcRequest{
+            .id=++m_nextSignInRpcId,.method="eth_accounts",.paramsJson="[]",
+        },[taskId,requestId,generation](
+            Impl& runtime,capability::wallet::EthereumRpcResponse response) {
+            Session* const live=runtime.find(taskId);
+            if (!live || !live->foreground
+                || live->documentGeneration!=generation) return;
+            auto pending=live->pendingSwaps.find(requestId);
+            if (pending==live->pendingSwaps.end() || !pending->processing) return;
+            const QJsonValue accounts=parseJsonValue(response.resultJson);
+            const bool matches=!response.error && accounts.isArray()
+                && !accounts.toArray().isEmpty()
+                && accounts.toArray().first().toString().compare(
+                    pending->taker,Qt::CaseInsensitive)==0;
+            if (!matches) {
+                pending->processing=false;
+                pending->quote.reset();
+                runtime.m_controller.setSwapQuoteError(requestId,
+                    QStringLiteral("Wallet account changed. Request a new quote."));
+                return;
+            }
+            runtime.requestSwapWallet(taskId,capability::wallet::EthereumRpcRequest{
+                .id=++runtime.m_nextSignInRpcId,.method="eth_chainId",.paramsJson="[]",
+            },[taskId,requestId,generation](
+                Impl& verified,capability::wallet::EthereumRpcResponse chain) {
+                Session* const active=verified.find(taskId);
+                if (!active || !active->foreground
+                    || active->documentGeneration!=generation) return;
+                auto pending=active->pendingSwaps.find(requestId);
+                if (pending==active->pendingSwaps.end() || !pending->processing) return;
+                const QJsonValue chainValue=parseJsonValue(chain.resultJson);
+                if (chain.error || !chainValue.isString()
+                    || chainValue.toString().compare(QStringLiteral("0x2105"),
+                        Qt::CaseInsensitive)!=0) {
+                    pending->processing=false;
+                    pending->quote.reset();
+                    verified.m_controller.setSwapQuoteError(requestId,
+                        QStringLiteral("Wallet network changed. Switch to Base."));
+                    return;
+                }
+                verified.sendSwapTransaction(taskId,requestId,
+                    pending->quote && pending->quote->requiresApproval);
+            });
+        });
     }
 
     void beginSwapToken(Session& session, const QJsonValue& outerId,
@@ -1654,6 +2003,10 @@ private:
                 {QStringLiteral("error"), QJsonObject{{QStringLiteral("error"), code}}}
             }), document);
         };
+        if (!m_controller.swapAvailable()) {
+            unavailable(QStringLiteral("swap_not_configured"));
+            return;
+        }
         if (m_wallet == nullptr || !m_wallet->available()) {
             unavailable(QStringLiteral("wallet_unavailable"));
             return;
@@ -1679,6 +2032,7 @@ private:
         });
         m_swapRequestToTask.insert(requestId, session.taskId);
         QVariantMap preview = intent->toVariantMap();
+        preview.insert(QStringLiteral("slippageBps"),100);
         preview.insert(QStringLiteral("appName"), session.title.left(96));
         preview.insert(QStringLiteral("origin"), session.launchUrl.adjusted(
             QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment)

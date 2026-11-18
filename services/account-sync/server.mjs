@@ -94,6 +94,18 @@ export function createAccountApi({
     res.setHeader('X-Content-Type-Options','nosniff');
     res.setHeader('Content-Type','application/json; charset=utf-8');
     const path = new URL(req.url, 'http://localhost').pathname;
+    // Only the boolean backend readiness is public. The 0x API key and
+    // private account quote endpoint are never exposed to the browser.
+    if (path === '/api/v1/cloud/swap/status') {
+      if (req.method !== 'GET') {
+        res.writeHead(405,{'Allow':'GET'}).end(JSON.stringify({error:'method_not_allowed'}));
+        return;
+      }
+      res.writeHead(200).end(JSON.stringify({
+        available:Boolean(swapQuoteProvider && store), chainId:8453
+      }));
+      return;
+    }
     // Market data is public, read-only and cached across every user and FID.
     // Existing Nginx cloud proxy routes this endpoint; no new public host is
     // introduced and account authorization cookies are neither needed nor read.

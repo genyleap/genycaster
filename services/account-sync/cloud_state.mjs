@@ -734,7 +734,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           respond(response,200,quote);
         } catch(error) {
           const code=String(error?.message||'');
-          const rejected=/^(invalid_|unsupported_|unexpected_|identical_|token_must_)/.test(code);
+          const rejected=/^(invalid_|unsupported_|unexpected_|identical_|token_must_|insufficient_)/.test(code);
           respond(response,rejected?422:503,{
             error:rejected?code:'swap_quote_unavailable'
           });

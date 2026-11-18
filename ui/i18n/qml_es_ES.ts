@@ -1,6 +1,42 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="es_ES" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.swap.max_slippage">
+            <source>Maximum slippage (basis points: 10–300)</source>
+            <translation>Deslizamiento máximo (puntos básicos: 10–300)</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approve_exact">
+            <source>Approve exact token amount</source>
+            <translation>Aprobar cantidad exacta de tokens</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.confirm_swap">
+            <source>Confirm token swap</source>
+            <translation>Confirmar intercambio</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.wallet_wait">
+            <source>Waiting for wallet confirmation…</source>
+            <translation>Esperando confirmación de la cartera…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approval_receipt_wait">
+            <source>Waiting for Base token approval receipt…</source>
+            <translation>Esperando confirmación de aprobación en Base…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.swap_receipt_wait">
+            <source>Verifying Base swap receipt…</source>
+            <translation>Verificando el recibo de intercambio en Base…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_refreshing">
+            <source>Refreshing quote after token approval…</source>
+            <translation>Actualizando cotización tras la aprobación…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_loading">
+            <source>Retrieving live quote…</source>
+            <translation>Obteniendo cotización en vivo…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.execution_notice">
+            <source>Review each transaction in your wallet. Your swap is complete only after Base confirms it.</source>
+            <translation>Revise cada transacción en su cartera. El intercambio se completa solo tras la confirmación de Base.</translation>
+        </message>
         <message id="genycaster.miniapp.swap.get_quote">
             <source>Get live quote</source>
             <translation>Obtener cotización en vivo</translation>
@@ -20,10 +56,6 @@
         <message id="genycaster.miniapp.swap.approval_not_required">
             <source>No ERC-20 approval is required.</source>
             <translation>No se necesita aprobación ERC-20.</translation>
-        </message>
-        <message id="genycaster.miniapp.swap.quote_notice">
-            <source>The quote is read-only. Wallet approvals and token transfers are disabled until the secure execution flow is verified.</source>
-            <translation>La cotización es solo informativa. Las aprobaciones y transferencias están deshabilitadas hasta verificar la ejecución segura.</translation>
         </message>
         <message id="genycaster.miniapp.swap.title">
             <source>Token swap requested</source>

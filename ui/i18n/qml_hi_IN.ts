@@ -1,6 +1,42 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.swap.max_slippage">
+            <source>Maximum slippage (basis points: 10–300)</source>
+            <translation>अधिकतम स्लिपेज (आधार अंक: 10–300)</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approve_exact">
+            <source>Approve exact token amount</source>
+            <translation>टोकन की सटीक मात्रा अनुमोदित करें</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.confirm_swap">
+            <source>Confirm token swap</source>
+            <translation>टोकन स्वैप की पुष्टि करें</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.wallet_wait">
+            <source>Waiting for wallet confirmation…</source>
+            <translation>वॉलेट पुष्टि की प्रतीक्षा…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approval_receipt_wait">
+            <source>Waiting for Base token approval receipt…</source>
+            <translation>Base टोकन अनुमति की पुष्टि की प्रतीक्षा…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.swap_receipt_wait">
+            <source>Verifying Base swap receipt…</source>
+            <translation>Base स्वैप रसीद की जाँच…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_refreshing">
+            <source>Refreshing quote after token approval…</source>
+            <translation>अनुमति के बाद नया कोट प्राप्त किया जा रहा है…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_loading">
+            <source>Retrieving live quote…</source>
+            <translation>लाइव कोट प्राप्त किया जा रहा है…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.execution_notice">
+            <source>Review each transaction in your wallet. Your swap is complete only after Base confirms it.</source>
+            <translation>प्रत्येक लेनदेन की वॉलेट में समीक्षा करें। Base द्वारा पुष्टि के बाद ही स्वैप पूरा होता है।</translation>
+        </message>
         <message id="genycaster.miniapp.swap.get_quote">
             <source>Get live quote</source>
             <translation>लाइव कोट प्राप्त करें</translation>
@@ -20,10 +56,6 @@
         <message id="genycaster.miniapp.swap.approval_not_required">
             <source>No ERC-20 approval is required.</source>
             <translation>ERC-20 अनुमति आवश्यक नहीं है।</translation>
-        </message>
-        <message id="genycaster.miniapp.swap.quote_notice">
-            <source>The quote is read-only. Wallet approvals and token transfers are disabled until the secure execution flow is verified.</source>
-            <translation>कोट केवल जानकारी के लिए है। सुरक्षित निष्पादन सत्यापित होने तक वॉलेट अनुमतियाँ और टोकन स्थानांतरण बंद हैं।</translation>
         </message>
         <message id="genycaster.miniapp.swap.title">
             <source>Token swap requested</source>

@@ -382,6 +382,15 @@ void MiniAppHostController::setSessionLimit(const int limit)
 QString MiniAppHostController::errorText() const { return m_error; }
 QString MiniAppHostController::launchUrl() const { return m_launchUrl; }
 
+bool MiniAppHostController::swapAvailable() const noexcept { return m_swapAvailable; }
+
+void MiniAppHostController::setSwapAvailable(const bool available)
+{
+    if (m_swapAvailable == available) return;
+    m_swapAvailable = available;
+    emit swapAvailabilityChanged();
+}
+
 bool MiniAppHostController::swapRequestActive() const noexcept
 {
     return !m_swapRequestId.isEmpty();
@@ -399,6 +408,8 @@ void MiniAppHostController::presentSwapRequest(
     m_swapQuote.clear();
     m_swapQuoteError.clear();
     m_swapQuoteBusy = false;
+    m_swapStage = QStringLiteral("editing");
+    m_swapTxHash.clear();
     emit swapRequestChanged();
 }
 
@@ -410,18 +421,47 @@ void MiniAppHostController::clearSwapRequest(const QString& requestId)
     m_swapQuote.clear();
     m_swapQuoteError.clear();
     m_swapQuoteBusy = false;
+    m_swapStage.clear();
+    m_swapTxHash.clear();
     emit swapRequestChanged();
 }
 
 bool MiniAppHostController::swapQuoteBusy() const noexcept { return m_swapQuoteBusy; }
 QVariantMap MiniAppHostController::swapQuote() const { return m_swapQuote; }
 QString MiniAppHostController::swapQuoteError() const { return m_swapQuoteError; }
+QString MiniAppHostController::swapStage() const { return m_swapStage; }
+QString MiniAppHostController::swapTxHash() const { return m_swapTxHash; }
+
+void MiniAppHostController::executeSwapStep(const QString& requestId)
+{
+    if (requestId != m_swapRequestId || requestId.isEmpty()
+        || m_swapQuoteBusy || m_swapStage != QStringLiteral("review")
+        || m_swapQuote.isEmpty()) return;
+    m_swapQuoteBusy = true;
+    m_swapStage = QStringLiteral("checking");
+    emit swapRequestChanged();
+    emit swapExecutionRequested(requestId);
+}
+
+void MiniAppHostController::setSwapProgress(
+    const QString& requestId, const QString& stage, const QString& transactionHash)
+{
+    if (requestId != m_swapRequestId || requestId.isEmpty()) return;
+    m_swapStage = stage;
+    m_swapQuoteBusy = stage != QStringLiteral("review")
+        && stage != QStringLiteral("editing")
+        && stage != QStringLiteral("failed");
+    if (!transactionHash.isEmpty()) m_swapTxHash = transactionHash;
+    if (stage == QStringLiteral("refreshing")) m_swapQuote.clear();
+    emit swapRequestChanged();
+}
 
 void MiniAppHostController::beginSwapQuote(
     const QString& requestId, const QVariantMap& editedIntent)
 {
     if (requestId != m_swapRequestId || requestId.isEmpty() || m_swapQuoteBusy) return;
     m_swapQuoteBusy = true;
+    m_swapStage = QStringLiteral("quoting");
     m_swapQuote.clear();
     m_swapQuoteError.clear();
     emit swapRequestChanged();
@@ -449,6 +489,7 @@ void MiniAppHostController::showSwapQuote(
     m_swapQuoteBusy = false;
     m_swapQuoteError.clear();
     m_swapQuote = verifiedQuote;
+    m_swapStage = QStringLiteral("review");
     emit swapRequestChanged();
     // Quotes are transient, never cache them as durable execution authority.
     const qint64 expiry = verifiedQuote.value(QStringLiteral("expiresAt")).toLongLong();
@@ -469,6 +510,8 @@ void MiniAppHostController::invalidateSwapQuote(const QString& requestId)
     if (requestId != m_swapRequestId || requestId.isEmpty()) return;
     m_swapQuote.clear();
     m_swapQuoteError.clear();
+    if (m_swapStage == QStringLiteral("review"))
+        m_swapStage = QStringLiteral("editing");
     emit swapRequestChanged();
 }
 
@@ -477,6 +520,7 @@ void MiniAppHostController::setSwapQuoteError(
 {
     if (requestId != m_swapRequestId) return;
     m_swapQuoteBusy = false;
+    m_swapStage = QStringLiteral("failed");
     m_swapQuote.clear();
     m_swapQuoteError = error.left(128);
     emit swapRequestChanged();
@@ -485,6 +529,12 @@ void MiniAppHostController::setSwapQuoteError(
 void MiniAppHostController::cancelSwapToken(const QString& requestId)
 {
     if (requestId.isEmpty() || requestId != m_swapRequestId) return;
+    // Once a swap transaction is broadcast, closing the UI cannot undo it.
+    // Keep tracking the receipt rather than returning a false user rejection.
+    if (m_swapStage == QStringLiteral("swap_receipt")
+        || m_swapStage == QStringLiteral("swapping")
+        || m_swapStage == QStringLiteral("approving")
+        || m_swapStage == QStringLiteral("approval_receipt")) return;
     clearSwapRequest(requestId);
     emit swapTokenCancelled(requestId);
 }

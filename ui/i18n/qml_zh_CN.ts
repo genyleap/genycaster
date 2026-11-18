@@ -1,6 +1,42 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.swap.max_slippage">
+            <source>Maximum slippage (basis points: 10–300)</source>
+            <translation>最大滑点（基点：10–300）</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approve_exact">
+            <source>Approve exact token amount</source>
+            <translation>授权精确数量的代币</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.confirm_swap">
+            <source>Confirm token swap</source>
+            <translation>确认代币兑换</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.wallet_wait">
+            <source>Waiting for wallet confirmation…</source>
+            <translation>等待钱包确认…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approval_receipt_wait">
+            <source>Waiting for Base token approval receipt…</source>
+            <translation>等待 Base 代币授权交易确认…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.swap_receipt_wait">
+            <source>Verifying Base swap receipt…</source>
+            <translation>验证 Base 兑换交易收据…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_refreshing">
+            <source>Refreshing quote after token approval…</source>
+            <translation>授权后刷新兑换报价…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_loading">
+            <source>Retrieving live quote…</source>
+            <translation>正在获取实时兑换报价…</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.execution_notice">
+            <source>Review each transaction in your wallet. Your swap is complete only after Base confirms it.</source>
+            <translation>请在钱包中逐笔确认交易。仅在 Base 网络确认后，兑换才算完成。</translation>
+        </message>
         <message id="genycaster.miniapp.swap.get_quote">
             <source>Get live quote</source>
             <translation>获取实时报价</translation>
@@ -20,10 +56,6 @@
         <message id="genycaster.miniapp.swap.approval_not_required">
             <source>No ERC-20 approval is required.</source>
             <translation>无需 ERC-20 授权。</translation>
-        </message>
-        <message id="genycaster.miniapp.swap.quote_notice">
-            <source>The quote is read-only. Wallet approvals and token transfers are disabled until the secure execution flow is verified.</source>
-            <translation>报价仅供查看。在安全执行流程通过验证前，钱包授权和代币转账均已禁用。</translation>
         </message>
         <message id="genycaster.miniapp.swap.title">
             <source>Token swap requested</source>

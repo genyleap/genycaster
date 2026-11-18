@@ -401,6 +401,7 @@ public:
      * transaction signatures, or Mini App-supplied HTTP URLs are accepted.
      * The 0x key is retained server-side by the account-sync API. */
     void requestSwapQuote(const QString& requestId, const QVariantMap& parameters);
+    void refreshSwapAvailability();
 
     /** @brief Refreshes public provider capabilities over bounded HTTPS.
      * Network or CORS errors preserve the last known display-only list. */
@@ -411,6 +412,7 @@ public:
     [[nodiscard]] static QStringList parseProviderCatalog(const QByteArray& json);
 
 signals:
+    void swapAvailabilityChanged(bool available);
     void swapQuoteReceived(const QString& requestId, const QVariantMap& quote,
                            const QString& error);
     void mutedProfilesChanged();
@@ -474,6 +476,8 @@ private:
     QPointer<QNetworkReply> m_request{};
     QPointer<QNetworkReply> m_cloudRequest{};
     QPointer<QNetworkReply> m_swapQuoteRead{};
+    QPointer<QNetworkReply> m_swapAvailabilityRead{};
+    QTimer m_swapAvailabilityPoll{this};
     QPointer<QNetworkReply> m_feedbackRead{};
     QPointer<QNetworkReply> m_feedbackWrite{};
     QVariantMap m_feedbackStats{};

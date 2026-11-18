@@ -148,12 +148,66 @@ for locale, labels in EXTRA_LOCALIZED.items():
     LOCALIZED[locale].pop()  # Superseded by the more accurate read-only quote notice.
     LOCALIZED[locale].extend(labels)
 
+
+# Execution UI is a separate, explicit user gesture after every on-chain
+# approval. State labels must not imply a submitted transaction is reversible.
+EXECUTION_SOURCE = {
+    "approve_exact": "Approve exact token amount",
+    "confirm_swap": "Confirm token swap",
+    "wallet_wait": "Waiting for wallet confirmation…",
+    "approval_receipt_wait": "Waiting for Base token approval receipt…",
+    "swap_receipt_wait": "Verifying Base swap receipt…",
+    "quote_refreshing": "Refreshing quote after token approval…",
+    "quote_loading": "Retrieving live quote…",
+    "execution_notice": "Review each transaction in your wallet. Your swap is complete only after Base confirms it.",
+}
+EXECUTION_TRANSLATIONS = {
+    "en_US": ["Approve exact token amount","Confirm token swap","Waiting for wallet confirmation…","Waiting for Base token approval receipt…","Verifying Base swap receipt…","Refreshing quote after token approval…","Retrieving live quote…","Review each transaction in your wallet. Your swap is complete only after Base confirms it."],
+    "fa_IR": ["تأیید مجوز مقدار دقیق توکن","تأیید مبادلهٔ توکن","در انتظار تأیید کیف پول…","در انتظار تأیید مجوز توکن در شبکهٔ Base…","بررسی تأیید مبادله در Base…","دریافت مجدد مظنه پس از مجوز توکن…","دریافت مظنهٔ زنده…","هر تراکنش را در کیف پول بررسی و تأیید کنید. مبادله تنها پس از تأیید شبکهٔ Base نهایی می‌شود."],
+    "ar_SA": ["الموافقة على مقدار الرمز المحدد","تأكيد مبادلة الرموز","بانتظار تأكيد المحفظة…","بانتظار تأكيد موافقة الرمز على Base…","التحقق من إيصال مبادلة Base…","تحديث عرض السعر بعد الموافقة…","جلب عرض سعر مباشر…","راجع كل معاملة في محفظتك. لا تكتمل المبادلة إلا بعد تأكيد شبكة Base."],
+    "de_DE": ["Exakten Tokenbetrag freigeben","Token-Tausch bestätigen","Auf Wallet-Bestätigung warten…","Auf Bestätigung der Base-Tokenfreigabe warten…","Base-Transaktion wird überprüft…","Kurs nach der Freigabe aktualisieren…","Live-Angebot wird abgerufen…","Prüfen Sie jede Transaktion in Ihrer Wallet. Der Tausch ist erst nach der Bestätigung durch Base abgeschlossen."],
+    "es_ES": ["Aprobar cantidad exacta de tokens","Confirmar intercambio","Esperando confirmación de la cartera…","Esperando confirmación de aprobación en Base…","Verificando el recibo de intercambio en Base…","Actualizando cotización tras la aprobación…","Obteniendo cotización en vivo…","Revise cada transacción en su cartera. El intercambio se completa solo tras la confirmación de Base."],
+    "fr_FR": ["Autoriser le montant exact des jetons","Confirmer l'échange","En attente de confirmation du portefeuille…","En attente du reçu d'autorisation sur Base…","Vérification du reçu d'échange sur Base…","Actualisation du devis après autorisation…","Récupération du devis en direct…","Vérifiez chaque transaction dans votre portefeuille. L'échange n'est terminé qu'après confirmation par Base."],
+    "hi_IN": ["टोकन की सटीक मात्रा अनुमोदित करें","टोकन स्वैप की पुष्टि करें","वॉलेट पुष्टि की प्रतीक्षा…","Base टोकन अनुमति की पुष्टि की प्रतीक्षा…","Base स्वैप रसीद की जाँच…","अनुमति के बाद नया कोट प्राप्त किया जा रहा है…","लाइव कोट प्राप्त किया जा रहा है…","प्रत्येक लेनदेन की वॉलेट में समीक्षा करें। Base द्वारा पुष्टि के बाद ही स्वैप पूरा होता है।"],
+    "ja_JP": ["正確なトークン数量を承認","トークンスワップを確認","ウォレットの確認待ち…","Base上のトークン承認確認待ち…","Baseのスワップ取引確認中…","承認後の見積もりを更新中…","最新の見積もりを取得中…","各取引をウォレットで確認してください。スワップはBaseの承認後に完了します。"],
+    "ko_KR": ["정확한 토큰 수량 승인","토큰 스왑 확인","지갑 확인 대기 중…","Base 토큰 승인 내역 대기 중…","Base 스왑 영수증 확인 중…","승인 후 견적 갱신 중…","실시간 견적 조회 중…","지갑에서 각 거래를 확인하세요. Base 네트워크의 승인이 있어야 스왑이 완료됩니다."],
+    "pt_BR": ["Aprovar quantidade exata de tokens","Confirmar troca de tokens","Aguardando confirmação da carteira…","Aguardando recibo de aprovação em Base…","Verificando recibo da troca em Base…","Atualizando cotação após aprovação…","Obtendo cotação em tempo real…","Revise cada transação na carteira. A troca só termina após confirmação da rede Base."],
+    "ru_RU": ["Разрешить точное количество токенов","Подтвердить обмен","Ожидание подтверждения кошелька…","Ожидание подтверждения разрешения в Base…","Проверка квитанции обмена в Base…","Обновление котировки после разрешения…","Получение актуальной котировки…","Проверьте каждую транзакцию в кошельке. Обмен завершится только после подтверждения сетью Base."],
+    "zh_CN": ["授权精确数量的代币","确认代币兑换","等待钱包确认…","等待 Base 代币授权交易确认…","验证 Base 兑换交易收据…","授权后刷新兑换报价…","正在获取实时兑换报价…","请在钱包中逐笔确认交易。仅在 Base 网络确认后，兑换才算完成。"],
+}
+SOURCE.pop("quote_notice")
+SOURCE.update(EXECUTION_SOURCE)
+for locale, translation in EXECUTION_TRANSLATIONS.items():
+    LOCALIZED[locale].pop()  # Remove obsolete read-only notice.
+    LOCALIZED[locale].extend(translation)
+
+SOURCE["max_slippage"] = "Maximum slippage (basis points: 10–300)"
+SLIPPAGE_LABELS = {
+    "en_US": "Maximum slippage (basis points: 10–300)",
+    "fa_IR": "حداکثر لغزش قیمت (واحد پایهٔ درصد: ۱۰ تا ۳۰۰)",
+    "ar_SA": "الانزلاق الأقصى (نقاط أساس: ١٠–٣٠٠)",
+    "de_DE": "Maximale Slippage (Basispunkte: 10–300)",
+    "es_ES": "Deslizamiento máximo (puntos básicos: 10–300)",
+    "fr_FR": "Glissement maximal (points de base : 10–300)",
+    "hi_IN": "अधिकतम स्लिपेज (आधार अंक: 10–300)",
+    "ja_JP": "最大スリッページ（ベーシスポイント：10～300）",
+    "ko_KR": "최대 슬리피지(베이시스 포인트: 10–300)",
+    "pt_BR": "Slippage máximo (pontos-base: 10–300)",
+    "ru_RU": "Максимальное проскальзывание (базисные пункты: 10–300)",
+    "zh_CN": "最大滑点（基点：10–300）",
+}
+for locale, label in SLIPPAGE_LABELS.items():
+    LOCALIZED[locale].append(label)
+
 for locale, translations in LOCALIZED.items():
     path = BASE / f"qml_{locale}.ts"
     original_source = path.read_text(encoding="utf-8")
     source = re.sub(
         r'        <message id="genycaster\.miniapp\.swap\.quote_unavailable">.*?</message>\n',
         '', original_source, flags=re.S)
+    source = re.sub(
+        r'        <message id="genycaster\.miniapp\.swap\.quote_notice">.*?</message>\n',
+        '', source, flags=re.S)
     assert len(translations) == len(SOURCE)
     assert "    <context>\n" in source, path
     blocks = []

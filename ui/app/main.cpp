@@ -1102,6 +1102,9 @@ int main(int argc, char* argv[])
     OpenProofConnectionsController openProofConnections{nullptr, &settings};
     // Only the trusted account-sync client owns account cookies and OpenProof
     // bearer tokens. Mini Apps never receive them or the server-side 0x key.
+    QObject::connect(&openProofConnections,
+                     &OpenProofConnectionsController::swapAvailabilityChanged,
+                     &miniAppHost, &MiniAppHostController::setSwapAvailable);
     QObject::connect(&miniAppHost, &MiniAppHostController::swapQuoteNetworkRequested,
                      &openProofConnections, &OpenProofConnectionsController::requestSwapQuote);
     QObject::connect(&openProofConnections, &OpenProofConnectionsController::swapQuoteReceived,

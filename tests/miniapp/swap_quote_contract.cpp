@@ -1,4 +1,5 @@
 #include "../../ui/app/miniapp/swap_quote.hpp"
+#include "../../ui/app/miniapp/swap_execution.hpp"
 
 #include <QJsonObject>
 #include <QJsonValue>
@@ -100,5 +101,42 @@ int main()
     tx=tampered.value(QStringLiteral("transaction")).toObject();
     tx.insert(QStringLiteral("data"),QStringLiteral("0xHI"));
     tampered.insert(QStringLiteral("transaction"),tx); rejects("reject malformed calldata");
-    std::puts("swap_quote_contract: quote, expiry, taker, spender, ABI approval passed");
+    const QString txHash=QStringLiteral("0x")+QString(64,QLatin1Char('a'));
+    const QString blockHash=QStringLiteral("0x")+QString(64,QLatin1Char('b'));
+    const QJsonObject receipt{
+        {QStringLiteral("transactionHash"),txHash},
+        {QStringLiteral("blockHash"),blockHash},
+        {QStringLiteral("blockNumber"),QStringLiteral("0x1024")},
+        {QStringLiteral("from"),taker},
+        {QStringLiteral("to"),QStringLiteral("0x7F6cEE965959295cC64d0E6c00d99d6532d8e86b")},
+        {QStringLiteral("status"),QStringLiteral("0x1")},
+    };
+    using farcaster::platform::miniapp::ReceiptStatus;
+    using farcaster::platform::miniapp::validateReceipt;
+    const QString to=receipt.value(QStringLiteral("to")).toString();
+    require(validateReceipt(receipt,txHash,taker,to)==ReceiptStatus::Success,
+            "confirmed successful swap receipt");
+    require(validateReceipt(QJsonValue::Null,txHash,taker,to)==ReceiptStatus::Pending,
+            "pending receipt cannot prove success");
+    QJsonObject badReceipt=receipt;
+    badReceipt.insert(QStringLiteral("status"),QStringLiteral("0x0"));
+    require(validateReceipt(badReceipt,txHash,taker,to)==ReceiptStatus::Reverted,
+            "reverted receipt cannot prove success");
+    badReceipt=receipt;
+    badReceipt.insert(QStringLiteral("transactionHash"),blockHash);
+    require(validateReceipt(badReceipt,txHash,taker,to)==ReceiptStatus::Invalid,
+            "mismatched tx hash invalid");
+    badReceipt=receipt;
+    badReceipt.insert(QStringLiteral("from"),QStringLiteral("0x2234567890123456789012345678901234567890"));
+    require(validateReceipt(badReceipt,txHash,taker,to)==ReceiptStatus::Invalid,
+            "mismatched wallet address invalid");
+    badReceipt=receipt;
+    badReceipt.insert(QStringLiteral("to"),taker);
+    require(validateReceipt(badReceipt,txHash,taker,to)==ReceiptStatus::Invalid,
+            "mismatched router invalid");
+    badReceipt=receipt;
+    badReceipt.remove(QStringLiteral("blockNumber"));
+    require(validateReceipt(badReceipt,txHash,taker,to)==ReceiptStatus::Invalid,
+            "unmined receipt invalid");
+    std::puts("swap_quote_contract: quote, expiry, taker, spender, ABI approval and receipts passed");
 }

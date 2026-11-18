@@ -31,10 +31,13 @@ class MiniAppHostController final : public QObject {
     Q_PROPERTY(int sessionLimit READ sessionLimit NOTIFY sessionLimitChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY stateChanged)
     Q_PROPERTY(QString launchUrl READ launchUrl NOTIFY stateChanged)
+    Q_PROPERTY(bool swapAvailable READ swapAvailable NOTIFY swapAvailabilityChanged)
     Q_PROPERTY(bool swapRequestActive READ swapRequestActive NOTIFY swapRequestChanged)
     Q_PROPERTY(QString swapRequestId READ swapRequestId NOTIFY swapRequestChanged)
     Q_PROPERTY(QVariantMap swapRequest READ swapRequest NOTIFY swapRequestChanged)
     Q_PROPERTY(bool swapQuoteBusy READ swapQuoteBusy NOTIFY swapRequestChanged)
+    Q_PROPERTY(QString swapStage READ swapStage NOTIFY swapRequestChanged)
+    Q_PROPERTY(QString swapTxHash READ swapTxHash NOTIFY swapRequestChanged)
     Q_PROPERTY(QVariantMap swapQuote READ swapQuote NOTIFY swapRequestChanged)
     Q_PROPERTY(QString swapQuoteError READ swapQuoteError NOTIFY swapRequestChanged)
     Q_PROPERTY(bool walletBrowserPickerActive READ walletBrowserPickerActive NOTIFY walletBrowserPickerChanged)
@@ -110,6 +113,8 @@ public:
     Q_INVOKABLE void cancelComposeCast(const QString& requestId);
 
     /** @brief The runtime owns one untrusted swap intent; QML cannot execute it. */
+    [[nodiscard]] bool swapAvailable() const noexcept;
+    void setSwapAvailable(bool available);
     [[nodiscard]] bool swapRequestActive() const noexcept;
     [[nodiscard]] QString swapRequestId() const;
     [[nodiscard]] QVariantMap swapRequest() const;
@@ -121,6 +126,11 @@ public:
     [[nodiscard]] QString swapQuoteError() const;
     Q_INVOKABLE void beginSwapQuote(const QString& requestId,
                                    const QVariantMap& editedIntent);
+    Q_INVOKABLE void executeSwapStep(const QString& requestId);
+    [[nodiscard]] QString swapStage() const;
+    [[nodiscard]] QString swapTxHash() const;
+    void setSwapProgress(const QString& requestId, const QString& stage,
+                         const QString& transactionHash = {});
     void dispatchSwapQuote(const QString& requestId, const QVariantMap& parameters);
     void receiveSwapQuoteResult(const QString& requestId, const QVariantMap& quote,
                                 const QString& error);
@@ -159,9 +169,11 @@ signals:
     void composeCastCancelled(const QString& requestId);
 
     /** Emitted only for a user-declined intent, never a signing confirmation. */
+    void swapAvailabilityChanged();
     void swapTokenCancelled(const QString& requestId);
     void swapQuotePreparationRequested(const QString& requestId,
                                       const QVariantMap& editedIntent);
+    void swapExecutionRequested(const QString& requestId);
     void swapQuoteNetworkRequested(const QString& requestId,
                                    const QVariantMap& parameters);
     void swapQuoteResultReceived(const QString& requestId,
@@ -199,7 +211,10 @@ private:
     QString m_swapRequestId{};
     QVariantMap m_swapQuote{};
     QString m_swapQuoteError{};
+    bool m_swapAvailable{};
     bool m_swapQuoteBusy{};
+    QString m_swapStage{};
+    QString m_swapTxHash{};
 #if defined(Q_OS_WASM)
     QTimer m_browserVisibilityTimer{};
 #endif

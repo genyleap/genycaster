@@ -117,6 +117,7 @@ struct ValidatedSwapQuote final {
     [[nodiscard]] QJsonObject swapTransaction() const
     {
         return {{QStringLiteral("from"),taker},
+                {QStringLiteral("chainId"),QStringLiteral("0x2105")},
                 {QStringLiteral("to"),to},
                 {QStringLiteral("data"),data},
                 {QStringLiteral("value"),QStringLiteral("0x")+decimalToHex256(value)},
@@ -126,6 +127,7 @@ struct ValidatedSwapQuote final {
     [[nodiscard]] QJsonObject approvalTransaction() const
     {
         return {{QStringLiteral("from"),taker},
+                {QStringLiteral("chainId"),QStringLiteral("0x2105")},
                 {QStringLiteral("to"),sellToken.mid(QStringLiteral("eip155:8453/erc20:").size())},
                 {QStringLiteral("data"),exactApprovalCalldata(
                     QString::fromLatin1(baseAllowanceHolder), sellAmount)},

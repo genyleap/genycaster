@@ -141,6 +141,11 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
 {
     m_gatewayUrl = configuredUrl("GENYCASTER_OPENPROOF_CONNECTIONS_GATEWAY_URL",
         QStringLiteral("openproofConnectionsGatewayUrl"));
+    QTimer::singleShot(0,this,[this] { refreshSwapAvailability(); });
+    m_swapAvailabilityPoll.setInterval(120'000);
+    connect(&m_swapAvailabilityPoll,&QTimer::timeout,this,
+            &OpenProofConnectionsController::refreshSwapAvailability);
+    m_swapAvailabilityPoll.start();
     m_proPaymentPoll.setSingleShot(true);
     connect(&m_proPaymentPoll, &QTimer::timeout, this, [this] {
         if (!m_pendingProPaymentHash.isEmpty() && !m_proBillingRequest &&
@@ -271,6 +276,38 @@ void OpenProofConnectionsController::setManualLinkedInUrl(const QString& candida
         && !m_cloudRequest) uploadManualLinkedInCloud();
 }
 
+
+void OpenProofConnectionsController::refreshSwapAvailability()
+{
+    if (m_swapAvailabilityRead || !trustedHttpsEndpoint(m_cloudUrl)) {
+        if (!trustedHttpsEndpoint(m_cloudUrl))
+            emit swapAvailabilityChanged(false);
+        return;
+    }
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/swap/status"));
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(7'000);
+    request.setRawHeader("Accept","application/json");
+    auto* const reply=m_network.get(request);
+    m_swapAvailabilityRead=reply;
+    connect(reply,&QNetworkReply::finished,this,[this,reply] {
+        if (m_swapAvailabilityRead!=reply) {reply->deleteLater();return;}
+        m_swapAvailabilityRead.clear();
+        const int status=reply->attribute(
+            QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray content=reply->isReadable()
+            && reply->bytesAvailable()<=1024 ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        const auto document=QJsonDocument::fromJson(content);
+        const QJsonObject response=document.isObject()?document.object():QJsonObject{};
+        emit swapAvailabilityChanged(status==200
+            && response.value(QStringLiteral("available")).toBool(false)
+            && response.value(QStringLiteral("chainId")).toInt(0)==8453);
+    });
+}
 
 void OpenProofConnectionsController::requestSwapQuote(
     const QString& requestId, const QVariantMap& parameters)

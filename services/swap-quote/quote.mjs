@@ -64,7 +64,8 @@ export function normalizeFirmQuote(body, upstream) {
   const tx = json(quote.transaction);
   const issues = json(quote.issues || {});
   const allowance = issues.allowance;
-  if (quote.liquidityAvailable !== true || quote.chainId !== Number(BASE_CHAIN)
+  if (quote.liquidityAvailable !== true
+      || (quote.chainId !== undefined && quote.chainId !== Number(BASE_CHAIN))
       || !eq(quote.allowanceTarget, ALLOWANCE_HOLDER)
       || issues.simulationIncomplete === true
       || issues.invalidSourcesPassed?.length || !nonzero(quote.buyAmount)
@@ -91,6 +92,8 @@ export function normalizeFirmQuote(body, upstream) {
     throw new Error('native_token_must_not_approve');
   if (issues.balance && (issues.balance.actual == null || !isUint(issues.balance.actual)))
     throw new Error('invalid_balance');
+  if (issues.balance && BigInt(issues.balance.actual) < BigInt(req.sellAmount))
+    throw new Error('insufficient_balance');
   // AllowanceHolder is fixed as the approved spender; the Settler execution
   // destination is dynamic and supplied by the trusted 0x API, never Mini App JS.
   return Object.freeze({
