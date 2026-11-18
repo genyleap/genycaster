@@ -91,26 +91,26 @@ Button {
     Accessible.name: rowTitle + " " + root.displayUrl
     onClicked: root.openRequested(root.targetUrl)
 
-    background: Rectangle {
-        radius: Theme.curveCompact
-        color: root.down ? Theme.surfacePressed
-              : root.hovered ? Theme.surfaceHover : Theme.surface
-        border.color: root.hovered ? Theme.borderMuted : "transparent"
-        border.width: 1
-        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+    background: Superellipse {
+        curveDepth: Theme.curveCompact
+        fillColor: root.down ? Theme.surfacePressed
+                 : root.hovered ? Theme.surfaceHover : Theme.surface
+        borderColor: root.hovered ? Theme.borderMuted : "transparent"
+        borderWidth: 1
+        Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
     }
     contentItem: RowLayout {
         spacing: Theme.space3
         layoutDirection: Theme.rtl ? Qt.RightToLeft : Qt.LeftToRight
         LayoutMirroring.enabled: false
 
-        Rectangle {
+        Superellipse {
             Layout.preferredWidth: Theme.scaleUi(44)
             Layout.preferredHeight: Theme.scaleUi(44)
-            radius: Theme.curveCompact
-            color: Theme.primarySurface
-            border.color: Theme.borderMuted
-            border.width: 1
+            curveDepth: Theme.curveCompact
+            fillColor: Theme.primarySurface
+            borderColor: Theme.borderMuted
+            borderWidth: 1
             // Always paint a legible site monogram underneath the bitmap.
             // Some sites serve a transparent/empty ICO which Qt reports Ready.
             // A fallback conditioned solely on Image.status leaves blank tiles.
