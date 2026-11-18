@@ -522,6 +522,10 @@ Item {
             NeonSurface {
                 id: magazineCardSurface
                 anchors.fill: parent
+                // A Timeline row is only a transparent Item. Creating a NeonSurface
+                // on every visible Cast would allocate a needless scene-graph
+                // surface and animate the GPU on ordinary feed scrolling.
+                visible: root.magazineCard
                 proximityPointerActive: root.magazineCard && root.sharedNeonPointerActive
                 proximityPointerX: magazineCardSurface.mapFromItem(
                     root, root.sharedNeonPointerX, root.sharedNeonPointerY).x
@@ -537,7 +541,7 @@ Item {
                 externalPointerX: magazineCardPointer.point.position.x
                 externalPointerY: magazineCardPointer.point.position.y
                 neonStrength: Theme.neonCardStrength
-                fillColor: root.magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
+                fillColor: root.magazineCard ? Theme.surfaceRaised : "transparent"
                 // Center a real hairline stroke inside the clipping slot so
                 // its antialiasing and Neon shader share one coherent edge.
                 borderWidth: root.magazineCard ? Theme.strokeHairline : 0
