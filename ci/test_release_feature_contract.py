@@ -72,6 +72,7 @@ class ReleaseFeatureContractTest(unittest.TestCase):
             if path == ".github/workflows/ci.yml":
                 source = source.replace(
                     "            -DFARCASTER_ENABLE_SEARCH=ON\n"
+                    "            -DFARCASTER_ENABLE_CHANNELS=ON\n"
                     "            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON",
                     "            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON",
                 )
@@ -104,7 +105,7 @@ class ReleaseFeatureContractTest(unittest.TestCase):
             source = original(path)
             if path == ".github/workflows/ci.yml":
                 source = source.replace(
-                    '            -DFARCASTER_ENABLE_CHANNELS=ON\\n'
+                    '            -DFARCASTER_ENABLE_CHANNELS=ON\n'
                     '          cmake --build build/web',
                     '          cmake --build build/web',
                 )
