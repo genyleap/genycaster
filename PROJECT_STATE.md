@@ -6,6 +6,13 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 
 ## Verified baseline
 
+- Latest exact uint64 signer-session proof:
+  `7bc7ab71` (canonical decimal full uint64 FIDs, including >2^53,
+  in challenge issue/proof/HyperSnap cookie restoration; BigInt-backed
+  namespace bounds; reject lossy JSON numeric registry FIDs). Independently
+  re-ran the full Account Sync suite: **125 total / 124 PASS / 1 SKIP /
+  0 FAIL**. This is a native *signer session*, not a verified OpenProof
+  `hypersnap-native` ownership link; #4 remains OPEN.
 - Latest backend/native issuer hardening:
   `a38716f7dba9b469bda6136f0f9bfb253ce615b2` (stored Farcaster
   cookies must have the independently trusted issuer; HyperSnap native
@@ -69,8 +76,8 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   `aba3f1bf654b73747f51fea3286b0b9ebce741c7`.
 - HyperSnap exact native uint64 FID/height merge:
   `35550e73ce9447e2650e99e4f7dab21346c053ce` (PR #39).
-- Repository was clean and tracking `origin/main` immediately after the
-  `a38716f7` push. Re-check HEAD/upstream before subsequent edits.
+- Repository was tracking `origin/main` after `7bc7ab71`.
+  Re-check HEAD/upstream and local edits before subsequent engineering work.
 
 ## Completed and locally verified in the latest execution
 
@@ -254,9 +261,11 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   cancellation cause). It did **not** reach native compilation or APK
   artifact; do not repeat without understanding cancellation/runners.
 - Targeted WebAssembly [#44371998350](https://github.com/genyleap/genycaster/actions/runs/44371998350)
-  at `c0dce6fb` is in progress after preflight PASS, qualifying the
-  stricter account-cookie client code and updated WalletConnect assets.
-  Await actual Qt/C++/WASM artifact before claiming current-source success.
+  at `c0dce6fb`: **preflight PASS, Web job CANCELLED** during Qt
+  Multimedia WASM toolchain setup (no compiler or packaging failure
+  established; no artifact). The prior successful artifact remains from
+  `8a8a18db`, not current account-cookie security code. A rerun should
+  follow investigation of repeated hosted cancellation, not blind repetition.
 - No successful all-target CI, notarized/signed release or post-security-change
   installed-device tests are evidenced. Source-only checks and a successful
   gate do **not** authorize a version tag.
@@ -280,10 +289,13 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
    the active job. Verify native GCC16.2/GLIBC/C++26 smokes, AppImage
    and DEB artifact before qualifying Linux.
 3. WebAssembly [#44371998350](https://github.com/genyleap/genycaster/actions/runs/44371998350)
-   is already running on `c0dce6fb` (which contains the new cookie
-   policy). Inspect its final build+artifact; do not dispatch a duplicate.
-   Verify the same cookie scope in browser with a physical EIP-1193 wallet,
-   and deploy account-sync service **before** deploying those clients.
+   was cancelled during Qt Multimedia installation (preflight PASS, no
+   fresh WASM artifact); previous Web [#44354415384](https://github.com/genyleap/genycaster/actions/runs/44354415384)
+   succeeded at older `8a8a18db`. Do not assume the current cookie
+   policy is compiled in Web until a new successful same-SHA targeted
+   build. Investigate recurring workflow cancellations before rerun.
+   Verify browser cookie scope with a real wallet and deploy Account Sync
+   backend **before** distributing these clients.
 4. Security dependency graph is 0 open. Preserve patches and verify
    macOS/Windows/Android/Linux installed runtimes before release.
 5. Continue real Wallet/CHAT/Android privileged host implementation for #9
