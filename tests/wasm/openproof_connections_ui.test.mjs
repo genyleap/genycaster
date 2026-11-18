@@ -247,7 +247,12 @@ test('desktop Connections and shared Settings drawer dismiss by backdrop and Esc
   const backdrop = read('../../ui/components/visual/DrawerBackdrop.qml');
   assert.match(backdrop, /function requestOutsideDismiss\(\)/);
   assert.match(backdrop, /outsideDismissConsumed/);
-  assert.match(settings, /GenyDrawer/);
+  // Settings is an adaptive full-screen dialog: desktop GenyModal, mobile GenyDrawer.
+  assert.match(settings, /GenyAdaptiveDialog\s*\{/);
+  const adaptive = read('../../ui/components/controls/GenyAdaptiveDialog.qml');
+  assert.match(adaptive, /GenyModal\s*\{/);
+  assert.match(adaptive, /GenyDrawer\s*\{/);
+  assert.match(settings, /onCloseRequested: root\.close\(\)/);
   assert.match(popup, /closePolicy: Popup.CloseOnEscape \| Popup.CloseOnPressOutside/);
 });
 

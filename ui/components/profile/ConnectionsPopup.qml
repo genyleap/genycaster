@@ -178,14 +178,14 @@ GenyDrawer {
             onCloseRequested: picker.close()
         }
 
-        Rectangle {
+        Superellipse {
             Layout.fillWidth: true
             visible: !picker.nativeCustodyAccount && !picker.authorized
                      && (!picker.cachedSnapshot || picker.editAccessRequested)
-            radius: Theme.curveContainer
-            color: Theme.surfaceMuted
-            border.width: 1
-            border.color: Theme.borderMuted
+            curveDepth: Theme.curveContainer
+            fillColor: Theme.surfaceMuted
+            borderWidth: 1
+            borderColor: Theme.borderMuted
             implicitHeight: verifyContent.implicitHeight + Theme.space3 * 2
 
             ColumnLayout {
@@ -297,10 +297,11 @@ GenyDrawer {
                 font.pixelSize: Theme.typeCaptionSize
             }
             Item { Layout.fillWidth: true }
-            Rectangle {
+            Superellipse {
                 visible: picker.authorized
-                radius: height / 2
-                color: Theme.successSurface
+                curveDepth: height / 2
+                exponent: 2
+                fillColor: Theme.successSurface
                 implicitHeight: 28
                 implicitWidth: verifiedRow.implicitWidth + Theme.space3 * 2
                 RowLayout {
@@ -308,11 +309,12 @@ GenyDrawer {
                     id: verifiedRow
                     anchors.centerIn: parent
                     spacing: Theme.space1
-                    Rectangle {
+                    Superellipse {
                         Layout.preferredWidth: 7
                         Layout.preferredHeight: 7
-                        radius: 3.5
-                        color: Theme.success
+                        curveDepth: width / 2
+                        exponent: 2
+                        fillColor: Theme.success
                     }
                     DirectionAwareLabel {
                         text: qsTrId("genycaster.connections.copy_verified")
@@ -407,13 +409,13 @@ GenyDrawer {
             wrapMode: Text.Wrap
         }
 
-        Rectangle {
+        Superellipse {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: Theme.curveContainer
-            color: Theme.surface
-            border.color: Theme.borderMuted
-            border.width: 1
+            curveDepth: Theme.curveContainer
+            fillColor: Theme.surface
+            borderColor: Theme.borderMuted
+            borderWidth: 1
             clip: true
 
             ScrollView {
@@ -470,13 +472,13 @@ GenyDrawer {
                                 layoutDirection: Theme.uiDirection
                                 spacing: Theme.space3
 
-                                Rectangle {
+                                Superellipse {
                                     Layout.preferredWidth: Theme.scaleUi(42)
                                     Layout.preferredHeight: Theme.scaleUi(42)
-                                    radius: Theme.curveCompact
-                                    color: Theme.connectionIconBackground
-                                    border.width: 1
-                                    border.color: Theme.connectionIconBorder
+                                    curveDepth: Theme.curveCompact
+                                    fillColor: Theme.connectionIconBackground
+                                    borderWidth: 1
+                                    borderColor: Theme.connectionIconBorder
 
                                     Image {
                                         anchors.centerIn: parent
@@ -647,12 +649,12 @@ GenyDrawer {
                                         forceLeftToRight: true
                                         color: Theme.ink
                                         selectByMouse: true
-                                        background: Rectangle {
-                                            radius: Theme.curveCompact
-                                            color: Theme.surface
-                                            border.color: manualLinkedInField.activeFocus
-                                                          ? Theme.accent : Theme.borderMuted
-                                            border.width: 1
+                                        background: Superellipse {
+                                            curveDepth: Theme.curveCompact
+                                            fillColor: Theme.surface
+                                            borderColor: manualLinkedInField.activeFocus
+                                                         ? Theme.accent : Theme.borderMuted
+                                            borderWidth: 1
                                         }
                                     }
                                     ActionButton {

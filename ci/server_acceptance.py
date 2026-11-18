@@ -44,6 +44,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("node", "--test", "tests/wasm/profile_node_retained_round_surfaces_20261118.test.mjs")),
     ("Market, statistics and workspace retained QSG round indicators",
      ("node", "--test", "tests/wasm/market_stats_workspace_rounding_20261118.test.mjs")),
+    ("Connections and settings retained QSG shapes",
+     ("node", "--test", "tests/wasm/connection_settings_retained_controls_20261118.test.mjs")),
     ("Async resource limits", ("python3", "ci/check_async_resource_contract.py")),
     ("Data storage policies", ("python3", "ci/check_data_storage_contract.py")),
     ("Media upload policies", ("python3", "ci/check_media_upload_contract.py")),
