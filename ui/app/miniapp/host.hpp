@@ -34,6 +34,9 @@ class MiniAppHostController final : public QObject {
     Q_PROPERTY(bool swapRequestActive READ swapRequestActive NOTIFY swapRequestChanged)
     Q_PROPERTY(QString swapRequestId READ swapRequestId NOTIFY swapRequestChanged)
     Q_PROPERTY(QVariantMap swapRequest READ swapRequest NOTIFY swapRequestChanged)
+    Q_PROPERTY(bool swapQuoteBusy READ swapQuoteBusy NOTIFY swapRequestChanged)
+    Q_PROPERTY(QVariantMap swapQuote READ swapQuote NOTIFY swapRequestChanged)
+    Q_PROPERTY(QString swapQuoteError READ swapQuoteError NOTIFY swapRequestChanged)
     Q_PROPERTY(bool walletBrowserPickerActive READ walletBrowserPickerActive NOTIFY walletBrowserPickerChanged)
     Q_PROPERTY(bool walletBrowserWaiting READ walletBrowserWaiting NOTIFY walletBrowserPickerChanged)
     Q_PROPERTY(QString walletBrowserAppName READ walletBrowserAppName NOTIFY walletBrowserPickerChanged)
@@ -113,6 +116,17 @@ public:
     void presentSwapRequest(const QString& requestId, const QVariantMap& details);
     void clearSwapRequest(const QString& requestId);
     Q_INVOKABLE void cancelSwapToken(const QString& requestId);
+    [[nodiscard]] bool swapQuoteBusy() const noexcept;
+    [[nodiscard]] QVariantMap swapQuote() const;
+    [[nodiscard]] QString swapQuoteError() const;
+    Q_INVOKABLE void beginSwapQuote(const QString& requestId,
+                                   const QVariantMap& editedIntent);
+    void dispatchSwapQuote(const QString& requestId, const QVariantMap& parameters);
+    void receiveSwapQuoteResult(const QString& requestId, const QVariantMap& quote,
+                                const QString& error);
+    void showSwapQuote(const QString& requestId, const QVariantMap& verifiedQuote);
+    Q_INVOKABLE void invalidateSwapQuote(const QString& requestId);
+    void setSwapQuoteError(const QString& requestId, const QString& error);
 
     /** @brief Runtime asks the shell to open Genycaster's visible composer. */
     void requestComposeCast(const QString& requestId, const QVariantMap& options);
@@ -146,6 +160,12 @@ signals:
 
     /** Emitted only for a user-declined intent, never a signing confirmation. */
     void swapTokenCancelled(const QString& requestId);
+    void swapQuotePreparationRequested(const QString& requestId,
+                                      const QVariantMap& editedIntent);
+    void swapQuoteNetworkRequested(const QString& requestId,
+                                   const QVariantMap& parameters);
+    void swapQuoteResultReceived(const QString& requestId,
+                                 const QVariantMap& quote, const QString& error);
     void swapRequestChanged();
     void stateChanged();
 
@@ -177,6 +197,9 @@ private:
     QVariantMap m_user{};
     QVariantMap m_swapRequest{};
     QString m_swapRequestId{};
+    QVariantMap m_swapQuote{};
+    QString m_swapQuoteError{};
+    bool m_swapQuoteBusy{};
 #if defined(Q_OS_WASM)
     QTimer m_browserVisibilityTimer{};
 #endif

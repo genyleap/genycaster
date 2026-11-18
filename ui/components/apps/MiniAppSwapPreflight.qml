@@ -3,17 +3,20 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-// First-party, non-executable SwapToken preflight. Mini App JS only supplies
-// a validated token suggestion; no trusted quote means no signing button.
-// The runtime owns request lifetime and invalidates it on navigation.
+// The host owns the quote and wallet flow. Mini App JS never receives an
+// approval capability and cannot change transaction calldata or the spender.
 GenyAdaptiveDialog {
     id: control
     objectName: "miniAppSwapPreflight"
     property bool compact: false
+    property string renderedRequestId: ""
+    property string sellTokenInput: ""
+    property string buyTokenInput: ""
+    property string sellAmountInput: ""
     popupZ: 21000
-    width: compact ? (parent ? parent.width : 440) : 480
-    height: compact ? 430 : 390
-    mobileHeightRatio: 0.82
+    width: compact ? (parent ? parent.width : 440) : 490
+    height: compact ? 610 : 580
+    mobileHeightRatio: 0.92
     closePolicy: Popup.CloseOnEscape
 
     onDidClose: {
@@ -22,7 +25,7 @@ GenyAdaptiveDialog {
     }
 
     contentItem: ColumnLayout {
-        spacing: Theme.space3
+        spacing: Theme.space2
 
         DirectionAwareLabel {
             Layout.fillWidth: true
@@ -48,40 +51,117 @@ GenyAdaptiveDialog {
             horizontalAlignment: Text.AlignHCenter
         }
 
-        Repeater {
-            model: [
-                {label: qsTrId("genycaster.miniapp.swap.sell_token"), value: String((miniAppHost.swapRequest || ({})).sellToken || "—")},
-                {label: qsTrId("genycaster.miniapp.swap.buy_token"), value: String((miniAppHost.swapRequest || ({})).buyToken || "—")},
-                {label: qsTrId("genycaster.miniapp.swap.amount_base_units"), value: String((miniAppHost.swapRequest || ({})).sellAmount || "—")}
-            ]
-            delegate: RowLayout {
-                required property var modelData
-                Layout.fillWidth: true
-                spacing: Theme.space3
-                DirectionAwareLabel {
-                    text: modelData.label
-                    color: Theme.inkMuted
-                    font.pixelSize: Theme.typeCaptionSize
-                }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: modelData.value
-                    textFormat: Text.PlainText
-                    color: Theme.ink
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.WrapAnywhere
-                    horizontalAlignment: Theme.rtl ? Text.AlignLeft : Text.AlignRight
-                }
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            text: qsTrId("genycaster.miniapp.swap.sell_token")
+            color: Theme.inkMuted
+            font.pixelSize: Theme.typeCaptionSize
+        }
+        BidiTextField {
+            Layout.fillWidth: true
+            forceLeftToRight: true
+            text: control.sellTokenInput
+            enabled: !miniAppHost.swapQuoteBusy
+            placeholderText: qsTrId("genycaster.miniapp.swap.sell_token")
+            onTextEdited: {
+                control.sellTokenInput = text
+                miniAppHost.invalidateSwapQuote(miniAppHost.swapRequestId)
+            }
+        }
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            text: qsTrId("genycaster.miniapp.swap.buy_token")
+            color: Theme.inkMuted
+            font.pixelSize: Theme.typeCaptionSize
+        }
+        BidiTextField {
+            Layout.fillWidth: true
+            forceLeftToRight: true
+            text: control.buyTokenInput
+            enabled: !miniAppHost.swapQuoteBusy
+            placeholderText: qsTrId("genycaster.miniapp.swap.buy_token")
+            onTextEdited: {
+                control.buyTokenInput = text
+                miniAppHost.invalidateSwapQuote(miniAppHost.swapRequestId)
+            }
+        }
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            text: qsTrId("genycaster.miniapp.swap.amount_base_units")
+            color: Theme.inkMuted
+            font.pixelSize: Theme.typeCaptionSize
+        }
+        BidiTextField {
+            Layout.fillWidth: true
+            forceLeftToRight: true
+            text: control.sellAmountInput
+            enabled: !miniAppHost.swapQuoteBusy
+            placeholderText: "1000000"
+            inputMethodHints: Qt.ImhDigitsOnly
+            onTextEdited: {
+                control.sellAmountInput = text
+                miniAppHost.invalidateSwapQuote(miniAppHost.swapRequestId)
             }
         }
 
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: Object.keys(miniAppHost.swapQuote || ({})).length > 0
+            spacing: Theme.space1
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.miniapp.swap.min_receive")
+                      + ": " + String((miniAppHost.swapQuote || ({})).minBuyAmount || "—")
+                color: Theme.ink
+                font.weight: Theme.weightDemiBold
+                wrapMode: Text.WrapAnywhere
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.miniapp.swap.network_fee")
+                      + ": " + String((miniAppHost.swapQuote || ({})).totalNetworkFee || "—")
+                color: Theme.inkMuted
+                wrapMode: Text.WrapAnywhere
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: (miniAppHost.swapQuote || ({})).requiresApproval
+                    ? qsTrId("genycaster.miniapp.swap.approval_required")
+                    : qsTrId("genycaster.miniapp.swap.approval_not_required")
+                color: Theme.inkMuted
+                wrapMode: Text.WordWrap
+            }
+        }
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            visible: String(miniAppHost.swapQuoteError || "").length > 0
+            text: String(miniAppHost.swapQuoteError || "")
+            color: Theme.danger
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.WordWrap
+        }
         DirectionAwareLabel {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            text: qsTrId("genycaster.miniapp.swap.quote_unavailable")
+            text: qsTrId("genycaster.miniapp.swap.quote_notice")
             color: Theme.inkMuted
+            font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
+        }
+        ActionButton {
+            Layout.fillWidth: true
+            prominent: true
+            busy: miniAppHost.swapQuoteBusy
+            enabled: !miniAppHost.swapQuoteBusy && control.sellTokenInput.length > 0
+                     && control.buyTokenInput.length > 0 && control.sellAmountInput.length > 0
+                     && openProofConnections.cloudAuthorizationReady
+            text: qsTrId("genycaster.miniapp.swap.get_quote")
+            onClicked: miniAppHost.beginSwapQuote(miniAppHost.swapRequestId, {
+                sellToken: control.sellTokenInput,
+                buyToken: control.buyTokenInput,
+                sellAmount: control.sellAmountInput
+            })
         }
         ActionButton {
             Layout.fillWidth: true
@@ -93,10 +173,19 @@ GenyAdaptiveDialog {
     Connections {
         target: miniAppHost
         function onSwapRequestChanged() {
-            if (miniAppHost.swapRequestActive)
+            const id = miniAppHost.swapRequestActive
+                       ? String(miniAppHost.swapRequestId) : ""
+            if (id && control.renderedRequestId !== id) {
+                control.renderedRequestId = id
+                const preview = miniAppHost.swapRequest || ({})
+                control.sellTokenInput = String(preview.sellToken || "")
+                control.buyTokenInput = String(preview.buyToken || "")
+                control.sellAmountInput = String(preview.sellAmount || "")
                 control.open()
-            else
+            } else if (!id) {
+                control.renderedRequestId = ""
                 control.close()
+            }
         }
     }
 }

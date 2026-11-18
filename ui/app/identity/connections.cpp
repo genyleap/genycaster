@@ -272,6 +272,88 @@ void OpenProofConnectionsController::setManualLinkedInUrl(const QString& candida
 }
 
 
+void OpenProofConnectionsController::requestSwapQuote(
+    const QString& requestId, const QVariantMap& parameters)
+{
+    // The runtime supplies these after checking CAIP-19 and obtaining an
+    // EIP-1193 wallet account. This is a read-only server-authenticated quote,
+    // not a transaction signing or payment action.
+    static const QRegularExpression identifier{
+        QStringLiteral("^[0-9a-fA-F-]{36}$")};
+    if (!identifier.match(requestId).hasMatch()) return;
+    if (!m_viewerFid || !cloudAuthorizationReady()
+        || !trustedHttpsEndpoint(m_cloudUrl)) {
+        emit swapQuoteReceived(requestId, {}, QStringLiteral("account_authorization_required"));
+        return;
+    }
+    if (m_swapQuoteRead) {
+        emit swapQuoteReceived(requestId, {}, QStringLiteral("swap_quote_busy"));
+        return;
+    }
+    static const QRegularExpression ethereumAddress{
+        QStringLiteral("^0x[0-9a-fA-F]{40}$")};
+    static const QRegularExpression decimalAmount{
+        QStringLiteral("^[1-9][0-9]{0,77}$")};
+    const QString sellToken=parameters.value(QStringLiteral("sellToken")).toString();
+    const QString buyToken=parameters.value(QStringLiteral("buyToken")).toString();
+    const QString sellAmount=parameters.value(QStringLiteral("sellAmount")).toString();
+    const QString taker=parameters.value(QStringLiteral("taker")).toString();
+    const int slippage=parameters.value(QStringLiteral("slippageBps")).toInt();
+    if (!sellToken.startsWith(QStringLiteral("eip155:8453/"))
+        || !buyToken.startsWith(QStringLiteral("eip155:8453/"))
+        || !decimalAmount.match(sellAmount).hasMatch()
+        || !ethereumAddress.match(taker).hasMatch()
+        || slippage < 10 || slippage > 300) {
+        emit swapQuoteReceived(requestId, {}, QStringLiteral("invalid_swap_request"));
+        return;
+    }
+    QUrl target=m_cloudUrl;
+    target.setPath(QStringLiteral("/api/v1/cloud/swap/quote"));
+    QNetworkRequest request{target};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(10'000);
+    request.setRawHeader("Accept","application/json");
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    authorizeCloudRequest(request);
+    const QByteArray payload=QJsonDocument(QJsonObject{
+        {QStringLiteral("sellToken"),sellToken},
+        {QStringLiteral("buyToken"),buyToken},
+        {QStringLiteral("sellAmount"),sellAmount},
+        {QStringLiteral("taker"),taker},
+        {QStringLiteral("slippageBps"),slippage},
+    }).toJson(QJsonDocument::Compact);
+    auto* const reply=m_network.post(request,payload);
+    m_swapQuoteRead=reply;
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,
+            [this,reply,requestId,viewer,generation] {
+        if (m_swapQuoteRead!=reply) {reply->deleteLater();return;}
+        m_swapQuoteRead.clear();
+        const int status=reply->attribute(
+            QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray bytes=reply->isReadable()
+                && reply->bytesAvailable()<=262144 ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        if (viewer!=m_viewerFid || generation!=m_grantGeneration
+            || !cloudAuthorizationReady()) {
+            emit swapQuoteReceived(requestId, {}, QStringLiteral("account_changed"));
+            return;
+        }
+        const QJsonDocument document=QJsonDocument::fromJson(bytes);
+        if (status!=200 || !document.isObject()) {
+            // Do not echo untrusted service error messages or response bodies.
+            emit swapQuoteReceived(requestId, {}, status==503
+                ? QStringLiteral("quote_service_unavailable")
+                : QStringLiteral("quote_request_failed"));
+            return;
+        }
+        emit swapQuoteReceived(requestId,document.object().toVariantMap(),{});
+    });
+}
+
 void OpenProofConnectionsController::authorizeCloudRequest(
     QNetworkRequest& request) const
 {

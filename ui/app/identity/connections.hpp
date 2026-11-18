@@ -397,6 +397,11 @@ public:
      * capability; the HttpOnly cookie itself never crosses into Qt. */
     void acceptBrowserAccountSession(qulonglong fid, QByteArray csrf);
 
+    /** Fetch an authenticated, read-only Base Swap quote. No wallet secrets,
+     * transaction signatures, or Mini App-supplied HTTP URLs are accepted.
+     * The 0x key is retained server-side by the account-sync API. */
+    void requestSwapQuote(const QString& requestId, const QVariantMap& parameters);
+
     /** @brief Refreshes public provider capabilities over bounded HTTPS.
      * Network or CORS errors preserve the last known display-only list. */
     Q_INVOKABLE void refresh();
@@ -406,6 +411,8 @@ public:
     [[nodiscard]] static QStringList parseProviderCatalog(const QByteArray& json);
 
 signals:
+    void swapQuoteReceived(const QString& requestId, const QVariantMap& quote,
+                           const QString& error);
     void mutedProfilesChanged();
     void genyBuzzChanged();
     void proPlanChanged();
@@ -466,6 +473,7 @@ private:
     BrowserOpenProofAuth m_authorization{this};
     QPointer<QNetworkReply> m_request{};
     QPointer<QNetworkReply> m_cloudRequest{};
+    QPointer<QNetworkReply> m_swapQuoteRead{};
     QPointer<QNetworkReply> m_feedbackRead{};
     QPointer<QNetworkReply> m_feedbackWrite{};
     QVariantMap m_feedbackStats{};

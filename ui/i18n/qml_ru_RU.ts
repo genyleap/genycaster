@@ -1,6 +1,30 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="ru_RU" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.swap.get_quote">
+            <source>Get live quote</source>
+            <translation>Получить актуальную котировку</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.min_receive">
+            <source>Minimum receive (base units)</source>
+            <translation>Минимум к получению (базовые единицы)</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.network_fee">
+            <source>Estimated network fee (wei)</source>
+            <translation>Ожидаемая комиссия сети (wei)</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approval_required">
+            <source>Exact ERC-20 token approval will be required to execute.</source>
+            <translation>Для исполнения потребуется точное разрешение ERC-20.</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approval_not_required">
+            <source>No ERC-20 approval is required.</source>
+            <translation>Разрешение ERC-20 не требуется.</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_notice">
+            <source>The quote is read-only. Wallet approvals and token transfers are disabled until the secure execution flow is verified.</source>
+            <translation>Котировка доступна только для просмотра. Разрешения и переводы отключены до проверки безопасного исполнения.</translation>
+        </message>
         <message id="genycaster.miniapp.swap.title">
             <source>Token swap requested</source>
             <translation>Запрос на обмен токенов</translation>
@@ -20,10 +44,6 @@
         <message id="genycaster.miniapp.swap.amount_base_units">
             <source>Amount (base units)</source>
             <translation>Сумма (минимальные единицы)</translation>
-        </message>
-        <message id="genycaster.miniapp.swap.quote_unavailable">
-            <source>A trusted swap quote and execution service is not available yet. No wallet transaction has been created, signed, or sent.</source>
-            <translation>Надёжный сервис котировок и исполнения обменов пока недоступен. Транзакция кошелька не создавалась, не подписывалась и не отправлялась.</translation>
         </message>
         <message id="genycaster.setup.opp_wallet_pending">
             <source>Registering your HyperSnap custody wallet with Genyleap through OpenProof…</source>

@@ -62,7 +62,7 @@ test('first-party QML preflight has no blind-approve button or injected transact
   assert.match(cmake, /components\/apps\/MiniAppSwapPreflight\.qml/);
   assert.match(dialog, /textFormat: Text\.PlainText/);
   assert.match(dialog, /miniAppHost\.cancelSwapToken\(miniAppHost\.swapRequestId\)/);
-  assert.match(dialog, /genycaster\.miniapp\.swap\.quote_unavailable/);
+  assert.match(dialog, /genycaster\.miniapp\.swap\.quote_notice/);
   assert.doesNotMatch(dialog, /sendTransaction|eth_sendTransaction|onClicked:.*approve/i);
 });
 

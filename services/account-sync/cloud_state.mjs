@@ -445,10 +445,14 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
                                         await store.getProSubscription(owner),billingPolicy);
                                     },
                                     resolveGenyAssets=(fid,owner)=>evaluateGenyAssets(owner,{policy:proPolicy,fetchImpl}),
-                                    discoverStreakCasts=(fid)=>discoverVerifiedStreakCasts(fid,{fetchImpl,hypersnapOrigin})}) {
+                                    discoverStreakCasts=(fid)=>discoverVerifiedStreakCasts(fid,{fetchImpl,hypersnapOrigin}),
+                                    swapQuoteProvider=null}) {
   // Bounded per-account reconciliation cache; failed network fetches never
   // block a valid historical streak already persisted in PostgreSQL.
   const recentlyCheckedStreaks=new Map();
+  // Per-verified-account quote budget: no user-provided API keys or anonymous
+  // quotes, even when the upstream aggregator is not configured.
+  const recentSwapQuotes=new Map();
   async function reconcileVerifiedStreak(owner) {
     const key=String(owner.fid||'');
     if(!/^[1-9][0-9]{0,18}$/.test(key))return;
@@ -582,7 +586,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
       'muted_profiles','feedback','buzz','buzz/preferences','buzz/inbox','buzz/ack',
       'pro/wallet/challenge','pro/wallet/verify','pro/wallets',
-      'session','session/challenge','session/proof'].includes(entity)) {
+      'session','session/challenge','session/proof','swap/quote'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
     // Public price discovery is not an entitlement. Users can see the
@@ -695,6 +699,48 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      // A Base quote is read-only and never authorizes a transaction. Server
+      // validates the 0x allowance spender and router and retains the API key.
+      if(entity==='swap/quote') {
+        if(request.method!=='POST') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        if(!swapQuoteProvider) {
+          respond(response,503,{error:'swap_quote_not_configured'});return true;
+        }
+        if(!String(request.headers['content-type']||'').startsWith('application/json')) {
+          respond(response,415,{error:'unsupported_media_type'});return true;
+        }
+        // Browser POST sends Origin/Sec-Fetch-Site. Native Qt requests carry
+        // the same session cookie + mandatory secret CSRF but no Origin.
+        if(owner.cookieAuth && (request.headers.origin ||
+            request.headers['sec-fetch-site']) && !sameOriginRequest(request)) {
+          respond(response,403,{error:'origin_not_allowed'});return true;
+        }
+        const key=owner.subject;
+        const now=Date.now();
+        const bucket=recentSwapQuotes.get(key)||{time:now,count:0};
+        if(now-bucket.time>=60_000) {bucket.time=now;bucket.count=0;}
+        recentSwapQuotes.set(key,bucket);
+        if(++bucket.count>12) {
+          respond(response,429,{error:'swap_quote_rate_limited'});return true;
+        }
+        if(recentSwapQuotes.size>4096)
+          for(const [id,entry] of recentSwapQuotes)
+            if(now-entry.time>120_000)recentSwapQuotes.delete(id);
+        const input=await readBody(request,2048);
+        try {
+          const quote=await swapQuoteProvider(input,owner);
+          respond(response,200,quote);
+        } catch(error) {
+          const code=String(error?.message||'');
+          const rejected=/^(invalid_|unsupported_|unexpected_|identical_|token_must_)/.test(code);
+          respond(response,rejected?422:503,{
+            error:rejected?code:'swap_quote_unavailable'
+          });
+        }
+        return true;
+      }
       // Owner verified by the existing cloud session, not a protocol signer.
       if (await handleGenyBuzz({
         entity,request,response,owner,issuer:upstream,store,readBody,respond

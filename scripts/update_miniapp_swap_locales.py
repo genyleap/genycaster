@@ -4,6 +4,7 @@ Idempotent source-catalog update, not a substitute for the lupdate/lrelease
 checks performed by CI. Product names, token addresses and amounts stay literal.
 """
 from html import escape
+import re
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent / "ui" / "i18n"
@@ -84,9 +85,75 @@ LOCALIZED = {
         "尚未创建、签名或发送任何钱包交易。"],
 }
 
+SOURCE.update({
+    "get_quote": "Get live quote",
+    "min_receive": "Minimum receive (base units)",
+    "network_fee": "Estimated network fee (wei)",
+    "approval_required": "Exact ERC-20 token approval will be required to execute.",
+    "approval_not_required": "No ERC-20 approval is required.",
+    "quote_notice": "The quote is read-only. Wallet approvals and token transfers are disabled until the secure execution flow is verified.",
+})
+EXTRA_LOCALIZED = {
+    "en_US": ["Get live quote","Minimum receive (base units)","Estimated network fee (wei)",
+        "Exact ERC-20 token approval will be required to execute.",
+        "No ERC-20 approval is required.",
+        "The quote is read-only. Wallet approvals and token transfers are disabled until the secure execution flow is verified."],
+    "fa_IR": ["دریافت مظنهٔ زنده","حداقل دریافتی (واحد پایه)","کارمزد تخمینی شبکه (وی)",
+        "برای اجرای مبادله، مجوز دقیق ERC-20 لازم خواهد بود.",
+        "نیازی به مجوز ERC-20 نیست.",
+        "این مظنه فقط برای مشاهده است. تا تأیید کامل مسیر اجرای امن، مجوز کیف پول و انتقال توکن غیرفعال است."],
+    "ar_SA": ["الحصول على عرض سعر مباشر","الحد الأدنى للاستلام (وحدات أساسية)","رسوم الشبكة المقدرة (وي)",
+        "سيتطلب التنفيذ موافقة محددة لرمز ERC-20.",
+        "لا حاجة إلى موافقة ERC-20.",
+        "عرض السعر للعرض فقط. تم تعطيل موافقات المحفظة وتحويلات الرموز إلى حين التحقق من مسار التنفيذ الآمن."],
+    "de_DE": ["Live-Angebot abrufen","Mindesterhalt (Basiseinheiten)","Geschätzte Netzwerkgebühr (Wei)",
+        "Zur Ausführung ist eine genaue ERC-20-Freigabe erforderlich.",
+        "Keine ERC-20-Freigabe erforderlich.",
+        "Dieses Angebot dient nur zur Ansicht. Wallet-Freigaben und Token-Übertragungen bleiben bis zur Prüfung der sicheren Ausführung deaktiviert."],
+    "es_ES": ["Obtener cotización en vivo","Recepción mínima (unidades base)","Tarifa de red estimada (wei)",
+        "Se necesitará una aprobación ERC-20 limitada para ejecutar.",
+        "No se necesita aprobación ERC-20.",
+        "La cotización es solo informativa. Las aprobaciones y transferencias están deshabilitadas hasta verificar la ejecución segura."],
+    "fr_FR": ["Obtenir un devis en direct","Réception minimale (unités de base)","Frais réseau estimés (wei)",
+        "Une autorisation ERC-20 limitée sera nécessaire pour exécuter.",
+        "Aucune autorisation ERC-20 n'est nécessaire.",
+        "Le devis est uniquement indicatif. Les autorisations et transferts restent désactivés jusqu'à validation de l'exécution sécurisée."],
+    "hi_IN": ["लाइव कोट प्राप्त करें","न्यूनतम प्राप्ति (मूल इकाइयाँ)","अनुमानित नेटवर्क शुल्क (वेई)",
+        "निष्पादन के लिए सीमित ERC-20 अनुमति आवश्यक होगी।",
+        "ERC-20 अनुमति आवश्यक नहीं है।",
+        "कोट केवल जानकारी के लिए है। सुरक्षित निष्पादन सत्यापित होने तक वॉलेट अनुमतियाँ और टोकन स्थानांतरण बंद हैं।"],
+    "ja_JP": ["リアルタイム見積もりを取得","最低受取額（最小単位）","推定ネットワーク手数料（wei）",
+        "実行には指定数量のERC-20承認が必要です。",
+        "ERC-20承認は不要です。",
+        "見積もりは閲覧専用です。安全な実行手順の検証が終わるまで承認と送金は無効です。"],
+    "ko_KR": ["실시간 견적 받기","최소 수령액(최소 단위)","예상 네트워크 수수료(wei)",
+        "실행하려면 정확한 ERC-20 승인이 필요합니다.",
+        "ERC-20 승인이 필요하지 않습니다.",
+        "견적은 읽기 전용입니다. 안전한 실행 경로 검증 전까지 지갑 승인과 토큰 전송이 비활성화됩니다."],
+    "pt_BR": ["Obter cotação ao vivo","Recebimento mínimo (unidades básicas)","Taxa de rede estimada (wei)",
+        "A execução exigirá uma aprovação ERC-20 limitada.",
+        "Nenhuma aprovação ERC-20 é necessária.",
+        "A cotação é somente informativa. Aprovações e transferências estão desativadas até a validação da execução segura."],
+    "ru_RU": ["Получить актуальную котировку","Минимум к получению (базовые единицы)","Ожидаемая комиссия сети (wei)",
+        "Для исполнения потребуется точное разрешение ERC-20.",
+        "Разрешение ERC-20 не требуется.",
+        "Котировка доступна только для просмотра. Разрешения и переводы отключены до проверки безопасного исполнения."],
+    "zh_CN": ["获取实时报价","最低到账量（最小单位）","预估网络费用（wei）",
+        "执行交易前需授权精确数量的 ERC-20。",
+        "无需 ERC-20 授权。",
+        "报价仅供查看。在安全执行流程通过验证前，钱包授权和代币转账均已禁用。"],
+}
+SOURCE.pop("quote_unavailable")
+for locale, labels in EXTRA_LOCALIZED.items():
+    LOCALIZED[locale].pop()  # Superseded by the more accurate read-only quote notice.
+    LOCALIZED[locale].extend(labels)
+
 for locale, translations in LOCALIZED.items():
     path = BASE / f"qml_{locale}.ts"
-    source = path.read_text(encoding="utf-8")
+    original_source = path.read_text(encoding="utf-8")
+    source = re.sub(
+        r'        <message id="genycaster\.miniapp\.swap\.quote_unavailable">.*?</message>\n',
+        '', original_source, flags=re.S)
     assert len(translations) == len(SOURCE)
     assert "    <context>\n" in source, path
     blocks = []
@@ -103,5 +170,6 @@ for locale, translations in LOCALIZED.items():
     if blocks:
         source = source.replace("    <context>\n",
                                 "    <context>\n" + "".join(blocks), 1)
+    if source != original_source:
         path.write_text(source, encoding="utf-8")
     print(f"{locale}: {len(blocks)} added")

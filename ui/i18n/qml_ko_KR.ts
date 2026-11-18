@@ -1,6 +1,30 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.miniapp.swap.get_quote">
+            <source>Get live quote</source>
+            <translation>실시간 견적 받기</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.min_receive">
+            <source>Minimum receive (base units)</source>
+            <translation>최소 수령액(최소 단위)</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.network_fee">
+            <source>Estimated network fee (wei)</source>
+            <translation>예상 네트워크 수수료(wei)</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approval_required">
+            <source>Exact ERC-20 token approval will be required to execute.</source>
+            <translation>실행하려면 정확한 ERC-20 승인이 필요합니다.</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.approval_not_required">
+            <source>No ERC-20 approval is required.</source>
+            <translation>ERC-20 승인이 필요하지 않습니다.</translation>
+        </message>
+        <message id="genycaster.miniapp.swap.quote_notice">
+            <source>The quote is read-only. Wallet approvals and token transfers are disabled until the secure execution flow is verified.</source>
+            <translation>견적은 읽기 전용입니다. 안전한 실행 경로 검증 전까지 지갑 승인과 토큰 전송이 비활성화됩니다.</translation>
+        </message>
         <message id="genycaster.miniapp.swap.title">
             <source>Token swap requested</source>
             <translation>토큰 스왑 요청</translation>
@@ -20,10 +44,6 @@
         <message id="genycaster.miniapp.swap.amount_base_units">
             <source>Amount (base units)</source>
             <translation>금액(최소 단위)</translation>
-        </message>
-        <message id="genycaster.miniapp.swap.quote_unavailable">
-            <source>A trusted swap quote and execution service is not available yet. No wallet transaction has been created, signed, or sent.</source>
-            <translation>신뢰할 수 있는 스왑 견적 및 실행 서비스가 아직 제공되지 않습니다. 지갑 거래는 생성, 서명 또는 전송되지 않았습니다.</translation>
         </message>
         <message id="genycaster.setup.opp_wallet_pending">
             <source>Registering your HyperSnap custody wallet with Genyleap through OpenProof…</source>

@@ -46,9 +46,9 @@ const fetchImpl=async(url,opts)=>{
   }),{status:200});
   return new Response(JSON.stringify({providers:[],challenge_providers:[]}),{status:200});
 };
-async function withServer(action) {
+async function withServer(action, options={}) {
   const server=createAccountApi({catalogUrl:upstream,fetchImpl,store,issuer:'https://identity.example.test',
-    proResolver:async()=>({status:'verified',eligible:true})});
+    proResolver:async()=>({status:'verified',eligible:true}),...options});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const url='http://127.0.0.1:'+server.address().port+'/api/v1/cloud/';
   const request=(path,method='GET',body,token='Bearer good')=>
@@ -242,4 +242,51 @@ test('portable connection labels cannot fabricate verified OpenProof authority',
     assert.equal((await request('connections/portable','GET')).status,405);
     assert.equal((await request('connections/portable','PUT',item,'Bearer bad')).status,401);
   });
+});
+
+test('swap quote requires authenticated owner, POST and a configured provider',async()=>{
+  const quote={chainId:8453,requiresApproval:true,transaction:{to:'0x0000000000001ff3684f28c67538d4d072c22734'}};
+  const calls=[];
+  await withServer(async request=>{
+    assert.equal((await request('swap/quote','GET')).status,405);
+    assert.equal((await request('swap/quote','POST',{sellAmount:'1000000'},'Bearer bad')).status,401);
+    assert.equal((await request('swap/quote','POST',{sellAmount:'1000000'})).status,200);
+    assert.equal(calls.length,1);
+    assert.equal(calls[0].owner.subject,principal);
+    const response=await request('swap/quote','POST',{sellAmount:'1000000'});
+    assert.equal((await response.json()).transaction.to,quote.transaction.to);
+  },{swapQuoteProvider:async(input,owner)=>{calls.push({input,owner});return quote;}});
+  await withServer(async request=>{
+    const response=await request('swap/quote','POST',{sellAmount:'1000000'});
+    assert.equal(response.status,503);
+    assert.equal((await response.json()).error,'swap_quote_not_configured');
+  });
+});
+
+test('native session cookie with CSRF may quote without Origin; browser cross-origin POST is rejected',async()=>{
+  const cookie='c'.repeat(43);
+  const csrf='d'.repeat(43);
+  const cloudStore={...store,async getSession(){return {
+    subject:principal,issuer:'https://identity.example.test',csrf_token:csrf,
+  }}};
+  const server=createAccountApi({
+    catalogUrl:upstream,fetchImpl,store:cloudStore,issuer:'https://identity.example.test',
+    swapQuoteProvider:async()=>({chainId:8453,quote:'safe'}),
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const path='http://127.0.0.1:'+server.address().port+'/api/v1/cloud/swap/quote';
+  const send=(headers={})=>fetch(path,{method:'POST',
+    headers:{cookie:'__Host-genycaster-account='+cookie,
+      'x-genycaster-csrf':csrf,'content-type':'application/json',...headers},
+    body:JSON.stringify({sellToken:'eip155:8453/native'}),
+  });
+  try{
+    const valid=await send();
+    assert.equal(valid.status,200,'Qt native cookie+CSRF is sufficient without browser Origin');
+    assert.equal((await valid.json()).chainId,8453);
+    assert.equal((await send({'x-genycaster-csrf':'x'.repeat(43)})).status,401);
+    assert.equal((await send({origin:'https://evil.invalid',
+      'sec-fetch-site':'cross-site'})).status,403);
+    assert.equal((await send({'sec-fetch-site':'cross-site'})).status,403);
+  }finally{server.close();}
 });

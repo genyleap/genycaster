@@ -2,6 +2,7 @@
 #include <QHostAddress>
 #include <QUrl>
 #include <QSettings>
+#include <QDateTime>
 #include <QByteArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -395,6 +396,9 @@ void MiniAppHostController::presentSwapRequest(
     if (requestId.isEmpty() || !m_swapRequestId.isEmpty()) return;
     m_swapRequestId = requestId;
     m_swapRequest = details;
+    m_swapQuote.clear();
+    m_swapQuoteError.clear();
+    m_swapQuoteBusy = false;
     emit swapRequestChanged();
 }
 
@@ -403,6 +407,78 @@ void MiniAppHostController::clearSwapRequest(const QString& requestId)
     if (requestId.isEmpty() || m_swapRequestId != requestId) return;
     m_swapRequestId.clear();
     m_swapRequest.clear();
+    m_swapQuote.clear();
+    m_swapQuoteError.clear();
+    m_swapQuoteBusy = false;
+    emit swapRequestChanged();
+}
+
+bool MiniAppHostController::swapQuoteBusy() const noexcept { return m_swapQuoteBusy; }
+QVariantMap MiniAppHostController::swapQuote() const { return m_swapQuote; }
+QString MiniAppHostController::swapQuoteError() const { return m_swapQuoteError; }
+
+void MiniAppHostController::beginSwapQuote(
+    const QString& requestId, const QVariantMap& editedIntent)
+{
+    if (requestId != m_swapRequestId || requestId.isEmpty() || m_swapQuoteBusy) return;
+    m_swapQuoteBusy = true;
+    m_swapQuote.clear();
+    m_swapQuoteError.clear();
+    emit swapRequestChanged();
+    emit swapQuotePreparationRequested(requestId, editedIntent);
+}
+
+void MiniAppHostController::dispatchSwapQuote(
+    const QString& requestId, const QVariantMap& parameters)
+{
+    if (requestId == m_swapRequestId && m_swapQuoteBusy)
+        emit swapQuoteNetworkRequested(requestId, parameters);
+}
+
+void MiniAppHostController::receiveSwapQuoteResult(
+    const QString& requestId, const QVariantMap& quote, const QString& error)
+{
+    if (requestId == m_swapRequestId && m_swapQuoteBusy)
+        emit swapQuoteResultReceived(requestId, quote, error);
+}
+
+void MiniAppHostController::showSwapQuote(
+    const QString& requestId, const QVariantMap& verifiedQuote)
+{
+    if (requestId != m_swapRequestId || !m_swapQuoteBusy) return;
+    m_swapQuoteBusy = false;
+    m_swapQuoteError.clear();
+    m_swapQuote = verifiedQuote;
+    emit swapRequestChanged();
+    // Quotes are transient, never cache them as durable execution authority.
+    const qint64 expiry = verifiedQuote.value(QStringLiteral("expiresAt")).toLongLong();
+    const qint64 remaining = expiry - QDateTime::currentMSecsSinceEpoch();
+    if (remaining <= 0 || remaining > 25'000) {
+        invalidateSwapQuote(requestId);
+        return;
+    }
+    QTimer::singleShot(static_cast<int>(remaining), this, [this, requestId, expiry] {
+        if (m_swapRequestId == requestId
+            && m_swapQuote.value(QStringLiteral("expiresAt")).toLongLong() == expiry)
+            invalidateSwapQuote(requestId);
+    });
+}
+
+void MiniAppHostController::invalidateSwapQuote(const QString& requestId)
+{
+    if (requestId != m_swapRequestId || requestId.isEmpty()) return;
+    m_swapQuote.clear();
+    m_swapQuoteError.clear();
+    emit swapRequestChanged();
+}
+
+void MiniAppHostController::setSwapQuoteError(
+    const QString& requestId, const QString& error)
+{
+    if (requestId != m_swapRequestId) return;
+    m_swapQuoteBusy = false;
+    m_swapQuote.clear();
+    m_swapQuoteError = error.left(128);
     emit swapRequestChanged();
 }
 

@@ -1,6 +1,7 @@
 import http from 'node:http';
 import {serverDeployment} from '../deployment_config.mjs';
 import {createCloudHandler} from './cloud_state.mjs';
+import {fetchFirmQuote} from '../swap-quote/quote.mjs';
 import {createMarketReader} from './market.mjs';
 import {createNeynarRegistrationHttpHandler} from './neynar_registration_http.mjs';
 import {createNeynarRegistrationRelay} from './neynar_registration_relay.mjs';
@@ -37,6 +38,7 @@ export function createAccountApi({
   verifyBillingTransfer = undefined,
   marketReader = undefined,
   registrationRelay = null,
+  swapQuoteProvider = null,
 } = {}) {
   const endpoint = new URL(catalogUrl);
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password
@@ -52,7 +54,8 @@ export function createAccountApi({
     ...(readGenyRate ? {readGenyRate} : {}),
     ...(checkProToken ? {checkProToken} : {}),
     ...(resolveProPaymentWallets ? {resolveProPaymentWallets} : {}),
-    ...(verifyBillingTransfer ? {verifyBillingTransfer} : {})}) : null;
+    ...(verifyBillingTransfer ? {verifyBillingTransfer} : {}),
+    ...(swapQuoteProvider ? {swapQuoteProvider} : {})}) : null;
   const market = marketReader || createMarketReader({fetchImpl});
   const registration = registrationRelay
     ?createNeynarRegistrationHttpHandler({relay:registrationRelay,publicOrigin}):null;
@@ -181,7 +184,12 @@ if (process.argv[1] && import.meta.url === new URL('file://' + process.argv[1]).
       authorizeEnrollment:voucher.authorize
     });
   }
-  createAccountApi({catalogUrl: origin,store,registrationRelay,
+  // The 0x key stays in the account-sync backend; credentials must NEVER be
+  // packaged with the Qt app, embedded Mini Apps or WASM JavaScript.
+  const quoteKey=process.env.GENYCASTER_0X_API_KEY;
+  const swapQuoteProvider=quoteKey
+    ? (input)=>fetchFirmQuote(input,quoteKey) : null;
+  createAccountApi({catalogUrl: origin,store,registrationRelay,swapQuoteProvider,
     issuer:serverDeployment().openProofIssuer,
     publicOrigin:serverDeployment().publicOrigin,
     browserGateway:serverDeployment().browserGateway,
