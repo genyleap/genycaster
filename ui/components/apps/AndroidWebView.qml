@@ -40,11 +40,11 @@ Popup {
     property int activeSessionIndex: -1
     ListModel { id: miniAppSessions }
 
-    background: Rectangle {
-        color: Theme.surface
-        radius: root.miniAppFullscreen ? 0 : Theme.scaleUi(18)
-        border.width: root.miniAppFullscreen ? 0 : 1
-        border.color: Theme.borderMuted
+    background: Superellipse {
+        fillColor: Theme.surface
+        curveDepth: root.miniAppFullscreen ? 0 : Theme.scaleUi(18)
+        borderWidth: root.miniAppFullscreen ? 0 : 1
+        borderColor: Theme.borderMuted
     }
 
     function activate(index) {
