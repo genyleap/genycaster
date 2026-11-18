@@ -292,11 +292,12 @@ NeonCard {
                             spacing: Theme.space1
                             opacity: root.focusedSeriesKey === ""
                                      || root.focusedSeriesKey === modelData.key ? 1 : 0.48
-                            Rectangle {
+                            Superellipse {
                                 width: 12
                                 height: 3
-                                radius: height / 2
-                                color: modelData.color
+                                curveDepth: height / 2
+                                exponent: 2
+                                fillColor: modelData.color
                             }
                             DirectionAwareLabel {
                                 text: modelData.label
@@ -468,17 +469,18 @@ NeonCard {
                         }
                         Repeater {
                             model: root.inspectedBucket ? root.receivedSeries : []
-                            delegate: Rectangle {
+                            delegate: Superellipse {
                                 required property var modelData
                                 readonly property bool emphasized:
                                     root.focusedSeriesKey === "" || root.focusedSeriesKey === modelData.key
                                 width: emphasized ? 9 : 6
                                 height: width
-                                radius: width / 2
-                                color: modelData.color
+                                curveDepth: width / 2
+                                exponent: 2
+                                fillColor: modelData.color
                                 opacity: emphasized ? 1 : 0.38
-                                border.color: Theme.surface
-                                border.width: 1.5
+                                borderColor: Theme.surface
+                                borderWidth: 1.5
                                 readonly property var point: root.pointFor(root.inspectedIndex,
                                     modelData.key, modelData.axis === 0 ? root.likesMax : root.secondaryMax,
                                     plot.width, plot.height)
@@ -541,11 +543,12 @@ NeonCard {
                                         spacing: Theme.space2
                                         opacity: root.focusedSeriesKey === ""
                                                  || root.focusedSeriesKey === modelData.key ? 1 : 0.62
-                                        Rectangle {
+                                        Superellipse {
                                             width: 7
                                             height: width
-                                            radius: width / 2
-                                            color: modelData.color
+                                            curveDepth: width / 2
+                                            exponent: 2
+                                            fillColor: modelData.color
                                         }
                                         DirectionAwareLabel {
                                             Layout.fillWidth: true
@@ -682,11 +685,12 @@ NeonCard {
                     Layout.minimumWidth: 0
                     layoutDirection: Theme.uiDirection
                     spacing: Theme.space2
-                    Rectangle {
+                    Superellipse {
                         width: 7
                         height: width
-                        radius: width / 2
-                        color: summary.modelData.color
+                        curveDepth: width / 2
+                        exponent: 2
+                        fillColor: summary.modelData.color
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
