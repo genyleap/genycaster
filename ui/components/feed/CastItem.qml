@@ -445,7 +445,8 @@ Item {
         onTriggered: root.parentHydrationTimedOut = true
     }
 
-    implicitHeight: messageRow.implicitHeight + (root.magazineCard ? 0 : Theme.space3)
+    // Keep the ordinary timeline compact without changing Magazine card sizing.
+    implicitHeight: messageRow.implicitHeight + Theme.space2 - (root.magazineCard ? Theme.space2 : 0)
     // Qt Quick Layouts can temporarily report a shorter implicitHeight when
     // engagement counters or a late embed reflow. For Magazine, measure the
     // actual bottom of the final visible actions row instead. This property
@@ -511,7 +512,10 @@ Item {
             }
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            implicitHeight: messageContent.implicitHeight + (root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4) * 2
+            // Reserve the exact content insets so rich media never gets clipped
+            // when rows change height after asynchronous metadata arrives.
+            implicitHeight: messageContent.implicitHeight + Theme.space2 * 2
+                            + (root.magazineCard ? Theme.space2 * 2 : 0)
 
             // All feed families share one soft superellipse surface. Keeping
             // the wrapper outside media Loaders preserves delegate reuse.
@@ -550,8 +554,8 @@ Item {
                 anchors.top: parent.top
                 anchors.leftMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
                 anchors.rightMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
-                anchors.topMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
-                anchors.bottomMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
+                anchors.topMargin: root.magazineCard ? Theme.space4 : Theme.space2
+                anchors.bottomMargin: root.magazineCard ? Theme.space4 : Theme.space2
                 // Media and its caption share a compact vertical cadence;
                 // separate supporting cards retain normal breathing room.
                 spacing: root.mediaFirst ? Theme.space1 : Theme.space2
