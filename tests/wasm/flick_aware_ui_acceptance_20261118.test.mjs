@@ -64,7 +64,7 @@ test('CastItem heavier media incubates only on Timeline and keeps compact respon
 test('strict design audit remains hard gated and enforces these current concrete invariants', () => {
   const checker=read('ci/check_ui_design.py');
   assert.match(checker,/GalleryLayout scroll-time tile admission missing/);
-  assert.match(checker,/transparent' not in cast_item/);
+  assert.match(checker,/fillColor: root\\.magazineCard \\? Theme\\.surfaceRaised : \\"transparent\\\"/);
   assert.match(checker,/SuperellipseImage must detach obsolete image identities/);
   assert.match(checker,/EmbedPreview must defer moving-scroll metadata/);
   assert.match(checker,/LinkPreview must defer scroll metadata/);
