@@ -526,14 +526,15 @@ Item {
                         }
                     }
 
-                    Rectangle {
+                    Superellipse {
                         visible: root.compact && destinationCard.selected
                         anchors.bottom: parent.bottom
                         anchors.left: parent.left
                         anchors.right: parent.right
                         height: 3
-                        radius: 1.5
-                        color: Theme.accent
+                        curveDepth: height / 2
+                        exponent: 2
+                        fillColor: Theme.accent
                     }
                     TapHandler { onTapped: root.activateDestination(destinationCard.destinationId) }
                     Accessible.role: Accessible.Button
@@ -627,13 +628,14 @@ Item {
                                 Layout.preferredHeight: 34
                                 padding: 0
                                 background: Item {
-                                    Rectangle {
+                                    Superellipse {
                                         anchors.bottom: parent.bottom
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         width: parent.width
                                         height: 2
-                                        radius: 1
-                                        color: Theme.accent
+                                        curveDepth: height / 2
+                                        exponent: 2
+                                        fillColor: Theme.accent
                                         visible: modeTab.selected
                                     }
                                 }

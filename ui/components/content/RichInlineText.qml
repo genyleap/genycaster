@@ -244,15 +244,16 @@ Item {
                     color: root.usePlatformSelection ? Theme.accent
                            : Theme.nativeSelectionAccent
                 }
-                Rectangle {
+                Superellipse {
                     anchors.centerIn: parent
                     width: 13
                     height: 13
-                    radius: 6.5
-                    color: root.usePlatformSelection ? Theme.accent
-                           : Theme.nativeSelectionAccent
-                    border.width: 2
-                    border.color: Theme.surfaceRaised
+                    curveDepth: width / 2
+                    exponent: 2
+                    fillColor: root.usePlatformSelection ? Theme.accent
+                               : Theme.nativeSelectionAccent
+                    borderWidth: 2
+                    borderColor: Theme.surfaceRaised
                 }
                 MouseArea {
                     anchors.fill: parent

@@ -94,11 +94,12 @@ Popup {
         }
     }
 
-    background: Rectangle {
-        color: Theme.surface
-        radius: root.edge === 1 && !root.expanded ? Theme.curveContainer : 0
-        border.color: Theme.borderMuted
-        border.width: 1
+    background: Superellipse {
+        fillColor: Theme.surface
+        curveDepth: root.edge === 1 && !root.expanded ? Theme.curveContainer : 0
+        exponent: 2
+        borderColor: Theme.borderMuted
+        borderWidth: 1
     }
 
     WebEngineProfile {

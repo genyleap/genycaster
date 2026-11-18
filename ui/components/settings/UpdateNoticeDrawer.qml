@@ -101,12 +101,13 @@ Popup {
             anchors.right: parent.right
             spacing: Theme.space2
         // Subtle grabber communicates top-sheet direction on touch screens.
-        Rectangle {
+        Superellipse {
             Layout.alignment: Qt.AlignHCenter
             Layout.preferredWidth: 40
             Layout.preferredHeight: 4
-            radius: 2
-            color: Theme.inkMuted
+            curveDepth: height / 2
+            exponent: 2
+            fillColor: Theme.inkMuted
             opacity: 0.48
         }
         RowLayout {
