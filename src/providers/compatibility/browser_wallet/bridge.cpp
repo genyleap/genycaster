@@ -1134,8 +1134,8 @@ private:
                 m_accountAccessGrants.clear();
                 m_grantedAccountByOrigin.clear();
                 ++m_authorizationEpoch;
-                for (auto& [id, pending] : m_pending)
-                    cancelled.push_back(std::move(pending));
+                for (auto& entry : m_pending)
+                    cancelled.push_back(std::move(entry.second));
                 m_pending.clear();
             }
             sink = m_eventSink;
