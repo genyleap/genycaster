@@ -30,7 +30,11 @@ test('capsule, selected states and action button are border-free in light and da
   const destination=dock.slice(dock.indexOf('component DockDestination: Button {'),dock.indexOf('\n    RowLayout {\n        id: dockRow'));
   const capsule=dock.slice(dock.indexOf('objectName: "mobileNavigationCapsule"'),dock.indexOf('objectName: "mobileDockHome"'));
   const primary=dock.slice(dock.indexOf('objectName: "mobilePrimaryActionButton"'));
-  assert.match(destination,/background: Superellipse \{[\s\S]*?borderWidth: 0/);
+  // Destination now uses a shared neon surface with an explicitly borderless
+  // circular selected wash, not a separate flat Superellipse background.
+  assert.match(destination,/background: NeonSurface \{[\s\S]*?borderWidth: 0/);
+  assert.match(destination,/ambientNeon: destination\.active/);
+  assert.match(destination,/highQualityEdges: true/);
   assert.doesNotMatch(destination,/borderColor:/);
   assert.match(capsule,/fillColor: "transparent"/);
   assert.match(capsule,/objectName: "mobileCapsuleGlassTint"/);
@@ -46,11 +50,13 @@ test('easing is responsive, interruptible and respects reduced motion',()=>{
   for(const section of ['fillColor','scale'])
     assert.match(dock,new RegExp('Behavior on '+section+' \\{'));
   assert.doesNotMatch(dock,/Behavior on implicitWidth/);
-  assert.match(dock,/ColorAnimation \{ duration: 185; easing\.type: Easing\.OutCubic \}/);
+  assert.match(dock,/ColorAnimation \{ duration: 180; easing\.type: Easing\.OutCubic \}/);
   assert.match(dock,/ColorAnimation \{ duration: 190; easing\.type: Easing\.OutCubic \}/);
   assert.match(dock,/scale: mobilePrimaryAction\.down \? 0\.975 : 1/);
   const allBehaviors=[...dock.matchAll(/Behavior on (?:fillColor|scale|color|opacity|implicitWidth) \{\s*enabled: ([^\n]+)/g)];
-  assert.ok(allBehaviors.length>=5);
+  // The simplified dock has exactly four motion behaviors; no fifth
+  // full-width footer/material animation is created during composition.
+  assert.equal(allBehaviors.length, 4);
   assert.ok(allBehaviors.every(match=>match[1].trim()==='root.animateDock'));
 });
 

@@ -68,7 +68,10 @@ test('year-long Casts are paginated independently and partial history is identif
   assert.match(source,/knownFromDay/);
   assert.match(source,/if\(\(page\+1\)%4==0\)publishFarcaster\(false\)/);
   assert.match(qml,/root.farcasterData.status==="partial"/);
-  assert.match(qml,/unobserved \? \(Theme.dark/);
+  // Partial-year tiles get their Light/Dark ink from the semantic Theme role.
+  assert.match(qml,/unobserved \? \(Theme\.pulseUnobservedTile\)/);
+  const theme=readFileSync(resolve(root,'ui/theme/Theme.qml'),'utf8');
+  assert.match(theme,/pulseUnobservedTile: dark \?/);
   assert.match(qml,/qsTrId\("genycaster.activity.partial"\)/);
 });
 
@@ -99,7 +102,7 @@ test('all GitHub time filters preserve the same COLORED annual calendar',()=>{
   assert.match(qmlCalendar,/model: root.githubWeeks/);
   assert.match(qmlCalendar,/inYear\s*\? root.githubTileColor/);
   assert.match(qmlCalendar,/opacity: root.githubRange==="1y" \|\| inRange \? 1 : 0.7/);
-  assert.match(qmlCalendar,/border.width: root.githubRange!=="1y" && inRange \? 1 : 0/);
+  assert.match(qmlCalendar,/borderWidth: root.githubRange!=="1y" && inRange \? 1 : 0/);
   assert.match(qmlCalendar,/enabled: parent.inYear/);
   assert.ok(!qmlCalendar.includes('color: inRange ? root.githubTileColor'));
   assert.ok(!qml.includes('githubGridStart: githubStartRangeDay-'));

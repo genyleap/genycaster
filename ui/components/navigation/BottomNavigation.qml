@@ -252,14 +252,16 @@ Item {
                     // Render the shape through an explicit texture source below.
                     // Relying on an invisible Item's layer as maskSource can
                     // produce an empty mask on some mobile scenegraph backends.
-                    Rectangle {
+                    // The same analytic pill geometry used by the visible dock
+                    // also drives the offscreen alpha-mask source.
+                    Superellipse {
                         x: navigationCapsule.sampleLeft
                         y: navigationCapsule.sampleTop
                         width: navigationCapsule.width
                         height: navigationCapsule.height
-                        radius: height / 2
-                        color: Theme.dockMaskWhite
-                        antialiasing: true
+                        curveDepth: height / 2
+                        exponent: 2
+                        fillColor: Theme.dockMaskWhite
                     }
                 }
 
