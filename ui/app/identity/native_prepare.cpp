@@ -7,7 +7,9 @@
 #include <string>
 #include <utility>
 
+#if !defined(Q_OS_WASM)
 import farcaster.platform.custody_recovery;
+#endif
 
 NativeRegistrationPreparationController::NativeRegistrationPreparationController(
     NativePreparationPorts ports, QObject* parent)
@@ -32,6 +34,14 @@ void NativeRegistrationPreparationController::erasePrepared() noexcept
 
 bool NativeRegistrationPreparationController::prepare()
 {
+#if defined(Q_OS_WASM)
+    // The browser has neither a native custody wallet nor an OS-backed signer.
+    // Do not import the OpenSSL PoW module or start a fake registration worker.
+    erasePrepared();
+    m_failed = true;
+    emit changed();
+    return false;
+#else
     if (m_busy) return false;
     erasePrepared();
     m_failed = false;
@@ -78,6 +88,7 @@ bool NativeRegistrationPreparationController::prepare()
             return {};
         }));
     return true;
+#endif
 }
 
 void NativeRegistrationPreparationController::finish()

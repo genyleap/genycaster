@@ -14,6 +14,11 @@ test('WebAssembly selects the isolated browser custody ABI, never the OpenSSL de
   assert.doesNotMatch(browser, /import farcaster\.platform\.custody_recovery/);
   assert.match(native, /#include\s*<openssl\/crypto\.h>/);
   assert.match(native, /import farcaster\.platform\.custody_recovery/);
+  const preparation = source('ui/app/identity/native_prepare.cpp');
+  assert.match(preparation, /#if !defined\(Q_OS_WASM\)\s*import farcaster\.platform\.custody_recovery;\s*#endif/);
+  assert.match(preparation, /bool NativeRegistrationPreparationController::prepare\(\)\s*\{\s*#if defined\(Q_OS_WASM\)[\s\S]*?erasePrepared\(\);\s*m_failed = true;\s*emit changed\(\);\s*return false;\s*#else/);
+  // Native builds retain their real, bounded and cancellable PoW engine.
+  assert.match(preparation, /solveNativeOnboardPow\(/);
 });
 
 test('browser-native wallet never generates, retains, exports or signs custody secrets', () => {
