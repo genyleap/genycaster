@@ -95,7 +95,7 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
                 )
                 with self.assertRaises(ValueError):
                     archives_from_index(html, ("qtwebengine",),
-                                        stamp="untrusted")
+                                        stamp="6.12.0-0-unknown")
 
     def test_local_linux_pipeline_not_repeated(self) -> None:
         s = LOCAL.read_text(encoding="utf-8")
