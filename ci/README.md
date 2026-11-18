@@ -145,6 +145,27 @@ VPS through a DNS record controlled by the domain administrator. Prepare the
 dedicated static root `/var/www/app.genycaster.xyz/public`, issue its own
 valid TLS certificate, and activate the reviewed vhost
 [`ci/app_genycaster_nginx.conf`](app_genycaster_nginx.conf) after `nginx -t`.
+
+The reviewed, rollback-safe provisioning command is:
+
+```bash
+# Read-only preflight; does not change Nginx or issue a certificate:
+python3 ci/activate_app_site.py
+
+# Requires direct authorized root access to /etc/nginx and the server's
+# existing Certbot/Let's Encrypt account. An ACME email may be provided.
+sudo python3 ci/activate_app_site.py --apply
+curl --fail --silent --show-error \
+  https://app.genycaster.xyz/.well-known/genycaster-ready
+```
+
+The script uses a dedicated temporary HTTP-only ACME challenge vhost, then
+enables the reviewed two-server HTTPS config after verifying a fresh,
+host-matched certificate. On failure it restores the previous Nginx file/link,
+checks configuration and reloads it. The procedure never modifies the
+`genycaster.xyz` landing vhost, never copies an old WASM archive and never
+publishes anything until the separate site-build/deploy step succeeds.
+
 The vhost proxies only the app's first-party cloud API to localhost and
 preserves the separate `genycaster.xyz` landing-site vhost. The account
 service must be deployed with the exact app Origin/Host acceptance patch;
