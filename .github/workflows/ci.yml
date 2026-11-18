@@ -661,21 +661,12 @@ jobs:
       - name: Install separately versioned Qt WebEngine extension
         shell: pwsh
         run: |
-          # Qt 6.12 intentionally no longer ships WebEngine as a 6.12.0
-          # addon: the separately versioned 6.140+ extension is required.
-          # Resolve the official extension for this exact MSVC target.
-          python -m pip install 'aqtinstall==3.3.0'
+          # Qt 6.140 is NOT in Qt 6.12 desktop Updates.xml; use the
+          # official versioned extension archives with upstream SHA1 checks.
+          # The installer selects the correct x64 or ARM64-cross-compiled
+          # package and refuses an incomplete Mini App SDK.
+          python ci/install_qt_windows.py --destination Qt --architecture ${{ matrix.arch }} --webengine-only
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $qtArch = if ("${{ matrix.arch }}" -eq "arm64") {
-            'win64_msvc2022_arm64'
-          } else {
-            'win64_msvc2022_64'
-          }
-          python -m aqt install-qt windows desktop 6.12.0 $qtArch `
-            --modules qtwebengine --noarchives --outputdir Qt
-          if ($LASTEXITCODE -ne 0) {
-            throw "Official Qt WebEngine extension unavailable for $qtArch; refusing SDK-less release"
-          }
           foreach ($config in @('Qt6WebEngineWidgets', 'Qt6WebEngineQuick')) {
             $path = Join-Path $env:QT_ROOT_DIR "lib/cmake/$config/$($config)Config.cmake"
             if (-not (Test-Path $path)) {
