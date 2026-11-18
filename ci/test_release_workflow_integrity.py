@@ -54,6 +54,49 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         self.assertIn('ci/audit_macos_bundle.py "$MOUNT/Genycaster.app"', mac)
         self.assertEqual(mac.count("name: GenyCaster-macos-${{ matrix.arch }}"), 1)
 
+    def test_windows_webengine_install_uses_official_separate_archives(self) -> None:
+        from ci.install_qt_windows import (
+            archives_from_index, webengine_archive_layout,
+        )
+
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("Install separately versioned Qt WebEngine extension", workflow)
+        self.assertIn("ci/install_qt_windows.py --destination Qt --architecture "
+                      "${{ matrix.arch }} --webengine-only", workflow)
+        self.assertNotIn("python -m aqt install-qt windows desktop 6.12.0", workflow)
+        for arch, folder, suffix, stamp in (
+            ("x86_64", "msvc2022_64", "win64_msvc2022_64",
+             "6.12.0-0-202609281005"),
+            ("arm64", "msvc2022_arm64", "win64_msvc2022_arm64_cross_compiled",
+             "6.12.0-0-202611110526"),
+        ):
+            with self.subTest(arch=arch):
+                base, groups, selected_stamp = webengine_archive_layout(arch)
+                self.assertEqual(selected_stamp, stamp)
+                self.assertEqual(
+                    base,
+                    "https://download.qt.io/online/qtsdkrepository/windows_x86/"
+                    f"extensions/qtwebengine/6120/61400/{folder}/",
+                )
+                self.assertEqual(
+                    list(groups),
+                    [f"extensions.qtwebengine.6120.61400.{suffix}"],
+                )
+                html = (
+                    f'<a href="{stamp}qtwebengine-Windows-Release.7z"></a>'
+                    f'<a href="{stamp}qtwebview_qtwebengine_plugin.7z"></a>'
+                    '<a href="untrustedqtwebengine-Windows-Release.7z"></a>'
+                )
+                self.assertEqual(
+                    archives_from_index(html, groups[next(iter(groups))],
+                                        stamp=stamp),
+                    [f"{stamp}qtwebengine-Windows-Release.7z",
+                     f"{stamp}qtwebview_qtwebengine_plugin.7z"],
+                )
+                with self.assertRaises(ValueError):
+                    archives_from_index(html, ("qtwebengine",),
+                                        stamp="untrusted")
+
     def test_local_linux_pipeline_not_repeated(self) -> None:
         s = LOCAL.read_text(encoding="utf-8")
         self.assertEqual(s.count("python3 ci/stage_linux_webengine.py"), 1)
