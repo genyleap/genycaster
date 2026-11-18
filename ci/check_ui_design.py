@@ -732,9 +732,12 @@ if ('&QThread::finished' not in link_preview_resolver
     errors.append('Link preview shutdown must disconnect/abort replies on their worker thread and bound thread exit without late TLS reads')
 if 'genycasterPayload' in link_preview_resolver:
     errors.append('Link preview readyRead must not round-trip the accumulated HTML through QObject dynamic properties')
-if ('readonly property int filterPrefetchLimit: 6' not in feed_surface
-        or 'readonly property int automaticPrefetchLimit: 12' not in feed_surface):
-    errors.append('Sparse Explorer semantic tabs must retain the bounded six-page/per-filter and twelve-page global prefetch budget')
+# Keep this strict UI audit consistent with the separately checked canonical
+# Explorer pagination acceptance. The bounded 8/16 budget provides sparse tabs
+# with enough provider pages without unbounded load loops.
+if ('readonly property int filterPrefetchLimit: 8' not in feed_surface
+        or 'readonly property int automaticPrefetchLimit: 16' not in feed_surface):
+    errors.append('Sparse Explorer semantic tabs must retain the bounded eight-page/per-filter and sixteen-page global prefetch budget')
 # A single shared caption Loader now precedes media for every cast, rather
 # than duplicating caption subtrees for visual vs text-only casts.
 if cast_item.count('asynchronous: true') < 4:

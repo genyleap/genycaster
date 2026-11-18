@@ -51,6 +51,6 @@ VectorImage {
     animations.loops: 1
     // A completed NumberAnimation cannot be paused. Retaining its renderer
     // during scroll/focus changes must not attempt to restart or pause it.
-    animations.paused: !root.animationActive || root.playbackCompleted
+    animations.paused: !root.animationActive && !root.playbackCompleted
     opacity: root.renderReady ? 1 : 0
 }

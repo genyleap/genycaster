@@ -53,7 +53,9 @@ test('emoji one-shot is obeyed by policy, both renderers, persisted settings and
     assert.match(sprite, /loops: 1/);
     assert.match(lottie, /root\.timeline\.frameCounter >= root\.timeline\.endFrame/);
     assert.match(lottie, /root\.cycleFinished = true/);
-    assert.match(lottie, /animations\.paused: !root\.animationActive \|\| root\.playbackCompleted/);
+    // Playback completion holds the last visible frame; do not issue a pause
+    // to the already-completed one-shot animation when it leaves the viewport.
+    assert.match(lottie, /animations\.paused: !root\.animationActive && !root\.playbackCompleted/);
     assert.match(sprite, /root\.playbackFinished = true/);
     assert.match(sprite, /root\.framePosition = 0/);
     assert.match(emoji, /root\.emojiPlaybackEnabled && !root\.reducedMotion/);
