@@ -51,6 +51,11 @@ int main()
     pass &= check(!matchesAccountSessionPrincipal(
                       owner(QString::number(farcasterFid),
                             QStringLiteral("hypersnap:native-registry"),
+                            QStringLiteral("hypersnap:321969")), farcasterFid, issuer),
+                  "native issuer cannot borrow a Farcaster-range numeric FID");
+    pass &= check(!matchesAccountSessionPrincipal(
+                      owner(QString::number(farcasterFid),
+                            QStringLiteral("hypersnap:native-registry"),
                             QStringLiteral("farcaster:321969")), farcasterFid, issuer),
                   "issuer and protocol subject cannot be mixed");
     pass &= check(!matchesAccountSessionPrincipal(

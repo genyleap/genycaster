@@ -18,8 +18,14 @@
 #include <QString>
 #include <QUrl>
 #include <QtTypes>
+#include <cstdint>
 
 namespace genycaster::identity {
+
+// HyperSnap's native FID namespace starts at the first value outside uint32.
+// A native issuer must never borrow an unrelated lower Farcaster FID.
+inline constexpr std::uint64_t firstNativeHyperSnapFid =
+    std::uint64_t{1} << 32;
 
 [[nodiscard]] inline bool matchesAccountSessionPrincipal(
     const QJsonObject& data, const qulonglong fid, const QUrl& openProofIssuer)
@@ -33,7 +39,8 @@ namespace genycaster::identity {
         issuer == openProofIssuer.toString(QUrl::FullyEncoded)
         && subject == QStringLiteral("farcaster:") + canonicalFid;
     const bool nativeHyperSnap =
-        issuer == QStringLiteral("hypersnap:native-registry")
+        fid >= firstNativeHyperSnapFid
+        && issuer == QStringLiteral("hypersnap:native-registry")
         && subject == QStringLiteral("hypersnap:") + canonicalFid;
     return openProofFarcaster || nativeHyperSnap;
 }

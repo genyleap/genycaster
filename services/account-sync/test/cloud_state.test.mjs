@@ -266,8 +266,10 @@ test('swap quote requires authenticated owner, POST and a configured provider',a
 test('native session cookie with CSRF may quote without Origin; browser cross-origin POST is rejected',async()=>{
   const cookie='c'.repeat(43);
   const csrf='d'.repeat(43);
+  let storedIssuer='https://identity.example.test';
+  let storedSubject=principal;
   const cloudStore={...store,async getSession(){return {
-    subject:principal,issuer:'https://identity.example.test',csrf_token:csrf,
+    subject:storedSubject,issuer:storedIssuer,csrf_token:csrf,
   }}};
   const server=createAccountApi({
     catalogUrl:upstream,fetchImpl,store:cloudStore,issuer:'https://identity.example.test',
@@ -284,6 +286,21 @@ test('native session cookie with CSRF may quote without Origin; browser cross-or
     const valid=await send();
     assert.equal(valid.status,200,'Qt native cookie+CSRF is sufficient without browser Origin');
     assert.equal((await valid.json()).chainId,8453);
+    // A session with a canonical Farcaster subject but a forged/foreign
+    // issuer must NEVER be treated as a valid owner, even with the correct
+    // signed cookie, CSRF secret and a request from the trusted origin.
+    for(const issuer of ['hypersnap:native-registry','https://attacker.invalid','']) {
+      storedIssuer=issuer;
+      const forged=await send();
+      assert.equal(forged.status,401,'foreign issuer cannot access private quote');
+      await forged.arrayBuffer();
+    }
+    storedIssuer='https://identity.example.test';
+    storedSubject='hypersnap:42'; // beneath HyperSnap's native FID floor
+    const wrongSubject=await send();
+    assert.equal(wrongSubject.status,401);
+    await wrongSubject.arrayBuffer();
+    storedSubject=principal;
     assert.equal((await send({'x-genycaster-csrf':'x'.repeat(43)})).status,401);
     assert.equal((await send({origin:'https://evil.invalid',
       'sec-fetch-site':'cross-site'})).status,403);
