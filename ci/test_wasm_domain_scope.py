@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -52,6 +53,42 @@ class WasmDomainScopeTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertIn("WASM deployment", result.stderr)
                 self.assertNotIn("Build-only mode", result.stdout)
+
+
+    def test_deployment_rejects_wrong_https_vhost_before_build(self):
+        nginx = (ROOT / "ci/app_genycaster_nginx.conf").read_text()
+        self.assertIn('location = /.well-known/genycaster-ready {', nginx)
+        self.assertIn('return 200 "genycaster-app-v1";', nginx)
+        source = SCRIPT.read_text()
+        self.assertIn("--proto '=https'", source)
+        self.assertIn("--max-redirs 0", source)
+        self.assertIn("/.well-known/genycaster-ready", source)
+
+        # A generic HTTPS 200 from the status-page fallback must not start a
+        # large Qt build, even though it has a valid Cloudflare certificate.
+        with tempfile.TemporaryDirectory() as temp:
+            fake_curl = Path(temp) / "curl"
+            fake_curl.write_text("#!/bin/sh\nprintf '%s' 'Genyleap System Status'\n")
+            fake_curl.chmod(0o755)
+            env = os.environ.copy()
+            env["GENYCASTER_SITE_URL"] = "https://app.genycaster.xyz"
+            env["PATH"] = temp + os.pathsep + env.get("PATH", "")
+            env.pop("QT_ROOT_DIR", None)
+            env.pop("QT_HOST_PATH", None)
+            args = ["bash", str(SCRIPT), "--web-root",
+                    "/var/www/app.genycaster.xyz/public"]
+            result = subprocess.run(args, cwd=ROOT, env=env,
+                                    text=True, capture_output=True, timeout=5)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn("not serving the dedicated HTTPS vhost", result.stderr)
+
+            # A correct marker is admitted and the following build prerequisite
+            # (missing Qt SDK) fails normally. Nothing is deployed.
+            fake_curl.write_text("#!/bin/sh\nprintf '%s' 'genycaster-app-v1'\n")
+            result = subprocess.run(args, cwd=ROOT, env=env,
+                                    text=True, capture_output=True, timeout=5)
+            self.assertNotIn("not serving the dedicated HTTPS vhost", result.stderr)
+            self.assertIn("QT_ROOT_DIR", result.stderr)
 
 
 if __name__ == "__main__":
