@@ -428,7 +428,7 @@ if ('boundsBehavior: Flickable.DragOverBounds' not in profile_surface
 # Timeline rows retain a non-painting Item; only viewport-admitted Magazine
 # cards instantiate Neon. Nested cast direction and symmetric adaptive gutters
 # replace the legacy hard-coded 58px content-divider indentation.
-if ('Item {\\n            id: messageSurface' not in cast_item
+if ('Item {\n            id: messageSurface' not in cast_item
         or 'HoverHandler { id: messageHover }' in cast_item
         or 'visible: root.magazineCard' not in cast_item
         or 'fillColor: root.magazineCard ? Theme.surfaceRaised : "transparent"' not in cast_item
