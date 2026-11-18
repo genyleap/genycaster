@@ -49,6 +49,7 @@ Popup {
         if (!match) return ""
         const host = match[1].toLowerCase()
         if (host.indexOf(".") < 1 || host.includes("..")
+                || /^(?:[0-9]+\\.){3}[0-9]+$/.test(host)
                 || host.endsWith(".") || host.endsWith(".local")
                 || host.endsWith(".internal") || host.endsWith(".localhost")
                 || host.endsWith(".test") || host.endsWith(".invalid"))
