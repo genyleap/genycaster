@@ -15,7 +15,11 @@ PARENT_DIRECTORY_INCLUDE = re.compile(r'^\s*#include\s+"\.\./', re.M)
 def main() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert re.search(r"^on:\n  workflow_dispatch:", workflow, re.M)
-    assert "default: web" in workflow
+    # Release-candidate validation runs one coordinated matrix, not one
+    # GitHub Actions invocation per platform (GenyConnect-style orchestration).
+    dispatch = workflow.split("  workflow_dispatch:\\n", 1)[1].split("  push:\\n", 1)[0]
+    assert re.search(r"(?m)^        default: all$\\n        options:$\\n          - all$", dispatch)
+    assert "confirm_full_matrix:" in dispatch
     assert not FORBIDDEN_CORE_JOB.search(workflow)
     assert "confirm_full_matrix:" in workflow
     assert "GENYCASTER_FULL_MATRIX_CONFIRMED" in workflow
