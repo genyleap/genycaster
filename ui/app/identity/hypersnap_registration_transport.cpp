@@ -6,6 +6,8 @@
 #include <QNetworkRequest>
 #include <QUrlQuery>
 
+#include <cmath>
+#include <cstdint>
 #include <utility>
 
 namespace {
@@ -31,13 +33,31 @@ std::pair<bool, std::uint64_t> exactUnsigned(const QJsonValue& value)
     // double (which silently loses precision for u64 values above 2^53).
     if (!value.isString()) return {false, 0};
     const QString text = value.toString();
-    if (text.isEmpty() || text.size() > 20) return {false, 0};
+    if (text.isEmpty() || text.size() > 20
+        || (text.size() > 1 && text.front() == QLatin1Char('0')))
+        return {false, 0};
     for (QChar c : text)
         if (c < QLatin1Char('0') || c > QLatin1Char('9'))
             return {false, 0};
     bool ok = false;
     const qulonglong result = text.toULongLong(&ok, 10);
     return {ok, static_cast<std::uint64_t>(result)};
+}
+
+std::pair<bool, std::uint64_t> exactInclusionHeight(const QJsonValue& value)
+{
+    // Accept the current JSON numeric block height only where IEEE-754 can
+    // represent it *exactly*. A future u64 height may instead be sent as a
+    // canonical decimal string; never truncate fractions or cast overflow.
+    if (value.isString())
+        return exactUnsigned(value);
+    if (!value.isDouble()) return {false, 0};
+    constexpr double MaxSafeJsonInteger = 9007199254740991.0;
+    const double height = value.toDouble();
+    if (!std::isfinite(height) || height < 1.0
+        || height > MaxSafeJsonInteger || std::trunc(height) != height)
+        return {false, 0};
+    return {true, static_cast<std::uint64_t>(height)};
 }
 
 QNetworkRequest requestFor(const QUrl& url)
@@ -126,18 +146,18 @@ void HyperSnapRegistrationTransport::lookupByCustody(
             data.value(QStringLiteral("fid")));
         const auto custody = data.value(
             QStringLiteral("custodyAddress")).toString().toLower();
-        const auto block = data.value(QStringLiteral("blockNumber"));
-        // Require authoritative shard-0 inclusion and a matching on-chain
-        // custody key. No application session can be established from a
-        // response lacking the message that the node included.
+        const auto [blockValid, blockNumber] = exactInclusionHeight(
+            data.value(QStringLiteral("blockNumber")));
+        // Require a matching shard-0 custody identity and an included
+        // message. A hub response is not independent consensus finality;
+        // canonical OPP FID linking still requires its own trusted verifier.
         if (!fidValid || fid < FirstNativeFid || custody != expected
-            || !block.isDouble() || block.toDouble() < 1
+            || !blockValid || blockNumber == 0
             || !data.value(QStringLiteral("message")).isObject()) {
             cb({LookupState::InvalidResponse, 0, 0, code});
             return;
         }
-        cb({LookupState::Confirmed, fid,
-            static_cast<std::uint64_t>(block.toDouble()), code});
+        cb({LookupState::Confirmed, fid, blockNumber, code});
     });
 }
 
