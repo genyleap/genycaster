@@ -6,6 +6,16 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 
 ## Verified baseline
 
+- Latest browser WalletConnect security and completeness fix:
+  `8a8a18db09a231f8f870e0e446d2d5528458a4e3`.
+  Replaced the unnecessary Reown AppKit/EthereumProvider dependency with
+  pinned `@walletconnect/universal-provider@2.26.0`, an explicit fail-closed
+  EIP-1193 event/chain adapter, the missing lazy SDK CMake bundle, and a
+  missing-asset package fail gate. Native WalletConnect end-to-end remains
+  unverified on a physical wallet.
+- Latest native PoW/WASM boundary correction:
+  `8e89d54c1c6229db066d07c0674097f9c19c8090`
+  (guarded browser native registration preparation against OpenSSL imports).
 - Latest browser-native custody ABI isolation:
   `e1e5c43b46c19a0a0df6f040e81f2c4cb47d3dfe`
   (WASM fail-closed non-signing controller; no OpenSSL/custody module import,
@@ -32,7 +42,7 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - HyperSnap exact native uint64 FID/height merge:
   `35550e73ce9447e2650e99e4f7dab21346c053ce` (PR #39).
 - Repository was clean and tracking `origin/main` immediately after the
-  `e1e5c43b` push. Re-check HEAD/upstream before subsequent edits.
+  `8a8a18db` push. Re-check HEAD/upstream before subsequent edits.
 
 ## Completed and locally verified in the latest execution
 
@@ -82,11 +92,22 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   async wallet consent tests, all QML checks and release/CI guards passed:
   **40/40 Node**; **13/13 Python release/workflow**, UI design **183 QML**.
   No native OpenSSL methods or custody module are compiled in this WASM
-  controller. The security-sensitive **C++ browser binary is not yet
-  verified**; the hosted build is running.
+  controller. WebAssembly compilation and artifact upload are now **CI
+  verified** by run #44349790738 at `8e89d54c` (not a browser E2E).
 - Quick Auth upstream override is independently npm-installed and tested:
   **7/7 PASS**, `npm audit --omit=dev` **0 findings** for that package.
   `.github/workflows/ci.yml` enforces the runtime test before Qt setup.
+- Reown dependency chain to the vulnerable Zod 3 has been removed from the
+  source lockfile by `8a8a18db`, leaving Zod **4.6.7 only** in the
+  new WalletConnect universal-host dependency graph. The adapter source,
+  mocked pairing, session reuse/abort, relay-independent EIP-1193 events
+  and package completeness: **49/49 targeted Node tests PASS**.
+  Independent WASM package/release fixtures **22/22 PASS**, Release/workflow
+  unit tests **13/13 PASS**, CI and architecture guards PASS, and the design
+  guard audited **183 QML**. Both first-party JS assets were actually built
+  with esbuild (~503/515 KiB) in an isolated staged npm install. There is
+  **no real-wallet/browser-installed E2E evidence**; the new hosted Web run
+  is still pending.
 - **No native/browser installed-device wallet E2E** or new full hosted CI
   has been claimed for these commits.
 
@@ -104,16 +125,17 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - GenyCaster [#9](https://github.com/genyleap/genycaster/issues/9):
   `ci/verify_release_feature_contract.py --strict` still blocks **CHAT,
   WALLET and privileged Android Mini App SDK host**. Do not bypass these.
-- GitHub Dependabot was rechecked after `331507e1`: **one OPEN High
-  alert** remains, browser host Zod [#2](https://github.com/genyleap/genycaster/security/dependabot/2)
-  (exact Zod 3.22.4 through Reown AppKit Wallet; advisory GHSA-mrhx-c7xc-m3w5
-  affects all Zod versions <4.6.6). Quick Auth Zod #1 is now confirmed
-  **fixed** by GitHub, consistent with `npm audit --omit=dev` 0.
-  Picomatch GHSA-fc5q-39xc-vjpf was **withdrawn** at
-  2026-11-18T15:38:56Z and is no longer returned in the active alerts API.
-  A scratch global Zod 4 override caused incompatible/invalid npm dependency
-  resolution; it was **not** applied. Do not treat an unverified major-version
-  override as proof of safe WalletConnect/Reown runtime behavior.
+- GitHub Dependabot still exposed **one OPEN High alert**, browser host Zod
+  [#2](https://github.com/genyleap/genycaster/security/dependabot/2),
+  immediately after the `8a8a18db` push, although this commit now removes
+  the entire Reown AppKit + Zod 3 dependency path and lockfile tests assert
+  only fixed Zod 4.6.7. **Recheck Github's analysis rather than manually
+  dismissing the alert or claiming it has closed.**
+  Quick Auth Zod #1 is confirmed **fixed**. Picomatch
+  GHSA-fc5q-39xc-vjpf was withdrawn at 2026-11-18T15:38:56Z and no
+  longer appears in active GitHub alerts; npm's independently cached audit
+  data may still flag its withdrawn advisory. A trial global-major Zod
+  override was **rejected** as incompatible and never shipped.
 
 ## Hosted CI evidence (not current-HEAD release qualification)
 
@@ -133,25 +155,34 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   Root cause: OpenSSL-backed native custody source was added to the
   executable even though the WebAssembly protocol-signing module is absent.
 - Targeted Web CI run [#44344815130](https://github.com/genyleap/genycaster/actions/runs/44344815130)
-  on `e1e5c43b`: **gate PASS**, WASM job last checked **in progress**
-  (building verified Qt Multimedia toolchain). Pending actual compilation,
-  packaging and smoke results; do not claim it succeeded.
+  on `e1e5c43b`: **gate PASS**, **WASM failed** at
+  `native_prepare.cpp` importing missing OpenSSL-based
+  `farcaster.platform.custody_recovery`.
+- Targeted Web CI run [#44349790738](https://github.com/genyleap/genycaster/actions/runs/44349790738)
+  on `8e89d54c`: **SUCCESS** including secure-deployment preflight,
+  Qt Multimedia WebAssembly source build, full Qt/C++26 browser app compile,
+  browser packaging and artifact upload. This establishes a build baseline,
+  **not browser wallet runtime E2E**.
+- Targeted Web CI run [#44354415384](https://github.com/genyleap/genycaster/actions/runs/44354415384)
+  on `8a8a18db`: **in progress** at the last inspection, including the
+  newly built lazy WalletConnect bundle and dependency fixes. The previous
+  successful run predates these changes; recheck exact run/commit/asset.
 - No successful all-target CI, notarized/signed release or post-security-change
   installed-device tests are evidenced. Source-only checks and a successful
   gate do **not** authorize a version tag.
 
 ## Exact next executable tasks
 
-1. Finish inspecting targeted WebAssembly CI [#44344815130](https://github.com/genyleap/genycaster/actions/runs/44344815130):
-   gate PASS; the patched WASM binary build, packaging and artifact smoke
-   are still running. Fix compiler/runtime errors from actual job logs
-   before accepting the artifact; do not rerun an active workflow.
-2. Refresh `origin/main` and Dependabot state; inspect nested vulnerable
-   Zod and picomatch dependents. Prefer compatible upstream updates or verified
-   removal; do not force an incompatible major override or claim an unpatched
-   advisory is resolved.
-3. Add focused deterministic tests for any dependency change; run WASM host
-   bundle and Quick Auth tests. Commit/push only tested changes.
+1. Inspect targeted WebAssembly CI [#44354415384](https://github.com/genyleap/genycaster/actions/runs/44354415384),
+   especially real staging of both `miniapp-host-bridge.mjs` and
+   `genycaster-walletconnect.mjs`, JS/HTML package manifest, artifact upload
+   and the exact `8a8a18db` head SHA. Do not create a duplicate active job.
+   On failure, inspect the full failed step and fix the actual source.
+2. Recheck [Dependabot #2](https://github.com/genyleap/genycaster/security/dependabot/2)
+   after GitHub finishes reindexing the new package lock; never manually
+   dismiss an unresolved high-severity alert.
+3. Verify wallet consent on physical browsers and full target matrix after
+   the actual provider and signing implementations are complete.
 4. Continue real Wallet/CHAT/Android host implementation for #9 and verified
    OpenProof native-FID integration after reviewing the server trust contract.
 5. Run the full approved matrix once feature
