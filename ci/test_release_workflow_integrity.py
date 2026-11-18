@@ -97,6 +97,39 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
                     archives_from_index(html, ("qtwebengine",),
                                         stamp="6.12.0-0-unknown")
 
+    def test_one_unified_dispatch_and_tag_release_dependency_graph(self) -> None:
+        # GenyConnect-inspired orchestration: one invocation fan-outs to all
+        # requested native architectures and the site-only WebAssembly job.
+        # Individual diagnostic runs must never publish a Release.
+        s = WORKFLOW.read_text(encoding="utf-8")
+        dispatch = s.split("  workflow_dispatch:\\n", 1)[1].split("  push:\\n", 1)[0]
+        self.assertIn("        default: all\\n        options:\\n          - all", dispatch)
+        self.assertIn("confirm_full_matrix:", dispatch)
+        gate = job_source(s, "gate", "linux")
+        self.assertIn("GENYCASTER_FULL_MATRIX_CONFIRMED", gate)
+        for job, following in (
+            ("linux", "macos"), ("macos", "windows"),
+            ("windows", "android"), ("android", "ios"),
+            ("web", "publish"),
+        ):
+            with self.subTest(job=job):
+                source = job_source(s, job, following)
+                self.assertIn("    needs: gate", source)
+                self.assertIn("inputs.platform == 'all'", source)
+                self.assertIn("github.event_name == 'push'", source)
+                self.assertIn("actions/upload-artifact@v4", source)
+        for optional, following in (("ios", "nixos"), ("nixos", "web")):
+            source = job_source(s, optional, following)
+            self.assertIn("inputs.platform == '" + optional + "'", source)
+            self.assertNotIn("inputs.platform == 'all'", source)
+        publish = s.split("\\n  publish:\\n", 1)[1]
+        self.assertEqual(s.count("\\n  publish:\\n"), 1)
+        self.assertIn("needs: [gate, linux, macos, windows, android, web]", publish)
+        self.assertIn("github.event_name == 'push'", publish)
+        self.assertIn("actions/download-artifact@v4", publish)
+        self.assertIn("python3 ci/release_artifacts.py artifacts release", publish)
+        self.assertIn("softprops/action-gh-release@v2", publish)
+
     def test_local_linux_pipeline_not_repeated(self) -> None:
         s = LOCAL.read_text(encoding="utf-8")
         self.assertEqual(s.count("python3 ci/stage_linux_webengine.py"), 1)
