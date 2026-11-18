@@ -19,3 +19,16 @@ test('selection handle uses the scene-graph circle instead of a second legacy ro
   assert.match(textarea, /selectionHandleDragging = true/);
   assert.match(textarea, /onCanceled: root\.selectionHandleDragging = false/);
 });
+
+test('profile holder and social proof marks use theme-rendered circles and themed hover chrome', () => {
+  const profile = read('ui/components/profile/ProfileSurface.qml');
+  assert.match(profile, /Superellipse\s*\{\s*id: genyHolderBadge/);
+  assert.match(profile, /visible: root\.genyHolderAttested/);
+  assert.match(profile, /fillColor: socialBadge\.liveVerified \? Theme\.success : Theme\.accent/);
+  assert.match(profile, /curveDepth: implicitHeight \/ 2\s*exponent: 2/);
+  assert.doesNotMatch(profile, /\bradius\s*:/);
+  assert.doesNotMatch(profile, /ToolTip\./);
+  assert.match(profile, /visible: genyHolderBadgeHover\.hovered && genyHolderBadge\.visible/);
+  assert.match(profile, /visible: identityPrimaryLink\.hovered/);
+  assert.match(profile, /background: PopupSurface\s*\{\s*curveDepth: Theme\.curveCompact/);
+});
