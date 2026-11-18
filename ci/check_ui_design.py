@@ -699,14 +699,22 @@ if ('m_cancelled.store(true' not in remote_cancel_block
         or 'operation->cancel()' in remote_cancel_block):
     errors.append('QML image cancellation must detach presentation without aborting already-admitted bounded provider work; post-fling reads should hit provider cache')
 embed_preview = (ui/'components'/'media'/'EmbedPreview.qml').read_text(encoding='utf-8')
+# Timeline previews incubate asynchronously; Magazine previews are created
+# synchronously only after the *outer* card's viewport admission to avoid
+# destroying pending QML incubators on rapid magazine recycling.
 if ('property bool metadataUpdatePending: false' not in embed_preview
+        or 'if (root.scrollMoving)' not in embed_preview
+        or 'root.metadataUpdatePending = true' not in embed_preview
         or 'root.acceptLinkMetadata(preview)' not in embed_preview
-        or 'asynchronous: true' not in embed_preview):
-    errors.append('EmbedPreview must defer metadata-driven renderer changes during scroll and incubate renderer swaps asynchronously')
-if ('asynchronous: true' not in link_preview_media
+        or 'if (root.metadataUpdatePending)' not in embed_preview
+        or 'asynchronous: !root.magazineCard' not in embed_preview):
+    errors.append('EmbedPreview must defer moving-scroll metadata and asynchronously incubate Timeline (not admitted Magazine) previews')
+if ('asynchronous: !root.magazineCard' not in link_preview_media
         or 'property bool resolvedPreviewPending: false' not in link_preview_media
+        or 'if (root.resolvedPreviewPending)' not in link_preview_media
+        or 'root.pendingResolvedPreview = preview' not in link_preview_media
         or 'enabled: !root.scrollMoving' not in link_preview_media):
-    errors.append('LinkPreview must defer metadata/hover churn while scrolling and incubate rich cards asynchronously')
+    errors.append('LinkPreview must defer scroll metadata and hover churn while preserving Timeline/Magazine loader admission')
 if ('asynchronous: true' not in profile_surface
         or 'rowIncubationHeight' not in profile_surface
         or 'if (!profileList.moving)' not in profile_surface):
@@ -720,8 +728,9 @@ if ('id: spriteEmojiLoader' not in rich_inline_text
         or 'active: emojiOverlay.spriteFallbackArmed && !lottieEmoji.animationReady' not in rich_inline_text
         or 'visible: active && !lottieEmoji.animationReady' not in rich_inline_text
         or 'spriteFallbackTimer' in rich_inline_text
-        or 'asynchronous: true' not in rich_inline_text):
-    errors.append('Inline emoji must keep exactly one overlay renderer: sprite fallback is failure-driven, never timer-driven or layered over healthy Lottie')
+        or 'asynchronous: false' not in rich_inline_text
+        or 'textLayout.setEmojiAnimated(emojiPosition, emojiGeneration, false)' not in rich_inline_text):
+    errors.append('Inline emoji must use bounded synchronous sprite fallback only after Lottie failure and detach ownership on delegate destruction')
 animated_emoji_lottie = (ui/'components'/'media'/'AnimatedEmojiLottie.qml').read_text(encoding='utf-8')
 if ('animations.paused: !root.animationActive && !root.playbackCompleted' not in animated_emoji_lottie
         or 'animations.restart()' in animated_emoji_lottie):
@@ -763,8 +772,17 @@ if ('readonly property int filterPrefetchLimit: 8' not in feed_surface
     errors.append('Sparse Explorer semantic tabs must retain the bounded eight-page/per-filter and sixteen-page global prefetch budget')
 # A single shared caption Loader now precedes media for every cast, rather
 # than duplicating caption subtrees for visual vs text-only casts.
-if cast_item.count('asynchronous: true') < 4:
-    errors.append('CastItem rich text/media/supporting subtrees must incubate asynchronously instead of blocking delegate creation')
+# Rich text is a small native document subtree and deliberately synchronous:
+# rapid row recycling otherwise invalidates its QML incubator mid-frame.
+# Large media/supporting cards stay async on Timeline; Magazine only admits
+# the outer delegate near the viewport and creates nested cards synchronously.
+if (cast_item.count('asynchronous: !root.magazineCard') < 3
+        or 'id: castTextBody' not in cast_item
+        or 'asynchronous: false' not in cast_item
+        or 'active: root.mediaFirst && root.supportingEmbeds.length > 0' not in cast_item
+        or '&& root.supportingAdmitted' not in cast_item
+        or 'active: !root.mediaFirst && root.supportingEmbeds.length > 0' not in cast_item):
+    errors.append('CastItem must admit only supporting embeds and incubate heavy Timeline media without recycled Magazine incubator churn')
 if ('objectName: "castTextBody"' not in cast_item or
         'objectName: "castVisualMedia"' not in cast_item or
         cast_item.index('objectName: "castTextBody"') >= cast_item.index('objectName: "castVisualMedia"')):

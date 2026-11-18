@@ -52,6 +52,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("node", "--test", "tests/wasm/streak_retained_scenegraph_20261118.test.mjs")),
     ("One-shot emoji playback and consistent Explorer prefetch budgets",
      ("node", "--test", "tests/wasm/emoji_prefetch_consistent_gates_20261118.test.mjs")),
+    ("Flick-safe preview, media and emoji delegate lifetimes",
+     ("node", "--test", "tests/wasm/delegate_lifetime_source_contract_20261118.test.mjs")),
     ("Compact timeline and Magazine cast height reservation",
      ("node", "--test", "tests/wasm/cast_vertical_density_contract_20261118.test.mjs")),
     ("Magazine-only Neon GPU chrome in feed delegates",
