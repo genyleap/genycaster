@@ -108,7 +108,7 @@ for repo_url in "${candidates[@]}"; do
       -o Dir::Etc::sourceparts=- \
       -o APT::Get::List-Cleanup=0 \
       -o APT::Update::Error-Mode=any \
-      -o Acquire::Retries=0 \
+      -o Acquire::Retries=1 \
       -o Acquire::https::Timeout=12; then
     selected="$repo_url"
     echo "::endgroup::"
@@ -118,12 +118,20 @@ for repo_url in "${candidates[@]}"; do
   echo "::endgroup::"
 done
 if [[ -z "$selected" ]]; then
-  if [[ "$(dpkg --print-architecture)" == "arm64" && -n "${GITHUB_ACTIONS:-}" ]]; then
-    echo "::warning::Canonical's GCC16 PPA is unreachable; installing pinned native GCC16 from conda-forge instead"
-    bash "$(dirname "${BASH_SOURCE[0]}")/install_linux_gcc16_conda.sh"
-    exit 0
-  fi
-  echo "::error::No reachable, correctly signed GCC16 PPA archive. Refusing to build with the wrong C++26 toolchain." >&2
+  # The signing key and Ubuntu mirror are still mandatory. For transport
+  # failures (HTTP 503 / bad hostname TLS) use a separately SHA256-pinned
+  # conda-forge GCC16 on either native release runner. Never relax HTTPS or
+  # accept unsigned PPA indices to paper over Canonical's outage.
+  case "$(dpkg --print-architecture)" in
+    amd64|arm64)
+      if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+        echo "::warning::Canonical's GCC16 PPA is unreachable; verifying pinned native GCC16 from conda-forge"
+        bash "$(dirname "${BASH_SOURCE[0]}")/install_linux_gcc16_conda.sh"
+        exit 0
+      fi
+      ;;
+  esac
+  echo "::error::No reachable, correctly signed GCC16 PPA archive or verified GitHub runner fallback. Refusing the wrong C++26 toolchain." >&2
   exit 1
 fi
 sudo timeout 180s apt-get install -y --no-install-recommends \

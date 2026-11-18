@@ -6,6 +6,15 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 
 ## Verified baseline
 
+- Latest protocol-scoped account cookie security correction:
+  `26642ee4d7a95fb8675f109c7ac1a1fe59d141a8` (server account proof and
+  cookie GET now disclose verified issuer+subject, browser validates the
+  exact OpenProof/Farcaster tuple before granting a signer session, Qt native
+  accepts only exact canonical issuer/subject/FID pairs). Tests: full Account
+  Sync **122 PASS / 1 SKIP / 0 FAIL**; 13/13 focused account proof tests PASS;
+  native Qt 6.12 / C++26 principal unit **compiled and executed PASS**;
+  architecture, CI source and 183-QML design guards PASS. This is NOT
+  HyperSnap-to-OpenProof native FID linking; issue #4 is still OPEN.
 - Latest PWA wallet offline public-asset allowlist:
   `8ebce4d4b99cdd84dbc833a55205339f3ea7f627` (same-origin
   `genycaster-walletconnect.mjs`; wallet/session/secret routes excluded).
@@ -48,7 +57,7 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 - HyperSnap exact native uint64 FID/height merge:
   `35550e73ce9447e2650e99e4f7dab21346c053ce` (PR #39).
 - Repository was clean and tracking `origin/main` immediately after the
-  `8ebce4d4` push. Re-check HEAD/upstream before subsequent edits.
+  `26642ee4` push. Re-check HEAD/upstream before subsequent edits.
 
 ## Completed and locally verified in the latest execution
 
@@ -178,30 +187,59 @@ Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
   browser packaging and artifact upload. This establishes a build baseline,
   **not browser wallet runtime E2E**.
 - Targeted Web CI run [#44354415384](https://github.com/genyleap/genycaster/actions/runs/44354415384)
-  on `8a8a18db`: **in progress** at the last inspection, including the
-  newly built lazy WalletConnect bundle and dependency fixes. The previous
-  successful run predates these changes; recheck exact run/commit/asset.
+  on `8a8a18db`: **SUCCESS** including source gate, Qt Multimedia / C++26
+  browser build, first-party lazy WalletConnect SDK packaging and Artifact
+  `GenyCaster-web-wasm` (145,358,226 compressed artifact bytes). This
+  verifies that SHA, not the later account-session hardening in `26642ee4`.
+- Targeted Android arm64-v8a [#44361231825](https://github.com/genyleap/genycaster/actions/runs/44361231825)
+  on `07d2b68e`: **SUCCESS**, including Android build toolchain, APK
+  configuration/package step and Artifact
+  `GenyCaster-android-arm64-v8a` (54,562,190 artifact bytes).
+  This is NOT real-device installation or privileged Android Mini App host.
+- Targeted Android arm64 [#44366606796](https://github.com/genyleap/genycaster/actions/runs/44366606796)
+  on `26642ee4`: **source gate PASS**, APK build still running
+  at last check; final deployment + artifact result remains unverified.
+- Targeted Linux x86_64 [#44366618826](https://github.com/genyleap/genycaster/actions/runs/44366618826)
+  on `26642ee4`: **source gate PASS, native package FAIL** at "Install Linux
+  build and deployment tools". The signed Canonical GCC16 PPA
+  `ppa.launchpadcontent.net` returned HTTP 503; the legacy
+  `ppa.launchpad.net` hostname failed TLS certificate verification.
+  The installer appropriately refused an unsigned/wrong compiler; no
+  Linux compile or package failure was reached.
+- Root cause and safe remedial source: the previous installer provided
+  a pinned verified native GCC16 conda-forge fallback **only for ARM64**.
+  The expanded script now supports Ubuntu x86_64 with an independently
+  SHA256-pinned micromamba 2.9.0-0 x86 binary, exact GCC16.2.0 native
+  packages, same Ubuntu sysroot/GLIBC check, SQLite link, C++26 module and
+  native-headers smoke. Both x86 and ARM retain signed PPA first and
+  strict TLS; the fallback was **not yet runtime-tested on a hosted x86
+  runner**. `bash -n` PASS, 83/83 Linux/matrix/Release policy unit
+  tests PASS, architecture + CI guards PASS.
 - No successful all-target CI, notarized/signed release or post-security-change
   installed-device tests are evidenced. Source-only checks and a successful
   gate do **not** authorize a version tag.
 
 ## Exact next executable tasks
 
-1. Finish inspecting targeted WebAssembly CI [#44354415384](https://github.com/genyleap/genycaster/actions/runs/44354415384)
-   at exact `8a8a18db`: secure source gate PASS and browser C++/Qt build
-   still running on last inspection. Require staging of both JS bundles,
-   artifact hash/manifest completeness and success status before acceptance.
-   It does **not** include later `aa6a1dc1` and `8ebce4d4` changes.
-2. Security dependency graph is now clean (0 open). Verify WalletConnect
-   consent using a *real* EIP-1193-compatible wallet on physical browsers.
-   Do not confuse deterministic SDK integration mocks with network-device E2E.
-3. After the active run is complete, run a targeted browser build of the
-   current complete code SHA only if there are no remaining source defects.
-   Inspect uploaded artifact, and then qualify native platform parity.
-4. Continue real Wallet/CHAT/Android host implementation for #9 and verified
-   OpenProof native-FID integration after reviewing the server trust contract.
-5. Run the full approved matrix once feature
-   parity is truly implemented. Keep #4/#5/#6/#9 open until complete.
+1. Inspect Android arm64 [#44366606796](https://github.com/genyleap/genycaster/actions/runs/44366606796)
+   on `26642ee4` through completed APK artifact upload, not just its
+   currently passing preflight.
+2. After committing the verified x86 GCC16 fallback and reconciling upstream,
+   dispatch one **new** targeted Linux x86_64 job on that commit.
+   Verify micromamba native x86 binary SHA256, conda package availability,
+   C++26 module/GLIBC/SQLite/Qt header smokes, and actual AppImage/DEB.
+   Fix real CI failures without skipping TLS, compiler version or packaging.
+   Prior run [#44366618826](https://github.com/genyleap/genycaster/actions/runs/44366618826)
+   failed on Canonical's unavailable signed PPA before compilation.
+3. The WebAssembly build is CI-verified only through `8a8a18db`; run
+   a targeted same-SHA Web CI after other fixes stabilize, and verify the
+   new browser cookie issuer/subject flow with a physical EIP-1193 wallet.
+4. Security dependency graph is 0 open. Preserve patches and verify
+   macOS/Windows/Android/Linux installed runtimes before release.
+5. Continue real Wallet/CHAT/Android privileged host implementation for #9
+   and separately verified OpenProof native-FID linking (#4).
+6. Run the full approved matrix only after real feature parity and explicit
+   full-matrix budget authorization; leave #4/#5/#6/#9 open otherwise.
 
 No paid registration, irreversible on-chain write, production server mutation,
 signing/notarization or public release has been performed by this checkpoint.

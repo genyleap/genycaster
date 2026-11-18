@@ -1,37 +1,54 @@
 #!/usr/bin/env bash
-# Fallback for hosted ARM64 runners that cannot reach Canonical PPA IPs.
-# Keep GCC 16 and C++26; never replace it with an older GCC or disable
-# native Mini Apps. Conda-forge's native ARM64 compiler targets a portable
-# Linux sysroot and is downloaded only after the signed Ubuntu PPA fails.
+# Fallback for hosted Ubuntu x86_64/ARM64 runners when Canonical's signed
+# GCC16 PPA is unavailable. Keep C++26 and the actual native ABI, without
+# disabling Mini Apps, skipping signature checks or substituting an old GCC.
+# The compiler packages are pinned and a native Ubuntu sysroot is verified.
 set -euo pipefail
 
-[[ "$(dpkg --print-architecture)" == "arm64" ]] || {
-  echo "::error::Conda GCC16 fallback is currently restricted to ARM64" >&2
-  exit 1
-}
+case "$(dpkg --print-architecture)" in
+  arm64)
+    conda_arch=aarch64
+    mamba_asset=micromamba-linux-aarch64
+    micromamba_sha=9f93b974adcb4d166996af969b6cd371287d1a3e52733704727884d9b74cb7a7
+    ;;
+  amd64)
+    conda_arch=64
+    mamba_asset=micromamba-linux-64
+    # GitHub release 2.9.0-0 asset SHA-256 (not ARM64's binary digest).
+    micromamba_sha=366cd9cd8be14df1ab8ed50352a82111082a36686b2d389fdb79a92c3fafb3e3
+    ;;
+  *)
+    echo "::error::Unsupported native architecture for pinned GCC16 fallback" >&2
+    exit 1
+    ;;
+esac
 : "${RUNNER_TEMP:?Only the GitHub-hosted fallback supports this bootstrap}"
-
 version=2.9.0-0
-micromamba_sha=9f93b974adcb4d166996af969b6cd371287d1a3e52733704727884d9b74cb7a7
 work="$RUNNER_TEMP/genycaster-toolchain-fallback"
 prefix="$work/gcc16"
 mkdir -p "$work"
 curl --fail --location --silent --show-error --retry 2 \
   --connect-timeout 12 --max-time 150 \
-  "https://github.com/mamba-org/micromamba-releases/releases/download/${version}/micromamba-linux-aarch64" \
+  "https://github.com/mamba-org/micromamba-releases/releases/download/${version}/${mamba_asset}" \
   -o "$work/micromamba"
 echo "$micromamba_sha  $work/micromamba" | sha256sum --check --status
 chmod +x "$work/micromamba"
 
 export MAMBA_ROOT_PREFIX="$work/mamba-root"
-# Pin the compiler's major/minor series and use native ARM64 binaries rather
-# than GCC from the Ubuntu 26.04 archive (which would raise the glibc floor).
+# Keep native arch-specific conda-forge packages at GCC 16.2.0, never pull
+# an unpinned replacement from another channel or a newer distro sysroot.
+# Conda uses linux-64 for x86_64, linux-aarch64 for ARM64.
 timeout 480s "$work/micromamba" create -y -p "$prefix" \
   --override-channels -c conda-forge \
-  'binutils_linux-aarch64' 'gcc_linux-aarch64=16.2.0' 'gxx_linux-aarch64=16.2.0'
+  "binutils_linux-${conda_arch}" \
+  "gcc_linux-${conda_arch}=16.2.0" "gxx_linux-${conda_arch}=16.2.0"
 
-compiler="$prefix/bin/aarch64-conda-linux-gnu-gcc"
-cxx="$prefix/bin/aarch64-conda-linux-gnu-g++"
+target_triplet=aarch64-conda-linux-gnu
+if [[ "$conda_arch" == 64 ]]; then
+  target_triplet=x86_64-conda-linux-gnu
+fi
+compiler="$prefix/bin/${target_triplet}-gcc"
+cxx="$prefix/bin/${target_triplet}-g++"
 test -x "$compiler"
 test -x "$cxx"
 
@@ -43,21 +60,18 @@ if ! command -v ld.lld >/dev/null; then
 fi
 ld.lld --version
 
-# This GCC distribution expects its target binutils under a prefix. On
-# GitHub's Ubuntu ARM runners, GNU collect2 otherwise reports "cannot find
-# 'ld'" despite the system providing /usr/bin/ld.lld.
-# GCC's COMPILER_PATH is honored by collect2 for external executables.
-test -x "$prefix/bin/aarch64-conda-linux-gnu-ld"
-# GCC 16.2 emits new AArch64 .aeabi_* directives which Ubuntu Noble's
-# stock GNU as does not understand. Use the matching conda-forge
-# binutils 2.46 assembler, never the system /usr/bin/as.
-assembler="$prefix/bin/aarch64-conda-linux-gnu-as"
+# Use matching native binutils for the pinned compiler on BOTH architectures.
+# GCC 16.2 emits new AArch64 .aeabi_* directives that Noble's old as cannot
+# parse; x86_64 must likewise not accidentally select mismatched host tools.
+# GCC/collect2 honors COMPILER_PATH when locating the assembler and linker.
+test -x "$prefix/bin/${target_triplet}-ld"
+assembler="$prefix/bin/${target_triplet}-as"
 test -x "$assembler"
 "$assembler" --version | head -1
 shim="$work/compiler-binutils"
 mkdir -p "$shim"
 ln -s "$assembler" "$shim/as"
-ln -s "$prefix/bin/aarch64-conda-linux-gnu-ld" "$shim/ld"
+ln -s "$prefix/bin/${target_triplet}-ld" "$shim/ld"
 # Keep the requested -fuse-ld=lld explicit and ahead of GNU ld.
 ln -s "$(command -v ld.lld)" "$shim/ld.lld"
 # GCC/collect2 search COMPILER_PATH for as and ld. Include binutils and
@@ -89,7 +103,7 @@ g++-16 --version | head -1
 }
 # The conda-forge compiler defaults to its bundled glibc/sysroot while
 # the official Qt SDK and Ubuntu development packages target THIS native
-# Ubuntu 24.04 ARM64 environment. Repeated missing OpenGL/Boost/SQLite
+# Ubuntu 24.04 machine. Repeated missing OpenGL/Boost/SQLite
 # headers were symptoms of mixing two sysroots, not missing apt packages.
 # Use the Ubuntu sysroot consistently for compilation AND linking.
 # This Linux CI release intentionally targets glibc <= 2.39 (Ubuntu 24.04);
