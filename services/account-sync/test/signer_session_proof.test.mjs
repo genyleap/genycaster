@@ -77,6 +77,8 @@ test('registered signer creates distinct sessions for two devices sharing one ow
       assert.equal(verified.status,200);
       const json=await verified.json();
       assert.equal(json.fid,fid);
+      assert.equal(json.issuer,issuer);
+      assert.equal(json.subject,'farcaster:'+fid);
       return {cookie:cookieFrom(verified),csrf:json.csrf_token,nonce,signature};
     }
     const phone=await device(),desktop=await device();
@@ -104,7 +106,11 @@ test('registered signer creates distinct sessions for two devices sharing one ow
       fid,nonce:phone.nonce,public_key:pub,signature:phone.signature},origin)).status,401);
     assert.equal((await ctx.req('profile_extras','PUT',profile,{
       cookie:phone.cookie,'x-genycaster-csrf':desktop.csrf})).status,401);
-    assert.equal((await ctx.req('session','GET',undefined,{cookie:phone.cookie})).status,200);
+    const restored=await ctx.req('session','GET',undefined,{cookie:phone.cookie});
+    assert.equal(restored.status,200);
+    const owner=await restored.json();
+    assert.deepEqual({fid:owner.fid,issuer:owner.issuer,subject:owner.subject},
+      {fid,issuer,subject:'farcaster:'+fid});
   } finally {await ctx.close();}
 });
 

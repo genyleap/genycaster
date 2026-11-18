@@ -82,6 +82,9 @@ jobs:
           # Reject stale Mini App RPC results before installing any Qt SDK.
           node --test tests/wasm/wallet_async_revocation_20261118.test.mjs tests/wasm/browser_native_custody_boundary_20261118.test.mjs tests/wasm/walletconnect_universal_adapter_20261118.test.mjs
           node --test services/swap-quote/quote.test.mjs services/account-sync/test/cloud_state.test.mjs
+          # FIDs are protocol-scoped; an OpenProof/Farcaster browser cookie
+          # must not adopt a HyperSnap subject sharing the same numeric FID.
+          node --test tests/wasm/account_signer_session_contract.test.mjs services/account-sync/test/signer_session_proof.test.mjs
           # Pin and exercise the actual protocol-auth verifier package before
           # any costly Qt install; its wrapper must not restore vulnerable Zod 3.
           npm ci --prefix services/quick-auth --ignore-scripts --no-audit --no-fund

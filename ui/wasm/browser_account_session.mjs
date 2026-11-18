@@ -9,6 +9,14 @@ function validFid(value) {
   return typeof value==='string' && /^[1-9][0-9]{0,18}$/.test(value)
       && Number.isSafeInteger(Number(value));
 }
+// A numeric FID is not a global account identity: Farcaster and HyperSnap
+// use independently verified issuers. This browser vault stores only a
+// Farcaster signer; never adopt a native HyperSnap session with the same FID.
+function isVerifiedFarcasterOwner(body,fid) {
+  return body?.fid===fid && body?.issuer===deployment.openProofIssuer
+      && body?.subject==='farcaster:'+fid
+      && /^[A-Za-z0-9_-]{43}$/.test(body?.csrf_token||'');
+}
 async function jsonResponse(response) {
   const raw=await response.text();
   if(raw.length>2048)throw Error('Account response too large');
@@ -32,7 +40,7 @@ export async function ensureBrowserAccountSession({
     credentials:'same-origin',cache:'no-store',redirect:'error',signal});
   if(existing.status===200) {
     const body=await jsonResponse(existing);
-    if(body.fid===fid&&/^[A-Za-z0-9_-]{43}$/.test(body.csrf_token||''))
+    if(isVerifiedFarcasterOwner(body,fid))
       return body;
     throw Error('Signed-in account differs from the existing browser session');
   }
@@ -47,16 +55,18 @@ export async function ensureBrowserAccountSession({
   const proof=await vault.signAccountChallenge(fid,challenge.nonce);
   if(proof.publicKeyHex!==key.publicKeyHex)
     throw Error('Browser signer changed while establishing account session');
-  await request(fetchImpl,endpoint+'/proof',{
+  const granted=await request(fetchImpl,endpoint+'/proof',{
     method:'POST',headers,signal,body:JSON.stringify({
       fid,nonce:challenge.nonce,
       public_key:proof.publicKeyHex,signature:proof.signature,
     }),
   });
+  if(!isVerifiedFarcasterOwner(granted,fid))
+    throw Error('Account proof returned a different protocol-scoped owner');
   // A successful Set-Cookie is not sufficient in a browser: verify that the
   // browser accepted the HttpOnly cookie via a fresh same-origin request.
   const restored=await request(fetchImpl,endpoint,{method:'GET',signal});
-  if(restored.fid!==fid||!/^[A-Za-z0-9_-]{43}$/.test(restored.csrf_token||''))
+  if(!isVerifiedFarcasterOwner(restored,fid))
     throw Error('Browser rejected the verified account session');
   return restored;
 }

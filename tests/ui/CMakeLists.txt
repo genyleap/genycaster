@@ -1,5 +1,20 @@
 # Test targets belong to this directory so IDEs group them under tests/ui.
 find_package(Qt6 REQUIRED COMPONENTS Test)
+
+# Exercise the same issuer/subject/FID admission policy used by the native
+# account controller. These are source-level QtCore tests, not live OPP E2E.
+if(NOT EMSCRIPTEN AND NOT ANDROID)
+    add_executable(genycaster_account_session_principal_tests
+        ../providers/account_session_principal_tests.cpp)
+    target_link_libraries(genycaster_account_session_principal_tests PRIVATE Qt6::Core)
+    target_compile_features(genycaster_account_session_principal_tests PRIVATE cxx_std_26)
+    farcaster_enable_warnings(genycaster_account_session_principal_tests)
+    add_test(NAME ui.account_session_principal
+        COMMAND genycaster_account_session_principal_tests)
+    set_tests_properties(ui.account_session_principal PROPERTIES
+        TIMEOUT 8 LABELS "ui;identity;security;account-session")
+endif()
+
 get_target_property(genycasterUiSourceDir genycaster SOURCE_DIR)
 get_target_property(genycasterUiBinaryDir genycaster BINARY_DIR)
 

@@ -1,5 +1,6 @@
 #include "genycaster_deployment.hpp"
 #include "connections.hpp"
+#include "account_session_principal.hpp"
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -699,7 +700,7 @@ void OpenProofConnectionsController::restoreAccountSession()
         if(!doc.isObject())return;
         const auto data=doc.object();
         const auto csrf=data.value(QStringLiteral("csrf_token")).toString().toUtf8();
-        if(data.value(QStringLiteral("fid")).toString()!=QString::number(viewer)
+        if(!genycaster::identity::matchesAccountSessionPrincipal(data, viewer, m_issuerUrl)
             || csrf.size()!=43)return;
         m_cloudSessionVerified=true;
         m_cloudCsrf=csrf;
@@ -786,7 +787,7 @@ void OpenProofConnectionsController::bootstrapAccountSession()
         if(!doc.isObject())return;
         const auto data=doc.object();
         const auto csrf=data.value(QStringLiteral("csrf_token")).toString().toUtf8();
-        if(data.value(QStringLiteral("fid")).toString()!=QString::number(viewer)
+        if(!genycaster::identity::matchesAccountSessionPrincipal(data, viewer, m_issuerUrl)
             || csrf.size()!=43)return;
         // A successful Set-Cookie response is not proof that a browser
         // actually retained an HttpOnly cookie (privacy policy or storage

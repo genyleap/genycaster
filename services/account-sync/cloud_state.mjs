@@ -507,7 +507,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     response.setHeader('Set-Cookie',SESSION_COOKIE+'='+token+
       '; Path=/; Max-Age='+SESSION_LIFETIME+
       '; Secure; HttpOnly; SameSite=Strict');
-    respond(response,200,{fid:owner.fid,csrf_token:csrf});
+    respond(response,200,{fid:owner.fid,issuer:owner.issuer,
+      subject:owner.subject,csrf_token:csrf});
   }
   async function allowProMutation(owner,response) {
     const membership=await resolvePro(owner.fid,owner);
@@ -1085,7 +1086,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           return true;
         }
         if(request.method==='GET' && owner.cookieAuth) {
-          respond(response,200,{fid:owner.fid,csrf_token:owner.csrfToken});
+          respond(response,200,{fid:owner.fid,issuer:owner.issuer,
+            subject:owner.subject,csrf_token:owner.csrfToken});
           return true;
         }
         if(request.method==='DELETE' && owner.cookieAuth
