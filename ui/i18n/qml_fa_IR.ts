@@ -6818,8 +6818,20 @@ Company | https://company.com</source>
             <translation>انتخاب همه</translation>
         </message>
         <message id="genycaster.setup.recovery_failed_retry">
-            <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
-            <translation>بازیابی حساب فارکستر تأیید نشد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.</translation>
+            <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
+            <translation>بازیابی حساب تأیید نشد. واژه‌های بازیابی و پروتکل انتخاب‌شده را بررسی کنید و دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_not_found">
+            <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>
+            <translation>برای این واژه‌های بازیابی، حسابی در هایپراسنپ ثبت نشده است. اگر حساب را در فارکستر ساخته‌اید، گزینهٔ فارکستر را انتخاب کنید و دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_unavailable">
+            <source>The HyperSnap account registry is unavailable. Check your network connection and try again.</source>
+            <translation>رجیستری حساب‌های هایپراسنپ در دسترس نیست. اتصال شبکه را بررسی کنید و دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_invalid">
+            <source>This recovery phrase is invalid. Check all 24 words, their order and spelling.</source>
+            <translation>عبارت بازیابی معتبر نیست. هر ۲۴ واژه، ترتیب و املای آن‌ها را بررسی کنید.</translation>
         </message>
         <message id="genycaster.setup.open_terms">
             <source>Open full Terms of Use</source>
