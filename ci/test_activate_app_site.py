@@ -145,6 +145,7 @@ class AppSiteActivationTest(unittest.TestCase):
                  patch.object(site, "CERT", cert), \
                  patch.object(site, "KEY", key), \
                  patch.object(site, "verify_ownership"), \
+                 patch.object(site, "validate_config"), \
                  patch.object(site, "verify_certificate"), \
                  patch.object(site, "check_origin_service") as local, \
                  patch.object(site, "report_public_delivery", return_value=False), \
@@ -175,6 +176,7 @@ class AppSiteActivationTest(unittest.TestCase):
                  patch.object(site, "CERT", cert), \
                  patch.object(site, "KEY", key), \
                  patch.object(site, "verify_ownership"), \
+                 patch.object(site, "validate_config"), \
                  patch.object(site, "verify_certificate"), \
                  patch.object(site, "check_origin_service",
                               side_effect=RuntimeError("origin failed")), \
