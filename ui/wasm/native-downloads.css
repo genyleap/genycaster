@@ -1,0 +1,116 @@
+/* GenyCaster browser-native release affordance, isolated above Qt canvas.
+   No external fonts, assets or system-native controls; theme follows Qt chrome. */
+#native-downloads-trigger, #native-downloads-dialog, #native-downloads-nudge {
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+}
+#native-downloads-trigger {
+    position:fixed;right:calc(16px + env(safe-area-inset-right,0px));
+    top:calc(18px + env(safe-area-inset-top,0px));z-index:13;
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    min-height:40px;padding:8px 14px;border-radius:99px;
+    border:1px solid #7188b76b;
+    background:color-mix(in srgb,var(--app-chrome) 88%,#338cff 12%);
+    color:var(--boot-ink);font-size:12px;font-weight:700;letter-spacing:.006em;
+    box-shadow:0 6px 24px #0108173d;
+    cursor:pointer;backdrop-filter:blur(12px);
+}
+#native-downloads-trigger svg {width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
+#native-downloads-trigger:focus-visible,
+#native-downloads-dialog :focus-visible,
+#native-downloads-nudge button:focus-visible {
+    outline:2px solid #64b5ff;outline-offset:3px;
+}
+#native-downloads-trigger[aria-expanded="true"] {background:#316de0;color:white}
+#native-downloads-backdrop {
+    position:fixed;inset:0;z-index:118;background:#050b19ab;
+    backdrop-filter:blur(6px);
+}
+#native-downloads-dialog {
+    position:fixed;z-index:119;left:50%;top:50%;
+    transform:translate(-50%,-50%);width:min(510px,calc(100vw - 32px));
+    max-height:min(750px,calc(100dvh - 36px));min-height:0;overflow-y:auto;
+    padding:26px;border-radius:25px;border:1px solid #829bc05e;
+    background:var(--app-chrome);color:var(--boot-ink);
+    box-shadow:0 28px 100px #000a;
+    animation:downloads-dialog-in .24s cubic-bezier(.18,.85,.28,1) both;
+}
+#native-downloads-dialog[hidden],
+#native-downloads-backdrop[hidden],
+#native-downloads-nudge[hidden] {display:none!important}
+@keyframes downloads-dialog-in {
+    from {opacity:0;transform:translate(-50%,calc(-50% + 16px)) scale(.98)}
+    to {opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
+.native-downloads-header {display:flex;align-items:flex-start;gap:12px}
+.native-downloads-mark {width:45px;height:45px;padding:6px;flex:none;object-fit:contain;
+    border-radius:14px;background:#54749e17;border:1px solid #7e9ac53c}
+.native-downloads-heading {flex:1;min-width:0}
+.native-downloads-eyebrow {display:block;color:#488feb;font-size:10px;font-weight:760;
+    letter-spacing:.12em;text-transform:uppercase;margin:2px 0 5px}
+#native-downloads-title {margin:0;font-size:21px;line-height:1.24;letter-spacing:-.03em;font-weight:750}
+.native-downloads-description {margin:14px 0 20px;font-size:13px;line-height:1.55;opacity:.73}
+#native-downloads-close {display:grid;place-items:center;flex:none;width:42px;height:42px;
+    border-radius:13px;border:1px solid #8295b543;background:transparent;color:inherit;
+    font-size:22px;line-height:1;cursor:pointer}
+.native-downloads-tabs {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:6px;padding:5px;border:1px solid #8ca1c434;border-radius:15px;background:#769ac51b}
+.native-downloads-tabs button {border:0;border-radius:10px;min-height:42px;
+    background:transparent;color:var(--boot-ink);opacity:.68;font:650 12px system-ui;
+    cursor:pointer}
+.native-downloads-tabs button.selected {opacity:1;background:#3b7ad7;color:#fff;
+    box-shadow:0 2px 9px #0a35743b}
+.native-downloads-configuration {display:flex;align-items:center;gap:12px;justify-content:space-between;
+    margin:20px 0 12px}
+.native-downloads-label {font-size:13px;font-weight:650;min-width:0}
+#native-downloads-architecture {max-width:55%;min-width:142px;min-height:44px;
+    padding:9px 28px 9px 12px;border:1px solid #829bc056;
+    border-radius:12px;color:var(--boot-ink);background:var(--app-chrome);
+    font:600 13px system-ui;cursor:pointer}
+.native-downloads-result {display:flex;align-items:flex-start;gap:10px;
+    min-height:60px;background:#4c86e114;border:1px solid #719ee33b;
+    border-radius:13px;padding:14px;margin:14px 0 17px}
+.native-downloads-dot {width:7px;height:7px;flex:none;border-radius:50%;
+    background:#6fa9fa;margin-top:6px;box-shadow:0 0 12px #429bff69}
+#native-downloads-status {font-size:12px;line-height:1.55;opacity:.85;overflow-wrap:anywhere}
+.native-downloads-actions {display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+#native-downloads-action, .native-downloads-secondary {
+    display:inline-flex;align-items:center;justify-content:center;text-align:center;
+    min-height:44px;padding:10px 17px;border-radius:12px;
+    font-size:13px;font-weight:700;text-decoration:none
+}
+#native-downloads-action {background:#347bdf;color:#fff;border:1px solid #347bdf}
+.native-downloads-secondary {border:1px solid #879bb84c;background:transparent;color:var(--boot-ink)}
+.native-downloads-foot {font-size:11px;line-height:1.5;opacity:.55;margin:16px 0 0}
+#native-downloads-nudge {position:fixed;z-index:14;right:calc(16px + env(safe-area-inset-right,0px));
+    top:calc(70px + env(safe-area-inset-top,0px));width:min(315px,calc(100vw - 32px));
+    padding:14px;display:flex;align-items:center;gap:10px;
+    background:var(--app-chrome);color:var(--boot-ink);
+    border:1px solid #779de96b;border-radius:15px;box-shadow:0 12px 38px #0007}
+.native-downloads-nudge-copy {font-size:12px;line-height:1.45;flex:1;min-width:0}
+#native-downloads-nudge-open {border:0;border-radius:9px;background:#347bdf;color:white;
+    padding:9px 11px;min-height:38px;font:650 12px system-ui;cursor:pointer}
+#native-downloads-nudge-close {border:0;background:transparent;color:inherit;font-size:20px;
+    min-width:28px;min-height:38px;cursor:pointer}
+@media(max-width:640px) {
+    #native-downloads-trigger {top:auto;bottom:calc(82px + env(safe-area-inset-bottom,0px));
+        right:calc(12px + env(safe-area-inset-right,0px));min-height:44px}
+    #native-downloads-dialog {top:auto;left:0;bottom:0;transform:none;
+        width:100%;max-height:min(85dvh,680px);border-radius:23px 23px 0 0;
+        border-left:0;border-right:0;border-bottom:0;
+        padding:22px 18px calc(22px + env(safe-area-inset-bottom,0px));
+        animation:downloads-sheet-in .26s cubic-bezier(.18,.85,.28,1) both}
+    #native-downloads-dialog:before {content:"";display:block;width:38px;height:4px;
+        border-radius:4px;background:#8595ac75;margin:-11px auto 18px}
+    #native-downloads-nudge {top:auto;bottom:calc(135px + env(safe-area-inset-bottom,0px));right:12px}
+    #native-downloads-title {font-size:19px}
+    .native-downloads-tabs {gap:2px}
+    .native-downloads-tabs button {font-size:11px}
+    @keyframes downloads-sheet-in {
+        from {opacity:.75;transform:translateY(30px)}
+        to {opacity:1;transform:translateY(0)}
+    }
+}
+@media(prefers-reduced-motion:reduce) {
+    #native-downloads-dialog {animation:none}
+}
