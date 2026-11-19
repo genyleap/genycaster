@@ -323,8 +323,10 @@ for(const [width,height,radius,mobile] of [
         self.assertIn('about = ROOT / "about/index.html"', prepare)
         self.assertIn("about.parent.chmod(0o755)", prepare)
         self.assertIn("target.parent.chmod(0o755)", prepare)
-        self.assertIn('VERSION = "1.0.0-rc1"',
-                      (ROOT / "ci/stage_wasm_preview.py").read_text())
+        for retired in ("activate_app_site.py", "app_genycaster_nginx.conf",
+                        "stage_wasm_preview.py"):
+            self.assertFalse((ROOT / "ci" / retired).exists(),
+                             f"retired app-domain deployment must not remain: {retired}")
 
 if __name__ == "__main__":
     unittest.main()
