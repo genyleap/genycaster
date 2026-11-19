@@ -182,7 +182,9 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
          aria-labelledby="native-downloads-title" aria-describedby="native-downloads-description" hidden>
   <div class="native-downloads-viewport">
   <header class="native-downloads-header">
-    <img class="native-downloads-mark" src="./genycaster-icon.svg" alt="">
+    <span class="native-downloads-brand-frame" aria-hidden="true">
+      <img class="native-downloads-mark" src="./genycaster-icon.svg" alt="">
+    </span>
     <div class="native-downloads-heading">
       <span class="native-downloads-eyebrow">GenyCaster · Native Editions</span>
       <h2 id="native-downloads-title">Made for your device.</h2>
@@ -209,8 +211,6 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
         <span id="native-downloads-architecture-value">x86_64</span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
       </button>
-      <div id="native-downloads-options" role="listbox"
-           aria-label="Processor architecture" hidden></div>
     </div>
   </div>
   <div class="native-downloads-result">
@@ -241,6 +241,10 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
     Downloads appear only after publishing and integrity review. You can continue using the WebAssembly edition.
   </p>
   </div>
+  <!-- Portal-like sibling to the scroll viewport: never clipped by status
+       cards or viewport overflow. JS anchors this listbox to the trigger. -->
+  <div id="native-downloads-options" role="listbox"
+       aria-label="Processor architecture" hidden></div>
 </section>
 <div id="genycaster-boot" role="status" aria-live="polite">
   <div id="genycaster-studio-intro" data-scene="studio" aria-hidden="true" hidden>
