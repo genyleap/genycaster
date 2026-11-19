@@ -2411,6 +2411,10 @@ void connectRuntime(
         [&connections](const qulonglong fid, QByteArray csrf) {
             connections.acceptBrowserAccountSession(fid,std::move(csrf));
         });
+    browserSigner->setAccountSessionFailureObserver(
+        [&connections](const qulonglong fid, const QString& error) {
+            connections.reportBrowserAccountSessionFailure(fid,error);
+        });
 #else
     Q_UNUSED(browserSnapchainOrigin);
 #endif

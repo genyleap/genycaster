@@ -34,8 +34,13 @@ export async function ensureBrowserAccountSession({
   signal,origin=globalThis.location?.origin,
 }={}) {
   if(!validFid(fid))throw Error('Invalid account FID');
-  if(origin!==deployment.publicOrigin)
-    throw Error('Account session requires the official secure origin');
+  // The first-party application host runs its own proxied /api/v1/cloud/
+  // service. __Host- account cookies are host-only; always challenge and
+  // verify against the *current* approved hostname, not the sibling domain.
+  const firstPartyAppOrigin=deployment.publicOrigin==='https://genycaster.xyz'
+    ?'https://app.genycaster.xyz':null;
+  if(origin!==deployment.publicOrigin && origin!==firstPartyAppOrigin)
+    throw Error('Account session requires an approved secure origin');
   const existing=await fetchImpl(endpoint,{method:'GET',
     credentials:'same-origin',cache:'no-store',redirect:'error',signal});
   if(existing.status===200) {

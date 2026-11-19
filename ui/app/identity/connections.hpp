@@ -396,6 +396,7 @@ public:
      * same-origin Genycaster API. Accept only the active account's CSRF
      * capability; the HttpOnly cookie itself never crosses into Qt. */
     void acceptBrowserAccountSession(qulonglong fid, QByteArray csrf);
+    void reportBrowserAccountSessionFailure(qulonglong fid, const QString& error);
 
     /** Fetch an authenticated, read-only Base Swap quote. No wallet secrets,
      * transaction signatures, or Mini App-supplied HTTP URLs are accepted.
@@ -588,6 +589,7 @@ private:
     QPointer<QNetworkReply> m_accountProofRequest{};
     AccountProofSigner m_accountProofSigner{};
     bool m_accountProofAttempted{};
+    bool m_proSessionRepairAttempted{};
     // Secure-store reads can block inside a nested QtKeychain event loop.
     // Worker completions must never outlive the active account/challenge.
     bool m_accountProofSigning{};

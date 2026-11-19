@@ -60,9 +60,14 @@ public:
     using RecoveryObserver = std::function<void(
         QString, QString, bool, bool, QString, QString, QByteArray, int)>;
     using AccountSessionObserver = std::function<void(qulonglong, QByteArray)>;
+    using AccountSessionFailureObserver = std::function<void(qulonglong, QString)>;
     void setAccountSessionObserver(AccountSessionObserver observer)
     {
         m_accountSessionObserver=std::move(observer);
+    }
+    void setAccountSessionFailureObserver(AccountSessionFailureObserver observer)
+    {
+        m_accountSessionFailureObserver=std::move(observer);
     }
     void setRecoveryObserver(RecoveryObserver observer)
     {
@@ -202,6 +207,11 @@ private:
                                                .toString().toUtf8();
                     if(csrf.size()==43)
                         m_accountSessionObserver(presentation->accountFid(),csrf);
+                } else if(phase==QStringLiteral("failed") && m_accountSessionFailureObserver) {
+                    // Never forward an unbounded or arbitrary JS exception to
+                    // QML. The controller converts this to a fixed diagnostic.
+                    m_accountSessionFailureObserver(presentation->accountFid(),
+                        error.left(140));
                 }
                 continue;
             }
@@ -301,6 +311,7 @@ private:
 
     RecoveryObserver m_recoveryObserver{};
     AccountSessionObserver m_accountSessionObserver{};
+    AccountSessionFailureObserver m_accountSessionFailureObserver{};
     QString m_pendingRecoveryId{};
     QString m_pendingResumeId{};
     QPointer<PresentationBridge> m_presentation{};

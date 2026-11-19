@@ -54,6 +54,10 @@ GenyDrawer {
         && Qt.platform.os !== "wasm" && Qt.platform.os !== "webassembly"
         && ["account_signer_unavailable", "account_proof_not_accepted",
             "account_session_unavailable"].indexOf(proofError) >= 0
+    readonly property bool browserFarcasterRecoveryNeeded: !membershipVerified
+        && appSignedIn && !cloudReady && !presentationBridge.nativeCustodyAccount
+        && (Qt.platform.os === "wasm" || Qt.platform.os === "webassembly")
+        && proofError === "account_signer_unavailable"
     readonly property bool eligible: membershipVerified
         && membership.tier === "pro" && membership.eligible === true
     readonly property bool appSignedIn: presentationBridge
@@ -183,6 +187,10 @@ GenyDrawer {
             if (root.nativeFarcasterRecoveryNeeded) {
                 if (openProofConnections && !openProofConnections.authorizing)
                     openProofConnections.authorizeAccount()
+                return
+            }
+            if (root.browserFarcasterRecoveryNeeded) {
+                root.signerRequested()
                 return
             }
             if (!root.restoringSession && openProofConnections) {
@@ -634,6 +642,16 @@ GenyDrawer {
                             enabled: !root.restoringSession
                             text: qsTrId("genycaster.connections.verify")
                             onClicked: openProofConnections.authorizeAccount()
+                        }
+                        ActionButton {
+                            objectName: "genyProBrowserAccountSignerRecovery"
+                            visible: root.browserFarcasterRecoveryNeeded
+                            Layout.fillWidth: true
+                            compact: true
+                            prominent: true
+                            enabled: !root.restoringSession
+                            text: qsTrId("genycaster.shell.enable_interactions")
+                            onClicked: root.signerRequested()
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true

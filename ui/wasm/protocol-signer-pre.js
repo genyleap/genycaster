@@ -49,7 +49,9 @@
     function retryAccountSession(fid) {
         if (typeof fid !== "string" || !/^[1-9][0-9]{0,18}$/.test(fid)
             || !Number.isSafeInteger(Number(fid))
-            || owner !== fid || !client || window.location.origin !== "https://genycaster.xyz")
+            || owner !== fid || ![
+                "https://genycaster.xyz", "https://app.genycaster.xyz",
+            ].includes(window.location.origin))
             return false;
         if (accountSessionPromise && accountSessionOwner === fid) return true;
         const currentEpoch = epoch;
@@ -283,6 +285,13 @@
                         }
                     }
                     const existing = await current.restore(fid);
+                    // A readable account and a registered browser vault key
+                    // can restore the private Pro/Streak session even before
+                    // the protocol signer reports its separate write-ready
+                    // phase. The server still validates the one-use signature
+                    // and exact owner FID; no local balance implies a tier.
+                    if (existing && epoch===thisEpoch && owner===fid)
+                        retryAccountSession(fid);
                     if (action === "restore-for-setup" && !existing) {
                         // Never collect a phrase on app reload or a restored session.
                         // This command is scoped to a verified, explicit setup login.

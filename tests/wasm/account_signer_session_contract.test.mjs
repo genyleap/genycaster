@@ -28,7 +28,12 @@ test('manual Pro and Streak session retries use the registered WASM browser sign
   const controller=file('ui/app/identity/connections.cpp');
   const bridge=file('ui/app/browser/signer_bridge.hpp');
   assert.match(pre,/function retryAccountSession\(fid\)/);
-  assert.match(pre,/owner !== fid \|\| !client/);
+  // A verified account session can be restored from the registered vault
+  // even before Snapchain reports a protocol write-ready signer.
+  assert.match(pre,/owner !== fid \|\| !\[/);
+  assert.doesNotMatch(pre,/owner !== fid \|\| !client/);
+  assert.match(pre,/if \(existing && epoch===thisEpoch && owner===fid\)/);
+  assert.match(pre,/https:\/\/app\.genycaster\.xyz/);
   assert.match(pre,/if \(accountSessionPromise && accountSessionOwner === fid\)/);
   assert.match(pre,/ensureBrowserAccountSession\(\{/);
   assert.match(pre,/Object\.freeze\(\{start,retryAccountSession,events\}\)/);
@@ -37,6 +42,29 @@ test('manual Pro and Streak session retries use the registered WASM browser sign
   assert.match(controller,/if \(browserStarted\)/);
   assert.match(controller,/else\s+retryAccountSession\(\);\s*}\s*void OpenProofConnectionsController::fetchProPlan/);
   assert.match(bridge,/m_accountSessionObserver\(presentation->accountFid\(\),csrf\)/);
+});
+
+test('first-party application host uses its own HttpOnly cookie and rejects foreign origins',async()=>{
+  const fid='321969',csrf='b'.repeat(43);
+  const principal={fid,issuer:'https://openproof.genyleap.com',
+    subject:'farcaster:'+fid,csrf_token:csrf};
+  const calls=[];
+  const fetchImpl=async(path,options)=>{
+    calls.push({path,options});
+    return Response.json(principal);
+  };
+  const value=await ensureBrowserAccountSession({
+    fid,origin:'https://app.genycaster.xyz',fetchImpl,
+    vault:{load:async()=>{throw Error('valid session should not require signer');}}
+  });
+  assert.equal(value.csrf_token,csrf);
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].options.credentials,'same-origin');
+  await assert.rejects(ensureBrowserAccountSession({
+    fid,origin:'https://untrusted.genycaster.xyz',fetchImpl,
+    vault:{},
+  }),/approved secure origin/);
+  assert.equal(calls.length,1);
 });
 
 test('account-session browser client proves FID, then validates stored HttpOnly cookie',async()=>{
@@ -157,7 +185,7 @@ test('missing signer, wrong origin and mismatched cookie cannot grant account da
   await assert.rejects(ensureBrowserAccountSession({
     fid:'321969',origin:'https://evil.example',
     vault:{},fetchImpl:async()=>{throw Error('should not fetch');}
-  }),/official secure origin/);
+  }),/approved secure origin/);
   const fetchImpl=async()=>new Response(JSON.stringify({
     fid:'999',csrf_token:'x'.repeat(43)
   }),{status:200});

@@ -58,6 +58,12 @@ Item {
         && ["account_signer_unavailable", "account_proof_not_accepted",
             "account_session_unavailable"].indexOf(
                 String(openProofConnections.accountProofError || "")) >= 0
+    readonly property bool browserFarcasterRecoveryNeeded: presentationBridge
+        && presentationBridge.isAuthenticated && !presentationBridge.nativeCustodyAccount
+        && (Qt.platform.os === "wasm" || Qt.platform.os === "webassembly")
+        && openProofConnections && !openProofConnections.cloudAuthorizationReady
+        && String(openProofConnections.accountProofError || "")
+            === "account_signer_unavailable"
 
     readonly property var track: activeTrack === "creator"
         ? (snapshot.creator || ({})) : (snapshot.activity || ({}))
@@ -321,7 +327,7 @@ Item {
             busy: openProofConnections && (openProofConnections.cloudSessionBusy
                 || openProofConnections.accountProofBusy
                 || openProofConnections.authorizing)
-            text: root.signerAuthorizationNeeded
+            text: root.signerAuthorizationNeeded || root.browserFarcasterRecoveryNeeded
                 ? qsTrId("genycaster.shell.enable_interactions")
                 : root.nativeFarcasterRecoveryNeeded
                     ? qsTrId("genycaster.connections.verify")
@@ -329,7 +335,7 @@ Item {
             compact: true
             quiet: true
             onClicked: {
-                if (root.signerAuthorizationNeeded)
+                if (root.signerAuthorizationNeeded || root.browserFarcasterRecoveryNeeded)
                     root.signerAuthorizationRequested()
                 else if (root.nativeFarcasterRecoveryNeeded)
                     openProofConnections.authorizeAccount()

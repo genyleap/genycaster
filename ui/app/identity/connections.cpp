@@ -83,7 +83,23 @@ namespace {
         return {};
     }
     const auto doc = QJsonDocument::fromJson(config.readAll());
-    return QUrl{doc.object().value(jsonKey).toString()};
+    QUrl endpoint{doc.object().value(jsonKey).toString()};
+#if defined(Q_OS_WASM)
+    // app.genycaster.xyz is an explicit, separately configured first-party
+    // WASM host. HttpOnly __Host- cookies do not cross hostnames, and Qt's
+    // browser networking cannot use genycaster.xyz cookies on this origin.
+    // Bind ONLY the app-owned cloud API to the browser's exact allowed host;
+    // never change OpenProof, signer, gateway or any other trusted endpoint.
+    if (jsonKey == QStringLiteral("genycasterCloudApiUrl")
+        && endpoint.scheme() == QStringLiteral("https")
+        && endpoint.host() == QStringLiteral("genycaster.xyz")
+        && EM_ASM_INT({
+            return window.location?.origin === "https://app.genycaster.xyz" ? 1 : 0;
+        })) {
+        endpoint.setHost(QStringLiteral("app.genycaster.xyz"));
+    }
+#endif
+    return endpoint;
 }
 
 [[nodiscard]] bool trustedHttpsEndpoint(const QUrl& url)
@@ -813,6 +829,7 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
     // same-origin GET that proves the HttpOnly cookie was actually stored.
     m_cloudSessionVerified=true;
     m_cloudCsrf=std::move(csrf);
+    m_accountProofError.clear();
     fetchTopics();
     refreshBookmarkCollections();
     m_bookmarkPoll.start();
@@ -829,6 +846,20 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
         pumpTopicWrites();
         pumpStreakWrites();
     } else checkCloudService();
+}
+
+void OpenProofConnectionsController::reportBrowserAccountSessionFailure(
+    const qulonglong fid, const QString& error)
+{
+    if (!fid || fid != m_viewerFid || m_cloudSessionVerified
+        || m_sessionRevoking) return;
+    // Browser exceptions are untrusted. Surface only known, fixed statuses;
+    // never pass browser messages, FIDs, cookies or CSRF tokens into QML.
+    m_accountProofError = error.contains(
+        QStringLiteral("No registered browser signer"))
+        ? QStringLiteral("account_signer_unavailable")
+        : QStringLiteral("account_session_unavailable");
+    emit stateChanged();
 }
 
 void OpenProofConnectionsController::revokeAccountSession()
@@ -2348,10 +2379,25 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
             // cookie was accepted on an earlier request. Invalidate only the
             // first-party cookie proof; preserve the account-scoped Pro cache
             // until another authoritative response arrives.
-            if (status == 401 && m_cloudSessionVerified) {
-                m_cloudSessionVerified = false;
-                m_cloudCsrf.clear();
-                emit stateChanged();
+            if (status == 401) {
+                if (m_cloudSessionVerified) {
+                    m_cloudSessionVerified = false;
+                    m_cloudCsrf.clear();
+                    emit stateChanged();
+                }
+                // On WASM a browser-owned HttpOnly cookie may have been
+                // renewed after Qt's initial GET. Retry the independently
+                // verified same-origin session once per owner. No infinite
+                // 401 / challenge loop; subsequent retries require a click.
+                if (!m_proSessionRepairAttempted) {
+                    m_proSessionRepairAttempted = true;
+                    QTimer::singleShot(0, this, [this, viewer, generation] {
+                        if (viewer == m_viewerFid
+                            && generation == m_grantGeneration
+                            && !m_sessionRevoking)
+                            retryProEntitlements();
+                    });
+                }
             }
             // No bearer, cookie, wallet address or response body in logs.
             // HTTP status differentiates a missing Genycaster session (401)
@@ -4103,6 +4149,7 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_cloudSessionVerified=false;
     m_cloudCsrf.clear();
     m_accountProofAttempted=false;
+    m_proSessionRepairAttempted=false;
     m_accountProofError.clear();
     m_authorization.cancel();
     clearAccountGrant();

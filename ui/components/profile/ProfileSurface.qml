@@ -4225,19 +4225,19 @@ Item {
                     spacing: Theme.space3
                     ProfileLinkRow {
                         visible: root.showProfileUrl
-                        mediaActive: profileLinksDrawer.opened
+                        mediaActive: Boolean(profileLinksDrawer && profileLinksDrawer.opened)
                         targetUrl: String(root.activeDetail.profileUrl || "")
                         userLabel: qsTrId("genycaster.profile.farcaster_website")
                         displayUrl: root.displayUrl(targetUrl)
                         onOpenRequested: url => {
                             root.externalRequested(url)
-                            profileLinksDrawer.close()
+                            if (profileLinksDrawer) profileLinksDrawer.close()
                         }
                     }
                     Repeater {
                         model: root.profileExtraLinks
                         delegate: ProfileLinkRow {
-                            mediaActive: profileLinksDrawer.opened
+                            mediaActive: Boolean(profileLinksDrawer && profileLinksDrawer.opened)
                             required property int index
                             required property var modelData
                             targetUrl: String(modelData)
@@ -4246,7 +4246,7 @@ Item {
                             displayUrl: root.displayUrl(targetUrl)
                             onOpenRequested: url => {
                                 root.externalRequested(url)
-                                profileLinksDrawer.close()
+                                if (profileLinksDrawer) profileLinksDrawer.close()
                             }
                         }
                     }
