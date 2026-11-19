@@ -629,14 +629,25 @@ int main(int argc, char* argv[])
     // canvas. Keep it in sync with the effective app appearance, including
     // manual overrides and system changes.
     const auto updateBrowserChromeTheme = [&appearanceController] {
+        // The browser-owned download sheet and chrome must follow the *actual*
+        // Qt appearance and user-selected accent, never OS-native HTML colors.
+        const QByteArray themeId = appearanceController.colorThemeId().toUtf8();
+        const QByteArray customAccent = appearanceController.customAccentColor().toUtf8();
+        const QByteArray platformAccent = appearanceController.platformAccentColor().toUtf8();
         EM_ASM({
             if (typeof window.__genycasterSetBrowserChromeTheme === "function") {
-                window.__genycasterSetBrowserChromeTheme($0 !== 0);
+                window.__genycasterSetBrowserChromeTheme(
+                    $0 !== 0, UTF8ToString($1), UTF8ToString($2), UTF8ToString($3));
             }
-        }, appearanceController.effectiveDark() ? 1 : 0);
+        }, appearanceController.effectiveDark() ? 1 : 0,
+           themeId.constData(), customAccent.constData(), platformAccent.constData());
     };
     updateBrowserChromeTheme();
     QObject::connect(&appearanceController, &AppearanceController::effectiveDarkChanged,
+                     &application, updateBrowserChromeTheme);
+    QObject::connect(&appearanceController, &AppearanceController::colorThemeIdChanged,
+                     &application, updateBrowserChromeTheme);
+    QObject::connect(&appearanceController, &AppearanceController::customAccentColorChanged,
                      &application, updateBrowserChromeTheme);
 #endif
     renderingControllerOwner = std::make_unique<RenderingController>(settings);
