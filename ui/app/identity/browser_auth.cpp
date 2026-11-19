@@ -96,13 +96,27 @@ void BrowserOpenProofAuth::emitState(BrowserOpenProofState state)
     }
 }
 
-void BrowserOpenProofAuth::fail(QString message)
+void BrowserOpenProofAuth::fail(
+    QString message, const BrowserOpenProofState::FailureKind kind)
 {
     reset();
     BrowserOpenProofState result{};
     result.phase = BrowserOpenProofState::Phase::Failed;
+    result.failureKind = kind;
     result.error = std::move(message);
     emitState(std::move(result));
+}
+
+void BrowserOpenProofAuth::failHttp(const int status)
+{
+    using FailureKind = BrowserOpenProofState::FailureKind;
+    const FailureKind kind = (status == 401 || status == 403)
+        ? FailureKind::Rejected
+        : status == 429 ? FailureKind::RateLimited
+        : status == 408 || status == 504 ? FailureKind::Expired
+        : status == 0 || status >= 500 ? FailureKind::Transport
+        : FailureKind::InvalidResponse;
+    fail(safeFailure(status), kind);
 }
 
 void BrowserOpenProofAuth::send(QNetworkRequest request, QByteArray body, Response callback)
@@ -126,7 +140,8 @@ void BrowserOpenProofAuth::send(QNetworkRequest request, QByteArray body, Respon
         const QByteArray payload = reply->isReadable() ? reply->readAll() : QByteArray{};
         reply->deleteLater();
         if (!successfulTransport || payload.size() > 256 * 1024) {
-            fail(qtTrId("genycaster.browser_auth.transport_failure"));
+            fail(qtTrId("genycaster.browser_auth.transport_failure"),
+                 BrowserOpenProofState::FailureKind::Transport);
             return;
         }
         callback(status, payload);
@@ -148,7 +163,7 @@ void BrowserOpenProofAuth::begin(Observer observer, ConnectionGrant connectionGr
                       QStringLiteral("application/x-www-form-urlencoded"));
     send(std::move(request), form.toString(QUrl::FullyEncoded).toUtf8(),
          [this](const int status, QByteArray payload) {
-        if (status != 200) { fail(safeFailure(status)); return; }
+        if (status != 200) { failHttp(status); return; }
         const auto response = objectFrom(payload);
         const QString deviceCode = response.value(QStringLiteral("device_code")).toString();
         const QString userCode = response.value(QStringLiteral("user_code")).toString();
@@ -205,7 +220,7 @@ void BrowserOpenProofAuth::beginFarcaster(Observer observer, ConnectionGrant con
                       QStringLiteral("application/json"));
     send(std::move(request), QByteArrayLiteral("{}"),
         [this](const int status, QByteArray payload) {
-        if (status != 200) { fail(safeFailure(status)); return; }
+        if (status != 200) { failHttp(status); return; }
         const auto json = objectFrom(payload);
         const QString ticket = json.value(QStringLiteral("ticket")).toString();
         const QUrl approval{json.value(QStringLiteral("approval_url")).toString()};
@@ -232,7 +247,7 @@ void BrowserOpenProofAuth::pollFarcaster()
 {
     if (m_farcasterTicket.isEmpty()) return;
     if (QDateTime::currentMSecsSinceEpoch() >= m_deadlineMs) {
-        fail(qtTrId("genycaster.browser_auth.farcaster_challenge_expired"));
+        fail(qtTrId("genycaster.browser_auth.farcaster_challenge_expired"), BrowserOpenProofState::FailureKind::Expired);
         return;
     }
     QNetworkRequest request{QUrl{QString::fromUtf8(genycaster::deployment::browserGateway.data())
@@ -252,7 +267,7 @@ void BrowserOpenProofAuth::pollFarcaster()
             return;
         }
         if (status != 200 || !json.value(QStringLiteral("authenticated")).toBool()) {
-            fail(safeFailure(status));
+            failHttp(status);
             return;
         }
         const QString subject = json.value(QStringLiteral("subject")).toString();
@@ -290,7 +305,7 @@ void BrowserOpenProofAuth::pollFarcaster()
 void BrowserOpenProofAuth::startPolling()
 {
     if (m_deadlineMs && QDateTime::currentMSecsSinceEpoch() >= m_deadlineMs) {
-        fail(qtTrId("genycaster.browser_auth.authorization_expired"));
+        fail(qtTrId("genycaster.browser_auth.authorization_expired"), BrowserOpenProofState::FailureKind::Expired);
         return;
     }
     m_pollTimer.start(m_intervalSeconds * 1000);
@@ -301,7 +316,7 @@ void BrowserOpenProofAuth::pollToken()
     if (m_directFarcaster) { pollFarcaster(); return; }
     if (m_deviceCode.isEmpty()) return;
     if (QDateTime::currentMSecsSinceEpoch() >= m_deadlineMs) {
-        fail(qtTrId("genycaster.browser_auth.authorization_expired"));
+        fail(qtTrId("genycaster.browser_auth.authorization_expired"), BrowserOpenProofState::FailureKind::Expired);
         return;
     }
     QUrlQuery form{};
@@ -325,7 +340,10 @@ void BrowserOpenProofAuth::pollToken()
             }
             fail(code == QStringLiteral("access_denied")
                 ? qtTrId("genycaster.browser_auth.sign_in_denied")
-                : safeFailure(status));
+                : safeFailure(status),
+                code == QStringLiteral("access_denied")
+                    ? BrowserOpenProofState::FailureKind::Rejected
+                    : BrowserOpenProofState::FailureKind::InvalidResponse);
             return;
         }
         m_accessToken = response.value(QStringLiteral("access_token")).toString().toUtf8();
@@ -347,7 +365,7 @@ void BrowserOpenProofAuth::checkUserinfo()
     request.setRawHeader("Authorization", "Bearer " + m_accessToken);
     send(std::move(request), QByteArray{},
          [this](const int status, QByteArray payload) {
-        if (status != 200) { fail(safeFailure(status)); return; }
+        if (status != 200) { failHttp(status); return; }
         const auto object = objectFrom(payload);
         m_subject = object.value(QStringLiteral("sub")).toString().trimmed();
         if (m_subject.isEmpty() || m_subject.size() > 512) {
@@ -369,7 +387,7 @@ void BrowserOpenProofAuth::checkConnections()
     request.setRawHeader("Authorization", "Bearer " + m_accessToken);
     send(std::move(request), QByteArray{},
          [this](const int status, QByteArray payload) {
-        if (status != 200) { fail(safeFailure(status)); return; }
+        if (status != 200) { failHttp(status); return; }
         const auto json = objectFrom(payload);
         const auto connections = json.value(QStringLiteral("connections"));
         if (!connections.isArray()) {
@@ -384,7 +402,8 @@ void BrowserOpenProofAuth::checkConnections()
             if (connection.value(QStringLiteral("provider")).toString().toLower()
                 != QStringLiteral("farcaster")) continue;
             if (fid != 0) {
-                fail(qtTrId("genycaster.browser_auth.multiple_farcaster_identities"));
+                fail(qtTrId("genycaster.browser_auth.multiple_farcaster_identities"),
+                     BrowserOpenProofState::FailureKind::Conflict);
                 return;
             }
             bool valid = false;
@@ -402,7 +421,8 @@ void BrowserOpenProofAuth::checkConnections()
             avatarUrl = connection.value(QStringLiteral("picture_url")).toString();
         }
         if (fid == 0) {
-            fail(qtTrId("genycaster.browser_auth.link_farcaster_account"));
+            fail(qtTrId("genycaster.browser_auth.link_farcaster_account"),
+                 BrowserOpenProofState::FailureKind::MissingLink);
             return;
         }
         BrowserOpenProofState authenticated{};
