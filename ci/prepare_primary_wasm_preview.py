@@ -79,9 +79,6 @@ def prepare(archive: Path, checksums: Path, stage: Path) -> tuple[Path, str]:
             shutil.copy2(origin, target)
         # Recalculate the HTML boot fingerprint and the *entire* integrity map.
         # The compiled engine remains from the reviewed older CI artifact.
-        subprocess.run([
-            sys.executable, str(SITE.parent.parent / "opt" / "invalid"),
-        ], check=False) if False else None
         package_script = Path(__file__).with_name("package_wasm_assets.py")
         subprocess.run([
             sys.executable, str(package_script),
