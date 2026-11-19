@@ -10,6 +10,9 @@
     const close = byId("native-downloads-close");
     const platformName = byId("native-downloads-platform");
     const architecture = byId("native-downloads-architecture");
+    const architectureOptions = byId("native-downloads-options");
+    const architectureValue = byId("native-downloads-architecture-value");
+    const selection = Object.create(null);
     const status = byId("native-downloads-status");
     const download = byId("native-downloads-action");
     const prompt = byId("native-downloads-nudge");
@@ -85,6 +88,36 @@
         maybeNudge();
     }
 
+    function selectedArchitecture() {
+        const choices = supported[platform].arches;
+        const preferred = selection[platform];
+        if (preferred && Object.hasOwn(choices, preferred)) return preferred;
+        return Object.keys(choices)[0];
+    }
+
+    function closeOptions(restoreFocus = false) {
+        if (architectureOptions.hidden) return;
+        architectureOptions.hidden = true;
+        architecture.setAttribute("aria-expanded", "false");
+        architecture.classList.remove("is-open");
+        if (restoreFocus) architecture.focus({preventScroll: true});
+    }
+
+    function openOptions() {
+        if (!architectureOptions.hidden) return;
+        architectureOptions.hidden = false;
+        architecture.setAttribute("aria-expanded", "true");
+        architecture.classList.add("is-open");
+        architectureOptions.querySelector('[aria-selected="true"]')?.focus({preventScroll:true});
+    }
+
+    function chooseArchitecture(value, restoreFocus = true) {
+        if (!Object.hasOwn(supported[platform].arches, value)) return;
+        selection[platform] = value;
+        closeOptions(restoreFocus);
+        render();
+    }
+
     function render() {
         const info = supported[platform];
         platformName.textContent = info.label;
@@ -93,33 +126,43 @@
             tab.setAttribute("aria-pressed", String(active));
             tab.classList.toggle("selected", active);
         }
-        const oldArch = architecture.value;
-        architecture.replaceChildren();
-        for (const [code, label] of Object.entries(info.arches)) {
-            const option = document.createElement("option");
-            option.value = code;
+        const arch = selectedArchitecture();
+        architectureValue.textContent = info.arches[arch];
+        architectureOptions.replaceChildren();
+        const options = Object.entries(info.arches);
+        for (const [code, label] of options) {
+            const option = document.createElement("button");
+            option.type = "button";
+            option.className = "native-downloads-option";
+            option.setAttribute("role", "option");
+            option.setAttribute("aria-selected", String(arch === code));
+            option.tabIndex = arch === code ? 0 : -1;
+            option.dataset.architecture = code;
             option.textContent = label;
-            architecture.append(option);
+            option.addEventListener("click", () => chooseArchitecture(code));
+            architectureOptions.append(option);
         }
-        if (Object.hasOwn(info.arches, oldArch)) architecture.value = oldArch;
-        const entry = catalog[platform]?.[architecture.value] || null;
+        const entry = catalog[platform]?.[arch] || null;
         download.hidden = !entry;
         if (entry) {
             download.href = entry.url;
             download.textContent = "Download " + info.label + " · " + entry.version;
             download.setAttribute("aria-label", "Download verified " + info.label +
-                " " + architecture.selectedOptions[0].textContent + " release " + entry.version);
+                " " + info.arches[arch] + " release " + entry.version);
             status.textContent = "Published build · SHA-256 " +
                 entry.sha256.slice(0, 12) + "…";
         } else {
             download.removeAttribute("href");
+            download.removeAttribute("aria-label");
             status.textContent = "No verified download for this system yet. " +
                 "The browser edition remains available.";
         }
     }
 
+
     function setOpen(open) {
         if (open) {
+            closeOptions();
             lastFocused = document.activeElement;
             userActivated = true;
             hideNudge();
@@ -128,6 +171,7 @@
             trigger.setAttribute("aria-expanded", "true");
             close.focus({preventScroll: true});
         } else {
+            closeOptions();
             dialog.hidden = true;
             backdrop.hidden = true;
             trigger.setAttribute("aria-expanded", "false");
@@ -166,12 +210,63 @@
         platform = tab.dataset.nativePlatform;
         render();
     }));
-    architecture.addEventListener("change", render);
+    architecture.addEventListener("click", () => {
+        if (architectureOptions.hidden) openOptions();
+        else closeOptions(true);
+    });
+    architecture.addEventListener("keydown", event => {
+        if (["ArrowDown", "ArrowUp", "Home", "End", " ", "Enter"].includes(event.key)) {
+            event.preventDefault();
+            openOptions();
+            const choices = [...architectureOptions.querySelectorAll('[role="option"]')];
+            const option = event.key === "End" ? choices[choices.length - 1]
+                         : event.key === "Home" ? choices[0]
+                         : architectureOptions.querySelector('[aria-selected="true"]') || choices[0];
+            option?.focus();
+        } else if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            closeOptions(true);
+        }
+    });
+    architectureOptions.addEventListener("keydown", event => {
+        const choices = [...architectureOptions.querySelectorAll('[role="option"]')];
+        const current = choices.indexOf(document.activeElement);
+        let next = -1;
+        if (event.key === "ArrowDown") next = (current + 1) % choices.length;
+        else if (event.key === "ArrowUp") next = (current - 1 + choices.length) % choices.length;
+        else if (event.key === "Home") next = 0;
+        else if (event.key === "End") next = choices.length - 1;
+        if (next >= 0) {
+            event.preventDefault();
+            choices[next]?.focus();
+        } else if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            chooseArchitecture(document.activeElement?.dataset.architecture);
+        } else if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            closeOptions(true);
+        } else if (event.key === "Tab") {
+            closeOptions();
+        }
+    });
+    document.addEventListener("pointerdown", event => {
+        if (!architectureOptions.hidden &&
+                !architectureOptions.contains(event.target) &&
+                !architecture.contains(event.target)) closeOptions();
+    });
     dialog.addEventListener("keydown", event => {
-        if (event.key === "Escape") { event.preventDefault(); setOpen(false); }
+        if (event.key === "Escape") {
+            if (!architectureOptions.hidden) {
+                event.preventDefault(); event.stopPropagation(); closeOptions(true); return;
+            }
+            event.preventDefault(); setOpen(false);
+        }
         if (event.key !== "Tab") return;
         const items = [...dialog.querySelectorAll(
-            'button:not([disabled]),select:not([disabled]),a[href]:not([hidden])')];
+            'button:not([disabled]):not([hidden]),a[href]:not([hidden])')]
+            .filter(item => !architectureOptions.contains(item) || !architectureOptions.hidden);
         if (!items.length) return;
         const first = items[0], last = items[items.length - 1];
         if (event.shiftKey && document.activeElement === first) {
@@ -181,7 +276,8 @@
         }
     });
     document.addEventListener("keydown", event => {
-        if (event.key === "Escape" && !dialog.hidden) setOpen(false);
+        if (event.key === "Escape" && !dialog.hidden && architectureOptions.hidden)
+            setOpen(false);
     });
     promptOpen.addEventListener("click", () => {
         const current = detectPlatform();
