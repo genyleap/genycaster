@@ -53,6 +53,9 @@ Item {
     // once, without changing or re-purchasing the account's entitlements.
     readonly property bool nativeFarcasterRecoveryNeeded: presentationBridge
         && presentationBridge.isAuthenticated && !presentationBridge.nativeCustodyAccount
+        && (presentationBridge.accountIdentityIssuer === "farcaster:optimism-id-registry"
+            || presentationBridge.accountIdentityIssuer === deploymentEndpoints.openProofIssuer)
+        && presentationBridge.authenticationRoute !== "farcaster-native-recovery"
         && Qt.platform.os !== "wasm" && Qt.platform.os !== "webassembly"
         && openProofConnections && !openProofConnections.cloudAuthorizationReady
         && ["account_signer_unavailable", "account_proof_not_accepted",
@@ -60,6 +63,8 @@ Item {
                 String(openProofConnections.accountProofError || "")) >= 0
     readonly property bool browserFarcasterRecoveryNeeded: presentationBridge
         && presentationBridge.isAuthenticated && !presentationBridge.nativeCustodyAccount
+        && (presentationBridge.accountIdentityIssuer === "genycaster:device-local"
+            || presentationBridge.accountIdentityIssuer === deploymentEndpoints.openProofIssuer)
         && (Qt.platform.os === "wasm" || Qt.platform.os === "webassembly")
         && openProofConnections && !openProofConnections.cloudAuthorizationReady
         && String(openProofConnections.accountProofError || "")
