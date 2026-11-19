@@ -25,6 +25,130 @@
         linux:   { label: "Linux", arches: {x64: "x86_64", arm64: "ARM64"} },
         android: { label: "Android", arches: {arm64: "ARM64-v8a"} }
     });
+    // Qt Superellipse.qml uses an exponent-4 continuous cubic contour.
+    // CSS corner-shape is not implemented consistently by web engines.
+    // Reproduce the QML geometry via lightweight SVG once per element;
+    // ResizeObserver changes only the path, never the HTML controls.
+    const shapeSpecs = [
+        ["#native-downloads-dialog", 43, "sheet"],
+        ["#native-downloads-trigger", 20],
+        ["#native-downloads-close", 18],
+        [".native-downloads-tabs", 23],
+        [".native-downloads-tabs button", 18],
+        ["#native-downloads-architecture", 20],
+        ["#native-downloads-options", 19],
+        [".native-downloads-result", 23],
+        ["#native-downloads-action", 19],
+        [".native-downloads-secondary", 19],
+        [".native-github-cta", 24],
+        [".native-github-cta-icon", 17],
+        ["#native-github-star", 17],
+        ["#native-downloads-nudge", 22],
+        ["#native-downloads-nudge-open", 16],
+        [".native-downloads-option", 17]
+    ];
+    const shapeNamespace = "http://www.w3.org/2000/svg";
+    const shapeNodes = new WeakMap();
+    const shapeObserver = typeof ResizeObserver === "function"
+        ? new ResizeObserver(entries => {
+            for (const entry of entries) drawShape(entry.target);
+        }) : null;
+    const shapeMobile = typeof window.matchMedia === "function"
+        ? window.matchMedia("(max-width: 640px)") : null;
+
+    function superellipsePath(width, height, depth, topOnly) {
+        if (!(width > 0 && height > 0)) return "";
+        const inset = 0.65;
+        const left = inset, top = inset;
+        const right = Math.max(left, width - inset);
+        const bottom = Math.max(top, height - inset);
+        const radius = Math.max(0, Math.min(depth - inset,
+            (right - left) / 2 - 0.15,
+            topOnly ? right - left : (bottom - top) / 2 - 0.15));
+        const r = Math.max(0, radius);
+        // Mirror Qt's cubicFactor = (8 * (0.5 ^ (1/exponent)) - 4)/3.
+        const k = (8 * Math.pow(0.5, 0.25) - 4) / 3;
+        const f = (n) => Number(n.toFixed(3));
+        const tl = r, tr = r, br = topOnly ? 0 : r, bl = topOnly ? 0 : r;
+        return [
+            "M", f(left + tl), f(top),
+            "L", f(right - tr), f(top),
+            "C", f(right - tr + k * tr), f(top),
+                 f(right), f(top + tr - k * tr),
+                 f(right), f(top + tr),
+            "L", f(right), f(bottom - br),
+            "C", f(right), f(bottom - br + k * br),
+                 f(right - br + k * br), f(bottom),
+                 f(right - br), f(bottom),
+            "L", f(left + bl), f(bottom),
+            "C", f(left + bl - k * bl), f(bottom),
+                 f(left), f(bottom - bl + k * bl),
+                 f(left), f(bottom - bl),
+            "L", f(left), f(top + tl),
+            "C", f(left), f(top + tl - k * tl),
+                 f(left + tl - k * tl), f(top),
+                 f(left + tl), f(top),
+            "Z"
+        ].join(" ");
+    }
+
+    function drawShape(element) {
+        const info = shapeNodes.get(element);
+        if (!info) return;
+        const width = element.clientWidth, height = element.clientHeight;
+        if (!width || !height) return;
+        const mobileSheet = info.mode === "sheet" &&
+            Boolean(shapeMobile?.matches);
+        const depth = mobileSheet ? 41 : info.depth;
+        const dimensions = width + ":" + height + ":" + depth + ":" + mobileSheet;
+        if (info.last === dimensions) return;
+        info.last = dimensions;
+        info.svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+        info.path.setAttribute("d",
+            superellipsePath(width, height, depth, mobileSheet));
+    }
+
+    function mountShape(element, depth, mode = "") {
+        if (shapeNodes.has(element)) return;
+        const svg = document.createElementNS(shapeNamespace, "svg");
+        const path = document.createElementNS(shapeNamespace, "path");
+        svg.classList.add("nd-squircle-svg");
+        svg.setAttribute("aria-hidden", "true");
+        svg.setAttribute("focusable", "false");
+        svg.setAttribute("preserveAspectRatio", "none");
+        path.setAttribute("vector-effect", "non-scaling-stroke");
+        path.setAttribute("stroke-linejoin", "round");
+        svg.append(path);
+        element.prepend(svg);
+        element.classList.add("nd-squircle");
+        shapeNodes.set(element, {svg, path, depth, mode, last:""});
+        shapeObserver?.observe(element);
+        drawShape(element);
+    }
+
+    for (const [selector, depth, mode] of shapeSpecs) {
+        for (const element of document.querySelectorAll(selector))
+            mountShape(element, depth, mode);
+    }
+    if (!shapeObserver) {
+        window.addEventListener("resize", () => {
+            for (const [selector] of shapeSpecs)
+                for (const element of document.querySelectorAll(selector))
+                    drawShape(element);
+        }, {passive:true});
+    }
+    if (shapeMobile) {
+        const refreshShapes = () => {
+            for (const [selector] of shapeSpecs)
+                for (const element of document.querySelectorAll(selector))
+                    drawShape(element);
+        };
+        if (shapeMobile.addEventListener)
+            shapeMobile.addEventListener("change", refreshShapes);
+        else if (shapeMobile.addListener)
+            shapeMobile.addListener(refreshShapes);
+    }
+
     let platform = "windows";
     let catalog = Object.create(null);
     let lastFocused = null;
@@ -139,6 +263,7 @@
             option.tabIndex = arch === code ? 0 : -1;
             option.dataset.architecture = code;
             option.textContent = label;
+            mountShape(option, 17);
             option.addEventListener("click", () => chooseArchitecture(code));
             architectureOptions.append(option);
         }
@@ -168,6 +293,7 @@
             hideNudge();
             dialog.hidden = false;
             backdrop.hidden = false;
+            drawShape(dialog);
             trigger.setAttribute("aria-expanded", "true");
             close.focus({preventScroll: true});
         } else {
