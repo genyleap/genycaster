@@ -20,7 +20,10 @@ import time
 import urllib.error
 import urllib.request
 
-from ci.activate_app_site import atomic_write
+if __package__:
+    from .activate_app_site import atomic_write
+else:
+    from activate_app_site import atomic_write
 
 HOST = "genycaster.xyz"
 BASE = Path("/var/www/genycaster.xyz")
@@ -58,9 +61,6 @@ def check_assets() -> None:
         raise RuntimeError("Incomplete primary WebAssembly asset inventory")
     if "native-downloads.js" not in public_files or "native-downloads.css" not in public_files:
         raise RuntimeError("Native download dialog missing from WASM release inventory")
-    from ci.stage_wasm_preview import verify_app_origin_module
-    # The generic stage verifier targets app.genycaster.xyz; a primary
-    # migration uses the separate canonical assertion below.
     content = config_path.read_text(encoding="utf-8")
     prefix = "export const deployment = Object.freeze("
     if not content.startswith("// GENERATED;") or prefix not in content or not content.rstrip().endswith(");"):
