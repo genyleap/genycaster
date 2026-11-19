@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,6 +62,37 @@ class WebglShaderCompatibilityTests(unittest.TestCase):
         # Native QSB remain untouched to preserve Metal/D3D/Vulkan rendering.
         for name in source:
             self.assertTrue((shaders / (name + ".frag.qsb")).is_file())
+
+    def test_webgl_reflections_use_portable_textures_and_bounded_capture(self) -> None:
+        source = (ROOT / "ui/components/visual/NeonReflectionSource.qml").read_text()
+        self.assertIn('readonly property bool browserRenderer: Qt.platform.os === "wasm"', source)
+        self.assertEqual(source.count(
+            "format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F"), 3)
+        self.assertIn("live: root.capturing && !root.browserRenderer", source)
+        self.assertIn("running: root.browserRenderer && root.capturing", source)
+        self.assertIn("onTriggered: capture.scheduleUpdate()", source)
+        # The native source preserves its full precision and live captures.
+        self.assertEqual(source.count("live: root.capturing"), 3)
+
+    def test_packaging_rejects_derivatives_dependent_wasm_binaries(self) -> None:
+        packager = (ROOT / "ci/package_wasm_assets.py").read_text()
+        self.assertIn('forbidden_shader = b"#extension GL_OES_standard_derivatives : require"', packager)
+        self.assertIn("if forbidden_shader in overlap + block:", packager)
+        self.assertIn("parser.error(\"WASM contains a derivatives-dependent WebGL1 shader", packager)
+        self.assertLess(packager.index("forbidden_shader ="), packager.index("hash_full = digest(wasm)"))
+
+    def test_packaging_rejects_reproduced_production_shader_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)
+            # Minimal WASM-like payload containing the exact browser-console
+            # GLSL directive: rejection must occur before asset processing.
+            (path / "genycaster.wasm").write_bytes(
+                b"\\0asm\\1\\0\\0\\0" + b"#extension GL_OES_standard_derivatives : require")
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "ci/package_wasm_assets.py"), "--dir", str(path)],
+                capture_output=True, text=True, check=False)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("derivatives-dependent WebGL1 shader", result.stderr)
 
     def test_architecture_combobox_keeps_both_options_visible(self) -> None:
         js = (ROOT / "ui/wasm/native-downloads.js").read_text()

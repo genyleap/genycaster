@@ -9,6 +9,9 @@ Item {
     property bool active: true
     property real blurRadius: Theme.reflectionBlurRadius
     property alias texture: blurredTexture
+    // WebGL1 does not guarantee half-float color-renderable attachments.
+    // Keep native's wider color range; use portable RGBA8 for the browser.
+    readonly property bool browserRenderer: Qt.platform.os === "wasm"
     readonly property bool sourceIsSafe: {
         if (!sourceItem) return false
         let ancestor = root
@@ -32,16 +35,27 @@ Item {
     height: sourceItem ? sourceItem.height : 0
     visible: false
 
+    // A single-threaded WebAssembly render loop must not recapture the entire
+    // adjacent scene on every frame. Refresh the shared low-resolution color
+    // field at a bounded rate; interactive neon geometry remains frame-paced.
+    Timer {
+        interval: 160
+        repeat: true
+        triggeredOnStart: true
+        running: root.browserRenderer && root.capturing
+        onTriggered: capture.scheduleUpdate()
+    }
+
     ShaderEffectSource {
         id: capture
         sourceItem: root.capturing ? root.sourceItem : null
         sourceRect: Qt.rect(0, 0, root.width, root.height)
-        format: ShaderEffectSource.RGBA16F
+        format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F
         textureSize: root.textureExtent
         hideSource: false
         recursive: false
         visible: false
-        live: root.capturing
+        live: root.capturing && !root.browserRenderer
         smooth: true
         wrapMode: ShaderEffectSource.ClampToEdge
     }
@@ -58,7 +72,7 @@ Item {
     ShaderEffectSource {
         id: horizontalTexture
         sourceItem: root.capturing ? horizontalPass : null
-        format: ShaderEffectSource.RGBA16F
+        format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F
         textureSize: root.textureExtent
         visible: false
         live: root.capturing
@@ -78,7 +92,7 @@ Item {
     ShaderEffectSource {
         id: blurredTexture
         sourceItem: root.capturing ? verticalPass : null
-        format: ShaderEffectSource.RGBA16F
+        format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F
         textureSize: root.textureExtent
         visible: false
         live: root.capturing

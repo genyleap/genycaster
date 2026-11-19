@@ -59,6 +59,19 @@ wasm = directory / "genycaster.wasm"
 if not wasm.is_file():
     parser.error("genycaster.wasm is missing")
 
+# Audit the actual linked binary, not just the source/CMake transform. A
+# release once embedded the native QSB WebGL1 fragment despite the portable
+# shader branch existing in source; every visible NEON effect then failed to
+# compile on browsers without OES_standard_derivatives. Reject this artifact
+# before hashing, caching, or publishing it. Search in bounded chunks.
+forbidden_shader = b"#extension GL_OES_standard_derivatives : require"
+with wasm.open("rb") as stream:
+    overlap = b""
+    while block := stream.read(1024 * 1024):
+        if forbidden_shader in overlap + block:
+            parser.error("WASM contains a derivatives-dependent WebGL1 shader; rebuild with portable QSB resources")
+        overlap = block[-(len(forbidden_shader) - 1):]
+
 def digest(path: Path) -> str:
     sha = hashlib.sha256()
     with path.open("rb") as stream:
