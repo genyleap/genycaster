@@ -51,11 +51,16 @@ GenyDrawer {
                     || presentationBridge.signerPhase === "revoked")))
     readonly property bool nativeFarcasterRecoveryNeeded: !membershipVerified
         && appSignedIn && !cloudReady && !presentationBridge.nativeCustodyAccount
+        && (presentationBridge.accountIdentityIssuer === "farcaster:optimism-id-registry"
+            || presentationBridge.accountIdentityIssuer === deploymentEndpoints.openProofIssuer)
+        && presentationBridge.authenticationRoute !== "farcaster-native-recovery"
         && Qt.platform.os !== "wasm" && Qt.platform.os !== "webassembly"
         && ["account_signer_unavailable", "account_proof_not_accepted",
             "account_session_unavailable"].indexOf(proofError) >= 0
     readonly property bool browserFarcasterRecoveryNeeded: !membershipVerified
         && appSignedIn && !cloudReady && !presentationBridge.nativeCustodyAccount
+        && (presentationBridge.accountIdentityIssuer === "genycaster:device-local"
+            || presentationBridge.accountIdentityIssuer === deploymentEndpoints.openProofIssuer)
         && (Qt.platform.os === "wasm" || Qt.platform.os === "webassembly")
         && proofError === "account_signer_unavailable"
     readonly property bool eligible: membershipVerified
@@ -618,7 +623,7 @@ GenyDrawer {
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: root.signerAuthorizationNeeded
-                                ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
+                                ? qsTrId("genycaster.shell.native_signer_description")
                                 : qsTrId("genycaster.pro.verification_unavailable")
                             color: Theme.textSecondary
                             font.pixelSize: Theme.typeCaptionSize
