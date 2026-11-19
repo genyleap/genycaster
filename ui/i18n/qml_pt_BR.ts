@@ -6793,8 +6793,20 @@ Company | https://company.com</source>
             <translation>Selecionar tudo</translation>
         </message>
         <message id="genycaster.setup.recovery_failed_retry">
-            <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
-            <translation>Não foi possível verificar a recuperação Farcaster. Verifique a conexão e tente novamente.</translation>
+            <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
+            <translation>Não foi possível verificar a recuperação da conta. Confira as palavras de recuperação e o protocolo selecionado e tente novamente.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_not_found">
+            <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>
+            <translation>Não existe uma conta HyperSnap registrada com estas palavras de recuperação. Se a conta foi criada no Farcaster, selecione Farcaster e tente novamente.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_unavailable">
+            <source>The HyperSnap account registry is unavailable. Check your network connection and try again.</source>
+            <translation>O registro de contas HyperSnap está indisponível. Verifique a conexão de rede e tente novamente.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_invalid">
+            <source>This recovery phrase is invalid. Check all 24 words, their order and spelling.</source>
+            <translation>A frase de recuperação é inválida. Confira as 24 palavras, sua ordem e ortografia.</translation>
         </message>
         <message id="genycaster.setup.open_terms">
             <source>Open full Terms of Use</source>
