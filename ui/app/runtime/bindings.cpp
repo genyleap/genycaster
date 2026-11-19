@@ -2666,7 +2666,7 @@ void connectRuntime(
     // one-shot HTTPS OpenProof gateway and C++-only BIP39 signer as native
     // Farcaster recovery. The protocol-only session remains usable if OPP is
     // unavailable. Signatures/tickets are never exposed to QML or persisted.
-    std::function<void(std::uint64_t, QString)> beginNativeOpenProofEnrollment{};
+    std::function<void(std::uint64_t, QString, std::shared_ptr<QByteArray>)> beginNativeOpenProofEnrollment{};
     std::function<void(std::uint64_t, QString)> beginNativeWalletEnrollment{};
 #if GENYCASTER_HAS_OPENPROOF_AUTH
     using EnrollmentChallenge = foundation::result::Result<
@@ -2682,15 +2682,17 @@ void connectRuntime(
     beginNativeOpenProofEnrollment =
         [runtime, &bridge, &connections, protectedWallet,
          sessionObserver, enrollmentGeneration](const std::uint64_t fid,
-                                               QString custody) {
+                                               QString custody,
+                                               std::shared_ptr<QByteArray> recoveredWords) {
         const auto active = runtime->currentSessionSnapshot();
         if (!active || active->fid.value != fid
             || active->identityIssuer != "farcaster:optimism-id-registry"
             || !active->custodyAddress
             || QString::fromStdString(*active->custodyAddress) != custody.toLower()
             || !bridge.isAuthenticated() || bridge.accountFid() != fid
-            || !protectedWallet || !protectedWallet->backupVerified()
-            || protectedWallet->address().toLower() != custody.toLower()) {
+            || !((recoveredWords && !recoveredWords->isEmpty())
+                || (protectedWallet && protectedWallet->backupVerified()
+                    && protectedWallet->address().toLower() == custody.toLower()))) {
             return;
         }
         if (connections.nativeEnrollmentPhase() == QStringLiteral("pending"))
@@ -2722,20 +2724,40 @@ void connectRuntime(
         QObject::connect(challengeWatcher,
             &QFutureWatcher<void>::finished, &bridge,
             [challengeWatcher, challengeFuture, runtime, &bridge,
-             &connections, protectedWallet,
+             &connections, protectedWallet, recoveredWords,
              sessionObserver, enrollmentGeneration, generation, fid,
              custody, gateway, current]() mutable {
                 auto challenge = challengeFuture->result();
                 challengeWatcher->deleteLater();
                 if (!current()) return;
-                if (!challenge || !protectedWallet) {
+                if (!challenge || (!protectedWallet && !recoveredWords)) {
                     connections.setNativeEnrollmentPhase(fid, QStringLiteral("retry"));
                     return;
                 }
                 // BIP39 derivation and signing execute in a zeroizing C++
                 // worker: never stall the Qt Quick render/UI thread.
+                // Reuse the registry-verified recovery phrase for one fresh
+                // OpenProof proof. No separate Farcaster approval is needed.
                 auto signatureFuture = std::make_shared<QFuture<std::optional<QString>>>(
-                    protectedWallet->signOpenProofFarcasterChallenge(
+                    recoveredWords && !recoveredWords->isEmpty()
+                    ? QtConcurrent::run(
+                        [recoveredWords, fid, custody,
+                         message = QString::fromStdString(challenge->message)]()
+                            -> std::optional<QString> {
+                            const auto proof =
+                                farcaster::platform::custody_recovery::
+                                    signOneTimeIdentityProof(
+                                        std::string_view{
+                                            recoveredWords->constData(),
+                                            static_cast<std::size_t>(recoveredWords->size())},
+                                        fid, message.toStdString());
+                            recoveredWords->fill(char{0});
+                            if (!proof || QString::fromStdString(proof->address)
+                                    .compare(custody, Qt::CaseInsensitive) != 0)
+                                return std::nullopt;
+                            return QString::fromStdString(proof->signature);
+                        })
+                    : protectedWallet->signOpenProofFarcasterChallenge(
                         fid, QString::fromStdString(challenge->message)));
                 auto* signatureWatcher = new QFutureWatcher<void>(&bridge);
                 QObject::connect(signatureWatcher,
@@ -2978,7 +3000,7 @@ void connectRuntime(
             const auto address = QString::fromStdString(*active->custodyAddress);
             if (active->identityIssuer == "farcaster:optimism-id-registry"
                 && beginNativeOpenProofEnrollment)
-                beginNativeOpenProofEnrollment(active->fid.value, address);
+                beginNativeOpenProofEnrollment(active->fid.value, address, {});
             else if (active->identityIssuer == "hypersnap:native-registry"
                      && beginNativeWalletEnrollment)
                 beginNativeWalletEnrollment(active->fid.value, address);
@@ -2990,7 +3012,8 @@ void connectRuntime(
                                    beginNativeWalletEnrollment](
         const std::uint64_t fid, const QString& custody,
         std::shared_ptr<capability::signer::ICustodyAuthorizer> permit,
-        const bool farcaster) {
+        const bool farcaster,
+        std::shared_ptr<QByteArray> recoveredWords = {}) {
         if (!permit || !runtime->sessionService || !runtime->signerService
             || !runtime->router) {
             bridge.applyAuthenticationError(
@@ -3030,6 +3053,7 @@ void connectRuntime(
                     auto persisted = [runtime, &bridge, sessionObserver,
                         signerObserver, permit = std::move(permit),
                         fid, issuer, writer, farcaster, custody,
+                        recoveredWords = std::move(recoveredWords),
                         beginNativeOpenProofEnrollment,
                         beginNativeWalletEnrollment](
                         application::session::SessionState state) mutable {
@@ -3044,6 +3068,7 @@ void connectRuntime(
                         QMetaObject::invokeMethod(&bridge,
                             [&bridge, runtime, signerObserver, permit, fid,
                              issuer, writer, farcaster, custody,
+                             recoveredWords = std::move(recoveredWords),
                              beginNativeOpenProofEnrollment,
                              beginNativeWalletEnrollment] {
                                 if (!bridge.isAuthenticated()
@@ -3072,7 +3097,7 @@ void connectRuntime(
                                 // the already confirmed custody/FID; never
                                 // repeat the IdRegistry transaction.
                                 if (farcaster && beginNativeOpenProofEnrollment)
-                                    beginNativeOpenProofEnrollment(fid, custody);
+                                    beginNativeOpenProofEnrollment(fid, custody, std::move(recoveredWords));
                                 else if (!farcaster && beginNativeWalletEnrollment)
                                     beginNativeWalletEnrollment(fid, custody);
                             }, Qt::QueuedConnection);
@@ -3278,13 +3303,13 @@ void connectRuntime(
                     auto permit = farcaster::platform::custody_recovery::
                         makeOneShotRecoveryAuthorizer(
                             mnemonic, address.toLower().toStdString(), fid);
-                    secret->fill(char{0});
                     if (!permit) {
                         bridge.applyAuthenticationError(
                             qtTrId("genycaster.setup.recovery_failed_retry"));
                         return;
                     }
-                    commitVerifiedIdentity(fid, address, std::move(*permit), true);
+                    commitVerifiedIdentity(fid, address, std::move(*permit), true,
+                                            secret);
                 });
             *future = QtConcurrent::run(
                 [runtime, secret]() -> RecoveryResult {
