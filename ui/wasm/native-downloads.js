@@ -29,23 +29,12 @@
     // CSS corner-shape is not implemented consistently by web engines.
     // Reproduce the QML geometry via lightweight SVG once per element;
     // ResizeObserver changes only the path, never the HTML controls.
+    // Exactly one custom SVG surface per major container. Smaller controls
+    // use the matching CSS corner family rather than nesting extra strokes.
     const shapeSpecs = [
         ["#native-downloads-dialog", 43, "sheet"],
-        ["#native-downloads-trigger", 20],
-        ["#native-downloads-close", 18],
-        [".native-downloads-tabs", 23],
-        [".native-downloads-tabs button", 18],
-        ["#native-downloads-architecture", 20],
-        ["#native-downloads-options", 19],
-        [".native-downloads-result", 23],
-        ["#native-downloads-action", 19],
-        [".native-downloads-secondary", 19],
-        [".native-github-cta", 24],
-        [".native-github-cta-icon", 17],
-        ["#native-github-star", 17],
-        ["#native-downloads-nudge", 22],
-        ["#native-downloads-nudge-open", 16],
-        [".native-downloads-option", 17]
+        ["#native-downloads-options", 23],
+        [".native-github-cta", 26]
     ];
     const shapeNamespace = "http://www.w3.org/2000/svg";
     const shapeNodes = new WeakMap();
@@ -224,15 +213,21 @@
         architectureOptions.hidden = true;
         architecture.setAttribute("aria-expanded", "false");
         architecture.classList.remove("is-open");
+        architecture.closest(".native-downloads-configuration")?.classList.remove("is-dropdown-open");
         if (restoreFocus) architecture.focus({preventScroll: true});
     }
 
-    function openOptions() {
+    function openOptions(focusSelected = false) {
         if (!architectureOptions.hidden) return;
         architectureOptions.hidden = false;
         architecture.setAttribute("aria-expanded", "true");
         architecture.classList.add("is-open");
-        architectureOptions.querySelector('[aria-selected="true"]')?.focus({preventScroll:true});
+        architecture.closest(".native-downloads-configuration")?.classList.add("is-dropdown-open");
+        // Clicking keeps keyboard focus on the trigger; it should not paint
+        // a second focus ring around the preselected option. Keyboard
+        // activation still moves focus to the selected option.
+        if (focusSelected)
+            architectureOptions.querySelector('[aria-selected="true"]')?.focus({preventScroll:true});
     }
 
     function chooseArchitecture(value, restoreFocus = true) {
@@ -252,13 +247,6 @@
         }
         const arch = selectedArchitecture();
         architectureValue.textContent = info.arches[arch];
-        // Dynamic option rows are rebuilt on platform changes. Release them
-        // from ResizeObserver before removal; otherwise retained observers
-        // accumulate detached SVG/button subtrees during repeated switching.
-        if (shapeObserver) {
-            for (const previous of architectureOptions.querySelectorAll(".native-downloads-option"))
-                shapeObserver.unobserve(previous);
-        }
         architectureOptions.replaceChildren();
         const options = Object.entries(info.arches);
         for (const [code, label] of options) {
@@ -270,7 +258,6 @@
             option.tabIndex = arch === code ? 0 : -1;
             option.dataset.architecture = code;
             option.textContent = label;
-            mountShape(option, 17);
             option.addEventListener("click", () => chooseArchitecture(code));
             architectureOptions.append(option);
         }
@@ -350,7 +337,7 @@
     architecture.addEventListener("keydown", event => {
         if (["ArrowDown", "ArrowUp", "Home", "End", " ", "Enter"].includes(event.key)) {
             event.preventDefault();
-            openOptions();
+            openOptions(true);
             const choices = [...architectureOptions.querySelectorAll('[role="option"]')];
             const option = event.key === "End" ? choices[choices.length - 1]
                          : event.key === "Home" ? choices[0]
