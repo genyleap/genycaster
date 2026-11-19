@@ -213,6 +213,12 @@ class PrimaryMigrationTests(unittest.TestCase):
                          '#native-github-star', '.native-downloads-secondary'):
             self.assertIn(f'["{selector}"', shape_block)
         self.assertIn('path.setAttribute("vector-effect", "non-scaling-stroke")', js)
+        # The scrolling viewport must use the SVG's same Qt exponent-4
+        # contour; native border-radius clipped the corners differently.
+        self.assertIn('function superellipseClipPolygon(', js)
+        self.assertIn('viewport.style.clipPath = clip;', js)
+        self.assertIn('viewport.style.borderRadius = "0";', js)
+        self.assertIn('if (info.mode === "sheet"', js)
         self.assertIn('svg.setAttribute("aria-hidden", "true")', js)
         self.assertIn('svg.setAttribute("focusable", "false")', js)
         self.assertIn('pointer-events:none', css)
@@ -245,6 +251,22 @@ for(const [width,height,radius,mobile] of [
         throw Error('path overflow');
     if(mobile && !path.includes('L '+(width-.65)+' '+(height-.65)))
         throw Error('mobile sheet does not preserve flat bottom');
+    const poly=context.superellipseClipPolygon(width,height,radius,mobile);
+    const vertices=[...poly.matchAll(/([\d.]+)% ([\d.]+)%/g)]
+        .map(m=>[Number(m[1])*width/100,Number(m[2])*height/100]);
+    if(!poly.startsWith('polygon(') || vertices.length!==69)
+        throw Error('missing or incomplete viewport clip contour');
+    if(vertices.some(([x,y])=>x<0||y<0||x>width||y>height))
+        throw Error('viewport clipping escaped its bounds');
+    const near=(p,x,y)=>Math.abs(p[0]-x)<.005&&Math.abs(p[1]-y)<.005;
+    if(!near(vertices[0],numbers[0],numbers[1]))
+        throw Error('viewport start disagrees with SVG contour');
+    if(!near(vertices[17],width-.65,.65+Math.min(radius-.65,
+            (width-1.3)/2-.15, mobile?width-1.3:(height-1.3)/2-.15)))
+        throw Error('viewport top right disagrees with SVG contour');
+    if(mobile && (!near(vertices[34],width-.65,height-.65) ||
+                  !near(vertices[51],.65,height-.65)))
+        throw Error('mobile viewport lost its flat bottom corners');
 }
 """
         with tempfile.TemporaryDirectory() as tmp:

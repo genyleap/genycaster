@@ -111,6 +111,48 @@
         ].join(" ");
     }
 
+    // SVG paints the Qt curve, while CSS border-radius used to clip its
+    // scrollable contents using a different, circular contour. Sample the
+    // SAME cubic geometry into a device-independent CSS polygon, so text,
+    // scrollbars and the surface share one silhouette on every browser.
+    function superellipseClipPolygon(width, height, depth, topOnly) {
+        const inset = 0.65;
+        const left = inset, top = inset;
+        const right = Math.max(left, width - inset);
+        const bottom = Math.max(top, height - inset);
+        const r = Math.max(0, Math.min(depth - inset,
+            (right - left) / 2 - 0.15,
+            topOnly ? right - left : (bottom - top) / 2 - 0.15));
+        const k = (8 * Math.pow(0.5, 0.25) - 4) / 3;
+        const points = [];
+        function add(x, y) {
+            points.push((100 * x / width).toFixed(4) + "% " +
+                        (100 * y / height).toFixed(4) + "%");
+        }
+        function cubic(p0, p1, p2, p3) {
+            for (let i = 1; i <= 16; ++i) {
+                const t = i / 16, u = 1 - t;
+                add(u*u*u*p0[0] + 3*u*u*t*p1[0] + 3*u*t*t*p2[0] + t*t*t*p3[0],
+                    u*u*u*p0[1] + 3*u*u*t*p1[1] + 3*u*t*t*p2[1] + t*t*t*p3[1]);
+            }
+        }
+        const br = topOnly ? 0 : r, bl = topOnly ? 0 : r;
+        add(left + r, top);
+        add(right - r, top);
+        cubic([right-r, top], [right-r+k*r, top],
+              [right, top+r-k*r], [right, top+r]);
+        add(right, bottom-br);
+        cubic([right, bottom-br], [right, bottom-br+k*br],
+              [right-br+k*br, bottom], [right-br, bottom]);
+        add(left+bl, bottom);
+        cubic([left+bl, bottom], [left+bl-k*bl, bottom],
+              [left, bottom-bl+k*bl], [left, bottom-bl]);
+        add(left, top+r);
+        cubic([left, top+r], [left, top+r-k*r],
+              [left+r-k*r, top], [left+r, top]);
+        return "polygon(" + points.join(",") + ")";
+    }
+
     function drawShape(element) {
         const info = shapeNodes.get(element);
         if (!info) return;
@@ -125,6 +167,16 @@
         info.svg.setAttribute("viewBox", "0 0 " + width + " " + height);
         info.path.setAttribute("d",
             superellipsePath(width, height, depth, mobileSheet));
+        if (info.mode === "sheet" && typeof CSS !== "undefined" &&
+                CSS.supports?.("clip-path", "polygon(0 0,100% 0,100% 100%,0 100%)")) {
+            const viewport = element.querySelector(".native-downloads-viewport");
+            if (viewport) {
+                const clip = superellipseClipPolygon(width, height, depth, mobileSheet);
+                viewport.style.clipPath = clip;
+                viewport.style.webkitClipPath = clip;
+                viewport.style.borderRadius = "0";
+            }
+        }
     }
 
     function mountShape(element, depth, mode = "") {
