@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
+import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -42,6 +45,25 @@ class AppSiteActivationTest(unittest.TestCase):
         source = site.SOURCE.read_text(encoding="utf-8")
         self.assertIn('location ~* "\\\\.[a-f0-9]{20}\\\\.wasm$" {', source)
         self.assertNotIn("location ~* \\\\.[a-f0-9]{20}", source)
+
+    def test_nginx_binary_parses_site_regexes(self):
+        if not shutil.which("nginx"):
+            self.skipTest("nginx not available on this host")
+        source = site.SOURCE.read_text(encoding="utf-8")
+        locations = [line.strip() for line in source.splitlines()
+                     if line.strip().startswith("location ~* ")]
+        self.assertGreaterEqual(len(locations), 3)
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "nginx.conf"
+            lines = ["events {}", "http {", "  server {",
+                     "    listen 127.0.0.1:18080;", "    server_name localhost;"]
+            for location in locations:
+                lines.extend((f"    {location}", "        return 204;", "    }"))
+            lines.extend(("  }", "}"))
+            path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+            result = subprocess.run(["nginx", "-t", "-c", str(path)],
+                                    text=True, capture_output=True, timeout=8)
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_landing_page_capture_or_missing_marker_rejected(self):
         original = site.SOURCE.read_text(encoding="utf-8")
