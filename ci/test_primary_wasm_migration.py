@@ -127,7 +127,25 @@ class PrimaryMigrationTests(unittest.TestCase):
         self.assertIn('const k = (8 * Math.pow(0.5, 0.25) - 4) / 3;', js)
         self.assertIn("const diagonal = Math.pow(0.5, 1 / safeExponent)", qml)
         self.assertIn('new ResizeObserver(entries =>', js)
-        self.assertIn('shapeObserver.unobserve(previous)', js)
+        # Small interactive controls must not get their own SVG frames.
+        self.assertNotIn('mountShape(option', js)
+        self.assertNotIn('shapeObserver.unobserve(previous)', js)
+        self.assertIn('openOptions(focusSelected = false)', js)
+        self.assertIn('openOptions(true)', js)
+        self.assertIn('is-dropdown-open', js)
+        self.assertIn('is-dropdown-open', css)
+        self.assertIn('box-shadow:none', css)
+        self.assertIn('filter:drop-shadow', css)
+        self.assertIn('border-radius:24px', css)
+        shape_block = js.split('const shapeSpecs = [', 1)[1].split('];', 1)[0]
+        for selector in ('#native-downloads-dialog', '#native-downloads-options',
+                         '.native-github-cta'):
+            self.assertIn(selector, shape_block)
+        for selector in ('#native-downloads-trigger', '#native-downloads-close',
+                         '.native-downloads-tabs', '#native-downloads-architecture',
+                         '.native-downloads-option', '#native-github-star',
+                         '.native-downloads-secondary'):
+            self.assertNotIn(f'["{selector}"', shape_block)
         self.assertIn('path.setAttribute("vector-effect", "non-scaling-stroke")', js)
         self.assertIn('svg.setAttribute("aria-hidden", "true")', js)
         self.assertIn('svg.setAttribute("focusable", "false")', js)
