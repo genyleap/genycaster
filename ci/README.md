@@ -104,8 +104,10 @@ broken. Release configurations require a secure signer vault.
 **Canonical URL:** `https://genycaster.xyz/` serves the app. The preserved
 landing lives at `/about/`, downloads at `/download`, and the existing
 host-only account API continues under `/api/v1/cloud/`.
-`https://app.genycaster.xyz` is a legacy preview origin and is **not**
-the canonical destination for any future WASM release.
+`https://app.genycaster.xyz` is retired. Its source activation/staging
+scripts were removed; the live Nginx vhost and DNS record must also be
+retired independently by the VPS/DNS operator. Never deploy a current WASM
+bundle to that origin.
 
 For the reviewed, rollback-safe migration from the former landing page,
 follow [PRIMARY_WASM_MIGRATION.md](PRIMARY_WASM_MIGRATION.md). The verified
