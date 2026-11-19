@@ -61,7 +61,8 @@ test('account choices follow storyboard and pending registration cannot launch F
     assert.match(account,/objectName: "setupCreateAccount"/);
     assert.match(account,/objectName: "setupRegisterHyperSnap"/);
     assert.match(account,/nativeRegistrationStatus.active/);
-    assert.match(account,/objectName: "setupBeginRegistration"[\s\S]*?enabled: false/);
+    assert.match(account,/objectName: "nativeRegistrationBroadcastPanel"[\s\S]*?visible: !root.browserReadOnly/);
+    assert.match(account,/objectName: "setupBeginRegistration"[\s\S]*?enabled: root.runtimeReady/);
     assert.match(account,/root.accountIntent = "existing"/);
     assert.doesNotMatch(account,/root.openRegistration\(\)/);
     assert.doesNotMatch(setup,/farcaster.xyz\/\~\/signup/);
@@ -101,7 +102,8 @@ test('Setup re-entry and authentication routes stay connected',()=>{
     assert.match(setup,/function switchStep\(step\)/);
     assert.match(setup,/root.continueWithGenyleap\(\)/);
     assert.match(setup,/root.continueWithFarcaster\(\)/);
-    assert.match(setup,/root.nativeRecoverAccount\(words\)/);
+    assert.match(setup,/root.nativeRecoverHyperSnapAccount\(words\)/);
+    assert.match(setup,/root.nativeRecoverFarcasterAccount\(words\)/);
     assert.match(shell,/function openSetupReview\(step\)/);
     assert.match(shell,/onCloseReviewRequested: root.setupReviewOpen = false/);
 });

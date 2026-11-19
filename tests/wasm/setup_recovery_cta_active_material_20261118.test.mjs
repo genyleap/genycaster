@@ -9,8 +9,9 @@ test('recovery action is distinctly active while provider choices remain seconda
     const signIn = page.slice(page.indexOf('id: signInStage'), page.indexOf('id: verifyingStage'));
     assert.match(signIn, /SetupActionCard \{[\s\S]*?setupEmphasis: true[\s\S]*?title: qsTrId\("genycaster.setup.design_recovery_title"\)/);
     assert.match(signIn, /enabled: !root.authenticationInProgress && !root.recoverySubmitPending/);
-    assert.match(signIn, /SetupActionCard \{\s*objectName: "setupRecoverHyperSnap"/);
-    assert.match(signIn, /SetupActionCard \{\s*objectName: "setupRecoverFarcaster"/);
+    assert.match(signIn, /SetupActionCard \{\s*objectName: "setupExistingHyperSnap"/);
+    assert.match(signIn, /SetupActionCard \{\s*objectName: "setupExistingFarcaster"/);
+    assert.doesNotMatch(signIn, /objectName: "setupBrowserRecoveryProtocolChoice"/);
 });
 
 test('enabled recovery action uses luminous brand fill, contrasting glyph and chevron', () => {
