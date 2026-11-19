@@ -6793,8 +6793,20 @@ Company | https://company.com</source>
             <translation>すべて選択</translation>
         </message>
         <message id="genycaster.setup.recovery_failed_retry">
-            <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
-            <translation>Farcaster の復元を確認できませんでした。接続を確認して再試行してください。</translation>
+            <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
+            <translation>アカウントの復元を確認できませんでした。復元フレーズと選択したプロトコルを確認して、再試行してください。</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_not_found">
+            <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>
+            <translation>この復元フレーズに対応する HyperSnap アカウントは登録されていません。Farcaster で作成したアカウントの場合は、Farcaster を選択して再試行してください。</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_unavailable">
+            <source>The HyperSnap account registry is unavailable. Check your network connection and try again.</source>
+            <translation>HyperSnap のアカウント登録情報にアクセスできません。ネットワーク接続を確認して再試行してください。</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_invalid">
+            <source>This recovery phrase is invalid. Check all 24 words, their order and spelling.</source>
+            <translation>復元フレーズが無効です。24 個の単語すべてについて、順序とスペルを確認してください。</translation>
         </message>
         <message id="genycaster.setup.open_terms">
             <source>Open full Terms of Use</source>
