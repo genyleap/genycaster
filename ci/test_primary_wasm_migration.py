@@ -111,6 +111,67 @@ class PrimaryMigrationTests(unittest.TestCase):
                 with self.subTest(catalog=catalog.name, key=key):
                     self.assertIn(f'id="{key}"', content)
 
+    def test_architecture_listbox_has_unclipped_dialog_overlay(self):
+        # The dropdown must be outside the inner scrolling viewport, but
+        # inside the same modal for focus trapping and keyboard navigation.
+        from html.parser import HTMLParser
+
+        class Locate(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.stack = []
+                self.parents = {}
+
+            def handle_starttag(self, tag, attrs):
+                attrs = dict(attrs)
+                key = attrs.get("id") or ("." + attrs.get("class", ""))
+                self.parents[key] = tuple(self.stack)
+                if tag not in ("meta", "link", "img", "input", "br", "hr",
+                               "source", "path"):
+                    self.stack.append((tag, key))
+
+            def handle_endtag(self, tag):
+                if tag in ("meta", "link", "img", "input", "br", "hr",
+                           "source", "path"):
+                    return
+                for i in range(len(self.stack) - 1, -1, -1):
+                    if self.stack[i][0] == tag:
+                        del self.stack[i:]
+                        return
+
+        html = (ROOT / "ui/wasm/genycaster-shell.html").read_text()
+        parser = Locate()
+        parser.feed(html)
+        popup = parser.parents["native-downloads-options"]
+        self.assertIn(("section", "native-downloads-dialog"), popup)
+        self.assertNotIn(("div", ".native-downloads-viewport"), popup)
+        brand = parser.parents[".native-downloads-brand-frame"]
+        self.assertIn(("header", ".native-downloads-header"), brand)
+
+        js = (ROOT / "ui/wasm/native-downloads.js").read_text()
+        css = (ROOT / "ui/wasm/native-downloads.css").read_text()
+        for contract in (
+            "function layoutOptions()",
+            "architectureOptions.style.left",
+            "architectureOptions.style.top",
+            "architectureOptions.style.width",
+            '"scroll", layoutOptions',
+            '"resize", layoutOptions',
+            'architectureOptions.querySelector',
+            '[".native-downloads-brand-frame", 16]',
+        ):
+            self.assertIn(contract, js)
+        for contract in (
+            "#native-downloads-dialog > #native-downloads-options",
+            "z-index:320",
+            "overscroll-behavior:contain",
+            ".native-downloads-brand-frame.nd-squircle",
+            ".native-downloads-brand-frame .native-downloads-mark",
+        ):
+            self.assertIn(contract, css)
+        self.assertIn('class="native-downloads-brand-frame"', html)
+        self.assertIn('src="./genycaster-icon.svg"', html)
+
     def test_browser_skin_deploy_is_atomic_and_does_not_replace_qt(self):
         script = (ROOT / "ci/deploy_browser_chrome.py").read_text()
         self.assertIn('ROOT = Path("/var/www/genycaster.xyz/public")', script)
