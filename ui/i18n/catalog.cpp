@@ -1063,8 +1063,14 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.mark_document_reviewed");
     //% "Open the official document and review the summary to continue."
     (void)qtTrId("genycaster.setup.open_governing_document");
-    //% "Farcaster recovery could not be verified. Check your connection and try again."
+    //% "Account recovery could not be verified. Review your recovery words and selected protocol, then retry."
     (void)qtTrId("genycaster.setup.recovery_failed_retry");
+    //% "These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry."
+    (void)qtTrId("genycaster.setup.hypersnap_recovery_not_found");
+    //% "The HyperSnap account registry is unavailable. Check your network connection and try again."
+    (void)qtTrId("genycaster.setup.hypersnap_recovery_unavailable");
+    //% "This recovery phrase is invalid. Check all 24 words, their order and spelling."
+    (void)qtTrId("genycaster.setup.recovery_phrase_invalid");
     //% "Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in."
     (void)qtTrId("genycaster.setup.auth_rejected_recover");
     //% "The sign-in service could not complete the verification. Retry or use the other sign-in method."
