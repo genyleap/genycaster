@@ -198,18 +198,19 @@ def blockers() -> list[str]:
                  "ui/wasm/miniapp-wallet-provider.mjs"):
         if not (ROOT / path).is_file():
             errors.append(f"Web: missing SDK implementation: {path}")
-    # Keep the WASM origin distinct from the genycaster.xyz company site.
-    if not all(f'-D{key}=https://app.genycaster.xyz' in web
+    # The primary WASM application now lives at the canonical genycaster.xyz
+    # origin. Refuse a separate login/app origin in public Release builds.
+    if not all(f'-D{key}=https://genycaster.xyz' in web
                for key in ("GENYCASTER_PUBLIC_ORIGIN",
                            "GENYCASTER_SIWF_ORIGIN")):
-        errors.append("Web: v1 WebAssembly origin must be app.genycaster.xyz")
+        errors.append("Web: primary WebAssembly origin must be genycaster.xyz")
     deploy = read("ci/build_deploy_wasm_server.sh")
     if not all(proof in deploy for proof in (
-            'app_origin="https://app.genycaster.xyz"',
-            '/var/www/app.genycaster.xyz/public',
+            'app_origin="https://genycaster.xyz"',
+            '/var/www/genycaster.xyz/public',
             'GENYCASTER_SITE_URL',
             'Cross-origin WASM deployment is not permitted')):
-        errors.append("Web: production deployment is not confined to app.genycaster.xyz")
+        errors.append("Web: production deployment is not confined to genycaster.xyz")
 
     # The deferred Wallet *product* is not the Mini App external wallet
     # transport. A release that disables or disconnects the actual external

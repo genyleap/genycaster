@@ -33,8 +33,12 @@ class ReleaseFeatureContractTest(unittest.TestCase):
             app = read("src/application/CMakeLists.txt")
             browser_feature = ("if(EMSCRIPTEN AND FARCASTER_BUILD_UI)" in app
                                and "set(FARCASTER_ENABLE_MINIAPPS_CPP true)" in app)
+            browser_sdk_blocked = any(
+                item.startswith("Web: browser Mini App SDK")
+                or item.startswith("Web: missing SDK implementation:")
+                for item in current)
             self.assertEqual(
-                browser_feature, not any(item.startswith("Web:") for item in current),
+                browser_feature, not browser_sdk_blocked,
                 "Native Mini Apps OFF must still advertise a bundled browser SDK")
 
     def test_complete_native_mini_apps_are_required(self):
