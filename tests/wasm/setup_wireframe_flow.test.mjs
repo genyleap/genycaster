@@ -858,7 +858,7 @@ test('interrupted Farcaster registration can restore offline custody without a s
   assert.match(bridge,/nativeFarcasterRecoveryRequested\(std::move\(recoveryWords\)\)/);
   assert.match(runtime,/resolveRecoveryCustodyFid\(\*runtime->transport, \*address/);
   assert.match(runtime,/makeOneShotRecoveryAuthorizer\(/);
-  assert.match(runtime,/commitVerifiedIdentity\(fid, address, std::move\(\*permit\), true\)/);
+  assert.match(runtime,/commitVerifiedIdentity\(fid, address, std::move\(\*permit\), true,\s*secret\)/);
   assert.doesNotMatch(qml,/farcaster\.xyz\/~\/signup/);
 });
 
