@@ -33,6 +33,7 @@ if args.source:
         "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png",
         "genycaster-192.png", "genycaster-512.png",
         "genycaster.webmanifest", "genycaster-icon.svg", "secure_signer_vault.mjs",
+        "native-downloads.js", "native-downloads.css", "native-releases.json",
         "farcaster_protocol.mjs", "browser_protocol_signer.mjs",
         "browser_device_session.mjs", "browser_account_session.mjs", "browser_media_upload.mjs", "farcaster_recovery.mjs",
         "openproof_recovery.mjs", "recovery-phrase-dialog.mjs",
@@ -47,7 +48,8 @@ if args.source:
                 if rel=="genycaster.webmanifest" else
                 source.parent/"assets/icons/genyleap/icons/actions/repost.svg"
                 if rel=="genycaster-update-icon.svg" else source/rel)
-        dest=directory/("genycaster.html" if rel=="genycaster-shell.html" else rel)
+        dest=directory/("genycaster.html" if rel=="genycaster-shell.html" else
+                        "releases/native.json" if rel=="native-releases.json" else rel)
         if not origin.is_file():
             parser.error(f"Missing public asset: {origin}")
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -97,6 +99,7 @@ public = ["genycaster.html", "qtloader.js", "genycaster.js",
           "recovery-phrase-dialog.mjs", "farcaster_recovery.mjs",
           "openproof_recovery.mjs", "browser_protocol_signer.mjs", "browser_device_session.mjs", "browser_account_session.mjs",
           "browser_media_upload.mjs", "deployment_config.mjs", "farcaster_protocol.mjs", "secure_signer_vault.mjs",
+          "native-downloads.js", "native-downloads.css", "releases/native.json",
           "vendor/noble-secp256k1.mjs", "vendor/bip39-english.mjs",
           "miniapp-host-pre.js", "miniapp-host-bridge.mjs",
           "genycaster-walletconnect.mjs", "vendor/hls-1.6.15.min.js",
@@ -119,7 +122,7 @@ public = [name for name in public if (directory / name).is_file()]
 html_path = directory / "genycaster.html"
 scripts = ("qtloader.js", "genycaster.js",
            "genycaster-assets.js", "genycaster-loader.js",
-           "miniapp-host-bridge.mjs")
+           "miniapp-host-bridge.mjs", "native-downloads.js")
 html = html_path.read_text(encoding="utf-8")
 # The HTML source never owns a version. CMake passes its authoritative release
 # product and version values to this packager independently.
@@ -139,6 +142,8 @@ for script in scripts:
     html = re.sub(
         r'(?<=src=")' + re.escape(script) + r'\?v=[a-f0-9]{20}(?=")',
         script, html)
+html = re.sub(r'(?<=href=")native-downloads\.css\?v=[a-f0-9]{20}(?=")',
+              "native-downloads.css", html)
 html_path.write_text(html, encoding="utf-8")
 checksums = {name: digest(directory / name) for name in public}
 # The WebKit runtime explicitly fetches the gzip sidecar. Treat it as a
@@ -175,6 +180,8 @@ fingerprint = hashlib.sha256(json.dumps({
 for script in scripts:
     html = html.replace(f'src="{script}"',
                         f'src="{script}?v={fingerprint}"')
+html = html.replace('href="native-downloads.css"',
+                    f'href="native-downloads.css?v={fingerprint}"')
 html_path.write_text(html, encoding="utf-8")
 # The release identity hashes the canonical HTML; integrity verifies the
 # actual stamped HTML delivered to browsers.
