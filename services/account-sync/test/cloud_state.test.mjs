@@ -288,10 +288,10 @@ test('native session cookie with CSRF may quote without Origin; browser cross-or
   const sendPublicHost=(headers={})=>new Promise((resolve,reject)=>{
     const url=new URL(path);
     const req=httpRequest({hostname:url.hostname,port:url.port,path:url.pathname,
-      method:'POST',headers:{host:'app.genycaster.xyz',
+      method:'POST',headers:{host:'genycaster.xyz',
         cookie:'__Host-genycaster-account='+cookie,
         'x-genycaster-csrf':csrf,'content-type':'application/json',
-        origin:'https://app.genycaster.xyz','sec-fetch-site':'same-origin',
+        origin:'https://genycaster.xyz','sec-fetch-site':'same-origin',
         ...headers}},
       response=>{response.resume();response.on('end',()=>resolve(response.statusCode));});
     req.on('error',reject);
@@ -316,10 +316,10 @@ test('native session cookie with CSRF may quote without Origin; browser cross-or
     assert.equal(wrongSubject.status,401);
     await wrongSubject.arrayBuffer();
     storedSubject=principal;
-    // Dedicated WASM hostname has its own host-only cookie, same-origin
-    // browser request and app-specific Nginx Host header.
+    // The canonical WASM hostname and account API share one host-only cookie.
     assert.equal(await sendPublicHost(),200);
-    assert.equal(await sendPublicHost({host:'genycaster.xyz'}),403);
+    assert.equal(await sendPublicHost({
+      host:'app.genycaster.xyz',origin:'https://app.genycaster.xyz'}),403);
     assert.equal(await sendPublicHost({
       origin:'https://app.genycaster.xyz.evil.invalid'}),403);
     assert.equal(await sendPublicHost({'sec-fetch-site':'cross-site'}),403);
