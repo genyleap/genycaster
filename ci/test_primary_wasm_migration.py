@@ -119,6 +119,58 @@ class PrimaryMigrationTests(unittest.TestCase):
         self.assertIn('verified unchanged engine', script.lower())
         self.assertIn('Qt/QML Changes require a separate latest-main WASM binary.', script)
 
+    def test_real_superellipse_bezier_is_smooth_responsive_and_bounded(self):
+        js = (ROOT / "ui/wasm/native-downloads.js").read_text()
+        css = (ROOT / "ui/wasm/native-downloads.css").read_text()
+        shell = (ROOT / "ui/wasm/genycaster-shell.html").read_text()
+        qml = (ROOT / "ui/components/visual/Superellipse.qml").read_text()
+        self.assertIn('const k = (8 * Math.pow(0.5, 0.25) - 4) / 3;', js)
+        self.assertIn("const diagonal = Math.pow(0.5, 1 / safeExponent)", qml)
+        self.assertIn('new ResizeObserver(entries =>', js)
+        self.assertIn('shapeObserver.unobserve(previous)', js)
+        self.assertIn('path.setAttribute("vector-effect", "non-scaling-stroke")', js)
+        self.assertIn('svg.setAttribute("aria-hidden", "true")', js)
+        self.assertIn('svg.setAttribute("focusable", "false")', js)
+        self.assertIn('pointer-events:none', css)
+        self.assertIn('stroke-linejoin:round', css)
+        self.assertIn('.native-downloads-viewport', css)
+        self.assertIn('<div class="native-downloads-viewport">', shell)
+        self.assertIn('#native-downloads-architecture svg:not(.nd-squircle-svg)', css)
+        if not shutil.which("node"):
+            return
+        # Execute the actual geometry function, not a copied test formula.
+        # A full QML runtime is not necessary for continuity/geometry checks.
+        node_test = r"""
+const fs=require('fs');
+const vm=require('vm');
+const src=fs.readFileSync(process.argv[1],'utf8');
+const a=src.indexOf('    function superellipsePath(');
+const b=src.indexOf('    function drawShape(',a);
+if(a<0||b<0)throw Error('geometry source missing');
+const context={};
+vm.runInNewContext(src.slice(a,b),context,{timeout:1500});
+for(const [width,height,radius,mobile] of [
+    [550,600,43,false],[390,680,43,true],
+    [42,42,20,false],[160,46,20,false]]) {
+    const path=context.superellipsePath(width,height,radius,mobile);
+    if(!path.endsWith('Z') || (path.match(/ C /g)||[]).length!==4)
+        throw Error('invalid superellipse segments');
+    if(/NaN|Infinity|undefined/.test(path))throw Error('invalid geometry');
+    const numbers=path.split(' ').filter(x=>!/[MLCZ]/.test(x)).map(Number);
+    if(numbers.some(n=>n<0 || n>Math.max(width,height)))
+        throw Error('path overflow');
+    if(mobile && !path.includes('L '+(width-.65)+' '+(height-.65)))
+        throw Error('mobile sheet does not preserve flat bottom');
+}
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "shape-test.cjs"
+            source.write_text(node_test)
+            result = subprocess.run(
+                ["node", str(source), str(ROOT / "ui/wasm/native-downloads.js")],
+                capture_output=True, text=True, timeout=6)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_unreleased_platforms_never_get_invented_links(self):
         catalog = json.loads(
             (ROOT / "ui/wasm/native-releases.json").read_text(encoding="utf-8"))
