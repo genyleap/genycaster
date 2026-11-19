@@ -88,8 +88,12 @@ class AppSiteActivationTest(unittest.TestCase):
 
     def test_https_marker_requires_exact_content_and_origin(self):
         with patch.object(site.urllib.request, "urlopen",
-                          return_value=Response(site.MARKER)):
+                          return_value=Response(site.MARKER)) as opened:
             site.check_public_marker()
+            request = opened.call_args.args[0]
+            self.assertEqual(request.full_url, site.PROBE)
+            self.assertEqual(request.get_header("User-agent"), "curl/8.5.0")
+            self.assertEqual(request.get_header("Cache-control"), "no-cache")
         for response in (
             Response("Genyleap System Status"),
             Response("genycaster-app-v1\n"),
