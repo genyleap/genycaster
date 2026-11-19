@@ -5868,6 +5868,14 @@ Company | https://company.com</source>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>Farcaster 신원 또는 Genyleap 계정을 사용하세요. 각 로그인은 독립적으로 검증되며 읽기 네트워크는 변경되지 않습니다.</translation>
         </message>
+        <message id="genycaster.setup.browser_native_registration_notice">
+            <source>Native wallet creation is not available in the browser. Use a verified identity provider or install the desktop app.</source>
+            <translation>브라우저에서 네이티브 지갑을 만드는 기능은 아직 제공되지 않습니다. 인증된 계정 제공업체 또는 데스크톱 앱을 사용하세요.</translation>
+        </message>
+        <message id="genycaster.setup.browser_hypersnap_recovery_notice">
+            <source>HyperSnap recovery with a phrase is not available in the browser. Continue with your linked Genyleap account.</source>
+            <translation>브라우저에서 복구 문구로 HyperSnap을 복원하는 기능은 아직 제공되지 않습니다. 연결된 Genyleap 계정으로 계속하세요.</translation>
+        </message>
         <message id="genycaster.setup.choose_protocol">
             <source>Choose a protocol</source>
             <translation>프로토콜 선택</translation>

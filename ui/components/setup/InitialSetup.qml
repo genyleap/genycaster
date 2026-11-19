@@ -1655,7 +1655,7 @@ Item {
                     spacing: Theme.space3
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.native_registration_signing_unavailable")
+                        text: qsTrId("genycaster.setup.browser_native_registration_notice")
                         color: Theme.warning
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2529,6 +2529,7 @@ Item {
             // identity methods are secondary alternatives.
             SetupActionCard {
                 visible: root.existingProtocolSelected && !root.authenticated
+                         && (!root.browserReadOnly || root.recoveryProtocol === "farcaster-snapchain")
                 Layout.fillWidth: true
                 compactCard: true
                 onboardingStyle: true
@@ -2552,8 +2553,7 @@ Item {
                 visible: root.browserReadOnly && root.existingProtocolSelected
                     && !root.authenticated && root.recoveryProtocol === "hypersnap-v2"
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.setup.native_registration_signing_unavailable")
-                    + " · " + qsTrId("genycaster.shell.continue_with_genyleap")
+                text: qsTrId("genycaster.setup.browser_hypersnap_recovery_notice")
                 color: Theme.warning
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap

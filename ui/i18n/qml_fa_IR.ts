@@ -5893,6 +5893,14 @@ Company | https://company.com</source>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>چگونه می‌خواهید در جنی‌کستر ادامه دهید؟</translation>
         </message>
+        <message id="genycaster.setup.browser_native_registration_notice">
+            <source>Native wallet creation is not available in the browser. Use a verified identity provider or install the desktop app.</source>
+            <translation>ساخت کیف پول بومی در مرورگر هنوز در دسترس نیست. از ارائه‌دهندهٔ هویت تأییدشده استفاده کنید یا نسخهٔ دسکتاپ را نصب کنید.</translation>
+        </message>
+        <message id="genycaster.setup.browser_hypersnap_recovery_notice">
+            <source>HyperSnap recovery with a phrase is not available in the browser. Continue with your linked Genyleap account.</source>
+            <translation>بازیابی هایپراسنپ با واژه‌های بازیابی در مرورگر هنوز در دسترس نیست. با حساب پیوندخوردهٔ جنی‌لیپ ادامه دهید.</translation>
+        </message>
         <message id="genycaster.setup.choose_protocol">
             <source>Choose a protocol</source>
             <translation>انتخاب پروتکل</translation>

@@ -5893,6 +5893,14 @@ Company | https://company.com</translation>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>How do you want to continue with GenyCaster?</translation>
         </message>
+        <message id="genycaster.setup.browser_native_registration_notice">
+            <source>Native wallet creation is not available in the browser. Use a verified identity provider or install the desktop app.</source>
+            <translation>Native wallet creation is not available in the browser. Use a verified identity provider or install the desktop app.</translation>
+        </message>
+        <message id="genycaster.setup.browser_hypersnap_recovery_notice">
+            <source>HyperSnap recovery with a phrase is not available in the browser. Continue with your linked Genyleap account.</source>
+            <translation>HyperSnap recovery with a phrase is not available in the browser. Continue with your linked Genyleap account.</translation>
+        </message>
         <message id="genycaster.setup.choose_protocol">
             <source>Choose a protocol</source>
             <translation>Choose a protocol</translation>
