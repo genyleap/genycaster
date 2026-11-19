@@ -24,22 +24,22 @@ while (($#)); do
         *) echo "Unsupported public deployment key: $key" >&2; exit 2 ;;
       esac
       shift 2 ;;
-    --help|-h) echo "Usage: GENYCASTER_SITE_URL=https://app.genycaster.xyz bash ci/build_deploy_wasm_server.sh [--build-dir /absolute/path] [--web-root /var/www/app.genycaster.xyz/public]"; exit 0 ;;
+    --help|-h) echo "Usage: GENYCASTER_SITE_URL=https://genycaster.xyz bash ci/build_deploy_wasm_server.sh [--build-dir /absolute/path] [--web-root /var/www/genycaster.xyz/public]"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
 
-# WebAssembly production is explicitly confined to app.genycaster.xyz.
-# Never treat the company landing site (genycaster.xyz) as a WASM web root.
+# WebAssembly production is scoped to the canonical genycaster.xyz root.
+# Preserve the former landing page at /about/; never overwrite index.html.
 # Check these before running a potentially lengthy server-side Qt build.
 if [[ -n "$web_root" ]]; then
-  app_origin="https://app.genycaster.xyz"
+  app_origin="https://genycaster.xyz"
   if [[ "${GENYCASTER_SITE_URL:-}" != "$app_origin" ]]; then
     echo "WASM deployment requires GENYCASTER_SITE_URL=$app_origin" >&2
     exit 2
   fi
-  if [[ "$web_root" != "/var/www/app.genycaster.xyz/public" ]]; then
-    echo "WASM deployment must target the dedicated app.genycaster.xyz web root" >&2
+  if [[ "$web_root" != "/var/www/genycaster.xyz/public" ]]; then
+    echo "WASM deployment must target the dedicated genycaster.xyz web root" >&2
     exit 2
   fi
   for definition in "${deployment_defines[@]}"; do
@@ -63,8 +63,8 @@ if [[ -n "$web_root" ]]; then
   marker="$(curl --fail --silent --show-error --connect-timeout 5 --max-time 12 \\
     --proto '=https' --max-redirs 0 \\
     "$app_origin/.well-known/genycaster-ready" || true)"
-  if [[ "$marker" != 'genycaster-app-v1' ]]; then
-    echo "WASM deployment rejected: app.genycaster.xyz is not serving the dedicated HTTPS vhost readiness marker" >&2
+  if [[ "$marker" != 'genycaster-main-v1' ]]; then
+    echo "WASM deployment rejected: genycaster.xyz is not serving the canonical HTTPS WASM vhost readiness marker" >&2
     exit 2
   fi
 fi
@@ -130,8 +130,8 @@ if [[ "$web_root" != /* ]]; then
   echo "--web-root must be an existing absolute path" >&2; exit 2
 fi
 web_root="$(realpath -e "$web_root")"
-if [[ "$web_root" != "/var/www/app.genycaster.xyz/public" ]]; then
-  echo "Resolved WASM root does not match app.genycaster.xyz" >&2; exit 2
+if [[ "$web_root" != "/var/www/genycaster.xyz/public" ]]; then
+  echo "Resolved WASM root does not match genycaster.xyz" >&2; exit 2
 fi
 if [[ ! -d "$web_root" || "$web_root" == "/" ||
       "$web_root" == "$repo_root" || "$web_root" == "$repo_root/"* ]]; then
