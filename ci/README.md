@@ -101,37 +101,37 @@ broken. Release configurations require a secure signer vault.
 
 ## Building and updating the canonical WebAssembly site on the VPS
 
-**Canonical URL:** \`https://genycaster.xyz/\` serves the app. The preserved
-landing lives at \`/about/\`, downloads at \`/download\`, and the existing
-host-only account API continues under \`/api/v1/cloud/\`.
-\`https://app.genycaster.xyz\` is a legacy preview origin and is **not**
+**Canonical URL:** `https://genycaster.xyz/` serves the app. The preserved
+landing lives at `/about/`, downloads at `/download`, and the existing
+host-only account API continues under `/api/v1/cloud/`.
+`https://app.genycaster.xyz` is a legacy preview origin and is **not**
 the canonical destination for any future WASM release.
 
 For the reviewed, rollback-safe migration from the former landing page,
 follow [PRIMARY_WASM_MIGRATION.md](PRIMARY_WASM_MIGRATION.md). The verified
 origin-consistent preview files have been staged and promoted to the primary
-web root while leaving \`index.html\` untouched. The final live Nginx switch
+web root while leaving `index.html` untouched. The final live Nginx switch
 requires explicit authorized root access:
 
-\`\`\`bash
+```bash
 cd /opt/genycaster/repository
 git pull --ff-only
 python3 ci/verify_primary_preview_payload.py /var/www/genycaster.xyz/public
 sudo python3 ci/activate_primary_wasm_site.py --apply
 curl -fsS https://genycaster.xyz/.well-known/genycaster-ready
 # expected: genycaster-main-v1
-\`\`\`
+```
 
 The local certificate and Nginx origin checks cannot be weakened or skipped.
 An origin failure triggers Nginx rollback; a Cloudflare-only failure leaves
 the healthy origin active and is reported separately.
 
-After the canonical vhost serves the app, a current-\`main\` WASM build can
+After the canonical vhost serves the app, a current-`main` WASM build can
 be performed directly on the VPS with its installed Qt 6.12 single-thread
 WASM SDK, Qt host tools and Emscripten 5.0.5. This avoids GitHub Actions
 usage:
 
-\`\`\`bash
+```bash
 cd /opt/genycaster/repository
 source /opt/genycaster/emsdk/emsdk_env.sh
 export QT_ROOT_DIR=/opt/genycaster/Qt/6.12.0/wasm_singlethread
@@ -139,19 +139,19 @@ export QT_HOST_PATH=/opt/genycaster/Qt/6.12.0/gcc_64
 export GENYCASTER_SITE_URL=https://genycaster.xyz
 bash ci/build_deploy_wasm_server.sh \
   --web-root /var/www/genycaster.xyz/public
-\`\`\`
+```
 
 The deployment script requires the exact canonical marker before touching
-the root, forces \`GENYCASTER_PUBLIC_ORIGIN\` and \`GENYCASTER_SIWF_ORIGIN\`
-to \`https://genycaster.xyz\`, verifies the complete package, stages assets,
+the root, forces `GENYCASTER_PUBLIC_ORIGIN` and `GENYCASTER_SIWF_ORIGIN`
+to `https://genycaster.xyz`, verifies the complete package, stages assets,
 preserves immutable WASM versions and promotes HTML last.
 
 **Native download invitation:** The WASM shell now contains an adaptive,
 accessible desktop dialog/mobile bottom sheet. The default
-\`/releases/native.json\` catalog is intentionally empty; it cannot advertise
+`/releases/native.json` catalog is intentionally empty; it cannot advertise
 an unsigned, unpublished or absent installer. After an official tagged GitHub
 Release passes integrity/signing gates, use
-\`ci/generate_native_release_catalog.py\` to generate the app and preserved
+`ci/generate_native_release_catalog.py` to generate the app and preserved
 landing catalogs from the same verified native release assets. Never paste
 a speculative GitHub download URL into a manifest.
 
