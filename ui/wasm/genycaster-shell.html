@@ -198,10 +198,19 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
     <button type="button" data-native-platform="android" aria-pressed="false">Android</button>
   </div>
   <div class="native-downloads-configuration">
-    <label class="native-downloads-label" for="native-downloads-architecture">
+    <span class="native-downloads-label" id="native-downloads-architecture-label">
       <span id="native-downloads-platform">Windows</span> architecture
-    </label>
-    <select id="native-downloads-architecture"></select>
+    </span>
+    <div class="native-downloads-combobox">
+      <button id="native-downloads-architecture" type="button" aria-haspopup="listbox"
+              aria-expanded="false" aria-controls="native-downloads-options"
+              aria-labelledby="native-downloads-architecture-label native-downloads-architecture-value">
+        <span id="native-downloads-architecture-value">x86_64</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div id="native-downloads-options" role="listbox"
+           aria-label="Processor architecture" hidden></div>
+    </div>
   </div>
   <div class="native-downloads-result">
     <span class="native-downloads-dot" aria-hidden="true"></span>
@@ -212,6 +221,21 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
     <a class="native-downloads-secondary" href="https://github.com/genyleap/genycaster/releases"
        target="_blank" rel="noopener noreferrer">View releases</a>
   </div>
+  <aside class="native-github-cta" aria-label="Support open-source development">
+    <span class="native-github-cta-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none"><path d="m12 2.9 2.78 5.65 6.24.91-4.51 4.39 1.07 6.21L12 17.13l-5.58 2.93 1.07-6.21-4.51-4.39 6.24-.91L12 2.9Z"/></svg>
+    </span>
+    <div class="native-github-cta-copy">
+      <strong>Built in the open.</strong>
+      <span>Enjoying GenyCaster? A star helps others discover the project.</span>
+    </div>
+    <a id="native-github-star" href="https://github.com/genyleap/genycaster"
+       target="_blank" rel="noopener noreferrer"
+       aria-label="Star GenyCaster on GitHub (opens the repository)">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 2.9 2.78 5.65 6.24.91-4.51 4.39 1.07 6.21L12 17.13l-5.58 2.93 1.07-6.21-4.51-4.39 6.24-.91L12 2.9Z"/></svg>
+      <span>Star on GitHub</span><span class="native-cta-external" aria-hidden="true">↗</span>
+    </a>
+  </aside>
   <p class="native-downloads-foot">
     Downloads appear only after publishing and integrity review. You can continue using the WebAssembly edition.
   </p>
