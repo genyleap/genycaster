@@ -1545,22 +1545,76 @@ qt_add_qml_module(genycaster
         wasm/genycaster-wordmark-dark.svg
 )
 
-# The source GLSL lives alongside portable Qt 6.12 QSB variants, matching
-# the project's existing setup_glass_g shader packaging. Do not require the
-# host ShaderTools add-on in every Android/iOS/Linux/macOS release job.
-# QSB was baked with the 6.12 ShaderTools host SDK. Every change to one
-# GLSL source requires rebuilding and committing its corresponding QSB for
-# macOS Metal, Windows D3D, Linux Vulkan/OpenGL and WebAssembly.
-qt_add_resources(genycaster genycaster_surface_effects
-    PREFIX "/genycaster/effects"
-    BASE "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
-    FILES
-        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/gaussian.frag.qsb"
-        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/reflection-gaussian.frag.qsb"
-        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/reflection.frag.qsb"
-        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/neon.frag.qsb"
-        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/transparent.png"
-)
+# Native packages use the reviewed precompiled ShaderTools bundle.
+# WASM MUST NOT reuse its WebGL1 (GLSL ES100) derivatives-based variants:
+# some browser drivers lack GL_OES_standard_derivatives. Those shaders fail
+# pipeline compilation on every frame and can starve image/scene rendering.
+# Generate a derivative-free WebGL1/2 subset at WASM build time, keeping all
+# desktop/Android shader binaries and their visual quality unchanged.
+if(EMSCRIPTEN)
+    find_package(Qt6 REQUIRED COMPONENTS ShaderTools)
+    set(_genycasterWebglShaderRoot "${CMAKE_CURRENT_BINARY_DIR}/generated/webgl-shaders")
+    file(MAKE_DIRECTORY "${_genycasterWebglShaderRoot}")
+    set(_genycasterWebglShaders)
+    foreach(_shader IN ITEMS neon reflection gaussian reflection-gaussian)
+        file(READ "${CMAKE_CURRENT_SOURCE_DIR}/shaders/${_shader}.frag" _shaderText)
+        if(_shader STREQUAL "neon" OR _shader STREQUAL "reflection")
+            string(FIND "${_shaderText}" "fwidth(sdf)" _hasDerivative)
+            if(_hasDerivative EQUAL -1)
+                message(FATAL_ERROR "WebGL compatibility audit: missing expected derivative in ${_shader}")
+            endif()
+            # SDF coordinates are already in logical pixels. One pixel of
+            # analytic AA works in WebGL1 and avoids extension-dependent fwidth.
+            string(REPLACE "fwidth(sdf)" "1.0" _shaderText "${_shaderText}")
+        endif()
+        if(_shader STREQUAL "reflection")
+            string(FIND "${_shaderText}"
+                "length(vec2(dFdx(edgeSdf), dFdy(edgeSdf)))" _hasEdgeDerivatives)
+            if(_hasEdgeDerivatives EQUAL -1)
+                message(FATAL_ERROR "WebGL compatibility audit: missing reflection edge derivatives")
+            endif()
+            string(REPLACE
+                "length(vec2(dFdx(edgeSdf), dFdy(edgeSdf)))" "1.0"
+                _shaderText "${_shaderText}")
+        endif()
+        if(_shader STREQUAL "gaussian" OR _shader STREQUAL "reflection-gaussian")
+            # Eight bilinear pairs per axis, rather than 24. Qt WebAssembly
+            # has no spare GPU cycles for a 48-pair full-screen backdrop blur.
+            # The normalised separable kernel preserves overall intensity.
+            string(REPLACE "i <= 47" "i <= 15" _shaderText "${_shaderText}")
+            string(REPLACE "544.5" "128.0" _shaderText "${_shaderText}")
+        endif()
+        if(_shaderText MATCHES "fwidth\\(|dFdx\\(|dFdy\\(")
+            message(FATAL_ERROR "WebGL1 shader still requires derivatives: ${_shader}")
+        endif()
+        set(_shaderFile "${_genycasterWebglShaderRoot}/${_shader}.frag")
+        file(WRITE "${_shaderFile}" "${_shaderText}")
+        list(APPEND _genycasterWebglShaders "${_shaderFile}")
+    endforeach()
+    qt_add_shaders(genycaster genycaster_surface_effects_webgl
+        PREFIX "/genycaster/effects"
+        BASE "${_genycasterWebglShaderRoot}"
+        GLSL "100 es,300 es"
+        FILES ${_genycasterWebglShaders})
+    qt_add_resources(genycaster genycaster_surface_effects_texture
+        PREFIX "/genycaster/effects"
+        BASE "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+        FILES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/transparent.png")
+    unset(_genycasterWebglShaders)
+    unset(_genycasterWebglShaderRoot)
+    unset(_shaderFile)
+    unset(_shaderText)
+else()
+    qt_add_resources(genycaster genycaster_surface_effects
+        PREFIX "/genycaster/effects"
+        BASE "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+        FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/gaussian.frag.qsb"
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/reflection-gaussian.frag.qsb"
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/reflection.frag.qsb"
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/neon.frag.qsb"
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/transparent.png")
+endif()
 
 target_include_directories(genycaster
     PRIVATE
