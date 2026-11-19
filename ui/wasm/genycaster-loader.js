@@ -7,24 +7,51 @@ const track=$("boot-track");
 // Browser chrome is separate from the Qt canvas. Match the actual Qt theme
 // after initialization; HTML defaults dark until the Qt bridge is ready.
 // The installed web app's status bar follows the theme when the host allows it.
-function applyBrowserChromeTheme(dark, remember=true) {
+// Matching the Theme.qml accent presets (without guessing from browser CSS).
+// Qt sends its effective color theme on each appearance change. Older WASM
+// binaries may send dark alone; they retain a coarse OS-accent fallback.
+const chromePalette={
+    geny:["#315CF5","#829AFF"],ocean:["#1289A8","#63C6DE"],
+    violet:["#7047EB","#AB91FF"],ember:["#C95B35","#F39A77"],
+    rose:["#D83E8A","#FF79B7"],mint:["#0F8F78","#61D7BD"],
+    mono:["#17181B","#F4F5F8"]
+};
+function browserPlatformAccent(){
+    const platform=String(navigator.userAgentData?.platform||navigator.platform||"");
+    const userAgent=String(navigator.userAgent||"");
+    if(/Android/i.test(platform+" "+userAgent))return "#3DDC84";
+    if(/Mac|iPad|iPhone/i.test(platform+" "+userAgent))return "#007AFF";
+    if(/Win/i.test(platform+" "+userAgent))return "#0078D4";
+    if(/Linux/i.test(platform+" "+userAgent))return "#3584E4";
+    return "#315CF5";
+}
+function applyBrowserChromeTheme(dark, themeId="platform", customAccent="", platformAccent="", remember=true) {
     const color=dark?"#0b0c0f":"#f1f1f3";
-    document.documentElement.setAttribute("data-chrome-theme",dark?"dark":"light");
+    const root=document.documentElement;
+    root.setAttribute("data-chrome-theme",dark?"dark":"light");
     const meta=document.querySelector('meta[name="theme-color"]');
     if(meta)meta.setAttribute("content",color);
+    const index=dark?1:0;
+    const validHex=value=>typeof value==="string"&&/^#[a-fA-F0-9]{6}$/.test(value);
+    const accent=themeId==="custom"&&validHex(customAccent)?customAccent:
+        themeId==="platform"?(validHex(platformAccent)?platformAccent:browserPlatformAccent()):
+        Object.prototype.hasOwnProperty.call(chromePalette,themeId)?
+            chromePalette[themeId][index]:browserPlatformAccent();
+    root.style.setProperty("--nd-accent",accent);
+    // White/near-white accent presets have dark ink, matching Theme.contrastInk.
+    const rgb=parseInt(accent.slice(1),16);
+    const luminance=(0.2126*((rgb>>16)&255)+0.7152*((rgb>>8)&255)+0.0722*(rgb&255))/255;
+    root.style.setProperty("--nd-on-accent",luminance>0.72?"#17181B":"#FFFFFF");
     if(remember){
         try { localStorage.setItem("genycaster.browser.chrome.v1",dark?"dark":"light"); }
         catch (_) { /* optional appearance cache, never block Qt startup */ }
     }
-    // Some browser engines choose installed PWA status-bar behavior at install
-    // time. Updating a meta tag after boot may not restyle an installed app;
-    // do not force the legacy black-translucent mode.
 }
 window.__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme;
 // Keep the early, OS- or user-selected appearance until Qt reports its real
 // theme. Forcing dark here can paint a dark status bar over light pages.
 applyBrowserChromeTheme(
-    document.documentElement.getAttribute?.("data-chrome-theme") !== "light", false);
+    document.documentElement.getAttribute?.("data-chrome-theme") !== "light", undefined, undefined, undefined, false);
 let finished=false, failed=false;
 let qtRuntimeLoaded=false, qmlRootReady=false, accountRestoreSettled=false;
 // A provisional browser Guest state must not expose Setup before the
