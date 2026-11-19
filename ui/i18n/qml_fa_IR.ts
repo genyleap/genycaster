@@ -5893,6 +5893,14 @@ Company | https://company.com</source>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>چگونه می‌خواهید در جنی‌کستر ادامه دهید؟</translation>
         </message>
+        <message id="genycaster.setup.choose_protocol">
+            <source>Choose a protocol</source>
+            <translation>انتخاب پروتکل</translation>
+        </message>
+        <message id="genycaster.setup.choose_protocol_description">
+            <source>Choose Farcaster or HyperSnap to continue.</source>
+            <translation>برای ادامه، فارکستر یا هایپراسنپ را انتخاب کنید.</translation>
+        </message>
         <message id="genycaster.setup.registration_choose_provider">
             <source>Choose your registration network</source>
             <translation>شبکهٔ ثبت‌نام خود را انتخاب کنید</translation>

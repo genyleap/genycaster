@@ -5868,6 +5868,14 @@ Company | https://company.com</source>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>Use sua identidade Farcaster ou conta Genyleap. Cada login é verificado independentemente e nenhum altera sua rede de leitura.</translation>
         </message>
+        <message id="genycaster.setup.choose_protocol">
+            <source>Choose a protocol</source>
+            <translation>Escolha um protocolo</translation>
+        </message>
+        <message id="genycaster.setup.choose_protocol_description">
+            <source>Choose Farcaster or HyperSnap to continue.</source>
+            <translation>Escolha Farcaster ou HyperSnap para continuar.</translation>
+        </message>
         <message id="genycaster.setup.registration_choose_provider">
             <source>Choose your registration network</source>
             <translation>Escolha a rede de registro</translation>

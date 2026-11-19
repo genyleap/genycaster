@@ -531,7 +531,7 @@ test('Setup returns through nested choices without losing custody and adapts rec
   assert.match(back,/stageScroll\.contentY = 0/);
   assert.doesNotMatch(back,/nativeCustodyWallet\.discard\(\)/);
   assert.match(back,/if \(currentStep === 4 && showRecovery\)/);
-  assert.match(setup,/columns: root\.width < 360 \? 1 : 2/);
+  assert.match(setup,/objectName: "setupExistingProtocolChoice"/);
   assert.match(setup,/columns: root\.phone \? 2 : 4/);
   assert.match(setup,/String\(wordField\.index \+ 1\)\.padStart\(2, "0"\)/);
   assert.match(setup,/nativeRecoveryGrid\.completeWordCount/);
@@ -600,12 +600,11 @@ test('recovery appears before Genyleap and Farcaster, stays usable in review mod
   assert.match(stage,/setupEmphasis: true/);
   assert.match(stage,/root\.recoverAccount\(\)/);
   assert.match(stage,/root\.showRecovery = !root\.showRecovery/);
-  const nativeRecovery=stage.indexOf('visible: root.showRecovery && !root.browserReadOnly');
-  const browserChoice=stage.indexOf('objectName: "setupBrowserRecoveryProtocolChoice"');
-  assert.ok(nativeRecovery>recovery && browserChoice>recovery,
-    'Native and browser recovery choices must follow the primary recovery card');
-  assert.ok(browserChoice<nativeRecovery && nativeRecovery<farcaster,
-    'Recovery protocol selection and native phrase entry must precede alternate sign-in cards');
+  const chooser=stage.indexOf('objectName: "setupExistingProtocolChoice"');
+  const nativeRecovery=stage.indexOf('visible: root.showRecovery && (root.existingProtocolSelected');
+  assert.ok(chooser>=0 && chooser<recovery && recovery<nativeRecovery
+    && nativeRecovery<farcaster, 'Protocol selection precedes recovery for every platform');
+  assert.doesNotMatch(stage,/objectName: "setupBrowserRecoveryProtocolChoice"/);
   const bridge=source('src/presentation/qt/presentation_bridge.cpp');
   const handler=bridge.slice(bridge.indexOf('void PresentationBridge::beginRecoverySetup()'),
      bridge.indexOf('void PresentationBridge::beginNativeRecoverySetup('));
@@ -778,8 +777,8 @@ test('HyperSnap native signup, recovery and signer stay in distinct guarded path
     'nativeRegistrationPublisher.checkConfirmation()',
     'nativeRecoverHyperSnapAccount(words)',
     'root.nativeRecoverFarcasterAccount(words)',
-    'objectName: "setupRecoverHyperSnap"',
-    'objectName: "setupRecoverFarcaster"'
+    'objectName: "setupExistingHyperSnap"',
+    'objectName: "setupExistingFarcaster"'
   ])assert.ok(setup.includes(s),s);
   assert.match(shell,/onNativeRecoverHyperSnapAccount/);
   assert.match(bridgeApi,/nativeHyperSnapRecoveryRequested\(QString recoveryWords\)/);

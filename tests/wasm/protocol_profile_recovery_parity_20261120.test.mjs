@@ -32,13 +32,14 @@ test('both account protocols expose signer authorization without bypassing proto
 test('WASM setup explicitly shows protocol choices without faking desktop-only browser custody',()=>{
   const setup=read('ui/components/setup/InitialSetup.qml');
   const wallet=read('ui/app/identity/native_wallet_browser.cpp');
-  assert.match(setup,/objectName: "setupBrowserAccountProtocols"/);
-  assert.match(setup,/objectName: "setupBrowserFarcasterChoice"/);
-  assert.match(setup,/objectName: "setupBrowserHyperSnapChoice"/);
-  assert.match(setup,/objectName: "setupBrowserRecoveryProtocolChoice"/);
-  assert.match(setup,/objectName: "setupBrowserRecoverFarcaster"/);
-  assert.match(setup,/objectName: "setupBrowserRecoverHyperSnap"/);
-  assert.match(setup,/enabled: !root\.browserReadOnly\s*\n\s*accountShowcase: true/);
+  assert.match(setup,/objectName: "setupCreateAccount"/);
+  assert.match(setup,/objectName: "setupExistingProtocolChoice"/);
+  assert.match(setup,/objectName: "setupExistingFarcaster"/);
+  assert.match(setup,/objectName: "setupExistingHyperSnap"/);
+  assert.match(setup,/objectName: "setupRegisterHyperSnap"/);
+  assert.match(setup,/objectName: "setupRegisterNeynar"/);
+  assert.doesNotMatch(setup,/objectName: "setupBrowserAccountProtocols"/);
+  assert.doesNotMatch(setup,/objectName: "setupBrowserRecoveryProtocolChoice"/);
   assert.match(setup,/!root\.browserReadOnly \|\| root\.recoveryProtocol === "farcaster-snapchain"/);
   assert.match(setup,/objectName: "setupBrowserHyperSnapRecoveryNotice"/);
   assert.match(wallet,/bool NativeCustodyWalletController::generate\(\)[\s\S]*?return false;/);

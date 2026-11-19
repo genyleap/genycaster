@@ -62,6 +62,8 @@ Item {
         }
     }
     property string accountIntent: ""
+    // Both desktop and WASM use the same intent -> protocol -> action state machine.
+    property bool existingProtocolSelected: false
     property bool choosingRegistrationProvider: false
     property bool resumingRegistration: false
     property string registrationProviderId: "hypersnap-v2"
@@ -195,9 +197,9 @@ Item {
     signal nativeRecoverAccount(string recoveryWords)
     signal nativeRecoverFarcasterAccount(string recoveryWords)
     signal nativeRecoverHyperSnapAccount(string recoveryWords)
-    // WASM currently has a verified Farcaster browser recovery signer;
-    // the native HyperSnap custody implementation is desktop-only.
-    property string recoveryProtocol: wasmReadOnly ? "farcaster-snapchain" : "hypersnap-v2"
+    // No implicit protocol selection: the user chooses after New/Existing.
+    // A browser signer must advertise actual support before sensitive input.
+    property string recoveryProtocol: ""
     signal acceptLegalConsent(bool termsAccepted, bool privacyAcknowledged, bool reviewCompleted)
     signal finishSetup()
     signal closeReviewRequested()
@@ -331,6 +333,12 @@ Item {
             stageScroll.contentY = 0
             return
         }
+        if (currentStep === 4 && existingProtocolSelected) {
+            existingProtocolSelected = false
+            recoveryProtocol = ""
+            stageScroll.contentY = 0
+            return
+        }
         if (currentStep === 5 && (authenticationInProgress || recoverySubmitPending)) {
             // Leave the form editable even if the cancelled network worker
             // finishes after Setup has returned to its recovery page.
@@ -391,6 +399,8 @@ Item {
             stageScroll.contentY = 0
             highestReachedStep = 0
             accountIntent = ""
+            existingProtocolSelected = false
+            recoveryProtocol = ""
             showRecovery = false
             consentChecked = legalConsentAccepted
         }
@@ -1475,12 +1485,14 @@ Item {
                 title: root.accountFidRegistered
                     ? qsTrId("genycaster.setup.account_verified")
                     : root.choosingRegistrationProvider
-                      ? qsTrId("genycaster.setup.registration_choose_provider")
+                      ? (root.registrationProviderId.length > 0
+                          ? qsTrId("genycaster.setup.design_create_account")
+                          : qsTrId("genycaster.setup.choose_protocol"))
                       : qsTrId("genycaster.setup.design_account_title")
                 subtitle: root.accountFidRegistered
                     ? qsTrId("genycaster.setup.registration_next_device")
                     : root.choosingRegistrationProvider
-                      ? qsTrId("genycaster.setup.registration_shared_fid")
+                      ? qsTrId("genycaster.setup.choose_protocol_description")
                       : qsTrId("genycaster.setup.design_account_description")
             }
             Item { Layout.preferredHeight: Theme.space2 }
@@ -1522,48 +1534,6 @@ Item {
                     onClicked: openProofConnections.retryNativeEnrollment()
                 }
             }
-            // Keep protocol discovery visible on the web rather than hiding
-            // it behind a desktop-only custody registration flow. Each card
-            // routes to a supported sign-in choice, not a fake browser wallet.
-            GridLayout {
-                objectName: "setupBrowserAccountProtocols"
-                visible: root.browserReadOnly && !root.choosingRegistrationProvider
-                Layout.fillWidth: true
-                columns: root.wideStage ? 2 : 1
-                uniformCellWidths: columns > 1
-                rowSpacing: Theme.space2
-                columnSpacing: Theme.space2
-                SetupActionCard {
-                    objectName: "setupBrowserFarcasterChoice"
-                    Layout.fillWidth: true
-                    compactCard: true
-                    onboardingStyle: true
-                    protocolChoice: true
-                    iconGlyph: "brands/farcaster"
-                    title: qsTrId("genycaster.settings.farcaster_label")
-                    subtitle: qsTrId("genycaster.setup.design_recovery_title")
-                    onClicked: {
-                        root.recoveryProtocol = "farcaster-snapchain"
-                        root.accountIntent = "existing"
-                        root.switchStep(4)
-                    }
-                }
-                SetupActionCard {
-                    objectName: "setupBrowserHyperSnapChoice"
-                    Layout.fillWidth: true
-                    compactCard: true
-                    onboardingStyle: true
-                    protocolChoice: true
-                    iconGlyph: "quilibrium/hypersnap"
-                    title: qsTrId("genycaster.settings.hypersnap_label")
-                    subtitle: qsTrId("genycaster.shell.continue_with_genyleap")
-                    onClicked: {
-                        root.recoveryProtocol = "hypersnap-v2"
-                        root.accountIntent = "existing"
-                        root.switchStep(4)
-                    }
-                }
-            }
             GridLayout {
                 visible: !root.choosingRegistrationProvider
                 Layout.fillWidth: true
@@ -1575,7 +1545,6 @@ Item {
                     Layout.fillWidth: true
                     onboardingStyle: true
                     objectName: "setupCreateAccount"
-                    enabled: !root.browserReadOnly
                     accountShowcase: true
                     title: qsTrId("genycaster.setup.design_create_account")
                     subtitle: qsTrId("genycaster.setup.new_profile_body")
@@ -1583,6 +1552,8 @@ Item {
                     showChevron: true
                     onClicked: {
                         root.accountIntent = "new"
+                        if (!nativeRegistrationPublisher.pending && neynarRegistration.phase !== "reserved")
+                            root.registrationProviderId = ""
                         root.choosingRegistrationProvider = true
                         stageScroll.contentY = 0
                         root.confirmWalletReplacement = false
@@ -1608,17 +1579,12 @@ Item {
                         nativeRegistrationStatus.clearExistingLookup()
                         nativeCustodyWallet.discard()
                         root.accountIntent = "existing"
+                        root.existingProtocolSelected = false
+                        root.recoveryProtocol = ""
+                        root.showRecovery = false
                         root.switchStep(4)
                     }
                 }
-            }
-            DirectionAwareLabel {
-                visible: root.browserReadOnly && !root.choosingRegistrationProvider
-                Layout.fillWidth: true
-                text: qsTrId("genycaster.setup.native_registration_signing_unavailable")
-                color: Theme.inkMuted
-                font.pixelSize: Theme.typeCaptionSize
-                wrapMode: Text.WordWrap
             }
             ColumnLayout {
                 visible: root.choosingRegistrationProvider
@@ -1675,6 +1641,53 @@ Item {
                             nativeRegistrationStatus.clearExistingLookup()
                             root.registrationProviderId = "farcaster-snapchain"
                             root.registrationError = ""
+                        }
+                    }
+                }
+                // Browser uses verified external identity paths until a
+                // WebCrypto custody signer and native chain registration
+                // have been implemented and tested. Do not solicit a seed
+                // phrase in a non-operational registration controller.
+                ColumnLayout {
+                    objectName: "setupBrowserRegistrationPath"
+                    visible: root.browserReadOnly && root.registrationProviderId.length > 0
+                    Layout.fillWidth: true
+                    spacing: Theme.space3
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.native_registration_signing_unavailable")
+                        color: Theme.warning
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    SetupActionCard {
+                        objectName: "setupBrowserExternalHyperSnap"
+                        visible: root.registrationProviderId === "hypersnap-v2"
+                        Layout.fillWidth: true
+                        compactCard: true
+                        onboardingStyle: true
+                        title: qsTrId("genycaster.shell.continue_with_genyleap")
+                        brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                        enabled: root.runtimeReady && root.authenticationAvailable
+                                 && !root.authenticationInProgress
+                        onClicked: {
+                            root.continueWithGenyleap()
+                            root.switchStep(5)
+                        }
+                    }
+                    SetupActionCard {
+                        objectName: "setupBrowserExternalFarcaster"
+                        visible: root.registrationProviderId === "farcaster-snapchain"
+                        Layout.fillWidth: true
+                        compactCard: true
+                        onboardingStyle: true
+                        iconGlyph: "brands/farcaster"
+                        title: qsTrId("genycaster.shell.sign_in_with_farcaster")
+                        enabled: root.runtimeReady && root.authenticationAvailable
+                                 && !root.authenticationInProgress
+                        onClicked: {
+                            root.continueWithFarcaster()
+                            root.switchStep(5)
                         }
                     }
                 }
@@ -1740,6 +1753,7 @@ Item {
                     }
                 }
                 ColumnLayout {
+                    visible: !root.browserReadOnly && root.registrationProviderId.length > 0
                     Layout.fillWidth: true
                     spacing: Theme.space3
                     DirectionAwareLabel {
@@ -1961,7 +1975,8 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    visible: root.registrationProviderId === "hypersnap-v2"
+                    visible: !root.browserReadOnly
+                             && root.registrationProviderId === "hypersnap-v2"
                              && !nativeRegistrationPublisher.confirmed
                              && nativeRegistrationStatus.existingNativeFid.length === 0
                     text: qsTrId("genycaster.setup.registration_storage_note")
@@ -1983,12 +1998,13 @@ Item {
                 DirectionAwareLabel {
                     objectName: "setupRegistrationReadiness"
                     Layout.fillWidth: true
-                    visible: root.registrationProviderId === "hypersnap-v2"
+                    visible: !root.browserReadOnly && root.registrationProviderId.length > 0
+                        && (root.registrationProviderId === "hypersnap-v2"
                         ? !nativeRegistrationPublisher.pending
                           && !nativeRegistrationPublisher.busy
                           && !nativeRegistrationPublisher.confirmed
                           && nativeRegistrationStatus.existingNativeFid.length === 0
-                        : neynarRegistration.phase === "idle"
+                        : neynarRegistration.phase === "idle")
                     text: root.registrationReadinessText()
                     color: root.registrationNodeUsable ? Theme.accent
                            : Theme.inkMuted
@@ -1997,7 +2013,8 @@ Item {
                 }
                 ColumnLayout {
                     objectName: "neynarFarcasterRegistration"
-                    visible: root.registrationProviderId === "farcaster-snapchain"
+                    visible: !root.browserReadOnly
+                             && root.registrationProviderId === "farcaster-snapchain"
                              && nativeCustodyWallet.backupVerified
                     Layout.fillWidth: true
                     spacing: Theme.space3
@@ -2146,7 +2163,8 @@ Item {
                     objectName: "nativeAccountLookupPanel"
                     // An earlier NotFound lookup does not rule out an
                     // ambiguous native registration still in flight.
-                    visible: root.registrationProviderId === "hypersnap-v2"
+                    visible: !root.browserReadOnly
+                             && root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
                              && !nativeRegistrationPublisher.pending
                              && !nativeRegistrationPublisher.confirmed
@@ -2205,7 +2223,8 @@ Item {
                 }
                 ColumnLayout {
                     objectName: "nativeRegistrationProofPanel"
-                    visible: root.registrationProviderId === "hypersnap-v2"
+                    visible: !root.browserReadOnly
+                             && root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
                              && !nativeRegistrationPublisher.pending
                              && !nativeRegistrationPublisher.confirmed
@@ -2258,7 +2277,8 @@ Item {
                 }
                 ColumnLayout {
                     objectName: "nativeRegistrationBroadcastPanel"
-                    visible: root.registrationProviderId === "hypersnap-v2"
+                    visible: !root.browserReadOnly
+                             && root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
                              && (nativeRegistrationPublisher.pending
                                  || nativeRegistrationPublisher.confirmed
@@ -2438,15 +2458,77 @@ Item {
                 maximumTextWidth: root.phone ? 620 : 810
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconLink
-                title: qsTrId("genycaster.setup.design_signin_title")
-                subtitle: qsTrId("genycaster.setup.design_signin_description")
+                title: root.existingProtocolSelected || root.resumingRegistration || root.authenticated
+                    ? qsTrId("genycaster.setup.design_signin_title")
+                    : qsTrId("genycaster.setup.choose_protocol")
+                subtitle: root.existingProtocolSelected || root.resumingRegistration || root.authenticated
+                    ? qsTrId("genycaster.setup.design_signin_description")
+                    : qsTrId("genycaster.setup.choose_protocol_description")
             }
             Item { Layout.preferredHeight: Theme.space2 }
+            // Only this picker chooses the protocol for Existing accounts.
+            // The same stage is used on desktop, Android and WebAssembly.
+            GridLayout {
+                objectName: "setupExistingProtocolChoice"
+                visible: !root.authenticated && !root.existingProtocolSelected
+                         && !root.resumingRegistration
+                Layout.fillWidth: true
+                columns: root.wideStage ? 2 : 1
+                uniformCellWidths: columns > 1
+                layoutDirection: Theme.uiDirection
+                rowSpacing: Theme.space3
+                columnSpacing: Theme.space3
+                SetupActionCard {
+                    objectName: "setupExistingFarcaster"
+                    Layout.fillWidth: true
+                    onboardingStyle: true
+                    networkShowcase: true
+                    protocolChoice: true
+                    iconGlyph: "brands/farcaster"
+                    title: qsTrId("genycaster.settings.farcaster_label")
+                    subtitle: qsTrId("genycaster.setup.network_farcaster_category")
+                                  .arg(qsTrId("genycaster.setup.centralized_service_label"))
+                    onClicked: {
+                        root.recoveryProtocol = "farcaster-snapchain"
+                        root.existingProtocolSelected = true
+                        root.showRecovery = false
+                        stageScroll.contentY = 0
+                    }
+                }
+                SetupActionCard {
+                    objectName: "setupExistingHyperSnap"
+                    Layout.fillWidth: true
+                    onboardingStyle: true
+                    networkShowcase: true
+                    protocolChoice: true
+                    iconGlyph: "quilibrium/hypersnap"
+                    title: qsTrId("genycaster.settings.hypersnap_label")
+                    subtitle: qsTrId("genycaster.setup.network_hypersnap_category")
+                                  .arg(qsTrId("genycaster.setup.decentralized_label"))
+                    onClicked: {
+                        root.recoveryProtocol = "hypersnap-v2"
+                        root.existingProtocolSelected = true
+                        root.showRecovery = false
+                        stageScroll.contentY = 0
+                    }
+                }
+            }
+            DirectionAwareLabel {
+                objectName: "setupExistingSelectedProtocol"
+                visible: root.existingProtocolSelected && !root.authenticated
+                Layout.fillWidth: true
+                text: root.recoveryProtocol === "hypersnap-v2"
+                    ? qsTrId("genycaster.settings.hypersnap_label")
+                    : qsTrId("genycaster.settings.farcaster_label")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+            }
             // Local custody recovery is the preferred existing-account route.
             // Keep it first, with clear visual emphasis; the two external
             // identity methods are secondary alternatives.
             SetupActionCard {
-                visible: !root.authenticated
+                visible: root.existingProtocolSelected && !root.authenticated
                 Layout.fillWidth: true
                 compactCard: true
                 onboardingStyle: true
@@ -2465,42 +2547,10 @@ Item {
                     }
                 }
             }
-            GridLayout {
-                objectName: "setupBrowserRecoveryProtocolChoice"
-                visible: root.browserReadOnly && !root.authenticated
-                Layout.fillWidth: true
-                columns: root.width < 360 ? 1 : 2
-                columnSpacing: Theme.space2
-                rowSpacing: Theme.space2
-                SetupActionCard {
-                    objectName: "setupBrowserRecoverFarcaster"
-                    Layout.fillWidth: true
-                    compactCard: true
-                    onboardingStyle: true
-                    protocolChoice: true
-                    showChevron: false
-                    selected: root.recoveryProtocol === "farcaster-snapchain"
-                    iconGlyph: "brands/farcaster"
-                    title: qsTrId("genycaster.settings.farcaster_label")
-                    onClicked: root.recoveryProtocol = "farcaster-snapchain"
-                }
-                SetupActionCard {
-                    objectName: "setupBrowserRecoverHyperSnap"
-                    Layout.fillWidth: true
-                    compactCard: true
-                    onboardingStyle: true
-                    protocolChoice: true
-                    showChevron: false
-                    selected: root.recoveryProtocol === "hypersnap-v2"
-                    iconGlyph: "quilibrium/hypersnap"
-                    title: qsTrId("genycaster.settings.hypersnap_label")
-                    onClicked: root.recoveryProtocol = "hypersnap-v2"
-                }
-            }
             DirectionAwareLabel {
                 objectName: "setupBrowserHyperSnapRecoveryNotice"
-                visible: root.browserReadOnly && !root.authenticated
-                    && root.recoveryProtocol === "hypersnap-v2"
+                visible: root.browserReadOnly && root.existingProtocolSelected
+                    && !root.authenticated && root.recoveryProtocol === "hypersnap-v2"
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.setup.native_registration_signing_unavailable")
                     + " · " + qsTrId("genycaster.shell.continue_with_genyleap")
@@ -2509,43 +2559,11 @@ Item {
                 wrapMode: Text.WordWrap
             }
             ColumnLayout {
-                visible: root.showRecovery && !root.browserReadOnly && !root.authenticated
+                visible: root.showRecovery && (root.existingProtocolSelected || root.resumingRegistration)
+                    && !root.browserReadOnly && !root.authenticated
                 Layout.fillWidth: true
                 Layout.topMargin: Theme.space2
                 spacing: Theme.space3
-                GridLayout {
-                    Layout.fillWidth: true
-                    columns: root.width < 360 ? 1 : 2
-                    rowSpacing: Theme.space2
-                    columnSpacing: Theme.space2
-                    layoutDirection: Theme.uiDirection
-                    SetupActionCard {
-                        objectName: "setupRecoverHyperSnap"
-                        Layout.fillWidth: true
-                        compactCard: true
-                        onboardingStyle: true
-                        protocolChoice: true
-                        showChevron: false
-                        showSelectionMark: false
-                        selected: root.recoveryProtocol === "hypersnap-v2"
-                        iconGlyph: "quilibrium/hypersnap"
-                        title: qsTrId("genycaster.settings.hypersnap_label")
-                        onClicked: root.recoveryProtocol = "hypersnap-v2"
-                    }
-                    SetupActionCard {
-                        objectName: "setupRecoverFarcaster"
-                        Layout.fillWidth: true
-                        compactCard: true
-                        onboardingStyle: true
-                        protocolChoice: true
-                        showChevron: false
-                        showSelectionMark: false
-                        selected: root.recoveryProtocol === "farcaster-snapchain"
-                        iconGlyph: "brands/farcaster"
-                        title: qsTrId("genycaster.settings.farcaster_label")
-                        onClicked: root.recoveryProtocol = "farcaster-snapchain"
-                    }
-                }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: root.recoveryProtocol === "hypersnap-v2"
@@ -2780,7 +2798,7 @@ Item {
                 }
             }
             GridLayout {
-                visible: !root.authenticated
+                visible: !root.authenticated && root.existingProtocolSelected
                 Layout.fillWidth: true
                 columns: root.wideStage ? 2 : 1
                 uniformCellWidths: columns > 1
@@ -2788,6 +2806,7 @@ Item {
                 rowSpacing: Theme.space3
                 columnSpacing: Theme.space3
                 SetupActionCard {
+                    visible: root.recoveryProtocol === "hypersnap-v2"
                     Layout.fillWidth: true
                     compactCard: true
                     onboardingStyle: true
@@ -2804,6 +2823,7 @@ Item {
                     Layout.fillWidth: true
                     compactCard: true
                     onboardingStyle: true
+                    visible: root.recoveryProtocol === "farcaster-snapchain"
                     iconGlyph: "brands/farcaster"
                     title: qsTrId("genycaster.shell.sign_in_with_farcaster")
                     busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"

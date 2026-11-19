@@ -5868,6 +5868,14 @@ Company | https://company.com</source>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>अपनी Farcaster पहचान या Genyleap खाते से लॉग इन करें। प्रत्येक साइन इन की अलग जाँच होती है और आपका रीड नेटवर्क नहीं बदलता।</translation>
         </message>
+        <message id="genycaster.setup.choose_protocol">
+            <source>Choose a protocol</source>
+            <translation>प्रोटोकॉल चुनें</translation>
+        </message>
+        <message id="genycaster.setup.choose_protocol_description">
+            <source>Choose Farcaster or HyperSnap to continue.</source>
+            <translation>जारी रखने के लिए Farcaster या HyperSnap चुनें।</translation>
+        </message>
         <message id="genycaster.setup.registration_choose_provider">
             <source>Choose your registration network</source>
             <translation>अपना पंजीकरण नेटवर्क चुनें</translation>

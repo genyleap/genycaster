@@ -5868,6 +5868,14 @@ Company | https://company.com</source>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>Farcaster 신원 또는 Genyleap 계정을 사용하세요. 각 로그인은 독립적으로 검증되며 읽기 네트워크는 변경되지 않습니다.</translation>
         </message>
+        <message id="genycaster.setup.choose_protocol">
+            <source>Choose a protocol</source>
+            <translation>프로토콜 선택</translation>
+        </message>
+        <message id="genycaster.setup.choose_protocol_description">
+            <source>Choose Farcaster or HyperSnap to continue.</source>
+            <translation>계속하려면 Farcaster 또는 HyperSnap을 선택하세요.</translation>
+        </message>
         <message id="genycaster.setup.registration_choose_provider">
             <source>Choose your registration network</source>
             <translation>등록할 네트워크 선택</translation>

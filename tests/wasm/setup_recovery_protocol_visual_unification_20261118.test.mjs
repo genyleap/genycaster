@@ -10,27 +10,24 @@ const extract = (source, marker, next) => {
   return source.slice(from, to < 0 ? undefined : to);
 };
 
-test('Recovery CTA and both recovery provider choices use one card family', () => {
+test('Recovery follows one cross-platform Existing protocol picker', () => {
   const setup = read('ui/components/setup/InitialSetup.qml');
   const recover = extract(setup, 'id: signInStage', 'id: verifyingStage');
-  const cta = extract(recover, 'setupEmphasis: true', 'ColumnLayout {\n                visible: root.showRecovery');
-  assert.match(cta, /compactCard: true|setupEmphasis: true/);
-  assert.match(cta, /iconGlyph: "system\/lock"/);
+  const choice=extract(recover,'objectName: "setupExistingProtocolChoice"', 'objectName: "setupExistingSelectedProtocol"');
   for (const [name, value] of [
-    ['setupRecoverHyperSnap', 'hypersnap-v2'],
-    ['setupRecoverFarcaster', 'farcaster-snapchain'],
+    ['setupExistingHyperSnap', 'hypersnap-v2'],
+    ['setupExistingFarcaster', 'farcaster-snapchain'],
   ]) {
-    const choice = extract(recover, 'objectName: "' + name + '"', 'onClicked: root.recoveryProtocol =');
-    assert.match(choice, /compactCard: true/);
-    assert.match(choice, /onboardingStyle: true/);
-    assert.match(choice, /protocolChoice: true/);
-    assert.match(choice, /showChevron: false/);
-    assert.match(choice, /showSelectionMark: false/);
-    assert.ok(choice.includes('root.recoveryProtocol === "' + value + '"'));
+    const card=extract(choice,'objectName: "'+name+'"','root.existingProtocolSelected = true');
+    assert.match(card,/onboardingStyle: true/);
+    assert.match(card,/protocolChoice: true/);
+    assert.ok(card.includes('root.recoveryProtocol = "' + value + '"'));
   }
-  assert.match(recover, /SetupActionCard \{\s*objectName: "setupRecoverHyperSnap"/);
-  assert.match(recover, /SetupActionCard \{\s*objectName: "setupRecoverFarcaster"/);
-  assert.doesNotMatch(recover, /ActionButton \{\s*objectName: "setupRecover(?:HyperSnap|Farcaster)"/);
+  assert.match(recover,/setupEmphasis: true/);
+  assert.match(recover,/root.existingProtocolSelected && !root.authenticated/);
+  assert.match(recover,/root.recoverAccount\(\)/);
+  assert.doesNotMatch(recover,/objectName: "setupRecover(?:HyperSnap|Farcaster)"/);
+  assert.doesNotMatch(recover,/objectName: "setupBrowserRecover(?:HyperSnap|Farcaster)"/);
 });
 
 test('Provider registration cards share the same protocol selection material', () => {
