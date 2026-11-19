@@ -29,6 +29,29 @@ class StageWasmPreviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "matching"):
                 stage.verify_checksum(bundle, sums)
 
+    def test_reject_origin_mismatch_in_verified_prior_ci_artifact(self):
+        import json
+        prefix = ("// GENERATED; public non-secret build configuration.\n"
+                  "export const deployment = Object.freeze(")
+        suffix = ");\n"
+        correct = {"publicOrigin": "https://app.genycaster.xyz",
+                   "siwfOrigin": "https://app.genycaster.xyz",
+                   "openProofIssuer": "https://openproof.genyleap.com"}
+        def module(config):
+            return (prefix + json.dumps(
+                config, sort_keys=True, separators=(",", ":")) + suffix).encode()
+        stage.verify_app_origin_module(module(correct))
+        for key in ("publicOrigin", "siwfOrigin"):
+            invalid = dict(correct)
+            invalid[key] = "https://genycaster.xyz"
+            with self.subTest(key=key), \
+                 self.assertRaisesRegex(ValueError, "wrong"):
+                stage.verify_app_origin_module(module(invalid))
+        with self.assertRaisesRegex(ValueError, "Noncanonical"):
+            stage.verify_app_origin_module(b"export const deployment = {};")
+        with self.assertRaises(ValueError):
+            stage.verify_app_origin_module(module(["not a dict"]))
+
     def test_root_must_be_exact_empty_and_vhost_disabled(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "app" / "public"
