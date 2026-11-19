@@ -48,7 +48,8 @@
         ["#native-github-star", 17],
         ["#native-downloads-nudge", 22],
         ["#native-downloads-nudge-open", 16],
-        [".native-downloads-option", 17]
+        [".native-downloads-option", 17],
+        [".native-downloads-brand-frame", 16]
     ];
     // Browser :focus-visible may be triggered by our own programmatic focus
     // restoration after closing a dialog. Track input modality so pointer
@@ -237,6 +238,29 @@
         return Object.keys(choices)[0];
     }
 
+    function layoutOptions() {
+        if (architectureOptions.hidden || dialog.hidden) return;
+        // The listbox is a direct child of the dialog, not the scrollable
+        // viewport. This avoids clipping the Intel row under the availability
+        // card and keeps the same Superellipse shape on the popup itself.
+        const triggerBox = architecture.getBoundingClientRect();
+        const dialogBox = dialog.getBoundingClientRect();
+        const panelHeight = Math.min(220, architectureOptions.scrollHeight);
+        const roomBelow = dialogBox.bottom - triggerBox.bottom - 12;
+        const roomAbove = triggerBox.top - dialogBox.top - 12;
+        const above = roomBelow < panelHeight + 8 && roomAbove > roomBelow;
+        const available = Math.max(72, Math.min(220, above ? roomAbove : roomBelow));
+        architectureOptions.style.width = triggerBox.width + "px";
+        architectureOptions.style.left = (triggerBox.left - dialogBox.left) + "px";
+        architectureOptions.style.right = "auto";
+        architectureOptions.style.maxHeight = available + "px";
+        architectureOptions.style.top = (above
+            ? triggerBox.top - dialogBox.top - Math.min(panelHeight, available) - 6
+            : triggerBox.bottom - dialogBox.top + 6) + "px";
+        // The popup's SVG shape follows the *actual* panel dimensions.
+        drawShape(architectureOptions);
+    }
+
     function closeOptions(restoreFocus = false) {
         if (architectureOptions.hidden) return;
         architectureOptions.hidden = true;
@@ -252,9 +276,9 @@
         architecture.setAttribute("aria-expanded", "true");
         architecture.classList.add("is-open");
         architecture.closest(".native-downloads-configuration")?.classList.add("is-dropdown-open");
-        // Clicking keeps keyboard focus on the trigger; it should not paint
-        // a second focus ring around the preselected option. Keyboard
-        // activation still moves focus to the selected option.
+        layoutOptions();
+        // Pointer focus stays on trigger. Keyboard navigation moves focus to
+        // the selected option; neither state introduces a second border.
         if (focusSelected)
             architectureOptions.querySelector('[aria-selected="true"]')?.focus({preventScroll:true});
     }
@@ -363,6 +387,7 @@
     close.addEventListener("click", () => setOpen(false));
     backdrop.addEventListener("click", () => setOpen(false));
     tabs.forEach(tab => tab.addEventListener("click", () => {
+        closeOptions();
         platform = tab.dataset.nativePlatform;
         render();
     }));
@@ -412,6 +437,12 @@
                 !architectureOptions.contains(event.target) &&
                 !architecture.contains(event.target)) closeOptions();
     });
+    // Reposition the detached popup when Qt/WASM resizes, the browser zooms,
+    // or the modal's inner content scrolls. No detached overlay remains.
+    dialog.querySelector(".native-downloads-viewport")?.addEventListener(
+        "scroll", layoutOptions, {passive:true});
+    window.addEventListener("resize", layoutOptions, {passive:true});
+
     dialog.addEventListener("keydown", event => {
         if (event.key === "Escape") {
             if (!architectureOptions.hidden) {
