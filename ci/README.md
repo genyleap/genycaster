@@ -159,12 +159,34 @@ curl --fail --silent --show-error \
   https://app.genycaster.xyz/.well-known/genycaster-ready
 ```
 
-The script uses a dedicated temporary HTTP-only ACME challenge vhost, then
-enables the reviewed two-server HTTPS config after verifying a fresh,
-host-matched certificate. On failure it restores the previous Nginx file/link,
-checks configuration and reloads it. The procedure never modifies the
-`genycaster.xyz` landing vhost, never copies an old WASM archive and never
-publishes anything until the separate site-build/deploy step succeeds.
+The script reuses an existing, valid app-host certificate; if missing, it
+bootstraps an HTTP-only ACME challenge first. After enabling the two-server
+HTTPS config, it verifies **the actual loopback Nginx origin** on
+`127.0.0.1:443` with SNI `app.genycaster.xyz`, a verified certificate chain,
+the exact readiness marker and an HTTP 200 HTML entrypoint. An Nginx/TLS/origin
+failure rolls back its changes. It never modifies the separate landing vhost.
+
+**External CDN routing is a distinct phase.** If the locally verified app
+origin works but the Cloudflare-proxied URL returns 404/403, the script
+reports `ORIGIN READY, PUBLIC CDN ROUTING NOT VERIFIED`, keeps the healthy
+dedicated vhost enabled, and exits with code **2**. Do not rerun Certbot or
+delete the working Nginx vhost. Instead verify the Cloudflare `app` DNS
+record's origin IP (on this deployment `173.214.160.36`), any
+hostname/origin override, Workers, Page/Redirect Rules, and cached redirects.
+The HTTP fallback on this VPS is `status.genyleap.com`; a CDN route with
+an incorrect Host or destination can serve this unrelated site. Re-running
+the activator is safe and will check the existing origin without rewriting
+its configuration. Only an exact public `genycaster-app-v1` marker results
+in exit code **0**. An HTTP 200 from the status site is insufficient.
+
+```bash
+# Independent public checks after activating:
+curl -fsS https://app.genycaster.xyz/.well-known/genycaster-ready
+curl -sSI https://app.genycaster.xyz/genycaster.html
+```
+
+The procedure never deploys WASM assets; preview assets are staged in the
+dedicated root separately.
 
 The vhost proxies only the app's first-party cloud API to localhost and
 preserves the separate `genycaster.xyz` landing-site vhost. The account
