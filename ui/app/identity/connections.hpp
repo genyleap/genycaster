@@ -70,6 +70,11 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool feedbackBusy READ feedbackBusy NOTIFY feedbackChanged)
     Q_PROPERTY(bool feedbackSubmitted READ feedbackSubmitted NOTIFY feedbackChanged)
     Q_PROPERTY(QVariantMap profileStatus READ profileStatus NOTIFY profileStatusChanged)
+    Q_PROPERTY(QString profileStatusNetwork READ profileStatusNetwork NOTIFY profileStatusChanged)
+    Q_PROPERTY(QVariantMap publicProfileExtras READ publicProfileExtras NOTIFY publicProfileExtrasChanged)
+    Q_PROPERTY(QString publicProfileExtrasFid READ publicProfileExtrasFid NOTIFY publicProfileExtrasChanged)
+    Q_PROPERTY(QString publicProfileExtrasNetwork READ publicProfileExtrasNetwork NOTIFY publicProfileExtrasChanged)
+    Q_PROPERTY(bool publicProfileExtrasBusy READ publicProfileExtrasBusy NOTIFY publicProfileExtrasChanged)
     Q_PROPERTY(QVariantMap streak READ streak NOTIFY streakChanged)
     Q_PROPERTY(QVariantMap proPlan READ proPlan NOTIFY proPlanChanged)
     Q_PROPERTY(bool proPlanBusy READ proPlanBusy NOTIFY proPlanChanged)
@@ -197,6 +202,14 @@ public:
     Q_INVOKABLE void submitFeedback(const QString& category, int sentiment,
                                    const QString& message, const QString& route);
     [[nodiscard]] QVariantMap profileStatus() const { return m_profileStatus; }
+    [[nodiscard]] QString profileStatusNetwork() const { return m_profileStatusNetwork; }
+    [[nodiscard]] QVariantMap publicProfileExtras() const { return m_publicProfileExtras; }
+    [[nodiscard]] QString publicProfileExtrasFid() const { return m_publicProfileExtrasFid; }
+    [[nodiscard]] QString publicProfileExtrasNetwork() const { return m_publicProfileExtrasNetwork; }
+    [[nodiscard]] bool publicProfileExtrasBusy() const noexcept {
+        return m_publicProfileExtrasRead != nullptr;
+    }
+    Q_INVOKABLE void fetchPublicProfileExtras(const QString& fid, const QString& network);
     [[nodiscard]] QVariantMap streak() const { return m_streak; }
     [[nodiscard]] bool streakBusy() const noexcept { return m_streakRead || m_streakWrite; }
     [[nodiscard]] QString streakError() const { return m_streakError; }
@@ -332,7 +345,7 @@ public:
 
     /** Automatic account-owned profile storage; bearer never leaves native Qt. */
     Q_INVOKABLE void fetchCloudProfileExtras();
-    Q_INVOKABLE void fetchProfileStatus(qulonglong profileFid);
+    Q_INVOKABLE void fetchProfileStatus(const QString& profileFid, const QString& network);
     Q_INVOKABLE void saveProfileStatus(const QString& mood,const QString& note,bool visible);
 
     /** Read the last server-confirmed OpenProof link display snapshot. */
@@ -372,6 +385,7 @@ public:
     /** @brief Changes viewer identity, invalidating any delegated account
      * token and pending link work when FID changes or session signs out. */
     Q_INVOKABLE void setViewerFid(qulonglong fid);
+    void setViewerNetwork(const QString& network);
 
     /** @brief Starts a short-lived OpenProof device approval scoped to a
      * verified matching Farcaster FID, even for local Farcaster sign-ins. */
@@ -430,6 +444,7 @@ signals:
     void cloudStateChanged();
     void feedbackChanged();
     void profileStatusChanged();
+    void publicProfileExtrasChanged();
     void streakChanged();
 
     /** Emitted exactly once for each status save attempt (including rejected requests). */
@@ -486,6 +501,10 @@ private:
     QString m_feedbackError{};
     bool m_feedbackSubmitted{};
     QPointer<QNetworkReply> m_profileStatusRead{};
+    QPointer<QNetworkReply> m_publicProfileExtrasRead{};
+    QVariantMap m_publicProfileExtras{};
+    QString m_publicProfileExtrasFid{};
+    QString m_publicProfileExtrasNetwork{};
     QPointer<QNetworkReply> m_streakRead{};
     QPointer<QNetworkReply> m_proPlanRequest{};
     QVariantMap m_proPlan{};
@@ -547,6 +566,7 @@ private:
     QString m_streakError{};
     QPointer<QNetworkReply> m_profileStatusWrite{};
     qulonglong m_profileStatusFid{};
+    QString m_profileStatusNetwork{};
     qlonglong m_profileStatusRevision{};
     QVariantMap m_profileStatus{};
     QString m_profileStatusError{};
@@ -628,6 +648,7 @@ private:
     QString m_accountSubject{};
     QVariantList m_connections{};
     qulonglong m_viewerFid{};
+    QString m_viewerNetwork{};
     QString m_nativeEnrollmentPhase{QStringLiteral("idle")};
     std::uint64_t m_grantGeneration{};
     bool m_authorizing{};

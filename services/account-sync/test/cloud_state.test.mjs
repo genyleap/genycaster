@@ -13,6 +13,12 @@ const store={
   async put(entity,owner,item){calls.push(['put',entity,owner.subject,item]);return item;},
   async listUpdates(){return [{release_id:'1.0.0',title:'Launch'}];},
   async getProfileExtras(owner){calls.push(['get-profile',owner.subject]);return null;},
+  async getPublicProfileExtras(target){
+    calls.push(['public-profile',target.subject,target.network]);
+    return target.fid==='42' ? {fid:'42',network:target.network,
+      category:'Technology',profession:'Developer',
+      roles:['Developer'],secondary_categories:[]} : null;
+  },
   async putProfileExtras(owner,item){calls.push(['put-profile',owner.subject,item]);return {...item,revision:1};},
   async refreshConnections(owner,items){calls.push(['refresh',owner.subject,items]);},
   async listBookmarkChanges(owner,since){
@@ -144,7 +150,10 @@ test('User-owned professional category and labelled links have strict validation
            {label:'Company',url:'https://genyleap.com'}],
     revision:0,publicly_visible:true,subject:'attacker'};
   const valid=validateCloudItem('profile_extras',draft);
-  assert.equal(valid.publicly_visible,false);
+  assert.equal(valid.publicly_visible,true);
+  assert.equal(validateCloudItem('profile_extras',{
+    ...draft,publicly_visible:false
+  }).publicly_visible,false);
   assert.equal(valid.subject,undefined);
   assert.deepEqual(validateCloudItem('profile_extras',{
     ...draft,category:'Technology',secondary_categories:['Trading','Business','Finance']
@@ -182,11 +191,28 @@ test('User-owned professional category and labelled links have strict validation
     const copy=calls.at(-1);
     assert.equal(copy[0],'put-profile');
     assert.equal(copy[1],principal);
-    assert.equal(copy[2].publicly_visible,false);
+    assert.equal(copy[2].publicly_visible,true);
     assert.equal(copy[2].subject,undefined);
     assert.equal((await request('profile_extras','PUT',
       {...draft,links:[{label:'Unsafe',url:'https://127.0.0.1/admin'}]})).status,400);
     assert.equal((await request('profile_extras','GET',undefined,'Bearer invalid')).status,401);
+  });
+});
+test('anonymous public profile projection exposes only approved classifications',async()=>{
+  calls.length=0;
+  await withServer(async request=>{
+    const publicResponse=await request('profile_extras?fid=42','GET',undefined,'');
+    assert.equal(publicResponse.status,200);
+    assert.deepEqual(await publicResponse.json(),{item:{
+      fid:'42',network:'farcaster',category:'Technology',
+      profession:'Developer',roles:['Developer'],secondary_categories:[]
+    }});
+    assert.equal((await request('profile_extras?fid=0','GET',undefined,'')).status,400);
+    assert.equal((await request('profile_extras?fid=42&fid=43','GET',undefined,'')).status,400);
+    assert.equal((await request('profile_extras?fid=42&network=hypersnap','GET',undefined,'')).status,400);
+    assert.equal((await request('profile_extras?fid=4294967296&network=hypersnap','GET',undefined,'')).status,200);
+    const target=calls.find(row=>row[0]==='public-profile'&&row[1]==='hypersnap:4294967296');
+    assert.ok(target,'network-scoped native identity');
   });
 });
 test('App updates are public read-only, and cloud storage is disabled when unconfigured',async()=>{

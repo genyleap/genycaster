@@ -116,7 +116,7 @@ export function validateCloudItem(entity, item) {
     }
     return {category:item.category,profession:item.profession,
       secondary_categories:secondary,roles,links,
-      revision:item.revision,publicly_visible:false};
+      revision:item.revision,publicly_visible:item.publicly_visible===true};
   }
   if (entity === 'connections') {
     if (!PROVIDER.test(item.provider || '') || item.provider !== 'linkedin') return null;
@@ -494,6 +494,22 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
   const readGithubCalendar=createGithubCalendarReader({fetchImpl});
   const leaderboardProfiles=createLeaderboardProfileReader({
     fetchImpl,hypersnapOrigin:trustedHyperSnapOrigin});
+  // Public projection is bound to a validated protocol-scoped identity.
+  // Never infer a HyperSnap issuer from the magnitude of an FID.
+  function publicProfileTarget(request) {
+    const params=new URL(request.url,'http://localhost').searchParams;
+    const fid=params.get('fid');
+    const network=params.has('network')?params.get('network'):'farcaster';
+    if(!fid || params.getAll('fid').length!==1
+       || params.getAll('network').length>1
+       || !['farcaster','hypersnap'].includes(network)
+       || !isCanonicalUint64Fid(fid)
+       || (network==='hypersnap' && BigInt(fid)<FIRST_NATIVE_HYPERSNAP_FID))
+      return null;
+    return {fid,network,
+      issuer:network==='hypersnap'?'hypersnap:native-registry':upstream,
+      subject:network+':'+fid};
+  }
   function sameOriginRequest(request) {
     // Require the exact official origin for browser mutations. Keep the
     // independent CSRF-token check for authenticated session writes.
@@ -635,16 +651,23 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       }
       return true;
     }
-    if(entity==='profile_status' && request.method==='GET') {
+    if((entity==='profile_status' || entity==='profile_extras')
+       && request.method==='GET') {
       const params=new URL(request.url,'http://localhost').searchParams;
-      const fid=params.get('fid');
-      if(fid!==null) {
-        if(params.getAll('fid').length!==1 || !/^[1-9][0-9]{0,18}$/.test(fid)
-            || !Number.isSafeInteger(Number(fid))) {
+      if(params.has('fid') || params.has('network')) {
+        const target=publicProfileTarget(request);
+        if(!target) {
           respond(response,400,{error:'invalid_fid'});return true;
         }
-        try {respond(response,200,{item:await store.getPublicProfileStatus(fid,upstream)});}
-        catch {respond(response,503,{error:'status_unavailable'});}
+        try {
+          const item=entity==='profile_status'
+            ?await store.getPublicProfileStatus(target)
+            :await store.getPublicProfileExtras(target);
+          respond(response,200,{item});
+        } catch {
+          respond(response,503,{error:entity==='profile_status'
+            ?'status_unavailable':'profile_unavailable'});
+        }
         return true;
       }
     }

@@ -54,6 +54,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString accountUsername READ accountUsername NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountAvatarUrl READ accountAvatarUrl NOTIFY authenticationStateChanged)
     Q_PROPERTY(qulonglong accountFid READ accountFid NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QString accountFidText READ accountFidText NOTIFY authenticationStateChanged)
     Q_PROPERTY(QVariantMap accountProfile READ accountProfile NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool writeReady READ writeReady NOTIFY stateChanged)
     Q_PROPERTY(QString signerPhase READ signerPhase NOTIFY stateChanged)
@@ -163,6 +164,7 @@ public:
     [[nodiscard]] QString accountUsername() const;
     [[nodiscard]] QString accountAvatarUrl() const;
     [[nodiscard]] qulonglong accountFid() const noexcept;
+    [[nodiscard]] QString accountFidText() const { return QString::number(accountFid()); }
 
     /** @brief Returns the cached provider-neutral profile presentation for the authenticated account. */
     [[nodiscard]] QVariantMap accountProfile() const;

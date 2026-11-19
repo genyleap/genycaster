@@ -2880,17 +2880,24 @@ void OpenProofConnectionsController::pumpStreakWrites()
     });
 }
 
-void OpenProofConnectionsController::fetchProfileStatus(qulonglong profileFid)
+void OpenProofConnectionsController::fetchProfileStatus(const QString& fidText,
+                                                        const QString& network)
 {
-    if (!profileFid || !trustedHttpsEndpoint(m_cloudUrl) || m_profileStatusWrite) return;
+    bool valid=false;
+    const qulonglong profileFid=fidText.toULongLong(&valid);
+    if(!valid || profileFid==0
+       || (network!=QStringLiteral("farcaster") && network!=QStringLiteral("hypersnap"))
+       || (network==QStringLiteral("hypersnap") && profileFid<4'294'967'296ULL)
+       || !trustedHttpsEndpoint(m_cloudUrl) || m_profileStatusWrite) return;
     cancelNetworkReply(m_profileStatusRead, this);
     // Retain the last confirmed state for the SAME FID while refreshing.
     // A temporary timeout must never erase a successfully saved status.
-    if(m_profileStatusFid!=profileFid) {
+    if(m_profileStatusFid!=profileFid || m_profileStatusNetwork!=network) {
         m_profileStatus.clear();
         m_profileStatusRevision=0;
     }
     m_profileStatusFid=profileFid;
+    m_profileStatusNetwork=network;
     m_profileStatusError.clear();
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/profile_status"));
@@ -2899,11 +2906,13 @@ void OpenProofConnectionsController::fetchProfileStatus(qulonglong profileFid)
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(9'000);
     request.setRawHeader("Accept","application/json");
-    if(profileFid==m_viewerFid && cloudAuthorizationReady())
+    if(profileFid==m_viewerFid && network==m_viewerNetwork
+       && cloudAuthorizationReady())
         authorizeCloudRequest(request);
     else {
         QUrlQuery query;
-        query.addQueryItem(QStringLiteral("fid"),QString::number(profileFid));
+        query.addQueryItem(QStringLiteral("fid"),fidText);
+        query.addQueryItem(QStringLiteral("network"),network);
         url.setQuery(query);
         request.setUrl(url);
     }
@@ -2911,7 +2920,7 @@ void OpenProofConnectionsController::fetchProfileStatus(qulonglong profileFid)
     m_profileStatusRead=reply;
     emit profileStatusChanged();
     const auto generation=m_grantGeneration;
-    connect(reply,&QNetworkReply::finished,this,[this,reply,profileFid,generation]{
+    connect(reply,&QNetworkReply::finished,this,[this,reply,profileFid,network,generation]{
         // An aborted/superseded GET must not clear the newer result or show
         // an error after another read has replaced it.
         if(m_profileStatusRead!=reply) {
@@ -2922,7 +2931,8 @@ void OpenProofConnectionsController::fetchProfileStatus(qulonglong profileFid)
         const int code=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto data=reply->bytesAvailable()<=4096?reply->readAll():QByteArray{};
         reply->deleteLater();
-        if(m_profileStatusFid!=profileFid || generation!=m_grantGeneration)return;
+        if(m_profileStatusFid!=profileFid || m_profileStatusNetwork!=network
+           || generation!=m_grantGeneration)return;
         const auto doc=QJsonDocument::fromJson(data);
         const auto item=doc.object().value(QStringLiteral("item"));
         if(code==200 && doc.isObject() && (item.isNull() || item.isObject())){
@@ -2948,7 +2958,8 @@ void OpenProofConnectionsController::saveProfileStatus(
         QStringLiteral("dnd"),QStringLiteral("custom")
     };
     if(!moods.contains(mood) || note.size()>72 || !m_viewerFid ||
-       m_profileStatusFid!=m_viewerFid || !cloudAuthorizationReady() ||
+       m_profileStatusFid!=m_viewerFid || m_profileStatusNetwork!=m_viewerNetwork
+       || !cloudAuthorizationReady() ||
        !trustedHttpsEndpoint(m_cloudUrl) || m_profileStatusWrite ||
        m_profileStatusRead || (mood==QStringLiteral("custom") && note.trimmed().isEmpty())) {
         m_profileStatusError=QStringLiteral("Status cannot be saved until account verification is ready.");
@@ -3005,8 +3016,60 @@ void OpenProofConnectionsController::saveProfileStatus(
         emit profileStatusSaveFinished(saved,m_profileStatusError);
         if(!saved && code==409)
             QMetaObject::invokeMethod(this,[this,viewer]{
-                if(m_viewerFid==viewer)fetchProfileStatus(viewer);
+                if(m_viewerFid==viewer)
+                    fetchProfileStatus(QString::number(viewer),
+                        m_accountSubject.startsWith(QStringLiteral("hypersnap:"))
+                            ?QStringLiteral("hypersnap"):QStringLiteral("farcaster"));
             },Qt::QueuedConnection);
+    });
+}
+
+void OpenProofConnectionsController::fetchPublicProfileExtras(
+    const QString& fid, const QString& network)
+{
+    bool valid=false;
+    const auto numeric=fid.toULongLong(&valid);
+    if(!valid || numeric==0
+       || (network!=QStringLiteral("farcaster") && network!=QStringLiteral("hypersnap"))
+       || (network==QStringLiteral("hypersnap") && numeric<4'294'967'296ULL)
+       || !trustedHttpsEndpoint(m_cloudUrl))return;
+    cancelNetworkReply(m_publicProfileExtrasRead,this);
+    m_publicProfileExtras.clear();
+    m_publicProfileExtrasFid=fid;
+    m_publicProfileExtrasNetwork=network;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/profile_extras"));
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("fid"),fid);
+    query.addQueryItem(QStringLiteral("network"),network);
+    url.setQuery(query);
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9000);
+    request.setRawHeader("Accept","application/json");
+    auto* reply=m_network.get(request);
+    m_publicProfileExtrasRead=reply;
+    emit publicProfileExtrasChanged();
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,fid,network,generation] {
+        if(m_publicProfileExtrasRead!=reply) {reply->deleteLater();return;}
+        m_publicProfileExtrasRead=nullptr;
+        const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=8192?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(m_publicProfileExtrasFid!=fid || m_publicProfileExtrasNetwork!=network
+           || generation!=m_grantGeneration)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        const auto item=doc.object().value(QStringLiteral("item"));
+        if(status==200 && doc.isObject()
+            && (item.isNull() || item.isObject())) {
+            if(item.isObject() && item.toObject().value(QStringLiteral("fid")).toString()==fid
+               && item.toObject().value(QStringLiteral("network")).toString()==network)
+                m_publicProfileExtras=item.toObject().toVariantMap();
+            else m_publicProfileExtras.clear();
+        }
+        emit publicProfileExtrasChanged();
     });
 }
 
@@ -4126,6 +4189,14 @@ void OpenProofConnectionsController::setNativeEnrollmentPhase(
     if (m_nativeEnrollmentPhase == phase) return;
     m_nativeEnrollmentPhase = std::move(phase);
     emit stateChanged();
+}
+
+void OpenProofConnectionsController::setViewerNetwork(const QString& network)
+{
+    if(network != QStringLiteral("farcaster")
+       && network != QStringLiteral("hypersnap")
+       && !network.isEmpty())return;
+    m_viewerNetwork = network;
 }
 
 void OpenProofConnectionsController::setViewerFid(const qulonglong fid)

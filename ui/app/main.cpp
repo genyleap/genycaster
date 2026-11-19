@@ -1282,9 +1282,17 @@ int main(int argc, char* argv[])
             // Account-scoped unpublished drafts must never carry over when the
             // active Farcaster identity changes on a shared device.
             richComposerController.setViewerFid(fid);
+            openProofConnections.setViewerNetwork(fid
+                ? (presentationBridge.nativeCustodyAccount()
+                    ? QStringLiteral("hypersnap") : QStringLiteral("farcaster"))
+                : QString{});
             openProofConnections.setViewerFid(fid);
         });
     richComposerController.setViewerFid(initialFid);
+    openProofConnections.setViewerNetwork(initialFid
+        ? (presentationBridge.nativeCustodyAccount()
+            ? QStringLiteral("hypersnap") : QStringLiteral("farcaster"))
+        : QString{});
     openProofConnections.setViewerFid(initialFid);
     QObject::connect(&richComposerController, &RichComposerController::draftLocallyChanged,
                      &openProofConnections,

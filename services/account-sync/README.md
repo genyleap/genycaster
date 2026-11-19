@@ -353,10 +353,13 @@ No actual private user token should appear in logs or be pasted into tickets.
 
 ### GenyCaster user-selected profile status
 
-`GET /api/v1/cloud/profile_status?fid=<verified-farcaster-fid>` exposes
-only an explicitly public, user-selected status. It never claims to reflect
-live socket presence or online availability. Private or cleared statuses
-return `{"item":null}`, with no authentication or social-data scraping.
+`GET /api/v1/cloud/profile_status?fid=<canonical-fid>&network=farcaster|hypersnap`
+exposes only an explicitly public, user-selected status. The network defaults
+to Farcaster for backwards compatibility; HyperSnap requires explicit protocol
+selection and a native-registry FID. The API matches the exact issuer and
+subject, without guessing the network from a numeric FID. It never claims to
+reflect live socket presence or online availability. Private or cleared
+statuses return `{"item":null}`, with no authentication or social-data scraping.
 
 `GET /api/v1/cloud/profile_status` requires the verified owner's account
 session and includes private status. `PUT /api/v1/cloud/profile_status`
@@ -370,6 +373,15 @@ Data is persisted as a reserved GenyCaster-owned `notifications` row
 (ID `00000000-0000-4000-8000-000000000003`). Generic notification
 reads and writes exclude that row and cannot impersonate the internal
 record. This needs no new database role, schema privileges, or migrations.
+
+`GET /api/v1/cloud/profile_extras?fid=<canonical-fid>&network=farcaster|hypersnap`
+returns only the owner's opted-in, curated category, profession, secondary
+categories and roles. Unpublished records return `{"item":null}`. The
+authenticated owner can opt in/out through `publicly_visible` on their
+existing profile-extras PUT. Previously private records stay private by
+default; personal links, owner session metadata and revision are not part
+of the public response. Public status and classification reads are independent
+of the visitor's login.
 
 
 ### Market snapshot (read-only)

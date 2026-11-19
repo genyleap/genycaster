@@ -8,7 +8,7 @@ const activity=readFileSync(root+'/ui/components/profile/GenyPulsePanel.qml','ut
 const controller=readFileSync(root+'/ui/app/identity/connections.cpp','utf8');
 const header=readFileSync(root+'/ui/app/identity/connections.hpp','utf8');
 test('own mobile profile alone omits redundant back-to-feed toolbar',()=>{
-  assert.match(qml,/visible: !\(root\.compact && root\.isOwnProfile\)/);
+  assert.match(qml,/RowLayout \{\s*visible: true\s*Layout\.fillWidth: true/);
   assert.match(qml,/text: qsTrId\("genycaster\.setup\.back"\)/);
 });
 test('professional label matches compact business identity style',()=>{
@@ -107,7 +107,7 @@ test('status save closes only on server-confirmed completion and preserves confl
   assert.match(editor,/objectName: "profileStatusSaveError"/);
   assert.doesNotMatch(editor,/function onProfileStatusChanged\(\) \{[\s\S]*?if\(profileStatusEditor\.awaitingSave\s*&& !openProofConnections\.profileStatusBusy\)/);
   assert.match(controller,/if\(!saved && code==409\)/);
-  assert.match(controller,/if\(m_profileStatusFid!=profileFid\) \{\s*m_profileStatus\.clear/);
+  assert.match(controller,/if\(m_profileStatusFid!=profileFid \|\| m_profileStatusNetwork!=network\) \{\s*m_profileStatus\.clear/);
   assert.match(controller,/\|\| m_profileStatusWrite\) return/);
 });
 test('profile summary and picker carry semantic icon/color for each mood',()=>{
@@ -127,9 +127,22 @@ test('periodic status fetch never races an open editor or pending save',()=>{
   const timer=qml.slice(qml.indexOf('id: profileStatusFetch'),qml.indexOf('interval: 60000'));
   assert.match(timer,/profileStatusEditor.visible \|\| profileStatusEditor.awaitingSave/);
   assert.match(controller,/if\(m_profileStatusRead!=reply\) \{/);
-  assert.match(controller,/if\s*\(!profileFid \|\| !trustedHttpsEndpoint\(m_cloudUrl\) \|\| m_profileStatusWrite\) return/);
+  assert.match(controller,/!trustedHttpsEndpoint\(m_cloudUrl\) \|\| m_profileStatusWrite\) return/);
+  assert.match(timer,/fetchProfileStatus\(root\.profileFidText, root\.profileNetwork\)/);
 });
 
+test('public profile classification is FID/network scoped and links stay private',()=>{
+  assert.match(qml,/objectName: "profileClassificationVisibility"/);
+  assert.match(qml,/id: publicProfileExtrasFetch/);
+  assert.match(qml,/fetchPublicProfileExtras\(/);
+  assert.match(qml,/publicProfileExtrasFid === root\.profileFidText/);
+  assert.match(qml,/publicProfileExtrasNetwork === root\.profileNetwork/);
+  assert.match(qml,/links: \[\], labels: \[\]/);
+  assert.match(qml,/profileCategories\.map\(/);
+  assert.match(qml,/profileFidText: String\(/);
+  assert.match(header,/Q_PROPERTY\(QVariantMap publicProfileExtras/);
+  assert.match(controller,/query\.addQueryItem\(QStringLiteral\("network"\),network\)/);
+});
 test('status icon family is semantic, bundled and independent of audio controls',()=>{
   const theme=readFileSync(root+'/ui/theme/Theme.qml','utf8');
   const mappings={

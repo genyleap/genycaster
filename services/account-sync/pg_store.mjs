@@ -278,17 +278,32 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
     },
     // A reserved account-owned notification record, distinct from notifications
     // displayed to users. No schema changes or additional database privileges.
-    async getPublicProfileStatus(fid,issuer) {
+    async getPublicProfileStatus({fid,issuer,subject,network}) {
       const result=await pool.query(`SELECT payload,revision::text,updated_at
         FROM notifications WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
           AND source='genycaster' AND kind='profile_status'
           AND deleted_at IS NULL
           AND (payload->>'visible')::boolean=true
           AND payload->>'mood'<>'none' LIMIT 1`,
-        [issuer,'farcaster:'+fid,PROFILE_STATUS_ROW]);
+        [issuer,subject,PROFILE_STATUS_ROW]);
       return result.rows[0] ? {...result.rows[0].payload,
-        fid:String(fid),revision:result.rows[0].revision,
+        fid:String(fid),network,revision:result.rows[0].revision,
         updated_at:result.rows[0].updated_at} : null;
+    },
+    // Curated profile classifications are public only after owner opt-in.
+    // Custom links and account identifiers never enter this projection.
+    async getPublicProfileExtras({fid,issuer,subject,network}) {
+      const extra=secondaryCategoriesReady
+        ? 'secondary_categories' : "'[]'::jsonb AS secondary_categories";
+      const roles=multipleRolesReady
+        ? 'roles' : "CASE WHEN profession='' THEN '[]'::jsonb ELSE jsonb_build_array(profession) END AS roles";
+      const result=await pool.query(`SELECT category,profession,${extra},${roles}
+        FROM profile_extras WHERE issuer=$1 AND subject=$2
+          AND publicly_visible=true LIMIT 1`,[issuer,subject]);
+      if(!result.rows[0])return null;
+      const {category,profession,secondary_categories,roles:roleValues}=result.rows[0];
+      return {fid:String(fid),network,category,profession,
+        secondary_categories,roles:roleValues};
     },
     async getOwnProfileStatus({issuer,subject,fid}) {
       const result=await pool.query(`SELECT payload,revision::text,updated_at
@@ -895,26 +910,28 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       const roleColumn=multipleRolesReady ? ',roles' : '';
       const roleArgument=multipleRolesReady ? ',$8::jsonb' : '';
       const roleUpdate=multipleRolesReady ? ',roles=EXCLUDED.roles' : '';
+      const visibilityArgument='$'+(7+Number(secondaryCategoriesReady)
+        +Number(multipleRolesReady));
       const roleReturning=multipleRolesReady
         ? 'roles' : "CASE WHEN profession='' THEN '[]'::jsonb ELSE jsonb_build_array(profession) END AS roles";
       const returning=secondaryCategoriesReady
         ? 'secondary_categories' : "'[]'::jsonb AS secondary_categories";
       const result=await pool.query(`INSERT INTO profile_extras
           (issuer,subject,category,profession,links,publicly_visible,revision${extra}${roleColumn})
-        SELECT $1,$2,$3,$4,$5::jsonb,false,1${argument}${roleArgument}
+        SELECT $1,$2,$3,$4,$5::jsonb,${visibilityArgument}::boolean,1${argument}${roleArgument}
         WHERE $6::bigint=0 OR EXISTS (
           SELECT 1 FROM profile_extras WHERE issuer=$1 AND subject=$2
             AND revision=$6
         )
         ON CONFLICT (issuer,subject) DO UPDATE SET
           category=EXCLUDED.category,profession=EXCLUDED.profession,
-          links=EXCLUDED.links,publicly_visible=false${update}${roleUpdate},
+          links=EXCLUDED.links,publicly_visible=EXCLUDED.publicly_visible${update}${roleUpdate},
           revision=profile_extras.revision+1,updated_at=now()
         WHERE profile_extras.revision=$6
         RETURNING category,profession,links,publicly_visible,revision,updated_at,${returning},${roleReturning}`,
         [issuer,subject,item.category,item.profession,JSON.stringify(item.links),
          item.revision,...(secondaryCategoriesReady?[JSON.stringify(secondary)]:[]),
-         ...(multipleRolesReady?[JSON.stringify(roles)]:[])]);
+         ...(multipleRolesReady?[JSON.stringify(roles)]:[]),item.publicly_visible===true]);
       const record=result.rows[0];
       return record ? {...record,revision:Number(record.revision)} : null;
     },

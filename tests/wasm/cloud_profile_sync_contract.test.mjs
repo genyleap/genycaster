@@ -70,7 +70,8 @@ test('profile category and links save locally then replicate without sync contro
   assert.match(profile,/id: profileBackgroundRefresh/);
   assert.match(profile,/onCloudProfileExtrasReceived\(item\)/);
   assert.match(profile,/root\.restoreCloudProfile\(item\)/);
-  assert.match(profile,/profileExtrasOwnerKey: root\.isOwnProfile[\s\S]*?"farcaster:" \+ String\(root\.accountFid\)/);
+  assert.match(profile,/profileExtrasOwnerKey: root\.isOwnProfile[\s\S]*?"hypersnap:" : "farcaster:"/);
+  assert.match(profile,/\+ root\.profileFidText/);
   assert.match(profile,/function migrateLegacyProfileExtras\(\)/);
   assert.match(profile,/onProfileExtrasOwnerKeyChanged: root\.migrateLegacyProfileExtras\(\)/);
   assert.match(profile,/genycaster:device-local:/);
@@ -169,7 +170,7 @@ test('native signed cloud-session bootstrap avoids anonymous 401 probes', () => 
             'missing-cookie native clients must not make a knowingly unauthorized GET');
   assert.match(restore, /status==200 && reply->isReadable\(\)/);
   assert.match(restore, /m_cloudSessionVerified=true/);
-  assert.match(restore, /data.value\(QStringLiteral\("fid"\)\)/);
+  assert.match(restore, /genycaster::identity::matchesAccountSessionPrincipal\(data, viewer, m_issuerUrl\)/);
   assert.match(restore, /csrf.size\(\)!=43/);
   const cloud = read('services/account-sync/cloud_state.mjs');
   assert.match(cloud, /const SESSION_COOKIE='__Host-genycaster-account'/);

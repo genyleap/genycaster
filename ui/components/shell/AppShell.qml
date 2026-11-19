@@ -2285,6 +2285,7 @@ Item {
                                                 interactionsAvailable: presentationBridge.isAuthenticated
                                                                        && presentationBridge.writeReady
                                                 accountFid: presentationBridge.accountFid
+                                                accountFidText: presentationBridge.accountFidText
                                                 accountIssuer: presentationBridge.accountIdentityIssuer
                                                 accountIsNativeCustody: presentationBridge.nativeCustodyAccount
                                                 onBackRequested: root.returnFromProfileSurface()

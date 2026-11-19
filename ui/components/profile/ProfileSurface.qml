@@ -121,6 +121,7 @@ Item {
     readonly property string publicActivitySource: root.publicActivityMatchesProfile
         ? String(openProofConnections.publicActivitySource || "casts") : "casts"
     property double accountFid: 0
+    property string accountFidText: ""
     property string accountIssuer: ""
     property bool accountIsNativeCustody: false
     // GENY holder status is *never* derived from a user-editable bio, display
@@ -162,9 +163,18 @@ Item {
         const entry=root.moodOptions.find(option=>option.id===String(mood||'none'))
         return entry || root.moodOptions[root.moodOptions.length-1]
     }
+    // Preserve protocol FIDs as decimal text; QML Numbers lose uint64 precision.
+    readonly property string profileFidText: String(
+        root.activeDetail.fidString || root.activeDetail.fid || "")
+    // The selected read provider identifies the profile's protocol. It must
+    // not be inferred from FID magnitude or from a previous account session.
+    readonly property string profileNetwork: providerProfiles.activeReadContract === "hypersnap-v2"
+        ? "hypersnap" : "farcaster"
     readonly property var displayedMood: {
         const value=openProofConnections ? openProofConnections.profileStatus || ({}) : ({})
-        return String(value.fid||'')===String(Number(root.activeDetail.fid||0))
+        return root.profileFidText.length > 0
+            && String(value.fid || "") === root.profileFidText
+            && openProofConnections.profileStatusNetwork === root.profileNetwork
             ? value : ({})
     }
     function moodLabel(mood) {
@@ -175,6 +185,7 @@ Item {
     }
     onActiveDetailChanged: {
         profileStatusFetch.restart()
+        publicProfileExtrasFetch.restart()
         streakFetch.restart()
         publicActivityFetch.restart()
     }
@@ -213,16 +224,30 @@ Item {
             // saving: their response could race the revision used by PUT.
             if(profileStatusEditor.visible || profileStatusEditor.awaitingSave)
                 return
-            const fid=Number(root.activeDetail.fid||0)
-            if(fid>0 && openProofConnections && !openProofConnections.profileStatusBusy)
-                openProofConnections.fetchProfileStatus(fid)
+            if(root.profileFidText.length>0 && openProofConnections
+                && !openProofConnections.profileStatusBusy)
+                openProofConnections.fetchProfileStatus(root.profileFidText, root.profileNetwork)
+        }
+    }
+    Timer {
+        id: publicProfileExtrasFetch
+        interval: 220
+        repeat: false
+        onTriggered: {
+            if(root.visible && !root.isOwnProfile && root.profileFidText.length>0
+                && openProofConnections)
+                openProofConnections.fetchPublicProfileExtras(
+                    root.profileFidText, root.profileNetwork)
         }
     }
     Timer {
         interval: 60000
         repeat: true
-        running: root.visible && Number(root.activeDetail.fid||0)>0
-        onTriggered: profileStatusFetch.restart()
+        running: root.visible && root.profileFidText.length>0
+        onTriggered: {
+            profileStatusFetch.restart()
+            publicProfileExtrasFetch.restart()
+        }
     }
     Connections {
         target: openProofConnections ? openProofConnections : null
@@ -382,6 +407,7 @@ Item {
                     ? root.profileSequence(saved.roles, 5)
                     : (saved.profession ? [String(saved.profession)] : []),
             secondary_categories: root.profileSequence(saved.secondaryCategories, 3),
+            publicly_visible: saved.publiclyVisible === true,
             links: urls.map((url, index) => ({
                 label: String(labels[index] || "").slice(0, 32), url: url
             })).filter(entry => typeof entry.url === "string"
@@ -403,6 +429,7 @@ Item {
                 category: item.category, profession: item.profession,
                 roles: root.profileSequence(item.roles, 5),
                 secondaryCategories: root.profileSequence(item.secondary_categories, 3),
+                publiclyVisible: item.publicly_visible === true,
                 links: links.map(entry => entry.url),
                 labels: links.map(entry => String(entry.label || "").slice(0, 32))
             }
@@ -448,6 +475,7 @@ Item {
                          === JSON.stringify(latest.roles)
                       && JSON.stringify(root.profileSequence(item.secondary_categories, 3))
                          === JSON.stringify(latest.secondary_categories)
+                      && (item.publicly_visible === true) === latest.publicly_visible
                       && JSON.stringify(root.profileSequence(item.links, 5))
                          === JSON.stringify(latest.links)
             if (same) root.setCloudFlags(false, Number(item.revision || 0))
@@ -498,7 +526,8 @@ Item {
     // regardless of whether the browser entered through OpenProof or Farcaster.
     // Older route-specific local settings are imported without deleting them.
     readonly property string profileExtrasOwnerKey: root.isOwnProfile
-        ? "farcaster:" + String(root.accountFid) : ""
+        ? (root.accountIsNativeCustody ? "hypersnap:" : "farcaster:")
+          + root.profileFidText : ""
     function migrateLegacyProfileExtras() {
         if (!root.profileExtrasOwnerKey) return
         try {
@@ -541,6 +570,23 @@ Item {
     }
     readonly property var profileExtras: {
         const generation = root.profileExtrasGeneration
+        if (!root.isOwnProfile) {
+            const publicData = openProofConnections
+                ? openProofConnections.publicProfileExtras || ({}) : ({})
+            if (openProofConnections
+                && openProofConnections.publicProfileExtrasFid === root.profileFidText
+                && openProofConnections.publicProfileExtrasNetwork === root.profileNetwork
+                && String(publicData.fid || "") === root.profileFidText
+                && String(publicData.network || "") === root.profileNetwork)
+                return {
+                    category: String(publicData.category || ""),
+                    profession: String(publicData.profession || ""),
+                    secondaryCategories: root.profileSequence(publicData.secondary_categories, 3),
+                    roles: root.profileSequence(publicData.roles, 5),
+                    links: [], labels: []
+                }
+            return ({})
+        }
         if (!root.profileExtrasOwnerKey) return ({})
         // Live, account-verified API state is authoritative for a clean
         // profile. QSettings remains a durable offline outbox, never a
@@ -557,6 +603,7 @@ Item {
                 category: server.category, profession: server.profession,
                 roles: root.profileSequence(server.roles, 5),
                 secondaryCategories: root.profileSequence(server.secondary_categories, 3),
+                publiclyVisible: server.publicly_visible === true,
                 links: links.map(entry => String(entry.url || "")),
                 labels: links.map(entry => String(entry.label || ""))
             }
@@ -597,12 +644,16 @@ Item {
         // The visible copy is localized but canonical API values are untouched.
         return qsTrId("genycaster.profile.option." + key)
     }
-    readonly property string profileCategory: {
-        return root.isOwnProfile ? String(root.profileExtras.category || "") : ""
+    readonly property string profileCategory: String(root.profileExtras.category || "")
+    readonly property var profileCategories: {
+        const primary = root.profileCategory
+        const secondary = root.profileSequence(root.profileExtras.secondaryCategories, 3)
+        return (primary ? [primary] : []).concat(secondary)
+            .filter(value => typeof value === "string" && value.length > 0)
     }
     readonly property string profileProfession: {
         const fromSource = String(root.activeDetail.profession || root.activeDetail.category || "")
-        return (root.isOwnProfile && root.profileExtras.profession)
+        return root.profileExtras.profession
             ? String(root.profileExtras.profession) : fromSource.slice(0, 80)
     }
     readonly property var profileExtraLinks: {
@@ -639,7 +690,8 @@ Item {
         return (!query || query[1].length < 256)
             && (!hash || hash[1].length < 128)
     }
-    function saveExtraDetails(profession, rawLinks, category, secondaryCategories, roles) {
+    function saveExtraDetails(profession, rawLinks, category, secondaryCategories,
+                              roles, publiclyVisible) {
         if (!root.isOwnProfile || !root.profileExtrasOwnerKey) return false
         const selectedRoles = root.profileSequence(roles, 5)
         const role = String(selectedRoles[0] || profession || "").trim()
@@ -687,6 +739,7 @@ Item {
                 profession: role, category: categoryName,
                 roles: selectedRoles,
                 secondaryCategories: additional,
+                publiclyVisible: publiclyVisible === true,
                 links: unique.map(e=>e.url), labels: unique.map(e=>e.label)
             }
             profileExtrasSettings.entriesJson = JSON.stringify(entries)
@@ -783,8 +836,10 @@ Item {
 
     readonly property bool profileMuted: root.mutedProfileFids.indexOf(
         String(Number(root.activeDetail.fid || 0))) >= 0
-    readonly property bool isOwnProfile: Number(root.activeDetail.fid || 0) > 0
-                                         && Number(root.activeDetail.fid || 0) === Number(root.accountFid)
+    readonly property bool isOwnProfile: root.profileFidText.length > 0
+                                         && root.profileFidText === root.accountFidText
+                                         && root.profileNetwork === (root.accountIsNativeCustody
+                                             ? "hypersnap" : "farcaster")
     readonly property int profileAvatarSize: root.compact ? 84 : 96
     // Match the Stats/ContextRail outside gutter without shrinking card
     // padding. The profile is responsive across the full desktop workspace.
@@ -1276,6 +1331,8 @@ Item {
         }
         root.scrollToBeginning()
         root.positionNewProfileAtBeginning()
+        profileStatusFetch.restart()
+        publicProfileExtrasFetch.restart()
     }
     onDetailChanged: {
         const incomingFid = Number((root.detail || ({})).fid || 0)
@@ -2392,10 +2449,10 @@ Item {
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: root.profileCategory.length > 0 && root.profileProfession.length > 0
-                                  ? root.profileOptionLabel(root.profileCategory) + " · "
-                                    + root.profileOptionLabel(root.profileProfession)
-                                  : root.profileOptionLabel(root.profileCategory || root.profileProfession)
+                            text: root.profileCategories.map(value => root.profileOptionLabel(value))
+                                  .concat(root.profileProfession
+                                    ? [root.profileOptionLabel(root.profileProfession)] : [])
+                                  .filter(value => value.length > 0).join(" · ")
                             alignToUi: true
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
@@ -3451,6 +3508,7 @@ Item {
         fullScreen: mobilePresentation
         property var secondarySelection: []
         property var roleSelection: []
+        property bool publicClassification: false
         dimBackground: true
         width: parent ? (mobilePresentation ? parent.width : Math.min(480, parent.width)) : 480
         height: parent ? parent.height : 750
@@ -3463,6 +3521,8 @@ Item {
             openProofConnections.checkCloudService()
             const savedCategory = String(root.profileExtras.category || "")
             const savedRole = String(root.profileExtras.profession || "")
+            profileExtrasEditor.publicClassification =
+                root.profileExtras.publiclyVisible === true
             const inferredCategory = !savedCategory && savedRole === "Developer"
                                      ? "Technology" : savedCategory
             categoryEditor.currentIndex = Math.max(0,
@@ -3934,6 +3994,14 @@ Item {
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
                     }
+                    GenySwitch {
+                        objectName: "profileClassificationVisibility"
+                        Layout.fillWidth: true
+                        checked: profileExtrasEditor.publicClassification
+                        text: qsTrId("genycaster.status.visible") + " · "
+                              + qsTrId("genycaster.profile.category_label")
+                        onToggled: profileExtrasEditor.publicClassification = checked
+                    }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.profile.links_editor_hint")
@@ -3979,7 +4047,8 @@ Item {
                                 linksEditor.text,
                                 categoryEditor.currentIndex > 0 ? categoryEditor.currentText : "",
                                 profileExtrasEditor.secondarySelection,
-                profileExtrasEditor.roleSelection))
+                                profileExtrasEditor.roleSelection,
+                                profileExtrasEditor.publicClassification))
                             profileExtrasEditor.close()
                     }
                 }
@@ -4038,7 +4107,7 @@ Item {
             awaitingSave=false
             dirtySelection=false
             saveError=""
-            openProofConnections.fetchProfileStatus(Number(root.activeDetail.fid||0))
+            openProofConnections.fetchProfileStatus(root.profileFidText, root.profileNetwork)
         }
         Connections {
             target: openProofConnections

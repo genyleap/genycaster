@@ -16,7 +16,11 @@ test('public display exposes only explicitly visible mood, authenticated PUT enf
  let current=null;
  const calls=[];
  const store={
-  async getPublicProfileStatus(fid){calls.push(['public',fid]);return current?.visible&&current.mood!=='none'?current:null},
+  async getPublicProfileStatus(target){
+    calls.push(['public',target.fid,target.network,target.subject]);
+    return current?.visible&&current.mood!=='none'
+      ? {...current,network:target.network}:null;
+  },
   async getOwnProfileStatus(who){assert.equal(who.fid,'42');return current},
   async putProfileStatus(who,item){
     assert.equal(who.fid,'42');
@@ -35,6 +39,10 @@ test('public display exposes only explicitly visible mood, authenticated PUT enf
  try{
   assert.equal((await request('?fid=42','GET',undefined,null)).status,200);
   assert.equal((await request('?fid=other','GET',undefined,null)).status,400);
+  assert.equal((await request('?fid=42&network=hypersnap','GET',undefined,null)).status,400);
+  assert.equal((await request('?fid=42&network=unknown','GET',undefined,null)).status,400);
+  assert.equal((await request('?fid=18446744073709551615&network=hypersnap','GET',undefined,null)).status,200);
+  assert.ok(calls.some(c=>c[0]==='public' && c[3]==='hypersnap:18446744073709551615'));
   assert.equal((await request('?fid=42','PUT',{mood:'busy'},null)).status,401);
   const bad={mood:'busy',note:'',visible:true,revision:0};
   assert.equal((await request('','PUT',{...bad,mood:'sleeping'})).status,400);
