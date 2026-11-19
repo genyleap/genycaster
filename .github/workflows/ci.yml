@@ -1398,8 +1398,8 @@ jobs:
             -DFARCASTER_ENABLE_CHANNELS=ON \
             -DFARCASTER_ENABLE_CHAT=OFF \
             -DFARCASTER_ENABLE_WALLET=OFF \
-            "-DGENYCASTER_PUBLIC_ORIGIN=https://app.genycaster.xyz" \
-            "-DGENYCASTER_SIWF_ORIGIN=https://app.genycaster.xyz"
+            "-DGENYCASTER_PUBLIC_ORIGIN=https://genycaster.xyz" \
+            "-DGENYCASTER_SIWF_ORIGIN=https://genycaster.xyz"
           cmake --build build/web --target genycaster_wasm_asset_refresh --parallel 3
           mkdir -p dist
           python3 ci/package_web.py \
