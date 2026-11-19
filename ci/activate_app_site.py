@@ -8,7 +8,10 @@ Without --apply it only validates the tracked vhost and prints prerequisites.
 from __future__ import annotations
 
 import argparse
+import http.client
 import os
+import socket
+import ssl
 from pathlib import Path
 import shutil
 import subprocess
@@ -128,7 +131,59 @@ def check_public_marker() -> None:
         raise RuntimeError("HTTPS is serving another virtual host, not GenyCaster")
 
 
-def activate(email: str | None) -> None:
+
+def check_origin_service() -> None:
+    """Check the actual local Nginx origin, without Cloudflare or TLS bypass.
+
+    Connecting to loopback avoids public DNS/Cloudflare. Sending the original
+    hostname as SNI and Host ensures normal certificate and vhost selection.
+    Any certificate-chain or hostname failure is a real origin gate failure.
+    """
+    for path, required in (
+        ("/.well-known/genycaster-ready", MARKER.encode("ascii")),
+        ("/genycaster.html", None),
+    ):
+        context = ssl.create_default_context()
+        with socket.create_connection(("127.0.0.1", 443), timeout=10) as raw:
+            with context.wrap_socket(raw, server_hostname=HOST) as connection:
+                connection.settimeout(10)
+                request = (f"GET {path} HTTP/1.1\r\n"
+                           f"Host: {HOST}\r\n"
+                           "Accept: */*\r\n"
+                           "Connection: close\r\n\r\n")
+                connection.sendall(request.encode("ascii"))
+                response = http.client.HTTPResponse(connection)
+                response.begin()
+                status = response.status
+                payload = response.read(256)
+                response.close()
+        if status != 200:
+            raise RuntimeError(f"Local HTTPS origin {path} returned HTTP {status}")
+        if required is not None and payload != required:
+            raise RuntimeError(f"Local HTTPS origin {path} returned the wrong marker")
+        if required is None and b"<html" not in payload.lower() and b"<!doctype html" not in payload.lower():
+            raise RuntimeError("Local HTTPS origin is not serving GenyCaster HTML")
+
+
+def report_public_delivery() -> bool:
+    """Do not remove a verified working vhost because a CDN is misrouted."""
+    try:
+        check_public_marker()
+    except (OSError, RuntimeError, ValueError, urllib.error.URLError) as error:
+        print(
+            "ORIGIN READY, PUBLIC CDN ROUTING NOT VERIFIED: "
+            f"{error}. Nginx and the validated app certificate remain active. "
+            "Check that Cloudflare's app.genycaster.xyz record, redirect rules, "
+            "origin overrides and cache route to this VPS. "
+            "The app's public URL is NOT yet confirmed.",
+            file=sys.stderr,
+        )
+        return False
+    print(f"READY: {PROBE} = {MARKER}")
+    return True
+
+
+def activate(email: str | None) -> bool:
     if os.geteuid() != 0:
         raise RuntimeError("Activation requires operator root permissions")
     for tool in ("nginx", "systemctl", "certbot", "openssl"):
@@ -144,26 +199,40 @@ def activate(email: str | None) -> None:
         run_checked("nginx", "-t")
         run_checked("systemctl", "reload", "nginx")
 
+    desired = MANAGED + source
+    if previous == desired and not created_link:
+        # Re-running after a public-CDN routing error must not disturb the
+        # already-validated Nginx origin or repeat the Certbot ceremony.
+        verify_certificate()
+        check_origin_service()
+        return report_public_delivery()
+
     try:
-        # Serve the HTTP-01 challenge from the dedicated root while keeping
-        # the existing landing/status vhosts untouched.
-        atomic_write(AVAILABLE, http_certificate_bootstrap())
+        # Existing valid app certificates can be reused. A temporary
+        # HTTP-only ACME bootstrap is needed only for initial issuance.
+        certificate_exists = CERT.is_file() and KEY.is_file()
+        if certificate_exists:
+            verify_certificate()
+        else:
+            atomic_write(AVAILABLE, http_certificate_bootstrap())
+            if created_link:
+                ENABLED.symlink_to(AVAILABLE)
+            reload_nginx()
+            command = ["certbot", "certonly", "--webroot", "-w", str(ROOT),
+                       "-d", HOST, "--non-interactive", "--agree-tos",
+                       "--keep-until-expiring"]
+            if email:
+                command.extend(("--email", email))
+            run_checked(*command)
+            verify_certificate()
+
+        # Install only the reviewed dedicated HTTPS config and verify the
+        # actual local Nginx endpoint before any public CDN request.
+        atomic_write(AVAILABLE, desired)
         if created_link:
             ENABLED.symlink_to(AVAILABLE)
         reload_nginx()
-
-        command = ["certbot", "certonly", "--webroot", "-w", str(ROOT),
-                   "-d", HOST, "--non-interactive", "--agree-tos",
-                   "--keep-until-expiring"]
-        if email:
-            command.extend(("--email", email))
-        run_checked(*command)
-        verify_certificate()
-
-        # Only a valid, host-matched certificate enables the HTTPS vhost.
-        atomic_write(AVAILABLE, MANAGED + source)
-        reload_nginx()
-        check_public_marker()
+        check_origin_service()
     except Exception:
         # The HTTP bootstrap is not a successful site installation. On
         # any failure, restore the previous vhost and reload its old config.
@@ -181,9 +250,13 @@ def activate(email: str | None) -> None:
                   f"{rollback_error}", file=sys.stderr)
         raise
 
-    print(f"READY: {PROBE} = {MARKER}")
+    print(f"Local origin READY: https://{HOST}/genycaster.html")
     print(f"Dedicated static web root: {ROOT}")
     print("No WASM assets were published by this activation.")
+    # External CDN/cache/DNS mistakes are separate from local configuration
+    # failures. Keep the working app vhost installed for repair and report a
+    # nonzero result until real public reachability is confirmed.
+    return report_public_delivery()
 
 
 def main() -> int:
@@ -201,8 +274,7 @@ def main() -> int:
             print("Requires operator-managed /etc, root access, and ACME DNS/HTTP reachability.")
             print("Apply with --apply after verifying the domain's DNS record.")
             return 0
-        activate(args.email)
-        return 0
+        return 0 if activate(args.email) else 2
     except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError,
             urllib.error.URLError) as error:
         print(f"App-site activation failed: {error}", file=sys.stderr)
