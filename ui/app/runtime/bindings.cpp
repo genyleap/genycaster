@@ -3382,7 +3382,7 @@ void connectRuntime(
                         || bridge.isAuthenticated()) return;
                     if (address.isEmpty()) {
                         bridge.applyAuthenticationError(
-                            qtTrId("genycaster.setup.recovery_failed_retry"));
+                            qtTrId("genycaster.setup.recovery_phrase_invalid"));
                         return;
                     }
                     auto* transport = new HyperSnapRegistrationTransport(
@@ -3398,10 +3398,21 @@ void connectRuntime(
                                     != QStringLiteral("hypersnap-recovery")
                                 || bridge.isAuthenticated()) return;
                             if (result.state
+                                    == HyperSnapRegistrationTransport::LookupState::NotFound) {
+                                // This is a confirmed absence on HyperSnap,
+                                // not a network failure or an invalid BIP39 phrase.
+                                bridge.applyAuthenticationError(
+                                    qtTrId("genycaster.setup.hypersnap_recovery_not_found"));
+                                return;
+                            }
+                            if (result.state
                                     != HyperSnapRegistrationTransport::LookupState::Confirmed
                                 || result.fid < (1ULL << 32)) {
                                 bridge.applyAuthenticationError(
-                                    qtTrId("genycaster.setup.recovery_failed_retry"));
+                                    result.state
+                                        == HyperSnapRegistrationTransport::LookupState::Unavailable
+                                    ? qtTrId("genycaster.setup.hypersnap_recovery_unavailable")
+                                    : qtTrId("genycaster.setup.recovery_failed_retry"));
                                 return;
                             }
                             // Only after registry confirmation may this key
