@@ -78,10 +78,17 @@ self-hosted overrides remain intact. Reconfigure and rebuild **every native
 platform and WebAssembly** so the generated `genycaster_deployment.hpp`,
 `public_endpoints.json` and browser `deployment_config.mjs` agree.
 
-The standalone `genycaster.xyz` HTTPS landing page remains live. The
-Account API is routed only under `/api/v1/cloud/`, without redirecting
-this path or replacing the landing; the prepared Nginx helper is
-`ci/enable_genycaster_xyz_cloud_api.py`. Verify public HTTPS:
+After the reviewed canonical WASM migration, `https://genycaster.xyz/`
+serves the browser application. The former standalone landing page is
+preserved at `/about/`, with the release selector at `/download` redirecting
+to its download section. The exact cutover procedure, backup and rollback
+requirements are in `ci/PRIMARY_WASM_MIGRATION.md`.
+
+The Account API stays on the SAME first-party domain under `/api/v1/cloud/`;
+do not redirect it, move its cookies to another domain or replace its
+canonical issuer. The earlier landing-only Nginx helper is
+`ci/enable_genycaster_xyz_cloud_api.py`; the primary WASM vhost retains
+the same proxy contract. Verify public HTTPS:
 `GET /api/v1/cloud/pro/plan` -> 200,
 unauthenticated `GET /api/v1/cloud/session` -> 401,
 a same-origin `POST /api/v1/cloud/session/challenge` -> 200,
