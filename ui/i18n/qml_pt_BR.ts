@@ -6544,6 +6544,18 @@ Company | https://company.com</source>
             <source>Open verified installer</source>
             <translation>Abrir instalador verificado</translation>
         </message>
+        <message id="genycaster.settings.github_star_title">
+            <source>Built in the open</source>
+            <translation>Desenvolvido abertamente</translation>
+        </message>
+        <message id="genycaster.settings.github_star_description">
+            <source>Enjoying GenyCaster? Star the project on GitHub to help others discover it.</source>
+            <translation>Gostou do GenyCaster? Dê uma estrela ao projeto no GitHub para ajudar outras pessoas a descobri-lo.</translation>
+        </message>
+        <message id="genycaster.settings.github_star_action">
+            <source>Star on GitHub</source>
+            <translation>Dar estrela no GitHub</translation>
+        </message>
         <message id="genycaster.settings.release_notes_and_downloads">
             <source>Release notes and downloads</source>
             <translation>Notas da versão e downloads</translation>
