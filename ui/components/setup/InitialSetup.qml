@@ -327,8 +327,10 @@ Item {
             return
         }
         if (currentStep === 5 && (authenticationInProgress || recoverySubmitPending)) {
-            cancelAuthentication()
+            // Leave the form editable even if the cancelled network worker
+            // finishes after Setup has returned to its recovery page.
             recoverySubmitPending = false
+            cancelAuthentication()
         }
         switchStep(currentStep - 1)
     }
@@ -2775,6 +2777,7 @@ Item {
                 compact: true
                 text: qsTrId("genycaster.shell.cancel")
                 onClicked: {
+                    root.recoverySubmitPending = false
                     root.cancelAuthentication()
                     root.switchStep(4)
                 }
