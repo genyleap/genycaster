@@ -2788,6 +2788,22 @@ Item {
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
+            // A rejected Farcaster request is NOT a prerequisite for using
+            // a separately verified Genyleap account. Provide the direct
+            // alternative here without silently bypassing either proof.
+            SetupActionCard {
+                objectName: "setupRetryWithGenyleapAfterFarcaster"
+                visible: !root.authenticated && !root.authenticationInProgress
+                         && root.authenticationRoute === "farcaster"
+                         && root.authenticationPhase === "failed"
+                Layout.fillWidth: true
+                compactCard: true
+                onboardingStyle: true
+                brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                title: qsTrId("genycaster.shell.continue_with_genyleap")
+                enabled: root.runtimeReady && root.authenticationAvailable
+                onClicked: root.continueWithGenyleap()
+            }
             SetupActionCard {
                 visible: !root.authenticated && !root.authenticationInProgress
                 Layout.fillWidth: true
