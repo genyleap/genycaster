@@ -1671,6 +1671,13 @@ Item {
                         enabled: root.runtimeReady && root.authenticationAvailable
                                  && !root.authenticationInProgress
                         onClicked: {
+                            // External identity authorization is an existing
+                            // account route. It cannot establish a new native
+                            // protocol FID or satisfy new-account signer gates.
+                            root.accountIntent = "existing"
+                            root.choosingRegistrationProvider = false
+                            root.existingProtocolSelected = true
+                            root.recoveryProtocol = "hypersnap-v2"
                             root.continueWithGenyleap()
                             root.switchStep(5)
                         }
@@ -1686,6 +1693,10 @@ Item {
                         enabled: root.runtimeReady && root.authenticationAvailable
                                  && !root.authenticationInProgress
                         onClicked: {
+                            root.accountIntent = "existing"
+                            root.choosingRegistrationProvider = false
+                            root.existingProtocolSelected = true
+                            root.recoveryProtocol = "farcaster-snapchain"
                             root.continueWithFarcaster()
                             root.switchStep(5)
                         }
