@@ -493,3 +493,65 @@
 @media (max-width:640px) {
     #native-downloads-dialog.nd-squircle {position:fixed}
 }
+
+/* Keep the background Bezier fixed while the inner viewport scrolls.
+ * In the previous structure, the background belonged to the scrolling
+ * element; on short mobile viewports it moved out of sight with the text.
+ */
+#native-downloads-dialog {
+    padding:0;
+    overflow:visible;
+    border-radius:43px;
+}
+#native-downloads-dialog .native-downloads-viewport {
+    position:relative;
+    max-height:min(770px,calc(100dvh - 36px));
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding:26px 26px 23px;
+    scrollbar-width:thin;
+    scrollbar-color:var(--nd-scroll) transparent;
+    background:transparent;
+    border-radius:43px;
+    corner-shape:superellipse(4);
+}
+#native-downloads-dialog.nd-squircle {
+    overflow:visible;
+    --nd-shape-width:1px;
+}
+.native-downloads-tabs button.selected.nd-squircle {
+    box-shadow:none;
+}
+#native-downloads-architecture.is-open.nd-squircle {
+    box-shadow:none;
+    --nd-shape-width:1.8px;
+}
+@media (max-width:640px) {
+    #native-downloads-dialog {
+        padding:0;
+        overflow:visible;
+        border-radius:41px 41px 0 0;
+    }
+    #native-downloads-dialog .native-downloads-viewport {
+        max-height:min(88dvh,750px);
+        padding:21px 18px calc(22px + env(safe-area-inset-bottom,0px));
+        border-radius:41px 41px 0 0;
+    }
+    #native-downloads-dialog::before {display:none}
+    #native-downloads-dialog .native-downloads-viewport::before {
+        content:"";
+        display:block;
+        width:36px;
+        height:4px;
+        border-radius:8px;
+        background:var(--nd-border);
+        margin:-10px auto 17px;
+    }
+}
+@media (max-width:360px) {
+    #native-downloads-dialog .native-downloads-viewport {
+        padding-left:13px;
+        padding-right:13px;
+    }
+}
