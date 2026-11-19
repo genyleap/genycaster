@@ -143,7 +143,7 @@ class PrimaryMigrationTests(unittest.TestCase):
         node_test = r"""
 const fs=require('fs');
 const vm=require('vm');
-const src=fs.readFileSync(process.argv[1],'utf8');
+const src=fs.readFileSync(process.argv[2],'utf8');
 const a=src.indexOf('    function superellipsePath(');
 const b=src.indexOf('    function drawShape(',a);
 if(a<0||b<0)throw Error('geometry source missing');
