@@ -20,7 +20,10 @@ import sys
 import tarfile
 import tempfile
 
-from ci.verify_platform_package import validate_web
+if __package__:
+    from .verify_platform_package import validate_web
+else:
+    from verify_platform_package import validate_web
 
 APP_ROOT = Path("/var/www/app.genycaster.xyz/public")
 APP_VHOST = Path("/etc/nginx/sites-enabled/app.genycaster.xyz")
