@@ -149,6 +149,8 @@ def publish_once(stage: Path, root: Path, names: list[str]) -> None:
             source = stage / name
             destination = root / name
             destination.parent.mkdir(parents=True, exist_ok=True)
+            if destination.parent != root:
+                destination.parent.chmod(0o755)
             if destination.exists() or destination.is_symlink():
                 raise RuntimeError(f"Destination changed during staging: {name}")
             os.replace(source, destination)
