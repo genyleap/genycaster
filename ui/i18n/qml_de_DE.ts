@@ -6793,8 +6793,20 @@ Company | https://company.com</source>
             <translation>Alles auswählen</translation>
         </message>
         <message id="genycaster.setup.recovery_failed_retry">
-            <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
-            <translation>Die Farcaster-Wiederherstellung konnte nicht bestätigt werden. Prüfen Sie die Verbindung und versuchen Sie es erneut.</translation>
+            <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
+            <translation>Die Kontowiederherstellung konnte nicht bestätigt werden. Prüfen Sie die Wiederherstellungswörter und das gewählte Protokoll und versuchen Sie es erneut.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_not_found">
+            <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>
+            <translation>Für diese Wiederherstellungswörter ist kein HyperSnap-Konto registriert. Falls das Konto auf Farcaster erstellt wurde, wählen Sie Farcaster und versuchen Sie es erneut.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_unavailable">
+            <source>The HyperSnap account registry is unavailable. Check your network connection and try again.</source>
+            <translation>Das HyperSnap-Kontoregister ist nicht erreichbar. Prüfen Sie Ihre Netzwerkverbindung und versuchen Sie es erneut.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_invalid">
+            <source>This recovery phrase is invalid. Check all 24 words, their order and spelling.</source>
+            <translation>Diese Wiederherstellungsphrase ist ungültig. Prüfen Sie alle 24 Wörter, ihre Reihenfolge und Schreibweise.</translation>
         </message>
         <message id="genycaster.setup.open_terms">
             <source>Open full Terms of Use</source>
