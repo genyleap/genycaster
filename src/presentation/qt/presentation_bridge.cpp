@@ -1900,6 +1900,10 @@ void PresentationBridge::openMyProfile()
     emit ownProfileReadAffinityRequested(true, nativeCustodyAccount());
     emit stateChanged();
     emit profileRequested(m_accountFid, false);
+    // A profile request cancels shared in-flight read interests. Re-arm the
+    // timeline after the protocol-pinned request so it cannot disappear when
+    // "My profile" is opened from a different selected network.
+    emit feedRequested(m_profileFeed, m_accountFid, {}, {}, false);
 }
 
 void PresentationBridge::openProfileUsername(const QString& username)

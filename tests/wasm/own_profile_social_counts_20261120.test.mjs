@@ -68,7 +68,7 @@ test('visiting another profile never reuses the authenticated account projection
 
 test('own-profile request is scoped to signed-in protocol without changing feed selection', () => {
   assert.match(bridgeHeader,/void ownProfileReadAffinityRequested\(bool ownProfile, bool nativeCustody\)/);
-  assert.match(bridge,/void PresentationBridge::openMyProfile\(\)[\s\S]*?ownProfileReadAffinityRequested\(true, nativeCustodyAccount\(\)\);[\s\S]*?emit profileRequested\(m_accountFid, false\);/);
+  assert.match(bridge,/void PresentationBridge::openMyProfile\(\)[\s\S]*?ownProfileReadAffinityRequested\(true, nativeCustodyAccount\(\)\);[\s\S]*?emit profileRequested\(m_accountFid, false\);[\s\S]*?emit feedRequested\(m_profileFeed, m_accountFid, \{\}, \{\}, false\);/);
   assert.match(bindings,/setPreferredProviderForCapability\([\s\S]*?profileCapability, access, routing::router::ProviderPreference\{/);
   assert.match(bindings,/\.require = true/);
   assert.match(bindings,/clearPreferredProviderForCapability\(\s*profileCapability, access\)/);
