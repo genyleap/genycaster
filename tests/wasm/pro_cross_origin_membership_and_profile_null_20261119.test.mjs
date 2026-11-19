@@ -16,12 +16,11 @@ test('profile link previews tolerate closing or destroyed drawer delegates',()=>
   assert.equal((profile.match(/if \(profileLinksDrawer\) profileLinksDrawer.close\(\)/g)||[]).length,2);
   assert.ok(!profile.includes('mediaActive: profileLinksDrawer.opened'));
 });
-test('WASM cloud entitlement and Streak API are rebound to the exact browser app host',()=>{
-  assert.match(controller,/jsonKey == QStringLiteral\("genycasterCloudApiUrl"\)/);
-  assert.match(controller,/window.location\?\.origin === "https:\/\/app.genycaster.xyz"/);
-  assert.match(controller,/endpoint\.setHost\(QStringLiteral\("app.genycaster.xyz"\)\)/);
-  assert.match(controller,/#if defined\(Q_OS_WASM\)[\s\S]*?app.genycaster.xyz/);
-  assert.match(pre,/https:\/\/app.genycaster.xyz/);
+test('WASM Pro and Streak use the canonical account host only',()=>{
+  assert.match(controller,/configuredUrl\("GENYCASTER_CLOUD_API_URL"/);
+  assert.doesNotMatch(controller,/endpoint\.setHost\(QStringLiteral\("app.genycaster.xyz"\)\)/);
+  assert.match(pre,/window\.location\.origin !== "https:\/\/genycaster.xyz"/);
+  assert.doesNotMatch(pre,/https:\/\/app.genycaster.xyz/);
   assert.ok(!pre.includes('owner !== fid || !client'));
 });
 test('failed browser account session reaches a bounded controller error, not a silent void',()=>{
