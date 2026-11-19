@@ -8,6 +8,7 @@ Without --apply it only validates the tracked vhost and prints prerequisites.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import http.client
 import os
 import socket
@@ -17,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.request
 
@@ -132,21 +134,21 @@ def check_public_marker() -> None:
 
 
 
-def check_origin_service() -> None:
-    """Check the actual local Nginx origin, without Cloudflare or TLS bypass.
+def _probe_origin_once() -> None:
+    """Verify the dedicated loopback origin using the public CA trust store.
 
-    Connecting to loopback avoids public DNS/Cloudflare. Sending the original
-    hostname as SNI and Host ensures normal certificate and vhost selection.
-    Any certificate-chain or hostname failure is a real origin gate failure.
+    Connecting to loopback avoids DNS and the CDN, but SNI/Host still select
+    the application vhost. No test content or unverified certificate is ever
+    accepted as successful.
     """
     for path, required in (
         ("/.well-known/genycaster-ready", MARKER.encode("ascii")),
         ("/genycaster.html", None),
     ):
         context = ssl.create_default_context()
-        with socket.create_connection(("127.0.0.1", 443), timeout=10) as raw:
+        with socket.create_connection(("127.0.0.1", 443), timeout=7) as raw:
             with context.wrap_socket(raw, server_hostname=HOST) as connection:
-                connection.settimeout(10)
+                connection.settimeout(7)
                 request = (f"GET {path} HTTP/1.1\r\n"
                            f"Host: {HOST}\r\n"
                            "Accept: */*\r\n"
@@ -163,6 +165,62 @@ def check_origin_service() -> None:
             raise RuntimeError(f"Local HTTPS origin {path} returned the wrong marker")
         if required is None and b"<html" not in payload.lower() and b"<!doctype html" not in payload.lower():
             raise RuntimeError("Local HTTPS origin is not serving GenyCaster HTML")
+
+
+def _origin_leaf_diagnostic() -> str:
+    """Inspect, but NEVER trust, a peer certificate after TLS validation fails.
+
+    OpenSSL may route a handshake to an old default vhost while workers
+    replace their configuration after a graceful reload. We inspect the
+    untrusted leaf only to classify the failure; this path never allows the
+    application to be marked READY.
+    """
+    try:
+        with socket.create_connection(("127.0.0.1", 443), timeout=4) as raw:
+            with ssl._create_unverified_context().wrap_socket(
+                    raw, server_hostname=HOST) as connection:
+                leaf = connection.getpeercert(binary_form=True)
+        expected_pem = CERT.read_text(encoding="ascii").split(
+            "-----END CERTIFICATE-----", 1)[0] + "-----END CERTIFICATE-----"
+        expected = ssl.PEM_cert_to_DER_cert(expected_pem)
+        digest = hashlib.sha256(leaf).hexdigest()
+        expected_digest = hashlib.sha256(expected).hexdigest()
+        if digest == expected_digest:
+            return ("Nginx is presenting the configured app Let’s Encrypt "
+                    "leaf, but its chain is not trusted by this TLS client; "
+                    f"leaf sha256={digest}")
+        return ("Nginx is presenting a DIFFERENT leaf from the configured "
+                "app certificate (likely the fallback status vhost or a "
+                "stale worker after reload); "
+                f"received sha256={digest}, expected sha256={expected_digest}")
+    except (OSError, ValueError, ssl.SSLError) as error:
+        return f"Unable to inspect loopback TLS certificate: {error}"
+
+
+def check_origin_service(*, attempts: int = 20, retry_delay: float = 0.5) -> None:
+    """Verify active Nginx after a reload, tolerating only bounded churn.
+
+    systemctl reload returns after signalling the Nginx master, not after
+    every prior worker has drained. A loopback handshake within milliseconds
+    of that signal may select a stale fallback/default vhost. Retry full
+    CA-validated SNI+Host+body checks before deciding the origin is broken.
+    """
+    if attempts < 1 or retry_delay < 0:
+        raise ValueError("Invalid origin readiness retry budget")
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            _probe_origin_once()
+            return
+        except (OSError, RuntimeError, ValueError, http.client.HTTPException) as error:
+            last_error = error
+            if attempt + 1 < attempts:
+                time.sleep(retry_delay)
+    diagnostic = _origin_leaf_diagnostic()
+    raise RuntimeError(
+        f"Local HTTPS origin failed after {attempts} checked attempts: "
+        f"{last_error}. Certificate diagnostic: {diagnostic}"
+    ) from last_error
 
 
 def report_public_delivery() -> bool:
