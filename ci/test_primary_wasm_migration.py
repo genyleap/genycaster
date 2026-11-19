@@ -29,6 +29,8 @@ class PrimaryMigrationTests(unittest.TestCase):
         self.assertIn("location = /releases/native.json", config)
         self.assertIn('return 200 "genycaster-main-v1";', config)
         self.assertIn('location ~* "\\.[a-f0-9]{20}\\.wasm$"', config)
+        self.assertIn('location ~* "\\.[a-f0-9]{20}\\.wasm\\.gz$"', config)
+        self.assertIn('default_type application/octet-stream;', config)
         self.assertNotIn("server_name app.genycaster.xyz;", config)
         self.assertNotIn("default-src 'none'", config)
 

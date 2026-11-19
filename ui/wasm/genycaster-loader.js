@@ -315,16 +315,17 @@ function observeEngine(url){
         console.debug("[Genycaster] Resource Timing observer unavailable",error);
     }
 }
-// WebKit can abort a very large uncompressed WASM response partway through
-// transfer. Prefer our immutable gzip transport sidecar when streaming gzip
-// decoding is available. Transform the ONE incoming compressed stream (never
-// tee an 80 MiB response); the runtime still receives application/wasm bytes.
-// Other browsers retain their normal native fetch and compiler cache.
-async function compressedWebKitEngine(url,options) {
+// Download the immutable gzip sidecar on every browser with streaming gzip
+// decompression (Safari, Chromium, Firefox and Edge). The existing WebKit-only
+// gate made Chromium/Firefox download the much larger WASM resource instead.
+// Transform the ONE compressed stream without teeing or buffering a second
+// full-sized copy; Qt receives a streaming application/wasm Response.
+// Browsers without this API fall back to the native HTTP/wasm fetch path.
+async function compressedBrowserEngine(url,options) {
     const name=url.pathname.split("/").pop();
     const gzipName=releaseInfo.wasmGzip;
     const gzipBytes=Number(releaseInfo.wasmGzipBytes);
-    if(!isWebKitRuntime || typeof DecompressionStream!=="function"
+    if(typeof DecompressionStream!=="function"
        || typeof TransformStream!=="function"
        || !hashedWasm.test(name) || gzipName!==name+".gz"
        || !Number.isSafeInteger(gzipBytes) || gzipBytes<=0)return null;
@@ -397,10 +398,9 @@ window.fetch=async function(input,options) {
     const nativeRequest=changed
         ? typeof input==="string" ? url.href : new Request(url.href,input)
         : input;
-    // Keep the browser's native streaming Response and the ordinary immutable
-    // HTTP cache path. The origin serves a precompressed gzip representation
-    // of this URL to compatible clients; this avoids an ~80 MiB uncompressed
-    // full-range download in supported browsers and preserves WASM code caching.
+    // Prefer the immutable .wasm.gz sidecar with streamed decoding across
+    // supported browsers; native HTTP/wasm remains the compatibility fallback.
+    // Neither path clones the large decoded engine or stores private data.
     // If native fetch fails, retry once with a full identity Range on WebKit
     // to bypass intermediaries that transform WASM response bodies.
     const nativeOptions={...options};
@@ -417,7 +417,7 @@ window.fetch=async function(input,options) {
     let response;
     let compressedPath=false;
     try {
-        const zipped=await compressedWebKitEngine(url,nativeOptions);
+        const zipped=await compressedBrowserEngine(url,nativeOptions);
         if(zipped){
             response=zipped.response;
             compressedPath=true;
@@ -651,8 +651,14 @@ function fillReleaseDetails(fresh){
     const translatedTitle=$("genycaster-update-details-title");
     if(translatedTitle && localized?.title)translatedTitle.textContent=localized.title;
     const bytes=Number(fresh.wasmBytes);
-    const size=Number.isSafeInteger(bytes)&&bytes>0
-        ? " (WASM: "+(bytes/1048576).toFixed(1)+" MiB)" : "";
+    const gzipBytes=Number(fresh.wasmGzipBytes);
+    const supportsGzip=typeof DecompressionStream==="function"
+        && typeof TransformStream==="function";
+    const downloadBytes=supportsGzip && Number.isSafeInteger(gzipBytes) && gzipBytes>0
+        ? gzipBytes : bytes;
+    // Show expected network transfer, not the expanded in-memory engine size.
+    const size=Number.isSafeInteger(downloadBytes)&&downloadBytes>0
+        ? " (Download: ~"+(downloadBytes/1048576).toFixed(1)+" MiB)" : "";
     const details=$("genycaster-update-details");
     if(details)details.textContent=localizedUpdateDigits(notes||(activeUpdateText()[5]+size));
 }

@@ -72,7 +72,7 @@ test("WASM wrapper preserves native request credentials and retries once without
             return native;
         },
         verifiedAsset:new URL(wasmURL),hashedWasm:/^genycaster\.[0-9a-f]{20}\.wasm$/,
-        isWebKitRuntime:false,compressedWebKitEngine:async()=>null,releaseInfo:{wasmBytes:8},Headers,
+        isWebKitRuntime:false,compressedBrowserEngine:async()=>null,releaseInfo:{wasmBytes:8},Headers,
         installing:false,updating:false,finished:false,bootPhase:"initialize",wasmResourceUrl:null,
         showPhase(){},observeEngine(){},preparing(){},measureFirstDownload(){},console};
     vm.runInNewContext(source.slice(begin,end),ctx);
@@ -119,7 +119,7 @@ test("WebKit preserves native streaming Response on its first ordinary WASM requ
     }});
     const calls=[];
     const ctx={window:{},URL,Headers,Response,isWebKitRuntime:true,
-        compressedWebKitEngine:async()=>null,wasmResourceUrl:null,
+        compressedBrowserEngine:async()=>null,wasmResourceUrl:null,
         location:{href:"https://genycaster.xyz/",origin:"https://genycaster.xyz"},
         originalFetch:async(input,options)=>{calls.push({input,options});return native;},
         verifiedAsset:new URL(wasmURL),hashedWasm:/^genycaster\.[0-9a-f]{20}\.wasm$/,
@@ -141,7 +141,7 @@ test("WebKit rejects incomplete fallback ranges and uses Range only after ordina
     const end=source.indexOf('const screen=$("qt-screen");',begin);
     const wasmURL="https://genycaster.xyz/genycaster.0123456789abcdef0123.wasm";
     const makeCtx=(impl)=>({window:{},URL,Headers,isWebKitRuntime:true,
-        compressedWebKitEngine:async()=>null,wasmResourceUrl:null,
+        compressedBrowserEngine:async()=>null,wasmResourceUrl:null,
         location:{href:"https://genycaster.xyz/",origin:"https://genycaster.xyz"},
         originalFetch:impl,verifiedAsset:new URL(wasmURL),
         hashedWasm:/^genycaster\.[0-9a-f]{20}\.wasm$/,
@@ -169,8 +169,8 @@ test("WebKit rejects incomplete fallback ranges and uses Range only after ordina
     assert.equal(calls[1].cache,"reload");
 });
 
-test("WebKit gzip sidecar streams and decodes valid WebAssembly without cloning full engine",async()=>{
-    const begin=source.indexOf("async function compressedWebKitEngine(");
+test("Safari, Chromium and Firefox stream the same gzip sidecar without cloning the engine",async()=>{
+    const begin=source.indexOf("async function compressedBrowserEngine(");
     const end=source.indexOf("window.fetch=async function(input,options) {",begin);
     assert.ok(begin>=0 && end>begin);
     const {gzipSync}=await import("node:zlib");
@@ -200,15 +200,25 @@ test("WebKit gzip sidecar streams and decodes valid WebAssembly without cloning 
         source.indexOf("function preparing()"));
     assert.match(progress,/function downloadProgressText/);
     vm.runInNewContext(progress + source.slice(begin,end)
-        +"\nthis.loadCompressed=compressedWebKitEngine;",ctx);
-    const result=await ctx.loadCompressed(new URL(url),{credentials:"same-origin"});
-    assert.ok(result);
-    assert.equal(result.response.headers.get("content-type"),"application/wasm");
-    const module=await WebAssembly.compileStreaming(Promise.resolve(result.response));
-    assert.ok(module instanceof WebAssembly.Module);
-    assert.equal(assetRequests.length,1);
-    assert.equal(assetRequests[0].request,
-        url+".gz?v=1234567890abcdef1234");
-    assert.equal(assetRequests[0].options.cache,"no-cache",
-        "do not reuse cached 200 HTML from a previously missing sidecar");
+        +"\nthis.loadCompressed=compressedBrowserEngine;",ctx);
+    for(const browser of ["Safari","Chrome","Firefox","Edge"]){
+        // Runtime detection stays specific to WebKit for legacy recovery, but
+        // every browser with DecompressionStream must use the gzip sidecar.
+        ctx.isWebKitRuntime=browser==="Safari";
+        const result=await ctx.loadCompressed(new URL(url),{credentials:"same-origin"});
+        assert.ok(result,browser+" must select the compressed engine");
+        assert.equal(result.response.headers.get("content-type"),"application/wasm");
+        const module=await WebAssembly.compileStreaming(Promise.resolve(result.response));
+        assert.ok(module instanceof WebAssembly.Module,browser+" streams decompressed wasm");
+        assert.equal(assetRequests.at(-1).request,
+            url+".gz?v=1234567890abcdef1234");
+        assert.equal(assetRequests.at(-1).options.cache,"no-cache",
+            "do not reuse cached 200 HTML from a previously missing sidecar");
+    }
+    assert.equal(assetRequests.length,4);
+    // Legacy browser compatibility: don't fetch the gzip sidecar if its
+    // streaming decompressor is unavailable; native .wasm can still load.
+    ctx.DecompressionStream=undefined;
+    assert.equal(await ctx.loadCompressed(new URL(url),{}),null);
+    assert.equal(assetRequests.length,4,"unsupported browser never fetches gzip");
 });
