@@ -110,6 +110,7 @@ def promote(stage: Path) -> int:
             raise RuntimeError("Preexisting /about landing differs; operator review required")
     else:
         about.parent.mkdir(parents=True, exist_ok=True)
+        about.parent.chmod(0o755)
         shutil.copy2(landing, about)
 
     inventory = validate_prepared(stage)
@@ -127,6 +128,10 @@ def promote(stage: Path) -> int:
                     raise RuntimeError(f"Existing canonical asset differs: {name}")
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
+            if target.parent != ROOT:
+                # The deployment account can have umask 077; static files
+                # cannot be served by Nginx through a private 0700 directory.
+                target.parent.chmod(0o755)
             temporary = target.with_name(".new-primary-" + target.name)
             if temporary.exists():
                 raise RuntimeError(f"Temporary promotion target exists: {temporary}")
