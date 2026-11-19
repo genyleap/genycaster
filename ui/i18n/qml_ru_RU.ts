@@ -6793,8 +6793,20 @@ Company | https://company.com</source>
             <translation>Выделить всё</translation>
         </message>
         <message id="genycaster.setup.recovery_failed_retry">
-            <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
-            <translation>Не удалось подтвердить восстановление Farcaster. Проверьте соединение и повторите попытку.</translation>
+            <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
+            <translation>Не удалось подтвердить восстановление аккаунта. Проверьте слова восстановления и выбранный протокол, затем повторите попытку.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_not_found">
+            <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>
+            <translation>Для этих слов восстановления не найден зарегистрированный аккаунт HyperSnap. Если аккаунт был создан в Farcaster, выберите Farcaster и повторите попытку.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_unavailable">
+            <source>The HyperSnap account registry is unavailable. Check your network connection and try again.</source>
+            <translation>Реестр аккаунтов HyperSnap недоступен. Проверьте подключение к сети и повторите попытку.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_invalid">
+            <source>This recovery phrase is invalid. Check all 24 words, their order and spelling.</source>
+            <translation>Фраза восстановления недействительна. Проверьте все 24 слова, их порядок и написание.</translation>
         </message>
         <message id="genycaster.setup.open_terms">
             <source>Open full Terms of Use</source>
