@@ -3172,6 +3172,73 @@ GenyAdaptiveDialog {
                             }
                         }
                     }
+
+                    // Voluntary community action: open the official repository,
+                    // never claim the user already starred it or invent counts.
+                    Superellipse {
+                        objectName: "genycasterGithubStarCard"
+                        Layout.fillWidth: true
+                        implicitHeight: githubStarContent.implicitHeight + Theme.space3 * 2
+                        fillColor: Theme.surfaceMuted
+                        borderColor: Theme.borderMuted
+                        borderWidth: Theme.strokeHairline
+                        curveDepth: Theme.curveContainer
+
+                        ColumnLayout {
+                            id: githubStarContent
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space2
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                layoutDirection: Theme.uiDirection
+                                spacing: Theme.space3
+                                Superellipse {
+                                    Layout.preferredWidth: 40
+                                    Layout.preferredHeight: 40
+                                    fillColor: Theme.primarySurface
+                                    borderWidth: Theme.strokeHairline
+                                    borderColor: Theme.borderMuted
+                                    curveDepth: Theme.curveControl
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        text: Theme.iconPriorityStar
+                                        preferredSize: 21
+                                        color: Theme.accent
+                                    }
+                                }
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Theme.space1
+                                    DirectionAwareLabel {
+                                        Layout.fillWidth: true
+                                        text: qsTrId("genycaster.settings.github_star_title")
+                                        color: Theme.ink
+                                        font.pixelSize: Theme.typeLabelSize
+                                        font.weight: Theme.weightDemiBold
+                                        wrapMode: Text.WordWrap
+                                    }
+                                    DirectionAwareLabel {
+                                        Layout.fillWidth: true
+                                        text: qsTrId("genycaster.settings.github_star_description")
+                                        color: Theme.inkMuted
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        wrapMode: Text.WordWrap
+                                    }
+                                }
+                            }
+                            ActionButton {
+                                objectName: "genycasterStarOnGithub"
+                                Layout.fillWidth: true
+                                iconGlyph: Theme.iconPriorityStar
+                                text: qsTrId("genycaster.settings.github_star_action")
+                                onClicked: Qt.openUrlExternally("https://github.com/genyleap/genycaster")
+                            }
+                        }
+                    }
                 }
             }
                 }
