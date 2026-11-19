@@ -1,4 +1,5 @@
 #include <QByteArray>
+#include <QCoreApplication>
 #include <QGuiApplication>
 #include <QEventLoop>
 #include <QTimer>
@@ -15,6 +16,16 @@
 import genycaster.ui.bootstrap.teardown;
 
 namespace {
+struct WindowOrder {
+    int popupsExpected = 0;
+    int sceneItemsExpected = 0;
+    int sceneItemsDestroyed = 0;
+    int popupsDestroyed = 0;
+    int overlaysDestroyed = 0;
+    int windowsDestroyed = 0;
+    bool orderValid = true;
+};
+
 std::atomic_int nullBindingErrors{0};
 QtMessageHandler previousMessageHandler = nullptr;
 void observeQmlWarnings(QtMsgType type, const QMessageLogContext& context, const QString& message)
@@ -30,6 +41,7 @@ int main(int argc, char** argv)
 {
     QGuiApplication app(argc, argv);
     previousMessageHandler = qInstallMessageHandler(observeQmlWarnings);
+    std::array<WindowOrder, 2> order{};
     QQmlApplicationEngine engine;
     // Build the same Qt Quick Controls overlay hierarchy implicated by the
     // macOS 27/Qt 6.12 crash, not a bare Window without any Popup.
@@ -65,31 +77,64 @@ int main(int argc, char** argv)
     if (!window) return 2;
     QPointer<QObject> tracked = window;
 
-    // Reproduce multi-root Qt Quick Controls teardown, too. The original
-    // implementation detached the primary window's overlay only.
-    engine.loadData(QByteArrayLiteral(
-        "import QtQuick\n"
-        "import QtQuick.Controls\n"
-        "ApplicationWindow { objectName: \"secondWindow\"; visible: true;"
-        " width: 220; height: 150;"
-        " Popup { width: 85; height: 50; modal: true; visible: true;"
-        " contentItem: Text { text: \"More popups\" } } }"),
+    // The overlay-hosted list survives the initial content cleanup. Its
+    // button's hint must be released by the Loader before the overlay dies.
+    engine.loadData(QByteArrayLiteral(R"QML(
+        import QtQuick
+        import QtQuick.Controls
+
+        ApplicationWindow {
+            id: secondWindow
+            visible: true
+            width: 220
+            height: 150
+
+            Popup {
+                width: 85
+                height: 50
+                modal: true
+                visible: true
+                contentItem: Text { text: "More popups" }
+            }
+
+            ListView {
+                id: hintList
+                parent: secondWindow.Overlay.overlay
+                width: 180
+                height: 100
+
+                Button {
+                    parent: hintList.contentItem
+                    width: 80
+                    height: 40
+
+                    Loader {
+                        objectName: "hintLoader"
+                        sourceComponent: Component {
+                            Popup {
+                                objectName: "loadedHint"
+                                parent: secondWindow.Overlay.overlay
+                                width: 60
+                                height: 30
+                                visible: true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )QML"),
         QUrl{QStringLiteral("inmemory:/second-teardown.qml")});
     if (engine.rootObjects().size() != 2) return 4;
     auto* const second = qobject_cast<QQuickWindow*>(engine.rootObjects().constLast());
     if (!second) return 5;
     QPointer<QObject> trackedSecond = second;
+    const QPointer<QObject> hint = second->findChild<QObject*>(QStringLiteral("loadedHint"));
+    if (!hint || !hint->parent()
+        || hint->parent()->objectName() != QStringLiteral("hintLoader")) {
+        return 10;
+    }
 
-    struct WindowOrder {
-        int popupsExpected = 0;
-        int sceneItemsExpected = 0;
-        int sceneItemsDestroyed = 0;
-        int popupsDestroyed = 0;
-        int overlaysDestroyed = 0;
-        int windowsDestroyed = 0;
-        bool orderValid = true;
-    };
-    std::array<WindowOrder, 2> order;
     int overlays = 0;
     int index = 0;
     for (QQuickWindow* const itemWindow : {window, second}) {
@@ -139,7 +184,12 @@ int main(int argc, char** argv)
         || order[0].popupsExpected < 2 || order[1].popupsExpected < 1)
         return 7;
 
-    // Called after all workers and network producers have stopped.
+    QTimer::singleShot(0, &app, &QCoreApplication::quit);
+    if (app.exec() != 0 || !tracked || !trackedSecond || !hint) {
+        return 11;
+    }
+
+    // The native composition root calls this after the GUI event loop returns.
     genycaster::ui::bootstrap::releaseQmlRoots(engine, window);
     if (tracked || trackedSecond || !engine.rootObjects().isEmpty()) return 3;
     for (const WindowOrder& state : order) {

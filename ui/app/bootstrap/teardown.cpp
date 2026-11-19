@@ -6,7 +6,9 @@ module;
 #include <QPointer>
 #include <QList>
 #include <QString>
+#include <QVariant>
 #include <QQmlApplicationEngine>
+#include <QQmlProperty>
 #include <QQuickItem>
 #include <QQuickWindow>
 
@@ -55,8 +57,21 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
                 popups.append(QPointer<QObject>{obj});
         }
         for (qsizetype i = popups.size(); i > 0; --i) {
-            if (QObject* const popup = popups.at(i - 1).data())
+            QObject* const popup = popups.at(i - 1).data();
+            if (!popup) {
+                continue;
+            }
+
+            QObject* const owner = popup->parent();
+            if (owner && owner->inherits("QQuickLoader")
+                && owner->property("item").value<QObject*>() == popup) {
+                // Loader keeps an internal pointer to its loaded Popup.
+                // Deactivation clears that pointer and queues the Popup's
+                // deletion while the window and overlay are still alive.
+                QQmlProperty::write(owner, QStringLiteral("active"), false);
+            } else {
                 delete popup;
+            }
         }
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
 

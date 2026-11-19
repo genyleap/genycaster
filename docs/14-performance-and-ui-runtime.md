@@ -140,9 +140,12 @@ and therefore cannot alone prove shutdown with active market requests.
 For native UI shutdown, the composition root also has an explicit QML
 teardown phase **after** `QGuiApplication::exec()` returns and **before**
 the runtime/controller owners are destroyed. It stops admitting new
-background requests, joins the bootstrap worker, releases the scene graph,
-synchronously destroys QML root objects while the GUI dispatcher is still
-installed, drains `DeferredDelete` events, and collects JS garbage.
+background requests and joins the bootstrap worker. It releases window content
+and remaining popups before destroying the overlay. When a popup is a
+`Loader.item`, deactivating the loader clears its reference and schedules
+popup deletion. The teardown drains that deletion while the overlay is still
+alive. It then synchronously destroys the QML roots, drains deferred cleanup,
+and collects JS garbage while the GUI dispatcher is still installed.
 This addresses the lifetime gap behind warnings about incomplete QML object
 creation and attempts to start timers after an event dispatcher has gone.
 The same sequence applies to macOS, Windows, Linux, Android and iOS;

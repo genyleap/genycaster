@@ -22,9 +22,9 @@ export namespace genycaster::ui::bootstrap {
      *
      * Invoke only after stopping producers and joining runtime bootstrap.
      * Deletes QML visual owners before standalone Popups and their associated
-     * QQuickOverlay, keeping the QQuickWindow alive throughout. This avoids
-     * dangling QML popup bindings and forbids manual setParentItem() teardown.
-     * Finally destroys QObject-owned roots and drains deferred cleanup.
+     * QQuickOverlay, keeping the QQuickWindow alive throughout. Loaders release
+     * their own Popups before the overlay is destroyed. Finally destroys
+     * QObject-owned roots and drains deferred cleanup on the GUI thread.
      *
      * @param engine Engine whose root objects are to be released.
      * @param mainWindow Deprecated window hint; kept for ABI/source compatibility.
