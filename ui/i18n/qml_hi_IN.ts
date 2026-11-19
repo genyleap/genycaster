@@ -6793,8 +6793,20 @@ Company | https://company.com</source>
             <translation>सभी चुनें</translation>
         </message>
         <message id="genycaster.setup.recovery_failed_retry">
-            <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
-            <translation>Farcaster पुनर्प्राप्ति सत्यापित नहीं हो सकी। कनेक्शन जाँचें और दोबारा प्रयास करें।</translation>
+            <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
+            <translation>खाते की पुनर्प्राप्ति सत्यापित नहीं हो सकी। पुनर्प्राप्ति शब्दों और चुने गए प्रोटोकॉल की जाँच करके दोबारा प्रयास करें।</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_not_found">
+            <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>
+            <translation>इन पुनर्प्राप्ति शब्दों से कोई HyperSnap खाता पंजीकृत नहीं है। यदि खाता Farcaster पर बनाया गया था, तो Farcaster चुनकर दोबारा प्रयास करें।</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_unavailable">
+            <source>The HyperSnap account registry is unavailable. Check your network connection and try again.</source>
+            <translation>HyperSnap खाता रजिस्ट्री उपलब्ध नहीं है। नेटवर्क कनेक्शन जाँचें और दोबारा प्रयास करें।</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_invalid">
+            <source>This recovery phrase is invalid. Check all 24 words, their order and spelling.</source>
+            <translation>पुनर्प्राप्ति वाक्यांश अमान्य है। सभी 24 शब्दों, उनके क्रम और वर्तनी की जाँच करें।</translation>
         </message>
         <message id="genycaster.setup.open_terms">
             <source>Open full Terms of Use</source>
