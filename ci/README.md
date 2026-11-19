@@ -74,7 +74,7 @@ the app's language reselects the release content immediately.
 | macOS arm64 / x86_64 | macOS 26 ARM / Intel, LLVM | Architecture-specific DMG and verified self-update transport archive |
 | Windows x86_64 / arm64 | Windows 2022 x64 / Windows 11 ARM, Clang-CL/MSVC ABI | NSIS `.exe` installer and verified self-update transport archive |
 | Android arm64-v8a only | Ubuntu 24.04, NDK 27.2.12479018 | Signed release APK; other Android ABIs excluded |
-| WebAssembly | Ubuntu 24.04, Emscripten 5.0.5 | Verified site artifact for **app.genycaster.xyz only**, not a GitHub Release download |
+| WebAssembly | Ubuntu 24.04, Emscripten 5.0.5 | Verified site artifact for **genycaster.xyz only**, not a GitHub Release download |
 | iOS arm64 | macOS 15 + iOS SDK | CI-only unsigned .app archive (not a distributable IPA) |
 | NixOS x86_64 / arm64 | Native Nix GCC 16 + Qt on Linux x64 / ARM | Nix package build and closure manifest |
 
@@ -99,139 +99,61 @@ module build is still an acceptance gate. Linux/Windows set GENYCASTER_FETCH_QTK
 explicitly, so ordinary developer machines without libsecret do not become
 broken. Release configurations require a secure signer vault.
 
-## Building and updating the WebAssembly site on the VPS
+## Building and updating the canonical WebAssembly site on the VPS
 
-Unlike the GitHub-hosted workflow, `ci/build_deploy_wasm_server.sh` compiles
-the **current server checkout** using the VPS's **installed** Qt 6.12.0
-single-thread WebAssembly SDK, matching Qt host tools and Emscripten 5.0.5.
-It **does not require GitHub Actions minutes**. It is not a remote-deployment
-API and cannot install missing SDKs by itself. If WebAssembly Qt ShaderTools
-or Multimedia is missing, it uses the existing pinned SHA-256-verified
-`ci/build_qt_wasm_multimedia.sh` build.
+**Canonical URL:** \`https://genycaster.xyz/\` serves the app. The preserved
+landing lives at \`/about/\`, downloads at \`/download\`, and the existing
+host-only account API continues under \`/api/v1/cloud/\`.
+\`https://app.genycaster.xyz\` is a legacy preview origin and is **not**
+the canonical destination for any future WASM release.
 
-First verify that the VPS checkout is clean and current on `main`:
+For the reviewed, rollback-safe migration from the former landing page,
+follow [PRIMARY_WASM_MIGRATION.md](PRIMARY_WASM_MIGRATION.md). The verified
+origin-consistent preview files have been staged and promoted to the primary
+web root while leaving \`index.html\` untouched. The final live Nginx switch
+requires explicit authorized root access:
 
-```bash
+\`\`\`bash
 cd /opt/genycaster/repository
-git fetch origin main
-git switch main
-git pull --ff-only origin main
-git status --short
-```
+git pull --ff-only
+python3 ci/verify_primary_preview_payload.py /var/www/genycaster.xyz/public
+sudo python3 ci/activate_primary_wasm_site.py --apply
+curl -fsS https://genycaster.xyz/.well-known/genycaster-ready
+# expected: genycaster-main-v1
+\`\`\`
 
-Activate the VPS's installed Emscripten 5.0.5 environment and use **actual**
-Qt paths (do not guess from the example below):
+The local certificate and Nginx origin checks cannot be weakened or skipped.
+An origin failure triggers Nginx rollback; a Cloudflare-only failure leaves
+the healthy origin active and is reported separately.
 
-```bash
-source /path/to/emsdk/emsdk_env.sh
-export QT_ROOT_DIR=/path/to/Qt/6.12.0/wasm_singlethread
-export QT_HOST_PATH=/path/to/Qt/6.12.0/gcc_64
-bash ci/build_deploy_wasm_server.sh
-```
+After the canonical vhost serves the app, a current-\`main\` WASM build can
+be performed directly on the VPS with its installed Qt 6.12 single-thread
+WASM SDK, Qt host tools and Emscripten 5.0.5. This avoids GitHub Actions
+usage:
 
-This creates and verifies `dist/GenyCaster-v<version>-web-wasm.tar.gz`,
-including the hashed WASM, loader, manifest and Service Worker, **without
-changing the website**. Only after the archive passes verification, publish
-to the **actual Nginx static root** (check the live vhost configuration first):
+\`\`\`bash
+cd /opt/genycaster/repository
+source /opt/genycaster/emsdk/emsdk_env.sh
+export QT_ROOT_DIR=/opt/genycaster/Qt/6.12.0/wasm_singlethread
+export QT_HOST_PATH=/opt/genycaster/Qt/6.12.0/gcc_64
+export GENYCASTER_SITE_URL=https://genycaster.xyz
+bash ci/build_deploy_wasm_server.sh \
+  --web-root /var/www/genycaster.xyz/public
+\`\`\`
 
-```bash
-GENYCASTER_SITE_URL=https://app.genycaster.xyz \
-  bash ci/build_deploy_wasm_server.sh --web-root /var/www/app.genycaster.xyz/public
-```
+The deployment script requires the exact canonical marker before touching
+the root, forces \`GENYCASTER_PUBLIC_ORIGIN\` and \`GENYCASTER_SIWF_ORIGIN\`
+to \`https://genycaster.xyz\`, verifies the complete package, stages assets,
+preserves immutable WASM versions and promotes HTML last.
 
-The process needs write access to the live static directory and its parent.
-**DNS/TLS prerequisite:** `app.genycaster.xyz` must first resolve to the
-VPS through a DNS record controlled by the domain administrator. Prepare the
-dedicated static root `/var/www/app.genycaster.xyz/public`, issue its own
-valid TLS certificate, and activate the reviewed vhost
-[`ci/app_genycaster_nginx.conf`](app_genycaster_nginx.conf) after `nginx -t`.
-
-The reviewed, rollback-safe provisioning command is:
-
-```bash
-# Read-only preflight; does not change Nginx or issue a certificate:
-python3 ci/activate_app_site.py
-
-# Requires direct authorized root access to /etc/nginx and the server's
-# existing Certbot/Let's Encrypt account. An ACME email may be provided.
-sudo python3 ci/activate_app_site.py --apply
-curl --fail --silent --show-error \
-  https://app.genycaster.xyz/.well-known/genycaster-ready
-```
-
-The script reuses an existing, valid app-host certificate; if missing, it
-bootstraps an HTTP-only ACME challenge first. After enabling the two-server
-HTTPS config, it verifies **the actual loopback Nginx origin** on
-`127.0.0.1:443` with SNI `app.genycaster.xyz`, a verified certificate chain,
-the exact readiness marker and an HTTP 200 HTML entrypoint. The origin
-readiness probe retries full CA-validated TLS handshakes for up to 10 seconds
-after Nginx reload; old workers may temporarily offer the previous default
-server's Cloudflare Origin CA certificate. A failed origin probe prints
-the SHA-256 fingerprints of the actually presented and expected app leaf
-certificates to distinguish stale/incorrect vhost selection from a CA-chain
-problem. This diagnostic inspection does **not** bypass verification for a
-successful readiness check. An Nginx/TLS/origin failure rolls back its changes. It never modifies the separate landing vhost.
-
-**External CDN routing is a distinct phase.** If the locally verified app
-origin works but the Cloudflare-proxied URL returns 404/403, the script
-reports `ORIGIN READY, PUBLIC CDN ROUTING NOT VERIFIED`, keeps the healthy
-dedicated vhost enabled, and exits with code **2**. Do not rerun Certbot or
-delete the working Nginx vhost. Instead verify the Cloudflare `app` DNS
-record's origin IP (on this deployment `173.214.160.36`), any
-hostname/origin override, Workers, Page/Redirect Rules, and cached redirects.
-The HTTP fallback on this VPS is `status.genyleap.com`; a CDN route with
-an incorrect Host or destination can serve this unrelated site. Re-running
-the activator is safe and will check the existing origin without rewriting
-its configuration. Only an exact public `genycaster-app-v1` marker results
-in exit code **0**. An HTTP 200 from the status site is insufficient.
-
-```bash
-# Independent public checks after activating:
-curl -fsS https://app.genycaster.xyz/.well-known/genycaster-ready
-curl -sSI https://app.genycaster.xyz/genycaster.html
-```
-
-The procedure never deploys WASM assets; preview assets are staged in the
-dedicated root separately.
-
-The vhost proxies only the app's first-party cloud API to localhost and
-preserves the separate `genycaster.xyz` landing-site vhost. The account
-service must be deployed with the exact app Origin/Host acceptance patch;
-the browser API uses host-only cookies and remains CSRF-protected. When DNS
-or TLS is missing, **do not upload the WASM files to an alternative domain**
-or weaken the release gate. The build artifact can still be verified offline.
-
-**Dedicated HTTPS vhost readiness:** An HTTPS 200 response alone is not
-sufficient: a wildcard/default server may serve the unrelated Genyleap
-status page. The reviewed app vhost exposes a non-credential readiness
-marker at `/.well-known/genycaster-ready` with the exact body
-`genycaster-app-v1`. Verify it on the public origin before the first build
-and deploy:
-
-```bash
-curl --fail --silent --show-error \
-  https://app.genycaster.xyz/.well-known/genycaster-ready
-# expected: genycaster-app-v1
-```
-
-`ci/build_deploy_wasm_server.sh --web-root ...` enforces this check before
-Qt configuration, including for initial deployment to an empty site. A
-successful marker proves that traffic reaches the reviewed vhost; it does not
-replace TLS trust, account-service origin verification or release acceptance.
-
-The deploy step stages the full archive outside the public root, installs
-new immutable WASM first, atomically replaces mutable assets with backups,
-and promotes `genycaster.html` last. Existing content-hashed WASM
-is retained for open tabs. Failed file updates restore previously changed
-mutable files; on success, backups remain in a sibling
-`.genycaster-backup.*` directory to support manual rollback.
-
-**Never use the example Nginx path in documentation as the real webroot
-without inspecting the live server.** No server changes happen when
-`--web-root` is omitted. Check `nginx -t` and the deployed
-`/genycaster.html`, `/genycaster-assets.json` and WASM MIME/cache
-headers over HTTPS. Static-file promotion needs no Nginx reload when its
-configuration is unchanged.
+**Native download invitation:** The WASM shell now contains an adaptive,
+accessible desktop dialog/mobile bottom sheet. The default
+\`/releases/native.json\` catalog is intentionally empty; it cannot advertise
+an unsigned, unpublished or absent installer. After an official tagged GitHub
+Release passes integrity/signing gates, use
+\`ci/generate_native_release_catalog.py\` to generate the app and preserved
+landing catalogs from the same verified native release assets. Never paste
+a speculative GitHub download URL into a manifest.
 
 ## Billing discipline
 
