@@ -6818,8 +6818,20 @@ Company | https://company.com</translation>
             <translation>Select All</translation>
         </message>
         <message id="genycaster.setup.recovery_failed_retry">
-            <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
-            <translation>Farcaster recovery could not be verified. Check your connection and try again.</translation>
+            <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
+            <translation>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_not_found">
+            <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>
+            <translation>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_unavailable">
+            <source>The HyperSnap account registry is unavailable. Check your network connection and try again.</source>
+            <translation>The HyperSnap account registry is unavailable. Check your network connection and try again.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_invalid">
+            <source>This recovery phrase is invalid. Check all 24 words, their order and spelling.</source>
+            <translation>This recovery phrase is invalid. Check all 24 words, their order and spelling.</translation>
         </message>
         <message id="genycaster.setup.open_terms">
             <source>Open full Terms of Use</source>
