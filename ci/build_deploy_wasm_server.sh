@@ -24,22 +24,39 @@ while (($#)); do
         *) echo "Unsupported public deployment key: $key" >&2; exit 2 ;;
       esac
       shift 2 ;;
-    --help|-h) echo "Usage: GENYCASTER_SITE_URL=https://genycaster.xyz bash ci/build_deploy_wasm_server.sh [--build-dir /absolute/path] [--web-root /var/www/genycaster.xyz/public]"; exit 0 ;;
+    --help|-h) echo "Usage: GENYCASTER_SITE_URL=https://app.genycaster.xyz bash ci/build_deploy_wasm_server.sh [--build-dir /absolute/path] [--web-root /var/www/app.genycaster.xyz/public] (canonical genycaster.xyz root also supported)"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
 
-# WebAssembly production is scoped to the canonical genycaster.xyz root.
-# Preserve the former landing page at /about/; never overwrite index.html.
-# Check these before running a potentially lengthy server-side Qt build.
+# Two explicitly approved first-party hosts have separate web roots and
+# host-only account cookies. Never silently deploy a new app.genycaster.xyz
+# WASM build into the genycaster.xyz landing/application root (or vice versa).
+expected_web_root=""
+app_origin=""
+readiness_marker=""
+readiness_label=""
 if [[ -n "$web_root" ]]; then
-  app_origin="https://genycaster.xyz"
+  case "$web_root" in
+    /var/www/app.genycaster.xyz/public)
+      expected_web_root="/var/www/app.genycaster.xyz/public"
+      app_origin="https://app.genycaster.xyz"
+      readiness_marker="genycaster-app-v1"
+      readiness_label="dedicated"
+      ;;
+    /var/www/genycaster.xyz/public)
+      expected_web_root="/var/www/genycaster.xyz/public"
+      app_origin="https://genycaster.xyz"
+      readiness_marker="genycaster-main-v1"
+      readiness_label="canonical"
+      ;;
+    *)
+      echo "WASM deployment rejected: unknown dedicated web root: $web_root" >&2
+      exit 2
+      ;;
+  esac
   if [[ "${GENYCASTER_SITE_URL:-}" != "$app_origin" ]]; then
     echo "WASM deployment requires GENYCASTER_SITE_URL=$app_origin" >&2
-    exit 2
-  fi
-  if [[ "$web_root" != "/var/www/genycaster.xyz/public" ]]; then
-    echo "WASM deployment must target the dedicated genycaster.xyz web root" >&2
     exit 2
   fi
   for definition in "${deployment_defines[@]}"; do
@@ -53,9 +70,8 @@ if [[ -n "$web_root" ]]; then
   done
   deployment_defines+=("-DGENYCASTER_PUBLIC_ORIGIN=$app_origin"
                       "-DGENYCASTER_SIWF_ORIGIN=$app_origin")
-  # Fail before configuring/building Qt if Cloudflare routes this host to a
-  # wildcard/default vhost. A generic HTTPS 200 (e.g. the status site) is
-  # not evidence of the dedicated GenyCaster app virtual host.
+  # A wildcard/default host may return 200 while serving a different site.
+  # Verify the *exact* origin-owned vhost before starting a lengthy Qt build.
   if ! command -v curl >/dev/null; then
     echo "WASM deployment requires curl for HTTPS origin verification" >&2
     exit 2
@@ -63,8 +79,8 @@ if [[ -n "$web_root" ]]; then
   marker="$(curl --fail --silent --show-error --connect-timeout 5 --max-time 12 \\
     --proto '=https' --max-redirs 0 \\
     "$app_origin/.well-known/genycaster-ready" || true)"
-  if [[ "$marker" != 'genycaster-main-v1' ]]; then
-    echo "WASM deployment rejected: genycaster.xyz is not serving the canonical HTTPS WASM vhost readiness marker" >&2
+  if [[ "$marker" != "$readiness_marker" ]]; then
+    echo "WASM deployment rejected: $app_origin is not serving the $readiness_label HTTPS WASM vhost readiness marker" >&2
     exit 2
   fi
 fi
@@ -130,8 +146,8 @@ if [[ "$web_root" != /* ]]; then
   echo "--web-root must be an existing absolute path" >&2; exit 2
 fi
 web_root="$(realpath -e "$web_root")"
-if [[ "$web_root" != "/var/www/genycaster.xyz/public" ]]; then
-  echo "Resolved WASM root does not match genycaster.xyz" >&2; exit 2
+if [[ "$web_root" != "$expected_web_root" ]]; then
+  echo "Resolved WASM root does not match the approved first-party host" >&2; exit 2
 fi
 if [[ ! -d "$web_root" || "$web_root" == "/" ||
       "$web_root" == "$repo_root" || "$web_root" == "$repo_root/"* ]]; then
@@ -171,6 +187,22 @@ tar -xzf "$archive" -C "$stage"
 for item in genycaster.html genycaster.wasm genycaster-assets.json genycaster-assets.js genycaster-sw.js; do
   test -s "$stage/$item" || { echo "Missing deploy asset: $item" >&2; exit 1; }
 done
+
+# Recheck the packaged origin, not merely the build command: a stale build
+# tree or an old release archive must never publish a cross-host session app.
+python3 - "$stage/deployment_config.mjs" "$app_origin" <<'PY'
+import json
+import sys
+from pathlib import Path
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+prefix = "// GENERATED; public non-secret build configuration.\nexport const deployment = Object.freeze("
+suffix = ");\n"
+if not source.startswith(prefix) or not source.endswith(suffix):
+    raise SystemExit("WASM deployment rejected: missing generated origin configuration")
+config = json.loads(source[len(prefix):-len(suffix)])
+if any(config.get(key) != sys.argv[2] for key in ("publicOrigin", "siwfOrigin")):
+    raise SystemExit("WASM deployment rejected: packaged origin differs from the target web root")
+PY
 
 # Some existing virtual hosts still route / and SPA fallback to the legacy
 # HTML filename. Promote an identical, verified Genycaster entrypoint there,
