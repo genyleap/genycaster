@@ -141,7 +141,8 @@ test('public profile classification is FID/network scoped and links stay private
   assert.match(qml,/publicProfileExtrasNetwork === root\.profileNetwork/);
   assert.match(qml,/links: \[\], labels: \[\]/);
   assert.match(qml,/profileCategories\.map\(/);
-  assert.match(qml,/profileFidText: String\(/);
+  assert.match(qml,/profileFidText: root\.ownProfileNavigation/);
+  assert.match(qml,/String\(root\.activeDetail\.fidString \|\| root\.activeDetail\.fid \|\| ""\)/);
   assert.match(header,/Q_PROPERTY\(QVariantMap publicProfileExtras/);
   assert.match(controller,/query\.addQueryItem\(QStringLiteral\("network"\),network\)/);
 });

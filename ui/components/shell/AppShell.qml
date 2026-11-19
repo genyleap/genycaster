@@ -2286,6 +2286,7 @@ Item {
                                                                        && presentationBridge.writeReady
                                                 accountFid: presentationBridge.accountFid
                                                 accountFidText: presentationBridge.accountFidText
+                                                ownProfileNavigation: presentationBridge.ownProfileNavigation
                                                 accountIssuer: presentationBridge.accountIdentityIssuer
                                                 accountIsNativeCustody: presentationBridge.nativeCustodyAccount
                                                 onBackRequested: root.returnFromProfileSurface()

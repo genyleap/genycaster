@@ -600,8 +600,12 @@ test('recovery appears before Genyleap and Farcaster, stays usable in review mod
   assert.match(stage,/setupEmphasis: true/);
   assert.match(stage,/root\.recoverAccount\(\)/);
   assert.match(stage,/root\.showRecovery = !root\.showRecovery/);
-  assert.ok(stage.indexOf('visible: root.showRecovery')<genyleap,
-    'Native recovery phrase field must expand immediately after the first card');
+  const nativeRecovery=stage.indexOf('visible: root.showRecovery && !root.browserReadOnly');
+  const browserChoice=stage.indexOf('objectName: "setupBrowserRecoveryProtocolChoice"');
+  assert.ok(nativeRecovery>recovery && browserChoice>recovery,
+    'Native and browser recovery choices must follow the primary recovery card');
+  assert.ok(browserChoice<nativeRecovery && nativeRecovery<farcaster,
+    'Recovery protocol selection and native phrase entry must precede alternate sign-in cards');
   const bridge=source('src/presentation/qt/presentation_bridge.cpp');
   const handler=bridge.slice(bridge.indexOf('void PresentationBridge::beginRecoverySetup()'),
      bridge.indexOf('void PresentationBridge::beginNativeRecoverySetup('));

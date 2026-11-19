@@ -1889,6 +1889,13 @@ void PresentationBridge::openMyProfile()
         return;
     }
     openProfileFid(m_accountFid);
+    // Explicit own-account navigation is a trusted application action, not
+    // an inference from the global read provider (which can be HyperSnap
+    // while the signed-in account belongs to Farcaster).
+    if (!m_profileIsOwnAccount) {
+        m_profileIsOwnAccount = true;
+        emit stateChanged();
+    }
 }
 
 void PresentationBridge::openProfileUsername(const QString& username)
@@ -1906,6 +1913,7 @@ void PresentationBridge::openProfileUsername(const QString& username)
         && m_currentProfileUsername.compare(canonical, Qt::CaseInsensitive) == 0)
         return;
     rememberDetailLocation();
+    m_profileIsOwnAccount = false;
     m_currentProfileUsername = canonical;
     m_activeView = QStringLiteral("profile");
     m_profileFid = 0;
@@ -1927,9 +1935,15 @@ void PresentationBridge::openProfileFid(const qulonglong fid)
         emit stateChanged();
         return;
     }
-    if (m_activeView == QStringLiteral("profile") && m_profileFid == fid)
+    if (m_activeView == QStringLiteral("profile") && m_profileFid == fid) {
+        if (m_profileIsOwnAccount) {
+            m_profileIsOwnAccount = false;
+            emit stateChanged();
+        }
         return;
+    }
     rememberDetailLocation();
+    m_profileIsOwnAccount = false;
     m_currentProfileUsername.clear();
     m_profileFid = fid;
     m_activeView = QStringLiteral("profile");
@@ -3663,6 +3677,7 @@ void PresentationBridge::applyAuthenticationState(
     // no reaction overlay changed; force rebinding after any viewer switch.
     bool accountRowsChanged = previousAccountFid != m_accountFid;
     if (previousAccountFid != m_accountFid) {
+        m_profileIsOwnAccount = false;
         m_topicPreviewCasts.clear();
         emit topicPreviewCastsChanged();
         m_bookmarkedCasts = (m_accountFid != 0 && m_settings)

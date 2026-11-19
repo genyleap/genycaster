@@ -195,7 +195,9 @@ Item {
     signal nativeRecoverAccount(string recoveryWords)
     signal nativeRecoverFarcasterAccount(string recoveryWords)
     signal nativeRecoverHyperSnapAccount(string recoveryWords)
-    property string recoveryProtocol: "hypersnap-v2"
+    // WASM currently has a verified Farcaster browser recovery signer;
+    // the native HyperSnap custody implementation is desktop-only.
+    property string recoveryProtocol: wasmReadOnly ? "farcaster-snapchain" : "hypersnap-v2"
     signal acceptLegalConsent(bool termsAccepted, bool privacyAcknowledged, bool reviewCompleted)
     signal finishSetup()
     signal closeReviewRequested()
@@ -1520,6 +1522,48 @@ Item {
                     onClicked: openProofConnections.retryNativeEnrollment()
                 }
             }
+            // Keep protocol discovery visible on the web rather than hiding
+            // it behind a desktop-only custody registration flow. Each card
+            // routes to a supported sign-in choice, not a fake browser wallet.
+            GridLayout {
+                objectName: "setupBrowserAccountProtocols"
+                visible: root.browserReadOnly && !root.choosingRegistrationProvider
+                Layout.fillWidth: true
+                columns: root.wideStage ? 2 : 1
+                uniformCellWidths: columns > 1
+                rowSpacing: Theme.space2
+                columnSpacing: Theme.space2
+                SetupActionCard {
+                    objectName: "setupBrowserFarcasterChoice"
+                    Layout.fillWidth: true
+                    compactCard: true
+                    onboardingStyle: true
+                    protocolChoice: true
+                    iconGlyph: "brands/farcaster"
+                    title: qsTrId("genycaster.settings.farcaster_label")
+                    subtitle: qsTrId("genycaster.setup.design_recovery_title")
+                    onClicked: {
+                        root.recoveryProtocol = "farcaster-snapchain"
+                        root.accountIntent = "existing"
+                        root.switchStep(4)
+                    }
+                }
+                SetupActionCard {
+                    objectName: "setupBrowserHyperSnapChoice"
+                    Layout.fillWidth: true
+                    compactCard: true
+                    onboardingStyle: true
+                    protocolChoice: true
+                    iconGlyph: "quilibrium/hypersnap"
+                    title: qsTrId("genycaster.settings.hypersnap_label")
+                    subtitle: qsTrId("genycaster.shell.continue_with_genyleap")
+                    onClicked: {
+                        root.recoveryProtocol = "hypersnap-v2"
+                        root.accountIntent = "existing"
+                        root.switchStep(4)
+                    }
+                }
+            }
             GridLayout {
                 visible: !root.choosingRegistrationProvider
                 Layout.fillWidth: true
@@ -1531,6 +1575,7 @@ Item {
                     Layout.fillWidth: true
                     onboardingStyle: true
                     objectName: "setupCreateAccount"
+                    enabled: !root.browserReadOnly
                     accountShowcase: true
                     title: qsTrId("genycaster.setup.design_create_account")
                     subtitle: qsTrId("genycaster.setup.new_profile_body")
@@ -1566,6 +1611,14 @@ Item {
                         root.switchStep(4)
                     }
                 }
+            }
+            DirectionAwareLabel {
+                visible: root.browserReadOnly && !root.choosingRegistrationProvider
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.setup.native_registration_signing_unavailable")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
             }
             ColumnLayout {
                 visible: root.choosingRegistrationProvider
@@ -2401,6 +2454,7 @@ Item {
                 iconGlyph: "system/lock"
                 title: qsTrId("genycaster.setup.design_recovery_title")
                 enabled: !root.authenticationInProgress && !root.recoverySubmitPending
+                    && (!root.browserReadOnly || root.recoveryProtocol === "farcaster-snapchain")
                 onClicked: {
                     if (root.browserReadOnly) {
                         // The DOM recovery dialog is presented only on an
@@ -2410,6 +2464,49 @@ Item {
                         root.showRecovery = !root.showRecovery
                     }
                 }
+            }
+            GridLayout {
+                objectName: "setupBrowserRecoveryProtocolChoice"
+                visible: root.browserReadOnly && !root.authenticated
+                Layout.fillWidth: true
+                columns: root.width < 360 ? 1 : 2
+                columnSpacing: Theme.space2
+                rowSpacing: Theme.space2
+                SetupActionCard {
+                    objectName: "setupBrowserRecoverFarcaster"
+                    Layout.fillWidth: true
+                    compactCard: true
+                    onboardingStyle: true
+                    protocolChoice: true
+                    showChevron: false
+                    selected: root.recoveryProtocol === "farcaster-snapchain"
+                    iconGlyph: "brands/farcaster"
+                    title: qsTrId("genycaster.settings.farcaster_label")
+                    onClicked: root.recoveryProtocol = "farcaster-snapchain"
+                }
+                SetupActionCard {
+                    objectName: "setupBrowserRecoverHyperSnap"
+                    Layout.fillWidth: true
+                    compactCard: true
+                    onboardingStyle: true
+                    protocolChoice: true
+                    showChevron: false
+                    selected: root.recoveryProtocol === "hypersnap-v2"
+                    iconGlyph: "quilibrium/hypersnap"
+                    title: qsTrId("genycaster.settings.hypersnap_label")
+                    onClicked: root.recoveryProtocol = "hypersnap-v2"
+                }
+            }
+            DirectionAwareLabel {
+                objectName: "setupBrowserHyperSnapRecoveryNotice"
+                visible: root.browserReadOnly && !root.authenticated
+                    && root.recoveryProtocol === "hypersnap-v2"
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.setup.native_registration_signing_unavailable")
+                    + " · " + qsTrId("genycaster.shell.continue_with_genyleap")
+                color: Theme.warning
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
             }
             ColumnLayout {
                 visible: root.showRecovery && !root.browserReadOnly && !root.authenticated

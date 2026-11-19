@@ -3565,6 +3565,27 @@ void connectRuntime(
                 };
             }
             sessionObserver(std::move(state));
+            // A recovered browser signer already owns a verified Farcaster
+            // FID, but its private account cookie is separate. Queue the
+            // signed account challenge AFTER the Qt session is committed:
+            // an immediate JS retry could arrive while the presentation is
+            // still Guest, causing its account-session event to be dropped.
+            const bool recoveryHasAccountGrant = !restoredDevice
+                && !openProofSubject.isEmpty()
+                && openProofIssuer == connections.identityIssuer()
+                && !accountTicket.isEmpty();
+            if (verified && !restoredDevice && !recoveryHasAccountGrant) {
+                bool validFid = false;
+                const qulonglong recoveredFid = fid.toULongLong(&validFid);
+                if (validFid) {
+                    QMetaObject::invokeMethod(&bridge,
+                        [&bridge, &connections, recoveredFid] {
+                            if (bridge.isAuthenticated()
+                                && bridge.accountFid() == recoveredFid)
+                                connections.retryAccountSession();
+                        }, Qt::QueuedConnection);
+                }
+            }
             // The session commit was queued onto the bridge. Deliver the
             // ephemeral OpenProof account capability after that same queue
             // establishes the verified issuer and owning Farcaster FID.

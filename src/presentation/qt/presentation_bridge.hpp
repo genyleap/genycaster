@@ -55,6 +55,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString accountAvatarUrl READ accountAvatarUrl NOTIFY authenticationStateChanged)
     Q_PROPERTY(qulonglong accountFid READ accountFid NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountFidText READ accountFidText NOTIFY authenticationStateChanged)
+    Q_PROPERTY(bool ownProfileNavigation READ ownProfileNavigation NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap accountProfile READ accountProfile NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool writeReady READ writeReady NOTIFY stateChanged)
     Q_PROPERTY(QString signerPhase READ signerPhase NOTIFY stateChanged)
@@ -165,6 +166,10 @@ public:
     [[nodiscard]] QString accountAvatarUrl() const;
     [[nodiscard]] qulonglong accountFid() const noexcept;
     [[nodiscard]] QString accountFidText() const { return QString::number(accountFid()); }
+    [[nodiscard]] bool ownProfileNavigation() const noexcept {
+        return m_isAuthenticated && m_accountFid != 0 && m_profileIsOwnAccount
+            && m_activeView == QStringLiteral("profile") && m_profileFid == m_accountFid;
+    }
 
     /** @brief Returns the cached provider-neutral profile presentation for the authenticated account. */
     [[nodiscard]] QVariantMap accountProfile() const;
@@ -742,6 +747,7 @@ private:
     QString m_activeFeed{QStringLiteral("following")};
     QString m_profileFeed{QStringLiteral("user-posts")};
     qulonglong m_profileFid{};
+    bool m_profileIsOwnAccount{false};
     qulonglong m_socialFid{};
     QString m_socialReturnView{QStringLiteral("feed")};
     struct DetailLocation {

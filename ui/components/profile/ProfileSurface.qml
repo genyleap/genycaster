@@ -10,13 +10,40 @@ Item {
     id: root
 
     property var detail
+    // Explicit navigation to the authenticated account is independent of the
+    // global read-provider selector. It is set only by PresentationBridge.
+    property bool ownProfileNavigation: false
     // Metadata refreshes can briefly publish an empty profile. Keep the
     // visible header and its height until a resolved identity arrives.
     property var retainedDetail: ({})
     readonly property var activeDetail: {
         const current = root.detail || ({})
         const retained = root.retainedDetail || ({})
-        return Number(current.fid || 0) > 0 ? current : retained
+        // Reading a different protocol cannot supply the editable metadata
+        // for this signed-in identity. Use only authenticated session fields
+        // until its own protocol data is available, never a foreign profile.
+        if (root.ownProfileNavigation && root.accountFidText.length > 0
+            && root.activeReadNetwork !== root.accountNetwork) {
+            return {
+                fid: root.accountFid,
+                fidString: root.accountFidText,
+                displayName: String(presentationBridge.accountName || ""),
+                username: String(presentationBridge.accountUsername || ""),
+                avatarUrl: String(presentationBridge.accountAvatarUrl || ""),
+                bio: "", profileUrl: "", bannerUrl: ""
+            }
+        }
+        if (Number(current.fid || 0) > 0) return current
+        if (root.ownProfileNavigation && root.accountFidText.length > 0) {
+            const owned = presentationBridge.accountProfile || ({})
+            if (String(owned.fidString || owned.fid || "") === root.accountFidText)
+                return owned
+            return {fid: root.accountFid, fidString: root.accountFidText,
+                displayName: String(presentationBridge.accountName || ""),
+                username: String(presentationBridge.accountUsername || ""),
+                avatarUrl: String(presentationBridge.accountAvatarUrl || "")}
+        }
+        return retained
     }
     property var rows
     // Navigation must show the cover, even when this Loader is reused.
@@ -164,12 +191,18 @@ Item {
         return entry || root.moodOptions[root.moodOptions.length-1]
     }
     // Preserve protocol FIDs as decimal text; QML Numbers lose uint64 precision.
-    readonly property string profileFidText: String(
-        root.activeDetail.fidString || root.activeDetail.fid || "")
+    readonly property string profileFidText: root.ownProfileNavigation
+        ? root.accountFidText
+        : String(root.activeDetail.fidString || root.activeDetail.fid || "")
     // The selected read provider identifies the profile's protocol. It must
     // not be inferred from FID magnitude or from a previous account session.
-    readonly property string profileNetwork: providerProfiles.activeReadContract === "hypersnap-v2"
+    readonly property string activeReadNetwork:
+        providerProfiles.activeReadContract === "hypersnap-v2"
         ? "hypersnap" : "farcaster"
+    readonly property string accountNetwork: root.accountIsNativeCustody
+        ? "hypersnap" : "farcaster"
+    readonly property string profileNetwork: root.ownProfileNavigation
+        ? root.accountNetwork : root.activeReadNetwork
     readonly property var displayedMood: {
         const value=openProofConnections ? openProofConnections.profileStatus || ({}) : ({})
         return root.profileFidText.length > 0
@@ -840,8 +873,8 @@ Item {
         String(Number(root.activeDetail.fid || 0))) >= 0
     readonly property bool isOwnProfile: root.profileFidText.length > 0
                                          && root.profileFidText === root.accountFidText
-                                         && root.profileNetwork === (root.accountIsNativeCustody
-                                             ? "hypersnap" : "farcaster")
+                                         && (root.ownProfileNavigation
+                                             || root.activeReadNetwork === root.accountNetwork)
     readonly property int profileAvatarSize: root.compact ? 84 : 96
     // Match the Stats/ContextRail outside gutter without shrinking card
     // padding. The profile is responsive across the full desktop workspace.
@@ -3851,12 +3884,13 @@ Item {
                     }
                     ActionButton {
                         objectName: "profileAuthorizeNativeSigner"
-                        visible: root.isOwnProfile && root.accountIsNativeCustody
-                                 && !presentationBridge.writeReady
+                        visible: root.isOwnProfile && !presentationBridge.writeReady
                         Layout.fillWidth: true
                         quiet: true
                         enabled: !presentationBridge.signerBusy
-                        text: qsTrId("genycaster.shell.native_signer_authorize")
+                        text: root.accountIsNativeCustody
+                            ? qsTrId("genycaster.shell.native_signer_authorize")
+                            : qsTrId("genycaster.profile.signer_permissions_required")
                         onClicked: root.signerAuthorizationRequested()
                     }
                     ActionButton {

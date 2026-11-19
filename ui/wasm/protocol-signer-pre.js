@@ -255,7 +255,13 @@
                     });
                     await rememberedWrite.catch(error=>
                         console.warn('[Genycaster] Device session could not be saved',error));
-                    if(epoch!==thisEpoch || owner!==fid) return;
+                    if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted) return;
+                    // recover-account begins with an empty owner because no FID
+                    // has been verified. Adopt ONLY the recovered, on-chain
+                    // verified Farcaster FID after its signer vault is ready.
+                    // Without this transition, owner remains empty and the
+                    // Pro/Streak signed account-session retry is rejected.
+                    owner = recoveredFid;
                     // Native Qt may mark this as canonical OpenProof identity
                     // only when the verified subject and issuer accompany the
                     // exact one-shot recovery request. Missing proof means a
@@ -265,6 +271,10 @@
                         identitySubject:verifiedOpenProof?.subject || '',
                         accountTicket:verifiedOpenProof?.accountTicket || '',
                         accountExpiresSeconds:verifiedOpenProof?.expiresSeconds || 0});
+                    // The Qt recovery observer initiates the signed account
+                    // retry AFTER the authenticated session is committed.
+                    // Initiating it here can race Qt's queued identity event
+                    // and lose the only verified Pro/Streak response.
                 } else {
                     const current=await createClient(base);
                     if(epoch!==thisEpoch || owner!==fid)return;
