@@ -6793,8 +6793,20 @@ Company | https://company.com</source>
             <translation>모두 선택</translation>
         </message>
         <message id="genycaster.setup.recovery_failed_retry">
-            <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
-            <translation>Farcaster 복구를 확인할 수 없습니다. 연결을 확인하고 다시 시도하세요.</translation>
+            <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
+            <translation>계정 복구를 확인할 수 없습니다. 복구 단어와 선택한 프로토콜을 확인한 후 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_not_found">
+            <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>
+            <translation>이 복구 단어에 등록된 HyperSnap 계정이 없습니다. Farcaster에서 만든 계정이라면 Farcaster를 선택하고 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_recovery_unavailable">
+            <source>The HyperSnap account registry is unavailable. Check your network connection and try again.</source>
+            <translation>HyperSnap 계정 레지스트리에 연결할 수 없습니다. 네트워크 연결을 확인하고 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_invalid">
+            <source>This recovery phrase is invalid. Check all 24 words, their order and spelling.</source>
+            <translation>복구 구문이 올바르지 않습니다. 24개 단어의 순서와 철자를 모두 확인하세요.</translation>
         </message>
         <message id="genycaster.setup.open_terms">
             <source>Open full Terms of Use</source>
