@@ -15,7 +15,10 @@ from pathlib import Path
 import re
 from urllib.parse import quote
 
-from ci.release_artifacts import EXPECTED
+if __package__:
+    from .release_artifacts import EXPECTED
+else:
+    from release_artifacts import EXPECTED
 
 SUPPORTED = {
     "GenyCaster-windows-x86_64": ("windows", "x64"),
@@ -67,10 +70,13 @@ def generate(directory: Path, tag: str) -> tuple[dict, dict]:
     version = tag.removeprefix("v")
     for artifact, (os, arch) in SUPPORTED.items():
         suffix = EXPECTED[artifact]
+        # Release artifact folder identifiers are different from physical
+        # filenames: GenyCaster-windows-x86_64 contains the versioned file
+        # GenyCaster-v1.0.0-windows-x86_64.exe, not the folder prefix.
+        expected_name = f"GenyCaster-{tag}-{artifact.removeprefix('GenyCaster-')}{suffix}"
         candidates = [p for p in directory.iterdir()
                       if p.is_file() and not p.is_symlink() and
-                      p.name.startswith(artifact + "-") and
-                      p.name.endswith(suffix)]
+                      p.name == expected_name]
         if len(candidates) != 1:
             raise ValueError(f"Missing/ambiguous verified {artifact} installer")
         file = candidates[0]
