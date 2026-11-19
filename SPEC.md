@@ -47,9 +47,9 @@ not a public-release approval on its own.
 - **Windows**: `x86_64` and `arm64`, NSIS installer plus update transport
 - **Linux**: `x86_64` and `arm64`, AppImage, DEB and zsync metadata
 - **Android**: `arm64-v8a` only, release-signed APK (not CI-test-signed)
-- **WebAssembly**: site-only build for `https://app.genycaster.xyz`,
-  **not** an installable GitHub Release download or a replacement for the
-  `genycaster.xyz` company landing site.
+- **WebAssembly**: site-only build for `https://genycaster.xyz`,
+  **not** an installable GitHub Release download. The preserved company landing
+  is available under `https://genycaster.xyz/about/`.
 
 All native artifacts must come from the **same tagged source revision** and
 pass post-package and clean-install checks. Web hosting additionally
