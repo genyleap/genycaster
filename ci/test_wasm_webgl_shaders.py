@@ -7,7 +7,7 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-DERIVATIVES = re.compile(r"\\b(?:fwidth|dFdx|dFdy)\\s*\\(")
+DERIVATIVES = re.compile(r"\b(?:fwidth|dFdx|dFdy)\s*\(")
 
 
 class WebglShaderCompatibilityTests(unittest.TestCase):
