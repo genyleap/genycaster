@@ -74,6 +74,14 @@ def check_assets() -> None:
         raise RuntimeError("Native release catalog is malformed")
     if "native-downloads.js" not in html.read_text(encoding="utf-8"):
         raise RuntimeError("WASM entrypoint does not load native downloads")
+    # A file-existence check is insufficient for a public origin switch:
+    # validate the entire regenerated manifest, both engine filenames and
+    # hashes, the gzip sidecar, browser boot references and auth origins.
+    if __package__:
+        from .verify_primary_preview_payload import validate
+    else:
+        from verify_primary_preview_payload import validate
+    validate(ROOT)
 
 
 def verify_existing_site() -> str:
