@@ -107,7 +107,17 @@ def verify_certificate() -> None:
 
 
 def check_public_marker() -> None:
-    request = urllib.request.Request(PROBE, headers={"Cache-Control": "no-cache"})
+    # Cloudflare's Browser Integrity Check rejects Python-urllib's default
+    # User-Agent with error 1010, even when the HTTPS vhost is correctly
+    # configured. Use the ordinary curl User-Agent accepted by this host,
+    # while preserving strict TLS verification, exact-origin/no-redirect
+    # checks and the exact response-body marker requirement.
+    request = urllib.request.Request(
+        PROBE,
+        headers={"Cache-Control": "no-cache",
+                 "User-Agent": "curl/8.5.0",
+                 "Accept": "*/*"},
+    )
     with urllib.request.urlopen(request, timeout=15) as response:
         if response.geturl() != PROBE:
             raise RuntimeError("Readiness probe unexpectedly redirected")
