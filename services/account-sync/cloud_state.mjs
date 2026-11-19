@@ -483,11 +483,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     throw new Error('A store and trusted HTTPS OpenProof issuer are required');
   const upstream=trustedOrigin(issuer,'GENYCASTER_OPENPROOF_ISSUER');
   const trustedPublicOrigin=trustedOrigin(publicOrigin,'GENYCASTER_PUBLIC_ORIGIN');
-  // The public WASM application is hosted on a separate, fixed first-party
-  // hostname. Require that hostname in the proxied Host header as well as
-  // its exact Origin; this is not a wildcard subdomain allowlist.
-  const trustedAppOrigin=trustedPublicOrigin==='https://genycaster.xyz'
-    ?'https://app.genycaster.xyz':null;
+  // The canonical application and account API share the same origin.
+  // A retired preview subdomain is never authorized for cookie mutations.
   const trustedBrowserGateway=trustedOrigin(browserGateway,'GENYCASTER_BROWSER_GATEWAY_ORIGIN');
   const trustedSnapchainOrigin=trustedOrigin(snapchainOrigin,'GENYCASTER_SNAPCHAIN_URL');
   const trustedHyperSnapOrigin=trustedOrigin(hypersnapOrigin,'GENYCASTER_HYPERSNAP_ORIGIN');
@@ -498,14 +495,9 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
   const leaderboardProfiles=createLeaderboardProfileReader({
     fetchImpl,hypersnapOrigin:trustedHyperSnapOrigin});
   function sameOriginRequest(request) {
-    // Allow the canonical API host, or its exact first-party WASM host only
-    // when Nginx forwarded Host: app.genycaster.xyz from that HTTPS vhost.
-    // Reject cross-origin browser submissions, lookalike hosts and all
-    // unreviewed subdomains without relaxing the separate CSRF-token gate.
-    const allowed=request.headers.origin===trustedPublicOrigin
-      || (trustedAppOrigin!==null
-          && request.headers.origin===trustedAppOrigin
-          && request.headers.host==='app.genycaster.xyz');
+    // Require the exact official origin for browser mutations. Keep the
+    // independent CSRF-token check for authenticated session writes.
+    const allowed=request.headers.origin===trustedPublicOrigin;
     return allowed && (!request.headers['sec-fetch-site'] ||
       request.headers['sec-fetch-site']==='same-origin');
   }
