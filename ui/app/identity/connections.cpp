@@ -2164,6 +2164,27 @@ void OpenProofConnectionsController::retryAccountSession()
     if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl)
         || m_sessionRevoking || m_sessionRequest || m_accountProofRequest
         || m_accountProofSigning || m_cloudSessionVerified) return;
+#if defined(Q_OS_WASM)
+    // The browser has its own IndexedDB-backed registered Farcaster signer.
+    // Native Qt's signer callback cannot access it. Ask the already bound
+    // browser bridge to restore a verified same-origin account session; it
+    // rechecks the HttpOnly cookie and emits a scoped CSRF token only after
+    // the server confirms the owner. This path also backs manual Pro/Streak
+    // retries; never try an invented native WASM vault signer.
+    const QByteArray browserFid = QString::number(m_viewerFid).toUtf8();
+    const int browserStarted = EM_ASM_INT({
+        try {
+            const bridge = window.__genycasterBrowserSigning;
+            return bridge && typeof bridge.retryAccountSession === 'function'
+                && bridge.retryAccountSession(UTF8ToString($0,$1)) ? 1 : 0;
+        } catch (_) { return 0; }
+    }, browserFid.constData(), browserFid.size());
+    if (browserStarted) {
+        m_accountProofError.clear();
+        emit stateChanged();
+        return;
+    }
+#endif
     // A failed earlier attempt (while KEY_ADD was still unconfirmed) must not
     // make a now-active native/Farcaster signer permanently ineligible.
     m_accountProofAttempted = false;
@@ -2204,7 +2225,7 @@ void OpenProofConnectionsController::retryProEntitlements()
         && (m_verified || m_accountBearer.startsWith("recovery.")))
         bootstrapAccountSession();
     else
-        restoreAccountSession();
+        retryAccountSession();
 }
 
 void OpenProofConnectionsController::fetchProPlan(const bool force)

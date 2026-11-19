@@ -708,3 +708,148 @@
     z-index:0;
     pointer-events:none;
 }
+
+/* Collapsed edge dock: the discovery affordance must never occupy the
+ * dashboard's top-right header or cover My Assets. Open only on demand. */
+#native-downloads-dock {
+    position:fixed;
+    z-index:17;
+    right:calc(0px + env(safe-area-inset-right,0px));
+    bottom:calc(54px + env(safe-area-inset-bottom,0px));
+    display:flex;
+    gap:7px;
+    align-items:center;
+    padding:5px 8px 5px 5px;
+    background:var(--nd-raised);
+    border:1px solid var(--nd-border);
+    border-radius:22px 0 0 22px;
+    corner-shape:superellipse(4);
+    color:var(--nd-ink);
+    box-shadow:0 6px 24px var(--nd-shadow);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    transition:width 150ms ease,background 150ms ease;
+}
+#native-downloads-dock[data-expanded="false"] {
+    width:38px;
+    min-height:48px;
+    padding:3px 0 3px 3px;
+}
+#native-downloads-dock[data-expanded="true"] {max-width:calc(100vw - 24px)}
+#native-downloads-dock-toggle {
+    appearance:none;
+    -webkit-appearance:none;
+    flex:none;
+    display:grid;
+    place-items:center;
+    width:33px;
+    height:39px;
+    padding:7px;
+    border:0;
+    border-radius:14px;
+    corner-shape:superellipse(4);
+    color:var(--nd-accent);
+    background:transparent;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+}
+#native-downloads-dock-toggle:hover {background:var(--nd-hover)}
+#native-downloads-dock-toggle:focus-visible {
+    outline:2px solid var(--nd-accent);
+    outline-offset:1px;
+}
+#native-downloads-dock-toggle svg {
+    width:18px;height:18px;
+    fill:none;stroke:currentColor;
+    stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;
+}
+#native-downloads-dock[data-expanded="true"] #native-downloads-dock-toggle svg {display:none}
+#native-downloads-dock[data-expanded="true"] #native-downloads-dock-toggle::before {
+    content:"×";font-size:24px;line-height:1;color:var(--nd-ink-muted);
+}
+#native-downloads-dock #native-downloads-trigger,
+#native-downloads-dock #native-downloads-trigger.nd-squircle {
+    position:relative;
+    top:auto;right:auto;bottom:auto;
+    display:inline-flex;
+    min-height:38px;
+    padding:7px 12px;
+    filter:none;
+    box-shadow:none;
+    white-space:nowrap;
+}
+#native-downloads-dock #native-downloads-trigger[hidden] {display:none!important}
+#native-downloads-dock[data-expanded="true"] #native-downloads-trigger {margin-right:0}
+@media(max-width:640px) {
+    #native-downloads-dock {
+        bottom:calc(74px + env(safe-area-inset-bottom,0px));
+    }
+}
+
+/* The two-row architecture list must be a real, completely painted popup.
+ * Previous SVG paths in each option made transparent/negative stacking
+ * contexts; selected rows painted but the Intel row looked outside the menu.
+ * Use a single product-owned surface and smooth fallback corner geometry. */
+#native-downloads-dialog > #native-downloads-options {
+    position:absolute;
+    isolation:isolate;
+    box-sizing:border-box;
+    z-index:320;
+    padding:6px;
+    margin:0;
+    background:var(--nd-raised)!important;
+    color:var(--nd-ink);
+    border:1px solid var(--nd-border)!important;
+    border-radius:19px;
+    corner-shape:superellipse(4);
+    box-shadow:0 13px 34px var(--nd-shadow)!important;
+    overflow-y:auto;
+    overflow-x:hidden;
+    scrollbar-width:thin;
+    scrollbar-color:var(--nd-scroll) transparent;
+}
+#native-downloads-options .native-downloads-option {
+    box-sizing:border-box;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    min-height:44px;
+    height:44px;
+    padding:0 14px;
+    color:var(--nd-ink);
+    background:transparent;
+    border:0;
+    border-radius:14px;
+    corner-shape:superellipse(4);
+    text-align:start;
+    font-size:13px;
+    line-height:1.4;
+    font-weight:600;
+    cursor:pointer;
+    outline:none;
+}
+#native-downloads-options .native-downloads-option + .native-downloads-option {
+    margin-top:3px;
+}
+#native-downloads-options .native-downloads-option:is(:hover,:focus-visible) {
+    background:var(--nd-hover);
+}
+#native-downloads-options .native-downloads-option[aria-selected="true"] {
+    color:var(--nd-accent);
+    font-weight:750;
+    background:color-mix(in srgb,var(--nd-accent) 13%,var(--nd-raised));
+}
+#native-downloads-options .native-downloads-option[aria-selected="true"]::after {
+    content:"✓";
+    margin-left:10px;
+    font-weight:800;
+    color:var(--nd-accent);
+}
+#native-downloads-options .native-downloads-option:focus-visible {
+    outline:2px solid var(--nd-accent);
+    outline-offset:-2px;
+}
+@media(prefers-reduced-motion:reduce) {
+    #native-downloads-dock {transition:none}
+}

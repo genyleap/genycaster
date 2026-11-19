@@ -42,6 +42,41 @@
     };
     const deviceSession = async () =>
         (await import('./browser_device_session.mjs')).createDeviceSession(window);
+    let accountSessionPromise = null;
+    let accountSessionOwner = "";
+    // The Pro/Streak retry button must use the browser's registered signer,
+    // not Qt's native-only vault signer. This is single-flight per identity.
+    function retryAccountSession(fid) {
+        if (typeof fid !== "string" || !/^[1-9][0-9]{0,18}$/.test(fid)
+            || !Number.isSafeInteger(Number(fid))
+            || owner !== fid || !client || window.location.origin !== "https://genycaster.xyz")
+            return false;
+        if (accountSessionPromise && accountSessionOwner === fid) return true;
+        const currentEpoch = epoch;
+        accountSessionOwner = fid;
+        const operation = import('./browser_account_session.mjs')
+            .then(module => module.ensureBrowserAccountSession({
+                fid, origin:window.location.origin,
+            }))
+            .then(result => {
+                if (epoch === currentEpoch && owner === fid)
+                    report({kind:'account-session',phase:'ready',
+                        fid,csrfToken:result.csrf_token});
+            })
+            .catch(error => {
+                if (epoch === currentEpoch && owner === fid)
+                    report({kind:'account-session',phase:'failed',fid,
+                        error:String(error?.message||error).slice(0,140)});
+            })
+            .finally(() => {
+                if (accountSessionPromise === operation) {
+                    accountSessionPromise = null;
+                    accountSessionOwner = "";
+                }
+            });
+        accountSessionPromise = operation;
+        return true;
+    }
     function report(payload) {
         // No unbounded event-buffer growth if the Qt GUI is paused.
         events.push(payload);
@@ -62,23 +97,7 @@
                 // This is automatic after verified signer restoration.
                 if(status.phase==="ready" && status.ready && status.fid) {
                     const fid=String(status.fid);
-                    const currentEpoch=epoch;
-                    if(owner===fid) {
-                        void import('./browser_account_session.mjs')
-                            .then(module=>module.ensureBrowserAccountSession({
-                                fid,origin:window.location.origin,
-                            }))
-                            .then(result=>{
-                                if(epoch===currentEpoch && owner===fid)
-                                    report({kind:'account-session',phase:'ready',
-                                        fid,csrfToken:result.csrf_token});
-                            })
-                            .catch(error=>{
-                                if(epoch===currentEpoch && owner===fid)
-                                    report({kind:'account-session',phase:'failed',
-                                        fid,error:String(error?.message||error).slice(0,140)});
-                            });
-                    }
+                    if(owner===fid) retryAccountSession(fid);
                 }
             },
         });
@@ -446,5 +465,5 @@
         pick:pickMedia,cancel:cancelMedia,remove:removeManagedMedia,
         events:mediaEvents
     });
-    window.__genycasterBrowserSigning = Object.freeze({start,events});
+    window.__genycasterBrowserSigning = Object.freeze({start,retryAccountSession,events});
 }());

@@ -99,7 +99,9 @@ class WebglShaderCompatibilityTests(unittest.TestCase):
         popup = js.split("function layoutOptions()", 1)[1].split(
             "function closeOptions", 1)[0]
         self.assertIn("window.innerHeight", popup)
-        self.assertIn("rowCount * 47", popup)
+        self.assertIn("rows.length * 47", popup)
+        self.assertIn("window.visualViewport", popup)
+        self.assertIn('architectureOptions.dataset.placement', popup)
         self.assertIn("architectureOptions.style.height = panelHeight", popup)
         self.assertIn("architectureOptions.style.maxHeight = panelHeight", popup)
         self.assertNotIn("dialogBox.bottom - triggerBox.bottom", popup)

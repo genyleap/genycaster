@@ -167,11 +167,19 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
   <div class="update-actions"><button id="genycaster-update-later" type="button">Later</button><button id="genycaster-update-now" type="button">Update now</button></div>
 </section>
 <!-- Browser-only native edition discovery. No Qt account/session state crosses it. -->
-<button id="native-downloads-trigger" type="button" aria-haspopup="dialog"
-        aria-controls="native-downloads-dialog" aria-expanded="false">
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg>
-  <span>Get the app</span>
-</button>
+<div id="native-downloads-dock" data-expanded="false" role="group"
+     aria-label="GenyCaster downloads">
+  <button id="native-downloads-dock-toggle" type="button"
+          aria-expanded="false" aria-controls="native-downloads-trigger"
+          aria-label="Expand app downloads" title="App downloads">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg>
+  </button>
+  <button id="native-downloads-trigger" type="button" aria-haspopup="dialog"
+          aria-controls="native-downloads-dialog" aria-expanded="false" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg>
+    <span>Get the app</span>
+  </button>
+</div>
 <div id="native-downloads-nudge" role="status" hidden>
   <span class="native-downloads-nudge-copy">GenyCaster is also available for your device.</span>
   <button id="native-downloads-nudge-open" type="button">Explore</button>

@@ -23,6 +23,22 @@ test('previously registered Farcaster signer automatically starts account owners
     /genycaster-account-session-v1/);
 });
 
+test('manual Pro and Streak session retries use the registered WASM browser signer',()=>{
+  const pre=file('ui/wasm/protocol-signer-pre.js');
+  const controller=file('ui/app/identity/connections.cpp');
+  const bridge=file('ui/app/browser/signer_bridge.hpp');
+  assert.match(pre,/function retryAccountSession\(fid\)/);
+  assert.match(pre,/owner !== fid \|\| !client/);
+  assert.match(pre,/if \(accountSessionPromise && accountSessionOwner === fid\)/);
+  assert.match(pre,/ensureBrowserAccountSession\(\{/);
+  assert.match(pre,/Object\.freeze\(\{start,retryAccountSession,events\}\)/);
+  assert.match(controller,/window\.__genycasterBrowserSigning/);
+  assert.match(controller,/bridge\.retryAccountSession\(UTF8ToString\(\$0,\$1\)\)/);
+  assert.match(controller,/if \(browserStarted\)/);
+  assert.match(controller,/else\s+retryAccountSession\(\);\s*}\s*void OpenProofConnectionsController::fetchProPlan/);
+  assert.match(bridge,/m_accountSessionObserver\(presentation->accountFid\(\),csrf\)/);
+});
+
 test('account-session browser client proves FID, then validates stored HttpOnly cookie',async()=>{
   const fid='321969',nonce='a'.repeat(43),csrf='b'.repeat(43);
   const principal={issuer:'https://openproof.genyleap.com',subject:'farcaster:'+fid};

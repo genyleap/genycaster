@@ -193,7 +193,10 @@ class PrimaryMigrationTests(unittest.TestCase):
         # Regression: restore the original product-owned continuous shape
         # everywhere, but paint just one border per control. A second CSS
         # outline/shadow on top of the SVG frame caused detached blue rings.
-        self.assertIn('mountShape(option, 17)', js)
+        # Overlay listbox rows must not use SVG negative stacking contexts:
+        # the selected row previously painted but Intel escaped the surface.
+        self.assertNotIn('mountShape(option, 17)', js)
+        self.assertIn('background:var(--nd-raised)!important', css)
         self.assertIn('shapeObserver.unobserve(previous)', js)
         self.assertIn('openOptions(focusSelected = false)', js)
         self.assertIn('openOptions(true)', js)
@@ -208,10 +211,10 @@ class PrimaryMigrationTests(unittest.TestCase):
         self.assertIn('--nd-shape-width:2px', css)
         self.assertIn('filter:drop-shadow', css)
         shape_block = js.split('const shapeSpecs = [', 1)[1].split('];', 1)[0]
-        for selector in ('#native-downloads-dialog', '#native-downloads-options',
+        for selector in ('#native-downloads-dialog',
                          '.native-github-cta', '#native-downloads-trigger',
                          '#native-downloads-close', '.native-downloads-tabs',
-                         '#native-downloads-architecture', '.native-downloads-option',
+                         '#native-downloads-architecture',
                          '#native-github-star', '.native-downloads-secondary'):
             self.assertIn(f'["{selector}"', shape_block)
         self.assertIn('path.setAttribute("vector-effect", "non-scaling-stroke")', js)

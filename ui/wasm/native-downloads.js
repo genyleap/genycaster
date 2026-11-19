@@ -4,6 +4,8 @@
     const byId = (id) => document.getElementById(id);
     const dialog = byId("native-downloads-dialog");
     const trigger = byId("native-downloads-trigger");
+    const dock = byId("native-downloads-dock");
+    const dockToggle = byId("native-downloads-dock-toggle");
     const backdrop = byId("native-downloads-backdrop");
     if (!dialog || !trigger || !backdrop) return;
 
@@ -39,7 +41,6 @@
         [".native-downloads-tabs", 23],
         [".native-downloads-tabs button", 18],
         ["#native-downloads-architecture", 20],
-        ["#native-downloads-options", 19],
         [".native-downloads-result", 23],
         ["#native-downloads-action", 19],
         [".native-downloads-secondary", 19],
@@ -48,7 +49,6 @@
         ["#native-github-star", 17],
         ["#native-downloads-nudge", 22],
         ["#native-downloads-nudge-open", 16],
-        [".native-downloads-option", 17],
         [".native-downloads-brand-frame", 16]
     ];
     // Browser :focus-visible may be triggered by our own programmatic focus
@@ -280,7 +280,8 @@
             catalog = Object.create(null);
         }
         render();
-        maybeNudge();
+        // Keep the invitation collapsed until explicitly requested. The
+        // previous automatic nudge obstructed the right dashboard column.
     }
 
     function selectedArchitecture() {
@@ -292,18 +293,21 @@
 
     function layoutOptions() {
         if (architectureOptions.hidden || dialog.hidden) return;
-        // A listbox must fully contain every option when two choices fit the
-        // *browser viewport*. The old code capped it by the remaining height
-        // inside the modal; the Intel row was cut off even with ample screen.
+        // The listbox is a sibling of the scrolling modal viewport. Measure
+        // its *actual rows*, not a synthetic one-row fallback that can paint
+        // the Intel row outside the popup. Fit to the visual viewport.
         const triggerBox = architecture.getBoundingClientRect();
         const dialogBox = dialog.getBoundingClientRect();
-        const rowCount = architectureOptions.querySelectorAll('[role="option"]').length;
-        const desiredHeight = Math.min(220, 12 + rowCount * 47);
-        const spaceBelow = Math.max(0, window.innerHeight - triggerBox.bottom - 12);
-        const spaceAbove = Math.max(0, triggerBox.top - 12);
-        const above = spaceBelow < desiredHeight && spaceAbove > spaceBelow;
-        const availableHeight = Math.min(desiredHeight, above ? spaceAbove : spaceBelow);
-        const panelHeight = Math.max(44, availableHeight);
+        const rows = [...architectureOptions.querySelectorAll('[role="option"]')];
+        const naturalHeight = Math.min(240, 12 + rows.length * 47);
+        const viewport = window.visualViewport;
+        const viewportTop = viewport ? viewport.offsetTop : 0;
+        const viewportBottom = viewportTop + (viewport ? viewport.height : window.innerHeight);
+        const spaceBelow = Math.max(0, viewportBottom - triggerBox.bottom - 10);
+        const spaceAbove = Math.max(0, triggerBox.top - viewportTop - 10);
+        const above = spaceBelow < naturalHeight && spaceAbove > spaceBelow;
+        const available = Math.max(0, above ? spaceAbove : spaceBelow);
+        const panelHeight = Math.min(naturalHeight, Math.max(48, available));
         architectureOptions.style.width = triggerBox.width + "px";
         architectureOptions.style.left = (triggerBox.left - dialogBox.left) + "px";
         architectureOptions.style.right = "auto";
@@ -312,7 +316,7 @@
         architectureOptions.style.top = (above
             ? triggerBox.top - dialogBox.top - panelHeight - 6
             : triggerBox.bottom - dialogBox.top + 6) + "px";
-        drawShape(architectureOptions);
+        architectureOptions.dataset.placement = above ? "top" : "bottom";
     }
 
     function closeOptions(restoreFocus = false) {
@@ -371,7 +375,6 @@
             option.tabIndex = arch === code ? 0 : -1;
             option.dataset.architecture = code;
             option.textContent = label;
-            mountShape(option, 17);
             option.addEventListener("click", () => chooseArchitecture(code));
             architectureOptions.append(option);
         }
@@ -437,6 +440,16 @@
         reveal();
     }
 
+    function expandDock(expanded) {
+        if (!dock || !dockToggle) return;
+        dock.dataset.expanded = expanded ? "true" : "false";
+        dockToggle.setAttribute("aria-expanded", String(expanded));
+        dockToggle.setAttribute("aria-label", expanded
+            ? "Collapse app downloads" : "Expand app downloads");
+        dockToggle.title = expanded ? "Hide downloads" : "App downloads";
+        trigger.hidden = !expanded;
+    }
+    dockToggle?.addEventListener("click", () => expandDock(dock?.dataset.expanded !== "true"));
     trigger.addEventListener("click", () => { hideNudge(); setOpen(true); });
     close.addEventListener("click", () => setOpen(false));
     backdrop.addEventListener("click", () => setOpen(false));
@@ -496,6 +509,8 @@
     dialog.querySelector(".native-downloads-viewport")?.addEventListener(
         "scroll", layoutOptions, {passive:true});
     window.addEventListener("resize", layoutOptions, {passive:true});
+    window.visualViewport?.addEventListener("resize", layoutOptions, {passive:true});
+    window.visualViewport?.addEventListener("scroll", layoutOptions, {passive:true});
 
     dialog.addEventListener("keydown", event => {
         if (event.key === "Escape") {

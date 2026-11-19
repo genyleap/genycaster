@@ -23,6 +23,24 @@ test("public app identity stays independent from the injected release label",()=
     assert.match(pack, /release_placeholder = "@@GENYCASTER_RELEASE_VERSION@@"/);
 });
 
+test("native download chip stays collapsible and architecture popup owns every row",()=>{
+    const html=read("ui/wasm/genycaster-shell.html");
+    const css=read("ui/wasm/native-downloads.css");
+    const js=read("ui/wasm/native-downloads.js");
+    assert.match(html,/id="native-downloads-dock" data-expanded="false"/);
+    assert.match(html,/id="native-downloads-dock-toggle"/);
+    assert.match(html,/id="native-downloads-trigger"[^>]*aria-haspopup="dialog"/);
+    assert.match(js,/dockToggle\?\.addEventListener\("click"/);
+    assert.match(js,/trigger\.hidden = !expanded/);
+    assert.match(css,/#native-downloads-dock \{/);
+    assert.match(css,/#native-downloads-dock #native-downloads-trigger\[hidden\]/);
+    assert.match(css,/#native-downloads-dialog > #native-downloads-options \{/);
+    assert.match(css,/background:var\(--nd-raised\)!important/);
+    assert.match(js,/naturalHeight = Math\.min\(240, 12 \+ rows\.length \* 47\)/);
+    assert.doesNotMatch(js,/\["#native-downloads-options", 19\]/);
+    assert.doesNotMatch(js,/mountShape\(option, 17\)/);
+});
+
 test("iOS safe-area background and PWA metadata use the app appearance",()=>{
     const html=read("ui/wasm/genycaster-shell.html");
     const js=read("ui/wasm/genycaster-loader.js");
