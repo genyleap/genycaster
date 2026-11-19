@@ -33,7 +33,15 @@
 // local credential persistence or protocol-write authorization.
 struct BrowserOpenProofState final {
     enum class Phase { Starting, AwaitingApproval, Authenticated, Failed, SignedOut };
+    // Distinguish a genuinely rejected proof from transport, configuration,
+    // missing-link and provider failures. A failed browser request must never
+    // be misreported as a Farcaster account-signature rejection.
+    enum class FailureKind {
+        Rejected, Transport, InvalidResponse, MissingLink, RateLimited,
+        Expired, Conflict
+    };
     Phase phase{Phase::SignedOut};
+    FailureKind failureKind{FailureKind::InvalidResponse};
     QString approvalUrl{};
     QString error{};
     QString subject{};
@@ -68,7 +76,9 @@ private:
     void pollFarcaster();
     void checkUserinfo();
     void checkConnections();
-    void fail(QString message);
+    void fail(QString message, BrowserOpenProofState::FailureKind kind =
+                             BrowserOpenProofState::FailureKind::InvalidResponse);
+    void failHttp(int status);
     void emitState(BrowserOpenProofState state);
     void reset();
     void cancelPendingReply();
