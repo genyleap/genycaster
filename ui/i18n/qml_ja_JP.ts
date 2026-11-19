@@ -6544,6 +6544,18 @@ Company | https://company.com</source>
             <source>Open verified installer</source>
             <translation>検証済みインストーラーを開く</translation>
         </message>
+        <message id="genycaster.settings.github_star_title">
+            <source>Built in the open</source>
+            <translation>オープンな開発</translation>
+        </message>
+        <message id="genycaster.settings.github_star_description">
+            <source>Enjoying GenyCaster? Star the project on GitHub to help others discover it.</source>
+            <translation>GenyCaster が気に入ったら、GitHub でスターを付けてプロジェクトを広めてください。</translation>
+        </message>
+        <message id="genycaster.settings.github_star_action">
+            <source>Star on GitHub</source>
+            <translation>GitHub でスターを付ける</translation>
+        </message>
         <message id="genycaster.settings.release_notes_and_downloads">
             <source>Release notes and downloads</source>
             <translation>リリースノートとダウンロード</translation>
