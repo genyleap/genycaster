@@ -28,6 +28,7 @@ else:
 APP_ROOT = Path("/var/www/app.genycaster.xyz/public")
 APP_VHOST = Path("/etc/nginx/sites-enabled/app.genycaster.xyz")
 VERSION = "1.0.0-rc1"
+APP_ORIGIN = "https://app.genycaster.xyz"
 
 
 def verify_checksum(archive: Path, checksums: Path) -> str:
@@ -55,6 +56,33 @@ def verify_checksum(archive: Path, checksums: Path) -> str:
     return matching[0]
 
 
+def verify_app_origin_module(source: bytes) -> None:
+    """Enforce app-scoped compiled configuration, not just archive integrity.
+
+    A checksum-valid artifact can still be built with the obsolete canonical
+    origin. Domain migrations require rebuilding the WASM and regenerating its
+    integrity manifest, never replacing one JS file after packaging.
+    """
+    prefix = ("// GENERATED; public non-secret build configuration.\n"
+              "export const deployment = Object.freeze(")
+    suffix = ");\n"
+    try:
+        decoded = source.decode("utf-8")
+        if not decoded.startswith(prefix) or not decoded.endswith(suffix):
+            raise ValueError("Noncanonical generated deployment module")
+        config = json.loads(decoded[len(prefix):-len(suffix)])
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError("Invalid generated deployment module") from error
+    if not isinstance(config, dict):
+        raise ValueError("Invalid generated deployment object")
+    for field in ("publicOrigin", "siwfOrigin"):
+        if config.get(field) != APP_ORIGIN:
+            raise ValueError(
+                f"WASM preview has wrong {field}: expected {APP_ORIGIN}; "
+                "rebuild with the dedicated app-domain CMake flags"
+            )
+
+
 def verify_archive(archive: Path, checksums: Path) -> tuple[str, list[str]]:
     if not archive.is_file() or archive.is_symlink():
         raise ValueError("Missing or symlinked preview archive")
@@ -65,6 +93,10 @@ def verify_archive(archive: Path, checksums: Path) -> tuple[str, list[str]]:
         if manifest_member is None:
             raise ValueError("Missing WASM manifest")
         manifest = json.load(manifest_member)
+        module = bundle.extractfile("deployment_config.mjs")
+        if module is None:
+            raise ValueError("Missing generated browser deployment configuration")
+        verify_app_origin_module(module.read(16 * 1024))
         if manifest.get("appVersion") != VERSION:
             raise ValueError("Unexpected WASM preview version")
         names = [member.name for member in bundle]
