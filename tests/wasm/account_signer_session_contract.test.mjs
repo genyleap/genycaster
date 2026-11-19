@@ -44,7 +44,7 @@ test('manual Pro and Streak session retries use the registered WASM browser sign
   assert.match(bridge,/m_accountSessionObserver\(presentation->accountFid\(\),csrf\)/);
 });
 
-test('first-party application host uses its own HttpOnly cookie and rejects foreign origins',async()=>{
+test('canonical WASM host owns the HttpOnly cookie and rejects retired origins',async()=>{
   const fid='321969',csrf='b'.repeat(43);
   const principal={fid,issuer:'https://openproof.genyleap.com',
     subject:'farcaster:'+fid,csrf_token:csrf};
