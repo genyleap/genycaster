@@ -1,4 +1,5 @@
 #include "genycaster_deployment.hpp"
+#include <QByteArray>
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDesktopServices>
