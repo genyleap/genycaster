@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish native packages only; WASM must be deployed to app.genycaster.xyz."""
+"""Publish native packages only; WASM must be deployed to canonical genycaster.xyz."""
 from __future__ import annotations
 
 import hashlib
