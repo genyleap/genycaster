@@ -240,24 +240,26 @@
 
     function layoutOptions() {
         if (architectureOptions.hidden || dialog.hidden) return;
-        // The listbox is a direct child of the dialog, not the scrollable
-        // viewport. This avoids clipping the Intel row under the availability
-        // card and keeps the same Superellipse shape on the popup itself.
+        // A listbox must fully contain every option when two choices fit the
+        // *browser viewport*. The old code capped it by the remaining height
+        // inside the modal; the Intel row was cut off even with ample screen.
         const triggerBox = architecture.getBoundingClientRect();
         const dialogBox = dialog.getBoundingClientRect();
-        const panelHeight = Math.min(220, architectureOptions.scrollHeight);
-        const roomBelow = dialogBox.bottom - triggerBox.bottom - 12;
-        const roomAbove = triggerBox.top - dialogBox.top - 12;
-        const above = roomBelow < panelHeight + 8 && roomAbove > roomBelow;
-        const available = Math.max(72, Math.min(220, above ? roomAbove : roomBelow));
+        const rowCount = architectureOptions.querySelectorAll('[role="option"]').length;
+        const desiredHeight = Math.min(220, 12 + rowCount * 47);
+        const spaceBelow = Math.max(0, window.innerHeight - triggerBox.bottom - 12);
+        const spaceAbove = Math.max(0, triggerBox.top - 12);
+        const above = spaceBelow < desiredHeight && spaceAbove > spaceBelow;
+        const availableHeight = Math.min(desiredHeight, above ? spaceAbove : spaceBelow);
+        const panelHeight = Math.max(44, availableHeight);
         architectureOptions.style.width = triggerBox.width + "px";
         architectureOptions.style.left = (triggerBox.left - dialogBox.left) + "px";
         architectureOptions.style.right = "auto";
-        architectureOptions.style.maxHeight = available + "px";
+        architectureOptions.style.height = panelHeight + "px";
+        architectureOptions.style.maxHeight = panelHeight + "px";
         architectureOptions.style.top = (above
-            ? triggerBox.top - dialogBox.top - Math.min(panelHeight, available) - 6
+            ? triggerBox.top - dialogBox.top - panelHeight - 6
             : triggerBox.bottom - dialogBox.top + 6) + "px";
-        // The popup's SVG shape follows the *actual* panel dimensions.
         drawShape(architectureOptions);
     }
 
