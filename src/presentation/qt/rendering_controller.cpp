@@ -20,7 +20,14 @@ constexpr auto kProfileSetting = "rendering/profile";
     return QStringLiteral("Software");
   }
   if (api == GraphicsApi::OpenGL) {
+#if defined(Q_OS_WASM)
+    // Qt's RHI enumerator calls its WebAssembly WebGL/ES renderer OpenGL.
+    // Do not label the browser as using native desktop OpenGL; this does not
+    // imply a CPU fallback or establish which GPU driver the browser chose.
+    return QStringLiteral("WebGL (OpenGL ES)");
+#else
     return QStringLiteral("OpenGL");
+#endif
   }
   if (api == GraphicsApi::Direct3D11) {
     return QStringLiteral("D3D11");

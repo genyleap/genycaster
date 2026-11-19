@@ -229,11 +229,14 @@ GenyAdaptiveDialog {
 
                     DirectionAwareLabel { text: qsTrId("genycaster.rendering.backend"); color: Theme.inkMuted; font.pixelSize: Theme.typeCaptionSize }
                     Label { text: renderingController.graphicsApi; color: Theme.ink; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeCaptionSize; font.weight: Theme.weightDemiBold }
-                    // FPS is recognizable to readers; milliseconds are a
-                    // pacing interval, not an observed benchmark frame rate.
+                    // A QQuickWindow emits frameSwapped only when a scene
+                    // was rendered. Dividing 1000 by the gap between sparse,
+                    // demand-driven frames falsely reports a 7 FPS *target*
+                    // on an otherwise 60 Hz display. The target is the
+                    // display refresh; observed pacing remains diagnostics.
                     DirectionAwareLabel { text: qsTrId("genycaster.rendering.frame_target"); color: Theme.inkMuted; font.pixelSize: Theme.typeCaptionSize }
-                    Label { text: renderingController.frameIntervalMs > 0
-                                 ? LocaleFormat.formatInteger(Math.round(1000 / renderingController.frameIntervalMs)) + " FPS"
+                    Label { text: renderingController.refreshRate > 1
+                                 ? LocaleFormat.formatInteger(Math.round(renderingController.refreshRate)) + " FPS"
                                  : "—"; color: Theme.ink; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeCaptionSize; font.weight: Theme.weightDemiBold }
                     DirectionAwareLabel { text: qsTrId("genycaster.rendering.display"); color: Theme.inkMuted; font.pixelSize: Theme.typeCaptionSize }
                     Label { text: LocaleFormat.formatInteger(Math.round(renderingController.refreshRate)) + " Hz · DPR " + LocaleFormat.formatNumber(renderingController.devicePixelRatio, 1) + "×"; color: Theme.ink; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeCaptionSize; font.weight: Theme.weightDemiBold }

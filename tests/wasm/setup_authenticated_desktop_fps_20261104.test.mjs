@@ -21,11 +21,15 @@ test('native desktop starts wide enough for side widgets when display permits', 
  assert.match(qml,/Math\.min\(940, Screen\.desktopAvailableHeight/);
  assert.match(qml,/minimumWidth: Qt\.platform\.os === "wasm" \? 0 : 360/);
 });
-test('rendering settings present target fps rather than unlabeled frame milliseconds', () => {
+test('WASM rendering settings identify WebGL and do not mislabel sparse redraws as target FPS', () => {
  const qml=read('ui/components/settings/RenderingPopup.qml');
+ const controller=read('src/presentation/qt/rendering_controller.cpp');
  assert.match(qml,/qsTrId\("genycaster\.rendering\.frame_target"\)/);
- assert.match(qml,/Math\.round\(1000 \/ renderingController\.frameIntervalMs\)/);
+ assert.match(qml,/Math\.round\(renderingController\.refreshRate\)/);
+ assert.doesNotMatch(qml,/Math\.round\(1000 \/ renderingController\.frameIntervalMs\)/);
  assert.match(qml,/ \+ " FPS"/);
+ assert.match(controller,/#if defined\(Q_OS_WASM\)[\s\S]*?QStringLiteral\("WebGL \(OpenGL ES\)"\)/);
+ assert.match(controller,/m_frameClock\.restart\(\)/);
  for(const lang of ['en_US','fa_IR']) {
   const ts=read('ui/i18n/qml_'+lang+'.ts');
   assert.match(ts,/<message id="genycaster\.rendering\.frame_target">/);

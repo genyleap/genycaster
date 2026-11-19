@@ -69,7 +69,7 @@ test('year-long Casts are paginated independently and partial history is identif
   assert.match(source,/if\(\(page\+1\)%4==0\)publishFarcaster\(false\)/);
   assert.match(qml,/root.farcasterData.status==="partial"/);
   // Partial-year tiles get their Light/Dark ink from the semantic Theme role.
-  assert.match(qml,/unobserved \? \(Theme\.pulseUnobservedTile\)/);
+  assert.match(qml,/\? Theme\.pulseUnobservedTile/);
   const theme=readFileSync(resolve(root,'ui/theme/Theme.qml'),'utf8');
   assert.match(theme,/pulseUnobservedTile: dark \?/);
   assert.match(qml,/qsTrId\("genycaster.activity.partial"\)/);
@@ -82,10 +82,14 @@ test('small SQUARE tiles are consistently bounded on both annual grids',()=>{
   assert.match(qml,/readonly property int githubTileWidth: githubTileSize/);
   assert.match(qml,/readonly property int githubTileHeight: githubTileSize/);
   assert.match(qml,/readonly property int cellHeight: cellSize/);
-  assert.match(qml,/width: root.cellSize/);
-  assert.match(qml,/height: root.cellHeight/);
-  assert.match(qml,/width: root.githubTileWidth/);
-  assert.match(qml,/height: root.githubTileHeight/);
+  assert.match(qml,/id: farcasterHeatmapCanvas/);
+  assert.match(qml,/width: root.castsGridWidth/);
+  assert.match(qml,/height: 7 \* root.cellHeight \+ 6 \* root.castsGapSize/);
+  assert.match(qml,/id: githubHeatmapCanvas/);
+  assert.match(qml,/width: root.githubGridWidth/);
+  assert.match(qml,/height: 7 \* root.githubTileHeight \+ 6 \* root.githubGapSize/);
+  assert.match(qml,/renderTarget: Canvas.Image/);
+  assert.equal((qml.match(/githubContributionBatchedCanvas/g)||[]).length,1);
   for(const width of [310,330,345,400,720,980]){
     for(const weeks of [43,44,52,53]){
       const maxTile=width>=600?18:10;
@@ -99,11 +103,12 @@ test('small SQUARE tiles are consistently bounded on both annual grids',()=>{
 
 test('all GitHub time filters preserve the same COLORED annual calendar',()=>{
   const qmlCalendar=qml.slice(qml.indexOf('id: githubCalendarViewport'));
-  assert.match(qmlCalendar,/model: root.githubWeeks/);
-  assert.match(qmlCalendar,/inYear\s*\? root.githubTileColor/);
-  assert.match(qmlCalendar,/opacity: root.githubRange==="1y" \|\| inRange \? 1 : 0.7/);
-  assert.match(qmlCalendar,/borderWidth: root.githubRange!=="1y" && inRange \? 1 : 0/);
-  assert.match(qmlCalendar,/enabled: parent.inYear/);
+  assert.match(qmlCalendar,/week < root.githubWeeks/);
+  assert.match(qmlCalendar,/root.githubTileColor\(Number\(datum.level \|\| 0\)\)/);
+  assert.match(qmlCalendar,/ctx.globalAlpha = root.githubRange === "1y" \|\| inRange \? 1 : 0.7/);
+  assert.match(qmlCalendar,/root.githubRange !== "1y" && inRange/);
+  assert.match(qmlCalendar,/day >= root.githubYearStart && day <= root.githubYearEnd/);
+  assert.match(qmlCalendar,/root.selectedGithubDate = root.dayString\(day\)/);
   assert.ok(!qmlCalendar.includes('color: inRange ? root.githubTileColor'));
   assert.ok(!qml.includes('githubGridStart: githubStartRangeDay-'));
   // Each filter changes the selected range and total, but never grid weeks.
@@ -112,6 +117,26 @@ test('all GitHub time filters preserve the same COLORED annual calendar',()=>{
   assert.ok(!gridDef.includes('githubRange'));
   assert.match(qml,/githubStartRangeDay/);
   assert.match(qml,/githubLastRangeDay/);
+});
+
+test('WASM GitHub heatmap draws 365 curved cells in one texture and one hit surface',()=>{
+  const grid=qml.slice(qml.indexOf('id: githubCalendarViewport'),qml.indexOf('qsTrId("genycaster.activity.day_contributions")'));
+  assert.match(grid,/renderTarget: Canvas.Image/);
+  assert.match(qml,/ctx.bezierCurveTo\(/);
+  assert.match(grid,/githubHeatmapCanvas.requestPaint\(\)/);
+  assert.match(grid,/MouseArea \{[\s\S]*?anchors.fill: githubHeatmapCanvas/);
+  assert.doesNotMatch(grid,/delegate: Superellipse/);
+  assert.doesNotMatch(grid,/Repeater \{/);
+});
+
+test('Farcaster contribution calendar also batches into one texture and one hit surface',()=>{
+  const grid=qml.slice(qml.indexOf('id: farcasterHeatmapCanvas'),qml.indexOf('qsTrId("genycaster.activity.day_summary")'));
+  assert.match(grid,/renderTarget: Canvas.Image/);
+  assert.match(grid,/root.drawHeatmapTile\(/);
+  assert.match(grid,/root.farcasterData.status === "partial"/);
+  assert.match(grid,/root.countAt\(root.farcasterDays, day\) > 0/);
+  assert.match(grid,/anchors.fill: farcasterHeatmapCanvas/);
+  assert.doesNotMatch(grid,/Repeater \{/);
 });
 
 test('compact time filter buttons are in GitHub top-right header',()=>{

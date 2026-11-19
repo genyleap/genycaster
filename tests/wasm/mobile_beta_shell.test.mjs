@@ -41,6 +41,25 @@ test("native download chip stays collapsible and architecture popup owns every r
     assert.doesNotMatch(js,/mountShape\(option, 17\)/);
 });
 
+test("download dock stays at top in a continuous Superellipse away from floating actions",()=>{
+    const css=read("ui/wasm/native-downloads.css");
+    const js=read("ui/wasm/native-downloads.js");
+    const html=read("ui/wasm/genycaster-shell.html");
+    for(const part of [
+      "#native-downloads-dock.nd-squircle",
+      "top:calc(86px + env(safe-area-inset-top,0px))",
+      "bottom:auto",
+      ".nd-popup-outline path"
+    ]) assert.ok(css.includes(part),part);
+    for(const part of [
+      '["#native-downloads-dock", 22]',
+      '["#native-downloads-dock-toggle", 17]',
+      'menuOutlinePath.setAttribute("d",',
+      'superellipseClipPolygon(triggerBox.width, panelHeight, 20, false)'
+    ]) assert.ok(js.includes(part),part);
+    assert.ok(html.includes('id="native-downloads-dock-toggle"'));
+});
+
 test("iOS safe-area background and PWA metadata use the app appearance",()=>{
     const html=read("ui/wasm/genycaster-shell.html");
     const js=read("ui/wasm/genycaster-loader.js");

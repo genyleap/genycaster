@@ -81,6 +81,25 @@ Item {
         const colors=Theme.githubContributionRamp
         return colors[Math.max(0,Math.min(4,level))] || colors[0]
     }
+    // Qt exponent-4 cubic, reused by both pre-rasterized yearly heatmaps.
+    // One QML Canvas per calendar replaces hundreds of scene-graph delegates.
+    function drawHeatmapTile(ctx, x, y, size, corner) {
+        const r = Math.min(corner, size / 2)
+        const right = x + size
+        const bottom = y + size
+        const k = (8 * Math.pow(0.5, 0.25) - 4) / 3
+        ctx.beginPath()
+        ctx.moveTo(x + r, y)
+        ctx.lineTo(right - r, y)
+        ctx.bezierCurveTo(right - r + k*r, y, right, y + r - k*r, right, y + r)
+        ctx.lineTo(right, bottom - r)
+        ctx.bezierCurveTo(right, bottom - r + k*r, right - r + k*r, bottom, right - r, bottom)
+        ctx.lineTo(x + r, bottom)
+        ctx.bezierCurveTo(x + r - k*r, bottom, x, bottom - r + k*r, x, bottom - r)
+        ctx.lineTo(x, y + r)
+        ctx.bezierCurveTo(x, y + r - k*r, x + r - k*r, y, x + r, y)
+        ctx.closePath()
+    }
 
     signal connectionsRequested()
     signal exploreRequested()
@@ -294,41 +313,65 @@ Item {
                 Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 7 * root.cellHeight + 6 * root.castsGapSize
-                    Row {
-                        id: calendarRow
-                        x: Math.max(0,(parent.width-root.castsGridWidth)/2)
-                        spacing: root.castsGapSize
-                        Repeater {
-                            model: root.weeks
-                            delegate: Column {
-                                required property int index
-                                spacing: root.castsGapSize
-                                Repeater {
-                                    model: 7
-                                    delegate: Superellipse {
-                                        required property int index
-                                        readonly property int day: root.firstDay + parent.index*7 + index
-                                        readonly property bool inYear:
-                                            day>=root.castsYearStartDay && day<=root.todayDay
-                                        readonly property int value: root.countAt(root.farcasterDays, day)
-                                        readonly property bool unobserved:
-                                            root.farcasterData.status==="partial"
-                                            && day<Number(root.farcasterData.knownFromDay || root.castsYearStartDay)
-                                        width: root.cellSize
-                                        height: root.cellHeight
-                                        curveDepth: 2
-                                        fillColor: !inYear ? "transparent" :
-                                            unobserved ? (Theme.pulseUnobservedTile) :
-                                            root.tileColor(root.farcasterReady ? value : 0, "farcaster")
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            enabled: root.farcasterReady && parent.value>0
-                                            onClicked: root.selectedDate = root.dayString(parent.day)
-                                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                        }
-                                    }
+                    Canvas {
+                        id: farcasterHeatmapCanvas
+                        objectName: "farcasterActivityBatchedCanvas"
+                        x: Math.max(0, (parent.width - root.castsGridWidth) / 2)
+                        width: root.castsGridWidth
+                        height: 7 * root.cellHeight + 6 * root.castsGapSize
+                        renderTarget: Canvas.Image
+                        antialiasing: true
+
+                        onPaint: {
+                            const ctx = getContext("2d")
+                            ctx.clearRect(0, 0, width, height)
+                            const tile = root.cellSize
+                            const step = tile + root.castsGapSize
+                            for (let week = 0; week < root.weeks; ++week) {
+                                for (let dow = 0; dow < 7; ++dow) {
+                                    const day = root.firstDay + week*7 + dow
+                                    if (day < root.castsYearStartDay || day > root.todayDay)
+                                        continue
+                                    const value = root.countAt(root.farcasterDays, day)
+                                    const unobserved = root.farcasterData.status === "partial"
+                                        && day < Number(root.farcasterData.knownFromDay || root.castsYearStartDay)
+                                    root.drawHeatmapTile(ctx, week*step, dow*step, tile, 2)
+                                    ctx.fillStyle = String(unobserved
+                                        ? Theme.pulseUnobservedTile
+                                        : root.tileColor(root.farcasterReady ? value : 0, "farcaster"))
+                                    ctx.fill()
                                 }
                             }
+                        }
+                        onWidthChanged: requestPaint()
+                        onHeightChanged: requestPaint()
+                        Connections {
+                            target: root
+                            function onFarcasterDaysChanged() { farcasterHeatmapCanvas.requestPaint() }
+                            function onFarcasterReadyChanged() { farcasterHeatmapCanvas.requestPaint() }
+                            function onCellSizeChanged() { farcasterHeatmapCanvas.requestPaint() }
+                        }
+                        Connections {
+                            target: Theme
+                            function onDarkChanged() { farcasterHeatmapCanvas.requestPaint() }
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: farcasterHeatmapCanvas
+                        enabled: root.farcasterReady
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: mouse => {
+                            const step = root.cellSize + root.castsGapSize
+                            const week = Math.floor(mouse.x / step)
+                            const dow = Math.floor(mouse.y / step)
+                            if (week < 0 || week >= root.weeks || dow < 0 || dow > 6
+                                || mouse.x - week*step >= root.cellSize
+                                || mouse.y - dow*step >= root.cellHeight)
+                                return
+                            const day = root.firstDay + week*7 + dow
+                            if (day >= root.castsYearStartDay && day <= root.todayDay
+                                && root.countAt(root.farcasterDays, day) > 0)
+                                root.selectedDate = root.dayString(day)
                         }
                     }
                 }
@@ -523,47 +566,76 @@ Item {
                                 Qt.callLater(githubCalendarViewport.showLatest)
                             }
                         }
-                        Row {
-                            x: Math.max(0,(githubCalendarViewport.width-root.githubGridWidth)/2)
-                            spacing: root.githubGapSize
-                            Repeater {
-                                model: root.githubWeeks
-                                delegate: Column {
-                                    required property int index
-                                    spacing: root.githubGapSize
-                                    Repeater {
-                                        model: 7
-                                        delegate: Superellipse {
-                                            required property int index
-                                            readonly property int day:
-                                                root.githubGridStart+parent.index*7+index
-                                            readonly property bool inYear:
-                                                day>=root.githubYearStart &&
-                                                day<=root.githubYearEnd
-                                            readonly property bool inRange:
-                                                day>=root.githubStartRangeDay &&
-                                                day<=root.githubLastRangeDay
-                                            readonly property string date: root.dayString(day)
-                                            readonly property var datum:
-                                                root.githubContributionDays[date] || ({})
-                                            width: root.githubTileWidth
-                                            height: root.githubTileHeight
-                                            curveDepth: 2
-                                            fillColor: inYear
-                                                ? root.githubTileColor(Number(datum.level || 0))
-                                                : "transparent"
-                                            opacity: root.githubRange==="1y" || inRange ? 1 : 0.7
-                                            borderWidth: root.githubRange!=="1y" && inRange ? 1 : 0
-                                            borderColor: Theme.pulseGithubRangeBorder
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                enabled: parent.inYear
-                                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                                onClicked: root.selectedGithubDate=parent.date
-                                            }
+                        // A full GitHub year previously instantiated ~370
+                        // Superellipse scene-graph nodes AND MouseAreas.
+                        // WebAssembly is single-threaded; their per-frame
+                        // synchronization starved canvas presentation. Rasterize
+                        // the static day grid once, preserving its curved tiles
+                        // and one precise hit-testing surface.
+                        Canvas {
+                            id: githubHeatmapCanvas
+                            objectName: "githubContributionBatchedCanvas"
+                            x: Math.max(0, (githubCalendarViewport.width - root.githubGridWidth) / 2)
+                            width: root.githubGridWidth
+                            height: 7 * root.githubTileHeight + 6 * root.githubGapSize
+                            renderTarget: Canvas.Image
+                            antialiasing: true
+
+                            onPaint: {
+                                const ctx = getContext("2d")
+                                ctx.clearRect(0, 0, width, height)
+                                const tile = root.githubTileSize
+                                const step = tile + root.githubGapSize
+                                for (let week = 0; week < root.githubWeeks; ++week) {
+                                    for (let dow = 0; dow < 7; ++dow) {
+                                        const day = root.githubGridStart + week*7 + dow
+                                        if (day < root.githubYearStart || day > root.githubYearEnd)
+                                            continue
+                                        const datum = root.githubContributionDays[root.dayString(day)] || ({})
+                                        const inRange = day >= root.githubStartRangeDay
+                                            && day <= root.githubLastRangeDay
+                                        ctx.globalAlpha = root.githubRange === "1y" || inRange ? 1 : 0.7
+                                        root.drawHeatmapTile(ctx, week*step, dow*step, tile, 2)
+                                        ctx.fillStyle = String(root.githubTileColor(Number(datum.level || 0)))
+                                        ctx.fill()
+                                        if (root.githubRange !== "1y" && inRange) {
+                                            ctx.lineWidth = 1
+                                            ctx.strokeStyle = String(Theme.pulseGithubRangeBorder)
+                                            ctx.stroke()
                                         }
                                     }
                                 }
+                                ctx.globalAlpha = 1
+                            }
+                            onWidthChanged: requestPaint()
+                            onHeightChanged: requestPaint()
+                            Connections {
+                                target: root
+                                function onGithubContributionDaysChanged() { githubHeatmapCanvas.requestPaint() }
+                                function onGithubRangeChanged() { githubHeatmapCanvas.requestPaint() }
+                                function onGithubYearChanged() { githubHeatmapCanvas.requestPaint() }
+                                function onGithubTileSizeChanged() { githubHeatmapCanvas.requestPaint() }
+                            }
+                            Connections {
+                                target: Theme
+                                function onDarkChanged() { githubHeatmapCanvas.requestPaint() }
+                            }
+                        }
+                        MouseArea {
+                            anchors.fill: githubHeatmapCanvas
+                            enabled: root.githubContributionsReady
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: mouse => {
+                                const step = root.githubTileSize + root.githubGapSize
+                                const week = Math.floor(mouse.x / step)
+                                const dow = Math.floor(mouse.y / step)
+                                if (week < 0 || week >= root.githubWeeks || dow < 0 || dow > 6
+                                    || mouse.x - week*step >= root.githubTileSize
+                                    || mouse.y - dow*step >= root.githubTileSize)
+                                    return
+                                const day = root.githubGridStart + week*7 + dow
+                                if (day >= root.githubYearStart && day <= root.githubYearEnd)
+                                    root.selectedGithubDate = root.dayString(day)
                             }
                         }
                     }

@@ -36,6 +36,8 @@
     // browser outline rings must not draw on top of these paths.
     const shapeSpecs = [
         ["#native-downloads-dialog", 43, "sheet"],
+        ["#native-downloads-dock", 22],
+        ["#native-downloads-dock-toggle", 17],
         ["#native-downloads-trigger", 20],
         ["#native-downloads-close", 18],
         [".native-downloads-tabs", 23],
@@ -67,6 +69,16 @@
     }, {capture:true});
 
     const shapeNamespace = "http://www.w3.org/2000/svg";
+    // The dropdown uses an outlined overlay, not .nd-squircle's negative-Z
+    // background: the latter was hidden by the modal stacking context.
+    const menuOutline = document.createElementNS(shapeNamespace, "svg");
+    const menuOutlinePath = document.createElementNS(shapeNamespace, "path");
+    menuOutline.classList.add("nd-popup-outline");
+    menuOutline.setAttribute("aria-hidden", "true");
+    menuOutline.setAttribute("focusable", "false");
+    menuOutlinePath.setAttribute("vector-effect", "non-scaling-stroke");
+    menuOutlinePath.setAttribute("stroke-linejoin", "round");
+    menuOutline.append(menuOutlinePath);
     const shapeNodes = new WeakMap();
     const shapeObserver = typeof ResizeObserver === "function"
         ? new ResizeObserver(entries => {
@@ -317,6 +329,27 @@
             ? triggerBox.top - dialogBox.top - panelHeight - 6
             : triggerBox.bottom - dialogBox.top + 6) + "px";
         architectureOptions.dataset.placement = above ? "top" : "bottom";
+        // The SAME exponent-4 Bezier geometry controls border and clipping
+        // in browsers without native CSS superellipse support.
+        if (typeof CSS !== "undefined" && CSS.supports?.(
+            "clip-path", "polygon(0 0,100% 0,100% 100%,0 100%)")) {
+            const clip = superellipseClipPolygon(triggerBox.width, panelHeight, 20, false);
+            architectureOptions.style.clipPath = clip;
+            architectureOptions.style.webkitClipPath = clip;
+        }
+        menuOutline.setAttribute("viewBox",
+            "0 0 " + triggerBox.width + " " + panelHeight);
+        menuOutlinePath.setAttribute("d",
+            superellipsePath(triggerBox.width, panelHeight, 20, false));
+        for (const option of rows) {
+            const width = option.clientWidth, height = option.clientHeight;
+            if (width > 0 && height > 0 && typeof CSS !== "undefined"
+                && CSS.supports?.("clip-path", "polygon(0 0,100% 0,100% 100%,0 100%)")) {
+                const clip = superellipseClipPolygon(width, height, 16, false);
+                option.style.clipPath = clip;
+                option.style.webkitClipPath = clip;
+            }
+        }
     }
 
     function closeOptions(restoreFocus = false) {
@@ -364,7 +397,7 @@
             for (const previous of architectureOptions.querySelectorAll(".native-downloads-option"))
                 shapeObserver.unobserve(previous);
         }
-        architectureOptions.replaceChildren();
+        architectureOptions.replaceChildren(menuOutline);
         const options = Object.entries(info.arches);
         for (const [code, label] of options) {
             const option = document.createElement("button");

@@ -42,6 +42,19 @@ test('Streak no longer occupies the full profile timeline',()=>{
  assert.match(card,/Theme\.streak/);
 });
 
+test('Streak segmented tabs and weekly completion cells remain evenly sized in RTL and LTR',()=>{
+ assert.match(card,/filledTabs: true/);
+ assert.match(card,/objectName: "streakWeeklyCalendar"/);
+ assert.match(card,/columns: 7/);
+ assert.match(card,/uniformCellWidths: true/);
+ assert.match(card,/Layout.preferredWidth: Math.max\(1,/);
+ assert.match(card,/Layout.minimumWidth: 0/);
+ assert.match(card,/Layout.preferredHeight: Theme.scaleUi\(root.compact \? 30 : 34\)/);
+ assert.match(card,/horizontalAlignment: Text.AlignHCenter/);
+ assert.match(card,/modelData.completed/);
+ assert.match(card,/layoutDirection: Theme.uiDirection/);
+});
+
 test('every Streak label is translated by stable translation ID',()=>{
  assert.ok(qmlIds.length>=26,'original Streak labels must remain translated');
  for(const key of keys.filter(k=>!['profile_badge','top_100','badge_days'].includes(k)))

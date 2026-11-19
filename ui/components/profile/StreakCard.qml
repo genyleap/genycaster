@@ -252,7 +252,8 @@ Item {
             currentId: root.activePage
             distribute: true
             segmented: true
-            minimumTabWidth: 70
+            filledTabs: true
+            minimumTabWidth: 76
             tabs: [
                 {id: "activity", label: qsTrId("genycaster.streak.activity"),
                     icon: Theme.iconStreakFlame},
@@ -449,53 +450,87 @@ Item {
                 }
             }
 
-            RowLayout {
-                objectName: "streakWeeklyCalendar"
+            Superellipse {
                 Layout.fillWidth: true
-                layoutDirection: Theme.uiDirection
-                spacing: Theme.space1
+                Layout.preferredHeight: streakWeekGrid.implicitHeight + Theme.space3 * 2
+                fillColor: Theme.surfaceMuted
+                borderColor: Theme.borderSubtle
+                borderWidth: Theme.strokeHairline
+                curveDepth: Theme.curveContainer
 
-                Repeater {
-                    model: root.displayWeek
-                    delegate: ColumnLayout {
-                        required property var modelData
-                        required property int index
-                        Layout.fillWidth: true
-                        spacing: Theme.space1
+                GridLayout {
+                    id: streakWeekGrid
+                    objectName: "streakWeeklyCalendar"
+                    anchors.fill: parent
+                    anchors.margins: Theme.space3
+                    columns: 7
+                    uniformCellWidths: true
+                    columnSpacing: Theme.space1
+                    rowSpacing: 0
+                    layoutDirection: Theme.uiDirection
 
-                        Label {
-                            Layout.alignment: Qt.AlignHCenter
-                            text: root.weekdayLabels[index]
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                        }
-                        Superellipse {
-                            Layout.alignment: Qt.AlignHCenter
-                            width: Theme.scaleUi(root.compact ? 32 : 35)
-                            height: width
-                            curveDepth: width / 2
-                            exponent: 2
-                            fillColor: modelData.completed
-                                ? Theme.streakSurface : Theme.surfaceMuted
-                            borderColor: modelData.completed
-                                ? Theme.streak : Theme.borderMuted
-                            borderWidth: modelData.completed ? 2 : 1
-                            Icon {
-                                anchors.centerIn: parent
-                                text: modelData.completed ? Theme.iconCheck : ""
-                                preferredSize: 15
-                                color: Theme.streak
-                            }
-                            Superellipse {
-                                visible: !modelData.completed
-                                anchors.centerIn: parent
-                                width: Theme.scaleUi(8)
-                                height: width
-                                curveDepth: width / 2
-                                exponent: 2
-                                fillColor: modelData.future ? Theme.inkSubtle
-                                    : Theme.inkMuted
-                                opacity: modelData.future ? 0.24 : 0.4
+                    Repeater {
+                        model: root.displayWeek
+                        delegate: Item {
+                            required property var modelData
+                            required property int index
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            Layout.preferredWidth: Math.max(1,
+                                (streakWeekGrid.width - 6 * streakWeekGrid.columnSpacing) / 7)
+                            Layout.preferredHeight: Theme.scaleUi(root.compact ? 68 : 76)
+                            implicitHeight: Layout.preferredHeight
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: Theme.space2
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: Theme.scaleUi(20)
+                                    text: root.weekdayLabels[index]
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                                Item {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: Theme.scaleUi(root.compact ? 30 : 34)
+
+                                    Superellipse {
+                                        id: dayMarker
+                                        anchors.centerIn: parent
+                                        width: Math.min(parent.width, Theme.scaleUi(root.compact ? 29 : 34))
+                                        height: width
+                                        curveDepth: width / 2
+                                        exponent: 2
+                                        fillColor: modelData.completed
+                                            ? Theme.streakSurface : Theme.surfaceRaised
+                                        borderColor: modelData.completed
+                                            ? Theme.streak : Theme.borderMuted
+                                        borderWidth: modelData.completed ? 1.5 : 1
+
+                                        Icon {
+                                            visible: modelData.completed
+                                            anchors.centerIn: parent
+                                            text: Theme.iconCheck
+                                            preferredSize: Theme.scaleUi(15)
+                                            color: Theme.streak
+                                        }
+                                        Superellipse {
+                                            visible: !modelData.completed
+                                            anchors.centerIn: parent
+                                            width: Theme.scaleUi(6)
+                                            height: width
+                                            curveDepth: width / 2
+                                            exponent: 2
+                                            fillColor: modelData.future ? Theme.inkSubtle
+                                                : Theme.inkMuted
+                                            opacity: modelData.future ? 0.24 : 0.42
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
