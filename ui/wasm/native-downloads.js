@@ -29,13 +29,42 @@
     // CSS corner-shape is not implemented consistently by web engines.
     // Reproduce the QML geometry via lightweight SVG once per element;
     // ResizeObserver changes only the path, never the HTML controls.
-    // Exactly one custom SVG surface per major container. Smaller controls
-    // use the matching CSS corner family rather than nesting extra strokes.
+    // Restore the original Qt-shaped control geometry. Visual borders are
+    // owned by exactly one SVG path per component; ordinary CSS borders and
+    // browser outline rings must not draw on top of these paths.
     const shapeSpecs = [
         ["#native-downloads-dialog", 43, "sheet"],
-        ["#native-downloads-options", 23],
-        [".native-github-cta", 26]
+        ["#native-downloads-trigger", 20],
+        ["#native-downloads-close", 18],
+        [".native-downloads-tabs", 23],
+        [".native-downloads-tabs button", 18],
+        ["#native-downloads-architecture", 20],
+        ["#native-downloads-options", 19],
+        [".native-downloads-result", 23],
+        ["#native-downloads-action", 19],
+        [".native-downloads-secondary", 19],
+        [".native-github-cta", 24],
+        [".native-github-cta-icon", 17],
+        ["#native-github-star", 17],
+        ["#native-downloads-nudge", 22],
+        ["#native-downloads-nudge-open", 16],
+        [".native-downloads-option", 17]
     ];
+    // Browser :focus-visible may be triggered by our own programmatic focus
+    // restoration after closing a dialog. Track input modality so pointer
+    // actions do not leave bright double rings; keyboard focus stays visible
+    // as a single stroke on the existing Superellipse path.
+    const rootElement = document.documentElement;
+    document.addEventListener("pointerdown", () => {
+        rootElement.classList.remove("nd-keyboard-input");
+    }, {capture:true,passive:true});
+    document.addEventListener("keydown", event => {
+        if (event.key === "Tab" || event.key.startsWith("Arrow") ||
+            event.key === "Home" || event.key === "End") {
+            rootElement.classList.add("nd-keyboard-input");
+        }
+    }, {capture:true});
+
     const shapeNamespace = "http://www.w3.org/2000/svg";
     const shapeNodes = new WeakMap();
     const shapeObserver = typeof ResizeObserver === "function"
@@ -247,6 +276,12 @@
         }
         const arch = selectedArchitecture();
         architectureValue.textContent = info.arches[arch];
+        // Release detached option geometry from ResizeObserver when switching
+        // platforms; only the currently rendered options should be observed.
+        if (shapeObserver) {
+            for (const previous of architectureOptions.querySelectorAll(".native-downloads-option"))
+                shapeObserver.unobserve(previous);
+        }
         architectureOptions.replaceChildren();
         const options = Object.entries(info.arches);
         for (const [code, label] of options) {
@@ -258,6 +293,7 @@
             option.tabIndex = arch === code ? 0 : -1;
             option.dataset.architecture = code;
             option.textContent = label;
+            mountShape(option, 17);
             option.addEventListener("click", () => chooseArchitecture(code));
             architectureOptions.append(option);
         }
