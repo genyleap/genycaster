@@ -3456,11 +3456,27 @@ void connectRuntime(
             };
             break;
         }
-        case Phase::Failed:
+        case Phase::Failed: {
             state.phase = application::session::SessionPhase::Failed;
+            // Never tell a user that Farcaster rejected their identity merely
+            // because the browser gateway timed out or returned 5xx/invalid
+            // JSON. Only an explicit 401/403 or access_denied is Unauthorized.
+            using Kind = BrowserOpenProofState::FailureKind;
+            using Code = foundation::error::ErrorCode;
+            Code code = Code::ProtocolFailure;
+            switch (event.failureKind) {
+            case Kind::Rejected: code = Code::Unauthorized; break;
+            case Kind::Transport: code = Code::Unavailable; break;
+            case Kind::InvalidResponse: code = Code::ProtocolFailure; break;
+            case Kind::MissingLink: code = Code::NotFound; break;
+            case Kind::RateLimited: code = Code::RateLimited; break;
+            case Kind::Expired: code = Code::Timeout; break;
+            case Kind::Conflict: code = Code::Conflict; break;
+            }
             state.error = foundation::error::Error::make(
-                foundation::error::ErrorCode::Unauthorized, event.error.toStdString());
+                code, event.error.toStdString());
             break;
+        }
         case Phase::SignedOut:
             state.phase = application::session::SessionPhase::Guest;
             break;
