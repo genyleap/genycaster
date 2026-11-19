@@ -79,6 +79,34 @@ test('DNS rebinding/private DNS is rejected before creating a socket', async () 
   assert.equal(called, false);
 });
 
+test('Qt WASM compatibility retry reaches CDN with bounded JPEG-first negotiation', async () => {
+  const {PassThrough} = await import('node:stream');
+  const accepts = [];
+  const requester = (_url, options, callback) => {
+    accepts.push(options.headers.accept);
+    const request = new PassThrough();
+    request.end = () => {
+      const response = new PassThrough();
+      response.statusCode = 200;
+      response.headers = {'content-type':'image/jpeg','content-length':'4'};
+      callback(response);
+      response.end(Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    };
+    return request;
+  };
+  const source = 'https://imagedelivery.net/public/avatar/original';
+  const options = {
+    lookupHost: async () => [{address:'8.8.8.8',family:4}], requester,
+  };
+  assert.equal((await retrieveBrowserImage(source, options)).status, 200);
+  assert.equal((await retrieveBrowserImage(source, {...options,preferJpeg:true})).status, 200);
+  assert.equal(accepts.length, 2);
+  assert.match(accepts[0], /^image\/webp,/);
+  assert.match(accepts[1], /^image\/jpeg,/);
+  assert.ok(!accepts[0].includes('image\/avif'));
+  assert.ok(!accepts[1].includes('image\/avif'));
+});
+
 test('raster signatures win over mislabelled server Content-Type without accepting XML or SVG',()=>{
   const png=Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(24)]);
   const webp=Buffer.concat([Buffer.from('RIFF'),Buffer.alloc(4),Buffer.from('WEBP')]);

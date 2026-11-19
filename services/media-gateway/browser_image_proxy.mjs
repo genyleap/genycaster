@@ -146,6 +146,7 @@ export async function retrieveBrowserImage(rawUrl, {
   allowedHosts = defaultBrowserImageHosts,
   managedMediaHost = 'media-farcaster.genyleap.com',
   requester = https.request,
+  preferJpeg = false,
   redirects = 0,
   trustedStorageRedirect = false,
 } = {}) {
@@ -184,7 +185,12 @@ export async function retrieveBrowserImage(rawUrl, {
     const request = requester(target, {
       method: 'GET',
       timeout: 8_000,
-      headers: { accept: 'image/jpeg,image/png,image/webp,image/gif' },
+      // Never forward arbitrary browser headers to public CDNs. The Qt WASM
+      // compatibility retry sets JPEG first; preserve that preference so a
+      // CDN can serve an image that the linked Qt raster readers can decode.
+      headers: { accept: preferJpeg
+        ? 'image/jpeg,image/png;q=0.95,image/webp;q=0.85,image/gif;q=0.8'
+        : 'image/webp,image/png,image/jpeg,image/gif' },
       // Never use a fresh DNS lookup after validation. Race only the
       // validated public answers to survive intermittent CDN edge failures.
       autoSelectFamily: true,
@@ -220,7 +226,8 @@ export async function retrieveBrowserImage(rawUrl, {
             return;
           }
           finish(await retrieveBrowserImage(next.href, {
-            lookupHost, allowedHosts, managedMediaHost, requester, redirects: redirects + 1,
+            lookupHost, allowedHosts, managedMediaHost, requester, preferJpeg,
+            redirects: redirects + 1,
             trustedStorageRedirect: signedStorage,
           }));
         } catch { finish({ status: 502, error: 'image_redirect_failed' }); }

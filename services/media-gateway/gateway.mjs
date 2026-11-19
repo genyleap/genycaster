@@ -1390,19 +1390,24 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       const verifiedMiniAppArtwork = typeof requested === 'string'
         && ((verifiedMiniAppIcons.get(requested) || 0) > runtime.now()
             || (verifiedMiniAppImages.get(requested) || 0) > runtime.now());
+      // Qt WASM retries undecodable CDN artwork with JPEG at the front of
+      // Accept. Forward only a fixed, safe preference bit, never raw headers.
+      const preferJpeg = /^image\/jpeg(?:[,;]|$)/i.test(
+        String(request.headers.accept || '').trim());
       const options = { allowedHosts: allowedHosts || browserImageHosts,
-        managedMediaHost };
+        managedMediaHost, preferJpeg };
+      const artworkKey = (preferJpeg ? 'jpeg:' : 'default:') + requested;
       let result;
       const cachedArtwork = verifiedMiniAppArtwork
-        ? verifiedArtworkCache.get(requested) : null;
+        ? verifiedArtworkCache.get(artworkKey) : null;
       if (cachedArtwork && cachedArtwork.expires > runtime.now()) {
         result = {status:200,body:cachedArtwork.body,contentType:cachedArtwork.contentType};
       } else if (verifiedMiniAppArtwork) {
         if (cachedArtwork) {
           verifiedArtworkCacheBytes -= cachedArtwork.body.length;
-          verifiedArtworkCache.delete(requested);
+          verifiedArtworkCache.delete(artworkKey);
         }
-        let pending = verifiedArtworkPending.get(requested);
+        let pending = verifiedArtworkPending.get(artworkKey);
         if (!pending) {
           pending = (async()=>{
             try {
@@ -1413,15 +1418,15 @@ export function createMediaGateway(config, storage, dependencies = {}) {
               if (fetched.status === 502)
                 fetched = await retrieveImage(requested, options);
               if (fetched.status === 200)
-                rememberVerifiedArtwork(requested, fetched);
+                rememberVerifiedArtwork(artworkKey, fetched);
               return fetched;
             } catch {
               return {status:502,error:'image_network_failed'};
             } finally {
-              verifiedArtworkPending.delete(requested);
+              verifiedArtworkPending.delete(artworkKey);
             }
           })();
-          verifiedArtworkPending.set(requested,pending);
+          verifiedArtworkPending.set(artworkKey,pending);
         }
         result = await pending;
       } else {
@@ -1435,6 +1440,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         'content-type': result.contentType,
         'content-length': String(result.body.length),
         'cache-control': 'public, max-age=3600',
+        'vary': 'Accept',
       });
       response.end(result.body);
       return;

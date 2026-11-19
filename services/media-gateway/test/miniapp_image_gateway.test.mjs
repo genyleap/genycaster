@@ -57,6 +57,25 @@ test('Mini App icons load through bounded proxy; unrelated URLs remain blocked',
     assert.equal(state.seen.length,1);
   });
 });
+test('image compatibility retries negotiate JPEG without sharing artwork cache entries',async()=>{
+  await withServer(async (state,base)=>{
+    const url=base+'/v1/browser/images?url='+encodeURIComponent(icon);
+    const ordinary=await fetch(url,{headers:{accept:'image/webp,image/png,image/jpeg'}});
+    assert.equal(ordinary.status,200);
+    assert.equal(ordinary.headers.get('vary'),'Accept');
+    const jpeg=await fetch(url,{headers:{accept:'image/jpeg,image/png;q=0.95'}});
+    assert.equal(jpeg.status,200);
+    assert.equal(jpeg.headers.get('vary'),'Accept');
+    assert.equal(state.seen.length,2);
+    assert.equal(state.seen[0].options.preferJpeg,false);
+    assert.equal(state.seen[1].options.preferJpeg,true);
+    assert.equal((await fetch(url,{headers:{accept:'image/webp'}})).status,200);
+    assert.equal(state.seen.length,2,'default art remains cached separately');
+    assert.equal((await fetch(url,{headers:{accept:'image/jpeg'}})).status,200);
+    assert.equal(state.seen.length,2,'JPEG art remains cached separately');
+  });
+});
+
 test('Mini App icon direct request works after Gateway restart or CDN-cached catalogue',async()=>{
   await withServer(async (state,base)=>{
     const reply=await fetch(base+'/v1/browser/images?url='+encodeURIComponent(icon));
