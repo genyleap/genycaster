@@ -252,6 +252,13 @@
         }
         const arch = selectedArchitecture();
         architectureValue.textContent = info.arches[arch];
+        // Dynamic option rows are rebuilt on platform changes. Release them
+        // from ResizeObserver before removal; otherwise retained observers
+        // accumulate detached SVG/button subtrees during repeated switching.
+        if (shapeObserver) {
+            for (const previous of architectureOptions.querySelectorAll(".native-downloads-option"))
+                shapeObserver.unobserve(previous);
+        }
         architectureOptions.replaceChildren();
         const options = Object.entries(info.arches);
         for (const [code, label] of options) {
