@@ -47,6 +47,17 @@ Item {
             || presentationBridge.signerPhase === "authorization-required"
             || presentationBridge.signerPhase === "expired"
             || presentationBridge.signerPhase === "revoked")
+    // Imported Farcaster accounts on native desktop may have no locally
+    // registered vault signer. Retrying a missing vault cannot restore Pro or
+    // Streak. The existing OpenProof recovery ceremony proves the exact FID
+    // once, without changing or re-purchasing the account's entitlements.
+    readonly property bool nativeFarcasterRecoveryNeeded: presentationBridge
+        && presentationBridge.isAuthenticated && !presentationBridge.nativeCustodyAccount
+        && Qt.platform.os !== "wasm" && Qt.platform.os !== "webassembly"
+        && openProofConnections && !openProofConnections.cloudAuthorizationReady
+        && ["account_signer_unavailable", "account_proof_not_accepted",
+            "account_session_unavailable"].indexOf(
+                String(openProofConnections.accountProofError || "")) >= 0
 
     readonly property var track: activeTrack === "creator"
         ? (snapshot.creator || ({})) : (snapshot.activity || ({}))
@@ -306,19 +317,39 @@ Item {
                 && openProofConnections && !openProofConnections.cloudAuthorizationReady
             enabled: openProofConnections && !openProofConnections.cloudSessionBusy
                 && !openProofConnections.accountProofBusy
+                && !openProofConnections.authorizing
             busy: openProofConnections && (openProofConnections.cloudSessionBusy
-                || openProofConnections.accountProofBusy)
+                || openProofConnections.accountProofBusy
+                || openProofConnections.authorizing)
             text: root.signerAuthorizationNeeded
                 ? qsTrId("genycaster.shell.enable_interactions")
-                : qsTrId("genycaster.pro.restore_secure_session")
+                : root.nativeFarcasterRecoveryNeeded
+                    ? qsTrId("genycaster.connections.verify")
+                    : qsTrId("genycaster.pro.restore_secure_session")
             compact: true
             quiet: true
             onClicked: {
                 if (root.signerAuthorizationNeeded)
                     root.signerAuthorizationRequested()
+                else if (root.nativeFarcasterRecoveryNeeded)
+                    openProofConnections.authorizeAccount()
                 else
                     openProofConnections.retryAccountSession()
             }
+        }
+        // The user explicitly initiated the existing owner-matched
+        // verification. Keep its approval URL in the sheet until confirmed;
+        // do not silently launch a browser or expose a bearer in QML.
+        ActionButton {
+            objectName: "streakOpenAccountVerification"
+            visible: root.activePage !== "leaderboard" && !root.available
+                && openProofConnections && openProofConnections.authorizing
+                && String(openProofConnections.approvalUrl || "").length > 0
+            enabled: visible
+            text: qsTrId("genycaster.connections.copy_open_farcaster_verification")
+            compact: true
+            quiet: true
+            onClicked: Qt.openUrlExternally(openProofConnections.approvalUrl)
         }
 
         ColumnLayout {

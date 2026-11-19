@@ -37,15 +37,23 @@ GenyDrawer {
     readonly property bool membershipVerified: membership.status === "verified"
     readonly property string proofError: openProofConnections
         ? String(openProofConnections.accountProofError || "") : ""
+    // A native HyperSnap custody signer and an imported Farcaster account
+    // have different trust paths. A missing *local Farcaster* vault key must
+    // not launch native custody signer provisioning or a second checkout.
     readonly property bool signerAuthorizationNeeded: !membershipVerified && appSignedIn
+        && presentationBridge.nativeCustodyAccount
         && (proofError === "account_signer_unavailable"
             || proofError === "account_proof_not_accepted"
-            || (presentationBridge.nativeCustodyAccount
-                && !presentationBridge.writeReady && !presentationBridge.signerBusy
+            || (!presentationBridge.writeReady && !presentationBridge.signerBusy
                 && (presentationBridge.signerPhase === "missing"
                     || presentationBridge.signerPhase === "authorization-required"
                     || presentationBridge.signerPhase === "expired"
                     || presentationBridge.signerPhase === "revoked")))
+    readonly property bool nativeFarcasterRecoveryNeeded: !membershipVerified
+        && appSignedIn && !cloudReady && !presentationBridge.nativeCustodyAccount
+        && Qt.platform.os !== "wasm" && Qt.platform.os !== "webassembly"
+        && ["account_signer_unavailable", "account_proof_not_accepted",
+            "account_session_unavailable"].indexOf(proofError) >= 0
     readonly property bool eligible: membershipVerified
         && membership.tier === "pro" && membership.eligible === true
     readonly property bool appSignedIn: presentationBridge
@@ -170,6 +178,11 @@ GenyDrawer {
         if (!root.membershipVerified) {
             if (root.signerAuthorizationNeeded) {
                 root.signerRequested()
+                return
+            }
+            if (root.nativeFarcasterRecoveryNeeded) {
+                if (openProofConnections && !openProofConnections.authorizing)
+                    openProofConnections.authorizeAccount()
                 return
             }
             if (!root.restoringSession && openProofConnections) {
@@ -610,6 +623,36 @@ GenyDrawer {
                             color: Theme.textSecondary
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.Wrap
+                        }
+                        ActionButton {
+                            objectName: "genyProNativeAccountVerification"
+                            visible: root.nativeFarcasterRecoveryNeeded
+                                && !openProofConnections.authorizing
+                            Layout.fillWidth: true
+                            compact: true
+                            prominent: true
+                            enabled: !root.restoringSession
+                            text: qsTrId("genycaster.connections.verify")
+                            onClicked: openProofConnections.authorizeAccount()
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: openProofConnections && openProofConnections.authorizing
+                            text: qsTrId("genycaster.connections.copy_waiting_for_confirmation")
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.Wrap
+                        }
+                        ActionButton {
+                            objectName: "genyProOpenAccountVerification"
+                            Layout.fillWidth: true
+                            visible: openProofConnections && openProofConnections.authorizing
+                                && String(openProofConnections.approvalUrl || "").length > 0
+                            enabled: visible
+                            compact: true
+                            quiet: true
+                            text: qsTrId("genycaster.connections.copy_open_farcaster_verification")
+                            onClicked: Qt.openUrlExternally(openProofConnections.approvalUrl)
                         }
                     }
                 }
