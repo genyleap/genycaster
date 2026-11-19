@@ -84,21 +84,8 @@ namespace {
     }
     const auto doc = QJsonDocument::fromJson(config.readAll());
     QUrl endpoint{doc.object().value(jsonKey).toString()};
-#if defined(Q_OS_WASM)
-    // app.genycaster.xyz is an explicit, separately configured first-party
-    // WASM host. HttpOnly __Host- cookies do not cross hostnames, and Qt's
-    // browser networking cannot use genycaster.xyz cookies on this origin.
-    // Bind ONLY the app-owned cloud API to the browser's exact allowed host;
-    // never change OpenProof, signer, gateway or any other trusted endpoint.
-    if (jsonKey == QStringLiteral("genycasterCloudApiUrl")
-        && endpoint.scheme() == QStringLiteral("https")
-        && endpoint.host() == QStringLiteral("genycaster.xyz")
-        && EM_ASM_INT({
-            return window.location?.origin === "https://app.genycaster.xyz" ? 1 : 0;
-        })) {
-        endpoint.setHost(QStringLiteral("app.genycaster.xyz"));
-    }
-#endif
+    // WebAssembly and desktop use the same canonical account authority.
+    // Never rewrite an HttpOnly account API URL to a retired sibling origin.
     return endpoint;
 }
 
