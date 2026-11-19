@@ -6544,6 +6544,18 @@ Company | https://company.com</source>
             <source>Open verified installer</source>
             <translation>सत्यापित इंस्टॉलर खोलें</translation>
         </message>
+        <message id="genycaster.settings.github_star_title">
+            <source>Built in the open</source>
+            <translation>खुले रूप में विकसित</translation>
+        </message>
+        <message id="genycaster.settings.github_star_description">
+            <source>Enjoying GenyCaster? Star the project on GitHub to help others discover it.</source>
+            <translation>GenyCaster पसंद है? दूसरे लोगों को इसे खोजने में मदद करने के लिए GitHub पर प्रोजेक्ट को स्टार दें।</translation>
+        </message>
+        <message id="genycaster.settings.github_star_action">
+            <source>Star on GitHub</source>
+            <translation>GitHub पर स्टार दें</translation>
+        </message>
         <message id="genycaster.settings.release_notes_and_downloads">
             <source>Release notes and downloads</source>
             <translation>रिलीज़ नोट्स और डाउनलोड</translation>
