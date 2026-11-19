@@ -8,7 +8,10 @@ import json
 from pathlib import Path
 import re
 
-from ci.package_web import select_files
+if __package__:
+    from .package_web import select_files
+else:
+    from package_web import select_files
 
 ORIGIN = "https://genycaster.xyz"
 
