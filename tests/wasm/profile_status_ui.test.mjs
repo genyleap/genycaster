@@ -129,6 +129,8 @@ test('periodic status fetch never races an open editor or pending save',()=>{
   assert.match(controller,/if\(m_profileStatusRead!=reply\) \{/);
   assert.match(controller,/!trustedHttpsEndpoint\(m_cloudUrl\) \|\| m_profileStatusWrite\) return/);
   assert.match(timer,/fetchProfileStatus\(root\.profileFidText, root\.profileNetwork\)/);
+  assert.doesNotMatch(timer,/!openProofConnections\.profileStatusBusy/);
+  assert.match(timer,/profileStatusEditor\.visible \|\| profileStatusEditor\.awaitingSave/);
 });
 
 test('public profile classification is FID/network scoped and links stay private',()=>{

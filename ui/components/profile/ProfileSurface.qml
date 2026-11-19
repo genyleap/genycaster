@@ -224,8 +224,10 @@ Item {
             // saving: their response could race the revision used by PUT.
             if(profileStatusEditor.visible || profileStatusEditor.awaitingSave)
                 return
-            if(root.profileFidText.length>0 && openProofConnections
-                && !openProofConnections.profileStatusBusy)
+            // Switching between profiles supersedes the previous GET. The
+            // controller cancels the old reply; do not wait up to a minute
+            // merely because a different FID is still loading.
+            if(root.profileFidText.length>0 && openProofConnections)
                 openProofConnections.fetchProfileStatus(root.profileFidText, root.profileNetwork)
         }
     }
