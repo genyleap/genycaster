@@ -3830,6 +3830,15 @@ void PresentationBridge::applyAccountProfile(
 
 void PresentationBridge::applyAuthenticationError(QString errorText)
 {
+    // A failed recovery is terminal. Merely updating its error label leaves
+    // authenticationPhase == "starting", which permanently disables all
+    // 24 recovery inputs until the app is restarted.
+    if (!m_isAuthenticated
+        && (m_authenticationRoute == QStringLiteral("hypersnap-recovery")
+            || m_authenticationRoute == QStringLiteral("farcaster-native-recovery")
+            || m_authenticationRoute == QStringLiteral("recovery"))) {
+        m_authenticationPhase = QStringLiteral("failed");
+    }
     m_authenticationErrorText = std::move(errorText);
     emit authenticationStateChanged();
     emit stateChanged();
