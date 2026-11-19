@@ -49,9 +49,7 @@
     function retryAccountSession(fid) {
         if (typeof fid !== "string" || !/^[1-9][0-9]{0,18}$/.test(fid)
             || !Number.isSafeInteger(Number(fid))
-            || owner !== fid || ![
-                "https://genycaster.xyz", "https://app.genycaster.xyz",
-            ].includes(window.location.origin))
+            || owner !== fid || window.location.origin !== "https://genycaster.xyz")
             return false;
         if (accountSessionPromise && accountSessionOwner === fid) return true;
         const currentEpoch = epoch;
