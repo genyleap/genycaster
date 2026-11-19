@@ -163,8 +163,14 @@ The script reuses an existing, valid app-host certificate; if missing, it
 bootstraps an HTTP-only ACME challenge first. After enabling the two-server
 HTTPS config, it verifies **the actual loopback Nginx origin** on
 `127.0.0.1:443` with SNI `app.genycaster.xyz`, a verified certificate chain,
-the exact readiness marker and an HTTP 200 HTML entrypoint. An Nginx/TLS/origin
-failure rolls back its changes. It never modifies the separate landing vhost.
+the exact readiness marker and an HTTP 200 HTML entrypoint. The origin
+readiness probe retries full CA-validated TLS handshakes for up to 10 seconds
+after Nginx reload; old workers may temporarily offer the previous default
+server's Cloudflare Origin CA certificate. A failed origin probe prints
+the SHA-256 fingerprints of the actually presented and expected app leaf
+certificates to distinguish stale/incorrect vhost selection from a CA-chain
+problem. This diagnostic inspection does **not** bypass verification for a
+successful readiness check. An Nginx/TLS/origin failure rolls back its changes. It never modifies the separate landing vhost.
 
 **External CDN routing is a distinct phase.** If the locally verified app
 origin works but the Cloudflare-proxied URL returns 404/403, the script
