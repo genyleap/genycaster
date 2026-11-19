@@ -298,6 +298,32 @@ Regression coverage includes `tests/ui/mobile_gallery_runtime_tests.cpp`
 `tests/wasm/scroll_stability_regressions.test.mjs`. Full mobile-browser
 scroll-performance qualification remains separate from geometry tests.
 
+### Browser wheel input
+
+The existing `genycaster.ui.web.wheel` presentation adapter owns wheel input
+for every Qt Quick canvas viewport, including forms and popup lists. It
+consumes each eligible DOM event exactly once, retains fractional pixels and
+coalesces stationary-pointer bursts into one viewport update per browser
+animation frame. Changing the pointer target or modifiers flushes the previous
+target first. Ctrl-wheel and input outside the canvas retain their existing
+browser/Qt handling rather than entering this adapter.
+Modal boundaries and shifted ListView origins apply to the shared lookup.
+Canvas hit testing also resolves the owning Qt window wrapper when Qt sets
+`pointer-events: none` on its canvas inside a screen shadow root; requiring the
+canvas itself in the event path would bypass the adapter across all screens.
+DOM cancellation runs in an explicitly non-passive capture listener;
+Emscripten's default-passive root callback must not call `preventDefault()`.
+
+Direct viewport writes do not set `Flickable.moving`. Profile anchor and
+entry-position timers must therefore yield to `contentY` changes immediately;
+only synchronous position writes owned by the surface may bypass cancellation.
+Being queued to restore an anchor is not the same as applying that restore.
+These are mandatory Local presentation rules with no domain/provider, stored
+state, offline or failover changes. Missing, disabled or destroyed viewports
+consume no pending motion; cached content remains independently usable.
+Boundary coverage: `ui.browser_wheel_fallback`, `ui.profile_wheel`, and the
+browser wheel/scroll stability suites under `tests/wasm/`.
+
 Long-term layout engine should support:
 
 - cached text layout keyed by entity ID + width + font scale + theme-relevant parameters;

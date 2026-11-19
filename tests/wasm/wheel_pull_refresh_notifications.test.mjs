@@ -14,7 +14,7 @@ const wheelFallback = wheelMain; // C++26 module owns the bounded direct-scroll 
 test('Chrome wheel bridge consumes handled DOM events once and preserves subpixel ticks', () => {
     assert.match(wheelMain, /window\.__genycasterWheelEvent = event/);
     assert.match(wheelMain, /e\.stopImmediatePropagation\(\)/);
-    assert.match(wheelMain, /e\.cancelable\) e\.preventDefault\(\)/);
+    assert.match(wheelMain, /event\.cancelable\)\s+event\.preventDefault\(\)/);
     assert.match(wheelMain, /static QPointF wheelRemainder\{\}/);
     assert.match(wheelMain, /pixelsForAxis\(-event->deltaY \* scale, wheelRemainder\.ry\(\)\)/);
     assert.match(wheelFallback, /minimum = originValue\.isValid\(\)/);

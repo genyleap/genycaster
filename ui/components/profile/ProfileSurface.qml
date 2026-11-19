@@ -715,6 +715,7 @@ Item {
     property string viewportAnchorKey: ""
     property real viewportAnchorOffset: 0
     property bool restoringViewport: false
+    property bool applyingViewportPosition: false
     property bool stableModelSyncPending: false
     property string pendingRestoreKey: ""
     property real pendingRestoreOffset: 0
@@ -725,12 +726,21 @@ Item {
     // layout settles, without disturbing deliberate reading/scrolling.
     property bool profileEntryResetActive: false
     function finishProfileEntryReset() {
-        profileEntryResetActive = false
-        resetPositionPasses = 0
+        root.profileEntryResetActive = false
+        root.resetPositionPasses = 0
         resetPositionTimer.stop()
         profileEntrySettleTimer.stop()
     }
+    function cancelViewportCorrections() {
+        root.finishProfileEntryReset()
+        viewportRestoreTimer.stop()
+        root.restoringViewport = false
+        root.pendingRestoreKey = ""
+        root.pendingRestoreCapture = false
+        root.viewportAnchorKey = ""
+    }
     function positionReaderAtHeaderTop() {
+        root.applyingViewportPosition = true
         root.readList.cancelFlick()
         root.readList.positionViewAtBeginning()
         if (!root.profileMagazineEnabled && profileList.headerItem) {
@@ -740,6 +750,7 @@ Item {
             if (isFinite(headerY))
                 profileList.contentY = Math.min(root.readOriginY(), headerY)
         }
+        root.applyingViewportPosition = false
     }
     // Keep QVariantMap payloads out of ListModel roles; the model itself stays
     // type-stable and delegates re-read only when their revision role changes.
@@ -1117,7 +1128,7 @@ Item {
     }
 
     function restoreViewportAnchor(anchorKey, anchorOffset) {
-        if (anchorKey.length === 0 || profileRowsModel.count === 0)
+        if (root.readList.moving || anchorKey.length === 0 || profileRowsModel.count === 0)
             return
         let targetIndex = -1
         for (let index = 0; index < profileRowsModel.count; ++index) {
@@ -1142,7 +1153,9 @@ Item {
             return
         const minimum = root.readOriginY()
         const maximum = Math.max(minimum, root.readList.contentHeight - root.readList.height)
+        root.applyingViewportPosition = true
         root.readList.contentY = Math.max(minimum, Math.min(maximum, item.y - anchorOffset))
+        root.applyingViewportPosition = false
     }
 
     function payloadForStableKey(key) {
@@ -1399,11 +1412,7 @@ Item {
 
         onMovementStarted: {
             // User gestures outrank a pending initial-position timer.
-            root.finishProfileEntryReset()
-            viewportRestoreTimer.stop()
-            root.restoringViewport = false
-            root.pendingRestoreKey = ""
-            root.viewportAnchorKey = ""
+            root.cancelViewportCorrections()
         }
         onMovementEnded: {
             scrollWorkThrottle.stop()
@@ -1416,9 +1425,13 @@ Item {
         // The anchor is captured once when movement ends; geometry stabilization
         // is only meaningful while the viewport is stationary.
         onContentYChanged: {
-            if (!root.profileEntryResetActive && !profileList.moving
-                    && !root.restoringViewport && !scrollWorkThrottle.running)
-                scrollWorkThrottle.start()
+            // Browser wheel and scrollbar writes do not set Flickable.moving.
+            // Cancel queued anchors immediately, including a restore scheduled
+            // before this tick. Only a synchronous write owned here is exempt.
+            if (!profileList.moving && !root.applyingViewportPosition) {
+                root.cancelViewportCorrections()
+                scrollWorkThrottle.restart()
+            }
         }
         onContentHeightChanged: {
             if (root.profileEntryResetActive) {
@@ -3173,19 +3186,17 @@ Item {
             }
         }
         onMovementStarted: {
-            resetPositionTimer.stop()
-            viewportRestoreTimer.stop()
-            root.resetPositionPasses = 0
-            root.pendingRestoreKey = ""
-            root.viewportAnchorKey = ""
+            root.cancelViewportCorrections()
         }
         onMovementEnded: {
             if (root.stableModelSyncPending) root.requestStableModelSync()
             root.scheduleLoadMore()
         }
         onContentYChanged: {
-            if (!profileMagazineView.moving && !scrollWorkThrottle.running)
-                scrollWorkThrottle.start()
+            if (!profileMagazineView.moving && !root.applyingViewportPosition) {
+                root.cancelViewportCorrections()
+                scrollWorkThrottle.restart()
+            }
         }
     }
 

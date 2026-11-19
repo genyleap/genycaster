@@ -185,12 +185,75 @@ double normalizedCanvasCoordinate(int clientX, int clientY, int axis)
             if (!child || child === element) break;
             element = child;
         }
+        // Qt can make its canvas transparent to pointer input and target the
+        // owning window wrapper instead, including inside the screen shadow root.
+        if (!(element instanceof HTMLCanvasElement))
+            element = element?.closest?.('.qt-window')?.querySelector('canvas.qt-window-canvas');
         if (!(element instanceof HTMLCanvasElement)) return -1;
         const rect = element.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) return -1;
         return $2 === 0 ? (x - rect.left) / rect.width
             : (y - rect.top) / rect.height;
     }, clientX, clientY, axis);
+}
+
+void consumeBrowserWheelEvent(int clientX, int clientY)
+{
+    EM_ASM({
+        const e = window.__genycasterWheelEvent;
+        if (e && e.clientX === $0 && e.clientY === $1) {
+            e.stopImmediatePropagation();
+            window.__genycasterWheelEvent = null;
+        }
+        if (window.__genycasterWheelDiagnostics)
+            window.__genycasterWheelDiagnostics.forwarded += 1;
+    }, clientX, clientY);
+}
+
+// Wheel bursts can arrive faster than Qt can paint on the browser main
+// thread. Resolve the scene and commit its geometry once per animation frame.
+struct PendingWheelInput final {
+    QPointer<QQuickWindow> window{};
+    QPointF position{};
+    QPoint pixels{};
+    QPoint angles{};
+    Qt::KeyboardModifiers modifiers{};
+    bool frameScheduled{false};
+};
+PendingWheelInput pendingWheelInput{};
+
+void flushBrowserWheelInput()
+{
+    auto* window = pendingWheelInput.window.data();
+    const QPoint pixels = pendingWheelInput.pixels;
+    const QPoint angles = pendingWheelInput.angles;
+    pendingWheelInput.pixels = {};
+    pendingWheelInput.angles = {};
+    if (!window || !window->isVisible() || pixels.isNull()) {
+        return;
+    }
+    const QPointF local = pendingWheelInput.position;
+    if (genycaster::ui::browser_wheel::scroll(*window, local, pixels)) {
+        EM_ASM({
+            if (window.__genycasterWheelDiagnostics) {
+                window.__genycasterWheelDiagnostics.directScrolled += 1;
+            }
+        });
+        return;
+    }
+    // Non-Flickable controls still receive one Qt event. The original DOM
+    // event was already consumed, including when Qt declines it at a bound.
+    QWheelEvent wheel{local, window->mapToGlobal(local.toPoint()), pixels, angles,
+                      Qt::NoButton, pendingWheelInput.modifiers, Qt::NoScrollPhase, false};
+    wheel.setAccepted(false);
+    QCoreApplication::sendEvent(window, &wheel);
+}
+
+EM_BOOL deliverBrowserWheelFrame(double, void*)
+{
+    pendingWheelInput.frameScheduled = false;
+    flushBrowserWheelInput();
+    return EM_FALSE;
 }
 
 EM_BOOL browserWheelCallback(int type, const EmscriptenWheelEvent* event, void*)
@@ -235,50 +298,33 @@ EM_BOOL browserWheelCallback(int type, const EmscriptenWheelEvent* event, void*)
         pixelsForAxis(-event->deltaY * scale, wheelRemainder.ry())};
     const QPoint angles{bounded(-event->deltaX * scale * 1.2),
                         bounded(-event->deltaY * scale * 1.2)};
-    // WebAssembly Qt's synthesized wheel events are not reliable for
-    // Flickables: they can be discarded by the screen/pointer handler even
-    // while dragging scrolls normally. Move the nearest interactive
-    // Flickable's viewport directly, including ComboBox popup ListViews.
-    if (genycaster::ui::browser_wheel::scroll(*window, local, pixels)) {
-        EM_ASM({
-            // The listener on window is registered in capture phase, before
-            // Qt's own canvas listener. Chromium may otherwise deliver the
-            // same wheel tick twice (native viewport + Qt synthetic event),
-            // sometimes scrolling back to the previous location.
-            const e = window.__genycasterWheelEvent;
-            if (e && e.clientX === $0 && e.clientY === $1) {
-                e.stopImmediatePropagation();
-                if (e.cancelable) e.preventDefault();
-                window.__genycasterWheelEvent = null;
-            }
-            if (window.__genycasterWheelDiagnostics) {
-                window.__genycasterWheelDiagnostics.forwarded += 1;
-                window.__genycasterWheelDiagnostics.directScrolled += 1;
-            }
-        }, event->mouse.clientX, event->mouse.clientY);
-        return EM_TRUE;
+    // Own each eligible DOM tick before either direct or synthetic delivery.
+    // In particular a fractional tick must not reach Qt while its remainder
+    // is also carried into the next direct scroll (two competing scroll paths).
+    consumeBrowserWheelEvent(event->mouse.clientX, event->mouse.clientY);
+    if (pixels.isNull()) {
+        return EM_FALSE;
     }
-    // Retain Qt wheel delivery for non-Flickable controls, e.g. an editable
-    // spin box; don't consume events that Qt itself declines.
-    QWheelEvent wheel{local, window->mapToGlobal(local.toPoint()), pixels, angles,
-                      Qt::NoButton, modifiers, Qt::NoScrollPhase, false};
-    wheel.setAccepted(false);
-    QCoreApplication::sendEvent(window, &wheel);
-    // Do not swallow wheel events Qt Quick did not handle. In particular,
-    // popup/list bounds and early screen initialization may leave events
-    // unaccepted; allow Qt's own web event routing to handle those.
-    if (!wheel.isAccepted()) return EM_FALSE;
-    EM_ASM({
-        const e = window.__genycasterWheelEvent;
-        if (e && e.clientX === $0 && e.clientY === $1) {
-            e.stopImmediatePropagation();
-            if (e.cancelable) e.preventDefault();
-            window.__genycasterWheelEvent = null;
-        }
-        if (window.__genycasterWheelDiagnostics)
-            window.__genycasterWheelDiagnostics.forwarded += 1;
-    }, event->mouse.clientX, event->mouse.clientY);
-    return EM_TRUE;
+    // Preserve the old target when the pointer or modifiers change between
+    // ticks; stationary bursts share one scene traversal and viewport commit.
+    if (pendingWheelInput.window != window || pendingWheelInput.position != local
+        || pendingWheelInput.modifiers != modifiers) {
+        flushBrowserWheelInput();
+    }
+    pendingWheelInput.window = window;
+    pendingWheelInput.position = local;
+    pendingWheelInput.modifiers = modifiers;
+    pendingWheelInput.pixels += pixels;
+    pendingWheelInput.angles += angles;
+    if (!pendingWheelInput.frameScheduled) {
+        pendingWheelInput.frameScheduled = true;
+        emscripten_request_animation_frame(deliverBrowserWheelFrame, nullptr);
+    }
+
+    // Cancellation belongs to the explicitly non-passive DOM observer below.
+    // Returning true asks Emscripten's passive root listener to preventDefault,
+    // which Chromium ignores and reports as an intervention on every tick.
+    return EM_FALSE;
 }
 
 void installBrowserWheelBridge(QQuickWindow* window)
@@ -289,7 +335,11 @@ void installBrowserWheelBridge(QQuickWindow* window)
             window.__genycasterWheelPathInstalled = true;
             window.addEventListener('wheel', function(event) {
                 const path = event.composedPath ? event.composedPath() : [event.target];
-                const canvas = path.find(node => node instanceof HTMLCanvasElement);
+                let canvas = path.find(node => node instanceof HTMLCanvasElement);
+                if (!canvas) {
+                    const owner = path.find(node => node?.classList?.contains('qt-window'));
+                    canvas = owner?.querySelector('canvas.qt-window-canvas');
+                }
                 const hit = Object.create(null);
                 hit.clientX = event.clientX;
                 hit.clientY = event.clientY;
@@ -304,7 +354,11 @@ void installBrowserWheelBridge(QQuickWindow* window)
                 }
                 window.__genycasterWheelHit = hit;
                 window.__genycasterWheelEvent = event;
-            }, {capture: true, passive: true});
+                if (hit.x >= 0 && hit.x <= 1 && hit.y >= 0 && hit.y <= 1
+                    && !event.ctrlKey && Number.isFinite(event.deltaX)
+                    && Number.isFinite(event.deltaY) && event.cancelable)
+                    event.preventDefault();
+            }, {capture: true, passive: false});
         }
     });
     EM_ASM({

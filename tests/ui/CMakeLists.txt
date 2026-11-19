@@ -555,7 +555,8 @@ add_executable(farcaster_media_scroll_tests
 target_include_directories(farcaster_media_scroll_tests PRIVATE
     "${genycasterUiSourceDir}/render")
 target_link_libraries(farcaster_media_scroll_tests PRIVATE
-    farcaster::presentation Qt6::Test Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia)
+    farcaster::presentation genycaster_web_wheel
+    Qt6::Test Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia)
 # Source-loaded native QML fixtures must mirror the flattened public resource
 # names, even when production sources are grouped into feature directories.
 set(genycasterPublicQmlFixtureDir "${CMAKE_CURRENT_BINARY_DIR}/qml-public-components")
@@ -600,6 +601,16 @@ qt_add_resources(farcaster_media_scroll_tests media_scroll_icons
     PREFIX "/qt/qml/Farcaster/Client/assets/icons/genyleap"
     BASE "${genycasterUiSourceDir}/assets/icons/genyleap"
     FILES ${genyleapIconSystemFiles})
+# Match the material resources used by the real source-loaded delegates.
+qt_add_resources(farcaster_media_scroll_tests media_scroll_effects
+    PREFIX "/genycaster/effects"
+    BASE "${genycasterUiSourceDir}/shaders"
+    FILES
+        "${genycasterUiSourceDir}/shaders/transparent.png"
+        "${genycasterUiSourceDir}/shaders/neon.frag.qsb"
+        "${genycasterUiSourceDir}/shaders/reflection.frag.qsb"
+        "${genycasterUiSourceDir}/shaders/gaussian.frag.qsb"
+        "${genycasterUiSourceDir}/shaders/reflection-gaussian.frag.qsb")
 # Verify precise appearance NOTIFY fanout using real Qt QSignalSpy without
 # importing production-only wallet types into the isolated media fixture.
 add_test(NAME ui.appearance_notify_smoke COMMAND farcaster_media_scroll_tests)
@@ -618,6 +629,10 @@ add_test(NAME ui.media_scroll COMMAND farcaster_media_scroll_tests)
 set_tests_properties(ui.media_scroll PROPERTIES TIMEOUT 45
     LABELS "ui;media;scroll"
     ENVIRONMENT "QT_QPA_PLATFORM=${farcasterHeadlessPlatform};QT_QUICK_BACKEND=software;QT_QUICK_CONTROLS_STYLE=Basic;QT_FATAL_WARNINGS=1")
+add_test(NAME ui.profile_wheel COMMAND farcaster_media_scroll_tests)
+set_tests_properties(ui.profile_wheel PROPERTIES TIMEOUT 15
+    LABELS "ui;scroll;wasm"
+    ENVIRONMENT "QT_QPA_PLATFORM=${farcasterHeadlessPlatform};QT_QUICK_BACKEND=software;QT_QUICK_CONTROLS_STYLE=Basic;QT_FATAL_WARNINGS=1;GENYCASTER_PROFILE_WHEEL_SMOKE_ONLY=1")
 if(APPLE)
     add_test(NAME ui.media_scroll_metal COMMAND farcaster_media_scroll_tests)
     set_tests_properties(ui.media_scroll_metal PROPERTIES TIMEOUT 45 RUN_SERIAL TRUE

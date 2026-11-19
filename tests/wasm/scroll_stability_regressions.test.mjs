@@ -269,3 +269,55 @@ test('user scrolling cancels pending thread geometry correction', () => {
     assert.equal(h.root.geometryAnchorKey, '');
     assert.equal(h.root.contentY, 1200);
 });
+
+
+const profile = read('ProfileSurface');
+function profileHarness() {
+    const profileList = {moving: false, contentY: 1120};
+    const root = {
+        readList: profileList, profileEntryResetActive: false,
+        restoringViewport: true, applyingViewportPosition: false,
+        viewportAnchorKey: 'old', pendingRestoreKey: 'old', pendingRestoreCapture: true,
+        resetPositionPasses: 2,
+    };
+    const context = {root, profileList, viewportRestoreTimer: timer(),
+        resetPositionTimer: timer(), profileEntrySettleTimer: timer(), scrollWorkThrottle: timer()};
+    root.finishProfileEntryReset = method(profile, 'finishProfileEntryReset', context);
+    root.cancelViewportCorrections = method(profile, 'cancelViewportCorrections', context);
+    const listStart = profile.indexOf('        id: profileList');
+    const start = profile.indexOf('        onContentYChanged: {', listStart);
+    const end = profile.indexOf('\n        onContentHeightChanged:', start);
+    assert.ok(start >= 0 && end > start);
+    context.changed = runInNewContext('(' + profile.slice(start, end).trim()
+        .replace('onContentYChanged:', 'function changed()') + ')', context);
+    return context;
+}
+
+test('profile direct wheel interrupts an already queued restore before the next event turn', () => {
+    const h = profileHarness();
+    h.viewportRestoreTimer.restart();
+    h.changed();
+    assert.equal(h.viewportRestoreTimer.running, false);
+    assert.equal(h.root.pendingRestoreKey, '');
+    assert.equal(h.root.viewportAnchorKey, '');
+    assert.equal(h.root.restoringViewport, false);
+    assert.equal(h.profileList.contentY, 1120);
+    assert.equal(h.scrollWorkThrottle.running, true);
+});
+
+test('profile direct wheel cancels entry positioning while owned position writes preserve it', () => {
+    const h = profileHarness();
+    h.root.profileEntryResetActive = true;
+    h.resetPositionTimer.restart();
+    h.profileEntrySettleTimer.restart();
+    h.root.applyingViewportPosition = true;
+    h.changed();
+    assert.equal(h.root.profileEntryResetActive, true);
+    assert.equal(h.resetPositionTimer.running, true);
+    h.root.applyingViewportPosition = false;
+    h.changed();
+    assert.equal(h.root.profileEntryResetActive, false);
+    assert.equal(h.root.resetPositionPasses, 0);
+    assert.equal(h.resetPositionTimer.running, false);
+    assert.equal(h.profileEntrySettleTimer.running, false);
+});

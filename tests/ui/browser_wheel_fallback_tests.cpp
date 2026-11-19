@@ -42,6 +42,7 @@ Item {
     objectName: "primaryList"
     width: 420; height: 420
     model: 100
+    header: Rectangle { width: 420; height: 260 }
     delegate: Rectangle { width: 420; height: 40 }
   }
   ListView {
@@ -88,6 +89,7 @@ Item {
         expect(list != nullptr && disabled != nullptr, "fixture ListViews exist");
         if (list && disabled) {
             using genycaster::ui::browser_wheel::scroll;
+            list->setProperty("contentY", 0.);
             expect(scroll(window, QPointF{120, 120}, QPoint{0, -96}),
                    "wheel scrolls an interactive ListView");
             expect(std::abs(list->property("contentY").toDouble() - 96.) < 0.1,
@@ -137,8 +139,15 @@ Item {
                    "wheel reverses direction");
             expect(std::abs(list->property("contentY").toDouble() - 60.) < 0.1,
                    "reverse wheel gives expected offset");
+            QMetaObject::invokeMethod(list, "positionViewAtBeginning");
+            const double headerStart = list->property("contentY").toDouble();
+            expect(scroll(window, QPointF{120, 120}, QPoint{0, -32}),
+                   "wheel scrolls from an inline header");
+            expect(std::abs(list->property("contentY").toDouble() - headerStart - 32.) < 0.1,
+                   "wheel over inline header preserves the requested delta");
             list->setProperty("contentY",
-                              list->property("contentHeight").toDouble() - list->height());
+                              list->property("originY").toDouble()
+                                  + list->property("contentHeight").toDouble() - list->height());
             expect(!scroll(window, QPointF{120, 120}, QPoint{0, -80}),
                    "wheel at lower scroll bound is not swallowed");
         }

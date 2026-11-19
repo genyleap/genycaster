@@ -82,7 +82,11 @@ test('profile never resurrects a recycled anchor or overrides a user scroll with
   const reset = profileQml.split('id: resetPositionTimer')[1]
     .split('id: scrollWorkThrottle')[0];
   assert.match(reset, /if \(root\.readList\.moving\) \{[\s\S]*?root\.finishProfileEntryReset\(\)/);
-  assert.match(profileQml, /onMovementStarted: \{[\s\S]*?root\.finishProfileEntryReset\(\)/);
+  assert.match(profileQml, /onMovementStarted: \{[\s\S]*?root\.cancelViewportCorrections\(\)/);
+  const cancel = profileQml.split('function cancelViewportCorrections() {')[1]
+    .split('function positionReaderAtHeaderTop()')[0];
+  assert.match(cancel, /root\.finishProfileEntryReset\(\)/);
+  assert.match(cancel, /viewportRestoreTimer\.stop\(\)/);
   assert.match(profileQml, /onContentHeightChanged: \{\s*if \(root\.profileEntryResetActive\) \{\s*resetPositionTimer\.restart\(\)/);
   assert.match(profileQml, /if \(root\.profileEntryResetActive \|\| root\.restoringViewport/);
 });

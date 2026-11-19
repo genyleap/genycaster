@@ -41,6 +41,8 @@
 #include <utility>
 #include <vector>
 
+import genycaster.ui.web.wheel;
+
 namespace {
 int failures{};
 
@@ -298,6 +300,8 @@ int main(int argc, char** argv)
     // not contact an external video service or depend on media codecs.
     playback.setSourcePreparationBackend({.start = [](qulonglong, const QString&) {}});
     auto* context = engine.rootContext();
+    context->setContextProperty(QStringLiteral("deploymentEndpoints"),
+        QVariantMap{{QStringLiteral("browserGateway"), QStringLiteral("https://example.invalid")}});
     context->setContextProperty(QStringLiteral("appearanceController"), &appearance);
     context->setContextProperty(QStringLiteral("localizationController"), localization.get());
     context->setContextProperty(QStringLiteral("renderingController"), &rendering);
@@ -468,6 +472,7 @@ int main(int argc, char** argv)
             property string cloudError: ""
             property bool cloudAuthorizationReady: false
             property bool cloudSessionBusy: false
+            property bool accountProofBusy: false
             property int activeAccountFid: 0
             property var proPlan: ({})
             property var proEntitlements: ({})
@@ -654,6 +659,58 @@ int main(int argc, char** argv)
     // QObject is deleted. Queued initialization must not invoke QML functions
     // in that dead context, even when the visual object still exists.
     QSignalSpy qmlWarnings{&engine, &QQmlEngine::warnings};
+
+    if (qEnvironmentVariableIsSet("GENYCASTER_PROFILE_WHEEL_SMOKE_ONLY")) {
+        QVariantList rows;
+        for (int index = 0; index < 24; ++index) {
+            rows.push_back(QVariantMap{
+                {QStringLiteral("castId"), QStringLiteral("0xwheel-%1").arg(index)},
+                {QStringLiteral("author"), QStringLiteral("reader")},
+                {QStringLiteral("text"), QString(160, QLatin1Char('x'))},
+            });
+        }
+        auto profile = createSurface(engine, QStringLiteral("ProfileSurface"), *scroll,
+            {{QStringLiteral("detail"), QVariantMap{
+                  {QStringLiteral("fid"), 44},
+                  {QStringLiteral("username"), QStringLiteral("wheel-reader")},
+                  {QStringLiteral("displayName"), QStringLiteral("Wheel reader")}}},
+             {QStringLiteral("accountFid"), 44},
+             {QStringLiteral("rows"), rows}, {QStringLiteral("compact"), true}});
+        if (!profile) { return 1; }
+        auto* view = profile->findChild<QQuickItem*>(QStringLiteral("profileList"));
+        if (!view) { return 1; }
+        expect(QTest::qWaitFor([&] {
+            return view->property("count").toInt() == rows.size()
+                && !profile->property("profileEntryResetActive").toBool();
+        }), "profile wheel fixture reaches ready state");
+        QMetaObject::invokeMethod(view, "positionViewAtIndex", Q_ARG(int, 12), Q_ARG(int, 0));
+        expect(QTest::qWaitFor([&] {
+            QMetaObject::invokeMethod(profile.get(), "captureViewportAnchor");
+            return !profile->property("viewportAnchorKey").toString().isEmpty();
+        }), "profile wheel fixture resolves a real visible anchor");
+        QMetaObject::invokeMethod(profile.get(), "stabilizeViewportAfterGeometryChange");
+        expect(profile->property("restoringViewport").toBool(), "profile restore is queued");
+        expect(genycaster::ui::browser_wheel::scroll(window,
+                   view->mapToScene(QPointF{view->width() / 2, 120}), QPoint{0, -64}),
+            "shared browser adapter scrolls the production profile");
+        expect(!view->property("moving").toBool()
+                   && profile->property("pendingRestoreKey").toString().isEmpty()
+                   && profile->property("viewportAnchorKey").toString().isEmpty()
+                   && !profile->property("restoringViewport").toBool(),
+            "browser wheel cancels the queued restore without movementStarted");
+        QMetaObject::invokeMethod(profile.get(), "scrollToBeginning");
+        expect(profile->property("profileEntryResetActive").toBool(),
+            "owned top positioning retains entry stabilization");
+        expect(genycaster::ui::browser_wheel::scroll(window,
+                   view->mapToScene(QPointF{view->width() / 2, 120}), QPoint{0, -32}),
+            "browser wheel interrupts entry positioning");
+        expect(!profile->property("profileEntryResetActive").toBool()
+                   && profile->property("resetPositionPasses").toInt() == 0,
+            "browser wheel cancels pending entry passes immediately");
+        expect(qmlWarnings.empty(), "profile wheel fixture emits zero QML warnings");
+        std::println("Profile browser wheel regression: {} failure(s)", failures);
+        return failures == 0 ? 0 : 1;
+    }
 
     // Magazine geometry lives in the native window model, while the actual
     // QML delegates are limited to the visible viewport. Exercise both
