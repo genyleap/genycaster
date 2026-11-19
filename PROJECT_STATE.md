@@ -1,6 +1,6 @@
 # GenyCaster durable engineering checkpoint
 
-Last reconciled: **2026-11-18**, repository `genyleap/genycaster`, `main`.
+Last reconciled: **2026-11-19**, repository `genyleap/genycaster`, `main`.
 Companion acceptance sources: [SPEC.md](SPEC.md), [PLAN.md](PLAN.md),
 `docs/19-account-registration-test-plan.md` and GitHub issue comments.
 
