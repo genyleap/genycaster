@@ -22,9 +22,11 @@ import tempfile
 if __package__:
     from .stage_wasm_preview import verify_checksum, extract_to_stage
     from .verify_platform_package import validate_web
+    from .verify_primary_preview_payload import validate as validate_prepared
 else:
     from stage_wasm_preview import verify_checksum, extract_to_stage
     from verify_platform_package import validate_web
+    from verify_primary_preview_payload import validate as validate_prepared
 
 ROOT = Path("/var/www/genycaster.xyz/public")
 SITE = ROOT.parent
@@ -89,14 +91,8 @@ def prepare(archive: Path, checksums: Path, stage: Path) -> tuple[Path, str]:
             "--release-channel", info["releaseChannel"],
             "--release-channel-number", str(info["releaseChannelNumber"]),
         ], check=True)
-        output = temp_dir / "GenyCaster-primary-preview.tar.gz"
-        subprocess.run([
-            sys.executable, str(Path(__file__).with_name("package_web.py")),
-            "--source", str(payload),
-            "--output", str(output),
-        ], check=True)
-        validate_web(output)
-        digest = hashlib.sha256(output.read_bytes()).hexdigest()
+        verified = validate_prepared(payload)
+        digest = verified["version"]
         shutil.move(str(payload), str(stage))
         return stage, digest
 
@@ -116,14 +112,7 @@ def promote(stage: Path) -> int:
         about.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(landing, about)
 
-    with tempfile.TemporaryDirectory(prefix=".primary-verify-", dir=SITE) as temporary:
-        archive = Path(temporary) / "primary-preview.tar.gz"
-        subprocess.run([
-            sys.executable, str(Path(__file__).with_name("package_web.py")),
-            "--source", str(stage), "--output", str(archive),
-        ], check=True)
-        validate_web(archive)
-    inventory = json.loads((stage / "genycaster-assets.json").read_text())
+    inventory = validate_prepared(stage)
     assets = inventory["files"] + ["genycaster.wasm", "genycaster-assets.json"]
     promoted = []
     try:
@@ -167,7 +156,7 @@ def main() -> int:
                 args.archive.resolve(strict=True),
                 args.checksums.resolve(strict=True),
                 args.stage)
-            print(f"STAGED: canonical preview, package SHA-256 {digest}")
+            print(f"STAGED: canonical preview, release fingerprint {digest}")
         else:
             staged = args.stage
             print("Using existing primary preview stage")
