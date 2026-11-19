@@ -56,6 +56,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(qulonglong accountFid READ accountFid NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountFidText READ accountFidText NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool ownProfileNavigation READ ownProfileNavigation NOTIFY stateChanged)
+    Q_PROPERTY(bool ownProfileReadReady READ ownProfileReadReady NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap accountProfile READ accountProfile NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool writeReady READ writeReady NOTIFY stateChanged)
     Q_PROPERTY(QString signerPhase READ signerPhase NOTIFY stateChanged)
@@ -166,6 +167,7 @@ public:
     [[nodiscard]] QString accountAvatarUrl() const;
     [[nodiscard]] qulonglong accountFid() const noexcept;
     [[nodiscard]] QString accountFidText() const { return QString::number(accountFid()); }
+    [[nodiscard]] bool ownProfileReadReady() const noexcept { return m_ownProfileReadReady; }
     [[nodiscard]] bool ownProfileNavigation() const noexcept {
         return m_isAuthenticated && m_accountFid != 0 && m_profileIsOwnAccount
             && m_activeView == QStringLiteral("profile") && m_profileFid == m_accountFid;
@@ -637,6 +639,8 @@ signals:
     void viewerReactionInterestRetained(QString castId, qulonglong authorFid, qulonglong viewerFid);
     void viewerReactionInterestReleased(QString castId, qulonglong viewerFid);
     void profileRequested(qulonglong fid, bool allowRecoveryProbe);
+    /** Profile-only routing affinity for the verified account, never user settings. */
+    void ownProfileReadAffinityRequested(bool ownProfile, bool nativeCustody);
     void signInRequested(QString route);
 
     /** A one-shot phrase delivered to the native recovery executor, never to a provider. */
@@ -748,6 +752,8 @@ private:
     QString m_profileFeed{QStringLiteral("user-posts")};
     qulonglong m_profileFid{};
     bool m_profileIsOwnAccount{false};
+    bool m_ownProfileReadReady{false};
+    bool m_socialReturnOwnProfile{false};
     qulonglong m_socialFid{};
     QString m_socialReturnView{QStringLiteral("feed")};
     struct DetailLocation {

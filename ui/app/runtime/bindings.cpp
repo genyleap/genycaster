@@ -2292,9 +2292,10 @@ void hydrateAuthenticatedAccountProfile(
     }
 
     const qulonglong accountFid = bridge.accountFid();
+    const QString expectedIssuer = bridge.accountIdentityIssuer();
     auto request = runtime->service->openProfile(
         domain::identity::Fid{static_cast<std::uint64_t>(accountFid)},
-        [&bridge, accountFid](application::read::model::ProfileState state) mutable {
+        [&bridge, accountFid, expectedIssuer](application::read::model::ProfileState state) mutable {
             if (!state.profile || state.profile->fid.value != static_cast<std::uint64_t>(accountFid)) {
                 return;
             }
@@ -2305,11 +2306,12 @@ void hydrateAuthenticatedAccountProfile(
             QVariantMap profileDetail = profilePresentation(profile);
             QMetaObject::invokeMethod(
                 &bridge,
-                [&bridge, accountFid, profileDisplayName = std::move(profileDisplayName),
+                [&bridge, accountFid, expectedIssuer, profileDisplayName = std::move(profileDisplayName),
                     profileUsername = std::move(profileUsername),
                     profileAvatarUrl = std::move(profileAvatarUrl),
                     profileDetail = std::move(profileDetail)]() mutable {
-                    if (!bridge.isAuthenticated() || bridge.accountFid() != accountFid) {
+                    if (!bridge.isAuthenticated() || bridge.accountFid() != accountFid
+                        || bridge.accountIdentityIssuer() != expectedIssuer) {
                         return;
                     }
                     bridge.applyAccountProfile(
@@ -2453,6 +2455,33 @@ void connectRuntime(
                 .require = !runtime->allowCompatibleReadFallback,
             });
     }
+    // Profile metadata is account-scoped when "My profile" is opened. Do
+    // not change the user's feed/network selection, and do not allow a
+    // same-number FID on a different protocol to replace social counts.
+    QObject::connect(&bridge, &PresentationBridge::ownProfileReadAffinityRequested,
+        &bridge, [runtime](const bool own, const bool nativeCustody) {
+            if (!runtime->router) return;
+            const auto profileCapability = capability::catalog::profileRead();
+            const auto access = capability::model::CapabilityAccess::Read;
+            if (!own) {
+                runtime->router->clearPreferredProviderForCapability(
+                    profileCapability, access);
+                return;
+            }
+            const std::string& provider = nativeCustody
+                ? runtime->independentReadProviderId : runtime->hostedReadProviderId;
+            // Fail closed when the authenticated protocol has no registered
+            // reader: never fall back to a different protocol with a matching
+            // numeric FID. The nonexistent identity cannot pass router health
+            // or capability validation, and the UI keeps counts unknown.
+            const std::string pinnedProvider = provider.empty()
+                ? "genycaster-unavailable-own-profile-reader" : provider;
+            runtime->router->setPreferredProviderForCapability(
+                profileCapability, access, routing::router::ProviderPreference{
+                    .provider = farcaster::provider::model::ProviderId{pinnedProvider},
+                    .require = true,
+                });
+        });
     QObject::connect(&bridge, &PresentationBridge::preferredNetworkChanged, &bridge,
         [&bridge, runtime, applyNetworkAffinity](const QString& network) {
             runtime->requestedReadProviderId.clear();
@@ -5665,8 +5694,11 @@ void connectRuntime(
             const std::uint64_t requestGeneration = runtime->beginPrimaryRequestGeneration();
             auto request = runtime->service->openProfile(
                 domain::identity::Fid{static_cast<std::uint64_t>(fid)},
-                [&bridge, runtime, requestGeneration](application::read::model::ProfileState state) {
-                    if (!runtime->isCurrentPrimaryRequestGeneration(requestGeneration)) {
+                [&bridge, runtime, requestGeneration, fid](application::read::model::ProfileState state) {
+                    if (!runtime->isCurrentPrimaryRequestGeneration(requestGeneration)
+                        || (state.profile && state.profile->fid.value != static_cast<std::uint64_t>(fid))) {
+                        // A provider response for another FID can never be
+                        // accepted merely because the request is still current.
                         return;
                     }
                     std::optional<bool> followingByMe{};

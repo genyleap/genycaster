@@ -24,9 +24,18 @@ Item {
         // until its own protocol data is available, never a foreign profile.
         if (root.ownProfileNavigation && root.accountFidText.length > 0
             && root.activeReadNetwork !== root.accountNetwork) {
+            // A read from the selected *other* network is not our profile,
+            // even when its numeric FID matches. Once the protocol-pinned
+            // request completes, show the full authenticated account snapshot
+            // including its actual social counters, not a synthetic header.
+            const owned = presentationBridge.accountProfile || ({})
+            if (presentationBridge.ownProfileReadReady
+                && String(owned.fidString || owned.fid || "") === root.accountFidText)
+                return owned
             return {
                 fid: root.accountFid,
                 fidString: root.accountFidText,
+                socialCountsKnown: false,
                 displayName: String(presentationBridge.accountName || ""),
                 username: String(presentationBridge.accountUsername || ""),
                 avatarUrl: String(presentationBridge.accountAvatarUrl || ""),

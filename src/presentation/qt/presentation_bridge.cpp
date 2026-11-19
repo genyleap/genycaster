@@ -1889,13 +1889,17 @@ void PresentationBridge::openMyProfile()
         return;
     }
     openProfileFid(m_accountFid);
-    // Explicit own-account navigation is a trusted application action, not
-    // an inference from the global read provider (which can be HyperSnap
-    // while the signed-in account belongs to Farcaster).
-    if (!m_profileIsOwnAccount) {
-        m_profileIsOwnAccount = true;
-        emit stateChanged();
-    }
+    // A user's own profile must be read from the authenticated protocol,
+    // independently of the current feed's selected reader. Re-issue the
+    // request only after routing is pinned; request generations discard the
+    // first (possibly cross-network) refresh.
+    m_profileIsOwnAccount = true;
+    m_ownProfileReadReady = false;
+    m_profileDetailCache.remove(m_accountFid);
+    m_detail.clear();
+    emit ownProfileReadAffinityRequested(true, nativeCustodyAccount());
+    emit stateChanged();
+    emit profileRequested(m_accountFid, false);
 }
 
 void PresentationBridge::openProfileUsername(const QString& username)
@@ -1913,7 +1917,10 @@ void PresentationBridge::openProfileUsername(const QString& username)
         && m_currentProfileUsername.compare(canonical, Qt::CaseInsensitive) == 0)
         return;
     rememberDetailLocation();
+    if (m_profileIsOwnAccount)
+        emit ownProfileReadAffinityRequested(false, nativeCustodyAccount());
     m_profileIsOwnAccount = false;
+    m_ownProfileReadReady = false;
     m_currentProfileUsername = canonical;
     m_activeView = QStringLiteral("profile");
     m_profileFid = 0;
@@ -1937,13 +1944,18 @@ void PresentationBridge::openProfileFid(const qulonglong fid)
     }
     if (m_activeView == QStringLiteral("profile") && m_profileFid == fid) {
         if (m_profileIsOwnAccount) {
+            emit ownProfileReadAffinityRequested(false, nativeCustodyAccount());
             m_profileIsOwnAccount = false;
+            m_ownProfileReadReady = false;
             emit stateChanged();
         }
         return;
     }
     rememberDetailLocation();
+    if (m_profileIsOwnAccount)
+        emit ownProfileReadAffinityRequested(false, nativeCustodyAccount());
     m_profileIsOwnAccount = false;
+    m_ownProfileReadReady = false;
     m_currentProfileUsername.clear();
     m_profileFid = fid;
     m_activeView = QStringLiteral("profile");
@@ -2011,6 +2023,7 @@ void PresentationBridge::selectProfileFeed(const QString& feed)
 
 void PresentationBridge::openFollowers()
 {
+    m_socialReturnOwnProfile = ownProfileNavigation();
     m_socialReturnView = m_activeView == QStringLiteral("profile")
         ? QStringLiteral("profile")
         : QStringLiteral("feed");
@@ -2034,6 +2047,7 @@ void PresentationBridge::openFollowers()
 
 void PresentationBridge::openFollowing()
 {
+    m_socialReturnOwnProfile = ownProfileNavigation();
     m_socialReturnView = m_activeView == QStringLiteral("profile")
         ? QStringLiteral("profile")
         : QStringLiteral("feed");
@@ -2058,7 +2072,10 @@ void PresentationBridge::openFollowing()
 void PresentationBridge::returnFromSocial()
 {
     if (m_socialReturnView == QStringLiteral("profile") && m_profileFid != 0) {
-        openProfileFid(m_profileFid);
+        if (m_socialReturnOwnProfile && m_isAuthenticated && m_accountFid == m_profileFid)
+            openMyProfile();
+        else
+            openProfileFid(m_profileFid);
         return;
     }
     showFeed();
@@ -3640,6 +3657,7 @@ void PresentationBridge::applyAuthenticationState(
     m_authenticationPhase = std::move(phase);
     m_authenticationStateObserved = true;
     const qulonglong previousAccountFid = m_accountFid;
+    const QString previousAccountIssuer = m_accountIdentityIssuer;
     // The attempt phase is independent from the already established account
     // session. Starting a replacement/re-authentication flow must not make a
     // verified current account appear signed out until a new proof succeeds.
@@ -3675,9 +3693,17 @@ void PresentationBridge::applyAuthenticationState(
     m_accountFid = m_isAuthenticated ? fid : 0;
     // The read-only visible-rows projection is account-scoped even when
     // no reaction overlay changed; force rebinding after any viewer switch.
-    bool accountRowsChanged = previousAccountFid != m_accountFid;
-    if (previousAccountFid != m_accountFid) {
+    // A different verified issuer is a new identity even if its numeric FID
+    // collides. Ignore transient empty issuer values during reauthorization.
+    bool accountRowsChanged = previousAccountFid != m_accountFid
+        || (!previousAccountIssuer.isEmpty() && !identityIssuer.isEmpty()
+            && previousAccountIssuer != identityIssuer);
+    if (accountRowsChanged) {
+        if (m_profileIsOwnAccount)
+            emit ownProfileReadAffinityRequested(false, nativeCustodyAccount());
         m_profileIsOwnAccount = false;
+        m_ownProfileReadReady = false;
+        m_socialReturnOwnProfile = false;
         m_topicPreviewCasts.clear();
         emit topicPreviewCastsChanged();
         m_bookmarkedCasts = (m_accountFid != 0 && m_settings)
@@ -3792,6 +3818,11 @@ void PresentationBridge::applyAccountProfile(
     if (!m_isAuthenticated || fid == 0 || fid != m_accountFid || profile.isEmpty()) {
         return;
     }
+    // Ignore delayed background hydration once a protocol-pinned own-profile
+    // read has supplied authoritative social counts. Never update even the
+    // account label/avatar from a competing read route in this case.
+    if (m_profileIsOwnAccount && m_ownProfileReadReady && fid == m_profileFid)
+        return;
     m_accountUsername = nativeCustodyAccount()
         ? QString{} : visibleProfileUsername(std::move(username));
     m_accountName = displayName.isEmpty() ? m_accountUsername : std::move(displayName);
@@ -4709,8 +4740,19 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
         }
     }
     if (m_activeView == QStringLiteral("profile") && m_profileFid != 0) {
-        m_profileDetailCache.insert(m_profileFid, m_detail);
-        if (m_profileFid == m_accountFid) {
+        // Cached or wrong-network data cannot override the authenticated
+        // owner's social counters. Only a completed, non-stale, protocol-pinned
+        // profile read may populate its authoritative detail projection.
+        if (m_profileIsOwnAccount && m_profileFid == m_accountFid
+            && !busy && !stale && !sourceUnavailable
+            && m_detail.value(QStringLiteral("socialCountsKnown")).toBool())
+            m_ownProfileReadReady = true;
+        // A provisional cross-network response must not poison the next
+        // account-profile cache lookup while the scoped reader is refreshing.
+        if (!m_profileIsOwnAccount || m_ownProfileReadReady)
+            m_profileDetailCache.insert(m_profileFid, m_detail);
+        if (m_profileFid == m_accountFid
+            && m_profileIsOwnAccount && m_ownProfileReadReady) {
             m_accountProfile = m_detail;
             m_accountUsername = nativeCustodyAccount() ? QString{}
                 : visibleProfileUsername(
