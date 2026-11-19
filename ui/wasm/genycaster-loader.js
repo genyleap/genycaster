@@ -38,10 +38,20 @@ function applyBrowserChromeTheme(dark, themeId="platform", customAccent="", plat
         Object.prototype.hasOwnProperty.call(chromePalette,themeId)?
             chromePalette[themeId][index]:browserPlatformAccent();
     root.style.setProperty("--nd-accent",accent);
-    // White/near-white accent presets have dark ink, matching Theme.contrastInk.
+    // Pick whichever contrast meets WCAG more comfortably. Bright Night
+    // presets such as #829AFF need dark lettering; a raw sRGB average would
+    // incorrectly leave white text on their lightly saturated backgrounds.
     const rgb=parseInt(accent.slice(1),16);
-    const luminance=(0.2126*((rgb>>16)&255)+0.7152*((rgb>>8)&255)+0.0722*(rgb&255))/255;
-    root.style.setProperty("--nd-on-accent",luminance>0.72?"#17181B":"#FFFFFF");
+    const linear=v=>{
+        const channel=v/255;
+        return channel<=0.04045?channel/12.92:Math.pow((channel+0.055)/1.055,2.4);
+    };
+    const luminance=0.2126*linear((rgb>>16)&255)
+                   +0.7152*linear((rgb>>8)&255)
+                   +0.0722*linear(rgb&255);
+    const darkContrast=(luminance+0.05)/0.05;
+    const lightContrast=1.05/(luminance+0.05);
+    root.style.setProperty("--nd-on-accent",darkContrast>=lightContrast?"#17181B":"#FFFFFF");
     if(remember){
         try { localStorage.setItem("genycaster.browser.chrome.v1",dark?"dark":"light"); }
         catch (_) { /* optional appearance cache, never block Qt startup */ }
