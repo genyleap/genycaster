@@ -30,10 +30,10 @@ test('manual Pro and Streak session retries use the registered WASM browser sign
   assert.match(pre,/function retryAccountSession\(fid\)/);
   // A verified account session can be restored from the registered vault
   // even before Snapchain reports a protocol write-ready signer.
-  assert.match(pre,/owner !== fid \|\| !\[/);
+  assert.match(pre,/owner !== fid \|\| window\.location\.origin !== "https:\/\/genycaster\.xyz"/);
   assert.doesNotMatch(pre,/owner !== fid \|\| !client/);
   assert.match(pre,/if \(existing && epoch===thisEpoch && owner===fid\)/);
-  assert.match(pre,/https:\/\/app\.genycaster\.xyz/);
+  assert.doesNotMatch(pre,/https:\/\/app\.genycaster\.xyz/);
   assert.match(pre,/if \(accountSessionPromise && accountSessionOwner === fid\)/);
   assert.match(pre,/ensureBrowserAccountSession\(\{/);
   assert.match(pre,/Object\.freeze\(\{start,retryAccountSession,events\}\)/);
@@ -54,16 +54,19 @@ test('first-party application host uses its own HttpOnly cookie and rejects fore
     return Response.json(principal);
   };
   const value=await ensureBrowserAccountSession({
-    fid,origin:'https://app.genycaster.xyz',fetchImpl,
+    fid,origin:'https://genycaster.xyz',fetchImpl,
     vault:{load:async()=>{throw Error('valid session should not require signer');}}
   });
   assert.equal(value.csrf_token,csrf);
   assert.equal(calls.length,1);
   assert.equal(calls[0].options.credentials,'same-origin');
-  await assert.rejects(ensureBrowserAccountSession({
-    fid,origin:'https://untrusted.genycaster.xyz',fetchImpl,
-    vault:{},
-  }),/approved secure origin/);
+  for (const retiredOrForeign of [
+    'https://app.genycaster.xyz','https://untrusted.genycaster.xyz',
+  ]) {
+    await assert.rejects(ensureBrowserAccountSession({
+      fid,origin:retiredOrForeign,fetchImpl,vault:{},
+    }),/approved secure origin/);
+  }
   assert.equal(calls.length,1);
 });
 
