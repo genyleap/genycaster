@@ -129,6 +129,35 @@ class AppSiteActivationTest(unittest.TestCase):
         self.assertIn(b"Host: app.genycaster.xyz",
                       connection.sendall.call_args_list[0].args[0])
 
+    def test_origin_retries_transient_old_nginx_worker_without_bypassing_tls(self):
+        # First connection just after Nginx reload can reach an old default
+        # worker which still presents an unrelated Cloudflare Origin CA.
+        # Next connection must go through the strict TLS origin probe.
+        with patch.object(
+                site, "_probe_origin_once",
+                side_effect=[site.ssl.SSLCertVerificationError(
+                    "stale default vhost"), None]) as probe, \
+             patch.object(site.time, "sleep") as sleep, \
+             patch.object(site, "_origin_leaf_diagnostic") as diagnosis:
+            site.check_origin_service(attempts=4, retry_delay=0.1)
+            self.assertEqual(probe.call_count, 2)
+            sleep.assert_called_once_with(0.1)
+            diagnosis.assert_not_called()
+
+    def test_origin_certificate_failure_retries_then_classifies_peer(self):
+        with patch.object(site, "_probe_origin_once",
+                          side_effect=site.ssl.SSLCertVerificationError(
+                              "verify failed")) as probe, \
+             patch.object(site.time, "sleep") as sleep, \
+             patch.object(site, "_origin_leaf_diagnostic",
+                          return_value="DIFFERENT fallback leaf") as diagnosis:
+            with self.assertRaisesRegex(
+                    RuntimeError, "DIFFERENT fallback leaf"):
+                site.check_origin_service(attempts=3, retry_delay=0.1)
+            self.assertEqual(probe.call_count, 3)
+            self.assertEqual(sleep.call_count, 2)
+            diagnosis.assert_called_once()
+
     def test_cdn_failure_preserves_verified_origin_vhost(self):
         # A public 404 is not grounds for removing a successfully verified
         # localhost HTTPS vhost. No Certbot ceremony is needed when a valid
