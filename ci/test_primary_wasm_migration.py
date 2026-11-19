@@ -74,6 +74,51 @@ class PrimaryMigrationTests(unittest.TestCase):
                 capture_output=True, text=True, timeout=10)
             self.assertEqual(check.returncode, 0, check.stderr)
 
+    def test_superellipse_overlay_owns_all_controls_and_matches_qt_theme(self):
+        shell = (ROOT / "ui/wasm/genycaster-shell.html").read_text()
+        css = (ROOT / "ui/wasm/native-downloads.css").read_text()
+        js = (ROOT / "ui/wasm/native-downloads.js").read_text()
+        loader = (ROOT / "ui/wasm/genycaster-loader.js").read_text()
+        qt = (ROOT / "ui/app/main.cpp").read_text()
+        settings = (ROOT / "ui/components/settings/SettingsPopup.qml").read_text()
+        self.assertNotIn('<select id="native-downloads-architecture"', shell)
+        for markup in ('role="listbox"', 'aria-haspopup="listbox"',
+                       'aria-expanded="false"', 'id="native-github-star"',
+                       'https://github.com/genyleap/genycaster'):
+            self.assertIn(markup, shell)
+        for contract in ('--nd-surface', '--nd-raised', '--nd-accent',
+                         'corner-shape:superellipse(4)', 'appearance:none',
+                         '#native-downloads-action[hidden]',
+                         '#native-downloads-options[hidden]',
+                         'prefers-reduced-motion:reduce'):
+            self.assertIn(contract, css)
+        for contract in ('chooseArchitecture(', 'closeOptions(', 'openOptions(',
+                         'ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape',
+                         'aria-selected', 'download.hidden = !entry'):
+            self.assertIn(contract, js)
+        self.assertIn('__genycasterSetBrowserChromeTheme', loader)
+        self.assertIn('window.__genycasterSetBrowserChromeTheme(', qt)
+        self.assertIn('AppearanceController::customAccentColorChanged', qt)
+        self.assertIn('AppearanceController::colorThemeIdChanged', qt)
+        self.assertIn('objectName: "genycasterGithubStarCard"', settings)
+        self.assertIn('objectName: "genycasterStarOnGithub"', settings)
+        self.assertIn('Qt.openUrlExternally("https://github.com/genyleap/genycaster")', settings)
+        for catalog in sorted((ROOT / "ui/i18n").glob("qml_*.ts")):
+            content = catalog.read_text()
+            for key in ("genycaster.settings.github_star_title",
+                        "genycaster.settings.github_star_description",
+                        "genycaster.settings.github_star_action"):
+                with self.subTest(catalog=catalog.name, key=key):
+                    self.assertIn(f'id="{key}"', content)
+
+    def test_browser_skin_deploy_is_atomic_and_does_not_replace_qt(self):
+        script = (ROOT / "ci/deploy_browser_chrome.py").read_text()
+        self.assertIn('ROOT = Path("/var/www/genycaster.xyz/public")', script)
+        self.assertIn('shutil.copy2(ROOT / name, backup / name)', script)
+        self.assertIn('os.replace(temporary, published)', script)
+        self.assertIn('verified unchanged engine', script.lower())
+        self.assertIn('Qt/QML Changes require a separate latest-main WASM binary.', script)
+
     def test_unreleased_platforms_never_get_invented_links(self):
         catalog = json.loads(
             (ROOT / "ui/wasm/native-releases.json").read_text(encoding="utf-8"))
