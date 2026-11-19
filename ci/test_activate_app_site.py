@@ -60,7 +60,7 @@ class AppSiteActivationTest(unittest.TestCase):
             for location in locations:
                 lines.extend((f"    {location}", "        return 204;", "    }"))
             lines.extend(("  }", "}"))
-            path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
             result = subprocess.run(["nginx", "-t", "-c", str(path)],
                                     text=True, capture_output=True, timeout=8)
             self.assertEqual(result.returncode, 0, result.stderr)
