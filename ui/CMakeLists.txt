@@ -872,6 +872,17 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-loader.js"
             "$<TARGET_FILE_DIR:genycaster>/genycaster-loader.js"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/native-downloads.js"
+            "$<TARGET_FILE_DIR:genycaster>/native-downloads.js"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/native-downloads.css"
+            "$<TARGET_FILE_DIR:genycaster>/native-downloads.css"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:genycaster>/releases"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/native-releases.json"
+            "$<TARGET_FILE_DIR:genycaster>/releases/native.json"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-sw.js"
             "$<TARGET_FILE_DIR:genycaster>/genycaster-sw.js"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
