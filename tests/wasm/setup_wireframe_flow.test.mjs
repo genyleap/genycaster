@@ -346,14 +346,18 @@ test('shared theme, native project icons and all three theme modes are present',
                        'Theme.contrastInk(Theme.accent)', 'Theme.ink',
                        'appearanceController.setThemeMode'])
     assert.ok(setup.includes(token));
-  assert.match(setup, /model: root.greetings/);
+  const languageStage = setup.slice(setup.indexOf('id: languageStage'), setup.indexOf('id: termsStage'));
+  assert.match(languageStage, /objectName: "setupLanguageGrid"\s*visible: !root\.phone/);
+  assert.match(languageStage, /model: root\.phone \? \[\] : root\.greetings/);
+  assert.match(languageStage, /onClicked: localizationController\.setLanguageTag\(modelData\.tag\)/);
+  assert.match(languageStage, /SetupLanguageSelector \{\s*id: languageWheel\s*visible: root\.phone/);
 });
 
 test('mobile has a bottom CTA, desktop a two-pane welcome', () => {
   assert.match(setup, /id: stageScroll/);
   assert.match(setup, /id: stageAction/);
   assert.match(setup, /id: desktopBrandPane/);
-  assert.match(setup, /width: Math.min\(parent.width \* 0.35, 560\)/);
+  assert.match(setup, /width: root\.currentStep === 0 \? Math\.min\(parent\.width \* 0\.35, 560\)/);
   assert.match(setup, /anchors.bottom: parent.bottom/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
 });
@@ -401,7 +405,7 @@ test('full-window setup removes shell chrome and has no fake desktop header or f
   const app=source('ui/components/shell/AppShell.qml');
   assert.match(s,/id: setupCanvas/);
   assert.match(s,/id: desktopBrandPane/);
-  assert.match(s,/width: Math\.min\(parent\.width \* 0\.35, 560\)/);
+  assert.match(s,/width: root\.currentStep === 0 \? Math\.min\(parent\.width \* 0\.35, 560\)/);
   assert.match(s,/id: stageAction/);
   assert.match(s,/anchors\.bottom: parent\.bottom/);
   assert.doesNotMatch(s,/id: setupFooter/);
@@ -452,7 +456,7 @@ test('desktop brand visual persists across all stages without blocking RTL title
   assert.match(s,/Qt\.application\.version \? "v" \+ LocaleFormat\.localizeDigits\(Qt\.application\.version\)/);
   assert.match(s,/new Date\(\)\.getFullYear\(\)/);
   assert.doesNotMatch(s,/source: .*setup-motif\.svg/);
-  assert.match(s,/root.currentStep === 3 \|\| root.currentStep === 6/);
+  assert.match(s,/root\.currentStep >= 3 && root\.currentStep <= 6 \? 810 : 680/);
   assert.match(header,/Theme.rtl \? Qt.AlignRight : Qt.AlignLeft/);
   assert.match(s,/iconGlyph: Theme.iconPalette/);
   assert.match(s,/brandImageSource: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon.svg"/);
@@ -476,9 +480,11 @@ test('signout returns immediately to Welcome and legal consent accepts a deliber
 test('RTL back and close do not occupy the same top corner', () => {
   const s=source('ui/components/setup/InitialSetup.qml');
   const nav=s.slice(s.indexOf('        ActionButton {\n            z: 20'),s.indexOf('        Flickable {\n            id: stageScroll'));
-  assert.match(nav,/x: Theme\.rtl \? root\.width - width -/);
-  assert.match(nav,/x: Theme\.rtl \? \(desktopBrandPane\.visible \? desktopBrandPane\.width \+ Theme\.space5/);
-  assert.match(nav,/x: Theme\.rtl \? root\.width - width -/);
+  assert.match(nav,/objectName: "setupBack"[\s\S]*?Theme\.rtl \? stagePanel\.x \+ stagePanel\.width - width : stagePanel\.x/);
+  assert.match(nav,/objectName: "setupCloseReview"[\s\S]*?Theme\.rtl \? stagePanel\.x : stagePanel\.x \+ stagePanel\.width - width/);
+  const hero=s.slice(s.indexOf('id: desktopBrandPane'),s.indexOf('id: desktopSetupNav'));
+  assert.match(hero,/x: Theme\.rtl \? setupCanvas\.width - width : 0/);
+  assert.doesNotMatch(hero,/anchors\.(?:left|right): Theme\.rtl/);
   assert.match(nav,/iconGlyph: Theme\.rtl \? Theme\.iconArrowRight : Theme\.iconArrowLeft/);
 });
 

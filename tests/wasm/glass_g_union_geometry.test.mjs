@@ -88,7 +88,7 @@ test("smooth vector-driven walls and grounded studio shadows",()=>{
  assert.match(qml,/sourceSize\.width: 1664/);
  const buttons=qml.slice(qml.indexOf('        ActionButton {\n            z: 20'),
                          qml.indexOf('        Flickable {\n            id: stageScroll'));
- assert.match(buttons,/desktopBrandPane\.width \+ Theme\.space5/);
+ assert.match(buttons,/stagePanel\.x \+ stagePanel\.width - width/);
  assert.match(buttons,/Theme\.rtl/);
  assert.match(buttons,/root\.closeReviewRequested\(\)/);
 });

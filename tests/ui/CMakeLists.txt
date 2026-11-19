@@ -392,6 +392,15 @@ set_tests_properties(ui.localization_fa_smoke PROPERTIES
     TIMEOUT 30
 )
 
+add_test(NAME ui.setup_layout COMMAND genycaster
+    --visual-test --open-initial-setup --exercise-setup-layout --language=fa
+    "--settings-path=${CMAKE_CURRENT_BINARY_DIR}/setup-layout-test.ini")
+set_tests_properties(ui.setup_layout PROPERTIES
+    LABELS "ui;qml;localization"
+    ENVIRONMENT
+        "QT_QPA_PLATFORM=${farcasterHeadlessPlatform};QT_QUICK_CONTROLS_STYLE=Basic;QT_FATAL_WARNINGS=1"
+    TIMEOUT 20)
+
 add_test(
     NAME ui.appearance_dark_smoke
     COMMAND genycaster --smoke-test --theme-mode=dark --color-theme=geny

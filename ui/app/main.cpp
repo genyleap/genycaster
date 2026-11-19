@@ -1095,6 +1095,11 @@ int main(int argc, char* argv[])
         if (isVisualTest && arguments.contains(QStringLiteral("--open-profile"))) {
             applyProfileVerificationFixture(presentationBridge);
         }
+#if defined(Q_OS_WASM)
+        // Verification fixtures already provide the terminal account state
+        // and bypass the browser restore worker.
+        presentationBridge.finishBrowserAccountRestore();
+#endif
     }
 #if defined(Q_OS_ANDROID)
     // Android GPUs may render Qt Quick MultiEffect colorization as a filled

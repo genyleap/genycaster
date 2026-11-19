@@ -58,6 +58,9 @@ test("download dock stays at top in a continuous Superellipse away from floating
       'superellipseClipPolygon(triggerBox.width, panelHeight, 20, false)'
     ]) assert.ok(js.includes(part),part);
     assert.ok(html.includes('id="native-downloads-dock-toggle"'));
+    assert.match(css,/#native-downloads-dock-toggle svg:not\(\.nd-squircle-svg\) \{/);
+    assert.doesNotMatch(css,/#native-downloads-dock-toggle svg\s*\{/);
+    assert.doesNotMatch(css,/#native-downloads-dock-toggle svg\s*\{display:none\}/);
 });
 
 test("iOS safe-area background and PWA metadata use the app appearance",()=>{

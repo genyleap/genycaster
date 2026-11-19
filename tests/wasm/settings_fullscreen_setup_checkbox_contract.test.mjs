@@ -20,7 +20,13 @@ test('Settings fills the desktop viewport and the mobile inspector remains full-
         assert.match(settings, new RegExp('id: ' + id + '\\b'));
     assert.match(settings, /active: \(!root\.mobilePresentation \|\| !root\.mobileIndexOpen\) && root\.currentSection === 0/);
     assert.match(settings, /page && page\.contentItem/);
-    assert.match(settings, /readonly property int contentColumns:[\s\S]*?width - navigationColumnWidth - Theme\.space6/);
+    assert.match(settings, /readonly property int contentColumns: !mobilePresentation && settingsPages\.width >=/);
+    const workspace = settings.slice(settings.indexOf('objectName: "settingsWorkspace"'), settings.indexOf('id: settingsPages'));
+    assert.match(workspace, /Layout\.fillWidth: true\s*Layout\.fillHeight: true/);
+    assert.doesNotMatch(workspace, /Layout\.maximumWidth|Layout\.alignment: Qt\.AlignHCenter/);
+    assert.match(settings, /component SettingsAction: ActionButton \{\s*Layout\.fillWidth: root\.mobilePresentation/);
+    for (const page of ['appearanceScroll', 'readSettingsScroll', 'updatesScroll', 'recoverySettingsScroll'])
+        assert.match(settings, new RegExp('PreferenceGrid \\{\\s*width: ' + page + '\\.availableWidth'));
     assert.match(settings, /dimBackground: false/);
     assert.match(settings, /popupZ: 0/);
     assert.match(settings, /width: parent \? parent\.width : 1180/);

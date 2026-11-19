@@ -67,7 +67,8 @@ test('device signer approval is protocol-scoped and never sends native FIDs to F
 
 test('desktop setup reserves a non-scrolling progress header',()=>{
   const setup=read('ui/components/setup/InitialSetup.qml');
-  assert.match(setup,/id: setupProgress[\s\S]*?anchors\.topMargin: 44/);
-  assert.match(setup,/anchors\.topMargin: !root\.phone && root\.currentStep > 0 \? Theme\.scaleUi\(84\) : 0/);
-  assert.match(setup,/y: !root\.phone && root\.currentStep > 0 && root\.currentStep < 7/);
+  assert.match(setup,/id: desktopSetupNav[\s\S]*?id: setupProgress[\s\S]*?currentStep: root\.currentStep/);
+  assert.match(setup,/anchors\.top: root\.phone \? mobileSetupNav\.bottom\s*: desktopSetupNav\.visible \? desktopSetupNav\.bottom : parent\.top/);
+  assert.match(setup,/anchors\.bottom: parent\.bottom[\s\S]*?anchors\.bottomMargin: root\.desktopStageFooter\s*\? stageAction\.height \+ Theme\.space4 \+ Theme\.space3 : 0/);
+  assert.doesNotMatch(setup,/anchors\.bottom:.*stageAction\.top/);
 });

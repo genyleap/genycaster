@@ -162,7 +162,10 @@ Item {
     property bool showAdvanced: false
     property bool consentChecked: false
     readonly property bool phone: width < 680
-    readonly property int setupGutter: phone ? 24 : 48
+    readonly property int setupGutter: phone ? 24 : Theme.scaleUi(32)
+    readonly property bool desktopStageFooter: !phone && currentStep > 0 && showsPrimaryCta
+    readonly property bool wideStage: !phone && stagePanel.width >=
+        Theme.scaleUi(520) * Math.max(1, Theme.fontScale)
     readonly property bool browserReadOnly: wasmReadOnly
     readonly property bool authenticationInProgress:
         authenticationPhase === "starting" || authenticationPhase === "awaiting-approval"
@@ -567,16 +570,21 @@ Item {
     Item {
         id: setupCanvas
         anchors.fill: parent
+        readonly property real brandWidth: desktopBrandPane.visible ? desktopBrandPane.width : 0
+        readonly property real formWidth: width - brandWidth
+        readonly property real formStart: Theme.rtl ? 0 : brandWidth
 
-        // Editorial split: the sculpture gets enough room for its full
-        // orbit while the form retains the larger, readable content pane.
         Rectangle {
             id: desktopBrandPane
+            objectName: "setupBrandPane"
             visible: !root.phone && root.width >= 980
-            anchors.left: parent.left
+            // One coordinate keeps the bound width independent of locale
+            // changes. Switching between two anchors can briefly set both.
+            x: Theme.rtl ? setupCanvas.width - width : 0
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: Math.min(parent.width * 0.35, 560)
+            width: root.currentStep === 0 ? Math.min(parent.width * 0.35, 560)
+                                          : Math.min(parent.width * 0.28, 400)
             border.width: brandInteraction.activeFocus ? 2 : 0
             border.color: Theme.accent
             // One local studio scene: the existing logo shader, a restrained
@@ -1042,20 +1050,41 @@ Item {
             }
         }
 
-        // The exact same eight-stage indicator is used in Welcome.
-        SetupStepIndicator {
-            id: setupProgress
+        Item {
+            id: desktopSetupNav
             visible: !root.phone && root.currentStep !== 0
-            stepCount: root.progressCount
-            currentStep: root.currentStep
-            anchors.top: parent.top
-            anchors.topMargin: 44
-            x: desktopBrandPane.visible
-               ? desktopBrandPane.width + (parent.width - desktopBrandPane.width - width) / 2
-               : (parent.width - width) / 2
+            x: stagePanel.x
+            width: stagePanel.width
+            height: Theme.controlHeight + Theme.space4 * 2
             z: 5
-            Accessible.name: root.stepTitle(root.currentStep)
-                             + " (" + (root.currentStep + 1) + "/" + root.progressCount + ")"
+
+            RowLayout {
+                anchors.centerIn: parent
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space3
+                SetupStepIndicator {
+                    id: setupProgress
+                    stepCount: root.progressCount
+                    currentStep: root.currentStep
+                    Accessible.ignored: true
+                }
+                DirectionAwareLabel {
+                    id: stageCount
+                    text: LocaleFormat.localizeDigits((root.currentStep + 1) + "/" + root.progressCount)
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    forceLeftToRight: true
+                    Accessible.name: root.stepTitle(root.currentStep) + " " + stageCount.text
+                }
+            }
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: Theme.strokeHairline
+                color: Theme.divider
+            }
         }
 
         // On compact screens navigation occupies its own fixed header. The
@@ -1074,14 +1103,12 @@ Item {
 
         ActionButton {
             z: 20
+            objectName: "setupBack"
             visible: root.currentStep > 0
             anchors.top: root.phone ? mobileSetupNav.top : parent.top
             anchors.topMargin: root.phone ? Theme.space2 : Theme.space4
-            // Navigation belongs to the content column, not the GPU art.
-            // The opposite-side Review/Close action obeys the same inset.
-            x: Theme.rtl ? root.width - width - (root.phone ? Theme.space2 : Theme.space5)
-                         : (desktopBrandPane.visible ? desktopBrandPane.width + Theme.space5
-                                                    : (root.phone ? Theme.space2 : Theme.space5))
+            x: root.phone ? (Theme.rtl ? root.width - width - Theme.space2 : Theme.space2)
+                          : (Theme.rtl ? stagePanel.x + stagePanel.width - width : stagePanel.x)
             compact: true
             quiet: true
             iconOnly: true
@@ -1091,12 +1118,12 @@ Item {
         }
         ActionButton {
             z: 20
+            objectName: "setupCloseReview"
             visible: root.reviewMode
             anchors.top: root.phone ? mobileSetupNav.top : parent.top
             anchors.topMargin: root.phone ? Theme.space2 : Theme.space4
-            x: Theme.rtl ? (desktopBrandPane.visible ? desktopBrandPane.width + Theme.space5
-                                                      : (root.phone ? Theme.space2 : Theme.space5))
-                         : root.width - width - (root.phone ? Theme.space2 : Theme.space5)
+            x: root.phone ? (Theme.rtl ? Theme.space2 : root.width - width - Theme.space2)
+                          : (Theme.rtl ? stagePanel.x : stagePanel.x + stagePanel.width - width)
             compact: true
             quiet: true
             iconOnly: true
@@ -1107,40 +1134,40 @@ Item {
 
         Flickable {
             id: stageScroll
-            anchors.top: root.phone ? mobileSetupNav.bottom : parent.top
-            // Reserve the desktop progress/header lane *outside* the scroll
-            // viewport, including when a long recovery form is scrolled.
-            // Previously the fixed step dots overlaid the scrolling title.
-            anchors.topMargin: !root.phone && root.currentStep > 0 ? Theme.scaleUi(84) : 0
+            anchors.top: root.phone ? mobileSetupNav.bottom
+                                    : desktopSetupNav.visible ? desktopSetupNav.bottom : parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
+            // Reserve the footer's height without reading its position. The
+            // Welcome action follows stagePanel.y, so reading its top here
+            // would feed the scroll viewport's height back into the panel.
+            anchors.bottomMargin: root.desktopStageFooter
+                                  ? stageAction.height + Theme.space4 + Theme.space3 : 0
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
             contentHeight: Math.max(height, stagePanel.y + stagePanel.implicitHeight
-                                    + (root.showsPrimaryCta ? 116 : 32))
+                                    + (root.showsPrimaryCta && !root.desktopStageFooter ? 116 : 32))
             ScrollBar.vertical: GenyScrollBar {
                 policy: stageScroll.contentHeight > stageScroll.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
             }
 
             Item {
                 id: stagePanel
+                objectName: "setupStagePanel"
                 width: Math.max(0, Math.min(
                                    root.phone ? 440
-                                   : (root.currentStep === 3 || root.currentStep === 6) ? 810 : 650,
-                                   stageScroll.width - (desktopBrandPane.visible ? desktopBrandPane.width : 0)
-                                   - root.setupGutter * 2))
-                x: desktopBrandPane.visible
-                   ? desktopBrandPane.width + (stageScroll.width - desktopBrandPane.width - width) / 2
-                   : (stageScroll.width - width) / 2
+                                   : root.currentStep >= 3 && root.currentStep <= 6 ? 810 : 680,
+                                   setupCanvas.formWidth - root.setupGutter * 2))
+                x: setupCanvas.formStart + (setupCanvas.formWidth - width) / 2
                 y: !root.phone && root.currentStep === 0
                    ? Math.max(Theme.space7,
-                              (stageScroll.height - stageLoader.implicitHeight
+                              (setupCanvas.height - stageLoader.implicitHeight
                                - Theme.space7 - stageAction.implicitHeight) * 0.47)
-                   : !root.phone && root.currentStep > 0 && root.currentStep < 7
-                   ? Math.max(Theme.space3, Math.min(Theme.space6, stageScroll.height * 0.04))
+                   : !root.phone && root.currentStep > 0
+                   ? Theme.space4
                    : root.currentStep === 0 || root.currentStep === 7
                    ? Math.max(root.phone ? 110 : 52, (stageScroll.height - stageLoader.implicitHeight) * 0.39)
                    : root.currentStep === 5
@@ -1177,6 +1204,7 @@ Item {
         // An action belonging to the active onboarding stage, not a footer bar.
         SetupPrimaryButton {
             id: stageAction
+            objectName: "setupStageAction"
             visible: root.showsPrimaryCta
             z: 10
             anchors.bottom: parent.bottom
@@ -1187,12 +1215,14 @@ Item {
                                              - stagePanel.implicitHeight
                                              - Theme.space7 - height)
                                   : root.phone ? Theme.space5
-                                  : Math.max(38, root.height * 0.085)
+                                  : Theme.space4
             width: root.phone ? Math.min(root.width - root.setupGutter * 2, 440)
-                              : Math.min(330, stagePanel.width * 0.65)
-            x: desktopBrandPane.visible
-               ? desktopBrandPane.width + (parent.width - desktopBrandPane.width - width) / 2
-               : (parent.width - width) / 2
+                              : Math.min(root.desktopStageFooter
+                                         ? Theme.scaleUi(230) : 330,
+                                         stagePanel.width * 0.65)
+            x: root.desktopStageFooter
+               ? (Theme.rtl ? stagePanel.x : stagePanel.x + stagePanel.width - width)
+               : setupCanvas.formStart + (setupCanvas.formWidth - width) / 2
             text: root.actionText()
             // The primary stage action uses the same brand-filled surface as
             // the other prominent CTAs, rather than a flat white slab.
@@ -1266,12 +1296,52 @@ Item {
     Component {
         id: languageStage
         ColumnLayout {
-            spacing: Theme.space2
+            spacing: root.phone ? Theme.space2 : Theme.space4
+
+            SetupPageHeader {
+                visible: !root.phone
+                Layout.fillWidth: true
+                storyboardStyle: true
+                compactDesktopStyle: true
+                maximumTextWidth: 680
+                iconGlyph: Theme.iconLanguage
+                title: qsTrId("genycaster.setup.design_language_title")
+            }
+
+            GridLayout {
+                objectName: "setupLanguageGrid"
+                visible: !root.phone
+                Layout.fillWidth: true
+                columns: stagePanel.width >= Theme.scaleUi(620) * Math.max(1, Theme.fontScale) ? 3 : 2
+                uniformCellWidths: true
+                layoutDirection: Theme.uiDirection
+                rowSpacing: Theme.space2
+                columnSpacing: Theme.space2
+
+                Repeater {
+                    model: root.phone ? [] : root.greetings
+                    delegate: SetupActionCard {
+                        required property var modelData
+                        required property int index
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        compactCard: true
+                        onboardingStyle: true
+                        protocolChoice: true
+                        showChevron: false
+                        selected: index === root.greetingIndexForTag(localizationController.effectiveLanguageTag)
+                        title: modelData.language
+                        onClicked: localizationController.setLanguageTag(modelData.tag)
+                    }
+                }
+            }
+
             SetupLanguageSelector {
                 id: languageWheel
+                visible: root.phone
                 Layout.fillWidth: true
                 storyboard: true
-                model: root.greetings
+                model: root.phone ? root.greetings : []
                 selectedLabel: localizationController.languageLabel
                 selectedDetail: localizationController.regionalLocaleLabel
                 Component.onCompleted: currentIndex =
@@ -1297,28 +1367,36 @@ Item {
             SetupPageHeader {
                 storyboardStyle: true
                 compactDesktopStyle: !root.phone
+                maximumTextWidth: root.phone ? 620 : 810
                 Layout.fillWidth: true
                 iconGlyph: "system/lock"
                 title: qsTrId("genycaster.setup.design_terms_title")
                 subtitle: qsTrId("genycaster.setup.design_terms_description")
-                centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space3 }
-            SetupActionCard {
+            GridLayout {
                 Layout.fillWidth: true
-                compactCard: true
-                onboardingStyle: true
-                title: qsTrId("genycaster.setup.terms_title")
-                showChevron: true
-                onClicked: root.openLegalDocument("terms")
-            }
-            SetupActionCard {
-                Layout.fillWidth: true
-                compactCard: true
-                onboardingStyle: true
-                title: qsTrId("genycaster.setup.privacy_title")
-                showChevron: true
-                onClicked: root.openLegalDocument("privacy")
+                columns: root.wideStage ? 2 : 1
+                uniformCellWidths: columns > 1
+                layoutDirection: Theme.uiDirection
+                rowSpacing: Theme.space3
+                columnSpacing: Theme.space3
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    compactCard: true
+                    onboardingStyle: true
+                    title: qsTrId("genycaster.setup.terms_title")
+                    showChevron: true
+                    onClicked: root.openLegalDocument("terms")
+                }
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    compactCard: true
+                    onboardingStyle: true
+                    title: qsTrId("genycaster.setup.privacy_title")
+                    showChevron: true
+                    onClicked: root.openLegalDocument("privacy")
+                }
             }
             Button {
                 id: consentCheck
@@ -1388,6 +1466,7 @@ Item {
             SetupPageHeader {
                 storyboardStyle: true
                 compactDesktopStyle: !root.phone
+                maximumTextWidth: root.phone ? 620 : 810
                 Layout.fillWidth: true
                 iconGlyph: root.accountFidRegistered
                     ? Theme.iconCheck : Theme.iconUser
@@ -1401,7 +1480,6 @@ Item {
                     : root.choosingRegistrationProvider
                       ? qsTrId("genycaster.setup.registration_shared_fid")
                       : qsTrId("genycaster.setup.design_account_description")
-                centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space2 }
             // A verified protocol FID is not automatically an OPP identity.
@@ -1445,7 +1523,7 @@ Item {
             GridLayout {
                 visible: !root.choosingRegistrationProvider
                 Layout.fillWidth: true
-                columns: root.phone ? 1 : 2
+                columns: root.wideStage ? 2 : 1
                 rowSpacing: Theme.space3
                 columnSpacing: Theme.space3
                 layoutDirection: Theme.uiDirection
@@ -1496,7 +1574,7 @@ Item {
                 GridLayout {
                     visible: !root.accountFidRegistered
                     Layout.fillWidth: true
-                    columns: root.phone ? 1 : 2
+                    columns: root.wideStage ? 2 : 1
                     rowSpacing: Theme.space3
                     columnSpacing: Theme.space3
                     layoutDirection: Theme.uiDirection
@@ -2304,11 +2382,11 @@ Item {
             SetupPageHeader {
                 storyboardStyle: true
                 compactDesktopStyle: !root.phone
+                maximumTextWidth: root.phone ? 620 : 810
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconLink
                 title: qsTrId("genycaster.setup.design_signin_title")
                 subtitle: qsTrId("genycaster.setup.design_signin_description")
-                centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space2 }
             // Local custody recovery is the preferred existing-account route.
@@ -2604,32 +2682,39 @@ Item {
                     }
                 }
             }
-            SetupActionCard {
+            GridLayout {
                 visible: !root.authenticated
                 Layout.fillWidth: true
-                compactCard: true
-                onboardingStyle: true
-                brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                title: qsTrId("genycaster.shell.continue_with_genyleap")
-                busy: root.authenticationInProgress && root.authenticationRoute === "openproof"
-                enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
-                onClicked: {
-                    root.continueWithGenyleap()
-                    root.switchStep(5)
+                columns: root.wideStage ? 2 : 1
+                uniformCellWidths: columns > 1
+                layoutDirection: Theme.uiDirection
+                rowSpacing: Theme.space3
+                columnSpacing: Theme.space3
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    compactCard: true
+                    onboardingStyle: true
+                    brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                    title: qsTrId("genycaster.shell.continue_with_genyleap")
+                    busy: root.authenticationInProgress && root.authenticationRoute === "openproof"
+                    enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
+                    onClicked: {
+                        root.continueWithGenyleap()
+                        root.switchStep(5)
+                    }
                 }
-            }
-            SetupActionCard {
-                visible: !root.authenticated
-                Layout.fillWidth: true
-                compactCard: true
-                onboardingStyle: true
-                iconGlyph: "brands/farcaster"
-                title: qsTrId("genycaster.shell.sign_in_with_farcaster")
-                busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
-                enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
-                onClicked: {
-                    root.continueWithFarcaster()
-                    root.switchStep(5)
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    compactCard: true
+                    onboardingStyle: true
+                    iconGlyph: "brands/farcaster"
+                    title: qsTrId("genycaster.shell.sign_in_with_farcaster")
+                    busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
+                    enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
+                    onClicked: {
+                        root.continueWithFarcaster()
+                        root.switchStep(5)
+                    }
                 }
             }
             SetupActionCard {
@@ -2824,16 +2909,16 @@ Item {
             SetupPageHeader {
                 storyboardStyle: true
                 compactDesktopStyle: !root.phone
+                maximumTextWidth: root.phone ? 620 : 810
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconPalette
                 title: qsTrId("genycaster.setup.design_appearance_title")
                 subtitle: qsTrId("genycaster.setup.design_appearance_description")
-                centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space4 }
             GridLayout {
                 Layout.fillWidth: true
-                columns: root.phone ? 1 : 3
+                columns: root.phone ? 1 : root.wideStage ? 3 : 2
                 columnSpacing: Theme.space2
                 rowSpacing: Theme.space2
                 layoutDirection: Theme.uiDirection

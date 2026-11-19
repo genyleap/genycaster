@@ -11,6 +11,7 @@
     --nd-pressed:#e9eaed;
     --nd-ink:#17181b;
     --nd-ink-muted:#60636a;
+    --nd-danger:#b32138;
     --nd-border:#dfe1e5;
     --nd-border-soft:#eceDEF;
     --nd-accent:#315cf5;
@@ -29,6 +30,7 @@
     --nd-pressed:#2a2d35;
     --nd-ink:#f7f7f8;
     --nd-ink-muted:#afb2ba;
+    --nd-danger:#ff9da9;
     --nd-border:#292c33;
     --nd-border-soft:#22252b;
     --nd-accent:#829aff;
@@ -762,12 +764,12 @@
     outline:2px solid var(--nd-accent);
     outline-offset:1px;
 }
-#native-downloads-dock-toggle svg {
+#native-downloads-dock-toggle svg:not(.nd-squircle-svg) {
     width:18px;height:18px;
     fill:none;stroke:currentColor;
     stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;
 }
-#native-downloads-dock[data-expanded="true"] #native-downloads-dock-toggle svg {display:none}
+#native-downloads-dock[data-expanded="true"] #native-downloads-dock-toggle svg:not(.nd-squircle-svg) {display:none}
 #native-downloads-dock[data-expanded="true"] #native-downloads-dock-toggle::before {
     content:"×";font-size:24px;line-height:1;color:var(--nd-ink-muted);
 }
@@ -897,4 +899,192 @@
 }
 @media(prefers-reduced-motion:reduce) {
     #native-downloads-dock {transition:none}
+}
+
+/* Trusted browser wallet approval uses the same theme as app downloads. */
+.wallet-connect-scrim {
+    position:fixed;
+    inset:0;
+    z-index:2147483647;
+    display:grid;
+    place-items:center;
+    box-sizing:border-box;
+    padding:16px;
+    background:var(--nd-scrim);
+    backdrop-filter:blur(7px);
+    -webkit-backdrop-filter:blur(7px);
+}
+.wallet-connect-dialog {
+    display:flex;
+    flex-direction:column;
+    box-sizing:border-box;
+    width:min(488px,100%);
+    max-height:calc(100dvh - 32px);
+    overflow:hidden;
+    border:1px solid var(--nd-border);
+    border-radius:24px;
+    background:var(--nd-surface);
+    color:var(--nd-ink);
+    box-shadow:0 24px 75px var(--nd-shadow);
+    font:400 14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+.wallet-connect-heading {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:20px 24px 14px;
+}
+.wallet-connect-heading img {
+    box-sizing:border-box;
+    flex:none;
+    width:42px;
+    height:42px;
+    padding:7px;
+    border:1px solid var(--nd-border);
+    border-radius:14px;
+    background:var(--nd-raised);
+}
+.wallet-connect-heading h2 {
+    margin:0;
+    font-size:21px;
+    line-height:1.25;
+    font-weight:700;
+    overflow-wrap:anywhere;
+}
+.wallet-connect-body {
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding:4px 24px 16px;
+    scrollbar-color:var(--nd-scroll) transparent;
+}
+.wallet-connect-origin {
+    display:block;
+    padding:8px 12px;
+    border:1px solid var(--nd-border);
+    border-radius:13px;
+    background:var(--nd-muted);
+    color:var(--nd-ink);
+    overflow-wrap:anywhere;
+    font-size:13px;
+}
+.wallet-connect-details,
+.wallet-connect-pairing p {
+    margin:12px 0;
+    color:var(--nd-ink-muted);
+}
+.wallet-connect-choices {
+    display:grid;
+    gap:6px;
+    min-width:0;
+    margin:0;
+    padding:0;
+    border:0;
+}
+.wallet-connect-choices legend {
+    margin-block-end:6px;
+    padding:0;
+    font-size:13px;
+    font-weight:650;
+}
+.wallet-connect-choice {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    box-sizing:border-box;
+    min-height:46px;
+    padding:8px 12px;
+    border:1px solid var(--nd-border);
+    border-radius:13px;
+    background:var(--nd-raised);
+    cursor:pointer;
+}
+.wallet-connect-choice:hover {background:var(--nd-hover)}
+.wallet-connect-choice:has(input:checked) {
+    border-color:var(--nd-accent);
+    background:color-mix(in srgb,var(--nd-accent) 9%,var(--nd-raised));
+}
+.wallet-connect-choice:has(input:disabled) {cursor:default}
+.wallet-connect-choice input {margin:0;accent-color:var(--nd-accent)}
+.wallet-connect-choice bdi {min-width:0;overflow-wrap:anywhere}
+.wallet-connect-pairing {
+    margin-block-start:14px;
+    padding:0 12px 12px;
+    border:1px solid var(--nd-border);
+    border-radius:16px;
+    background:var(--nd-muted);
+    text-align:center;
+}
+.wallet-connect-pairing img {
+    display:block;
+    box-sizing:border-box;
+    width:min(212px,100%);
+    height:auto;
+    margin:10px auto 0;
+    padding:8px;
+    border-radius:12px;
+    background:#fff;
+}
+.wallet-connect-pairing [hidden],.wallet-connect-pairing[hidden] {display:none}
+.wallet-connect-error {margin:12px 0 0;color:var(--nd-danger)}
+.wallet-connect-error:empty {margin:0}
+.wallet-connect-links,.wallet-connect-actions {display:flex;flex-wrap:wrap;gap:8px}
+.wallet-connect-links {justify-content:center}
+.wallet-connect-actions {
+    justify-content:flex-end;
+    padding:12px 24px 18px;
+    border-block-start:1px solid var(--nd-border-soft);
+}
+.wallet-connect-dialog button,
+.wallet-connect-links a {
+    appearance:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    box-sizing:border-box;
+    min-height:44px;
+    padding:8px 14px;
+    border:1px solid var(--nd-border);
+    border-radius:13px;
+    background:var(--nd-raised);
+    color:var(--nd-ink);
+    font:inherit;
+    font-weight:650;
+    text-align:center;
+    text-decoration:none;
+    cursor:pointer;
+}
+.wallet-connect-dialog .wallet-connect-primary {
+    background:var(--nd-accent);
+    border-color:var(--nd-accent);
+    color:var(--nd-on-accent);
+}
+.wallet-connect-dialog :is(button,a):hover {background:var(--nd-hover)}
+.wallet-connect-dialog .wallet-connect-primary:hover:not(:disabled) {
+    background:color-mix(in srgb,var(--nd-accent) 90%,var(--nd-ink));
+}
+.wallet-connect-dialog button:disabled {
+    background:var(--nd-muted);
+    border-color:var(--nd-border);
+    color:var(--nd-ink-muted);
+    cursor:default;
+}
+.wallet-connect-dialog :is(button,a,input):focus-visible {
+    outline:2px solid var(--nd-accent);
+    outline-offset:2px;
+}
+.wallet-connect-dialog .wallet-connect-show-qr {margin-block-start:8px}
+
+@media (max-width:540px) {
+    .wallet-connect-scrim {align-items:end;padding:0}
+    .wallet-connect-dialog {
+        width:100%;
+        max-height:calc(100dvh - env(safe-area-inset-top,0px) - 12px);
+        border-radius:29px 29px 0 0;
+    }
+    .wallet-connect-heading,.wallet-connect-body,.wallet-connect-actions {
+        padding-inline:18px;
+    }
+    .wallet-connect-actions {padding-block-end:calc(16px + env(safe-area-inset-bottom,0px))}
+    .wallet-connect-actions button {flex:1 1 120px}
 }

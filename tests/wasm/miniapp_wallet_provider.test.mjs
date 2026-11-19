@@ -146,7 +146,7 @@ test('wallet approval follows the active Persian and Arabic direction without ch
   assert.match(source,/panel\.setAttribute\('dir',copy\.direction\)/);
   assert.match(source,/originText\.textContent=origin/);
   assert.match(source,/originText\.setAttribute\('dir','ltr'\)/);
-  assert.match(source,/panel\.append\(title,originText,details\)/);
+  assert.match(source,/body\.append\(originText,details\)/);
   assert.doesNotMatch(source,/WalletConnect.*enabled:\s*true/);
 });
 
@@ -378,20 +378,27 @@ test('host WalletConnect prompt stays open for QR pairing and resolves only afte
     const approval=requestMiniAppWalletApproval('https://mini.example',new AbortController().signal,registry);
     const panel=body.children[0].children[0];
     assert.equal(panel.attrs.dir,'rtl');
-    const actions=panel.children.find(c=>c.tag==='div' &&
-      c.children.some(child=>child.tag==='button'));
+    assert.equal(panel.className,'wallet-connect-dialog');
+    const controls=panel.children.find(c=>c.className==='wallet-connect-body');
+    const group=controls.children.find(c=>c.tag==='fieldset');
+    const radio=group.children.find(c=>c.tag==='label').children[0];
+    assert.equal(radio.value,'walletconnect');
+    assert.equal(radio.checked,true);
+    const actions=panel.children.find(c=>c.tag==='footer');
     assert.ok(actions);
     const approve=actions.children.find(e=>e.tag==='button' &&
       e.textContent.includes('WalletConnect'));
     assert.ok(approve);
-    const qr=panel.children.find(e=>e.tag==='section' && e.hidden);
+    const qr=controls.children.find(e=>e.tag==='section' && e.hidden);
     assert.ok(qr);
     const click=approve.listeners.click();
     // Pairing stays pending until the real wallet accepts the session.
     for(let i=0;i<6;i++)await Promise.resolve();
     assert.equal(qr.hidden,false);
     assert.equal(qr.children[1].src,'data:image/png;base64,AA==');
+    assert.equal(qr.children[1].hidden,false);
     assert.equal(approve.disabled,true);
+    assert.equal(group.disabled,true);
     // Merely creating the pairing URI never grants the Mini App access.
     finishPairing();
     await click;

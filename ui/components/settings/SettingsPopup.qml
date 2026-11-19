@@ -86,11 +86,9 @@ GenyAdaptiveDialog {
         return titles[Math.max(0, Math.min(titles.length - 1, section))]
     }
     readonly property bool compactLayout: width < 640
-    // Narrow inspectors never squeeze two form columns.
-    // Use the content pane, not the outer dialog, to choose form columns.
     readonly property real navigationColumnWidth: Math.min(228, Math.max(186, width * 0.24))
-    readonly property int contentColumns: !mobilePresentation
-        && width - navigationColumnWidth - Theme.space6 >= Theme.scaleUi(840) ? 2 : 1
+    readonly property int contentColumns: !mobilePresentation && settingsPages.width >=
+        Theme.scaleUi(740) * Math.max(1, Theme.fontScale) ? 2 : 1
     readonly property var proEntitlements: openProofConnections
         ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property bool marketProEligible:
@@ -210,6 +208,49 @@ GenyAdaptiveDialog {
         if (symbol === "eth") return "crypto/ethereum"
         if (network === "base") return "crypto/base"
         return "crypto/ethereum"
+    }
+
+    component PreferenceGrid: GridLayout {
+        columns: root.contentColumns
+        uniformCellWidths: columns > 1
+        columnSpacing: Theme.space3
+        rowSpacing: root.mobilePresentation ? Theme.space4 : Theme.space3
+        layoutDirection: Theme.uiDirection
+    }
+
+    component SettingsAction: ActionButton {
+        Layout.fillWidth: root.mobilePresentation
+        Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+        Layout.maximumWidth: root.mobilePresentation ? Infinity : Theme.scaleUi(300)
+        wrapText: !root.mobilePresentation
+        alignStart: !root.mobilePresentation
+    }
+
+    component RecoveryPanel: Item {
+        id: recoveryPanel
+        default property alias controls: recoveryControls.data
+        readonly property real inset: root.mobilePresentation ? 0 : Theme.space3
+        Layout.fillWidth: true
+        Layout.minimumWidth: 0
+        Layout.alignment: Qt.AlignTop
+        implicitHeight: recoveryControls.implicitHeight + inset * 2
+
+        children: [
+            Superellipse {
+                anchors.fill: parent
+                visible: !root.mobilePresentation
+                fillColor: Theme.surfaceMuted
+                borderColor: Theme.borderSubtle
+                borderWidth: Theme.strokeHairline
+                curveDepth: Theme.curveContainer
+            },
+            ColumnLayout {
+                id: recoveryControls
+                anchors.fill: parent
+                anchors.margins: recoveryPanel.inset
+                spacing: root.mobilePresentation ? Theme.space4 : Theme.space3
+            }
+        ]
     }
 
     component ReadRangeCard: NeonSurface {
@@ -714,20 +755,23 @@ GenyAdaptiveDialog {
         // Desktop: quiet, single-column navigation. No multi-row, cropped tabs.
         // Phones retain their dedicated full-height grouped settings index.
         RowLayout {
+            objectName: "settingsWorkspace"
             visible: !root.mobilePresentation || !root.mobileIndexOpen
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Theme.space3
+            spacing: root.mobilePresentation ? Theme.space3 : Theme.space5
             layoutDirection: Theme.uiDirection
 
             Superellipse {
                 visible: !root.mobilePresentation
                 Layout.preferredWidth: root.navigationColumnWidth
                 Layout.fillHeight: true
-                fillColor: "transparent"
+                fillColor: Theme.surfaceMuted
                 curveDepth: Theme.curveContainer
-                borderWidth: 0
+                borderWidth: Theme.strokeHairline
+                borderColor: Theme.borderSubtle
                 ScrollView {
+                    id: navigationScroll
                     anchors.fill: parent
                     anchors.margins: Theme.space2
                     clip: true
@@ -736,7 +780,7 @@ GenyAdaptiveDialog {
                     ScrollBar.vertical: GenyScrollBar {}
                     ColumnLayout {
                         id: settingsNavigation
-                        width: parent.width
+                        width: navigationScroll.availableWidth
                         spacing: Theme.space1
                     SettingsProfileCard {
                         visible: presentationBridge.isAuthenticated
@@ -822,6 +866,7 @@ GenyAdaptiveDialog {
             visible: !root.mobilePresentation || !root.mobileIndexOpen
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.minimumWidth: 0
             currentIndex: root.currentSection
             onCurrentIndexChanged: {
                 if (!Theme.reduceMotion && root.opened) sectionMotion.restart()
@@ -850,11 +895,11 @@ GenyAdaptiveDialog {
                 ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
                 ScrollBar.vertical: GenyScrollBar {}
 
-                ColumnLayout {
+                PreferenceGrid {
                     width: appearanceScroll.availableWidth
-                    spacing: Theme.space4
 
                     ColumnLayout {
+                        Layout.columnSpan: root.contentColumns
                         Layout.fillWidth: true
                         spacing: Theme.space1
                         DirectionAwareLabel {
@@ -875,6 +920,7 @@ GenyAdaptiveDialog {
 
                     ColumnLayout {
                         Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignTop
                         spacing: Theme.space2
                         DirectionAwareLabel {
                             Layout.fillWidth: true
@@ -925,6 +971,7 @@ GenyAdaptiveDialog {
                     // Action Button is a persistent device-local navigation shortcut.
                     // The icon follows its selected safe, built-in action.
                     ColumnLayout {
+                        Layout.columnSpan: root.contentColumns
                         objectName: "mobileActionButtonPreferences"
                         // The floating navigation action is not a desktop setting.
                         // It appears on native phones and compact-width WASM only.
@@ -1069,11 +1116,17 @@ GenyAdaptiveDialog {
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
+                    Rectangle {
+                        visible: root.contentColumns === 1
+                        Layout.fillWidth: true
+                        height: Theme.strokeHairline
+                        color: Theme.divider
+                    }
 
                     ColumnLayout {
                         objectName: "textSelectionPreference"
                         Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignTop
                         spacing: Theme.space2
                         DirectionAwareLabel {
                             Layout.fillWidth: true
@@ -1144,9 +1197,10 @@ GenyAdaptiveDialog {
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
+                    Rectangle { Layout.columnSpan: root.contentColumns; Layout.fillWidth: true; height: 1; color: Theme.divider }
 
                     ColumnLayout {
+                        Layout.columnSpan: root.contentColumns
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         DirectionAwareLabel {
@@ -1437,9 +1491,10 @@ GenyAdaptiveDialog {
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
+                    Rectangle { Layout.columnSpan: root.contentColumns; Layout.fillWidth: true; height: 1; color: Theme.divider }
 
                     ColumnLayout {
+                        Layout.columnSpan: root.contentColumns
                         Layout.fillWidth: true
                         spacing: Theme.space2
 
@@ -1544,9 +1599,11 @@ GenyAdaptiveDialog {
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
+                    Rectangle { Layout.columnSpan: root.contentColumns; Layout.fillWidth: true; height: 1; color: Theme.divider }
 
                     DirectionAwareLabel {
+                        Layout.columnSpan: root.contentColumns
+                        visible: root.mobilePresentation
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.settings.power_save")
                         color: Theme.ink
@@ -1556,6 +1613,7 @@ GenyAdaptiveDialog {
                     // Power Save is colocated with Reduce Motion so mobile and
                     // desktop share one discoverable animation preference group.
                     NeonSurface {
+                        Layout.alignment: Qt.AlignTop
                         interactive: true
                         ambientNeon: true
                         neonStrength: Theme.neonPanelStrength
@@ -1596,6 +1654,7 @@ GenyAdaptiveDialog {
                     }
 
                     NeonSurface {
+                        Layout.alignment: Qt.AlignTop
                         interactive: true
                         ambientNeon: true
                         neonStrength: Theme.neonPanelStrength
@@ -1639,6 +1698,7 @@ GenyAdaptiveDialog {
                     // switch controls both Lottie and sprite playback, unlike
                     // the separate avatar-GIF preference above.
                     NeonSurface {
+                        Layout.alignment: Qt.AlignTop
                         interactive: true
                         ambientNeon: true
                         neonStrength: Theme.neonPanelStrength
@@ -1679,6 +1739,7 @@ GenyAdaptiveDialog {
                     }
 
                     NeonSurface {
+                        Layout.alignment: Qt.AlignTop
                         interactive: true
                         ambientNeon: true
                         neonStrength: Theme.neonPanelStrength
@@ -1722,6 +1783,7 @@ GenyAdaptiveDialog {
                     // GPU edge reflections are optional and independent from
                     // reduced motion. Energy-saving mode suspends the shader.
                     NeonSurface {
+                        Layout.alignment: Qt.AlignTop
                         interactive: true
                         ambientNeon: true
                         neonStrength: Theme.neonPanelStrength
@@ -1767,6 +1829,7 @@ GenyAdaptiveDialog {
                     // remains disabled in battery-saving or reduced-transparency
                     // mode, so no extra per-control GPU work is introduced.
                     NeonSurface {
+                        Layout.alignment: Qt.AlignTop
                         objectName: "settingsChromaticReflections"
                         Layout.fillWidth: true
                         interactive: true
@@ -1869,6 +1932,7 @@ GenyAdaptiveDialog {
                     }
 
                     ColumnLayout {
+                        Layout.columnSpan: root.contentColumns
                         Layout.fillWidth: true
                         spacing: Theme.space2
 
@@ -2743,11 +2807,12 @@ GenyAdaptiveDialog {
                 ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
                 ScrollBar.vertical: GenyScrollBar {}
 
-                ColumnLayout {
+                PreferenceGrid {
                     width: readSettingsScroll.availableWidth
-                    spacing: Theme.space3
+                    rowSpacing: Theme.space3
 
                     ColumnLayout {
+                        Layout.columnSpan: root.contentColumns
                         Layout.fillWidth: true
                         spacing: 2
                         DirectionAwareLabel {
@@ -2768,6 +2833,8 @@ GenyAdaptiveDialog {
                     }
 
                     ActionButton {
+                        Layout.columnSpan: root.contentColumns
+                        visible: root.mobilePresentation
                         Layout.fillWidth: true
                         iconGlyph: Theme.iconCloud
                         alignStart: true
@@ -2776,6 +2843,7 @@ GenyAdaptiveDialog {
                     }
 
                     Superellipse {
+                        Layout.columnSpan: root.contentColumns
                         Layout.fillWidth: true
                         implicitHeight: dataStorageEntryContent.implicitHeight + Theme.space2 * 2
                         fillColor: dataStorageEntryHover.hovered ? Theme.primarySurface : Theme.surfaceMuted
@@ -2844,6 +2912,7 @@ GenyAdaptiveDialog {
                     }
 
                     ReadRangeCard {
+                        Layout.fillHeight: root.contentColumns > 1
                         titleText: qsTrId("genycaster.settings.posts_per_refresh")
                         descriptionText: qsTrId("genycaster.settings.posts_per_refresh_description")
                         iconGlyph: Theme.iconRefresh
@@ -2854,6 +2923,7 @@ GenyAdaptiveDialog {
                     }
 
                     ReadRangeCard {
+                        Layout.fillHeight: root.contentColumns > 1
                         titleText: qsTrId("genycaster.settings.context_hydration_limit")
                         descriptionText: qsTrId("genycaster.settings.context_hydration_limit_description")
                         iconGlyph: Theme.iconComment
@@ -2863,7 +2933,7 @@ GenyAdaptiveDialog {
                         onValueRequested: value => presentationBridge.setContextHydrationLimit(value)
                     }
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
+                    Rectangle { Layout.columnSpan: root.contentColumns; Layout.fillWidth: true; height: 1; color: Theme.divider }
 
                     ReadToggleCard {
                         titleText: qsTrId("genycaster.settings.buffer_new_posts")
@@ -2898,11 +2968,11 @@ GenyAdaptiveDialog {
                 ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
                 ScrollBar.vertical: GenyScrollBar {}
 
-                ColumnLayout {
+                PreferenceGrid {
                     width: updatesScroll.availableWidth
-                    spacing: Theme.space4
 
                     ColumnLayout {
+                        Layout.columnSpan: root.contentColumns
                         Layout.fillWidth: true
                         spacing: Theme.space1
                         DirectionAwareLabel {
@@ -2945,6 +3015,7 @@ GenyAdaptiveDialog {
                     }
 
                     DirectionAwareLabel {
+                        Layout.columnSpan: root.contentColumns
                         objectName: "wasmUpdateDescription"
                         visible: root.webAssembly
                         Layout.fillWidth: true
@@ -2954,7 +3025,18 @@ GenyAdaptiveDialog {
                         wrapMode: Text.WordWrap
                     }
 
+                    ReadToggleCard {
+                        Layout.columnSpan: root.contentColumns
+                        visible: !root.webAssembly
+                        titleText: qsTrId("genycaster.settings.check_for_updates_automatically")
+                        descriptionText: qsTrId("genycaster.settings.look_for_published_genycaster_releases_once_per_day_no")
+                        iconGlyph: Theme.iconRefresh
+                        checked: updateController.autoCheckEnabled
+                        onCheckedRequested: checked => updateController.setAutoCheckEnabled(checked)
+                    }
+
                     Superellipse {
+                        Layout.alignment: Qt.AlignTop
                         objectName: "wasmUpdatePanel"
                         visible: root.webAssembly
                         Layout.fillWidth: true
@@ -2981,8 +3063,7 @@ GenyAdaptiveDialog {
                                 color: Theme.ink
                                 wrapMode: Text.WordWrap
                             }
-                            ActionButton {
-                                Layout.fillWidth: true
+                            SettingsAction {
                                 quiet: true
                                 enabled: !updateController.checking && !updateController.webRefreshing
                                 text: updateController.checking
@@ -3053,9 +3134,8 @@ GenyAdaptiveDialog {
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.WordWrap
                             }
-                            ActionButton {
+                            SettingsAction {
                                 objectName: "wasmRefreshUpdateButton"
-                                Layout.fillWidth: true
                                 prominent: true
                                 iconGlyph: Theme.iconRefresh
                                 enabled: !updateController.webRefreshing
@@ -3072,16 +3152,8 @@ GenyAdaptiveDialog {
                         }
                     }
 
-                    ReadToggleCard {
-                        visible: !root.webAssembly
-                        titleText: qsTrId("genycaster.settings.check_for_updates_automatically")
-                        descriptionText: qsTrId("genycaster.settings.look_for_published_genycaster_releases_once_per_day_no")
-                        iconGlyph: Theme.iconRefresh
-                        checked: updateController.autoCheckEnabled
-                        onCheckedRequested: checked => updateController.setAutoCheckEnabled(checked)
-                    }
-
                     Superellipse {
+                        Layout.alignment: Qt.AlignTop
                         visible: !root.webAssembly
                         Layout.fillWidth: true
                         implicitHeight: updaterColumn.implicitHeight + Theme.space3 * 2
@@ -3143,14 +3215,12 @@ GenyAdaptiveDialog {
                                 Item { Layout.fillWidth: true }
                             }
 
-                            ActionButton {
-                                Layout.fillWidth: true
+                            SettingsAction {
                                 text: updateController.checking ? qsTrId("genycaster.settings.checking") : qsTrId("genycaster.settings.check_now")
                                 enabled: !updateController.checking && !updateController.downloading
                                 onClicked: updateController.checkForUpdates()
                             }
-                            ActionButton {
-                                Layout.fillWidth: true
+                            SettingsAction {
                                 visible: updateController.downloadSupported && updateController.canDownload
                                 enabled: !updateController.checking && !updateController.downloading
                                 prominent: true
@@ -3164,8 +3234,7 @@ GenyAdaptiveDialog {
                                         updateController.downloadUpdate()
                                 }
                             }
-                            ActionButton {
-                                Layout.fillWidth: true
+                            SettingsAction {
                                 quiet: true
                                 text: qsTrId("genycaster.settings.release_notes_and_downloads")
                                 onClicked: updateController.openReleasePage()
@@ -3176,6 +3245,7 @@ GenyAdaptiveDialog {
                     // Voluntary community action: open the official repository,
                     // never claim the user already starred it or invent counts.
                     Superellipse {
+                        Layout.alignment: Qt.AlignTop
                         objectName: "genycasterGithubStarCard"
                         Layout.fillWidth: true
                         implicitHeight: githubStarContent.implicitHeight + Theme.space3 * 2
@@ -3230,9 +3300,8 @@ GenyAdaptiveDialog {
                                     }
                                 }
                             }
-                            ActionButton {
+                            SettingsAction {
                                 objectName: "genycasterStarOnGithub"
-                                Layout.fillWidth: true
                                 iconGlyph: Theme.iconPriorityStar
                                 text: qsTrId("genycaster.settings.github_star_action")
                                 onClicked: Qt.openUrlExternally("https://github.com/genyleap/genycaster")
@@ -3256,88 +3325,99 @@ GenyAdaptiveDialog {
                 ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
                 ScrollBar.vertical: GenyScrollBar {}
 
-                ColumnLayout {
+                PreferenceGrid {
                     width: recoverySettingsScroll.availableWidth
-                    spacing: Theme.space4
 
                     DirectionAwareLabel {
+                        Layout.columnSpan: root.contentColumns
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.setup.recovery_title")
                         color: Theme.ink
                         font.pixelSize: Theme.typeTitle2Size
                         font.weight: Theme.weightBold
                     }
-                    DirectionAwareLabel {
-                        visible: !presentationBridge.writeReady
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.recovery_privacy")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeLabelSize
-                        wrapMode: Text.WordWrap
-                    }
-                    DirectionAwareLabel {
-                        visible: presentationBridge.signerErrorText.length > 0
-                        Layout.fillWidth: true
-                        text: presentationBridge.signerErrorText
-                        color: Theme.warning
-                        wrapMode: Text.WordWrap
-                    }
-                    ActionButton {
-                        objectName: "settingsRecoveryImport"
-                        Layout.fillWidth: true
-                        prominent: true
-                        enabled: presentationBridge.isAuthenticated
-                                 && !presentationBridge.signerBusy
-                        visible: presentationBridge.isAuthenticated && !presentationBridge.writeReady
-                        text: qsTrId("genycaster.shell.enable_publishing_with_recovery_phrase")
-                        onClicked: {
-                            root.close()
-                            presentationBridge.provisionSigner()
+                    RecoveryPanel {
+                        DirectionAwareLabel {
+                            visible: !presentationBridge.writeReady
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.recovery_privacy")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeLabelSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            visible: presentationBridge.signerErrorText.length > 0
+                            Layout.fillWidth: true
+                            text: presentationBridge.signerErrorText
+                            color: Theme.warning
+                            wrapMode: Text.WordWrap
+                        }
+                        SettingsAction {
+                            objectName: "settingsRecoveryImport"
+                            prominent: true
+                            enabled: presentationBridge.isAuthenticated
+                                     && !presentationBridge.signerBusy
+                            visible: presentationBridge.isAuthenticated && !presentationBridge.writeReady
+                            text: qsTrId("genycaster.shell.enable_publishing_with_recovery_phrase")
+                            onClicked: {
+                                root.close()
+                                presentationBridge.provisionSigner()
+                            }
+                        }
+                        DirectionAwareLabel {
+                            visible: presentationBridge.isAuthenticated && presentationBridge.writeReady
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.recovery_signer_ready")
+                            color: Theme.positive
+                            font.pixelSize: Theme.typeLabelSize
+                            wrapMode: Text.WordWrap
+                        }
+                        SettingsAction {
+                            objectName: "settingsRecoveryExplanation"
+                            visible: presentationBridge.isAuthenticated
+                            quiet: true
+                            elevated: false
+                            iconGlyph: Theme.iconInfo
+                            text: qsTrId("genycaster.setup.recovery_why_no_words")
+                            onClicked: root.showRecoveryExplanation = !root.showRecoveryExplanation
+                        }
+                        DirectionAwareLabel {
+                            visible: root.showRecoveryExplanation
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.recovery_phrase_unavailable")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
                         }
                     }
-                    DirectionAwareLabel {
-                        visible: presentationBridge.isAuthenticated && presentationBridge.writeReady
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.recovery_signer_ready")
-                        color: Theme.positive
-                        font.pixelSize: Theme.typeLabelSize
-                        wrapMode: Text.WordWrap
-                    }
-                    ActionButton {
-                        objectName: "settingsRecoveryExplanation"
+
+                    RecoveryPanel {
                         visible: presentationBridge.isAuthenticated
-                        Layout.fillWidth: true
-                        quiet: true
-                        elevated: false
-                        iconGlyph: Theme.iconInfo
-                        text: qsTrId("genycaster.setup.recovery_why_no_words")
-                        onClicked: root.showRecoveryExplanation = !root.showRecoveryExplanation
-                    }
-                    DirectionAwareLabel {
-                        visible: root.showRecoveryExplanation
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.recovery_phrase_unavailable")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
-                    ActionButton {
-                        objectName: "settingsRecoveryRevoke"
-                        visible: presentationBridge.isAuthenticated
-                        Layout.fillWidth: true
-                        destructive: true
-                        text: qsTrId("genycaster.shell.revoke_signer")
-                        enabled: presentationBridge.writeReady && !presentationBridge.signerBusy
-                        onClicked: presentationBridge.revokeSigner()
-                    }
-                    ActionButton {
-                        objectName: "settingsRecoverySignOut"
-                        visible: presentationBridge.isAuthenticated
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.shell.sign_out")
-                        onClicked: {
-                            root.close()
-                            root.signOutConfirmationRequested()
+                        DirectionAwareLabel {
+                            visible: !root.mobilePresentation
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.mobile_account_security")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                            wrapMode: Text.WordWrap
+                        }
+                        SettingsAction {
+                            objectName: "settingsRecoveryRevoke"
+                            visible: presentationBridge.isAuthenticated
+                            destructive: true
+                            text: qsTrId("genycaster.shell.revoke_signer")
+                            enabled: presentationBridge.writeReady && !presentationBridge.signerBusy
+                            onClicked: presentationBridge.revokeSigner()
+                        }
+                        SettingsAction {
+                            objectName: "settingsRecoverySignOut"
+                            visible: presentationBridge.isAuthenticated
+                            text: qsTrId("genycaster.shell.sign_out")
+                            onClicked: {
+                                root.close()
+                                root.signOutConfirmationRequested()
+                            }
                         }
                     }
                 }
@@ -3405,7 +3485,11 @@ GenyAdaptiveDialog {
             }
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
+        Rectangle {
+            Layout.fillWidth: true
+            height: 1
+            color: Theme.divider
+        }
 
         RowLayout {
             Layout.fillWidth: true
