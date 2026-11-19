@@ -36,6 +36,13 @@ class AppSiteActivationTest(unittest.TestCase):
         self.assertEqual(text.count(f"server_name {site.HOST};"), 2)
         self.assertIn(f"ssl_certificate {site.CERT};", text)
 
+    def test_nginx_regex_quantifier_is_quoted(self):
+        # An unquoted {20} in a location regexp is tokenized as a
+        # directive delimiter by Nginx: unknown directive "20}\\.wasm$".
+        source = site.SOURCE.read_text(encoding="utf-8")
+        self.assertIn('location ~* "\\\\.[a-f0-9]{20}\\\\.wasm$" {', source)
+        self.assertNotIn("location ~* \\\\.[a-f0-9]{20}", source)
+
     def test_landing_page_capture_or_missing_marker_rejected(self):
         original = site.SOURCE.read_text(encoding="utf-8")
         for changed in (
