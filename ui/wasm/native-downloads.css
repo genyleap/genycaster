@@ -386,9 +386,9 @@
     #native-downloads-dialog a,#native-downloads-architecture svg:not(.nd-squircle-svg) {transition:none}
 }
 
-/* Only structural surfaces own true Qt exponent-4 contours. SVG is a
- * noninteractive paint layer, never a second border on child controls.
- * One contour + one stroke per surface avoids the doubled-frame artifacts.
+/* True Qt exponent-4 Superellipse contours on browser engines that lack
+ * CSS corner-shape support. The SVG layer is noninteractive: semantic HTML,
+ * resize behaviour, focus management and touch events stay unchanged.
  */
 .nd-squircle {
     position:relative;
@@ -398,18 +398,13 @@
     corner-shape:round!important;
 }
 .nd-squircle > svg.nd-squircle-svg {
-    position:absolute;
-    inset:0;
+    position:absolute;inset:0;
     display:block;
-    width:100%;
-    height:100%;
-    min-width:0;
-    min-height:0;
-    overflow:hidden;
-    z-index:-1;
+    width:100%;height:100%;
+    min-width:0;min-height:0;
+    overflow:hidden;z-index:-1;
     pointer-events:none;
-    stroke:none;
-    fill:none;
+    stroke:none;fill:none;
     transform:none!important;
     transition:none!important;
     animation:none!important;
@@ -417,30 +412,86 @@
 .nd-squircle > svg.nd-squircle-svg > path {
     fill:var(--nd-shape-fill,var(--nd-raised));
     stroke:var(--nd-shape-stroke,var(--nd-border));
-    stroke-width:1px;
+    stroke-width:var(--nd-shape-width,1px);
     vector-effect:non-scaling-stroke;
     stroke-linejoin:round;
 }
 #native-downloads-dialog.nd-squircle {
     position:fixed;
     --nd-shape-fill:var(--nd-surface);
-    --nd-shape-stroke:var(--nd-border);
-    /* CSS box-shadow follows a rectangle. The drop shadow instead tracks
-       the single curved surface and does not create another outline. */
-    box-shadow:none;
-    filter:drop-shadow(0 17px 35px var(--nd-shadow));
+    --nd-shape-stroke:color-mix(in srgb,var(--nd-accent) 16%,var(--nd-border));
+}
+#native-downloads-trigger.nd-squircle {
+    position:fixed;
+    --nd-shape-fill:var(--nd-raised);
+}
+#native-downloads-trigger.nd-squircle:hover {--nd-shape-fill:var(--nd-hover);--nd-shape-stroke:var(--nd-accent)}
+#native-downloads-trigger.nd-squircle[aria-expanded="true"] {
+    --nd-shape-fill:color-mix(in srgb,var(--nd-accent) 12%,var(--nd-raised));
+    --nd-shape-stroke:var(--nd-accent);
+}
+#native-downloads-close.nd-squircle {--nd-shape-fill:var(--nd-raised)}
+#native-downloads-close.nd-squircle:hover {--nd-shape-fill:var(--nd-hover)}
+.native-downloads-tabs.nd-squircle {--nd-shape-fill:var(--nd-muted)}
+.native-downloads-tabs button.nd-squircle {
+    --nd-shape-fill:transparent;
+    --nd-shape-stroke:transparent;
+}
+.native-downloads-tabs button.nd-squircle:hover:not(.selected) {
+    --nd-shape-fill:var(--nd-hover);
+}
+.native-downloads-tabs button.selected.nd-squircle {
+    --nd-shape-fill:var(--nd-accent);
+    --nd-shape-stroke:var(--nd-accent);
+}
+#native-downloads-architecture.nd-squircle {--nd-shape-fill:var(--nd-raised)}
+#native-downloads-architecture.nd-squircle:hover {
+    --nd-shape-fill:var(--nd-hover);--nd-shape-stroke:var(--nd-accent);
+}
+#native-downloads-architecture.is-open.nd-squircle {
+    --nd-shape-stroke:var(--nd-accent);
 }
 #native-downloads-options.nd-squircle {
     position:absolute;
     --nd-shape-fill:var(--nd-raised);
-    --nd-shape-stroke:var(--nd-border);
-    box-shadow:none;
-    filter:drop-shadow(0 10px 18px var(--nd-shadow));
 }
-.native-github-cta.nd-squircle {
-    --nd-shape-fill:var(--nd-muted);
-    --nd-shape-stroke:var(--nd-border);
-    box-shadow:none;
+.native-downloads-option.nd-squircle {
+    --nd-shape-fill:transparent;
+    --nd-shape-stroke:transparent;
+}
+.native-downloads-option.nd-squircle:hover,
+.native-downloads-option.nd-squircle:focus-visible {--nd-shape-fill:var(--nd-hover)}
+.native-downloads-option[aria-selected="true"].nd-squircle {
+    --nd-shape-fill:color-mix(in srgb,var(--nd-accent) 11%,var(--nd-raised));
+}
+.native-downloads-result.nd-squircle {--nd-shape-fill:var(--nd-muted)}
+#native-downloads-action.nd-squircle {
+    --nd-shape-fill:var(--nd-accent);--nd-shape-stroke:var(--nd-accent);
+}
+.native-downloads-secondary.nd-squircle {--nd-shape-fill:var(--nd-raised)}
+.native-downloads-secondary.nd-squircle:hover {
+    --nd-shape-fill:var(--nd-hover);--nd-shape-stroke:var(--nd-accent);
+}
+.native-github-cta.nd-squircle {--nd-shape-fill:var(--nd-muted)}
+.native-github-cta-icon.nd-squircle {
+    --nd-shape-fill:color-mix(in srgb,var(--nd-accent) 12%,var(--nd-surface));
+    --nd-shape-stroke:color-mix(in srgb,var(--nd-accent) 28%,var(--nd-border));
+}
+#native-github-star.nd-squircle {
+    --nd-shape-fill:var(--nd-surface);
+    --nd-shape-stroke:color-mix(in srgb,var(--nd-accent) 40%,var(--nd-border));
+}
+#native-github-star.nd-squircle:hover {
+    --nd-shape-fill:var(--nd-hover);--nd-shape-stroke:var(--nd-accent);
+}
+#native-downloads-nudge.nd-squircle {
+    position:fixed;--nd-shape-fill:var(--nd-raised);
+}
+#native-downloads-nudge-open.nd-squircle {
+    --nd-shape-fill:var(--nd-accent);--nd-shape-stroke:var(--nd-accent);
+}
+@media (max-width:640px) {
+    #native-downloads-dialog.nd-squircle {position:fixed}
 }
 
 /* Keep the background Bezier fixed while the inner viewport scrolls.
@@ -468,6 +519,13 @@
 #native-downloads-dialog.nd-squircle {
     overflow:visible;
     --nd-shape-width:1px;
+}
+.native-downloads-tabs button.selected.nd-squircle {
+    box-shadow:none;
+}
+#native-downloads-architecture.is-open.nd-squircle {
+    box-shadow:none;
+    --nd-shape-width:1.8px;
 }
 @media (max-width:640px) {
     #native-downloads-dialog {
@@ -498,84 +556,73 @@
     }
 }
 
-/* Unified soft-control corner family. Never create extra SVG contours for
- * option rows, trigger, tab buttons, secondary actions or close controls. */
-#native-downloads-trigger {
-    border-radius:19px;
-    corner-shape:round;
-    box-shadow:0 7px 20px color-mix(in srgb,var(--nd-shadow) 58%,transparent);
+
+/* Single-border superellipse repair.
+ * Each surface owns exactly one QML-equivalent SVG path for its fill/stroke.
+ * Remove the native CSS stroke, inset shadows and generic focus outline
+ * on those components. Their SVG silhouette remains unchanged.
+ */
+.nd-squircle {
+    border-color:transparent!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    outline:none;
 }
-#native-downloads-close {
-    border-radius:17px;
-    corner-shape:round;
-    box-shadow:none;
+.nd-squircle > svg.nd-squircle-svg > path {
+    stroke-width:var(--nd-shape-width,1px);
 }
-.native-downloads-tabs {
-    border-radius:24px;
-    corner-shape:round;
-    box-shadow:none;
-    padding:6px;
+/* Focus is indicated by a thicker *existing* contour for keyboard use.
+ * Programmatic/pointer focus must not draw a second detached blue ring. */
+.nd-squircle:focus,
+.nd-squircle:focus-visible {
+    outline:none!important;
+    outline-offset:0!important;
 }
-.native-downloads-tabs button {
-    border-radius:17px;
-    corner-shape:round;
-    box-shadow:none;
-    border:0;
+.nd-keyboard-input .nd-squircle:focus-visible {
+    --nd-shape-stroke:var(--nd-accent);
+    --nd-shape-width:2px;
 }
-.native-downloads-tabs button.selected {box-shadow:none}
+#native-downloads-dialog.nd-squircle {
+    --nd-shape-stroke:var(--nd-border);
+    filter:drop-shadow(0 18px 32px var(--nd-shadow));
+}
+#native-downloads-trigger.nd-squircle {
+    filter:drop-shadow(0 5px 10px color-mix(in srgb,var(--nd-shadow) 55%,transparent));
+}
+#native-downloads-options.nd-squircle {
+    --nd-shape-stroke:var(--nd-border);
+    filter:drop-shadow(0 10px 18px color-mix(in srgb,var(--nd-shadow) 65%,transparent));
+}
+.native-downloads-tabs button.selected.nd-squircle {
+    box-shadow:none!important;
+}
+#native-downloads-architecture.is-open.nd-squircle {
+    box-shadow:none!important;
+    --nd-shape-stroke:var(--nd-accent);
+}
+.native-downloads-option.nd-squircle {
+    --nd-shape-stroke:transparent;
+}
+.native-downloads-option[aria-selected="true"].nd-squircle {
+    --nd-shape-stroke:transparent;
+}
+.native-downloads-option.nd-squircle:focus-visible {
+    outline:none!important;
+}
+/* Keep the architecture popup above the availability message, rather than
+ * letting a container-level stacking context put the menu behind the card. */
 .native-downloads-configuration {position:relative}
 .native-downloads-configuration.is-dropdown-open {z-index:12}
-#native-downloads-architecture {
-    border-radius:18px;
-    corner-shape:round;
-    box-shadow:none;
+/* A soft, single SVG frame, not nested browser border-radius outlines. */
+#native-downloads-close.nd-squircle,
+#native-downloads-action.nd-squircle,
+.native-downloads-secondary.nd-squircle,
+#native-github-star.nd-squircle {
+    filter:none;
 }
-#native-downloads-architecture.is-open {
-    box-shadow:none;
-    border-color:var(--nd-accent);
-}
-#native-downloads-options {
-    border-radius:23px;
-    min-width:100%;
-}
-.native-downloads-option,
-.native-downloads-option[aria-selected="true"] {
-    border:0;
-    border-radius:14px;
-    corner-shape:round;
-    box-shadow:none;
-}
-.native-downloads-option[aria-selected="true"] {
-    background:color-mix(in srgb,var(--nd-accent) 11%,var(--nd-raised));
-    color:var(--nd-accent);
-}
-#native-downloads-options .native-downloads-option:focus-visible {
-    outline:2px solid var(--nd-accent);
-    outline-offset:-2px;
-}
-.native-downloads-result {
-    border-radius:19px;
-    corner-shape:round;
-    box-shadow:none;
-}
-#native-downloads-action,
-.native-downloads-secondary,
-#native-github-star {
-    border-radius:18px;
-    corner-shape:round;
-    box-shadow:none;
-}
-.native-github-cta-icon {
-    border-radius:16px;
-    corner-shape:round;
-    box-shadow:none;
-}
-#native-downloads-nudge,
-#native-downloads-nudge-open {
-    border-radius:18px;
-    corner-shape:round;
-}
-@media(max-width:640px) {
-    .native-downloads-tabs button {border-radius:16px}
-    #native-downloads-trigger {border-radius:19px}
+@media(prefers-reduced-motion:reduce) {
+    .nd-squircle > svg.nd-squircle-svg {
+        transition:none!important;
+        animation:none!important;
+    }
 }
