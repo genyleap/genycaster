@@ -145,6 +145,26 @@ test('public profile classification is FID/network scoped and links stay private
   assert.match(header,/Q_PROPERTY\(QVariantMap publicProfileExtras/);
   assert.match(controller,/query\.addQueryItem\(QStringLiteral\("network"\),network\)/);
 });
+test('account and protocol transitions discard private status and stale public projection',()=>{
+  const network=controller.slice(controller.indexOf(
+    'void OpenProofConnectionsController::setViewerNetwork('),
+    controller.indexOf('void OpenProofConnectionsController::setViewerFid('));
+  const account=controller.slice(controller.indexOf(
+    'void OpenProofConnectionsController::setViewerFid('),
+    controller.indexOf('void OpenProofConnectionsController::acceptAuthenticatedGrant('));
+  for(const source of [network,account]) {
+    assert.match(source,/cancelNetworkReply\(m_profileStatusRead,this\)/);
+    assert.match(source,/cancelNetworkReply\(m_profileStatusWrite,this\)/);
+    assert.match(source,/m_profileStatus\.clear\(\)/);
+    assert.match(source,/m_profileStatusFid=0/);
+    assert.match(source,/m_profileStatusNetwork\.clear\(\)/);
+    assert.match(source,/m_profileStatusRevision=0/);
+    assert.match(source,/cancelNetworkReply\(m_publicProfileExtrasRead,this\)/);
+    assert.match(source,/m_publicProfileExtras\.clear\(\)/);
+    assert.match(source,/emit profileStatusChanged\(\)/);
+    assert.match(source,/emit publicProfileExtrasChanged\(\)/);
+  }
+});
 test('status icon family is semantic, bundled and independent of audio controls',()=>{
   const theme=readFileSync(root+'/ui/theme/Theme.qml','utf8');
   const mappings={

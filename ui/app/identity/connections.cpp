@@ -4196,7 +4196,22 @@ void OpenProofConnectionsController::setViewerNetwork(const QString& network)
     if(network != QStringLiteral("farcaster")
        && network != QStringLiteral("hypersnap")
        && !network.isEmpty())return;
+    if(m_viewerNetwork==network)return;
     m_viewerNetwork = network;
+    // A protocol switch must not expose a previous account's private status.
+    cancelNetworkReply(m_profileStatusRead,this);
+    cancelNetworkReply(m_profileStatusWrite,this);
+    m_profileStatus.clear();
+    m_profileStatusFid=0;
+    m_profileStatusNetwork.clear();
+    m_profileStatusRevision=0;
+    m_profileStatusError.clear();
+    emit profileStatusChanged();
+    cancelNetworkReply(m_publicProfileExtrasRead,this);
+    m_publicProfileExtras.clear();
+    m_publicProfileExtrasFid.clear();
+    m_publicProfileExtrasNetwork.clear();
+    emit publicProfileExtrasChanged();
 }
 
 void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
@@ -4215,6 +4230,21 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_approvalUrl.clear();
     m_error.clear();
     m_viewerFid = fid;
+    // Do not retain owner-only mood or stale public projections on sign-out,
+    // account replacement, or another FID becoming the active viewer.
+    cancelNetworkReply(m_profileStatusRead,this);
+    cancelNetworkReply(m_profileStatusWrite,this);
+    m_profileStatus.clear();
+    m_profileStatusFid=0;
+    m_profileStatusNetwork.clear();
+    m_profileStatusRevision=0;
+    m_profileStatusError.clear();
+    emit profileStatusChanged();
+    cancelNetworkReply(m_publicProfileExtrasRead,this);
+    m_publicProfileExtras.clear();
+    m_publicProfileExtrasFid.clear();
+    m_publicProfileExtrasNetwork.clear();
+    emit publicProfileExtrasChanged();
     m_nativeEnrollmentPhase = QStringLiteral("idle");
     cancelNetworkReply(m_streakRead, this);
     cancelNetworkReply(m_streakWrite, this);
