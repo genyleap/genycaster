@@ -626,3 +626,85 @@
         animation:none!important;
     }
 }
+
+
+/* Popup geometry is anchored to the trigger by JS, but its DOM lives directly
+ * inside the modal, OUTSIDE .native-downloads-viewport (overflow:auto).
+ * Keeping its own full-height SVG frame in the overlay layer prevents the
+ * second option from being cropped or painted below the status card. */
+#native-downloads-dialog > #native-downloads-options {
+    position:absolute;
+    z-index:320;
+    right:auto;
+    bottom:auto;
+    box-sizing:border-box;
+    min-width:0;
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    margin:0;
+    padding:6px;
+    box-shadow:none!important;
+    border-color:transparent!important;
+    background:transparent!important;
+}
+#native-downloads-options .native-downloads-option {
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    height:44px;
+    min-height:44px;
+    margin:0;
+    padding:0 13px;
+    flex:none;
+}
+#native-downloads-options .native-downloads-option + .native-downloads-option {
+    margin-top:3px;
+}
+#native-downloads-options .native-downloads-option[aria-selected="true"] {
+    --nd-shape-stroke:transparent;
+    outline:0!important;
+}
+#native-downloads-options .native-downloads-option[aria-selected="true"]::after {
+    float:none;
+    margin-left:8px;
+}
+/* The logo frame is an independent QML-equivalent Superellipse rather than
+ * a hard-edged image border. Its image is deliberately borderless: the
+ * continuous silhouette has exactly one stroke and one owner. */
+.native-downloads-brand-frame {
+    display:grid;
+    place-items:center;
+    width:44px;
+    height:44px;
+    flex:0 0 44px;
+    position:relative;
+    border:1px solid var(--nd-border);
+    border-radius:15px;
+    corner-shape:superellipse(4);
+    background:var(--nd-muted);
+    box-shadow:none;
+}
+.native-downloads-brand-frame.nd-squircle {
+    --nd-shape-fill:var(--nd-muted);
+    --nd-shape-stroke:var(--nd-border);
+    --nd-shape-width:1px;
+    border-color:transparent!important;
+}
+.native-downloads-brand-frame .native-downloads-mark {
+    width:32px;
+    height:32px;
+    padding:0;
+    margin:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+    object-fit:contain;
+    display:block;
+    position:relative;
+    z-index:0;
+    pointer-events:none;
+}
