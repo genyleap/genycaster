@@ -3,23 +3,27 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-// Replace only the two module-loading expressions with controllable fakes;
+// Replace module-loading expressions with controllable fakes;
 // execute the real browser pre-js state machine without a live wallet or keys.
 const original = readFileSync(new URL('../../ui/wasm/protocol-signer-pre.js', import.meta.url), 'utf8');
 const source = original
-  .replace("await import('./browser_protocol_signer.mjs')", "await window.__testImportSigner()")
+  .replaceAll("await import('./browser_protocol_signer.mjs')", "await window.__testImportSigner()")
   .replaceAll("await import('./recovery-phrase-dialog.mjs')", "await window.__testImportPhrase()")
   .replace("await import('./farcaster_custody_recovery.mjs')", "await window.__testImportIdentity()")
+  .replaceAll("await import('./hypersnap_native_account.mjs')", "await window.__testImportNativeRegistry()")
+  .replace("await import('./deployment_config.mjs')", "await window.__testImportDeployment()")
+  .replace("await import('./secure_signer_vault.mjs')", "await window.__testImportVault()")
   .replace("import('./browser_device_session.mjs')", "window.__testImportDevice()");
 assert.notEqual(source, original);
 assert.ok(source.includes('window.__testImportPhrase()'));
 
 const tick = () => new Promise(resolve => setTimeout(resolve, 55));
-function harness(registered = false) {
+const nativeFid = '9007199254740993';
+function harness(registered = false, initialRemembered = null) {
     const events = [];
     const calls = [];
     const storage=new Map();
-    let remembered=null;
+    let remembered=initialRemembered;
     let releasePrompt;
     let delayPrompt = false;
     // Minimal DOM for the visible recovery-preparation layer; real phrase
@@ -37,10 +41,17 @@ function harness(registered = false) {
         requestAnimationFrame:fn=>{fn();return 1;},
         localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},
         __testImportDevice: async()=>({createDeviceSession:()=>({
-            remember:async fid=>{remembered=fid;return fid;},
-            restore:async()=>remembered,
-            protocolFor:async()=>remembered?'farcaster-snapchain':'',
+            remember:async (fid,protocol='farcaster-snapchain')=>{
+                remembered={fid,protocol};return fid;
+            },
+            restore:async()=>remembered?.fid??null,
+            protocolFor:async()=>remembered?.protocol??'',
             clear:async()=>{remembered=null;}
+        })}),
+        __testImportDeployment:async()=>({deployment:{hypersnapOrigin:'https://hypersnap.example.test'}}),
+        __testImportVault:async()=>({createBrowserSignerVault:()=>({})}),
+        __testImportNativeRegistry:async()=>({createBrowserNativeRegistry:()=>({
+            recover:async()=>({state:'confirmed',fid:nativeFid}),
         })}),
         location: {protocol:'https:', hostname:'example.test', origin:'https://example.test'},
         isSecureContext:true, crypto:{subtle:{sign(){}}}, indexedDB:{open(){}},
@@ -86,6 +97,7 @@ function harness(registered = false) {
     vm.runInContext(source, context, {filename:'protocol-signer-pre.js'});
     const bridge=fakeWindow.__genycasterBrowserSigning;
     return {bridge,calls,events:bridge.events,storage,
+        get remembered(){return remembered;},
         setDelayPrompt(){delayPrompt=true;},
         failSignerInit(){fakeWindow.__testImportSigner=async()=>{
             throw new Error('Signing service temporarily unavailable');
@@ -177,6 +189,39 @@ test('verified sign-in is remembered locally and refresh restores device proof',
     assert.equal(restored?.localDevice,true);
     assert.ok(!JSON.stringify(h.events).includes('privateKey'));
 });
+
+test('read-only HyperSnap recovery reopens after a reload without a registered signer',async()=>{
+    const base='https://snapchain.example.test';
+    const protocol='hypersnap-v2';
+    const first=harness();
+    first.bridge.start('recover-hypersnap','',base,JSON.stringify({
+        requestId:'aaaaaaaa-bbbb-4ccc-8ddd-000000000003',protocol,
+    }));
+    await tick();
+    assert.equal(first.events.find(event=>event.kind==='setup-account')?.phase,'ready');
+    assert.deepEqual(first.remembered,{fid:nativeFid,protocol});
+
+    const reloaded=harness(false,first.remembered);
+    const requestId='aaaaaaaa-bbbb-4ccc-8ddd-000000000004';
+    reloaded.bridge.start('resume-account','',base,JSON.stringify({requestId}));
+    await tick();
+    const restored=reloaded.events.find(event=>event.kind==='setup-account');
+    assert.equal(restored?.phase,'ready');
+    assert.equal(restored?.fid,nativeFid);
+    assert.equal(restored?.protocol,protocol);
+    assert.equal(restored?.localDevice,true);
+    assert.equal(restored?.requestId,requestId);
+    assert.deepEqual(reloaded.calls,[]);
+
+    // The native bridge asks about publishing only after the viewer opens.
+    reloaded.bridge.start('restore',nativeFid,base,JSON.stringify({protocol}));
+    await tick();
+    assert.deepEqual(reloaded.calls,['restore:'+nativeFid]);
+    const signer=reloaded.events.find(event=>event.kind==='signer');
+    assert.equal(signer?.phase,'missing');
+    assert.equal(signer?.ready,false);
+});
+
 test('explicit logout disables automatic sign-in and erases remembered device',async()=>{
     const h=harness(false);
     h.bridge.start('restore','101','https://snapchain.example.test',

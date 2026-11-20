@@ -246,17 +246,8 @@
                     const account=await device.restore();
                     const protocol=account?await device.protocolFor(account):'';
                     if(epoch!==thisEpoch)return;
-                    if(account && protocol==='hypersnap-v2') {
-                        // A remembered device key alone is not a HyperSnap
-                        // custody proof. Authorize a resumed native session
-                        // only after the stored protocol signer key is verified
-                        // again by the correct live HyperSnap registry.
-                        const signer=await createNativeClient();
-                        const registration=await signer.restore(account);
-                        if(!registration)
-                            throw new Error('HyperSnap signer authorization needs recovery');
-                    }
-                    if(epoch!==thisEpoch)return;
+                    // Reopen the locally remembered viewer. Qt requests a
+                    // separate live signer check after committing the session.
                     report({kind:'setup-account',phase:account&&!owner?'ready':'cancelled',
                         fid:account&&!owner?account:'',requestId,localDevice:true,
                         protocol});

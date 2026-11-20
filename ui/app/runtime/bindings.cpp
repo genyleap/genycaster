@@ -2683,8 +2683,11 @@ void connectRuntime(
 #if defined(Q_OS_WASM)
                     const auto completedPhase = state.phase;
                     const auto verifiedFid = state.session ? state.session->fid.value : 0U;
-                    const bool deviceLocalSession = state.session
-                        && state.session->identityIssuer == "genycaster:device-local";
+                    // The browser already saves HyperSnap custody recovery and
+                    // registration. Do not extend device continuity on reload.
+                    const bool rememberBrowserIdentity = state.session
+                        && state.session->identityIssuer != "genycaster:device-local"
+                        && state.session->identityIssuer != "hypersnap:native-registry";
 #endif
                     applySessionState(bridge, std::move(state), authenticationAvailable);
                     runtime->authenticationPollInFlight.store(false, std::memory_order_release);
@@ -2698,8 +2701,9 @@ void connectRuntime(
                         // Never open the recovery dialog without explicit user action.
                         browserSigner->start(QStringLiteral("restore"),
                             QString::number(verifiedFid),
-                            deviceLocalSession ? QJsonObject{}
-                                : QJsonObject{{QStringLiteral("rememberLocal"), true}});
+                            rememberBrowserIdentity
+                                ? QJsonObject{{QStringLiteral("rememberLocal"), true}}
+                                : QJsonObject{});
                     } else if (completedPhase == application::session::SessionPhase::Guest) {
                         browserSigner->start(QStringLiteral("signed-out"), {});
                     }
