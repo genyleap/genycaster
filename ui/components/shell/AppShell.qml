@@ -62,8 +62,8 @@ Item {
         id: interactionAuthorizationDialog
         objectName: "interactionAuthorizationExplanation"
         parent: Overlay.overlay
-        blurSourceItem: Qt.platform.os === "android" && root.compact ? null : shellContent
-        fullScreen: Qt.platform.os === "android" && root.compact
+        blurSourceItem: Qt.platform.os === "android" ? null : shellContent
+        fullScreen: Qt.platform.os === "android"
         readonly property bool nativeAccount:
             presentationBridge.nativeCustodyAccount
         property bool enteringNativeWords: false
