@@ -214,6 +214,14 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.apps.native");
     //% "Native Genycaster Apps are in development."
     (void)qtTrId("genycaster.apps.native_description");
+    //% "DESKTOP & MOBILE"
+    (void)qtTrId("genycaster.apps.download_cta_eyebrow");
+    //% "Get GenyCaster for your device"
+    (void)qtTrId("genycaster.apps.download_cta_title");
+    //% "Explore macOS, Windows, Linux and Android editions. See what's available and what's coming soon."
+    (void)qtTrId("genycaster.apps.download_cta_description");
+    //% "Explore downloads"
+    (void)qtTrId("genycaster.apps.download_cta_button");
     //% "My MiniApps"
     (void)qtTrId("genycaster.apps.my_miniapps");
     //% "Search Mini Apps"

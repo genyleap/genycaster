@@ -5280,6 +5280,22 @@ Company | https://company.com</source>
             <source>Native Genycaster Apps are in development.</source>
             <translation>Genycaster のネイティブアプリは開発中です。</translation>
         </message>
+        <message id="genycaster.apps.download_cta_eyebrow">
+            <source>DESKTOP &amp; MOBILE</source>
+            <translation>デスクトップ・モバイル</translation>
+        </message>
+        <message id="genycaster.apps.download_cta_title">
+            <source>Get GenyCaster for your device</source>
+            <translation>デバイスにGenyCasterを</translation>
+        </message>
+        <message id="genycaster.apps.download_cta_description">
+            <source>Explore macOS, Windows, Linux and Android editions. See what's available and what's coming soon.</source>
+            <translation>macOS、Windows、Linux、Android向けの各バージョンを確認。公開済みと近日公開予定の情報を表示します。</translation>
+        </message>
+        <message id="genycaster.apps.download_cta_button">
+            <source>Explore downloads</source>
+            <translation>ダウンロードを見る</translation>
+        </message>
         <message id="genycaster.apps.my_miniapps">
             <source>My MiniApps</source>
             <translation>マイ MiniApps</translation>

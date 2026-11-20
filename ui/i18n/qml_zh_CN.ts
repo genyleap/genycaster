@@ -5280,6 +5280,22 @@ Company | https://company.com</source>
             <source>Native Genycaster Apps are in development.</source>
             <translation>Genycaster 原生应用正在开发中。</translation>
         </message>
+        <message id="genycaster.apps.download_cta_eyebrow">
+            <source>DESKTOP &amp; MOBILE</source>
+            <translation>桌面端和移动端</translation>
+        </message>
+        <message id="genycaster.apps.download_cta_title">
+            <source>Get GenyCaster for your device</source>
+            <translation>获取适用于您设备的 GenyCaster</translation>
+        </message>
+        <message id="genycaster.apps.download_cta_description">
+            <source>Explore macOS, Windows, Linux and Android editions. See what's available and what's coming soon.</source>
+            <translation>了解 macOS、Windows、Linux 和 Android 版本，查看已发布和即将推出的下载。</translation>
+        </message>
+        <message id="genycaster.apps.download_cta_button">
+            <source>Explore downloads</source>
+            <translation>查看下载</translation>
+        </message>
         <message id="genycaster.apps.my_miniapps">
             <source>My MiniApps</source>
             <translation>我的 MiniApps</translation>

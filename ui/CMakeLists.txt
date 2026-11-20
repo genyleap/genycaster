@@ -4,6 +4,7 @@ find_package(Qt6 QUIET COMPONENTS Lottie)
 set(farcasterQmlFiles
     components/shell/Main.qml
     components/controls/ActionButton.qml
+    components/controls/NativeAppDiscoveryCTA.qml
     components/settings/DisplayScaleControl.qml
     components/settings/PanelWidthControl.qml
     components/media/AnimatedEmoji.qml

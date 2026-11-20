@@ -1348,32 +1348,23 @@ Item {
             // Discoverable account and app entry points live INSIDE the
             // scrollable Explore header, never as a permanent HTML overlay.
             // Authentication, not publishing/signer readiness, owns visibility.
-            RowLayout {
+            NativeAppDiscoveryCTA {
                 objectName: "webGuestDiscoveryActions"
-                width: parent.width
                 visible: Qt.platform.os === "wasm"
                          && presentationBridge.authenticationStateObserved
                          && !presentationBridge.isAuthenticated
-                spacing: Theme.space2
-                layoutDirection: Theme.uiDirection
-                Item { Layout.fillWidth: true }
-                ActionButton {
-                    objectName: "webGuestNativeApps"
-                    compact: true
-                    quiet: true
-                    iconGlyph: Theme.iconDownload
-                    text: qsTrId("genycaster.apps.native")
-                    onClicked: presentationBridge.openBrowserNativeDownloads()
-                }
-                ActionButton {
-                    objectName: "webGuestSignIn"
-                    compact: true
-                    prominent: true
-                    iconGlyph: Theme.iconSignIn
-                    text: qsTrId("genycaster.header.sign_in")
-                    onClicked: root.openAccountPopup()
-                }
-                Item { Layout.fillWidth: true }
+                x: Theme.space3
+                width: Math.max(0, parent.width - Theme.space3 * 2)
+                height: visible ? implicitHeight : 0
+                showSignIn: true
+                onDownloadsRequested: presentationBridge.openBrowserNativeDownloads()
+                onSignInRequested: root.openAccountPopup()
+            }
+            Item {
+                width: parent.width
+                height: presentationBridge.authenticationStateObserved
+                        && !presentationBridge.isAuthenticated
+                        && Qt.platform.os === "wasm" ? Theme.space3 : 0
             }
             // Explorer's brand/action bar is fixed by the shell. Everything from
             // the greeting downward belongs to the scrolling/pullable feed.
