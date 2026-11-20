@@ -63,7 +63,11 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
         },
         document:{getElementById:id=>nodes.get(id),visibilityState:"visible",
             addEventListener(name,handler){listeners[name]=handler;},
-            documentElement:{setAttribute:(key,value)=>{if(key==="data-chrome-theme")chrome.scheme=value;}},
+            documentElement:{
+                setAttribute:(key,value)=>{if(key==="data-chrome-theme")chrome.scheme=value;},
+                getAttribute:key=>key==="data-chrome-theme"?chrome.scheme:null,
+                style:{setProperty:(key,value)=>{if(key==="--nd-accent")chrome.accent=value;}}
+            },
             querySelector:selector=>({
                 setAttribute:(key,value)=>{
                     if(key!=="content")return;
@@ -71,6 +75,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
                     if(selector.includes("status-bar-style"))chrome.statusStyle=value;
                 }
             })},
+        navigator:{platform:"Linux",userAgent:"Genycaster test host"},
         location:{href:"https://example.test/genycaster.html",origin:"https://example.test",
                   replace(url){reloadedTo=url;}},
         performance:{now:()=>now,getEntriesByName:url=>resources.get(url)||[]},

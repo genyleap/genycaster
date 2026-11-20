@@ -29,5 +29,5 @@ test('Streak circular markers preserve access, conditional states and animation 
   assert.match(source,/root\.current > 0 \? \(Theme\.dark \?/);
   assert.match(source,/Accessible\.name: root\.milestoneName/);
   assert.match(source,/fillColor: modelData\.future \? Theme\.inkSubtle/);
-  assert.match(source,/borderWidth: modelData\.completed \? 2 : 1/);
+  assert.match(source,/borderWidth: modelData\.completed \? 1\.5 : 1/);
 });

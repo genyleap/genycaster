@@ -121,9 +121,16 @@ if ("cacheBuffer: root.compact ? Math.min(Math.max(height * 0.33, 240), 440)" no
         or ": Math.min(Math.max(height * 0.65, 480), 820)" not in feed
         or "pixelAligned: false" not in feed):
     errors.append("Feed must retain bounded compact/desktop delegate runways and preserve subpixel scrolling.")
+# Profile's current guarded flow separates wheel writes from kinetic motion:
+# the contentY handler ignores active flicks and explicit viewport positioning;
+# geometry changes never force restoration during a profile entry reset; and
+# the coalescer never captures an anchor during a restore.
 if ("cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)" not in profile
-        or "if (!root.profileEntryResetActive && !profileList.moving" not in profile
-        or "&& !root.restoringViewport && !scrollWorkThrottle.running)" not in profile
+        or "if (!profileList.moving && !root.applyingViewportPosition)" not in profile
+        or "if (root.profileEntryResetActive) {\n                resetPositionTimer.restart()" not in profile
+        or "if (!profileList.moving) {\n                root.stabilizeViewportAfterGeometryChange()" not in profile
+        or "if (!scrollWorkThrottle.running)\n                    scrollWorkThrottle.start()" not in profile
+        or "if (!root.restoringViewport)\n                root.captureViewportAnchor()" not in profile
         or "onMovementEnded: {\n            scrollWorkThrottle.stop()" not in profile):
     errors.append("Profile feed scroll work must stay idle during kinetic motion and use the bounded pre-incubation runway shared with the main feed.")
 if "INSERT OR IGNORE INTO timeline_entries" not in storage or "idx_timeline_entries_identity" not in storage:

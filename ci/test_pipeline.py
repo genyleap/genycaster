@@ -249,7 +249,8 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("height: parent ? parent.height : 780", settings)
         self.assertIn("mobileFullScreen: true", settings)
         self.assertIn('id: mobileSetupNav', setup)
-        self.assertIn('anchors.top: root.phone ? mobileSetupNav.bottom : parent.top', setup)
+        self.assertIn('anchors.top: root.phone ? mobileSetupNav.bottom', setup)
+        self.assertIn('desktopSetupNav.visible ? desktopSetupNav.bottom : parent.top', setup)
         self.assertIn('anchors.top: root.phone ? mobileSetupNav.top : parent.top', setup)
         self.assertIn("root.pendingSettingsOpen = true", shell)
         self.assertIn("onLoaded: root.showLoadedSettings()", shell)
@@ -315,8 +316,8 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("emit nativeRecoveryRequested(std::move(recoveryWords));", bridge)
         self.assertIn("Qt.ImhSensitiveData", setup)
         self.assertIn("nativeRecoveryGrid.clearAll()", setup)
-        self.assertIn("root.nativeRecoverFarcasterAccount(words)", setup)
-        self.assertIn("root.nativeRecoverHyperSnapAccount(words)", setup)
+        self.assertIn("root.nativeRecoverFarcasterAccount(words, deviceSignerConsent.checked)", setup)
+        self.assertIn("root.nativeRecoverHyperSnapAccount(words, deviceSignerConsent.checked)", setup)
         self.assertIn("nativeCustodyWallet.restoreForRegistration(words)", setup)
         # The native recovery DTO owns an ICustodyAuthorizer. Imports of other
         # C++26 modules do not make that capability declaration transitive.

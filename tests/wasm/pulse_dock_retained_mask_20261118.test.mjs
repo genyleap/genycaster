@@ -4,17 +4,26 @@ import {readFileSync} from 'node:fs';
 
 const read = path => readFileSync(path, 'utf8');
 
-test('Pulse tiles keep day-level hit testing, range border and partial-data semantics', () => {
+test('Pulse batched calendar tiles keep day hit testing, range border and partial-data semantics', () => {
   const pulse = read('ui/components/profile/GenyPulsePanel.qml');
-  assert.doesNotMatch(pulse, /\bradius\s*:/);
-  assert.match(pulse, /delegate: Superellipse\s*\{/);
-  assert.match(pulse, /fillColor: !inYear \? "transparent" :/);
-  assert.match(pulse, /Theme\.pulseUnobservedTile/);
-  assert.match(pulse, /fillColor: inYear\s*\n\s*\? root\.githubTileColor/);
-  assert.match(pulse, /borderWidth: root\.githubRange!=="1y" && inRange \? 1 : 0/);
-  assert.match(pulse, /borderColor: Theme\.pulseGithubRangeBorder/);
-  assert.match(pulse, /onClicked: root\.selectedDate = root\.dayString\(parent\.day\)/);
-  assert.match(pulse, /onClicked: root\.selectedGithubDate=parent\.date/);
+  assert.ok(!pulse.includes('radius:'), 'Do not restore legacy Rectangle.radius');
+  // Two bounded painted calendars replace hundreds of scene-graph delegates,
+  // retaining per-day hit testing, partial-data status and range highlighting.
+  for (const expression of [
+    'objectName: "farcasterActivityBatchedCanvas"',
+    'objectName: "githubContributionBatchedCanvas"',
+    'function drawHeatmapTile(ctx, x, y, size, corner)',
+    'ctx.bezierCurveTo(',
+    'Theme.pulseUnobservedTile',
+    'ctx.fillStyle = String(root.githubTileColor',
+    'ctx.strokeStyle = String(Theme.pulseGithubRangeBorder)',
+    'if (root.githubRange !== "1y" && inRange)',
+    'mouse.x - week*step >= root.githubTileSize',
+    'mouse.y - dow*step >= root.githubTileSize',
+    'root.selectedDate = root.dayString(day)',
+    'root.selectedGithubDate = root.dayString(day)',
+    'onGithubContributionDaysChanged() { githubHeatmapCanvas.requestPaint() }'
+  ]) assert.ok(pulse.includes(expression), 'Missing batched calendar contract: '+expression);
 });
 
 test('Pulse icon badges preserve provider art and themed fills', () => {
