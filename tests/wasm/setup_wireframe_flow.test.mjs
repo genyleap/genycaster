@@ -366,8 +366,9 @@ test('recovery phrase stays in the correct platform UI until verification really
   const bridge=source('src/presentation/qt/presentation_bridge.cpp');
   const dialog=source('ui/wasm/recovery-phrase-dialog.mjs');
   assert.match(setup,/if \(root\.browserReadOnly\) \{/);
-  assert.match(setup,/root\.recoverAccount\(\)/);
-  assert.match(setup,/authenticationRoute === "recovery" && browserReadOnly && !authenticated/);
+  assert.match(setup,/root\.recoverAccount\(root\.recoveryProtocol\)/);
+  assert.match(setup,/authenticationRoute === "browser-protocol-recovery"/);
+  assert.match(setup,/authenticationRoute === "browser-protocol-create"/);
   assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words\)/);
   assert.match(setup,/nativeRecoveryGrid\.clearAll\(\)/);
   assert.match(setup,/running: root\.verifyingBusy \|\| root\.recoverySubmitPending/);
@@ -598,7 +599,7 @@ test('recovery appears before Genyleap and Farcaster, stays usable in review mod
   const farcaster=stage.indexOf('genycaster.shell.sign_in_with_farcaster');
   assert.ok(recovery>=0 && recovery<genyleap && genyleap<farcaster);
   assert.match(stage,/setupEmphasis: true/);
-  assert.match(stage,/root\.recoverAccount\(\)/);
+  assert.match(stage,/root\.recoverAccount\(root\.recoveryProtocol\)/);
   assert.match(stage,/root\.showRecovery = !root\.showRecovery/);
   const chooser=stage.indexOf('objectName: "setupExistingProtocolChoice"');
   const nativeRecovery=stage.indexOf('visible: root.showRecovery && (root.existingProtocolSelected');

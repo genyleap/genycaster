@@ -58,7 +58,7 @@ public:
     }
 
     using RecoveryObserver = std::function<void(
-        QString, QString, bool, bool, QString, QString, QByteArray, int)>;
+        QString, QString, bool, bool, QString, QString, QByteArray, int, QString)>;
     using AccountSessionObserver = std::function<void(qulonglong, QByteArray)>;
     using AccountSessionFailureObserver = std::function<void(qulonglong, QString)>;
     void setAccountSessionObserver(AccountSessionObserver observer)
@@ -83,23 +83,39 @@ public:
     {
         m_pendingResumeId.clear();
         m_pendingRecoveryId.clear();
+        m_pendingProtocol.clear();
         start(QStringLiteral("forget-account"), {});
     }
     void startRecovery()
     {
-        // Repeated taps must not replace the pending one-shot request ID:
-        // the first response would otherwise be discarded as stale.
-        if (!m_pendingRecoveryId.isEmpty()) return;
-        // One-shot nonce prevents delayed responses from an older setup
-        // from establishing a fresh identity after cancellation.
+        startAccountFlow(QStringLiteral("farcaster-snapchain"), false);
+    }
+    void startAccountFlow(const QString& protocol, const bool createAccount)
+    {
+        // Correlation IDs and the requested protocol are kept in Qt. The
+        // JavaScript result cannot switch a HyperSnap identity to Farcaster.
+        if (!m_pendingRecoveryId.isEmpty()
+            || (protocol != QStringLiteral("hypersnap-v2")
+                && protocol != QStringLiteral("farcaster-snapchain")))
+            return;
         m_pendingRecoveryId = QUuid::createUuid().toString(QUuid::WithoutBraces);
-        start(QStringLiteral("recover-account"), {},
-              QJsonObject{{QStringLiteral("requestId"), m_pendingRecoveryId},
-                          {QStringLiteral("openProofGatewayOrigin"), m_recoveryGatewayOrigin}});
+        m_pendingProtocol = protocol;
+        const QString action = createAccount
+            ? (protocol == QStringLiteral("hypersnap-v2")
+               ? QStringLiteral("create-hypersnap")
+               : QStringLiteral("create-farcaster"))
+            : (protocol == QStringLiteral("hypersnap-v2")
+               ? QStringLiteral("recover-hypersnap")
+               : QStringLiteral("recover-account"));
+        start(action, {}, QJsonObject{
+            {QStringLiteral("requestId"), m_pendingRecoveryId},
+            {QStringLiteral("protocol"), protocol},
+            {QStringLiteral("openProofGatewayOrigin"), m_recoveryGatewayOrigin}});
     }
     void cancelRecovery()
     {
         m_pendingRecoveryId.clear();
+        m_pendingProtocol.clear();
         m_pendingResumeId.clear();
         start(QStringLiteral("signed-out"), {});
     }
@@ -110,7 +126,14 @@ public:
         const QByteArray action = operation.toUtf8();
         const QByteArray identity = fid.toUtf8();
         const QByteArray base = m_snapchainOrigin.toUtf8();
-        const QByteArray data = QJsonDocument{payload}.toJson(QJsonDocument::Compact);
+        QJsonObject scopedPayload = payload;
+        if (!scopedPayload.contains(QStringLiteral("protocol"))
+            && m_presentation
+            && m_presentation->nativeCustodyAccount())
+            scopedPayload.insert(QStringLiteral("protocol"),
+                QStringLiteral("hypersnap-v2"));
+        const QByteArray data =
+            QJsonDocument{scopedPayload}.toJson(QJsonDocument::Compact);
         EM_ASM({
             const controller = window.__genycasterBrowserSigning;
             if (controller && typeof controller.start === 'function') {
@@ -157,6 +180,9 @@ private:
                 const bool enteredRecovery = !m_pendingRecoveryId.isEmpty()
                     && requestId == m_pendingRecoveryId;
                 if (!restoredDevice && !enteredRecovery) continue;
+                if (enteredRecovery
+                    && event.value(QStringLiteral("protocol")).toString() != m_pendingProtocol)
+                    continue;
                 if (restoredDevice != event.value(QStringLiteral("localDevice")).toBool())
                     continue;
                 const QString outcome = event.value(QStringLiteral("phase")).toString();
@@ -171,12 +197,21 @@ private:
                 const QString error = outcome == QStringLiteral("cancelled")
                     ? QString{} : verified ? QString{}
                     : event.value(QStringLiteral("error")).toString();
+                const QString verifiedProtocol = restoredDevice
+                    ? (event.value(QStringLiteral("protocol")).toString()
+                           == QStringLiteral("hypersnap-v2")
+                        ? QStringLiteral("hypersnap-v2")
+                        : QStringLiteral("device-local"))
+                    : m_pendingProtocol;
                 if (restoredDevice) m_pendingResumeId.clear();
-                else m_pendingRecoveryId.clear();
+                else {
+                    m_pendingRecoveryId.clear();
+                    m_pendingProtocol.clear();
+                }
                 if (m_recoveryObserver) {
                     m_recoveryObserver(verified ? fid : QString{},
                         error.isEmpty() && outcome != QStringLiteral("cancelled") && !verified
-                            ? QStringLiteral("Farcaster recovery was not verified.") : error,
+                            ? QStringLiteral("Protocol identity was not verified.") : error,
                         verified, restoredDevice,
                         enteredRecovery && verified
                             ? event.value(QStringLiteral("identitySubject")).toString() : QString{},
@@ -185,7 +220,8 @@ private:
                         enteredRecovery && verified
                             ? event.value(QStringLiteral("accountTicket")).toString().toUtf8() : QByteArray{},
                         enteredRecovery && verified
-                            ? event.value(QStringLiteral("accountExpiresSeconds")).toInt() : 0);
+                            ? event.value(QStringLiteral("accountExpiresSeconds")).toInt() : 0,
+                        verifiedProtocol);
                 }
                 if (restoredDevice) {
                     // SessionObserver queued its verified state on this same
@@ -216,6 +252,11 @@ private:
                 continue;
             }
             if (kind == QStringLiteral("signer")) {
+                const bool nativeEvent =
+                    event.value(QStringLiteral("protocol")).toString()
+                        == QStringLiteral("hypersnap-v2");
+                if (nativeEvent != presentation->nativeCustodyAccount())
+                    continue;
                 QString status{};
                 if (phase == QStringLiteral("ready")) {
                     status = qtTrId("genycaster.runtime.interaction_signing_is_ready");
@@ -236,6 +277,11 @@ private:
                     && event.value(QStringLiteral("ready")).toBool();
                 presentation->applySignerState(phase, busy, ready, status, error);
             } else if (kind == QStringLiteral("write")) {
+                const bool nativeEvent =
+                    event.value(QStringLiteral("protocol")).toString()
+                        == QStringLiteral("hypersnap-v2");
+                if (nativeEvent != presentation->nativeCustodyAccount())
+                    continue;
                 if (phase == QStringLiteral("submitting")) {
                     presentation->applyWriteState(
                         QStringLiteral("submitting"), true, {}, {});
@@ -313,6 +359,7 @@ private:
     AccountSessionObserver m_accountSessionObserver{};
     AccountSessionFailureObserver m_accountSessionFailureObserver{};
     QString m_pendingRecoveryId{};
+    QString m_pendingProtocol{};
     QString m_pendingResumeId{};
     QPointer<PresentationBridge> m_presentation{};
     QPointer<RichComposerController> m_composer{};

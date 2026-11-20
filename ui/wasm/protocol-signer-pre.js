@@ -32,6 +32,8 @@
     });
     const events = [];
     let client = null, initializedBase = "", epoch = 0, owner = "";
+    let nativeClient = null;
+    let ownerProtocol = "";
     let inFlight = false;
     let recoveryController = null;
     let rememberedWrite = Promise.resolve();
@@ -47,7 +49,8 @@
     // The Pro/Streak retry button must use the browser's registered signer,
     // not Qt's native-only vault signer. This is single-flight per identity.
     function retryAccountSession(fid) {
-        if (typeof fid !== "string" || !/^[1-9][0-9]{0,18}$/.test(fid)
+        if (ownerProtocol === "hypersnap-v2"
+            || typeof fid !== "string" || !/^[1-9][0-9]{0,18}$/.test(fid)
             || !Number.isSafeInteger(Number(fid))
             || owner !== fid || window.location.origin !== "https://genycaster.xyz")
             return false;
@@ -105,6 +108,42 @@
         initializedBase = base;
         return current;
     }
+    async function createNativeClient() {
+        if(nativeClient)return nativeClient;
+        const {deployment}=await import('./deployment_config.mjs');
+        const {createBrowserSignerVault}=await import('./secure_signer_vault.mjs');
+        const {createBrowserProtocolSigner}=await import('./browser_protocol_signer.mjs');
+        nativeClient=createBrowserProtocolSigner({
+            browser:window,snapchainBase:deployment.hypersnapOrigin,
+            vault:createBrowserSignerVault(window,{scope:'hypersnap-v2'}),
+            onState(status) {
+                report({kind:'signer',protocol:'hypersnap-v2',...status});
+            }
+        });
+        return nativeClient;
+    }
+    async function nativeCustodyForFid(fid,phrase){
+        const {deriveFarcasterCustody}=await import('./farcaster_recovery.mjs');
+        const {createBrowserNativeRegistry}=await import('./hypersnap_native_account.mjs');
+        const custody=await deriveFarcasterCustody(phrase);
+        try{
+            const verified=await createBrowserNativeRegistry().lookup(custody.address);
+            if(verified.state!=='confirmed' || verified.fid!==fid)
+                throw new Error('HyperSnap custody is not verified for this FID');
+            return custody;
+        }catch(error){custody.dispose();throw error;}
+    }
+    async function authorizeNativeRecovery(current,fid,thisEpoch) {
+        const controller=new AbortController();recoveryController=controller;
+        const {promptForFarcasterRecovery}=
+            await import('./recovery-phrase-dialog.mjs');
+        if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted)return;
+        return promptForFarcasterRecovery(window,controller.signal,
+            phrase=>current.provision(fid,
+                requestedFid=>nativeCustodyForFid(requestedFid,phrase),
+                ()=>epoch===thisEpoch && owner===fid && !controller.signal.aborted),
+            {presentation:'full',protocol:'hypersnap-v2'});
+    }
     async function authorizeRecoveryInSetup(current, fid, thisEpoch) {
         const controller = new AbortController();
         recoveryController = controller;
@@ -128,7 +167,8 @@
             catch{/* IndexedDB erase still runs below */}
             ++epoch;
             recoveryController?.abort();recoveryController=null;
-            owner="";inFlight=false;client?.signedOut();
+            owner="";ownerProtocol="";inFlight=false;
+            client?.signedOut();nativeClient?.signedOut();
             // Serialize with an in-flight remembered identity write to
             // prevent a late async write resurrecting an explicitly logged-out user.
             void rememberedWrite.catch(()=>{}).then(async()=>{
@@ -152,10 +192,24 @@
             void (async()=>{
                 try{
                     await rememberedWrite.catch(()=>{});
-                    const account=await (await deviceSession()).restore();
+                    const device=await deviceSession();
+                    const account=await device.restore();
+                    const protocol=account?await device.protocolFor(account):'';
+                    if(epoch!==thisEpoch)return;
+                    if(account && protocol==='hypersnap-v2') {
+                        // A remembered device key alone is not a HyperSnap
+                        // custody proof. Authorize a resumed native session
+                        // only after the stored protocol signer key is verified
+                        // again by the correct live HyperSnap registry.
+                        const signer=await createNativeClient();
+                        const registration=await signer.restore(account);
+                        if(!registration)
+                            throw new Error('HyperSnap signer authorization needs recovery');
+                    }
                     if(epoch!==thisEpoch)return;
                     report({kind:'setup-account',phase:account&&!owner?'ready':'cancelled',
-                        fid:account&&!owner?account:'',requestId,localDevice:true});
+                        fid:account&&!owner?account:'',requestId,localDevice:true,
+                        protocol});
                 }catch(error){
                     if(epoch===thisEpoch)
                         report({kind:'setup-account',phase:'failed',fid:'',
@@ -172,6 +226,7 @@
             inFlight = false;
             owner = "";
             client?.signedOut();
+            nativeClient?.signedOut();ownerProtocol="";
             report({kind: "signer", phase: "signed-out", fid: "",
                 busy: false, ready: false, error: ""});
             return;
@@ -182,6 +237,8 @@
             recoveryController?.abort();
             recoveryController = null;
             client?.signedOut();
+            nativeClient?.signedOut();
+            ownerProtocol="";
             inFlight = false;
         }
         if (inFlight) {
@@ -189,12 +246,16 @@
             // different from an ordinary signer action: Qt waits for a
             // one-shot setup-account event, not a "write" error. Otherwise
             // the tap appears to do absolutely nothing.
-            if (action === "recover-account") {
-                let requestId = "";
-                try { requestId = JSON.parse(payloadString).requestId || ""; }
-                catch { /* handled as an invalid request below */ }
+            if (action === "recover-account" || action === "recover-hypersnap"
+                || action === "create-hypersnap" || action === "create-farcaster") {
+                let requestId = "", protocol = "";
+                try {
+                    const payload=JSON.parse(payloadString);
+                    requestId=payload.requestId||"";
+                    protocol=payload.protocol||"";
+                } catch { /* handled as an invalid request below */ }
                 report({kind: "setup-account", phase: "failed",
-                    requestId, fid: "",
+                    requestId, protocol, fid: "",
                     error: "Another signer operation is in progress. Please retry."});
             } else {
                 report({kind: action === "restore" || action === "restore-for-setup"
@@ -213,7 +274,119 @@
                 // Present the explicit local recovery UI before constructing
                 // the network signer. Failure to initialize Snapchain must not
                 // reject a click before any recovery words were entered.
-                if (action === "recover-account") {
+                if (action === "recover-hypersnap"
+                    || action === "create-hypersnap"
+                    || action === "create-farcaster") {
+                    const {requestId,protocol}=JSON.parse(payloadString);
+                    if(typeof requestId!=='string' || !/^[0-9a-f-]{36}$/i.test(requestId)
+                        || protocol!==(action==="create-farcaster"
+                            ?"farcaster-snapchain":"hypersnap-v2"))
+                        throw new Error('Invalid protocol registration request');
+                    const controller=new AbortController();
+                    recoveryController=controller;
+                    const isCurrent=()=>epoch===thisEpoch && owner===fid
+                        && !controller.signal.aborted;
+                    const registryModule=action==="create-farcaster"
+                        ?null:await import('./hypersnap_native_account.mjs');
+                    let confirmed=null;
+                    if(action==="recover-hypersnap"){
+                        const {promptForFarcasterRecovery}=
+                            await import('./recovery-phrase-dialog.mjs');
+                        confirmed=await promptForFarcasterRecovery(window,controller.signal,
+                            async phrase=>{
+                                if(!isCurrent())throw new Error('Recovery cancelled');
+                                const registry=registryModule.createBrowserNativeRegistry();
+                                const recovered=await registry.recover(phrase,
+                                {signal:controller.signal});
+                            if(!isCurrent())throw new Error('Recovery cancelled');
+                            // Confirm the same FID independently with the
+                            // native KEY_ADD registry before establishing a
+                            // fully authorized browser profile session.
+                            const signer=await createNativeClient();
+                            await signer.provision(recovered.fid,
+                                requestedFid=>nativeCustodyForFid(requestedFid,phrase),
+                                isCurrent);
+                            return recovered;
+                            },{presentation:'full',protocol:'hypersnap-v2'});
+                    }else {
+                        const {promptCreateBrowserWallet}=
+                            await import('./browser_account_create_dialog.mjs');
+                        // Never solicit a new recovery phrase if the paid
+                        // first-party Farcaster allocator is not deployed.
+                        const enrollment=action==="create-farcaster"
+                            ?(await import('./farcaster_new_account.mjs'))
+                                .createBrowserFarcasterRegistration()
+                            :null;
+                        if(enrollment)await enrollment.preflight();
+                        const nativeRegistry=registryModule?.createBrowserNativeRegistry();
+                        confirmed=await promptCreateBrowserWallet({
+                            browser:window,signal:controller.signal,
+                            protocol,
+                            onRegister:async(phrase,options)=>{
+                                if(!isCurrent())throw new Error('Account creation cancelled');
+                                if(!enrollment) {
+                                    const established=await nativeRegistry.register(phrase,options);
+                                    // The FID is now irreversible. If signer
+                                    // activation fails, keep the FID and the
+                                    // backup usable through Existing account.
+                                    try {
+                                        const signer=await createNativeClient();
+                                        await signer.provision(established.fid,
+                                            requestedFid=>nativeCustodyForFid(requestedFid,phrase),
+                                            isCurrent);
+                                    } catch {
+                                        console.warn('HyperSnap signer authorization is pending');
+                                    }
+                                    return established;
+                                }
+                                const established=await enrollment.register(phrase,options);
+                                // Enrollment is irreversible and already
+                                // verified. KEY_ADD authorization is a separate
+                                // step: its failure cannot erase that FID or
+                                // cause a second paid registration.
+                                try{
+                                    const signer=await createClient(base);
+                                    await signer.provisionFromRecovery(established.fid,phrase);
+                                }catch(error){
+                                    console.warn('Farcaster signer activation requires separate authorization');
+                                }
+                                return established;
+                            },
+                        });
+                    }
+                    if(!isCurrent())return;
+                    const verifiedFid=String(confirmed?.fid||'');
+                    const nativeAccount=protocol==='hypersnap-v2';
+                    if(!/^[1-9][0-9]{0,19}$/.test(verifiedFid)
+                        || BigInt(verifiedFid)<(nativeAccount?4294967296n:1n)
+                        || BigInt(verifiedFid)>(nativeAccount
+                            ?18446744073709551615n:BigInt(Number.MAX_SAFE_INTEGER)))
+                        throw new Error('Protocol did not confirm a valid account FID');
+                    // An independently verified native FID is never routed to
+                    // Optimism KEY_ADD or the Farcaster signer cache.
+                    owner=verifiedFid;
+                    ownerProtocol=protocol;
+                    // Local device continuity retains the network namespace:
+                    // otherwise a restarted HyperSnap account is incorrectly
+                    // reopened as a Farcaster/device-local identity.
+                    rememberedWrite=rememberedWrite.catch(()=>{}).then(async()=>{
+                        const device=await deviceSession();
+                        await device.remember(verifiedFid,protocol);
+                        if(epoch===thisEpoch&&owner===verifiedFid)
+                            try{window.localStorage?.removeItem(signOutKey);}catch{}
+                    });
+                    await rememberedWrite.catch(()=>{
+                        console.warn('[Genycaster] Trusted device continuity is unavailable');
+                    });
+                    // owner transitions from the empty pre-auth FID to the
+                    // verified FID above. isCurrent() intentionally checks the
+                    // *previous* owner during registration and must not be
+                    // used after the verified identity transition.
+                    if(epoch!==thisEpoch || owner!==verifiedFid
+                        || controller.signal.aborted)return;
+                    report({kind:'setup-account',phase:'ready',
+                        protocol,fid:verifiedFid,requestId});
+                } else if (action === "recover-account") {
                     // This event is accepted by Qt only for the current one-shot
                     // recovery request. No phrase or custody address is sent to Qt.
                     const {requestId} = JSON.parse(payloadString);
@@ -262,11 +435,13 @@
                     // Without this transition, owner remains empty and the
                     // Pro/Streak signed account-session retry is rejected.
                     owner = recoveredFid;
+                    ownerProtocol='farcaster-snapchain';
                     // Native Qt may mark this as canonical OpenProof identity
                     // only when the verified subject and issuer accompany the
                     // exact one-shot recovery request. Missing proof means a
                     // functional, explicitly local Farcaster session.
-                    report({kind:'setup-account',phase:'ready',fid:recoveredFid,requestId,
+                    report({kind:'setup-account',phase:'ready',
+                        protocol:'farcaster-snapchain',fid:recoveredFid,requestId,
                         identityIssuer:verifiedOpenProof?.issuer || '',
                         identitySubject:verifiedOpenProof?.subject || '',
                         accountTicket:verifiedOpenProof?.accountTicket || '',
@@ -276,8 +451,11 @@
                     // Initiating it here can race Qt's queued identity event
                     // and lose the only verified Pro/Streak response.
                 } else {
-                    const current=await createClient(base);
+                    const options=payloadString?JSON.parse(payloadString):{};
+                    const native=options.protocol==='hypersnap-v2';
+                    const current=native?await createNativeClient():await createClient(base);
                     if(epoch!==thisEpoch || owner!==fid)return;
+                    ownerProtocol=native?'hypersnap-v2':'farcaster-snapchain';
                     if (action === "restore" || action === "restore-for-setup") {
                     if(action==="restore" && payloadString){
                         const options=JSON.parse(payloadString);
@@ -298,21 +476,28 @@
                     // the protocol signer reports its separate write-ready
                     // phase. The server still validates the one-use signature
                     // and exact owner FID; no local balance implies a tier.
-                    if (existing && epoch===thisEpoch && owner===fid)
+                    if (existing && !native && epoch===thisEpoch && owner===fid)
                         retryAccountSession(fid);
                     if (action === "restore-for-setup" && !existing) {
                         // Never collect a phrase on app reload or a restored session.
                         // This command is scoped to a verified, explicit setup login.
                         if (epoch !== thisEpoch || owner !== fid) return;
-                        await authorizeRecoveryInSetup(current, fid, thisEpoch);
+                        if(native)
+                            await authorizeNativeRecovery(current,fid,thisEpoch);
+                        else
+                            await authorizeRecoveryInSetup(current,fid,thisEpoch);
                     }
                 } else if (action === "provision") {
                     // Explicit retry in Setup or Account Settings.
-                    await authorizeRecoveryInSetup(current, fid, thisEpoch);
+                    if(native)
+                        await authorizeNativeRecovery(current,fid,thisEpoch);
+                    else
+                        await authorizeRecoveryInSetup(current,fid,thisEpoch);
                 } else if (action === "revoke") {
                     await current.revoke(fid);
                 } else {
-                    report({kind: "write", phase: "submitting", fid});
+                    report({kind: "write", phase: "submitting", fid,
+                        protocol:native?'hypersnap-v2':'farcaster-snapchain'});
                     const payload = JSON.parse(payloadString);
                     let hash;
                     switch(action) {
@@ -336,6 +521,7 @@
                     }
                     if (epoch === thisEpoch && owner === fid)
                         report({kind: "write", phase: "confirmed", fid, hash,
+                            protocol:native?'hypersnap-v2':'farcaster-snapchain',
                             operation: action,
                             targetFid: action==='follow'||action==='block'
                                 ? String(payload.targetFid||'') : '',
@@ -349,14 +535,17 @@
                 if (epoch !== thisEpoch || owner !== fid) return;
                 const cancelled = error?.code === 'user-cancelled' ||
                     error?.message === 'Recovery import cancelled';
-                if (action === "recover-account") {
-                    const requestId=JSON.parse(payloadString).requestId;
+                if (action === "recover-account" || action === "recover-hypersnap"
+                    || action === "create-hypersnap" || action === "create-farcaster") {
+                    const {requestId,protocol}=JSON.parse(payloadString);
                     report({kind:'setup-account',phase:cancelled?'cancelled':'failed',
-                        requestId,fid:'',error:cancelled?'':String(error?.message||error).slice(0,350)});
+                        requestId,protocol,fid:'',
+                        error:cancelled?'':String(error?.message||error).slice(0,350)});
                     return;
                 }
                 report({kind: action === "restore" || action === "restore-for-setup"
                        || action === "provision" || action === "revoke" ? "signer" : "write",
+                    protocol:ownerProtocol,
                     operation: action,
                     phase: cancelled ? "missing"
                          : action === "restore" ? "unavailable"

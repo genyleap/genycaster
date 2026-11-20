@@ -129,11 +129,18 @@ async function validateRecord(crypto, fid, record) {
  * network registration, scopes and signed protocol submission are separate
  * required steps before exposing write capability to the user.
  */
-export function createBrowserSignerVault(environment = globalThis) {
+export function createBrowserSignerVault(environment = globalThis, options = {}) {
     requireSecureContext(environment);
     const { crypto, indexedDB } = environment;
+    // Historical Farcaster keys retain their original IndexedDB primary key.
+    // HyperSnap keys are scoped by protocol to prevent a numerical FID
+    // collision from reusing authority issued by another chain.
+    const scope = options.scope === undefined ? '' : options.scope;
+    if(scope !== '' && scope !== 'hypersnap-v2')
+        throw failure('unsupported protocol signer vault scope');
+    const keyOf = fid => scope ? scope + ':' + fid : fid;
     const read = async fid => validateRecord(crypto, fid,
-        await transact(indexedDB, 'readonly', store => waitRequest(store.get(fid))));
+        await transact(indexedDB, 'readonly', store => waitRequest(store.get(keyOf(fid)))));
 
     return Object.freeze({
         async load(fidValue) {
@@ -160,7 +167,7 @@ export function createBrowserSignerVault(environment = globalThis) {
                 // that a concurrent signer-registration flow might use.
                 await transact(indexedDB, 'readwrite', store => waitRequest(
                     store.add({ fid, publicKeyHex,
-                        privateKey: pair.privateKey, publicKey: pair.publicKey }, fid)));
+                        privateKey: pair.privateKey, publicKey: pair.publicKey }, keyOf(fid))));
             } catch (error) {
                 if (error?.name !== 'ConstraintError') throw error;
                 const winner = await read(fid);
@@ -228,7 +235,7 @@ export function createBrowserSignerVault(environment = globalThis) {
         async erase(fidValue) {
             const fid = requireFid(fidValue);
             await transact(indexedDB, 'readwrite', store =>
-                waitRequest(store.delete(fid)));
+                waitRequest(store.delete(keyOf(fid))));
         },
     });
 }

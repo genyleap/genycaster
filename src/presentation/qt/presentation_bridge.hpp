@@ -407,6 +407,9 @@ public:
     /** @brief Browser direct Farcaster recovery; no Sign In ceremony. */
     Q_INVOKABLE void beginRecoverySetup();
 
+    /** Browser-only protocol-scoped onboarding. No recovery material enters Qt. */
+    Q_INVOKABLE void beginBrowserProtocolSetup(QString protocol, bool createAccount);
+
     /** @brief Native-only explicit custody recovery, with a transient input.
      * Never retain the phrase in the presentation model or settings. */
     Q_INVOKABLE void beginNativeRecoverySetup(QString recoveryWords);
@@ -642,6 +645,7 @@ signals:
     /** Profile-only routing affinity for the verified account, never user settings. */
     void ownProfileReadAffinityRequested(bool ownProfile, bool nativeCustody);
     void signInRequested(QString route);
+    void browserProtocolSetupRequested(QString protocol, bool createAccount);
 
     /** A one-shot phrase delivered to the native recovery executor, never to a provider. */
     void nativeRecoveryRequested(QString recoveryWords);

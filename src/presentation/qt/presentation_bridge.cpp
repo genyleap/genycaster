@@ -3040,6 +3040,37 @@ void PresentationBridge::beginRecoverySetup()
     emit signInRequested(QStringLiteral("recovery"));
 }
 
+void PresentationBridge::beginBrowserProtocolSetup(QString protocol,
+                                                    const bool createAccount)
+{
+#if defined(Q_OS_WASM)
+    if (protocol != QStringLiteral("hypersnap-v2")
+        && protocol != QStringLiteral("farcaster-snapchain")) {
+        applyAuthenticationError(qtTrId("genycaster.setup.recovery_failed_retry"));
+        return;
+    }
+    if (!m_legalConsentAccepted || !m_runtimeReady || m_isAuthenticated) {
+        applyAuthenticationError(!m_legalConsentAccepted
+            ? qtTrId("genycaster.setup.legal_required_before_sign_in")
+            : !m_runtimeReady
+              ? qtTrId("genycaster.bridge.the_local_runtime_is_still_starting")
+              : qtTrId("genycaster.setup.recovery_failed_retry"));
+        return;
+    }
+    if (authenticationBusy()) return;
+    m_authenticationRoute = createAccount
+        ? QStringLiteral("browser-protocol-create")
+        : QStringLiteral("browser-protocol-recovery");
+    m_authenticationErrorText.clear();
+    emit authenticationStateChanged();
+    emit browserProtocolSetupRequested(std::move(protocol), createAccount);
+#else
+    Q_UNUSED(protocol);
+    Q_UNUSED(createAccount);
+    applyAuthenticationError(qtTrId("genycaster.setup.recovery_failed_retry"));
+#endif
+}
+
 void PresentationBridge::beginNativeHyperSnapRecoverySetup(QString recoveryWords)
 {
     m_hyperSnapRecoveryRequest = true;

@@ -143,6 +143,47 @@ const keyRequestTypeHash=hashText('SignedKeyRequest(uint256 requestFid,bytes key
 const keyAddTypeHash=hashText('KeyAdd(uint256 fid,bytes key,uint32 keyType,uint32[] scopes,uint32 ttl,uint32 nonce,uint256 deadline)');
 
 function eip712Digest(document){
+    if(document?.primaryType==='Transfer'){
+        const d=document.domain,m=document.message;
+        invariant(d?.name==='Farcaster IdRegistry' && d.version==='1'
+            && d.chainId===10
+            && d.verifyingContract?.toLowerCase()===
+                '0x00000000fc6c5f01fc30151999387bb99a9f489b'
+            && /^0x[0-9a-f]{40}$/i.test(m?.to||''),
+            'unexpected Optimism IdRegistry transfer domain');
+        const dh=keccak256(concat(
+            hashText('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'),
+            hashText('Farcaster IdRegistry'),hashText('1'),uint256(10),
+            new Uint8Array(12),fromHex(d.verifyingContract,20)));
+        const sh=keccak256(concat(
+            hashText('Transfer(uint256 fid,address to,uint256 nonce,uint256 deadline)'),
+            uint256(m.fid),new Uint8Array(12),fromHex(m.to,20),
+            uint256(m.nonce),uint256(m.deadline)));
+        return keccak256(concat(Uint8Array.of(0x19,0x01),dh,sh));
+    }
+    // An identical BIP39/BIP44 custody key can authorize two *different*
+    // registries. Never recycle a Farcaster KeyAdd digest for HyperSnap:
+    // protocol-specific EIP-712 domain and exact struct field order are
+    // security-critical and are mirrored by the native C++ implementation.
+    if(document?.primaryType==='HyperNativeOnboard'){
+        invariant(document.domain?.name==='HypersnapNativeOnboard' &&
+            document.domain.version==='1' && document.domain.chainId===10,
+            'unexpected HyperSnap EIP-712 domain');
+        const m=document.message;
+        invariant(/^0x[0-9a-f]{40}$/i.test(m?.custody||'') &&
+            /^0x[0-9a-f]{64}$/i.test(m?.anchor_block_hash||'') &&
+            /^0x[0-9a-f]{64}$/i.test(m?.gate_commitment||''),
+            'invalid HyperSnap onboarding typed data');
+        const h=hashText('HyperNativeOnboard(address custody,uint64 anchor_block_height,bytes32 anchor_block_hash,bytes32 gate_commitment)');
+        const dh=keccak256(concat(domainTypeHash,
+            hashText('HypersnapNativeOnboard'),hashText('1'),uint256(10)));
+        const sh=keccak256(concat(h,
+            concat(new Uint8Array(12),fromHex(m.custody,20)),
+            uint256(m.anchor_block_height),
+            fromHex(m.anchor_block_hash,32),
+            fromHex(m.gate_commitment,32)));
+        return keccak256(concat(Uint8Array.of(0x19,0x01),dh,sh));
+    }
     invariant(document && document.domain?.name==='Farcaster KeyAdd' &&
         document.domain.version==='1' && document.domain.chainId===1,
         'unexpected Farcaster EIP-712 domain');

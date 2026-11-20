@@ -93,3 +93,21 @@ test('future or invalid continuity timestamp is never trusted',async()=>{
     table.set('current',{...original,createdAt:'yesterday'});
     await assert.rejects(session.restore(),/timestamp/);
 });
+
+test('trusted device continuity preserves the exact HyperSnap namespace across reloads',async()=>{
+    const {browser,table}=fakeBrowser();
+    const session=createDeviceSession(browser);
+    const nativeFid='4294967296';
+    await session.remember(nativeFid,'hypersnap-v2');
+    const restored=createDeviceSession(browser);
+    assert.equal(await restored.restore(),nativeFid);
+    assert.equal(await restored.protocolFor(nativeFid),'hypersnap-v2');
+    await assert.rejects(restored.protocolFor('42'),/changed/);
+    await assert.rejects(session.remember('42','hypersnap-v2'),/namespace/);
+    await assert.rejects(session.remember('42','unknown-protocol'),/Unrecognized/);
+    await session.remember('42');
+    assert.equal(await restored.protocolFor('42'),'farcaster-snapchain');
+    const old=table.get('current');
+    table.set('current',{...old,protocol:undefined});
+    assert.equal(await restored.protocolFor('42'),'farcaster-snapchain');
+});

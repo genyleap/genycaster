@@ -47,14 +47,18 @@ export function createDeviceSession(browser=globalThis) {
     requireBrowser(browser);
     const crypto=browser.crypto;
     return Object.freeze({
-        async remember(fid) {
-            if(!validFid(fid))throw new Error('Invalid remembered Farcaster FID');
+        async remember(fid, protocol='farcaster-snapchain') {
+            if(!validFid(fid))throw new Error('Invalid remembered protocol FID');
+            if(!['farcaster-snapchain','hypersnap-v2'].includes(protocol))
+                throw new Error('Unrecognized browser identity protocol');
+            if(protocol==='hypersnap-v2' && BigInt(fid)<4294967296n)
+                throw new Error('Native HyperSnap FID is outside the registry namespace');
             // Every successful authentication rotates the local continuity key.
             const pair=await crypto.subtle.generateKey({name:'Ed25519'},false,['sign','verify']);
             if(pair.privateKey.extractable!==false)throw new Error('Device key is extractable');
             await access(browser,'readwrite',store=>store.put({
                 fid,privateKey:pair.privateKey,publicKey:pair.publicKey,
-                createdAt:Date.now(),version:1,
+                createdAt:Date.now(),version:1,protocol,
             },entry));
             return fid;
         },
@@ -87,6 +91,18 @@ export function createDeviceSession(browser=globalThis) {
             if(!await crypto.subtle.verify('Ed25519',row.publicKey,proof,payload))
                 throw new Error('Local device identity proof failed');
             return row.fid; // device-local viewer identity, not provider token
+        },
+        async protocolFor(fid) {
+            if(!validFid(fid))throw new Error('Invalid local identity');
+            // This label alone grants no authority. Caller must first
+            // successfully verify restore() with a fresh challenge.
+            const row=await access(browser,'readonly',store=>store.get(entry));
+            if(!row || row.fid!==fid)
+                throw new Error('Local protocol identity has changed');
+            const protocol=row.protocol||'farcaster-snapchain'; // v1 migration
+            if(!['farcaster-snapchain','hypersnap-v2'].includes(protocol))
+                throw new Error('Invalid remembered protocol');
+            return protocol;
         },
         async clear() {
             await access(browser,'readwrite',store=>store.delete(entry));

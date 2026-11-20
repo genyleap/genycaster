@@ -36,7 +36,23 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         return Promise.reject(new Error('Recovery dialog is already open'));
     const locale=(browser.__genycasterPreferredLanguage
         ||browser.navigator?.language||'en').split(/[-_]/)[0].toLowerCase();
-    const lang=strings[locale]?locale:'en',s=strings[lang];
+    const lang=strings[locale]?locale:'en';
+    const native=options?.protocol==='hypersnap-v2';
+    const nativeLabels={
+      en:{title:'Import your HyperSnap recovery phrase',
+        subtitle:'Recover an existing native HyperSnap FID by verifying the wallet address on the network.',
+        label:'HyperSnap recovery phrase (24 words)',
+        hint:'Use the 24 words backing up your HyperSnap custody wallet.',
+        privacy:'Your words and private key remain in this browser session and are not sent to a server or saved. The native registry is queried using only your public custody address. Use a trusted device.',
+        import:'Verify HyperSnap account'},
+      fa:{title:'بازیابی حساب هایپراسنپ',
+        subtitle:'بازیابی FID بومی هایپراسنپ با تأیید مالکیت آدرس کیف پول در شبکه.',
+        label:'عبارت بازیابی هایپراسنپ (۲۴ واژه)',
+        hint:'۲۴ واژهٔ کیف پول بومی هایپراسنپ را وارد کنید.',
+        privacy:'واژه‌ها و کلید خصوصی در همین مرورگر باقی می‌مانند و به سرور فرستاده یا ذخیره نمی‌شوند. تنها آدرس عمومی در رجیستری شبکه بررسی می‌شود. از دستگاه مطمئن استفاده کنید.',
+        import:'تأیید حساب هایپراسنپ'}
+    };
+    const s=native?{...strings[lang],...(nativeLabels[lang]||nativeLabels.en)}:strings[lang];
     const light=browser.document?.documentElement?.dataset?.theme === 'light'
         || (browser.document?.documentElement?.dataset?.theme !== 'dark'
             && browser.matchMedia?.('(prefers-color-scheme: light)').matches===true);
@@ -299,20 +315,24 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                     ? (lang==='fa'?'ترتیب یا یکی از واژه‌ها اشتباه است؛ همه واژه‌ها معتبرند اما جمع کنترل عبارت درست نیست.':
                         'The words are valid individually, but the phrase checksum is wrong. Check their order and spelling.')
                     : ownership
-                    ? (lang==='fa'?'عبارت از نظر کلمات معتبر است، اما مالکیت حساب ثبت‌شدهٔ Farcaster با آن تأیید نشد. مطمئن شوید عبارت بازیابی همان حساب را وارد کرده‌اید.':
-                        'The words are valid, but they do not identify a registered Farcaster custody account. Check that this is your Farcaster recovery phrase.')
+                    ? native
+                        ? (lang==='fa'
+                            ? 'واژه‌ها معتبرند اما کیف پول حاصل، حساب بومی ثبت‌شدهٔ هایپراسنپ را کنترل نمی‌کند.'
+                            : 'The phrase is valid but does not control a registered native HyperSnap FID.')
+                        : (lang==='fa'?'عبارت از نظر کلمات معتبر است، اما مالکیت حساب ثبت‌شدهٔ Farcaster با آن تأیید نشد. مطمئن شوید عبارت بازیابی همان حساب را وارد کرده‌اید.':
+                            'The words are valid, but they do not identify a registered Farcaster custody account. Check that this is your Farcaster recovery phrase.')
                     : storage
                     ? (lang==='fa'?'عبارت بازیابی معتبر است، اما ذخیرهٔ امن کلید امضا در مرورگر امکان‌پذیر نیست. فضای ذخیره‌سازی سایت (IndexedDB) را فعال کنید و در پنجرهٔ عادی مرورگر دوباره تلاش کنید.':
                         'Your recovery phrase is valid, but secure browser signer storage is unavailable. Enable site storage (IndexedDB) and retry in a normal browser window.')
                     : signer
-                    ? (lang==='fa'?'حساب شناسایی شد، اما مجوز انتشار هنوز توسط Snapchain تأیید نشده است. پس از بررسی اتصال دوباره تلاش کنید.':
-                        'The account was identified, but Snapchain has not confirmed publishing authorization. Check your connection and retry.')
+                    ? (lang==='fa'?'حساب شناسایی شد، اما مجوز انتشار هنوز توسط پروتکل تأیید نشده است. اتصال را بررسی کنید و دوباره تلاش کنید.':
+                        'The account was found, but the protocol has not yet confirmed publishing authorization. Check your connection and retry.')
                     : derivation
                     ? (lang==='fa'?'ساخت کیف پول بازیابی روی این دستگاه کامل نشد. از مرورگر به‌روز و اتصال امن استفاده کنید.':
                         'Could not derive the Farcaster custody wallet on this device. Try an up-to-date browser on HTTPS.')
                     : verification
-                    ? (lang==='fa'?'تأیید مالکیت حساب روی شبکه کامل نشد. دوباره تلاش کنید؛ در صورت تکرار از اتصال دیگری استفاده کنید.':
-                        'Farcaster account ownership could not be confirmed. Retry or use a different network connection.')
+                    ? (lang==='fa'?'تأیید مالکیت حساب در شبکهٔ انتخاب‌شده کامل نشد. دوباره تلاش کنید؛ در صورت تکرار از اتصال دیگری استفاده کنید.':
+                        'Account ownership could not be confirmed on the selected protocol. Retry or use a different network connection.')
                     : network
                     ? (lang==='fa'?'بررسی حساب یا مجوز انتشار به‌دلیل خطای اتصال کامل نشد. واژه‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
                         'Account or signer verification could not reach the network. Your entries are still here; please retry.')

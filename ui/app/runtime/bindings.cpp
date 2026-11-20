@@ -3554,10 +3554,11 @@ void connectRuntime(
         applyBrowserSession(std::move(state));
     };
     browserSigner->setRecoveryObserver(
-        [sessionObserver, &connections, &bridge](QString fid, QString error,
+        [sessionObserver, browserSigner, &connections, &bridge](QString fid, QString error,
                           const bool verified, const bool restoredDevice,
                           QString openProofSubject, QString openProofIssuer,
-                          QByteArray accountTicket, const int accountExpiresSeconds) {
+                          QByteArray accountTicket, const int accountExpiresSeconds,
+                          QString protocol) {
             application::session::SessionState state{};
             if (!verified) {
                 if (error.isEmpty()) {
@@ -3573,18 +3574,24 @@ void connectRuntime(
                 if (!valid || number == 0U) return;
                 const auto authenticatedAt = foundation::time::now();
                 state.phase = application::session::SessionPhase::Authenticated;
-                const bool canonicalOpenProof = !restoredDevice
+                const bool nativeHyperSnap = protocol == QStringLiteral("hypersnap-v2")
+                    && number >= (qulonglong{1} << 32);
+                const bool canonicalOpenProof = !nativeHyperSnap && !restoredDevice
                     && !openProofSubject.isEmpty() && openProofSubject.size() <= 512
                     && openProofIssuer == connections.identityIssuer();
                 state.session = domain::session::ClientSession{
-                    .identityIssuer = canonicalOpenProof
-                        ? openProofIssuer.toStdString()
-                        : restoredDevice
-                        ? std::string{"genycaster:device-local"}
-                        : std::string{"farcaster:optimism-idregistry"},
-                    .identitySubject = canonicalOpenProof
-                        ? openProofSubject.toStdString()
-                        : std::string{"fid:"} + fid.toStdString(),
+                    .identityIssuer = nativeHyperSnap
+                        ? std::string{"hypersnap:native-registry"}
+                        : canonicalOpenProof
+                          ? openProofIssuer.toStdString()
+                          : restoredDevice
+                            ? std::string{"genycaster:device-local"}
+                            : std::string{"farcaster:optimism-id-registry"},
+                    .identitySubject = nativeHyperSnap
+                        ? std::string{"native-fid:"} + fid.toStdString()
+                        : canonicalOpenProof
+                          ? openProofSubject.toStdString()
+                          : std::string{"fid:"} + fid.toStdString(),
                     .fid = domain::identity::Fid{static_cast<std::uint64_t>(number)},
                     .method = domain::session::AuthenticationMethod::Custody,
                     .authenticatedAt = authenticatedAt,
@@ -3594,6 +3601,28 @@ void connectRuntime(
                 };
             }
             sessionObserver(std::move(state));
+            // Recheck the exact protocol-scoped Ed25519 key after the Qt
+            // authenticated session is committed. KEY_ADD may have completed
+            // while the UI was still in Guest state, so its earlier ready
+            // event was intentionally discarded by the presentation gate.
+            if (verified && !restoredDevice) {
+                bool parsed = false;
+                const auto recoveredFid = fid.toULongLong(&parsed);
+                if (parsed && recoveredFid > 0) {
+                    const bool native = protocol == QStringLiteral("hypersnap-v2");
+                    QMetaObject::invokeMethod(&bridge,
+                        [&bridge, browserSigner, fid, recoveredFid, native] {
+                            if (!bridge.isAuthenticated()
+                                || bridge.accountFid() != recoveredFid
+                                || bridge.nativeCustodyAccount() != native)
+                                return;
+                            browserSigner->start(QStringLiteral("restore"), fid,
+                                QJsonObject{{QStringLiteral("protocol"),
+                                    native ? QStringLiteral("hypersnap-v2")
+                                           : QStringLiteral("farcaster-snapchain")}});
+                        }, Qt::QueuedConnection);
+                }
+            }
             // A recovered browser signer already owns a verified Farcaster
             // FID, but its private account cookie is separate. Queue the
             // signed account challenge AFTER the Qt session is committed:
@@ -3603,7 +3632,9 @@ void connectRuntime(
                 && !openProofSubject.isEmpty()
                 && openProofIssuer == connections.identityIssuer()
                 && !accountTicket.isEmpty();
-            if (verified && !restoredDevice && !recoveryHasAccountGrant) {
+            if (verified && !restoredDevice
+                && protocol != QStringLiteral("hypersnap-v2")
+                && !recoveryHasAccountGrant) {
                 bool validFid = false;
                 const qulonglong recoveredFid = fid.toULongLong(&validFid);
                 if (validFid) {
@@ -3641,6 +3672,14 @@ void connectRuntime(
                         }, Qt::QueuedConnection);
                 }
             }
+        });
+    QObject::connect(&bridge, &PresentationBridge::browserProtocolSetupRequested,
+        &bridge, [browserSigner, sessionObserver](const QString& protocol,
+                                                 const bool createAccount) {
+            sessionObserver(application::session::SessionState{
+                .phase = application::session::SessionPhase::Starting,
+            });
+            browserSigner->startAccountFlow(protocol, createAccount);
         });
     QObject::connect(&bridge, &PresentationBridge::signInRequested, browserAuth,
         [browserAuth, browserObserver, browserSigner, &bridge, &connections, sessionObserver](const QString& route) {
@@ -4001,10 +4040,14 @@ void connectRuntime(
                 const auto session = runtime->currentSessionSnapshot();
                 const bool deviceLocalSession = session
                     && session->identityIssuer == "genycaster:device-local";
+                const bool native = bridge.nativeCustodyAccount();
                 browserSigner->start(QStringLiteral("restore"),
                     QString::number(bridge.accountFid()),
-                    deviceLocalSession ? QJsonObject{}
-                        : QJsonObject{{QStringLiteral("rememberLocal"), true}});
+                    QJsonObject{
+                        {QStringLiteral("protocol"), native
+                            ? QStringLiteral("hypersnap-v2")
+                            : QStringLiteral("farcaster-snapchain")},
+                        {QStringLiteral("rememberLocal"), !deviceLocalSession}});
             }
 #else
             if (!runtime->signerService) return;
@@ -4220,7 +4263,10 @@ void connectRuntime(
 #endif
         ] {
 #if defined(Q_OS_WASM)
-            if (bridge.isAuthenticated() && bridge.accountFid() != 0)
+            // This JS EIP-712 authority targets Optimism Farcaster KEY_ADD,
+            // never the separate HyperSnap native signer registry.
+            if (bridge.isAuthenticated() && bridge.accountFid() != 0
+                && !bridge.nativeCustodyAccount())
                 browserSigner->start(QStringLiteral("provision"),
                     QString::number(bridge.accountFid()));
             return;

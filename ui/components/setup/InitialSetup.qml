@@ -193,7 +193,8 @@ Item {
     signal openApproval()
     signal cancelAuthentication()
     signal authorizeSigner()
-    signal recoverAccount()
+    signal recoverAccount(string protocol)
+    signal browserCreateAccount(string protocol)
     signal nativeRecoverAccount(string recoveryWords)
     signal nativeRecoverFarcasterAccount(string recoveryWords)
     signal nativeRecoverHyperSnapAccount(string recoveryWords)
@@ -413,7 +414,10 @@ Item {
             return
         // The browser's recovery-word dialog lives in the current app page.
         // Do not cover it with Verification while the words are being entered.
-        if (authenticationRoute === "recovery" && browserReadOnly && !authenticated)
+        if (browserReadOnly && !authenticated
+            && (authenticationRoute === "recovery"
+                || authenticationRoute === "browser-protocol-recovery"
+                || authenticationRoute === "browser-protocol-create"))
             return
         if (authenticationInProgress)
             switchStep(5)
@@ -424,6 +428,8 @@ Item {
     onAuthenticationErrorTextChanged: {
         if (authenticationErrorText.length
             && (authenticationRoute === "recovery"
+                || authenticationRoute === "browser-protocol-recovery"
+                || authenticationRoute === "browser-protocol-create"
                 || authenticationRoute === "hypersnap-recovery"
                 || authenticationRoute === "farcaster-native-recovery")
             && !authenticated) {
@@ -1655,10 +1661,24 @@ Item {
                     spacing: Theme.space3
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.browser_native_registration_notice")
-                        color: Theme.warning
+                        visible: root.registrationProviderId === "farcaster-snapchain"
+                        text: qsTrId("genycaster.setup.neynar_registration_requirements")
+                        color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
+                    }
+                    SetupActionCard {
+                        objectName: "setupBrowserCreateHyperSnap"
+                        visible: root.registrationProviderId === "hypersnap-v2"
+                        Layout.fillWidth: true
+                        compactCard: true
+                        onboardingStyle: true
+                        iconGlyph: "quilibrium/hypersnap"
+                        title: qsTrId("genycaster.setup.design_create_account")
+                        enabled: root.runtimeReady && !root.authenticationInProgress
+                        onClicked: {
+                            root.browserCreateAccount("hypersnap-v2")
+                        }
                     }
                     SetupActionCard {
                         objectName: "setupBrowserExternalHyperSnap"
@@ -1680,6 +1700,19 @@ Item {
                             root.recoveryProtocol = "hypersnap-v2"
                             root.continueWithGenyleap()
                             root.switchStep(5)
+                        }
+                    }
+                    SetupActionCard {
+                        objectName: "setupBrowserCreateFarcaster"
+                        visible: root.registrationProviderId === "farcaster-snapchain"
+                        Layout.fillWidth: true
+                        compactCard: true
+                        onboardingStyle: true
+                        iconGlyph: "brands/farcaster"
+                        title: qsTrId("genycaster.setup.design_create_account")
+                        enabled: root.runtimeReady && !root.authenticationInProgress
+                        onClicked: {
+                            root.browserCreateAccount("farcaster-snapchain")
                         }
                     }
                     SetupActionCard {
@@ -2540,7 +2573,6 @@ Item {
             // identity methods are secondary alternatives.
             SetupActionCard {
                 visible: root.existingProtocolSelected && !root.authenticated
-                         && (!root.browserReadOnly || root.recoveryProtocol === "farcaster-snapchain")
                 Layout.fillWidth: true
                 compactCard: true
                 onboardingStyle: true
@@ -2548,26 +2580,15 @@ Item {
                 iconGlyph: "system/lock"
                 title: qsTrId("genycaster.setup.design_recovery_title")
                 enabled: !root.authenticationInProgress && !root.recoverySubmitPending
-                    && (!root.browserReadOnly || root.recoveryProtocol === "farcaster-snapchain")
                 onClicked: {
                     if (root.browserReadOnly) {
                         // The DOM recovery dialog is presented only on an
                         // explicit click. No phrase enters QML or C++.
-                        root.recoverAccount()
+                        root.recoverAccount(root.recoveryProtocol)
                     } else {
                         root.showRecovery = !root.showRecovery
                     }
                 }
-            }
-            DirectionAwareLabel {
-                objectName: "setupBrowserHyperSnapRecoveryNotice"
-                visible: root.browserReadOnly && root.existingProtocolSelected
-                    && !root.authenticated && root.recoveryProtocol === "hypersnap-v2"
-                Layout.fillWidth: true
-                text: qsTrId("genycaster.setup.browser_hypersnap_recovery_notice")
-                color: Theme.warning
-                font.pixelSize: Theme.typeCaptionSize
-                wrapMode: Text.WordWrap
             }
             ColumnLayout {
                 visible: root.showRecovery && (root.existingProtocolSelected || root.resumingRegistration)

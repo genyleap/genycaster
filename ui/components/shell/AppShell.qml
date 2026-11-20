@@ -3759,7 +3759,10 @@ Item {
         onOpenApproval: presentationBridge.openAuthenticationApproval()
         onCancelAuthentication: presentationBridge.cancelSignIn()
         onAuthorizeSigner: root.requestInteractionAuthorization()
-        onRecoverAccount: presentationBridge.beginRecoverySetup()
+        onRecoverAccount: (protocol) =>
+            presentationBridge.beginBrowserProtocolSetup(protocol, false)
+        onBrowserCreateAccount: (protocol) =>
+            presentationBridge.beginBrowserProtocolSetup(protocol, true)
         onNativeRecoverAccount: (recoveryWords) =>
             presentationBridge.beginNativeRecoverySetup(recoveryWords)
         onNativeRecoverHyperSnapAccount: (recoveryWords) =>

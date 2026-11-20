@@ -52,9 +52,13 @@ test('browser registration prevents dead stub wallet while offering verified ide
   for (const name of ['nativeAccountLookupPanel','nativeRegistrationProofPanel','nativeRegistrationBroadcastPanel','neynarFarcasterRegistration']) {
     assert.match(account,new RegExp('objectName: "'+name+'"[^]*?visible: !root.browserReadOnly'));
   }
-  assert.match(existing,/visible: root.existingProtocolSelected && !root.authenticated\s*&& \(!root.browserReadOnly \|\| root.recoveryProtocol === "farcaster-snapchain"\)/);
-  assert.match(existing,/genycaster.setup.browser_hypersnap_recovery_notice/);
-  assert.match(account,/genycaster.setup.browser_native_registration_notice/);
+  assert.match(existing,/visible: root.existingProtocolSelected && !root.authenticated/);
+  assert.match(account,/objectName: "setupBrowserCreateHyperSnap"/);
+  assert.match(account,/objectName: "setupBrowserCreateFarcaster"/);
+  assert.match(account,/root.browserCreateAccount\("hypersnap-v2"\)/);
+  assert.match(account,/root.browserCreateAccount\("farcaster-snapchain"\)/);
+  assert.match(existing,/root.recoverAccount\(root.recoveryProtocol\)/);
+  assert.doesNotMatch(existing,/objectName: "setupBrowserHyperSnapRecoveryNotice"/);
   for(const locale of ['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR','hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
     const translation=readFileSync(new URL('../../ui/i18n/qml_'+locale+'.ts',import.meta.url),'utf8');
     assert.ok(translation.includes('id="genycaster.setup.browser_native_registration_notice"'),locale);

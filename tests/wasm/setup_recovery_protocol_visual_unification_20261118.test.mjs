@@ -25,7 +25,7 @@ test('Recovery follows one cross-platform Existing protocol picker', () => {
   }
   assert.match(recover,/setupEmphasis: true/);
   assert.match(recover,/root.existingProtocolSelected && !root.authenticated/);
-  assert.match(recover,/root.recoverAccount\(\)/);
+  assert.match(recover,/root.recoverAccount\(root.recoveryProtocol\)/);
   assert.doesNotMatch(recover,/objectName: "setupRecover(?:HyperSnap|Farcaster)"/);
   assert.doesNotMatch(recover,/objectName: "setupBrowserRecover(?:HyperSnap|Farcaster)"/);
 });
