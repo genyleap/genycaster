@@ -52,3 +52,23 @@ test('native HyperSnap lookup retries read-only on canonical node without signer
   assert.match(section,/fallback->lookupByCustody\(address/);
   assert.doesNotMatch(section,/!nativePublisher->registrationSupported\(\)/);
 });
+
+
+test('both desktop protocol imports permit read-only recovery without consenting to a signer',()=>{
+  const setup=read('ui/components/setup/InitialSetup.qml');
+  const shell=read('ui/components/shell/AppShell.qml');
+  const bridge=read('src/presentation/qt/presentation_bridge.cpp');
+  const header=read('src/presentation/qt/presentation_bridge.hpp');
+  assert.match(setup,/root\.nativeRecoverHyperSnapAccount\(words, deviceSignerConsent\.checked\)/);
+  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, deviceSignerConsent\.checked\)/);
+  const action=setup.slice(setup.indexOf('objectName: "nativeRecoveryDeviceSignerConsent"'),
+    setup.indexOf('root.recoverySubmitPending = true'));
+  assert.doesNotMatch(action,/&& deviceSignerConsent\.checked/);
+  assert.match(shell,/beginNativeHyperSnapRecoverySetup\(recoveryWords, authorizeSigner\)/);
+  assert.match(header,/nativeHyperSnapRecoveryRequested\(QString recoveryWords, bool authorizeSigner\)/);
+  assert.match(bridge,/m_hyperSnapRecoverySignerConsent = authorizeSigner/);
+  const native=binding.slice(binding.indexOf('nativeHyperSnapRecoveryRequested'),
+    binding.indexOf('if (nativePublisher) nativePublisher->setIdentityRuntimeReady(false)'));
+  assert.match(native,/QString words, const bool authorizeSigner/);
+  assert.match(native,/if \(authorizeSigner\) \{[\s\S]*?makeOneShotRecoveryAuthorizer/);
+});

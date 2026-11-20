@@ -3463,7 +3463,8 @@ void connectRuntime(
     QObject::connect(&bridge,
         &PresentationBridge::nativeHyperSnapRecoveryRequested, &bridge,
         [runtime, nativePublisher, &bridge, sessionObserver,
-         commitVerifiedIdentity, hyperRecoveryGeneration](QString words) {
+         commitVerifiedIdentity, hyperRecoveryGeneration](
+             QString words, const bool authorizeSigner) {
             const auto id = hyperRecoveryGeneration->fetch_add(
                 1U, std::memory_order_acq_rel) + 1U;
             if (!nativePublisher || !runtime->sessionService) {
@@ -3487,7 +3488,7 @@ void connectRuntime(
             auto* watcher = new QFutureWatcher<QString>(&bridge);
             QObject::connect(watcher, &QFutureWatcher<QString>::finished,
                 &bridge, [watcher, secret, nativePublisher, &bridge,
-                          hyperRecoveryGeneration, id,
+                          hyperRecoveryGeneration, id, authorizeSigner,
                           commitVerifiedIdentity] {
                     const QString address = watcher->result();
                     watcher->deleteLater();
@@ -3502,7 +3503,7 @@ void connectRuntime(
                     }
                     auto finalizeLookup =
                         [secret, address, &bridge, hyperRecoveryGeneration,
-                         id, commitVerifiedIdentity](
+                         id, authorizeSigner, commitVerifiedIdentity](
                             HyperSnapRegistrationTransport::LookupResult result) {
                             if (hyperRecoveryGeneration->load(
                                     std::memory_order_acquire) != id
@@ -3540,15 +3541,16 @@ void connectRuntime(
                             const auto mnemonic = std::string_view{
                                 secret->constData(),
                                 static_cast<std::size_t>(secret->size())};
-                            auto optionalSigner = farcaster::platform::custody_recovery::
-                                makeOneShotRecoveryAuthorizer(
-                                    mnemonic, address.toLower().toStdString(),
-                                    result.fid);
-                            // This proof was confirmed by the native registry.
-                            // A missing publishing capability must not erase
-                            // a verified account or block readonly sign-in.
                             std::shared_ptr<capability::signer::ICustodyAuthorizer> permit{};
-                            if (optionalSigner) permit = std::move(*optionalSigner);
+                            if (authorizeSigner) {
+                                auto signerPermit = farcaster::platform::custody_recovery::
+                                    makeOneShotRecoveryAuthorizer(
+                                        mnemonic, address.toLower().toStdString(),
+                                        result.fid);
+                                if (signerPermit) permit = std::move(*signerPermit);
+                            }
+                            // Registry-confirmed native account recovery is
+                            // independent from OPTIONAL publishing permission.
                             commitVerifiedIdentity(result.fid, address,
                                                    std::move(permit), false);
                         };
@@ -3597,7 +3599,7 @@ void connectRuntime(
     if (nativePublisher) nativePublisher->setIdentityRuntimeReady(false);
     if (farcasterPublisher) farcasterPublisher->setIdentityRuntimeReady(false);
     QObject::connect(&bridge, &PresentationBridge::nativeHyperSnapRecoveryRequested,
-        &bridge, [&bridge](QString words) {
+        &bridge, [&bridge](QString words, bool) {
             words.fill(QChar{});
             bridge.applyAuthenticationError(
                 qtTrId("genycaster.setup.recovery_failed_retry"));

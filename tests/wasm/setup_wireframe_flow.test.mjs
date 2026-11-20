@@ -776,14 +776,14 @@ test('HyperSnap native signup, recovery and signer stay in distinct guarded path
     'nativeRegistrationPublisher.registrationSupported',
     'nativeRegistrationPublisher.submitPrepared()',
     'nativeRegistrationPublisher.checkConfirmation()',
-    'nativeRecoverHyperSnapAccount(words)',
+    'nativeRecoverHyperSnapAccount(words, deviceSignerConsent.checked)',
     'root.nativeRecoverFarcasterAccount(words, deviceSignerConsent.checked)',
     'objectName: "setupExistingHyperSnap"',
     'objectName: "setupExistingFarcaster"'
   ])assert.ok(setup.includes(s),s);
   assert.match(shell,/onNativeRecoverHyperSnapAccount/);
-  assert.match(bridgeApi,/nativeHyperSnapRecoveryRequested\(QString recoveryWords\)/);
-  assert.match(bridge,/emit nativeHyperSnapRecoveryRequested\(std::move\(recoveryWords\)\)/);
+  assert.match(bridgeApi,/nativeHyperSnapRecoveryRequested\(QString recoveryWords, bool authorizeSigner\)/);
+  assert.match(bridge,/emit nativeHyperSnapRecoveryRequested\(\s*std::move\(recoveryWords\), m_hyperSnapRecoverySignerConsent\)/);
   assert.match(runtime,/nativeHyperSnapRecoveryRequested/);
   assert.match(runtime,/makeOneShotRecoveryAuthorizer/);
   assert.match(runtime,/nativeAccountConfirmed/);

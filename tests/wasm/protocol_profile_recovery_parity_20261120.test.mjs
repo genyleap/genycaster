@@ -45,7 +45,7 @@ test('WASM setup explicitly shows protocol choices without faking desktop-only b
   assert.match(setup,/root\.recoverAccount\(root\.recoveryProtocol\)/);
   assert.match(setup,/root\.browserCreateAccount\("hypersnap-v2"\)/);
   assert.match(wallet,/bool NativeCustodyWalletController::generate\(\)[\s\S]*?return false;/);
-  assert.match(setup,/root\.nativeRecoverHyperSnapAccount\(words\)/);
+  assert.match(setup,/root\.nativeRecoverHyperSnapAccount\(words, deviceSignerConsent\.checked\)/);
   assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, deviceSignerConsent\.checked\)/);
 });
 

@@ -3071,10 +3071,13 @@ void PresentationBridge::beginBrowserProtocolSetup(QString protocol,
 #endif
 }
 
-void PresentationBridge::beginNativeHyperSnapRecoverySetup(QString recoveryWords)
+void PresentationBridge::beginNativeHyperSnapRecoverySetup(
+    QString recoveryWords, const bool authorizeSigner)
 {
     m_hyperSnapRecoveryRequest = true;
+    m_hyperSnapRecoverySignerConsent = authorizeSigner;
     beginNativeRecoverySetup(std::move(recoveryWords));
+    m_hyperSnapRecoverySignerConsent = false;
     m_hyperSnapRecoveryRequest = false;
 }
 
@@ -3127,7 +3130,8 @@ void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
     // Direct, same-thread delivery to the Qt composition layer. The bridge
     // has no property, field, logging or persistence for custody words.
     if (m_hyperSnapRecoveryRequest)
-        emit nativeHyperSnapRecoveryRequested(std::move(recoveryWords));
+        emit nativeHyperSnapRecoveryRequested(
+            std::move(recoveryWords), m_hyperSnapRecoverySignerConsent);
     else if (m_farcasterRecoveryRequest)
         emit nativeFarcasterRecoveryRequested(
             std::move(recoveryWords), m_farcasterRecoverySignerConsent);
