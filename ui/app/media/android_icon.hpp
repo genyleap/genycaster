@@ -59,7 +59,7 @@ public:
 
         const int width = std::clamp(requestedSize.width(), 1, 512);
         const int height = std::clamp(requestedSize.height(), 1, 512);
-        QImage image{QSize{width, height}, QImage::Format_ARGB32_Premultiplied};
+        QImage image{QSize{width, height}, QImage::Format_RGBA8888_Premultiplied};
         image.fill(Qt::transparent);
 
         QPainter painter{&image};
