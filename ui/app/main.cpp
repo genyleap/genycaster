@@ -1108,6 +1108,8 @@ int main(int argc, char* argv[])
     // avoiding a second, device-dependent postprocessing shader pass.
     engine.addImageProvider(QStringLiteral("genycaster-icons"),
                             new AndroidTintedIconProvider{});
+    engine.addImageProvider(QStringLiteral("genycaster-brand"),
+                            new AndroidBrandImageProvider{});
 #endif
     engine.addImageProvider(
         QStringLiteral("remote"),
