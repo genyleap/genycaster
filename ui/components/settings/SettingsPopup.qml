@@ -41,8 +41,9 @@ GenyAdaptiveDialog {
     readonly property real viewportWidth: Overlay.overlay && Overlay.overlay.width > 0
                                           ? Overlay.overlay.width
                                           : (root.parent ? root.parent.width : 0)
-    readonly property bool mobilePresentation: viewportWidth > 0
-                                              && viewportWidth < Theme.breakpointMobile
+    readonly property bool mobilePresentation: Qt.platform.os === "android"
+                                              || (viewportWidth > 0
+                                                  && viewportWidth < Theme.breakpointMobile)
     function scrollToBeginning() {
         // Only explicit Settings entry resets state. Switching controls or
         // returning from a nested detail does not discard unsaved values.
