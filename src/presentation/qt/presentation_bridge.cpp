@@ -2960,6 +2960,29 @@ void PresentationBridge::resetInitialSetupProgress()
     }
 }
 
+QVariantMap PresentationBridge::setupConnections() const
+{
+    return m_setupConnections;
+}
+
+void PresentationBridge::checkSetupConnections()
+{
+    if (m_runtimeReady && !m_isAuthenticated) {
+        emit setupConnectionCheckRequested();
+    }
+}
+
+void PresentationBridge::applySetupConnection(
+    const QString& service, QString state, const int elapsedMs)
+{
+    const QVariantMap result{{QStringLiteral("state"), std::move(state)},
+                             {QStringLiteral("elapsedMs"), elapsedMs}};
+    if (m_setupConnections.value(service).toMap() != result) {
+        m_setupConnections.insert(service, result);
+        emit setupConnectionsChanged();
+    }
+}
+
 void PresentationBridge::beginSignIn()
 {
     if (!m_legalConsentAccepted) {

@@ -53,8 +53,7 @@ INTENTIONALLY_IDENTICAL_IDS = {
     # are intentionally identical across languages.
     "genycaster.settings.farcaster_label",
     "genycaster.settings.hypersnap_label",
-    "genycaster.setup.network_farcaster_category",
-    "genycaster.setup.network_hypersnap_category",
+    "genycaster.setup.connection_latency",
     "genycaster.setup.neynar_hub_farcaster",
     "genycaster.setup.pinata_hub_farcaster",
     "genycaster.setup.standard_crypto_hub_farcaster",

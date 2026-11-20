@@ -13,7 +13,7 @@ const extract = (source, marker, next) => {
 test('Recovery follows one cross-platform Existing protocol picker', () => {
   const setup = read('ui/components/setup/InitialSetup.qml');
   const recover = extract(setup, 'id: signInStage', 'id: verifyingStage');
-  const choice=extract(recover,'objectName: "setupExistingProtocolChoice"', 'objectName: "setupExistingSelectedProtocol"');
+  const choice=extract(recover,'objectName: "setupExistingProtocolChoice"', '// Local custody recovery');
   for (const [name, value] of [
     ['setupExistingHyperSnap', 'hypersnap-v2'],
     ['setupExistingFarcaster', 'farcaster-snapchain'],
@@ -24,7 +24,7 @@ test('Recovery follows one cross-platform Existing protocol picker', () => {
     assert.ok(card.includes('root.recoveryProtocol = "' + value + '"'));
   }
   assert.match(recover,/setupEmphasis: true/);
-  assert.match(recover,/root.existingProtocolSelected && !root.authenticated/);
+  assert.match(recover,/!root.authenticated && root.existingProtocolSelected/);
   assert.match(recover,/root.recoverAccount\(root.recoveryProtocol\)/);
   assert.doesNotMatch(recover,/objectName: "setupRecover(?:HyperSnap|Farcaster)"/);
   assert.doesNotMatch(recover,/objectName: "setupBrowserRecover(?:HyperSnap|Farcaster)"/);

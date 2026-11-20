@@ -27,6 +27,6 @@ test('HyperSnap Existing Account verifies native custody without mandatory signe
 test('native recovery errors are distinguished from signer and network availability',()=>{
   assert.match(dialog,/category==='recovery-unregistered'/);
   assert.match(dialog,/category==='recovery-network'/);
-  assert.match(dialog,/HyperSnap registry lookup did not complete/);
+  assert.match(dialog,/We couldn’t reach HyperSnap/);
   assert.match(dialog,/!category && \/does not control/);
 });

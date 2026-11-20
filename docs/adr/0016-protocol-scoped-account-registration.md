@@ -110,6 +110,28 @@ existing `nativeAccountConfirmed` path create a session and provision its signer
 This route never creates a proof, POSTs registration, or reuses an uncertain
 submission; a changed FID or failed lookup cannot establish a session.
 
+WebAssembly custody recovery retries a failed direct registry connection once
+through the configured GenyCaster browser gateway. The gateway forwards only
+the public custody address to its configured HyperSnap registry. The browser
+requires the same registry origin and validates the exact custody address and
+FID before establishing a session. An explicit registry result, including a
+missing or mismatched account, never triggers a fallback. Registration and
+signer requests keep their own routes. Deploy the gateway endpoint before
+shipping WASM if recovery must work on networks that cannot connect directly.
+
+Setup shows an advisory, refreshable service check before account creation or
+recovery actions. The shared Qt presentation keeps these observations in
+memory. The runtime performs a bounded HyperSnap native registry lookup and an
+Optimism IdRegistry `idOf` read using a fixed public probe address. HyperSnap
+uses the same desktop or browser fallback as custody recovery. OpenProof
+builds also check that the public provider catalog advertises Farcaster
+sign-in, using the browser gateway on WebAssembly. This catalog check measures
+availability of the entry service. Approval and account ownership still
+require the usual verification. The checks run without account data, never
+delay Setup actions and do not determine whether a protocol can accept writes.
+Protocol cards summarize availability. Expanding the service status shows
+individual routes and their measured response times and allows a fresh check.
+
 HyperSnap's gasless `KEY_ADD`/`KEY_REMOVE` and canonical user-message HTTP wire
 contracts are compatible with the existing protocol signer/write serializers.
 The runtime now registers **separate** HyperSnap-native signer and message

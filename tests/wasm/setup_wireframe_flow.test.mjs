@@ -517,7 +517,7 @@ test('desktop account keeps editorial cards while enabling registration provider
   assert.match(card,/id: editorialAccountCard/);
   assert.match(card,/property bool networkShowcase: false/);
   assert.match(card,/preferredSize: 36/);
-  assert.match(card,/preferredSize: 40/);
+  assert.match(card,/preferredSize: root.connectionText \? 24 : 40/);
   assert.match(card,/id: networkCardRow/);
   assert.match(account,/networkShowcase: true/);
   assert.match(account,/iconGlyph: "quilibrium\/hypersnap"/);
@@ -604,7 +604,7 @@ test('recovery appears before Genyleap and Farcaster, stays usable in review mod
   const chooser=stage.indexOf('objectName: "setupExistingProtocolChoice"');
   const nativeRecovery=stage.indexOf('visible: root.showRecovery && (root.existingProtocolSelected');
   assert.ok(chooser>=0 && chooser<recovery && recovery<nativeRecovery
-    && nativeRecovery<farcaster, 'Protocol selection precedes recovery for every platform');
+    && farcaster<nativeRecovery, 'Protocol selection precedes the action group and inline recovery form');
   assert.doesNotMatch(stage,/objectName: "setupBrowserRecoveryProtocolChoice"/);
   const bridge=source('src/presentation/qt/presentation_bridge.cpp');
   const handler=bridge.slice(bridge.indexOf('void PresentationBridge::beginRecoverySetup()'),

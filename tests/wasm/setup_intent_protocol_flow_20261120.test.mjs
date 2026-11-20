@@ -26,7 +26,6 @@ test('Existing protocol picker renders once and gates every subsequent action',(
   assert.match(existing,/visible: !root.authenticated && !root.existingProtocolSelected\s*&& !root.resumingRegistration/);
   assert.match(existing,/root.recoveryProtocol = "farcaster-snapchain"[\s\S]*?root.existingProtocolSelected = true/);
   assert.match(existing,/root.recoveryProtocol = "hypersnap-v2"[\s\S]*?root.existingProtocolSelected = true/);
-  assert.match(existing,/visible: root.existingProtocolSelected && !root.authenticated/);
   assert.match(existing,/visible: !root.authenticated && root.existingProtocolSelected/);
   assert.match(existing,/visible: root.recoveryProtocol === "hypersnap-v2"/);
   assert.match(existing,/visible: root.recoveryProtocol === "farcaster-snapchain"/);
@@ -41,6 +40,40 @@ test('Back returns from phrase editor to protocol choice then New/Existing',()=>
   assert.match(existing,/root.showRecovery && \(root.existingProtocolSelected \|\| root.resumingRegistration\)/);
 });
 
+test('shared setup shows advisory recovery and sign-in checks on both account paths', () => {
+  assert.match(account, /SetupConnectionPanel \{\s*objectName: "setupRegistrationConnections"/);
+  assert.match(existing, /SetupConnectionPanel \{\s*objectName: "setupExistingConnections"/);
+  assert.match(setup, /onShowsSetupConnectivityChanged:[^]*?checkSetupConnections\(\)/);
+  for (const stage of [account, existing]) {
+    assert.match(stage, /connectionState: root.protocolConnectionState\(false\)/);
+    assert.match(stage, /connectionState: root.protocolConnectionState\(true\)/);
+  }
+  assert.match(existing, /protocol: root.existingProtocolSelected \? root.recoveryProtocol : ""/);
+  for (const service of ['hypersnapRecovery', 'farcasterRecovery', 'farcasterSignIn']) {
+    assert.ok(setup.includes('root.setupConnections.' + service), service);
+  }
+  assert.match(existing, /enabled: !root.authenticationInProgress && !root.recoverySubmitPending/);
+  assert.doesNotMatch(account + existing, /enabled:[^\n]*(setupConnections|showsSetupConnectivity)/);
+  const bindings = readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
+  assert.match(bindings, /probeAddress\{"0x0+1"\}/);
+  assert.match(bindings, /"\/v1\/nativeAccount" \+ custodyQuery/);
+  assert.match(bindings, /"\/v1\/browser\/hypersnap\/native-account" \+ custodyQuery/);
+  assert.match(bindings, /"eth_call"/);
+  assert.match(bindings, /"challenge_providers"/);
+  assert.match(bindings, /"\/v1\/browser\/openproof\/providers"/);
+  const signer = readFileSync(new URL('../../ui/wasm/browser_protocol_signer.mjs', import.meta.url), 'utf8');
+  const rpcUrl = signer.match(/const optimismRpcUrl = '([^']+)'/)?.[1];
+  assert.ok(rpcUrl && bindings.includes('optimismRpc{"' + rpcUrl + '"}'));
+});
+
+test('connection details start collapsed and a manual check stays available when expanded', () => {
+  const panel = setup.slice(setup.indexOf('component SetupConnectionPanel:'), setup.indexOf('function greetingIndexForTag'));
+  assert.match(panel, /property bool expanded: false/);
+  assert.match(panel, /onClicked: details.expanded = !details.expanded/);
+  assert.match(panel, /model: details.expanded/);
+  assert.match(panel, /SetupConnectionRefresh \{ visible: details.expanded \}/);
+});
+
 test('browser registration prevents dead stub wallet while offering verified identity providers',()=>{
   assert.match(account,/objectName: "setupBrowserRegistrationPath"/);
   assert.match(account,/visible: root.browserReadOnly && root.registrationProviderId.length > 0/);
@@ -52,7 +85,7 @@ test('browser registration prevents dead stub wallet while offering verified ide
   for (const name of ['nativeAccountLookupPanel','nativeRegistrationProofPanel','nativeRegistrationBroadcastPanel','neynarFarcasterRegistration']) {
     assert.match(account,new RegExp('objectName: "'+name+'"[^]*?visible: !root.browserReadOnly'));
   }
-  assert.match(existing,/visible: root.existingProtocolSelected && !root.authenticated/);
+  assert.match(existing,/visible: !root.authenticated && root.existingProtocolSelected/);
   assert.match(account,/objectName: "setupBrowserCreateHyperSnap"/);
   assert.match(account,/objectName: "setupBrowserCreateFarcaster"/);
   assert.match(account,/root.browserCreateAccount\("hypersnap-v2"\)/);

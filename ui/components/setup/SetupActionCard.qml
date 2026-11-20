@@ -20,11 +20,15 @@ Button {
     property bool busy: false
     property bool showChevron: true
     property bool showSelectionMark: true
+    property bool wrapTitle: false
     property bool compactCard: false
     property bool onboardingStyle: false
     property bool neutralPrimary: false
     property bool accountShowcase: false
     property bool networkShowcase: false
+    property string connectionText: ""
+    property string connectionState: ""
+    readonly property bool connectionWarning: connectionState === "unavailable" || connectionState === "disabled"
     property bool setupEmphasis: false
     // Recovery protocol choices reuse this same card material, not a
     // separate ActionButton selected-state and radius.
@@ -40,7 +44,7 @@ Button {
         enabled: Theme.neonEnabled
         blocking: false
     }
-    implicitHeight: Math.max(accountShowcase ? 182 : networkShowcase ? 120
+    implicitHeight: Math.max(accountShowcase ? 182 : networkShowcase ? (connectionText ? 76 : 120)
                              : compactCard ? 62 : onboardingStyle ? 78 : 96,
                              contentItem.implicitHeight + topPadding + bottomPadding)
     leftPadding: Theme.space4
@@ -52,8 +56,9 @@ Button {
 
     Accessible.name: title
     Accessible.role: root.protocolChoice ? Accessible.RadioButton : Accessible.Button
-    Accessible.description: subtitle + (root.unavailable
-                            ? " · " + qsTrId("genycaster.setup.temporarily_unavailable") : "")
+    Accessible.description: [subtitle, root.unavailable
+        ? qsTrId("genycaster.setup.temporarily_unavailable") : "",
+        root.connectionText].filter(Boolean).join(" · ")
     Accessible.checked: root.selected
 
     // Disabled primary actions use a neutral card background; do not paint
@@ -150,7 +155,8 @@ Button {
 
     contentItem: Item {
         implicitHeight: root.accountShowcase ? 150
-                        : root.networkShowcase ? 88 : standardCardRow.implicitHeight
+                        : root.networkShowcase ? networkCardRow.implicitHeight
+                        : standardCardRow.implicitHeight
         RowLayout {
             id: standardCardRow
             anchors.fill: parent
@@ -196,7 +202,8 @@ Button {
                 font.pixelSize: root.compactCard || root.onboardingStyle ? Theme.typeLabelSize : Math.max(Theme.typeLabelSize, 17)
                 font.weight: Theme.weightDemiBold
                 horizontalAlignment: Theme.textStartAlignment
-                elide: Text.ElideRight
+                wrapMode: root.wrapTitle ? Text.Wrap : Text.NoWrap
+                elide: root.wrapTitle ? Text.ElideNone : Text.ElideRight
             }
 
             DirectionAwareLabel {
@@ -320,8 +327,8 @@ Button {
             spacing: Theme.space3
             layoutDirection: Theme.uiDirection
             Superellipse {
-                Layout.preferredWidth: 64
-                Layout.preferredHeight: 64
+                Layout.preferredWidth: root.connectionText ? 38 : 64
+                Layout.preferredHeight: Layout.preferredWidth
                 fillColor: root.selected ? Theme.surfaceHover : Theme.surfaceMuted
                 borderWidth: root.selected ? Theme.strokeStandard : 0
                 borderColor: root.selected ? Theme.accent : Theme.borderMuted
@@ -329,31 +336,56 @@ Button {
                 Icon {
                     anchors.centerIn: parent
                     text: root.iconGlyph
-                    preferredSize: 40
+                    preferredSize: root.connectionText ? 24 : 40
                     color: root.foreground
                 }
             }
             ColumnLayout {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 spacing: Theme.space1
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: root.title
+                    alignToUi: true
+                    selectableText: false
                     color: root.foreground
                     font.pixelSize: Math.max(Theme.typeLabelSize, 17)
                     font.weight: Theme.weightDemiBold
-                    horizontalAlignment: Theme.textStartAlignment
-                    wrapMode: Text.WordWrap
-                    maximumLineCount: 2
+                    wrapMode: Text.Wrap
                 }
                 DirectionAwareLabel {
+                    visible: root.subtitle.length > 0
                     Layout.fillWidth: true
                     text: root.subtitle
+                    alignToUi: true
+                    selectableText: false
                     color: root.secondaryForeground
                     font.pixelSize: Theme.typeCaptionSize
-                    horizontalAlignment: Theme.textStartAlignment
-                    wrapMode: Text.WordWrap
-                    maximumLineCount: 2
+                    wrapMode: Text.Wrap
+                }
+                RowLayout {
+                    visible: root.connectionText.length > 0
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space1
+                    Rectangle {
+                        Layout.preferredWidth: 6
+                        Layout.preferredHeight: 6
+                        radius: 3
+                        color: root.connectionWarning ? Theme.warning
+                             : root.connectionState === "reachable" ? Theme.success : Theme.inkMuted
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        text: root.connectionText
+                        color: root.connectionWarning ? Theme.warning : Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        alignToUi: true
+                        selectableText: false
+                        wrapMode: Text.Wrap
+                    }
                 }
             }
             Icon {

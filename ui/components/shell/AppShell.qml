@@ -3746,6 +3746,8 @@ Item {
         authenticationRoute: presentationBridge.authenticationRoute
         authenticationApprovalAvailable: presentationBridge.authenticationApprovalAvailable
         authenticationErrorText: presentationBridge.authenticationErrorText
+        setupConnections: presentationBridge.setupConnections
+        onCheckSetupConnections: presentationBridge.checkSetupConnections()
         signerStatusText: presentationBridge.signerStatusText
         signerErrorText: presentationBridge.signerErrorText
         signerBusy: presentationBridge.signerBusy

@@ -6460,14 +6460,6 @@ Company | https://company.com</source>
             <source>Choose which network Genycaster reads casts and profiles from.</source>
             <translation>Escolha de qual rede o Genycaster lê casts e perfis.</translation>
         </message>
-        <message id="genycaster.setup.centralized_service_label">
-            <source>Centralized</source>
-            <translation>Centralizada</translation>
-        </message>
-        <message id="genycaster.setup.decentralized_label">
-            <source>Decentralized</source>
-            <translation>Descentralizada</translation>
-        </message>
         <message id="genycaster.setup.farcaster_not_configured">
             <source>A familiar network with centrally operated services and moderation.</source>
             <translation>Uma rede familiar com serviços e moderação administrados centralmente.</translation>
@@ -6484,9 +6476,9 @@ Company | https://company.com</source>
             <source>Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network.</source>
             <translation>Use sua identidade Farcaster ou conta Genyleap. Cada login é verificado independentemente e nenhum altera sua rede de leitura.</translation>
         </message>
-        <message id="genycaster.setup.farcaster_relay_unreachable">
-            <source>Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry.</source>
-            <translation>Não foi possível acessar o Farcaster Relay. Na configuração de Rede, selecione Direto em vez de Proxy do sistema, reinicie e tente novamente.</translation>
+        <message id="genycaster.setup.farcaster_sign_in_unavailable">
+            <source>The Farcaster sign-in service is unavailable. Try again shortly.</source>
+            <translation>O serviço de login do Farcaster está indisponível. Tente novamente em instantes.</translation>
         </message>
         <message id="genycaster.feed.trending_is_temporarily_unavailable_showing_live_community_posts_instead">
             <source>Trending is temporarily unavailable. Showing live community posts instead.</source>
@@ -6631,14 +6623,6 @@ Company | https://company.com</source>
         <message id="genycaster.setup.network_connection">
             <source>Network connection</source>
             <translation>Conexão de rede</translation>
-        </message>
-        <message id="genycaster.setup.network_farcaster_category">
-            <source>Farcaster (%1)</source>
-            <translation>Farcaster (%1)</translation>
-        </message>
-        <message id="genycaster.setup.network_hypersnap_category">
-            <source>Hypersnap (%1)</source>
-            <translation>Hypersnap (%1)</translation>
         </message>
         <message id="genycaster.setup.neynar_hub_farcaster">
             <source>Neynar Hub · Farcaster</source>
@@ -6808,6 +6792,34 @@ Company | https://company.com</source>
             <source>Select All</source>
             <translation>Selecionar tudo</translation>
         </message>
+        <message id="genycaster.setup.connection_status_title">
+            <source>Account service status</source>
+            <translation>Status dos serviços de conta</translation>
+        </message>
+        <message id="genycaster.setup.connection_recovery">
+            <source>Recovery</source>
+            <translation>Recuperação</translation>
+        </message>
+        <message id="genycaster.setup.connection_app_sign_in">
+            <source>App sign-in</source>
+            <translation>Login pelo app</translation>
+        </message>
+        <message id="genycaster.setup.connection_latency">
+            <source>%1 ms</source>
+            <translation>%1 ms</translation>
+        </message>
+        <message id="genycaster.setup.connection_response_time">
+            <source>Reachable · %1 ms</source>
+            <translation>Disponível · %1 ms</translation>
+        </message>
+        <message id="genycaster.setup.connection_disabled">
+            <source>Disabled</source>
+            <translation>Desativado</translation>
+        </message>
+        <message id="genycaster.setup.recovery_response_invalid">
+            <source>We couldn’t verify your account. Try again later.</source>
+            <translation>Não foi possível verificar sua conta. Tente novamente mais tarde.</translation>
+        </message>
         <message id="genycaster.setup.recovery_failed_retry">
             <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
             <translation>Não foi possível verificar a recuperação da conta. Confira as palavras de recuperação e o protocolo selecionado e tente novamente.</translation>
@@ -6817,8 +6829,8 @@ Company | https://company.com</source>
             <translation>This wallet does not own an active Farcaster FID on Optimism. Verify the 24 words or choose the correct protocol.</translation>
         </message>
         <message id="genycaster.setup.farcaster_custody_rpc_unavailable">
-            <source>Farcaster ownership could not be checked on Optimism. Check your connection and Optimism RPC settings, then retry.</source>
-            <translation>Farcaster ownership could not be checked on Optimism. Check your connection and Optimism RPC settings, then retry.</translation>
+            <source>Farcaster recovery is temporarily unavailable. Try again shortly.</source>
+            <translation>A recuperação do Farcaster está temporariamente indisponível. Tente novamente em instantes.</translation>
         </message>
         <message id="genycaster.setup.farcaster_custody_mismatch">
             <source>The wallet derived from these recovery words is not the current Farcaster custody owner of its FID.</source>

@@ -1037,16 +1037,12 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.sign_in_to_interact");
     //% "Sign in with Farcaster"
     (void)qtTrId("genycaster.shell.sign_in_with_farcaster");
-    //% "Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry."
-    (void)qtTrId("genycaster.setup.farcaster_relay_unreachable");
+    //% "The Farcaster sign-in service is unavailable. Try again shortly."
+    (void)qtTrId("genycaster.setup.farcaster_sign_in_unavailable");
     //% "Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network."
     (void)qtTrId("genycaster.setup.account_methods_explainer");
     //% "Product notice summary"
     (void)qtTrId("genycaster.setup.legal_summary_label");
-    //% "Hosted / centralized access"
-    (void)qtTrId("genycaster.setup.centralized_service_label");
-    //% "Decentralized"
-    (void)qtTrId("genycaster.setup.decentralized_label");
     //% "Farcaster · Hosted read node"
     (void)qtTrId("genycaster.setup.farcaster_hosted_node");
     //% "Independent Farcaster read adapter configured. Sign-in credentials are separate."
@@ -1063,11 +1059,25 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.mark_document_reviewed");
     //% "Open the official document and review the summary to continue."
     (void)qtTrId("genycaster.setup.open_governing_document");
+    //% "Account service status"
+    (void)qtTrId("genycaster.setup.connection_status_title");
+    //% "Recovery"
+    (void)qtTrId("genycaster.setup.connection_recovery");
+    //% "App sign-in"
+    (void)qtTrId("genycaster.setup.connection_app_sign_in");
+    //% "%1 ms"
+    (void)qtTrId("genycaster.setup.connection_latency");
+    //% "Reachable · %1 ms"
+    (void)qtTrId("genycaster.setup.connection_response_time");
+    //% "Disabled"
+    (void)qtTrId("genycaster.setup.connection_disabled");
+    //% "We couldn’t verify your account. Try again later."
+    (void)qtTrId("genycaster.setup.recovery_response_invalid");
     //% "Account recovery could not be verified. Review your recovery words and selected protocol, then retry."
     (void)qtTrId("genycaster.setup.recovery_failed_retry");
     //% "This wallet does not own an active Farcaster FID on Optimism. Verify the 24 words or choose the correct protocol."
     (void)qtTrId("genycaster.setup.farcaster_custody_unregistered");
-    //% "Farcaster ownership could not be checked on Optimism. Check your connection and Optimism RPC settings, then retry."
+    //% "Farcaster recovery is temporarily unavailable. Try again shortly."
     (void)qtTrId("genycaster.setup.farcaster_custody_rpc_unavailable");
     //% "The wallet derived from these recovery words is not the current Farcaster custody owner of its FID."
     (void)qtTrId("genycaster.setup.farcaster_custody_mismatch");

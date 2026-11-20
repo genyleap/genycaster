@@ -1,4 +1,6 @@
 import http from 'node:http';
+import https from 'node:https';
+import { Readable } from 'node:stream';
 import {serverDeployment} from '../deployment_config.mjs';
 import { defaultBrowserImageHosts, rasterMimeFromBytes, retrieveBrowserImage, validImageUrl, validPublicFaviconUrl } from './browser_image_proxy.mjs';
 import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
@@ -203,6 +205,19 @@ function safeJson(body) {
   } catch {
     return null;
   }
+}
+
+function fetchNativeRegistry(url, { headers, signal }) {
+  return new Promise((resolve, reject) => {
+    // Use conventional TLS groups for paths that reset the default Node
+    // handshake. TLS 1.3 and certificate verification remain available.
+    const request = https.get(url, { headers, signal, ecdhCurve: 'X25519:P-256' }, reply => {
+      resolve({ status: reply.statusCode,
+        headers: new Headers({ 'content-type': reply.headers['content-type'] ?? '' }),
+        body: Readable.toWeb(reply) });
+    });
+    request.once('error', reject);
+  });
 }
 
 function validObjectKey(key) {
@@ -479,6 +494,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     fetchImpl: dependencies.fetchImpl ?? globalThis.fetch,
     now: dependencies.now ?? (() => Date.now()),
   };
+  const requestNativeRegistry = dependencies.fetchNativeRegistry ?? fetchNativeRegistry;
   const replayCache = dependencies.replayCache ?? new ReplayCache(config.proofLifetimeSeconds);
   const limiter = dependencies.limiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.rateLimit);
   // Uploads carry verified signer proofs and must not compete with public
@@ -654,6 +670,63 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           error: typeof error.code === 'string' && error.code.startsWith('auth_')
             ? error.code : 'auth_service_unavailable',
         });
+      }
+      return;
+    }
+
+    if (requestUrl.pathname === '/v1/browser/hypersnap/native-account') {
+      const origin = request.headers.origin;
+      const trustedBrowser = origin === config.publicOrigin.origin;
+      const sameOrigin = !origin && config.browserGateway.origin === config.publicOrigin.origin;
+      response.setHeader('vary', 'Origin');
+      if (trustedBrowser) response.setHeader('access-control-allow-origin', origin);
+      if (request.method === 'OPTIONS') {
+        response.setHeader('access-control-allow-methods', 'GET, OPTIONS');
+        response.setHeader('access-control-allow-headers', 'accept');
+        response.writeHead(trustedBrowser ? 204 : 403);
+        response.end();
+        return;
+      }
+      if (!trustedBrowser && !sameOrigin) {
+        writeJson(response, 403, { error: 'origin_not_allowed' }); return;
+      }
+      if (request.method !== 'GET') {
+        writeJson(response, 405, { error: 'method_not_allowed' }); return;
+      }
+      const custody = requestUrl.searchParams.get('custody');
+      if (requestUrl.searchParams.size !== 1 || !/^0x[0-9a-f]{40}$/i.test(custody || '')) {
+        writeJson(response, 400, { error: 'invalid_custody_address' }); return;
+      }
+      const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
+      if (!rate.allowed) { writeJson(response, 429, { error: 'rate_limited' }); return; }
+
+      // Only the configured native registry can answer this lookup. Send the
+      // public custody address without forwarding browser headers or secrets.
+      const registryOrigin = config.hypersnapBaseUrl.origin;
+      const upstream = new URL('/v1/nativeAccount', registryOrigin);
+      upstream.searchParams.set('custody', custody.toLowerCase());
+      try {
+        const reply = await requestNativeRegistry(upstream, {
+          method: 'GET', redirect: 'error', headers: { accept: 'application/json' },
+          signal: AbortSignal.timeout(8_000),
+        });
+        if (![200, 400].includes(reply.status) || !reply.body
+            || !reply.headers.get('content-type')?.toLowerCase().startsWith('application/json')) {
+          await reply.body?.cancel();
+          throw new Error('Invalid HyperSnap registry response');
+        }
+        const chunks = [];
+        let bytes = 0;
+        for await (const chunk of reply.body) {
+          bytes += chunk.byteLength;
+          if (bytes > 32_000) throw new Error('HyperSnap registry response too large');
+          chunks.push(chunk);
+        }
+        const data = safeJson(Buffer.concat(chunks, bytes));
+        if (!data) throw new Error('Invalid HyperSnap registry JSON');
+        writeJson(response, reply.status, { registryOrigin, data });
+      } catch {
+        writeJson(response, 502, { error: 'hypersnap_registry_unavailable' });
       }
       return;
     }

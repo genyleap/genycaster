@@ -47,6 +47,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString farcasterReadEndpoint READ farcasterReadEndpoint NOTIFY farcasterReadConfigurationChanged)
     Q_PROPERTY(bool authenticationApprovalAvailable READ authenticationApprovalAvailable NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationErrorText READ authenticationErrorText NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QVariantMap setupConnections READ setupConnections NOTIFY setupConnectionsChanged)
     Q_PROPERTY(QString accountIdentityIssuer READ accountIdentityIssuer NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool nativeCustodyAccount READ nativeCustodyAccount NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountIdentityBadge READ accountIdentityBadge NOTIFY authenticationStateChanged)
@@ -155,6 +156,9 @@ public:
     Q_INVOKABLE bool setPreferredNetwork(const QString& network);
     [[nodiscard]] bool authenticationApprovalAvailable() const noexcept;
     [[nodiscard]] QString authenticationErrorText() const;
+
+    /** @brief Advisory states and response times of the account setup services. */
+    [[nodiscard]] QVariantMap setupConnections() const;
     [[nodiscard]] QString accountIdentityIssuer() const;
 
     /** @brief Trusted issuer classification, not a QML comparison of provider IDs. */
@@ -398,6 +402,9 @@ public:
     /** @brief Completes first-run setup after legal consent and a verified account session exist. */
     Q_INVOKABLE void completeInitialSetup();
 
+    /** @brief Requests a read-only account connection check without recovery material. */
+    Q_INVOKABLE void checkSetupConnections();
+
     /** @brief Starts canonical Genyleap/OpenProof sign-in. */
     Q_INVOKABLE void beginSignIn();
 
@@ -496,6 +503,9 @@ public:
 
     /** @brief Reports an authentication worker failure without replacing a valid account session. */
     void applyAuthenticationError(QString errorText);
+
+    /** @brief Publishes one advisory result, with latency in milliseconds when available. */
+    void applySetupConnection(const QString& service, QString state, int elapsedMs = -1);
 
     /** @brief Commits normalized protocol-signer readiness without exposing provider details. */
     void applySignerState(
@@ -642,9 +652,16 @@ signals:
     void viewerReactionInterestRetained(QString castId, qulonglong authorFid, qulonglong viewerFid);
     void viewerReactionInterestReleased(QString castId, qulonglong viewerFid);
     void profileRequested(qulonglong fid, bool allowRecoveryProbe);
+
     /** Profile-only routing affinity for the verified account, never user settings. */
     void ownProfileReadAffinityRequested(bool ownProfile, bool nativeCustody);
     void signInRequested(QString route);
+
+    /** @brief Requests the runtime to start the advisory setup checks. */
+    void setupConnectionCheckRequested();
+
+    /** @brief Indicates that an advisory setup connection state changed. */
+    void setupConnectionsChanged();
     void browserProtocolSetupRequested(QString protocol, bool createAccount);
 
     /** A one-shot phrase delivered to the native recovery executor, never to a provider. */
@@ -686,6 +703,7 @@ private:
     bool m_runtimeReady{false};
     bool m_authenticationAvailable{false};
     bool m_initialSetupCompleted{false};
+    QVariantMap m_setupConnections{};
     bool m_showSetupAfterSignOut{false};
     bool m_signOutRequestedByUser{false};
     bool m_legalConsentAccepted{false};

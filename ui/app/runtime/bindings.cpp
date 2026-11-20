@@ -14,6 +14,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QMetaObject>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkInformation>
@@ -1216,7 +1217,7 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
     case ErrorCode::Unavailable:
     case ErrorCode::TransportFailure:
         summary = route == QStringLiteral("farcaster")
-            ? qtTrId("genycaster.setup.farcaster_relay_unreachable")
+            ? qtTrId("genycaster.setup.farcaster_sign_in_unavailable")
             : qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
         break;
     case ErrorCode::Unsupported:
@@ -2439,6 +2440,190 @@ void scheduleManagedMediaCleanup(
 }
 #endif
 
+namespace {
+
+enum class SetupProbeKind { HyperSnap, HyperSnapGateway, FarcasterRecovery, FarcasterSignIn };
+
+struct SetupProbe final {
+    SetupProbeKind kind{};
+    std::string url{};
+    std::string body{};
+};
+
+using SetupProbeResponse = foundation::result::Result<farcaster::transport::http::HttpResponse>;
+using SetupProbeObserver = std::function<void(QString state, int elapsedMs)>;
+
+[[nodiscard]] QString setupProbeState(const SetupProbeKind kind, const SetupProbeResponse& response)
+{
+    const QString unavailable = QStringLiteral("unavailable");
+    const QString reachable = QStringLiteral("reachable");
+    if (!response || (response->statusCode != 200U && response->statusCode != 400U)) {
+        return unavailable;
+    }
+    auto object = QJsonDocument::fromJson(QByteArray::fromStdString(response->body)).object();
+    if (kind == SetupProbeKind::HyperSnapGateway) {
+        if (object.value(QStringLiteral("registryOrigin")).toString()
+            != QString::fromUtf8(genycaster::deployment::hypersnapOrigin)) {
+            return unavailable;
+        }
+        object = object.value(QStringLiteral("data")).toObject();
+    }
+    switch (kind) {
+    case SetupProbeKind::HyperSnap:
+    case SetupProbeKind::HyperSnapGateway:
+        // A definitive absence for the public probe address demonstrates that
+        // the actual native account lookup is responding.
+        return response->statusCode == 400U
+            && object.value(QStringLiteral("error")).toString()
+                == QStringLiteral("Native registration lookup failed")
+            && object.value(QStringLiteral("error_detail")).toString().startsWith(
+                QStringLiteral("status: NotFound, message: \"native account not found\""))
+            ? reachable : unavailable;
+    case SetupProbeKind::FarcasterRecovery:
+        return response->statusCode == 200U
+            && object.value(QStringLiteral("result")).toString()
+                == QStringLiteral("0x0000000000000000000000000000000000000000000000000000000000000000")
+            ? reachable : unavailable;
+    case SetupProbeKind::FarcasterSignIn: {
+        const auto methods = object.value(QStringLiteral("challenge_providers"));
+        if (response->statusCode != 200U || !methods.isArray()) {
+            return unavailable;
+        }
+        return methods.toArray().contains(QJsonValue{QStringLiteral("farcaster")})
+            ? reachable : QStringLiteral("disabled");
+    }
+    }
+    return unavailable;
+}
+
+void startSetupProbe(const std::weak_ptr<Runtime>& runtime, SetupProbe probe,
+                     std::optional<SetupProbe> fallback, SetupProbeObserver observe)
+{
+    namespace http = farcaster::transport::async_http;
+    const auto active = runtime.lock();
+    if (!active || !active->asyncTransport) {
+        observe(QStringLiteral("unavailable"), -1);
+        return;
+    }
+    const auto startedAt = std::chrono::steady_clock::now();
+    http::Request request{
+        .method = probe.body.empty() ? http::Method::Get : http::Method::Post,
+        .url = std::move(probe.url),
+        .headers = {"Accept: application/json"},
+        .body = std::move(probe.body),
+        .timeout = std::chrono::seconds{6},
+        .maxBodyBytes = 32'768U,
+        .priority = http::Priority::Visible,
+    };
+    if (request.method == http::Method::Post) {
+        request.headers.emplace_back("Content-Type: application/json");
+    }
+    const auto complete = [runtime, kind = probe.kind, fallback = std::move(fallback),
+                           observe, startedAt](const SetupProbeResponse& response) {
+        auto state = setupProbeState(kind, response);
+        if (fallback && state == QStringLiteral("unavailable")
+            && (fallback->kind != SetupProbeKind::HyperSnapGateway || !response)) {
+            startSetupProbe(runtime, *fallback, std::nullopt, observe);
+            return;
+        }
+        const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startedAt).count();
+        observe(std::move(state), static_cast<int>(elapsed));
+    };
+    auto started = active->asyncTransport->start(std::move(request), complete);
+    if (!started) {
+        complete(std::unexpected(std::move(started.error())));
+    }
+}
+
+void connectSetupConnectionCheck(PresentationBridge& bridge,
+                                 const std::shared_ptr<Runtime>& runtime,
+                                 HyperSnapRegistrationPublisher* nativePublisher)
+{
+    const QPointer<PresentationBridge> target{&bridge};
+    const QPointer<HyperSnapRegistrationPublisher> publisher{nativePublisher};
+    const auto pending = std::make_shared<int>(0);
+    QObject::connect(&bridge, &PresentationBridge::setupConnectionCheckRequested, &bridge,
+        [target, publisher, runtime = std::weak_ptr<Runtime>{runtime}, pending] {
+            if (!target || *pending != 0) {
+                return;
+            }
+            [[maybe_unused]] const auto start = [target, runtime, pending](const QString& service,
+                SetupProbe probe, std::optional<SetupProbe> fallback = {}) {
+                ++*pending;
+                target->applySetupConnection(service, QStringLiteral("checking"));
+                startSetupProbe(runtime, std::move(probe), std::move(fallback),
+                    [target, service, pending](QString state, const int elapsedMs) {
+                        if (!target) {
+                            return;
+                        }
+                        QMetaObject::invokeMethod(target.data(), [target, service, pending,
+                            state = std::move(state), elapsedMs] {
+                            --*pending;
+                            if (target) {
+                                target->applySetupConnection(service, state, elapsedMs);
+                            }
+                        }, Qt::QueuedConnection);
+                    });
+            };
+
+#if defined(Q_OS_WASM) || (FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH)
+            constexpr std::string_view probeAddress{"0x0000000000000000000000000000000000000001"};
+            const std::string custodyQuery = "?custody=" + std::string{probeAddress};
+            const std::string registryPath = "/v1/nativeAccount" + custodyQuery;
+            const std::string canonicalLookup =
+                std::string{genycaster::deployment::hypersnapOrigin} + registryPath;
+#if defined(Q_OS_WASM)
+            Q_UNUSED(publisher);
+            const std::string gateway{genycaster::deployment::browserGateway};
+            const std::string optimismRpc{"https://optimism-rpc.publicnode.com"};
+            const std::string selectedLookup = canonicalLookup;
+            const auto fallback = SetupProbe{SetupProbeKind::HyperSnapGateway,
+                gateway + "/v1/browser/hypersnap/native-account" + custodyQuery};
+#else
+            const auto active = runtime.lock();
+            const std::string optimismRpc = active ? active->optimismRpcUrl : std::string{};
+            const auto selectedEndpoint = publisher ? publisher->nodeEndpoint() : QUrl{};
+            const std::string selectedLookup = selectedEndpoint.isEmpty() ? canonicalLookup
+                : selectedEndpoint.resolved(QUrl{QString::fromStdString(registryPath)}).toString().toStdString();
+            const auto fallback = selectedLookup == canonicalLookup ? std::nullopt
+                : std::optional{SetupProbe{SetupProbeKind::HyperSnap, canonicalLookup}};
+#endif
+            start(QStringLiteral("hypersnapRecovery"),
+                SetupProbe{SetupProbeKind::HyperSnap, selectedLookup}, fallback);
+            // Optimism IdRegistry idOf(address), with no wallet or account data.
+            const std::string custodyCall = "0xd94fe832" + std::string(24, '0')
+                + std::string{probeAddress.substr(2)};
+            const QJsonObject request{
+                {QStringLiteral("jsonrpc"), QStringLiteral("2.0")},
+                {QStringLiteral("id"), 1},
+                {QStringLiteral("method"), QStringLiteral("eth_call")},
+                {QStringLiteral("params"), QJsonArray{QJsonObject{
+                    {QStringLiteral("to"), QStringLiteral("0x00000000fc6c5f01fc30151999387bb99a9f489b")},
+                    {QStringLiteral("data"), QString::fromStdString(custodyCall)}}, QStringLiteral("latest")}},
+            };
+            start(QStringLiteral("farcasterRecovery"), SetupProbe{SetupProbeKind::FarcasterRecovery,
+                optimismRpc, QJsonDocument{request}.toJson(QJsonDocument::Compact).toStdString()});
+#else
+            Q_UNUSED(publisher);
+            target->applySetupConnection(QStringLiteral("hypersnapRecovery"), QStringLiteral("disabled"));
+            target->applySetupConnection(QStringLiteral("farcasterRecovery"), QStringLiteral("disabled"));
+#endif
+
+#if defined(Q_OS_WASM)
+            start(QStringLiteral("farcasterSignIn"),
+                SetupProbe{SetupProbeKind::FarcasterSignIn, gateway + "/v1/browser/openproof/providers"});
+#elif GENYCASTER_HAS_OPENPROOF_AUTH
+            start(QStringLiteral("farcasterSignIn"), SetupProbe{SetupProbeKind::FarcasterSignIn,
+                std::string{genycaster::deployment::openProofIssuer} + "/auth/providers"});
+#else
+            target->applySetupConnection(QStringLiteral("farcasterSignIn"), QStringLiteral("not-applicable"));
+#endif
+        });
+}
+
+} // namespace
+
 void connectRuntime(
     PresentationBridge& bridge,
     RichComposerController& richComposer,
@@ -2452,6 +2637,7 @@ void connectRuntime(
     NeynarRegistrationController* farcasterPublisher,
     NativeCustodyWalletController* nativeWallet)
 {
+    connectSetupConnectionCheck(bridge, runtime, nativePublisher);
 #if defined(Q_OS_WASM)
     auto* const browserSigner = new genycaster::ui::browser_signing::Bridge(
         bridge, richComposer, browserSnapchainOrigin,
@@ -3395,7 +3581,7 @@ void connectRuntime(
                                 ? "genycaster.setup.farcaster_custody_rpc_unavailable"
                                 : recovered.failure == QStringLiteral("ownership")
                                   ? "genycaster.setup.farcaster_custody_mismatch"
-                                  : "genycaster.setup.recovery_failed_retry";
+                                  : "genycaster.setup.recovery_response_invalid";
                         bridge.applyAuthenticationError(qtTrId(errorId));
                         return;
                     }
@@ -3530,14 +3716,11 @@ void connectRuntime(
                                 qWarning() << "HyperSnap custody registry lookup:"
                                            << static_cast<int>(result.state)
                                            << "HTTP" << result.httpStatus;
-                                QString message = result.state
+                                const QString message = result.state
                                     == HyperSnapRegistrationTransport::LookupState::Unavailable
                                     ? qtTrId("genycaster.setup.hypersnap_recovery_unavailable")
-                                    : qtTrId("genycaster.setup.recovery_failed_retry");
-                                if (result.httpStatus >= 400)
-                                    message += QStringLiteral(" (HTTP %1)")
-                                        .arg(result.httpStatus);
-                                bridge.applyAuthenticationError(std::move(message));
+                                    : qtTrId("genycaster.setup.recovery_response_invalid");
+                                bridge.applyAuthenticationError(message);
                                 return;
                             }
                             // Only after registry confirmation may this key

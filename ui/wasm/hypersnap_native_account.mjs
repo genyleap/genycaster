@@ -4,8 +4,8 @@
  * src/protocol/message.cpp::encodeNativeOnboard
  * ui/app/identity/hypersnap_registration_transport.cpp
  *
- * The 24-word phrase and secp256k1 private key never leave this JS module
- * boundary, Qt/QML, HTTP requests or persistent storage. Explicit user
+ * The 24-word phrase and secp256k1 private key stay in browser memory and
+ * never enter Qt/QML, HTTP requests or persistent storage. Explicit user
  * consent is required before sending a one-shot irreversible registration.
  */
 import {deployment} from './deployment_config.mjs';
@@ -35,6 +35,10 @@ const right=(x,n)=>x>>>n;
 const rotate=(x,n)=>(x>>>n)|(x<<(32-n));
 const validAddress=a=>typeof a==='string'&&/^0x[0-9a-f]{40}$/i.test(a);
 const fail=message=>{throw new Error('HyperSnap native registration: '+message);};
+class RegistryConnectionError extends Error {}
+const connectionFailure=cause=>{
+  throw new RegistryConnectionError('HyperSnap registry connection failed',{cause});
+};
 function requireSecure(browser) {
   if (browser?.isSecureContext!==true
       ||typeof browser.crypto?.subtle?.digest!=='function'
@@ -258,6 +262,8 @@ export function createBrowserNativeRegistry({
   if(!Number.isSafeInteger(requestTimeoutMs)||requestTimeoutMs<1
       ||requestTimeoutMs>120000)fail('invalid native registry request timeout');
   const origin=endpointUrl(base);
+  const recoveryGateway=origin===endpointUrl(deployment.hypersnapOrigin)
+    ?endpointUrl(deployment.browserGateway):null;
   const getJson=async(url,signal)=>{
     // A caller AbortSignal must not silently disable the request deadline.
     // Bound both response headers and response body; always release the timer
@@ -269,12 +275,12 @@ export function createBrowserNativeRegistry({
     const timer=setTimeout(()=>controller.abort(
       new Error('HyperSnap native registry request timed out')),requestTimeoutMs);
     try {
-      const response=await fetchImpl(origin+url,{method:'GET',mode:'cors',
+      const response=await fetchImpl(url,{method:'GET',mode:'cors',
         credentials:'omit',redirect:'error',headers:{accept:'application/json'},
-        signal:controller.signal});
+        signal:controller.signal}).catch(connectionFailure);
       if(Number(response.headers?.get?.('content-length')||0)>32768)
         fail('oversized native registry response');
-      const text=await response.text();
+      const text=await response.text().catch(connectionFailure);
       if(text.length>32768)fail('oversized native registry response');
       let body;
       try{body=JSON.parse(text);}catch{fail('native registry returned non-JSON data');}
@@ -286,12 +292,12 @@ export function createBrowserNativeRegistry({
   };
   const lookup=async(address,signal)=>{
     if(!validAddress(address))fail('invalid custody address');
-    const {status,body}=await getJson('/v1/nativeAccount?custody='
+    const {status,body}=await getJson(origin+'/v1/nativeAccount?custody='
       +encodeURIComponent(address.toLowerCase()),signal);
     return parseNativeLookup(status,body,address);
   };
   const challenge=async(signal)=>{
-    const {status,body}=await getJson('/v1/nativeRegistration',signal);
+    const {status,body}=await getJson(origin+'/v1/nativeRegistration',signal);
     if(status!==200)fail('native registration node unavailable');
     return parseRegistrationChallenge(body);
   };
@@ -302,7 +308,15 @@ export function createBrowserNativeRegistry({
       if(signal?.aborted)throw new Error('Recovery cancelled');
       let result;
       try {
-        result=await lookup(custody.address,signal);
+        result=await lookup(custody.address,signal).catch(async error=>{
+          if(signal?.aborted||!recoveryGateway||!(error instanceof RegistryConnectionError))
+            throw error;
+          const {status,body}=await getJson(recoveryGateway
+            +'/v1/browser/hypersnap/native-account?custody='+encodeURIComponent(custody.address),signal);
+          if(status===200&&body?.registryOrigin!==origin)
+            fail('native registry custody identity mismatch');
+          return parseNativeLookup(status,body?.registryOrigin===origin?body.data:null,custody.address);
+        });
       }catch(cause) {
         if(signal?.aborted)throw new Error('Recovery cancelled');
         const invalid=/mismatch|malformed|invalid native|untrusted native/i

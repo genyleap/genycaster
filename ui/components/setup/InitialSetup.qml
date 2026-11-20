@@ -29,6 +29,7 @@ Item {
            : root.authenticationRoute === "openproof" ? "openproof" : "") : ""
     property bool authenticationApprovalAvailable: false
     property string authenticationErrorText: ""
+    property var setupConnections: ({})
     property string signerStatusText: ""
     property string signerErrorText: ""
     property bool signerBusy: false
@@ -76,6 +77,17 @@ Item {
         && neynarRegistration.confirmed
     readonly property bool accountFidRegistered:
         nativeFidRegistered || farcasterFidRegistered
+    readonly property bool showsSetupConnectivity: visible && !reviewMode && !authenticated
+        && ((currentStep === 3 && choosingRegistrationProvider && !accountFidRegistered)
+            || (currentStep === 4 && !resumingRegistration))
+    onShowsSetupConnectivityChanged: {
+        if (showsSetupConnectivity && runtimeReady)
+            checkSetupConnections()
+    }
+    onRuntimeReadyChanged: {
+        if (runtimeReady && showsSetupConnectivity)
+            checkSetupConnections()
+    }
     property string registrationError: ""
     property bool confirmWalletReplacement: false
     property bool recoveryWordsCopied: false
@@ -190,6 +202,7 @@ Item {
 
     signal continueWithGenyleap()
     signal continueWithFarcaster()
+    signal checkSetupConnections()
     signal openApproval()
     signal cancelAuthentication()
     signal authorizeSigner()
@@ -206,6 +219,114 @@ Item {
     signal closeReviewRequested()
 
     Accessible.name: qsTrId("genycaster.setup.title")
+
+    function setupConnectionStatusText(result, compact) {
+        switch (result.state) {
+        case "reachable":
+            const elapsed = LocaleFormat.localizeDigits(result.elapsedMs)
+            return compact ? qsTrId("genycaster.setup.connection_latency").arg(elapsed)
+                           : qsTrId("genycaster.setup.connection_response_time").arg(elapsed)
+        case "unavailable": return qsTrId("genycaster.setup.temporarily_unavailable")
+        case "disabled": return qsTrId("genycaster.setup.connection_disabled")
+        case "checking": return qsTrId("genycaster.settings.checking")
+        default: return qsTrId("genycaster.nodes.not_tested")
+        }
+    }
+
+    readonly property bool checkingSetupConnections:
+        Object.values(setupConnections).some(result => result.state === "checking")
+
+    component SetupConnectionRefresh: ActionButton {
+        objectName: "setupCheckConnections"
+        compact: true
+        quiet: true
+        iconOnly: true
+        iconGlyph: Theme.iconRefresh
+        busy: visible && root.checkingSetupConnections && !Theme.reduceMotion && !Theme.powerSave
+        spinIconWhileBusy: true
+        text: root.checkingSetupConnections ? qsTrId("genycaster.settings.checking")
+                                           : qsTrId("genycaster.settings.check_now")
+        enabled: root.runtimeReady && !root.checkingSetupConnections
+        onClicked: root.checkSetupConnections()
+    }
+
+    function protocolConnectionState(farcaster) {
+        const states = [farcaster ? setupConnections.farcasterRecovery : setupConnections.hypersnapRecovery]
+        if (farcaster && setupConnections.farcasterSignIn?.state !== "not-applicable")
+            states.push(setupConnections.farcasterSignIn)
+        for (const state of ["unavailable", "disabled", "checking"]) {
+            if (states.some(result => result?.state === state))
+                return state
+        }
+        return states.every(result => result?.state === "reachable") ? "reachable" : "idle"
+    }
+
+    function protocolConnectionText(farcaster, state = protocolConnectionState(farcaster)) {
+        if (farcaster && (state === "unavailable" || state === "disabled")) {
+            const recovery = setupConnections.farcasterRecovery?.state === state
+            const signIn = setupConnections.farcasterSignIn?.state === state
+            if (recovery !== signIn)
+                return (recovery ? qsTrId("genycaster.setup.connection_recovery")
+                                 : qsTrId("genycaster.setup.connection_app_sign_in"))
+                       + " · " + setupConnectionStatusText({state}, false)
+        }
+        return state === "reachable" ? qsTrId("genycaster.status.reachable")
+             : setupConnectionStatusText({state}, false)
+    }
+
+    component SetupConnectionPanel: ColumnLayout {
+        id: details
+        property string protocol: ""
+        property bool expanded: false
+        onVisibleChanged: if (!visible) expanded = false
+        onProtocolChanged: expanded = false
+        spacing: Theme.space1
+        RowLayout {
+            Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
+            ActionButton {
+                compact: true
+                quiet: true
+                iconGlyph: details.expanded ? Theme.iconChevronUp : Theme.iconChevronDown
+                text: qsTrId("genycaster.setup.connection_status_title")
+                Accessible.expandable: true
+                Accessible.expanded: details.expanded
+                onClicked: details.expanded = !details.expanded
+            }
+            Item { Layout.fillWidth: true }
+            SetupConnectionRefresh { visible: details.expanded }
+        }
+        Repeater {
+            model: details.expanded ? [
+                {protocol: "farcaster-snapchain", label: qsTrId("genycaster.settings.farcaster_label") + " · " + qsTrId("genycaster.setup.connection_recovery"), result: root.setupConnections.farcasterRecovery},
+                {protocol: "farcaster-snapchain", label: qsTrId("genycaster.settings.farcaster_label") + " · " + qsTrId("genycaster.setup.connection_app_sign_in"), result: root.setupConnections.farcasterSignIn},
+                {protocol: "hypersnap-v2", label: qsTrId("genycaster.settings.hypersnap_label") + " · " + qsTrId("genycaster.setup.connection_recovery"), result: root.setupConnections.hypersnapRecovery}
+            ] : []
+            delegate: RowLayout {
+                id: route
+                required property var modelData
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                visible: (!details.protocol || details.protocol === modelData.protocol)
+                         && modelData.result?.state !== "not-applicable"
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: route.modelData.label
+                    font.pixelSize: Theme.typeCaptionSize
+                    color: Theme.inkMuted
+                    alignToUi: true
+                    wrapMode: Text.Wrap
+                }
+                DirectionAwareLabel {
+                    Layout.maximumWidth: details.width * 0.45
+                    text: root.setupConnectionStatusText(route.modelData.result || ({}), true)
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
+                }
+            }
+        }
+    }
 
     function greetingIndexForTag(tag) {
         const normalized = String(tag || "").toLowerCase().split(/[-_]/)[0]
@@ -1177,6 +1298,8 @@ Item {
                 objectName: "setupStagePanel"
                 width: Math.max(0, Math.min(
                                    root.phone ? 440
+                                   : root.currentStep === 4 ? (root.showRecovery || root.resumingRegistration ? 640 : 540)
+                                   : root.currentStep === 3 && root.choosingRegistrationProvider ? 580
                                    : root.currentStep >= 3 && root.currentStep <= 6 ? 810 : 680,
                                    setupCanvas.formWidth - root.setupGutter * 2))
                 x: setupCanvas.formStart + (setupCanvas.formWidth - width) / 2
@@ -1486,6 +1609,7 @@ Item {
                 compactDesktopStyle: !root.phone
                 maximumTextWidth: root.phone ? 620 : 810
                 Layout.fillWidth: true
+                showIcon: !root.choosingRegistrationProvider
                 iconGlyph: root.accountFidRegistered
                     ? Theme.iconCheck : Theme.iconUser
                 title: root.accountFidRegistered
@@ -1600,20 +1724,22 @@ Item {
                     visible: !root.accountFidRegistered
                     Layout.fillWidth: true
                     columns: root.wideStage ? 2 : 1
+                    uniformCellWidths: columns > 1
                     rowSpacing: Theme.space3
                     columnSpacing: Theme.space3
                     layoutDirection: Theme.uiDirection
                     SetupActionCard {
                         objectName: "setupRegisterHyperSnap"
                         Layout.fillWidth: true
+                        Layout.fillHeight: true
                         onboardingStyle: true
                         networkShowcase: true
                         protocolChoice: true
                         title: qsTrId("genycaster.settings.hypersnap_label")
-                        subtitle: qsTrId("genycaster.setup.network_hypersnap_category")
-                                      .arg(qsTrId("genycaster.setup.decentralized_label"))
-                                  + "\n" + qsTrId("genycaster.setup.registration_hypersnap_description")
+                        subtitle: qsTrId("genycaster.setup.registration_hypersnap_description")
                         iconGlyph: "quilibrium/hypersnap"
+                        connectionState: root.protocolConnectionState(false)
+                        connectionText: root.protocolConnectionText(false, connectionState)
                         selected: root.registrationProviderId === "hypersnap-v2"
                         enabled: !neynarRegistration.pending
                                  && neynarRegistration.phase !== "reserved"
@@ -1630,14 +1756,15 @@ Item {
                     SetupActionCard {
                         objectName: "setupRegisterNeynar"
                         Layout.fillWidth: true
+                        Layout.fillHeight: true
                         onboardingStyle: true
                         networkShowcase: true
                         protocolChoice: true
                         title: qsTrId("genycaster.setup.registration_neynar_label")
-                        subtitle: qsTrId("genycaster.setup.network_farcaster_category")
-                                      .arg(qsTrId("genycaster.setup.centralized_service_label"))
-                                  + "\n" + qsTrId("genycaster.setup.registration_neynar_description")
+                        subtitle: qsTrId("genycaster.setup.registration_neynar_description")
                         iconGlyph: "brands/farcaster"
+                        connectionState: root.protocolConnectionState(true)
+                        connectionText: root.protocolConnectionText(true, connectionState)
                         selected: root.registrationProviderId === "farcaster-snapchain"
                         enabled: !nativeRegistrationPublisher.pending
                                  && !neynarRegistration.pending
@@ -1649,6 +1776,11 @@ Item {
                             root.registrationError = ""
                         }
                     }
+                }
+                SetupConnectionPanel {
+                    objectName: "setupRegistrationConnections"
+                    Layout.fillWidth: true
+                    visible: root.showsSetupConnectivity
                 }
                 // Browser uses verified external identity paths until a
                 // WebCrypto custody signer and native chain registration
@@ -2501,13 +2633,15 @@ Item {
                 compactDesktopStyle: !root.phone
                 maximumTextWidth: root.phone ? 620 : 810
                 Layout.fillWidth: true
-                iconGlyph: Theme.iconLink
+                showIcon: false
                 title: root.existingProtocolSelected || root.resumingRegistration || root.authenticated
                     ? qsTrId("genycaster.setup.design_signin_title")
                     : qsTrId("genycaster.setup.choose_protocol")
-                subtitle: root.existingProtocolSelected || root.resumingRegistration || root.authenticated
-                    ? qsTrId("genycaster.setup.design_signin_description")
-                    : qsTrId("genycaster.setup.choose_protocol_description")
+                subtitle: root.existingProtocolSelected
+                    ? (root.recoveryProtocol === "hypersnap-v2" ? qsTrId("genycaster.settings.hypersnap_label")
+                                                               : qsTrId("genycaster.settings.farcaster_label"))
+                      + " · " + root.protocolConnectionText(root.recoveryProtocol === "farcaster-snapchain")
+                    : root.resumingRegistration ? qsTrId("genycaster.setup.design_signin_description") : ""
             }
             Item { Layout.preferredHeight: Theme.space2 }
             // Only this picker chooses the protocol for Existing accounts.
@@ -2525,13 +2659,14 @@ Item {
                 SetupActionCard {
                     objectName: "setupExistingFarcaster"
                     Layout.fillWidth: true
+                    Layout.fillHeight: true
                     onboardingStyle: true
                     networkShowcase: true
                     protocolChoice: true
                     iconGlyph: "brands/farcaster"
                     title: qsTrId("genycaster.settings.farcaster_label")
-                    subtitle: qsTrId("genycaster.setup.network_farcaster_category")
-                                  .arg(qsTrId("genycaster.setup.centralized_service_label"))
+                    connectionState: root.protocolConnectionState(true)
+                    connectionText: root.protocolConnectionText(true, connectionState)
                     onClicked: {
                         root.recoveryProtocol = "farcaster-snapchain"
                         root.existingProtocolSelected = true
@@ -2542,13 +2677,14 @@ Item {
                 SetupActionCard {
                     objectName: "setupExistingHyperSnap"
                     Layout.fillWidth: true
+                    Layout.fillHeight: true
                     onboardingStyle: true
                     networkShowcase: true
                     protocolChoice: true
                     iconGlyph: "quilibrium/hypersnap"
                     title: qsTrId("genycaster.settings.hypersnap_label")
-                    subtitle: qsTrId("genycaster.setup.network_hypersnap_category")
-                                  .arg(qsTrId("genycaster.setup.decentralized_label"))
+                    connectionState: root.protocolConnectionState(false)
+                    connectionText: root.protocolConnectionText(false, connectionState)
                     onClicked: {
                         root.recoveryProtocol = "hypersnap-v2"
                         root.existingProtocolSelected = true
@@ -2557,38 +2693,72 @@ Item {
                     }
                 }
             }
-            DirectionAwareLabel {
-                objectName: "setupExistingSelectedProtocol"
-                visible: root.existingProtocolSelected && !root.authenticated
-                Layout.fillWidth: true
-                text: root.recoveryProtocol === "hypersnap-v2"
-                    ? qsTrId("genycaster.settings.hypersnap_label")
-                    : qsTrId("genycaster.settings.farcaster_label")
-                color: Theme.inkMuted
-                font.pixelSize: Theme.typeCaptionSize
-                wrapMode: Text.WordWrap
-            }
             // Local custody recovery is the preferred existing-account route.
             // Keep it first, with clear visual emphasis; the two external
             // identity methods are secondary alternatives.
-            SetupActionCard {
-                visible: root.existingProtocolSelected && !root.authenticated
+            GridLayout {
+                visible: !root.authenticated && root.existingProtocolSelected
                 Layout.fillWidth: true
-                compactCard: true
-                onboardingStyle: true
-                setupEmphasis: true
-                iconGlyph: "system/lock"
-                title: qsTrId("genycaster.setup.design_recovery_title")
-                enabled: !root.authenticationInProgress && !root.recoverySubmitPending
-                onClicked: {
-                    if (root.browserReadOnly) {
-                        // The DOM recovery dialog is presented only on an
-                        // explicit click. No phrase enters QML or C++.
-                        root.recoverAccount(root.recoveryProtocol)
-                    } else {
-                        root.showRecovery = !root.showRecovery
+                columns: root.wideStage ? 2 : 1
+                uniformCellWidths: columns > 1
+                layoutDirection: Theme.uiDirection
+                rowSpacing: Theme.space3
+                columnSpacing: Theme.space3
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    compactCard: true
+                    wrapTitle: true
+                    onboardingStyle: true
+                    setupEmphasis: true
+                    iconGlyph: "system/lock"
+                    title: qsTrId("genycaster.setup.design_recovery_title")
+                    enabled: !root.authenticationInProgress && !root.recoverySubmitPending
+                    onClicked: {
+                        if (root.browserReadOnly) {
+                            // The DOM recovery dialog is presented only on an
+                            // explicit click. No phrase enters QML or C++.
+                            root.recoverAccount(root.recoveryProtocol)
+                        } else {
+                            root.showRecovery = !root.showRecovery
+                        }
                     }
                 }
+                SetupActionCard {
+                    visible: root.recoveryProtocol === "hypersnap-v2" && !root.showRecovery
+                    Layout.fillWidth: true
+                    compactCard: true
+                    wrapTitle: true
+                    onboardingStyle: true
+                    brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                    title: qsTrId("genycaster.shell.continue_with_genyleap")
+                    busy: root.authenticationInProgress && root.authenticationRoute === "openproof"
+                    enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
+                    onClicked: {
+                        root.continueWithGenyleap()
+                        root.switchStep(5)
+                    }
+                }
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    compactCard: true
+                    wrapTitle: true
+                    onboardingStyle: true
+                    visible: root.recoveryProtocol === "farcaster-snapchain" && !root.showRecovery
+                    iconGlyph: "brands/farcaster"
+                    title: qsTrId("genycaster.shell.sign_in_with_farcaster")
+                    busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
+                    enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
+                    onClicked: {
+                        root.continueWithFarcaster()
+                        root.switchStep(5)
+                    }
+                }
+            }
+            SetupConnectionPanel {
+                objectName: "setupExistingConnections"
+                protocol: root.existingProtocolSelected ? root.recoveryProtocol : ""
+                Layout.fillWidth: true
+                visible: root.showsSetupConnectivity && !root.showRecovery
             }
             ColumnLayout {
                 visible: root.showRecovery && (root.existingProtocolSelected || root.resumingRegistration)
@@ -2825,43 +2995,6 @@ Item {
                             root.nativeRecoverFarcasterAccount(words, deviceSignerConsent.checked)
                         root.switchStep(5)
                         words = ""
-                    }
-                }
-            }
-            GridLayout {
-                visible: !root.authenticated && root.existingProtocolSelected
-                Layout.fillWidth: true
-                columns: root.wideStage ? 2 : 1
-                uniformCellWidths: columns > 1
-                layoutDirection: Theme.uiDirection
-                rowSpacing: Theme.space3
-                columnSpacing: Theme.space3
-                SetupActionCard {
-                    visible: root.recoveryProtocol === "hypersnap-v2"
-                    Layout.fillWidth: true
-                    compactCard: true
-                    onboardingStyle: true
-                    brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                    title: qsTrId("genycaster.shell.continue_with_genyleap")
-                    busy: root.authenticationInProgress && root.authenticationRoute === "openproof"
-                    enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
-                    onClicked: {
-                        root.continueWithGenyleap()
-                        root.switchStep(5)
-                    }
-                }
-                SetupActionCard {
-                    Layout.fillWidth: true
-                    compactCard: true
-                    onboardingStyle: true
-                    visible: root.recoveryProtocol === "farcaster-snapchain"
-                    iconGlyph: "brands/farcaster"
-                    title: qsTrId("genycaster.shell.sign_in_with_farcaster")
-                    busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
-                    enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
-                    onClicked: {
-                        root.continueWithFarcaster()
-                        root.switchStep(5)
                     }
                 }
             }

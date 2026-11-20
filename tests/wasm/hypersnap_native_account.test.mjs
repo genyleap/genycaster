@@ -3,6 +3,7 @@ import test from 'node:test';
 import {createHash,webcrypto} from 'node:crypto';
 import {deriveFarcasterCustody,validateRecoveryWords} from '../../ui/wasm/farcaster_recovery.mjs';
 import {blake3Digest20,hex} from '../../ui/wasm/farcaster_protocol.mjs';
+import {deployment} from '../../ui/wasm/deployment_config.mjs';
 import {createBrowserNativeRegistry,generateNativePhrase,parseNativeLookup,
   parseRegistrationChallenge,sha256,nativePowHash,nativeCommitment,
   mineNativePow,encodeNativeOnboard} from '../../ui/wasm/hypersnap_native_account.mjs';
@@ -205,11 +206,52 @@ test('native registry transport failures remain retryable network errors, not in
     error.code==='recovery-network'&&/registry could not be reached/.test(error.message));
 });
 
+test('recovery retries a reset through the gateway and verifies the same registry and custody',async()=>{
+  const wallet=await deriveFarcasterCustody(phrase);
+  try {
+    for(const registryOrigin of [deployment.hypersnapOrigin,'https://different.example']){
+      const requested=[];
+      const registry=createBrowserNativeRegistry({browser,fetchImpl:async(url,options)=>{
+        requested.push(url);
+        assert.equal(options.method,'GET');
+        assert.equal(options.credentials,'omit');
+        assert.equal(options.body,undefined);
+        if(url.startsWith(deployment.hypersnapOrigin))throw new TypeError('Connection reset');
+        return status(200,{registryOrigin,data:native('4294967380',wallet.address)});
+      }});
+      if(registryOrigin===deployment.hypersnapOrigin){
+        assert.equal((await registry.recover(phrase)).fid,'4294967380');
+      }else{
+        await assert.rejects(registry.recover(phrase),error=>error.code==='recovery-verification');
+      }
+      assert.deepEqual(requested,[
+        deployment.hypersnapOrigin+'/v1/nativeAccount?custody='+wallet.address,
+        deployment.browserGateway+'/v1/browser/hypersnap/native-account?custody='+wallet.address,
+      ]);
+    }
+  }finally{wallet.dispose();}
+});
+
+test('a custom HyperSnap registry never falls back through the deployment gateway',async()=>{
+  const base='https://custom-registry.example';
+  const requested=[];
+  const registry=createBrowserNativeRegistry({browser,base,fetchImpl:async url=>{
+    requested.push(new URL(url).origin);
+    throw new TypeError('Connection reset');
+  }});
+  await assert.rejects(registry.recover(phrase),error=>error.code==='recovery-network');
+  assert.deepEqual(requested,[base]);
+});
+
 test('native registry invalid custody response fails verification rather than signer provisioning',async()=>{
-  const registry=createBrowserNativeRegistry({browser,fetchImpl:async()=>
-    status(200,native('4294967380','0x'+'a'.repeat(40)))});
+  let requested=0;
+  const registry=createBrowserNativeRegistry({browser,fetchImpl:async()=>{
+    requested++;
+    return status(200,native('4294967380','0x'+'a'.repeat(40)));
+  }});
   await assert.rejects(registry.recover(phrase),error=>
     error.code==='recovery-verification'&&/invalid custody proof/.test(error.message));
+  assert.equal(requested,1);
 });
 
 
@@ -228,15 +270,17 @@ test('an external cancellation signal cannot disable the native registry timeout
   const parent=new AbortController();
   await assert.rejects(registry.recover(phrase,{signal:parent.signal}),error=>
     error.code==='recovery-network'&&/could not be reached/.test(error.message));
-  assert.equal(requested,1);
+  assert.equal(requested,2); // both the direct lookup and the gateway are bounded
   assert.equal(parent.signal.aborted,false);
 });
 
 test('native registry parent cancellation still wins over the request timeout',async()=>{
   const controller=new AbortController();
+  let requested=0;
   const registry=createBrowserNativeRegistry({
     browser,requestTimeoutMs:1500,
     fetchImpl:async(_url,opts)=>{
+      requested++;
       setImmediate(()=>controller.abort());
       return await new Promise((_resolve,reject)=>{
         opts.signal.addEventListener('abort',()=>reject(
@@ -245,4 +289,5 @@ test('native registry parent cancellation still wins over the request timeout',a
     }
   });
   await assert.rejects(registry.recover(phrase,{signal:controller.signal}),/Recovery cancelled/);
+  assert.equal(requested,1);
 });

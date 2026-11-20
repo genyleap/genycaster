@@ -44,13 +44,21 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         label:'HyperSnap recovery phrase (24 words)',
         hint:'Use the 24 words backing up your HyperSnap custody wallet.',
         privacy:'Your words and private key remain in this browser session and are not sent to a server or saved. The native registry is queried using only your public custody address. Use a trusted device.',
-        import:'Verify HyperSnap account'},
+        import:'Verify HyperSnap account',checking:'Checking your HyperSnap account…',
+        retry:'Try again',
+        unavailable:'We couldn’t reach HyperSnap. Your words are still in this form. Try again when HyperSnap is reachable.',
+        unregistered:'HyperSnap found no account for this wallet. Check that you entered the words for your HyperSnap account.',
+        verification:'HyperSnap couldn’t confirm this wallet owns the account. Try again later.'},
       fa:{title:'بازیابی حساب هایپراسنپ',
         subtitle:'بازیابی FID بومی هایپراسنپ با تأیید مالکیت آدرس کیف پول در شبکه.',
         label:'عبارت بازیابی هایپراسنپ (۲۴ واژه)',
         hint:'۲۴ واژهٔ کیف پول بومی هایپراسنپ را وارد کنید.',
         privacy:'واژه‌ها و کلید خصوصی در همین مرورگر باقی می‌مانند و به سرور فرستاده یا ذخیره نمی‌شوند. تنها آدرس عمومی در رجیستری شبکه بررسی می‌شود. از دستگاه مطمئن استفاده کنید.',
-        import:'تأیید حساب هایپراسنپ'}
+        import:'تأیید حساب هایپراسنپ',checking:'در حال بررسی حساب هایپراسنپ…',
+        retry:'تلاش دوباره',
+        unavailable:'فعلاً ارتباط با هایپراسنپ برقرار نشد. واژه‌ها در همین فرم باقی مانده‌اند. وقتی سرویس در دسترس بود، دوباره تلاش کنید.',
+        unregistered:'هایپراسنپ حسابی برای این کیف پول پیدا نکرد. بررسی کنید که واژه‌های حساب هایپراسنپ خود را وارد کرده‌اید.',
+        verification:'تأیید مالکیت این حساب هایپراسنپ کامل نشد. کمی بعد دوباره تلاش کنید.'}
     };
     const s=native?{...strings[lang],...(nativeLabels[lang]||nativeLabels.en)}:strings[lang];
     const light=browser.document?.documentElement?.dataset?.theme === 'light'
@@ -121,7 +129,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         grid.style.cssText='display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;direction:ltr';
         const inputs=[];
         let count=24;
-        let pending=false, settled=false;
+        let pending=false, settled=false, retryConnection=false;
          const cellList=[];
         const badStyle='border:2px solid #e45966;background:rgba(227,67,80,.09)';
         const plainStyle='border:1px solid '+outline+';background:'+inputSurface;
@@ -131,8 +139,12 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             cell.style.background=bad?'rgba(227,67,80,.09)':inputSurface;
             inputs[index]?.setAttribute('aria-invalid',bad?'true':'false');
         };
-        const clearErrors=()=>{for(let i=0;i<count;i++)mark(i,false);error.textContent='';};
-        const showError=(message)=>{error.textContent=message;error.setAttribute('role','alert');};
+        const clearFeedback=()=>{
+            error.textContent='';error.hidden=true;retryConnection=false;
+            if(!pending)submit.textContent=s.import;
+        };
+        const clearErrors=()=>{for(let i=0;i<count;i++)mark(i,false);clearFeedback();};
+        const showError=message=>{error.hidden=false;error.textContent=message;};
 
         const createInput=(index)=>{
             const cell=document.createElement('label');
@@ -171,7 +183,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                 if(/\s/u.test(value)){pasteWords(value);return;}
                 word.value=value.replace(/[^a-z]/gu,'');
                 mark(index,false);
-                error.textContent='';
+                clearFeedback();
             });
             word.addEventListener('blur',()=>{
                 const value=word.value.trim().toLowerCase();
@@ -225,17 +237,23 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         body.appendChild(revealRow);
         const hint=text('p',s.hint,'font-size:13px;color:'+muted+';margin:12px 0 10px;line-height:1.5');
         const warning=text('p',s.privacy,'font-size:13px;color:'+muted+';line-height:1.55;margin:0 0 20px');
-        const error=text('p','','color:#ff8e90;min-height:1.3em;margin:0 0 10px;font-size:13px');
-        error.setAttribute('aria-live','polite');
         renderWords(24);
         const actions=document.createElement('div');
         actions.style.cssText='display:flex;flex:0 0 auto;gap:10px;justify-content:flex-end;flex-wrap:wrap;min-width:0;width:100%;max-width:650px;box-sizing:border-box;margin:0 auto;background:'+surface+';padding:14px 0 2px;border-top:1px solid '+outline+';z-index:2';
+        const error=document.createElement('p');
+        error.id='genycaster-recovery-error';
+        error.hidden=true;
+        error.setAttribute('role','alert');
+        error.style.cssText='flex:0 0 auto;width:100%;max-width:650px;margin:0 auto 10px;font-size:13px;line-height:1.45;color:'
+            +(light?'#a52232':'#ff8e90');
+        card.appendChild(error);
         const button=(value,primary)=>{
             const el=document.createElement('button');el.type='button';el.textContent=value;
             el.style.cssText='cursor:pointer;flex:1 1 auto;min-width:0;max-width:100%;min-height:50px;white-space:normal;overflow-wrap:anywhere;border-radius:13px;padding:13px 16px;font:600 14px system-ui;border:1px solid '+(primary?(light?'#17181c':'#f4f6ff'):outline)+';background:'+(primary?(light?'#17181c':'#f4f6ff'):'transparent')+';color:'+(primary?(light?'#ffffff':'#17181c'):foreground);
             actions.appendChild(el);return el;
         };
         const cancel=button(s.cancel,false),submit=button(s.import,true);
+        submit.setAttribute('aria-describedby',error.id);
         cancel.style.flex='0 1 auto';
         submit.style.flex='1 1 165px';
         card.appendChild(actions);backdrop.appendChild(card);backdrop.appendChild(style);
@@ -287,7 +305,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             pending=true;submit.disabled=true;
             submit.setAttribute('aria-busy','true');
             submit.style.opacity='.75';
-            submit.textContent=lang==='fa'?'در حال بررسی امن…':'Verifying securely…';
+            submit.textContent=s.checking||(lang==='fa'?'در حال بررسی امن…':'Verifying securely…');
             try{
                 const {validateRecoveryWords}=await import('./farcaster_recovery.mjs');
                 await validateRecoveryWords(phrase);
@@ -314,14 +332,13 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                 const storage=category==='recovery-storage';
                 const derivation=category==='recovery-derivation';
                 const verification=category==='recovery-verification';
+                retryConnection=network;
                 showError(checksum
                     ? (lang==='fa'?'ترتیب یا یکی از واژه‌ها اشتباه است؛ همه واژه‌ها معتبرند اما جمع کنترل عبارت درست نیست.':
                         'The words are valid individually, but the phrase checksum is wrong. Check their order and spelling.')
                     : ownership
                     ? native
-                        ? (lang==='fa'
-                            ? 'واژه‌ها معتبرند اما کیف پول حاصل، حساب بومی ثبت‌شدهٔ هایپراسنپ را کنترل نمی‌کند.'
-                            : 'The phrase is valid but does not control a registered native HyperSnap FID.')
+                        ? (category==='recovery-unregistered'?s.unregistered:s.verification)
                         : (lang==='fa'?'عبارت از نظر کلمات معتبر است، اما مالکیت حساب ثبت‌شدهٔ Farcaster با آن تأیید نشد. مطمئن شوید عبارت بازیابی همان حساب را وارد کرده‌اید.':
                             'The words are valid, but they do not identify a registered Farcaster custody account. Check that this is your Farcaster recovery phrase.')
                     : storage
@@ -334,21 +351,21 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                     ? (lang==='fa'?'ساخت کیف پول بازیابی روی این دستگاه کامل نشد. از مرورگر به‌روز و اتصال امن استفاده کنید.':
                         'Could not derive the Farcaster custody wallet on this device. Try an up-to-date browser on HTTPS.')
                     : verification
-                    ? (lang==='fa'?'تأیید مالکیت حساب در شبکهٔ انتخاب‌شده کامل نشد. دوباره تلاش کنید؛ در صورت تکرار از اتصال دیگری استفاده کنید.':
-                        'Account ownership could not be confirmed on the selected protocol. Retry or use a different network connection.')
+                    ? (native?s.verification:
+                        lang==='fa'?'تأیید مالکیت حساب در شبکهٔ انتخاب‌شده کامل نشد. دوباره تلاش کنید؛ در صورت تکرار از اتصال دیگری استفاده کنید.':
+                            'Account ownership could not be confirmed on the selected protocol. Retry or use a different network connection.')
                     : network
                     ? native
-                        ? (lang==='fa'
-                            ? 'رجیستری هایپراسنپ در دسترس نیست یا پاسخ معتبر نداده است. واژه‌ها محفوظ مانده‌اند؛ اتصال را بررسی کنید و دوباره تلاش کنید.'
-                            : 'HyperSnap registry lookup did not complete. Your recovery words are preserved. Check the network connection and retry.')
+                        ? s.unavailable
                         : (lang==='fa'
-                            ? 'تأیید مالکیت فارکستر در رجیستری آپتیمیسم به‌دلیل اختلال شبکه کامل نشد. واژه‌ها حفظ شده‌اند؛ دوباره تلاش کنید.'
-                            : 'Farcaster custody verification on Optimism could not complete. Your recovery words are preserved; please retry.')
+                            ? 'بازیابی فارکستر فعلاً در دسترس نیست. واژه‌ها در همین فرم باقی مانده‌اند. کمی بعد دوباره امتحان کنید.'
+                            : 'Farcaster recovery is temporarily unavailable. Your words are still in this form. Try again shortly.')
                     : (lang==='fa'?'واژه‌ها به‌صورت محلی معتبرند، اما فعال‌سازی حساب کامل نشد. ورودی‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
                         'The recovery words passed local validation, but account authorization did not complete. Your entries are preserved.'));
             }finally{
                 pending=false;submit.disabled=false;submit.setAttribute('aria-busy','false');
-                submit.style.opacity='1';submit.textContent=s.import;
+                submit.style.opacity='1';
+                submit.textContent=retryConnection?(s.retry||(lang==='fa'?'تلاش دوباره':'Try again')):s.import;
             }
         });
         inputs[0]?.focus();

@@ -136,6 +136,7 @@ async function withGateway(run, overrides = {}) {
   };
   const server = createMediaGateway(config(), storage, {
     fetchImpl: overrides.fetchImpl ?? signerFetch,
+    fetchNativeRegistry: overrides.fetchImpl ?? signerFetch,
     farcasterBroker: overrides.farcasterBroker,
     castViewService: overrides.castViewService,
     browserReactionService: overrides.browserReactionService,
@@ -778,6 +779,43 @@ test('Farcaster browser sign-in endpoints never put the secret ticket in a URL',
   }, { farcasterBroker: {
     async start() { calls.push('start'); return { ticket, approval_url: 'https://warpcast.com' }; },
     async poll(value) { calls.push('poll:' + value); return { authenticated: true }; },
+  } });
+});
+
+test('browser HyperSnap recovery forwards only the public custody query to the configured registry', async () => {
+  const custody = '0x' + 'a'.repeat(40);
+  const browserOrigin = 'https://genycaster.xyz';
+  const missing = { error: 'Native registration lookup failed',
+    error_detail: 'status: NotFound, message: "native account not found"' };
+  let calls = 0;
+  await withGateway(async ({ origin }) => {
+    const path = origin + '/v1/browser/hypersnap/native-account?custody=' + custody;
+    const invalid = await fetch(path + '&custody=' + custody, { headers: { origin: browserOrigin } });
+    assert.equal(invalid.status, 400);
+    assert.equal((await fetch(path, { headers: { origin: 'https://other.example' } })).status, 403);
+    assert.equal((await fetch(path, { method: 'POST', headers: { origin: browserOrigin } })).status, 405);
+    assert.equal(calls, 0);
+    const response = await fetch(path, {
+      headers: { origin: browserOrigin, cookie: 'fixture=secret', authorization: 'Bearer fixture' },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.headers.get('access-control-allow-origin'), browserOrigin);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await response.json(), { registryOrigin: config().hypersnapBaseUrl.origin, data: missing });
+    const oversized = await fetch(path, { headers: { origin: browserOrigin } });
+    assert.equal(oversized.status, 502);
+    assert.equal(calls, 2);
+  }, { fetchImpl: async (url, options) => {
+    assert.equal(url.origin, config().hypersnapBaseUrl.origin);
+    assert.equal(url.pathname, '/v1/nativeAccount');
+    assert.deepEqual([...url.searchParams], [['custody', custody]]);
+    assert.equal(options.method, 'GET');
+    assert.equal(options.redirect, 'error');
+    assert.deepEqual(options.headers, { accept: 'application/json' });
+    assert.equal(options.body, undefined);
+    calls++;
+    if (calls === 2) return Response.json({ padding: 'x'.repeat(33_000) });
+    return Response.json(missing, { status: 400 });
   } });
 });
 

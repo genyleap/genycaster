@@ -157,7 +157,7 @@ test('invalid checksum explains uncertainty, preserves fields, and allows retry'
     words.forEach(word=>word.value='abandon');
     const submit=sheet.children.at(-1).children.at(-1);
     submit.click();await settle();
-    const error=sheet.children[0].children.find(item=>item.attributes?.role==='alert');
+    const error=b.document.getElementById('genycaster-recovery-error');
     assert.match(error.textContent,/جمع کنترل|checksum/);
     assert.equal(words.every(word=>word.value==='abandon'),true);
     assert.equal(words.every(word=>word.attributes['aria-invalid']==='false'),true);
@@ -182,20 +182,49 @@ test('network verification error never dismisses words and retry can succeed',as
     assert.equal(attempted,1);
     assert.equal(words[0].value,'abandon');
     assert.ok(b.document.getElementById('genycaster-farcaster-recovery'));
-    const error=sheet.children[0].children.find(item=>item.attributes?.role==='alert');
+    const error=b.document.getElementById('genycaster-recovery-error');
     assert.ok(!error.textContent.includes('503'));
     submit.click();
     assert.equal(await result,'42');
     assert.equal(attempted,2);
 });
 
+test('HyperSnap outage is visible next to retry and keeps the recovery form usable',async()=>{
+    const b=browser();
+    let attempt=0;
+    const result=promptForFarcasterRecovery(b,null,async()=>{
+        attempt++;
+        if(attempt===1)throw Object.assign(new Error('ECONNRESET'),{code:'recovery-network'});
+        return '4294967296';
+    },{protocol:'hypersnap-v2'});
+    const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
+    const grid=b.document.getElementById('genycaster-recovery-words');
+    const words=grid.children.map(cell=>cell.children[1]);
+    const vector=[...Array(23).fill('abandon'),'art'];
+    vector.forEach((word,i)=>words[i].value=word);
+    const submit=sheet.children.at(-1).children.at(-1);
+    const error=b.document.getElementById('genycaster-recovery-error');
+    assert.equal(error.hidden,true);
+    submit.click();
+    await settle();
+    assert.equal(error.hidden,false);
+    assert.equal(error.attributes.role,'alert');
+    assert.equal(error.parentNode,sheet,'keep the error outside the scrolling words');
+    assert.match(error.textContent,/ارتباط با هایپراسنپ|در دسترس/);
+    assert.doesNotMatch(error.textContent,/ECONNRESET|نامعتبر/);
+    assert.equal(submit.textContent,'تلاش دوباره');
+    assert.deepEqual(words.map(word=>word.value),vector);
+    submit.click();
+    assert.equal(await result,'4294967296');
+    assert.equal(words.every(word=>word.value===''),true);
+});
 
 test('recovery drawer distinguishes custody ownership and signer failures without exposing secrets',async()=>{
     for(const [code,expected] of [
         ['recovery-unregistered',/مالکیت حساب|Farcaster/],
         ['recovery-ownership',/مالکیت حساب|Farcaster/],
         ['recovery-signer',/Snapchain|مجوز انتشار/],
-        ['recovery-network',/اتصال|شبکه/],
+        ['recovery-network',/بازیابی فارکستر فعلاً در دسترس نیست/],
         ['recovery-derivation',/کیف پول بازیابی/],
         ['recovery-verification',/تأیید مالکیت/],
     ]){
@@ -217,10 +246,11 @@ test('recovery drawer distinguishes custody ownership and signer failures withou
         const submit=sheet.children.at(-1).children.at(-1);
         submit.click();
         await settle();
-        const error=sheet.children[0].children.find(item=>item.attributes?.role==='alert');
+        const error=b.document.getElementById('genycaster-recovery-error');
         assert.match(error.textContent,expected,code);
         assert.doesNotMatch(error.textContent,/Sensitive internal RPC details/);
         assert.equal(words[0].value,'abandon','keep words for correction and retry');
+        if(code==='recovery-network')assert.equal(submit.textContent,'تلاش دوباره');
         submit.click();
         assert.equal(await result,'42');
         assert.equal(words.every(word=>word.value===''),true,'wipe fields after success');

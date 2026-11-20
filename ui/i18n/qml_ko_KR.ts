@@ -6460,14 +6460,6 @@ Company | https://company.com</source>
             <source>Choose which network Genycaster reads casts and profiles from.</source>
             <translation>Genycaster가 캐스트와 프로필을 읽을 네트워크를 선택하세요.</translation>
         </message>
-        <message id="genycaster.setup.centralized_service_label">
-            <source>Centralized</source>
-            <translation>중앙화</translation>
-        </message>
-        <message id="genycaster.setup.decentralized_label">
-            <source>Decentralized</source>
-            <translation>탈중앙화</translation>
-        </message>
         <message id="genycaster.setup.farcaster_not_configured">
             <source>A familiar network with centrally operated services and moderation.</source>
             <translation>서비스와 운영 정책이 중앙에서 관리되는 일반적인 네트워크입니다.</translation>
@@ -6484,9 +6476,9 @@ Company | https://company.com</source>
             <source>Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network.</source>
             <translation>Farcaster 신원 또는 Genyleap 계정을 사용하세요. 각 로그인은 독립적으로 검증되며 읽기 네트워크는 변경되지 않습니다.</translation>
         </message>
-        <message id="genycaster.setup.farcaster_relay_unreachable">
-            <source>Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry.</source>
-            <translation>Farcaster Relay에 연결할 수 없습니다. 네트워크 설정에서 시스템 프록시 대신 직접 연결을 선택하고 재시작한 뒤 다시 시도하세요.</translation>
+        <message id="genycaster.setup.farcaster_sign_in_unavailable">
+            <source>The Farcaster sign-in service is unavailable. Try again shortly.</source>
+            <translation>Farcaster 로그인 서비스를 이용할 수 없습니다. 잠시 후 다시 시도하세요.</translation>
         </message>
         <message id="genycaster.feed.trending_is_temporarily_unavailable_showing_live_community_posts_instead">
             <source>Trending is temporarily unavailable. Showing live community posts instead.</source>
@@ -6631,14 +6623,6 @@ Company | https://company.com</source>
         <message id="genycaster.setup.network_connection">
             <source>Network connection</source>
             <translation>네트워크 연결</translation>
-        </message>
-        <message id="genycaster.setup.network_farcaster_category">
-            <source>Farcaster (%1)</source>
-            <translation>Farcaster(%1)</translation>
-        </message>
-        <message id="genycaster.setup.network_hypersnap_category">
-            <source>Hypersnap (%1)</source>
-            <translation>Hypersnap(%1)</translation>
         </message>
         <message id="genycaster.setup.neynar_hub_farcaster">
             <source>Neynar Hub · Farcaster</source>
@@ -6808,6 +6792,34 @@ Company | https://company.com</source>
             <source>Select All</source>
             <translation>모두 선택</translation>
         </message>
+        <message id="genycaster.setup.connection_status_title">
+            <source>Account service status</source>
+            <translation>계정 서비스 상태</translation>
+        </message>
+        <message id="genycaster.setup.connection_recovery">
+            <source>Recovery</source>
+            <translation>계정 복구</translation>
+        </message>
+        <message id="genycaster.setup.connection_app_sign_in">
+            <source>App sign-in</source>
+            <translation>앱으로 로그인</translation>
+        </message>
+        <message id="genycaster.setup.connection_latency">
+            <source>%1 ms</source>
+            <translation>%1ms</translation>
+        </message>
+        <message id="genycaster.setup.connection_response_time">
+            <source>Reachable · %1 ms</source>
+            <translation>연결 가능 · %1ms</translation>
+        </message>
+        <message id="genycaster.setup.connection_disabled">
+            <source>Disabled</source>
+            <translation>비활성화됨</translation>
+        </message>
+        <message id="genycaster.setup.recovery_response_invalid">
+            <source>We couldn’t verify your account. Try again later.</source>
+            <translation>계정을 확인할 수 없습니다. 잠시 후 다시 시도하세요.</translation>
+        </message>
         <message id="genycaster.setup.recovery_failed_retry">
             <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
             <translation>계정 복구를 확인할 수 없습니다. 복구 단어와 선택한 프로토콜을 확인한 후 다시 시도하세요.</translation>
@@ -6817,8 +6829,8 @@ Company | https://company.com</source>
             <translation>This wallet does not own an active Farcaster FID on Optimism. Verify the 24 words or choose the correct protocol.</translation>
         </message>
         <message id="genycaster.setup.farcaster_custody_rpc_unavailable">
-            <source>Farcaster ownership could not be checked on Optimism. Check your connection and Optimism RPC settings, then retry.</source>
-            <translation>Farcaster ownership could not be checked on Optimism. Check your connection and Optimism RPC settings, then retry.</translation>
+            <source>Farcaster recovery is temporarily unavailable. Try again shortly.</source>
+            <translation>Farcaster 복구를 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도하세요.</translation>
         </message>
         <message id="genycaster.setup.farcaster_custody_mismatch">
             <source>The wallet derived from these recovery words is not the current Farcaster custody owner of its FID.</source>
