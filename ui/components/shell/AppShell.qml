@@ -56,7 +56,12 @@ Item {
             Qt.platform.os !== "wasm"
             && ((presentationBridge.nativeCustodyAccount
                  && !presentationBridge.nativeCustodySignerAvailable)
-                || presentationBridge.farcasterCustodyAccount)
+                || presentationBridge.farcasterCustodyAccount
+                // OpenProof's Farcaster-linked login verifies identity, not
+                // write authority. The already-entered/recovered custody
+                // mnemonic can authorize a local signer here as well; it is
+                // not necessary to redirect native users to the Farcaster app.
+                || presentationBridge.authenticationRoute === "farcaster")
         interactionAuthorizationDialog.open()
     }
 

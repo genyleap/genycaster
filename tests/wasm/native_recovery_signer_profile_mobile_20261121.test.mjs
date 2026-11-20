@@ -47,6 +47,10 @@ test('mobile recovery entry is focusable with keyboard or full-phrase paste', ()
   assert.match(shell, /objectName: "nativeSignerRecoveryPhraseInput"/);
   assert.match(shell, /mobileRecoveryInput: Qt.platform.os === "android"/);
   assert.match(shell, /fullScreen: Qt.platform.os === "android" \|\| Qt.platform.os === "ios"/);
+  assert.match(shell, /presentationBridge\.authenticationRoute === "farcaster"/);
+  // OpenProof's Farcaster-linked account can use a local custody proof
+  // without external app redirection; delegated login remains available.
+  assert.match(shell, /\|\| presentationBridge\.farcasterCustodyAccount/);
   assert.match(shell, /placeholderText: qsTrId\("genycaster.setup.native_recovery_placeholder"\)/);
   assert.match(shell, /mobileRecoveryInput\)\s+return String\(nativeSignerPhraseInput.text/);
   assert.match(shell, /words.length === 24/);
