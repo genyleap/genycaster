@@ -25,7 +25,9 @@ test('local native KEY_ADD still demands one-shot custody authorization after th
   const signer = read('src/application/signer.cpp');
   const bridge = read('src/presentation/qt/presentation_bridge.cpp');
   assert.match(signer, /session->identityIssuer == "hypersnap:native-registry"[\s\S]*?&& !oneShotAuthorizer/);
-  assert.match(bridge, /m_accountFid < \(1ULL << 32\) \|\| !validPhrase/);
+  assert.match(bridge, /!nativeCustodyAccount\(\) \|\| m_accountFid < \(1ULL << 32\)/);
+  assert.match(bridge, /if \(beginSignerRecovery\(recoveryWords\)\)\s+emit nativeHyperSnapSignerAuthorizationRequested/);
+  assert.match(bridge, /recoveryWords\.size\(\) > 4095 \|\| !exactly24Words\(recoveryWords\)/);
   assert.match(bridge, /nativeHyperSnapSignerAuthorizationRequested\(std::move\(recoveryWords\)\)/);
 });
 

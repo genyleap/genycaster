@@ -306,6 +306,10 @@ ColumnLayout {
                     }
 
                     Component.onCompleted: tile.scheduleAdmission()
+                    Component.onDestruction: {
+                        if (previewLoader && previewLoader.status === Loader.Loading)
+                            previewLoader.active = false
+                    }
 
                     Timer {
                         id: previewAdmission
@@ -324,7 +328,7 @@ ColumnLayout {
                         // Timers on several newly admitted casts can fire in
                         // the same frame. Incubate the heavy preview trees too,
                         // rather than constructing that entire burst at once.
-                        asynchronous: true
+                        asynchronous: !root.magazineCard
                         visible: status === Loader.Ready
                         sourceComponent: Component {
                             EmbedPreview {

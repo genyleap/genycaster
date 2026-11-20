@@ -19,7 +19,7 @@ test('native desktop starts wide enough for side widgets when display permits', 
  const qml=read('ui/components/shell/Main.qml');
  assert.match(qml,/Math\.min\(1560, Screen\.desktopAvailableWidth/);
  assert.match(qml,/Math\.min\(940, Screen\.desktopAvailableHeight/);
- assert.match(qml,/minimumWidth: Qt\.platform\.os === "wasm" \? 0 : 360/);
+ assert.match(qml,/minimumWidth: nativeDesktop \? 360 : 0/);
 });
 test('WASM rendering settings identify WebGL and do not mislabel sparse redraws as target FPS', () => {
  const qml=read('ui/components/settings/RenderingPopup.qml');

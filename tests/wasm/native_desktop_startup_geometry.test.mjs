@@ -15,7 +15,7 @@ const nativeDesktopExpr = extract(
     "\n    // Default to a three-column desktop workspace"
 );
 const widthExpr = extract("    width: ", "\n    height: ");
-const heightExpr = extract("    height: ", "\n    // Browsers can expose");
+const heightExpr = extract("    height: ", "\n    //");
 const nativeDesktop = new Function("Qt", "return (" + nativeDesktopExpr + ")");
 const initialWidth = new Function("nativeDesktop", "Screen", "return (" + widthExpr + ")");
 const initialHeight = new Function("nativeDesktop", "Screen", "return (" + heightExpr + ")");
@@ -48,6 +48,6 @@ test("phones and browser keep their previous platform-controlled viewport", () =
         assert.equal(initialWidth(false, { desktopAvailableWidth: 1920 }), 430);
         assert.equal(initialHeight(false, { desktopAvailableHeight: 1080 }), 860);
     }
-    assert.match(qml, /minimumWidth: Qt\.platform\.os === "wasm" \? 0 : 360/);
-    assert.match(qml, /minimumHeight: Qt\.platform\.os === "wasm" \? 0 : 640/);
+    assert.match(qml, /minimumWidth: nativeDesktop \? 360 : 0/);
+    assert.match(qml, /minimumHeight: nativeDesktop \? 640 : 0/);
 });

@@ -19,6 +19,11 @@
 #if defined(Q_OS_ANDROID)
 #include <QInputMethod>
 #include <QKeyEvent>
+#if QT_CONFIG(vulkan)
+#include <QVulkanFunctions>
+#include <QVulkanInstance>
+#include <sys/system_properties.h>
+#endif
 #endif
 #include <QFile>
 #include <QFileInfo>
@@ -235,6 +240,27 @@ makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalle
 }
 
 #if defined(Q_OS_ANDROID)
+#if QT_CONFIG(vulkan)
+void selectAndroidEmulatorRenderer()
+{
+    // The ranchu GLES translator can present valid RGBA images as black
+    // quads. Use Vulkan only on that emulator when its driver has a device.
+    char emulator[PROP_VALUE_MAX]{};
+    char driver[PROP_VALUE_MAX]{};
+    if (!qEnvironmentVariableIsEmpty("QSG_RHI_BACKEND")
+        || !qEnvironmentVariableIsEmpty("QT_QUICK_BACKEND")
+        || __system_property_get("ro.boot.qemu", emulator) <= 0 || QByteArrayView{emulator} != "1"
+        || __system_property_get("ro.hardware.vulkan", driver) <= 0 || QByteArrayView{driver} != "ranchu")
+        return;
+    QVulkanInstance probe;
+    std::uint32_t deviceCount{};
+    if (probe.supportedExtensions().contains("VK_KHR_android_surface") && probe.create()
+        && probe.functions()->vkEnumeratePhysicalDevices(probe.vkInstance(), &deviceCount, nullptr) == VK_SUCCESS
+        && deviceCount > 0)
+        QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
+}
+#endif
+
 // The Android back gesture arrives at the Qt window, not necessarily the
 // focused QML item (especially with a modal overlay). Dispatch centrally,
 // while letting the platform close an active software keyboard first.
@@ -321,6 +347,9 @@ int main(int argc, char* argv[])
     QApplication application(argc, argv);
 #else
     QGuiApplication application(argc, argv);
+#endif
+#if defined(Q_OS_ANDROID) && QT_CONFIG(vulkan)
+    selectAndroidEmulatorRenderer();
 #endif
     QCoreApplication::setOrganizationName(QStringLiteral("Genycaster"));
     QCoreApplication::setApplicationName(QStringLiteral("Genycaster"));

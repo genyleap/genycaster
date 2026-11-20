@@ -6839,7 +6839,7 @@ Entreprise | https://company.com</translation>
         </message>
         <message id="genycaster.setup.farcaster_custody_mismatch">
             <source>The wallet derived from these recovery words is not the current Farcaster custody owner of its FID.</source>
-            <translation>The wallet derived from these recovery words is not the current Farcaster custody owner of its FID.</translation>
+            <translation>Le portefeuille restauré avec ces mots n’est pas le portefeuille de garde actuel de ce FID Farcaster.</translation>
         </message>
         <message id="genycaster.setup.hypersnap_recovery_not_found">
             <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>

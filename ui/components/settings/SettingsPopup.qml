@@ -112,6 +112,7 @@ GenyAdaptiveDialog {
     signal dataStorageRequested()
     signal signOutConfirmationRequested()
     signal profileRequested()
+    signal recoverySignerRequested()
     signal proDetailsRequested()
 
     function applyCustomAccentColor(color) {
@@ -3399,7 +3400,7 @@ GenyAdaptiveDialog {
                             text: qsTrId("genycaster.shell.enable_publishing_with_recovery_phrase")
                             onClicked: {
                                 root.close()
-                                presentationBridge.provisionSigner()
+                                root.recoverySignerRequested()
                             }
                         }
                         DirectionAwareLabel {

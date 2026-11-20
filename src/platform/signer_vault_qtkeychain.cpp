@@ -4,6 +4,11 @@ module;
 #include <QEventLoop>
 #include <QObject>
 #include <QString>
+#if defined(Q_OS_ANDROID)
+#include <QThread>
+#include <QThreadPool>
+#include <future>
+#endif
 #if defined(Q_OS_WIN)
 #include <QCoreApplication>
 #include <QSettings>
@@ -142,6 +147,45 @@ void runJob(QKeychain::Job& job)
     loop.exec(QEventLoop::ExcludeUserInputEvents);
 }
 
+#if defined(Q_OS_ANDROID)
+// QtKeychain 0.17 binds its process-wide JobExecutor to its first caller.
+// Keep one non-expiring worker for every job type and every vault instance.
+QThreadPool& keychainWorker()
+{
+    struct Worker final : QThreadPool {
+        Worker()
+        {
+            setMaxThreadCount(1);
+            setExpiryTimeout(-1);
+        }
+    };
+    static Worker worker;
+    return worker;
+}
+#endif
+
+template<typename Job, typename Operation>
+auto withKeychainJob(const std::string& service, domain::identity::Fid fid, Operation operation)
+{
+    const auto execute = [&] {
+        Job job{QString::fromStdString(service)};
+        job.setKey(QString::fromStdString(accountFor(fid)));
+        return operation(job);
+    };
+#if defined(Q_OS_ANDROID)
+    auto& worker = keychainWorker();
+    if (!worker.contains(QThread::currentThread())) {
+        // Both the job and its private QObject must be constructed and
+        // destroyed on the executor thread. Wait only for this owned worker.
+        std::packaged_task<decltype(execute())()> task{execute};
+        auto result = task.get_future();
+        worker.start(std::move(task));
+        return result.get();
+    }
+#endif
+    return execute();
+}
+
 #else
 // QtKeychain 0.17 on Windows stores a CRED_TYPE_GENERIC entry named
 // "key@service" with the raw 32-byte binary payload. The Qt Job's nested
@@ -275,33 +319,34 @@ struct CredentialFree final {
 #if defined(Q_OS_WIN)
     return windowsLoadSeed(service, fid);
 #else
-    QKeychain::ReadPasswordJob job{QString::fromStdString(service)};
-    job.setKey(QString::fromStdString(accountFor(fid)));
-    runJob(job);
-    if (job.error() == QKeychain::EntryNotFound) {
-        return std::optional<Seed>{};
-    }
-    if (job.error() != QKeychain::NoError) {
-        return std::unexpected(makeStorageError(job.error(), job.errorString(), "read"));
-    }
+    return withKeychainJob<QKeychain::ReadPasswordJob>(service, fid,
+        [](QKeychain::ReadPasswordJob& job) -> foundation::result::Result<std::optional<Seed>> {
+            runJob(job);
+            if (job.error() == QKeychain::EntryNotFound) {
+                return std::optional<Seed>{};
+            }
+            if (job.error() != QKeychain::NoError) {
+                return std::unexpected(makeStorageError(job.error(), job.errorString(), "read"));
+            }
 
-    QByteArray data = job.binaryData();
-    if (data.size() != static_cast<qsizetype>(SeedSize)) {
-        if (!data.isEmpty()) {
+            QByteArray data = job.binaryData();
+            if (data.size() != static_cast<qsizetype>(SeedSize)) {
+                if (!data.isEmpty()) {
+                    OPENSSL_cleanse(data.data(), static_cast<std::size_t>(data.size()));
+                }
+                return std::unexpected(foundation::error::Error::make(
+                    foundation::error::ErrorCode::StorageFailure,
+                    "Secure protocol signer entry contains an invalid Ed25519 seed length."));
+            }
+
+            Seed seed{};
+            std::copy_n(
+                reinterpret_cast<const unsigned char*>(data.constData()),
+                SeedSize,
+                seed.bytes.begin());
             OPENSSL_cleanse(data.data(), static_cast<std::size_t>(data.size()));
-        }
-        return std::unexpected(foundation::error::Error::make(
-            foundation::error::ErrorCode::StorageFailure,
-            "Secure protocol signer entry contains an invalid Ed25519 seed length."));
-    }
-
-    Seed seed{};
-    std::copy_n(
-        reinterpret_cast<const unsigned char*>(data.constData()),
-        SeedSize,
-        seed.bytes.begin());
-    OPENSSL_cleanse(data.data(), static_cast<std::size_t>(data.size()));
-    return std::optional<Seed>{std::move(seed)};
+            return std::optional<Seed>{std::move(seed)};
+        });
 #endif
 }
 
@@ -313,18 +358,19 @@ struct CredentialFree final {
 #if defined(Q_OS_WIN)
     return windowsSaveSeed(service, fid, seed);
 #else
-    QByteArray data{
-        reinterpret_cast<const char*>(seed.bytes.data()),
-        static_cast<qsizetype>(seed.bytes.size())};
-    QKeychain::WritePasswordJob job{QString::fromStdString(service)};
-    job.setKey(QString::fromStdString(accountFor(fid)));
-    job.setBinaryData(data);
-    runJob(job);
-    OPENSSL_cleanse(data.data(), static_cast<std::size_t>(data.size()));
-    if (job.error() != QKeychain::NoError) {
-        return std::unexpected(makeStorageError(job.error(), job.errorString(), "store"));
-    }
-    return {};
+    return withKeychainJob<QKeychain::WritePasswordJob>(service, fid,
+        [&seed](QKeychain::WritePasswordJob& job) -> foundation::result::Status {
+            QByteArray data{
+                reinterpret_cast<const char*>(seed.bytes.data()),
+                static_cast<qsizetype>(seed.bytes.size())};
+            job.setBinaryData(data);
+            runJob(job);
+            OPENSSL_cleanse(data.data(), static_cast<std::size_t>(data.size()));
+            if (job.error() != QKeychain::NoError) {
+                return std::unexpected(makeStorageError(job.error(), job.errorString(), "store"));
+            }
+            return {};
+        });
 #endif
 }
 
@@ -335,13 +381,14 @@ struct CredentialFree final {
 #if defined(Q_OS_WIN)
     return windowsDeleteSeed(service, fid);
 #else
-    QKeychain::DeletePasswordJob job{QString::fromStdString(service)};
-    job.setKey(QString::fromStdString(accountFor(fid)));
-    runJob(job);
-    if (job.error() == QKeychain::NoError || job.error() == QKeychain::EntryNotFound) {
-        return {};
-    }
-    return std::unexpected(makeStorageError(job.error(), job.errorString(), "delete"));
+    return withKeychainJob<QKeychain::DeletePasswordJob>(service, fid,
+        [](QKeychain::DeletePasswordJob& job) -> foundation::result::Status {
+            runJob(job);
+            if (job.error() == QKeychain::NoError || job.error() == QKeychain::EntryNotFound) {
+                return {};
+            }
+            return std::unexpected(makeStorageError(job.error(), job.errorString(), "delete"));
+        });
 #endif
 }
 

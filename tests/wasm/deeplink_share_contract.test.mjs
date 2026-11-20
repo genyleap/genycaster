@@ -84,6 +84,16 @@ test('public Genycaster links use runtime hosting origin or native configuration
   assert.ok(qml.includes('castShareUrl(root.normalizedCastId)'));
 });
 
+test('Android shares the public deployment link through the system chooser', () => {
+  const bridge = read('src/presentation/qt/presentation_bridge.cpp');
+  const base = bridge.slice(bridge.indexOf('QString PresentationBridge::publicShareBaseUrl()'),
+      bridge.indexOf('QString PresentationBridge::castShareUrl('));
+  assert.match(base, /if \(configured.isEmpty\(\)\)\s+configured = QString::fromLatin1\(genycaster::deployment::publicOrigin.data\(\)\)/);
+  const share = bridge.split('void PresentationBridge::shareUrl(')[1].split('bool PresentationBridge::openSharedLink')[0];
+  for (const token of ['Q_OS_ANDROID', 'runOnAndroidMainThread', 'android.intent.action.SEND',
+    'android.intent.extra.TEXT', 'text/plain', 'createChooser', 'startActivity']) assert.ok(share.includes(token), token);
+});
+
 test('incoming browser and command-line URLs route after runtime is ready', () => {
   const main = read('ui/app/main.cpp');
   assert.match(main, /--open-url=/);

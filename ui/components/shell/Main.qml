@@ -25,11 +25,10 @@ ApplicationWindow {
             ? Math.min(940, Screen.desktopAvailableHeight > 0
                        ? Math.max(640, Screen.desktopAvailableHeight - 48) : 940)
             : 860
-    // Browsers can expose a visual viewport shorter than the native app's
-    // 640px minimum (especially with navigation bars or a software keyboard).
-    // Never let the Qt canvas grow below the visible viewport on WebAssembly.
-    minimumWidth: Qt.platform.os === "wasm" ? 0 : 360
-    minimumHeight: Qt.platform.os === "wasm" ? 0 : 640
+    // Only resizable desktop windows have a minimum size. A gesture bar or
+    // software keyboard can reduce mobile and browser viewports below 640dp.
+    minimumWidth: nativeDesktop ? 360 : 0
+    minimumHeight: nativeDesktop ? 640 : 0
     visible: true
     color: Theme.background
     title: qsTrId("genycaster.app.genycaster")

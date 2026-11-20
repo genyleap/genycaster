@@ -5,6 +5,9 @@
 #include <QDateTime>
 #include <QClipboard>
 #include <QGuiApplication>
+#if defined(Q_OS_ANDROID)
+#include <QJniObject>
+#endif
 #include <QHash>
 #include <QDesktopServices>
 #include <QList>
@@ -57,6 +60,20 @@ EM_JS(void, closeGenycasterSetupApproval, (), {
 import farcaster.application.configuration;
 
 namespace {
+bool exactly24Words(const QString& phrase)
+{
+    int count{0};
+    bool inWord{false};
+    for (const QChar character : phrase) {
+        if (character.isSpace()) {
+            inWord = false;
+        } else if (!inWord) {
+            if (++count > 24) return false;
+            inWord = true;
+        }
+    }
+    return count == 24;
+}
 
 constexpr int kInitialSetupVersion = 4;
 // Increment when the onboarding legal bundle materially changes so consent is
@@ -1038,6 +1055,12 @@ bool PresentationBridge::nativeCustodyAccount() const noexcept
 {
     return m_isAuthenticated
         && m_accountIdentityIssuer == QStringLiteral("hypersnap:native-registry");
+}
+
+bool PresentationBridge::farcasterCustodyAccount() const noexcept
+{
+    return m_isAuthenticated
+        && m_accountIdentityIssuer == QStringLiteral("farcaster:optimism-id-registry");
 }
 
 QString PresentationBridge::accountIdentityBadge() const
@@ -2650,6 +2673,8 @@ QString PresentationBridge::publicShareBaseUrl() const
         configured = QString::fromUtf8(GENYCASTER_DEFAULT_PUBLIC_BASE_URL);
     }
 #endif
+    if (configured.isEmpty())
+        configured = QString::fromLatin1(genycaster::deployment::publicOrigin.data());
 #endif
     QUrl base{configured, QUrl::StrictMode};
     if (!base.isValid() || base.scheme() != QStringLiteral("https")
@@ -2837,6 +2862,23 @@ void PresentationBridge::shareUrl(const QString& url)
             navigator.clipboard.writeText(shared).catch(() => {});
         }
     }, utf8.constData());
+#elif defined(Q_OS_ANDROID)
+    QNativeInterface::QAndroidApplication::runOnAndroidMainThread([url] {
+        const QJniObject context = QNativeInterface::QAndroidApplication::context();
+        const auto action = QJniObject::fromString(QStringLiteral("android.intent.action.SEND"));
+        QJniObject intent("android/content/Intent", "(Ljava/lang/String;)V", action.object<jstring>());
+        const auto mime = QJniObject::fromString(QStringLiteral("text/plain"));
+        const auto key = QJniObject::fromString(QStringLiteral("android.intent.extra.TEXT"));
+        const auto link = QJniObject::fromString(url);
+        intent.callMethod<QJniObject>("setType", "(Ljava/lang/String;)Landroid/content/Intent;", mime.object());
+        intent.callMethod<QJniObject>("putExtra", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;",
+                                      key.object(), link.object());
+        auto chooser = QJniObject::callStaticMethod<QJniObject>("android/content/Intent", "createChooser",
+            "(Landroid/content/Intent;Ljava/lang/CharSequence;)Landroid/content/Intent;", intent.object(), static_cast<jobject>(nullptr));
+        if (!QNativeInterface::QAndroidApplication::isActivityContext())
+            chooser.callMethod<QJniObject>("addFlags", "(I)Landroid/content/Intent;", jint{0x10000000});
+        context.callMethod<void>("startActivity", "(Landroid/content/Intent;)V", chooser.object());
+    });
 #else
     // Desktop and native Qt platforms without a share-sheet adapter remain
     // functional via the clipboard. Never claim that a native sheet appeared.
@@ -3130,19 +3172,6 @@ void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
 {
     // Count without allocating another copy of sensitive recovery material.
     // Recovery input must contain exactly 24 words on every supported target.
-    const auto exactly24Words = [](const QString& phrase) {
-        int count{0};
-        bool inWord{false};
-        for (const QChar character : phrase) {
-            if (character.isSpace()) {
-                inWord = false;
-            } else if (!inWord) {
-                if (++count > 24) return false;
-                inWord = true;
-            }
-        }
-        return count == 24;
-    };
     if (!m_legalConsentAccepted || !m_runtimeReady || m_isAuthenticated
         || authenticationBusy() || recoveryWords.size() > 4095
         || !exactly24Words(recoveryWords)) {
@@ -3220,30 +3249,34 @@ void PresentationBridge::provisionSigner()
 
 void PresentationBridge::authorizeNativeHyperSnapSigner(QString recoveryWords)
 {
-    // Only the explicit, local HyperSnap recovery ceremony may receive
-    // custody words. Neither the phrase nor its signature is persisted here.
-    int wordCount = 0;
-    bool insideWord = false;
-    for (const QChar ch : recoveryWords) {
-        if (ch.isSpace()) {
-            insideWord = false;
-        } else if (!insideWord) {
-            ++wordCount;
-            insideWord = true;
-        }
-    }
-    const bool validPhrase = recoveryWords.size() <= 4095 && wordCount == 24;
-    if (!m_runtimeReady || !m_isAuthenticated || m_signerBusy || m_writeReady
-        || m_accountIdentityIssuer != QStringLiteral("hypersnap:native-registry")
-        || m_accountFid < (1ULL << 32) || !validPhrase) {
+    if (!nativeCustodyAccount() || m_accountFid < (1ULL << 32)) {
         recoveryWords.fill(QChar{});
-        if (m_isAuthenticated
-            && m_accountIdentityIssuer == QStringLiteral("hypersnap:native-registry")
-            && !m_signerBusy && !m_writeReady) {
+        return;
+    }
+    if (beginSignerRecovery(recoveryWords))
+        emit nativeHyperSnapSignerAuthorizationRequested(std::move(recoveryWords));
+}
+
+void PresentationBridge::authorizeNativeFarcasterSigner(QString recoveryWords)
+{
+    if (nativeCustodyAccount() || m_accountFid == 0) {
+        recoveryWords.fill(QChar{});
+        return;
+    }
+    if (beginSignerRecovery(recoveryWords))
+        emit nativeFarcasterSignerAuthorizationRequested(std::move(recoveryWords));
+}
+
+bool PresentationBridge::beginSignerRecovery(QString& recoveryWords)
+{
+    if (!m_runtimeReady || !m_isAuthenticated || m_signerBusy || m_writeReady
+        || recoveryWords.size() > 4095 || !exactly24Words(recoveryWords)) {
+        recoveryWords.fill(QChar{});
+        if (m_isAuthenticated && !m_signerBusy && !m_writeReady) {
             m_signerErrorText = qtTrId("genycaster.setup.recovery_failed_retry");
             emit stateChanged();
         }
-        return;
+        return false;
     }
     // Mark the asynchronous local recovery + registry check in progress
     // immediately, so a second click cannot race the first KEY_ADD.
@@ -3254,7 +3287,7 @@ void PresentationBridge::authorizeNativeHyperSnapSigner(QString recoveryWords)
         "genycaster.runtime.waiting_for_custody_approval_and_network_confirmation");
     m_signerErrorText.clear();
     emit stateChanged();
-    emit nativeHyperSnapSignerAuthorizationRequested(std::move(recoveryWords));
+    return true;
 }
 
 void PresentationBridge::revokeSigner()

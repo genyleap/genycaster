@@ -299,6 +299,10 @@ Item {
             }
 
             Component.onCompleted: tileSlot.scheduleAdmission()
+            Component.onDestruction: {
+                if (tileLoader && tileLoader.status === Loader.Loading)
+                    tileLoader.active = false
+            }
 
             Connections {
                 target: root

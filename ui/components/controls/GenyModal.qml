@@ -16,6 +16,8 @@ Popup {
     modal: true
     focus: true
     padding: Theme.space4
+    topPadding: padding + (fullScreen && parent ? parent.SafeArea.margins.top : 0)
+    bottomPadding: padding + (fullScreen && parent ? parent.SafeArea.margins.bottom : 0)
     x: control.fullScreen ? 0
        : parent ? Math.round(Math.max(0, (parent.width - width) / 2)) : 0
     y: control.fullScreen ? 0

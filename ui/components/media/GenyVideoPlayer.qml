@@ -600,7 +600,8 @@ Item {
         activation.qualityId = activation.pendingQualityId
         startupWatchdog.restart()
         Qt.callLater(() => {
-            if (root.userActivated || root.eager)
+            if (root && player && String(player.source) === String(target)
+                    && (root.userActivated || root.eager))
                 player.play()
         })
     }
@@ -611,7 +612,7 @@ Item {
             // clear/re-assign keeps backend teardown out of the click handler.
             activation.forceReload = false
             player.source = ""
-            Qt.callLater(() => root.startPendingSource(target))
+            Qt.callLater(() => { if (root && player && !String(player.source)) root.startPendingSource(target) })
             return
         }
         activation.forceReload = false
@@ -974,7 +975,9 @@ Item {
                 const resume = activation.resumeAfterLoad
                 activation.pendingUrl = ""
                 activation.pendingPosition = 0
+                const loadedSource = String(player.source)
                 Qt.callLater(() => {
+                    if (!player || !activation || String(player.source) !== loadedSource) return
                     if (seekPosition > 0 && player.duration > 0)
                         player.position = Math.min(seekPosition, player.duration)
                     if (!resume)
@@ -2127,7 +2130,7 @@ Item {
             stage.anchors.fill = fullscreenHost
             fullscreenOutput.visible = true
             chromePinned = true
-            Qt.callLater(() => stage.forceActiveFocus())
+            Qt.callLater(() => { if (stage && fullscreenOutput && fullscreenOutput.visible) stage.forceActiveFocus() })
         }
 
         onClosed: {

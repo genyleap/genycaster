@@ -43,8 +43,8 @@ Item {
         control.contentItem.parent = host
         control.contentItem.x = 0
         control.contentItem.y = 0
-        control.contentItem.width = Qt.binding(() => host.width)
-        control.contentItem.height = Qt.binding(() => host.height)
+        control.contentItem.width = Qt.binding(() => host ? host.width : 0)
+        control.contentItem.height = Qt.binding(() => host ? host.height : 0)
     }
 
     function open() {
@@ -124,7 +124,8 @@ Item {
 
     GenyDrawer {
         id: mobileDrawer
-        parent: control.parent
+        parent: control.mobileFullScreen && control.Overlay.overlay
+                ? control.Overlay.overlay : control.parent
         bottomSheet: true
         fullScreen: control.mobileFullScreen
         interactive: !control.mobileFullScreen
@@ -133,7 +134,8 @@ Item {
         efficientBackdropBlur: control.efficientBackdropBlur
         showHandle: !control.mobileFullScreen && control.showHandle
         contentPadding: control.contentPadding
-        bottomPadding: control.contentPadding + control.mobileBottomPaddingExtra
+        bottomPadding: control.contentPadding + Math.max(control.mobileBottomPaddingExtra,
+            parent ? parent.SafeArea.margins.bottom : 0)
         closePolicy: control.closePolicy
         z: control.popupZ
         width: parent ? parent.width : control.width

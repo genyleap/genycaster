@@ -108,7 +108,7 @@ test('Setup owns a borderless full-window stage with CTA in the stage, not a glo
     assert.match(language,/objectName: "setupLanguageWheel"/);
     assert.match(language,/highlightRangeMode: ListView\.StrictlyEnforceRange/);
     assert.match(language,/wrapMode: Text\.WordWrap/);
-    assert.match(main,/minimumHeight: Qt\.platform\.os === "wasm" \? 0 : 640/);
+    assert.match(main,/minimumHeight: nativeDesktop \? 640 : 0/);
 });
 
 test('completed Setup is independent of a volatile session and signer revocation',()=>{

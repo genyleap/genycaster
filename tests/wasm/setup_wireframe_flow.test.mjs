@@ -328,7 +328,7 @@ test('native desktop and mobile recovery use 24 styled secret word slots', () =>
   assert.match(source('ui/components/controls/GenyCheckRow.qml'),/Accessible\.role: Accessible\.CheckBox/);
   assert.match(source('ui/components/controls/GenyCheckRow.qml'),/fillColor: control\.checked \? Theme\.accent : Theme\.surface/);
   assert.doesNotMatch(setup,/id: recoveryField|CheckBox \{/);
-  assert.match(bridge,/const auto exactly24Words = \[\]/);
+  assert.match(bridge,/bool exactly24Words\(const QString& phrase\)/);
   assert.match(bridge,/!exactly24Words\(recoveryWords\)/);
   for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
                          'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
@@ -948,7 +948,7 @@ test('HyperSnap native signer authorization is local, one-use and registry-bound
   assert.match(bridgeHeader,/Q_PROPERTY\(bool nativeCustodySignerAvailable/);
   assert.match(runtime,/updateNativeSignerAvailability/);
   assert.match(shell,/!presentationBridge.nativeCustodySignerAvailable/);
-  assert.match(bridge,/m_accountIdentityIssuer != QStringLiteral\("hypersnap:native-registry"\)/);
+  assert.match(bridge,/if \(!nativeCustodyAccount\(\) \|\| m_accountFid < \(1ULL << 32\)\)/);
   assert.match(bridge,/emit nativeHyperSnapSignerAuthorizationRequested\(std::move\(recoveryWords\)\)/);
   assert.match(shell,/readonly property bool nativeAccount:\s*presentationBridge\.nativeCustodyAccount/);
   assert.match(shell,/objectName: "nativeSignerRecoveryGrid"/);

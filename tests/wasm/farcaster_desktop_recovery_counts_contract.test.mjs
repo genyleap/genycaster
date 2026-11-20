@@ -63,3 +63,15 @@ test('the signed-in account sidebar hydrates from its Farcaster index rather tha
   assert.match(composition,/activeAccountIndexedRequest->cancel\(\)/);
   assert.match(runtimeModule,/accountProfileRequestGeneration/);
 });
+
+test('signed-in Farcaster recovery binds the one-use signer to the current registry identity', () => {
+  const handler = runtime.split('const auto verifyFarcasterCustody =')[1].split('// HyperSnap recovery never')[0];
+  assert.match(handler, /fid != current->fid.value/);
+  assert.match(handler, /current->identityIssuer != expectedSession->identityIssuer/);
+  assert.match(handler, /current->custodyAddress && address.compare/);
+  assert.match(handler, /makeOneShotRecoveryAuthorizer/);
+  assert.match(handler, /signerService->provision\(current, signerObserver, std::move\(permit\)\)/);
+  assert.match(handler, /resolveRecoveryCustodyFid/);
+  assert.match(handler, /nativeFarcasterSignerAuthorizationRequested[\s\S]*?verifyFarcasterCustody\(std::move\(words\), true, true\)/);
+  assert.match(shell, /onRecoverySignerRequested:[\s\S]*?enteringNativeWords = true/);
+});

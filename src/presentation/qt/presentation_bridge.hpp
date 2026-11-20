@@ -49,6 +49,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString authenticationErrorText READ authenticationErrorText NOTIFY authenticationStateChanged)
     Q_PROPERTY(QVariantMap setupConnections READ setupConnections NOTIFY setupConnectionsChanged)
     Q_PROPERTY(QString accountIdentityIssuer READ accountIdentityIssuer NOTIFY authenticationStateChanged)
+    Q_PROPERTY(bool farcasterCustodyAccount READ farcasterCustodyAccount NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool nativeCustodyAccount READ nativeCustodyAccount NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountIdentityBadge READ accountIdentityBadge NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountName READ accountName NOTIFY authenticationStateChanged)
@@ -163,6 +164,9 @@ public:
 
     /** @brief Trusted issuer classification, not a QML comparison of provider IDs. */
     [[nodiscard]] bool nativeCustodyAccount() const noexcept;
+
+    /** @brief Whether the active identity was recovered through the Farcaster custody registry. */
+    [[nodiscard]] bool farcasterCustodyAccount() const noexcept;
 
     /** @brief Localized identity badge for the authenticated provider. */
     [[nodiscard]] QString accountIdentityBadge() const;
@@ -442,6 +446,9 @@ public:
     /** Authorize a HyperSnap-native signer from an explicit, transient local
      * recovery phrase. Native runtime verifies custody against shard 0 first. */
     Q_INVOKABLE void authorizeNativeHyperSnapSigner(QString recoveryWords);
+
+    /** @brief Requests one local signer permit after verifying the current Farcaster FID on Optimism. */
+    Q_INVOKABLE void authorizeNativeFarcasterSigner(QString recoveryWords);
     Q_INVOKABLE void revokeSigner();
     Q_INVOKABLE void publishCast(const QString& text);
 
@@ -680,6 +687,7 @@ signals:
 
     /** One-use recovery words; never exposed through a Q_PROPERTY or stored. */
     void nativeHyperSnapSignerAuthorizationRequested(QString recoveryWords);
+    void nativeFarcasterSignerAuthorizationRequested(QString recoveryWords);
     void signerRevokeRequested();
     void publishCastRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds, QString parentUrl);
     void publishReplyRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds, qulonglong parentAuthorFid, QString parentCastId);
@@ -700,6 +708,7 @@ signals:
         bool allowRecoveryProbe);
 
 private:
+    bool beginSignerRecovery(QString& recoveryWords);
     void beginIntent(QString status);
     void retryCurrent(bool allowRecoveryProbe);
     void persistReadPreference(const QString& key, const QVariant& value);

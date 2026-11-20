@@ -32,3 +32,10 @@ test('pending asynchronous proof remains busy and is invalidated on account chan
   assert.match(controller, /QTimer::singleShot\(20'000, this, \[this, serial, viewer, generation\]/);
   assert.match(controller, /m_accountProofError = QStringLiteral\("account_signer_unavailable"\)/);
 });
+
+test('Android signer and account proof jobs finish on the same QtKeychain thread', () => {
+  assert.match(keychain, /QThreadPool& keychainWorker\(\)[\s\S]*?setMaxThreadCount\(1\);\s*setExpiryTimeout\(-1\);[\s\S]*?static Worker worker;/);
+  assert.match(keychain, /if \(!worker.contains\(QThread::currentThread\(\)\)\)[\s\S]*?worker.start\(std::move\(task\)\);\s*return result.get\(\);/);
+  for (const type of ['Read', 'Write', 'Delete'])
+    assert.ok(keychain.includes('withKeychainJob<QKeychain::' + type + 'PasswordJob>'));
+});

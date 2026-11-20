@@ -54,8 +54,9 @@ Item {
         // verifies the native registry before enabling any write authority.
         interactionAuthorizationDialog.enteringNativeWords =
             Qt.platform.os !== "wasm"
-            && presentationBridge.nativeCustodyAccount
-            && !presentationBridge.nativeCustodySignerAvailable
+            && ((presentationBridge.nativeCustodyAccount
+                 && !presentationBridge.nativeCustodySignerAvailable)
+                || presentationBridge.farcasterCustodyAccount)
         interactionAuthorizationDialog.open()
     }
 
@@ -159,6 +160,8 @@ Item {
         }
         onOpened: authorizationSubmitted = false
         onClosed: {
+            if (enteringNativeWords && !presentationBridge.writeReady)
+                authorizationSubmitted = false
             if (!authorizationSubmitted)
                 root.pendingComposerIntent = null
             clearRecoveryWords()
@@ -185,7 +188,7 @@ Item {
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     ColumnLayout {
                         id: confirmationContent
-                        width: interactionAuthorizationScroller.availableWidth
+                        width: interactionAuthorizationScroller ? interactionAuthorizationScroller.availableWidth : 0
                         spacing: Theme.space3
             DirectionAwareLabel {
                 Layout.fillWidth: true
@@ -199,6 +202,8 @@ Item {
                 Layout.fillWidth: true
                 text: interactionAuthorizationDialog.nativeAccount
                     ? qsTrId("genycaster.shell.native_signer_description")
+                    : interactionAuthorizationDialog.enteringNativeWords
+                      ? qsTrId("genycaster.setup.recovery_privacy")
                     : qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeBodySize
@@ -214,7 +219,6 @@ Item {
             ActionButton {
                 objectName: "nativeSignerUseRecoveryWords"
                 visible: Qt.platform.os !== "wasm"
-                         && interactionAuthorizationDialog.nativeAccount
                          && !interactionAuthorizationDialog.enteringNativeWords
                 Layout.fillWidth: true
                 compact: true
@@ -227,8 +231,8 @@ Item {
             }
             DirectionAwareLabel {
                 visible: Qt.platform.os !== "wasm"
-                         && interactionAuthorizationDialog.nativeAccount
                          && interactionAuthorizationDialog.enteringNativeWords
+                         && interactionAuthorizationDialog.nativeAccount
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.shell.native_signer_words_note")
                 color: Theme.textSecondary
@@ -239,8 +243,8 @@ Item {
                 id: nativeRecoveryScroll
                 objectName: "nativeSignerRecoveryGrid"
                 visible: Qt.platform.os !== "wasm"
-                         && interactionAuthorizationDialog.nativeAccount
                          && interactionAuthorizationDialog.enteringNativeWords
+                         && !presentationBridge.signerBusy
                 Layout.fillWidth: true
                 // Let the outer inspector scroll all 24 words on narrow screens.
                 Layout.preferredHeight: interactionAuthorizationDialog.fullScreen
@@ -254,7 +258,7 @@ Item {
                     id: nativeSignerWordColumns
                     layoutDirection: Theme.uiDirection
                     width: nativeRecoveryScroll ? nativeRecoveryScroll.availableWidth : 0
-                    columns: nativeRecoveryScroll.width < Theme.scaleUi(420) ? 3 : 4
+                    columns: !nativeRecoveryScroll || nativeRecoveryScroll.width < Theme.scaleUi(420) ? 3 : 4
                     columnSpacing: Theme.space2
                     rowSpacing: Theme.space2
                     Repeater {
@@ -300,7 +304,7 @@ Item {
                 }
             }
             ActionButton {
-                visible: nativeRecoveryScroll.visible
+                visible: nativeRecoveryScroll && nativeRecoveryScroll.visible
                 Layout.alignment: Qt.AlignRight
                 compact: true
                 quiet: true
@@ -311,7 +315,7 @@ Item {
                     !interactionAuthorizationDialog.showRecoveryWords
             }
             DirectionAwareLabel {
-                visible: nativeRecoveryScroll.visible
+                visible: nativeRecoveryScroll && nativeRecoveryScroll.visible
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.setup.native_recovery_privacy")
                 color: Theme.inkMuted
@@ -320,6 +324,15 @@ Item {
             }
                     }
                 }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                visible: interactionAuthorizationDialog.authorizationSubmitted
+                         && interactionAuthorizationDialog.enteringNativeWords && text.length > 0
+                text: presentationBridge.signerBusy ? presentationBridge.signerStatusText
+                                                   : presentationBridge.signerErrorText
+                color: presentationBridge.signerBusy ? Theme.textSecondary : Theme.warning
+                wrapMode: Text.WordWrap
+            }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space2
@@ -336,28 +349,32 @@ Item {
                     prominent: true
                     compact: true
                     objectName: "authorizeSelectedProtocolSigner"
-                    iconGlyph: interactionAuthorizationDialog.nativeAccount
+                    iconGlyph: interactionAuthorizationDialog.nativeAccount || interactionAuthorizationDialog.enteringNativeWords
                         ? "" : Theme.iconArrowUpRight
-                    text: interactionAuthorizationDialog.nativeAccount
+                    text: interactionAuthorizationDialog.nativeAccount || interactionAuthorizationDialog.enteringNativeWords
                         ? qsTrId("genycaster.shell.native_signer_authorize")
                         : qsTrId("genycaster.shell.open_farcaster")
-                    enabled: !interactionAuthorizationDialog.enteringNativeWords
-                             || interactionAuthorizationDialog.recoveryReady()
+                    enabled: !presentationBridge.signerBusy
+                             && (!interactionAuthorizationDialog.enteringNativeWords
+                                 || interactionAuthorizationDialog.recoveryReady())
                     onClicked: {
                         interactionAuthorizationDialog.authorizationSubmitted = true
-                        if (interactionAuthorizationDialog.nativeAccount
-                            && interactionAuthorizationDialog.enteringNativeWords) {
+                        if (interactionAuthorizationDialog.enteringNativeWords) {
                             // One-shot secret: forward directly to native C++,
-                            // then scrub the input before dismissing the modal.
-                            presentationBridge.authorizeNativeHyperSnapSigner(
-                                interactionAuthorizationDialog.recoveryPhrase())
+                            // then clear the form while verification is pending.
+                            if (interactionAuthorizationDialog.nativeAccount)
+                                presentationBridge.authorizeNativeHyperSnapSigner(
+                                    interactionAuthorizationDialog.recoveryPhrase())
+                            else
+                                presentationBridge.authorizeNativeFarcasterSigner(
+                                    interactionAuthorizationDialog.recoveryPhrase())
                             interactionAuthorizationDialog.clearRecoveryWords()
                         } else {
                             // Native: uses the currently verified local custody
                             // wallet. Farcaster: retains its separate approval.
                             presentationBridge.provisionSigner()
+                            interactionAuthorizationDialog.close()
                         }
-                        interactionAuthorizationDialog.close()
                     }
                 }
             }
@@ -868,7 +885,13 @@ Item {
 
     Connections {
         target: presentationBridge
-        function onStateChanged() { root.resolvePendingComposer() }
+        function onStateChanged() {
+            if (interactionAuthorizationDialog && interactionAuthorizationDialog.visible
+                && interactionAuthorizationDialog.enteringNativeWords
+                && interactionAuthorizationDialog.authorizationSubmitted && presentationBridge.writeReady)
+                interactionAuthorizationDialog.close()
+            root.resolvePendingComposer()
+        }
         function onAuthenticationStateChanged() { root.resolvePendingComposer() }
     }
 
@@ -3052,6 +3075,14 @@ Item {
                 // Settings covers the full viewport on every platform;
                 // do not capture a hidden workspace for an invisible blur.
                 blurSourceItem: null
+                onRecoverySignerRequested: {
+                    if (Qt.platform.os === "wasm") {
+                        presentationBridge.provisionSigner()
+                    } else {
+                        interactionAuthorizationDialog.enteringNativeWords = true
+                        interactionAuthorizationDialog.open()
+                    }
+                }
                 onCustomAccentStudioRequested: color => accentColorStudio.openWith(color)
                 onDataStorageRequested: root.openDataStorageSettings()
                 onProDetailsRequested: genyProDetailsDrawer.open()

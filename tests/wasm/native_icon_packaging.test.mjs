@@ -142,6 +142,8 @@ test('Android launcher and Qt Quick image uploads use native RGBA mobile contrac
   assert.match(icons,/QImage::Format_RGBA8888_Premultiplied/);
   assert.doesNotMatch(icons,/QImage::Format_ARGB32_Premultiplied/);
   assert.match(icons,/class AndroidBrandImageProvider final/);
+  assert.match(main,/ro\.boot\.qemu[\s\S]*?ro\.hardware\.vulkan[\s\S]*?vkEnumeratePhysicalDevices[\s\S]*?QQuickWindow::setGraphicsApi\(QSGRendererInterface::Vulkan\)/);
+  assert.match(adaptive,/parent: control\.mobileFullScreen && control\.Overlay\.overlay/);
   assert.match(main,/engine\.addImageProvider\(QStringLiteral\("genycaster-brand"\)/);
   assert.match(header,/image:\/\/genycaster-brand\/mark/);
   assert.match(shell,/id: interactionAuthorizationDialog[\s\S]*?fullScreen: Qt\.platform\.os === "android"/);

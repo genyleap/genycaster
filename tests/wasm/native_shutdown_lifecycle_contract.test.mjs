@@ -28,7 +28,7 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
     const popupDelete = teardown.indexOf('delete popup;');
     const overlayCleanup = teardown.indexOf('obj->inherits("QQuickOverlay")');
     const overlayDelete = teardown.indexOf('delete overlay.data();');
-    const roots = teardown.indexOf("engine.rootObjects()");
+    const roots = teardown.indexOf("engine.rootObjects()", overlayDelete);
     const destroy = teardown.indexOf("delete root;");
     const drain = teardown.lastIndexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
     const collect = teardown.indexOf("engine.collectGarbage();");
@@ -39,6 +39,7 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
         && roots > overlayDelete && destroy > roots
         && collect > destroy && drain > collect,
         "destroy QML owners, remaining Popups, Overlay, and only then QML windows");
+    assert.match(teardown, /while \(controller->incubatingObjectCount\(\) > 0 && !deadline.hasExpired\(\)\)/);
     assert.match(teardown, /for \(QObject\* const root : engine\.rootObjects\(\)\)/);
     assert.match(teardown, /QPointer<QObject>/);
     assert.doesNotMatch(teardown, /child->setParentItem\(nullptr\)/,
@@ -98,6 +99,13 @@ test("popup-host QML bindings stay null-safe during native scene destruction", (
         assert.match(qml, /\(desktopDialog && desktopDialog\.opened\)/);
     assert.match(shell, /\(composerDrawer && composerDrawer\.opened\)/);
     assert.match(shell, /widgetsOpen: !!contextDrawer && contextDrawer\.visible/);
+    assert.match(shell, /interactionAuthorizationScroller \? interactionAuthorizationScroller.availableWidth : 0/);
+    assert.match(video, /if \(!player \|\| !activation \|\| String\(player.source\) !== loadedSource\) return/);
+    for (const [file, loader] of [['GalleryLayout', 'tileLoader'], ['CastEmbedsPanel', 'previewLoader']]) {
+        const media = read('ui/components/media/' + file + '.qml');
+        assert.ok(media.includes(loader + '.status === Loader.Loading'));
+        assert.ok(media.includes(loader + '.active = false'));
+    }
     assert.match(shell, /accountScroll \? accountScroll\.availableWidth : 0/);
     assert.match(shell, /nativeRecoveryScroll \? nativeRecoveryScroll\.availableWidth : 0/);
     assert.match(composer, /topicFilterNeedle: topicSearch/);

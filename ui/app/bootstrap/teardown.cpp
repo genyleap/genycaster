@@ -1,6 +1,7 @@
 module;
 
 #include <QCoreApplication>
+#include <QDeadlineTimer>
 #include <QEvent>
 #include <QObject>
 #include <QPointer>
@@ -19,10 +20,28 @@ namespace genycaster::ui::bootstrap {
 void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
 {
     // The window normally advances incubators on frame/timer callbacks. At
-    // shutdown give them a bounded final pass while QML contexts are live,
+    // shutdown finish already admitted delegates while their QML contexts are live,
     // then disable further deferred creation before destroying their owners.
     if (auto* const controller = engine.incubationController()) {
-        controller->incubateFor(50);
+        const QDeadlineTimer deadline{500};
+        while (controller->incubatingObjectCount() > 0 && !deadline.hasExpired())
+            controller->incubateFor(10);
+        if (controller->incubatingObjectCount() > 0) {
+            // A nested Loader can still be waiting for its parent or a URL.
+            // Cancel it while its context exists. Destroying a parent loader
+            // can invalidate other entries in this snapshot.
+            QList<QPointer<QObject>> pending;
+            for (auto* root : engine.rootObjects()) {
+                for (auto* object : root->findChildren<QObject*>()) {
+                    if (object->inherits("QQuickLoader") && object->property("active").toBool()
+                        && !object->property("item").value<QObject*>())
+                        pending.append(object);
+                }
+            }
+            for (const auto& loader : pending) {
+                if (loader) QQmlProperty::write(loader.data(), QStringLiteral("active"), false);
+            }
+        }
         engine.setIncubationController(nullptr);
     }
 

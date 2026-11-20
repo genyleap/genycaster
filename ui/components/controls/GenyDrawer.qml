@@ -41,8 +41,9 @@ Drawer {
     bottomInset: floatingSheet && edge !== Qt.BottomEdge ? Theme.space3 : 0
     leftPadding: contentPadding + (floatingSheet ? Theme.space3 : 0)
     rightPadding: contentPadding + (floatingSheet ? Theme.space3 : 0)
-    topPadding: contentPadding + sheetTopInset
+    topPadding: contentPadding + sheetTopInset + (fullScreen && parent ? parent.SafeArea.margins.top : 0)
     bottomPadding: contentPadding + (floatingSheet ? Theme.space3 : 0)
+                   + (bottomSheet && parent ? parent.SafeArea.margins.bottom : 0)
 
     // Qt's Drawer can lose focus to embedded editors, WebAssembly canvases,
     // or an app-wide shortcut handler. Desktop dismissal must remain available
