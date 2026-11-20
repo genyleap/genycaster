@@ -128,3 +128,28 @@ test('platform properties own all package artifacts without forking the shared Q
   assert.match(resource,/GENYCASTER_WINDOWS_ICON_PATH/);
   assert.ok(!existsSync(resolve(root,'ui/platform')),'removed old platform property tree');
 });
+
+
+test('Android launcher and Qt Quick image uploads use native RGBA mobile contracts',()=>{
+  const android=text('properties/Android/Configure.cmake');
+  const icons=text('ui/app/media/android_icon.hpp');
+  const main=text('ui/app/main.cpp');
+  const header=text('ui/components/shell/AppHeader.qml');
+  const shell=text('ui/components/shell/AppShell.qml');
+  const adaptive=text('ui/components/controls/GenyAdaptiveDialog.qml');
+  const settings=text('ui/components/settings/SettingsPopup.qml');
+  assert.match(android,/QT_ANDROID_APP_NAME "Genycaster"/);
+  assert.match(icons,/QImage::Format_RGBA8888_Premultiplied/);
+  assert.doesNotMatch(icons,/QImage::Format_ARGB32_Premultiplied/);
+  assert.match(icons,/class AndroidBrandImageProvider final/);
+  assert.match(main,/engine\.addImageProvider\(QStringLiteral\("genycaster-brand"\)/);
+  assert.match(header,/image:\/\/genycaster-brand\/mark/);
+  assert.match(shell,/id: interactionAuthorizationDialog[\s\S]*?fullScreen: Qt\.platform\.os === "android"/);
+  assert.match(shell,/id: interactionAuthorizationScroller/);
+  assert.match(shell,/id: nativeSignerWordColumns/);
+  assert.ok(shell.indexOf('id: interactionAuthorizationScroller')
+            < shell.indexOf('objectName: "authorizeSelectedProtocolSigner"'));
+  assert.match(adaptive,/compactPresentation: Qt\.platform\.os === "android"/);
+  assert.match(settings,/mobileFullScreen: true/);
+  assert.match(settings,/mobilePresentation: Qt\.platform\.os === "android"/);
+});
