@@ -46,7 +46,7 @@ test('WASM setup explicitly shows protocol choices without faking desktop-only b
   assert.match(setup,/root\.browserCreateAccount\("hypersnap-v2"\)/);
   assert.match(wallet,/bool NativeCustodyWalletController::generate\(\)[\s\S]*?return false;/);
   assert.match(setup,/root\.nativeRecoverHyperSnapAccount\(words\)/);
-  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words\)/);
+  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, deviceSignerConsent\.checked\)/);
 });
 
 test('successful Farcaster recovery adopts verified signer owner before signed cloud membership retry',()=>{

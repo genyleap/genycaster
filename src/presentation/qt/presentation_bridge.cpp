@@ -3078,10 +3078,13 @@ void PresentationBridge::beginNativeHyperSnapRecoverySetup(QString recoveryWords
     m_hyperSnapRecoveryRequest = false;
 }
 
-void PresentationBridge::beginNativeFarcasterRecoverySetup(QString recoveryWords)
+void PresentationBridge::beginNativeFarcasterRecoverySetup(
+    QString recoveryWords, const bool authorizeSigner)
 {
     m_farcasterRecoveryRequest = true;
+    m_farcasterRecoverySignerConsent = authorizeSigner;
     beginNativeRecoverySetup(std::move(recoveryWords));
+    m_farcasterRecoverySignerConsent = false;
     m_farcasterRecoveryRequest = false;
 }
 
@@ -3126,7 +3129,8 @@ void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
     if (m_hyperSnapRecoveryRequest)
         emit nativeHyperSnapRecoveryRequested(std::move(recoveryWords));
     else if (m_farcasterRecoveryRequest)
-        emit nativeFarcasterRecoveryRequested(std::move(recoveryWords));
+        emit nativeFarcasterRecoveryRequested(
+            std::move(recoveryWords), m_farcasterRecoverySignerConsent);
     else
         emit nativeRecoveryRequested(std::move(recoveryWords));
 }

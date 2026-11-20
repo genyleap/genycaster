@@ -29,7 +29,7 @@ test('Setup allows return and review without resetting the account', () => {
 
 test('existing authentication and secure recovery stay connected to the bridge', () => {
   for(const s of ['root.continueWithGenyleap()', 'root.continueWithFarcaster()',
-                  'root.nativeRecoverFarcasterAccount(words)','root.openApproval()',
+                  'root.nativeRecoverFarcasterAccount(words, deviceSignerConsent.checked)','root.openApproval()',
                   'root.cancelAuthentication()','nativeRecoveryGrid.clearAll()'])
     assert.ok(setup.includes(s),s);
   assert.match(setup, /Qt.ImhSensitiveData/);
@@ -369,7 +369,7 @@ test('recovery phrase stays in the correct platform UI until verification really
   assert.match(setup,/root\.recoverAccount\(root\.recoveryProtocol\)/);
   assert.match(setup,/authenticationRoute === "browser-protocol-recovery"/);
   assert.match(setup,/authenticationRoute === "browser-protocol-create"/);
-  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words\)/);
+  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, deviceSignerConsent\.checked\)/);
   assert.match(setup,/nativeRecoveryGrid\.clearAll\(\)/);
   assert.match(setup,/running: root\.verifyingBusy \|\| root\.recoverySubmitPending/);
   assert.match(setup,/onAuthenticationErrorTextChanged:/);
@@ -777,7 +777,7 @@ test('HyperSnap native signup, recovery and signer stay in distinct guarded path
     'nativeRegistrationPublisher.submitPrepared()',
     'nativeRegistrationPublisher.checkConfirmation()',
     'nativeRecoverHyperSnapAccount(words)',
-    'root.nativeRecoverFarcasterAccount(words)',
+    'root.nativeRecoverFarcasterAccount(words, deviceSignerConsent.checked)',
     'objectName: "setupExistingHyperSnap"',
     'objectName: "setupExistingFarcaster"'
   ])assert.ok(setup.includes(s),s);
@@ -865,10 +865,10 @@ test('interrupted Farcaster registration can restore offline custody without a s
   assert.match(controller,/m_reservationId = deterministicUuid\(m_voucher, m_wallet\)/);
   assert.match(controller,/if \(m_phase != QStringLiteral\("ready"\)\) return false/);
   assert.match(wallet,/derivePublicCustodyAddress\(phrase\)/);
-  assert.match(bridge,/nativeFarcasterRecoveryRequested\(std::move\(recoveryWords\)\)/);
+  assert.match(bridge,/nativeFarcasterRecoveryRequested\(\s*std::move\(recoveryWords\), m_farcasterRecoverySignerConsent\)/);
   assert.match(runtime,/resolveRecoveryCustodyFid\(\*runtime->transport, \*address/);
   assert.match(runtime,/makeOneShotRecoveryAuthorizer\(/);
-  assert.match(runtime,/commitVerifiedIdentity\(fid, address, std::move\(\*permit\), true,\s*secret\)/);
+  assert.match(runtime,/commitVerifiedIdentity\(fid, address, std::move\(permit\), true, secret\)/);
   assert.doesNotMatch(qml,/farcaster\.xyz\/~\/signup/);
 });
 

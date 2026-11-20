@@ -2293,6 +2293,52 @@ void hydrateAuthenticatedAccountProfile(
 
     const qulonglong accountFid = bridge.accountFid();
     const QString expectedIssuer = bridge.accountIdentityIssuer();
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
+    // The account card is hydrated even while the user browses the OTHER
+    // network. Query the explicitly registered Farcaster index for the
+    // confirmed Farcaster identity, never the global feed provider. The
+    // standard profile reader below remains the fallback for other issuers.
+    // A numeric FID alone is not permission to cross protocol boundaries.
+    if (expectedIssuer != QStringLiteral("hypersnap:native-registry")
+        && expectedIssuer != QStringLiteral("genycaster:device-local")
+        && runtime->farcasterReadGateway) {
+        const auto generation = runtime->accountProfileRequestGeneration.load(
+            std::memory_order_acquire);
+        const QPointer<PresentationBridge> target{&bridge};
+        auto indexed = runtime->farcasterReadGateway->profile(
+            domain::identity::Fid{static_cast<std::uint64_t>(accountFid)},
+            [target, runtime, generation, accountFid, expectedIssuer](
+                foundation::result::Result<domain::profile::Profile> profile) mutable {
+                if (!target || !profile || profile->fid.value != accountFid
+                    || runtime->accountProfileRequestGeneration.load(
+                        std::memory_order_acquire) != generation)
+                    return;
+                const QString resolvedName = displayName(&*profile);
+                const QString resolvedUsername = username(&*profile);
+                const QString resolvedAvatar = avatarUrl(&*profile);
+                QVariantMap details = profilePresentation(&*profile);
+                QMetaObject::invokeMethod(target.data(),
+                    [target, runtime, generation, accountFid, expectedIssuer,
+                     resolvedName, resolvedUsername, resolvedAvatar,
+                     details = std::move(details)]() mutable {
+                        if (!target || !target->isAuthenticated()
+                            || target->accountFid() != accountFid
+                            || target->accountIdentityIssuer() != expectedIssuer
+                            || runtime->accountProfileRequestGeneration.load(
+                                std::memory_order_acquire) != generation)
+                            return;
+                        target->applyAccountProfile(accountFid, resolvedName,
+                            resolvedUsername, resolvedAvatar, std::move(details));
+                    }, Qt::QueuedConnection);
+            }, application::read::model::ReadOptions{});
+        if (indexed) {
+            runtime->keepAccountIndexedRequest(std::move(*indexed));
+        }
+        // If a Farcaster indexed source is unavailable, never substitute
+        // a HyperSnap profile with an accidentally identical numeric FID.
+        return;
+    }
+#endif
     auto request = runtime->service->openProfile(
         domain::identity::Fid{static_cast<std::uint64_t>(accountFid)},
         [&bridge, accountFid, expectedIssuer](application::read::model::ProfileState state) mutable {
@@ -3044,8 +3090,7 @@ void connectRuntime(
         std::shared_ptr<capability::signer::ICustodyAuthorizer> permit,
         const bool farcaster,
         std::shared_ptr<QByteArray> recoveredWords = {}) {
-        if (!permit || !runtime->sessionService || !runtime->signerService
-            || !runtime->router) {
+        if (!runtime->sessionService) {
             bridge.applyAuthenticationError(
                 qtTrId("genycaster.setup.recovery_failed_retry"));
             return;
@@ -3054,16 +3099,9 @@ void connectRuntime(
         // own protocol, regardless of the independent read-provider setting.
         const farcaster::provider::model::ProviderId writer{farcaster
             ? "primary-protocol-writer" : "hypersnap-v2"};
-        if (!runtime->router->isEligibleProvider(writer,
-            routing::policy::CapabilityRequest{
-                .capabilityId = capability::catalog::protocolSignerManage(),
-                .requiredAccess = capability::model::CapabilityAccess::Write,
-                .minimumQuality = capability::model::CapabilityQuality::Experimental
-            })) {
-            bridge.applyAuthenticationError(
-                qtTrId("genycaster.setup.recovery_failed_retry"));
-            return;
-        }
+        // Network-verified account identity must not depend on a registered
+        // device signer. Signer routing and authorization happen separately
+        // after the account session has been accepted.
         const std::string issuer = farcaster
             ? "farcaster:optimism-id-registry" : "hypersnap:native-registry";
         const std::string subject = farcaster
@@ -3102,25 +3140,39 @@ void connectRuntime(
                              beginNativeOpenProofEnrollment,
                              beginNativeWalletEnrollment] {
                                 if (!bridge.isAuthenticated()
-                                    || bridge.accountFid() != fid
-                                    || !runtime->signerService)
+                                    || bridge.accountFid() != fid)
                                     return;
                                 const auto active = runtime->currentSessionSnapshot();
                                 if (!active || active->fid.value != fid
-                                    || active->identityIssuer != issuer
-                                    || !runtime->router)
+                                    || active->identityIssuer != issuer)
                                     return;
-                                runtime->router->setPreferredProviderForAccess(
-                                    capability::model::CapabilityAccess::Write,
-                                    routing::router::ProviderPreference{
-                                        .provider = writer, .require = true});
-                                auto result = runtime->signerService->provision(
-                                    active, signerObserver, permit);
-                                if (!result) {
+                                if (permit && runtime->router && runtime->signerService
+                                    && runtime->router->isEligibleProvider(writer,
+                                        routing::policy::CapabilityRequest{
+                                            .capabilityId = capability::catalog::protocolSignerManage(),
+                                            .requiredAccess = capability::model::CapabilityAccess::Write,
+                                            .minimumQuality = capability::model::CapabilityQuality::Experimental
+                                        })) {
+                                    runtime->router->setPreferredProviderForAccess(
+                                        capability::model::CapabilityAccess::Write,
+                                        routing::router::ProviderPreference{
+                                            .provider = writer, .require = true});
+                                    auto result = runtime->signerService->provision(
+                                        active, signerObserver, permit);
+                                    if (!result) {
+                                        applySignerState(bridge,
+                                            application::signer::SignerState{
+                                                .phase = application::signer::SignerPhase::Unavailable,
+                                                .error = std::move(result.error())});
+                                    }
+                                } else if (permit) {
                                     applySignerState(bridge,
                                         application::signer::SignerState{
                                             .phase = application::signer::SignerPhase::Unavailable,
-                                            .error = std::move(result.error())});
+                                            .error = foundation::error::Error::make(
+                                                foundation::error::ErrorCode::Unavailable,
+                                                "Protocol signer is unavailable; account recovery succeeded.")
+                                        });
                                 }
                                 // OPP enrollment is independent of whether a
                                 // device signer could be provisioned. Reuse
@@ -3288,15 +3340,14 @@ void connectRuntime(
     QObject::connect(&bridge,
         &PresentationBridge::nativeFarcasterRecoveryRequested, &bridge,
         [runtime, &bridge, sessionObserver, farcasterRecoveryGeneration,
-         commitVerifiedIdentity](QString words) {
+         commitVerifiedIdentity](QString words, const bool authorizeSigner) {
             const auto generation = farcasterRecoveryGeneration->fetch_add(
                 1U, std::memory_order_acq_rel) + 1U;
             if (!runtime->transport || !runtime->sessionService
-                || !runtime->signerService || !runtime->signerVault
-                || !runtime->router || runtime->optimismRpcUrl.empty()) {
+                || runtime->optimismRpcUrl.empty()) {
                 words.fill(QChar{});
                 bridge.applyAuthenticationError(
-                    qtTrId("genycaster.setup.recovery_failed_retry"));
+                    qtTrId("genycaster.setup.farcaster_custody_rpc_unavailable"));
                 return;
             }
             auto scrub = [](QByteArray* buffer) {
@@ -3309,14 +3360,22 @@ void connectRuntime(
             sessionObserver(application::session::SessionState{
                 .phase = application::session::SessionPhase::Starting
             });
-            using RecoveryResult = std::pair<std::uint64_t, QString>;
+            // Only public data and a stable failure category may leave this
+            // worker; never carry mnemonic material into diagnostics/UI.
+            struct RecoveryResult final {
+                std::uint64_t fid{};
+                QString address{};
+                QString failure{};
+            };
             auto future = std::make_shared<QFuture<RecoveryResult>>();
             auto* watcher = new QFutureWatcher<void>(&bridge);
             QObject::connect(watcher, &QFutureWatcher<void>::finished, &bridge,
-                [runtime, &bridge, future, watcher, secret,
+                [runtime, &bridge, future, watcher, secret, authorizeSigner,
                  generation, farcasterRecoveryGeneration,
                  commitVerifiedIdentity] {
-                    const auto [fid, address] = future->result();
+                    const auto recovered = future->result();
+                    const auto fid = recovered.fid;
+                    const auto& address = recovered.address;
                     watcher->deleteLater();
                     if (generation != farcasterRecoveryGeneration->load(
                             std::memory_order_acquire)
@@ -3324,22 +3383,29 @@ void connectRuntime(
                             != QStringLiteral("farcaster-native-recovery")
                         || bridge.isAuthenticated()) return;
                     if (fid == 0 || address.isEmpty()) {
-                        bridge.applyAuthenticationError(
-                            qtTrId("genycaster.setup.recovery_failed_retry"));
+                        const char* errorId = recovered.failure == QStringLiteral("phrase")
+                            ? "genycaster.setup.recovery_phrase_invalid"
+                            : recovered.failure == QStringLiteral("unregistered")
+                              ? "genycaster.setup.farcaster_custody_unregistered"
+                              : recovered.failure == QStringLiteral("network")
+                                ? "genycaster.setup.farcaster_custody_rpc_unavailable"
+                                : "genycaster.setup.recovery_failed_retry";
+                        bridge.applyAuthenticationError(qtTrId(errorId));
                         return;
                     }
-                    const std::string_view mnemonic{
-                        secret->constData(), static_cast<std::size_t>(secret->size())};
-                    auto permit = farcaster::platform::custody_recovery::
-                        makeOneShotRecoveryAuthorizer(
-                            mnemonic, address.toLower().toStdString(), fid);
-                    if (!permit) {
-                        bridge.applyAuthenticationError(
-                            qtTrId("genycaster.setup.recovery_failed_retry"));
-                        return;
+                    std::shared_ptr<capability::signer::ICustodyAuthorizer> permit{};
+                    if (authorizeSigner) {
+                        const std::string_view mnemonic{
+                            secret->constData(),
+                            static_cast<std::size_t>(secret->size())};
+                        auto signerPermit = farcaster::platform::custody_recovery::
+                            makeOneShotRecoveryAuthorizer(
+                                mnemonic, address.toLower().toStdString(), fid);
+                        if (signerPermit) permit = std::move(*signerPermit);
                     }
-                    commitVerifiedIdentity(fid, address, std::move(*permit), true,
-                                            secret);
+                    // Registry-confirmed custody authorizes sign-in independently
+                    // from the OPTIONAL device publishing signer.
+                    commitVerifiedIdentity(fid, address, std::move(permit), true, secret);
                 });
             *future = QtConcurrent::run(
                 [runtime, secret]() -> RecoveryResult {
@@ -3347,16 +3413,27 @@ void connectRuntime(
                         secret->constData(), static_cast<std::size_t>(secret->size())};
                     const auto address = farcaster::platform::custody_recovery::
                         derivePublicCustodyAddress(mnemonic);
-                    if (!address) return {};
+                    if (!address) return {0, {}, QStringLiteral("phrase")};
                     farcaster::provider::compatibility::auth::Config config{};
                     config.optimismRpcUrl = runtime->optimismRpcUrl;
                     auto verified = farcaster::provider::compatibility::auth::
                         resolveRecoveryCustodyFid(*runtime->transport, *address,
                                                   std::move(config));
-                    if (!verified || verified->value == 0
+                    if (!verified) {
+                        using Code = foundation::error::ErrorCode;
+                        const auto category = verified.error().code;
+                        if (category == Code::Unauthorized || category == Code::NotFound)
+                            return {0, {}, QStringLiteral("unregistered")};
+                        if (category == Code::Unavailable || category == Code::Timeout
+                            || category == Code::TransportFailure
+                            || category == Code::RateLimited)
+                            return {0, {}, QStringLiteral("network")};
+                        return {0, {}, QStringLiteral("registry")};
+                    }
+                    if (verified->value == 0
                         || verified->value > 9'007'199'254'740'991ULL)
-                        return {};
-                    return {verified->value, QString::fromStdString(*address)};
+                        return {0, {}, QStringLiteral("registry")};
+                    return {verified->value, QString::fromStdString(*address), {}};
                 });
             watcher->setFuture(QFuture<void>{*future});
         });

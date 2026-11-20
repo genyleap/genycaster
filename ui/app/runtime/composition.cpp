@@ -477,11 +477,12 @@ void Runtime::keepNotificationBadgeRequest(application::read::async_service::Rea
 
 void Runtime::cancelAccountProfileRequest()
 {
+    accountProfileRequestGeneration.fetch_add(1U, std::memory_order_acq_rel);
     std::scoped_lock lock{requestMutex};
-    if (activeAccountProfileRequest) {
-        activeAccountProfileRequest->cancel();
-    }
+    if (activeAccountProfileRequest) activeAccountProfileRequest->cancel();
+    if (activeAccountIndexedRequest) activeAccountIndexedRequest->cancel();
     activeAccountProfileRequest.reset();
+    activeAccountIndexedRequest.reset();
 }
 
 void Runtime::keepAccountProfileRequest(application::read::async_service::ReadRequest request)
@@ -491,6 +492,13 @@ void Runtime::keepAccountProfileRequest(application::read::async_service::ReadRe
         activeAccountProfileRequest->cancel();
     }
     activeAccountProfileRequest = std::move(request);
+}
+
+void Runtime::keepAccountIndexedRequest(application::read::async_gateway::Request request)
+{
+    std::scoped_lock lock{requestMutex};
+    if (activeAccountIndexedRequest) activeAccountIndexedRequest->cancel();
+    activeAccountIndexedRequest = std::move(request);
 }
 
 foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(

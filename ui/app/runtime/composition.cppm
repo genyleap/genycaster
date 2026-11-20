@@ -264,6 +264,8 @@ struct Runtime final {
     std::optional<farcaster::application::read::async_service::ReadRequest> activeSearchRequest{};
     std::optional<farcaster::application::read::async_service::ReadRequest> activeNotificationBadgeRequest{};
     std::optional<farcaster::application::read::async_service::ReadRequest> activeAccountProfileRequest{};
+    std::optional<farcaster::application::read::async_gateway::Request> activeAccountIndexedRequest{};
+    std::atomic<std::uint64_t> accountProfileRequestGeneration{0};
     std::optional<farcaster::application::read::async_service::ReadRequest> activeFollowingStoriesRequest{};
     std::optional<farcaster::application::read::async_service::ReadRequest> activeFollowingActivityRequest{};
 
@@ -312,6 +314,7 @@ struct Runtime final {
     void keepNotificationBadgeRequest(farcaster::application::read::async_service::ReadRequest request);
     void cancelAccountProfileRequest();
     void keepAccountProfileRequest(farcaster::application::read::async_service::ReadRequest request);
+    void keepAccountIndexedRequest(farcaster::application::read::async_gateway::Request request);
 };
 
 /**

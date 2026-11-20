@@ -196,7 +196,7 @@ Item {
     signal recoverAccount(string protocol)
     signal browserCreateAccount(string protocol)
     signal nativeRecoverAccount(string recoveryWords)
-    signal nativeRecoverFarcasterAccount(string recoveryWords)
+    signal nativeRecoverFarcasterAccount(string recoveryWords, bool authorizeSigner)
     signal nativeRecoverHyperSnapAccount(string recoveryWords)
     // No implicit protocol selection: the user chooses after New/Existing.
     // A browser signer must advertise actual support before sensitive input.
@@ -2799,7 +2799,8 @@ Item {
                     enabled: root.runtimeReady && !root.authenticationInProgress
                           && !root.recoverySubmitPending
                           && nativeRecoveryGrid.completeWordCount === 24
-                          && deviceSignerConsent.checked
+                          && (root.recoveryProtocol === "farcaster-snapchain"
+                              || deviceSignerConsent.checked)
                     onClicked: {
                         let words = nativeRecoveryGrid.phrase()
                         nativeRecoveryGrid.clearAll()
@@ -2823,7 +2824,7 @@ Item {
                         if (root.recoveryProtocol === "hypersnap-v2")
                             root.nativeRecoverHyperSnapAccount(words)
                         else
-                            root.nativeRecoverFarcasterAccount(words)
+                            root.nativeRecoverFarcasterAccount(words, deviceSignerConsent.checked)
                         root.switchStep(5)
                         words = ""
                     }

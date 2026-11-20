@@ -3767,8 +3767,8 @@ Item {
             presentationBridge.beginNativeRecoverySetup(recoveryWords)
         onNativeRecoverHyperSnapAccount: (recoveryWords) =>
             presentationBridge.beginNativeHyperSnapRecoverySetup(recoveryWords)
-        onNativeRecoverFarcasterAccount: (recoveryWords) =>
-            presentationBridge.beginNativeFarcasterRecoverySetup(recoveryWords)
+        onNativeRecoverFarcasterAccount: (recoveryWords, authorizeSigner) =>
+            presentationBridge.beginNativeFarcasterRecoverySetup(recoveryWords, authorizeSigner)
         onAcceptLegalConsent: (termsAccepted, privacyAcknowledged, reviewCompleted) =>
             presentationBridge.acceptLegalConsent(termsAccepted, privacyAcknowledged, reviewCompleted)
         onFinishSetup: presentationBridge.completeInitialSetup()

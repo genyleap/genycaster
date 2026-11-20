@@ -61,8 +61,16 @@ struct ProviderEndpoints::Impl {
         if (readBaseUrl.isEmpty())
             readBaseUrl = qEnvironmentVariable("GENYCASTER_FARCASTER_READ_BASE_URL").trimmed();
         readApiKey = qEnvironmentVariable("GENYCASTER_FARCASTER_READ_API_KEY").trimmed();
-        if (!readApiKey.isEmpty() && readBaseUrl.isEmpty())
-            readBaseUrl = QStringLiteral("https://api.neynar.com");
+        if (readBaseUrl.isEmpty()) {
+            // The public index at the built-in read origin exposes a
+            // Neynar-compatible /v2/farcaster/user for Farcaster FIDs with
+            // aggregate social counts. Register it as a separate Farcaster
+            // provider: never reuse the HyperSnap identity namespace.
+            // Explicit Neynar credentials still select their canonical host.
+            readBaseUrl = readApiKey.isEmpty()
+                ? QStringLiteral("https://haatz.quilibrium.com")
+                : QStringLiteral("https://api.neynar.com");
+        }
         readBaseUrl = normalizeConfigurationToken(std::move(readBaseUrl));
         if (!readBaseUrl.isEmpty() && !isValidHttpServiceUrl(readBaseUrl)) {
             qWarning().noquote()

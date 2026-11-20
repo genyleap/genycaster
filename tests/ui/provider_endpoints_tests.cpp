@@ -59,7 +59,9 @@ int main(int argc, char** argv)
         ok &= verify(config.valid(), "default config is valid");
         ok &= verify(!config.proxyDirect(), "system proxy default");
         ok &= verify(config.hypersnapBaseUrl().isEmpty(), "default HyperSnap override absent");
-        ok &= verify(config.farcasterReadBaseUrl().isEmpty(), "hosted read opt-in");
+        ok &= verify(config.farcasterReadBaseUrl()
+                         == QStringLiteral("https://haatz.quilibrium.com"),
+                     "public Farcaster indexed read default for profile counts");
         ok &= verify(config.farcasterReadApiKey().isEmpty(), "hosted credentials not persisted");
     }
     settings.setValue(QStringLiteral("network/proxyMode"), QStringLiteral("direct"));
