@@ -49,8 +49,12 @@ Item {
             || presentationBridge.writeReady) return
         // Skip a doomed external approval attempt when this process no
         // longer holds the original local custody wallet.
+        // WASM must never copy a custody mnemonic through QML/C++.
+        // The browser signer opens its own ephemeral recovery dialog and
+        // verifies the native registry before enabling any write authority.
         interactionAuthorizationDialog.enteringNativeWords =
-            presentationBridge.nativeCustodyAccount
+            Qt.platform.os !== "wasm"
+            && presentationBridge.nativeCustodyAccount
             && !presentationBridge.nativeCustodySignerAvailable
         interactionAuthorizationDialog.open()
     }
@@ -138,7 +142,8 @@ Item {
             }
             ActionButton {
                 objectName: "nativeSignerUseRecoveryWords"
-                visible: interactionAuthorizationDialog.nativeAccount
+                visible: Qt.platform.os !== "wasm"
+                         && interactionAuthorizationDialog.nativeAccount
                          && !interactionAuthorizationDialog.enteringNativeWords
                 Layout.fillWidth: true
                 compact: true
@@ -150,7 +155,8 @@ Item {
                 }
             }
             DirectionAwareLabel {
-                visible: interactionAuthorizationDialog.nativeAccount
+                visible: Qt.platform.os !== "wasm"
+                         && interactionAuthorizationDialog.nativeAccount
                          && interactionAuthorizationDialog.enteringNativeWords
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.shell.native_signer_words_note")
@@ -161,7 +167,8 @@ Item {
             ScrollView {
                 id: nativeRecoveryScroll
                 objectName: "nativeSignerRecoveryGrid"
-                visible: interactionAuthorizationDialog.nativeAccount
+                visible: Qt.platform.os !== "wasm"
+                         && interactionAuthorizationDialog.nativeAccount
                          && interactionAuthorizationDialog.enteringNativeWords
                 Layout.fillWidth: true
                 Layout.preferredHeight: Theme.scaleUi(304)

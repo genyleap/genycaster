@@ -533,11 +533,19 @@
                             await authorizeRecoveryInSetup(current,fid,thisEpoch);
                     }
                 } else if (action === "provision") {
-                    // Explicit retry in Setup or Account Settings.
-                    if(native)
-                        await authorizeNativeRecovery(current,fid,thisEpoch);
-                    else
+                    // A previously registered, protocol-scoped HyperSnap key
+                    // may survive reload while the Qt signer state is stale.
+                    // Inspect that key BEFORE requesting custody words. Only
+                    // an authoritative "missing" response permits a new
+                    // explicit KEY_ADD ceremony. Network failures stay
+                    // failures; they must not trigger another phrase prompt.
+                    if(native) {
+                        const existing=await current.restore(fid);
+                        if(!existing && epoch===thisEpoch && owner===fid)
+                            await authorizeNativeRecovery(current,fid,thisEpoch);
+                    } else {
                         await authorizeRecoveryInSetup(current,fid,thisEpoch);
+                    }
                 } else if (action === "revoke") {
                     await current.revoke(fid);
                 } else {

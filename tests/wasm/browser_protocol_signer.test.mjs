@@ -11,7 +11,10 @@ const now=Math.floor(Date.now()/1000)-1609459200;
 
 function fixture({custodyAddress=address, noWallet=false, activeInitially=false,
                   wrongResponse=false, rejectSubmit=false, wrongFid=false,
-                  wrongType=false, profileScope=true}={}){
+                  wrongType=false, profileScope=true, accountFid=fid}={}){
+    // The same canonical signer codec must support the native 64-bit FID
+    // space, without coercing it to Farcaster's smaller FID domain.
+    const fid=accountFid;
     const typed=[],submitted=[],changes=[],states=[],calls=[];
     let active=activeInitially, nonce=0;
     const browser={isSecureContext:true};
@@ -453,4 +456,35 @@ test('sign-out while resolving IdRegistry aborts before any signer submission',a
     allowResponse();
     await assert.rejects(pending,/Recovery cancelled/);
     assert.equal(data.submitted.length,0);
+});
+
+test('HyperSnap native FID authorizes one scoped browser signer, then restores and writes without the phrase',async()=>{
+    const nativeFid='4294967296';
+    const data=fixture({accountFid:nativeFid,noWallet:true});
+    const signer=data.create();
+    const approvals=[];
+    const authorized=await signer.provision(nativeFid,async requested=>{
+        assert.equal(requested,nativeFid);
+        return {
+            address,
+            async signTypedData(document){
+                approvals.push(document);
+                assert.ok(['KeyAdd','SignedKeyRequest'].includes(document.primaryType));
+                assert.equal(document.message.fid??document.message.requestFid,nativeFid);
+                return signature;
+            },
+        };
+    });
+    assert.equal(authorized.fid,nativeFid);
+    assert.equal(authorized.source,'gasless');
+    assert.equal(approvals.length,2);
+    assert.equal(data.submitted.length,1,'a single KEY_ADD is authorized');
+    assert.equal(signer.ready,true);
+    const reloaded=data.create();
+    assert.equal((await reloaded.restore(nativeFid)).fid,nativeFid);
+    assert.equal(reloaded.ready,true);
+    assert.equal(data.submitted.length,1,'refresh requires no new KEY_ADD');
+    const write=await reloaded.publishCast(nativeFid,{text:'Native HyperSnap write'});
+    assert.match(write,/^0x[0-9a-f]{40}$/);
+    assert.equal(data.submitted.length,2);
 });

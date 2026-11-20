@@ -11,6 +11,7 @@ const source = original
   .replaceAll("await import('./recovery-phrase-dialog.mjs')", "await window.__testImportPhrase()")
   .replace("await import('./farcaster_custody_recovery.mjs')", "await window.__testImportIdentity()")
   .replaceAll("await import('./hypersnap_native_account.mjs')", "await window.__testImportNativeRegistry()")
+  .replaceAll("await import('./farcaster_recovery.mjs')", "await window.__testImportDerivation()")
   .replace("await import('./deployment_config.mjs')", "await window.__testImportDeployment()")
   .replace("await import('./secure_signer_vault.mjs')", "await window.__testImportVault()")
   .replace("import('./browser_device_session.mjs')", "window.__testImportDevice()");
@@ -52,6 +53,11 @@ function harness(registered = false, initialRemembered = null) {
         __testImportVault:async()=>({createBrowserSignerVault:()=>({})}),
         __testImportNativeRegistry:async()=>({createBrowserNativeRegistry:()=>({
             recover:async()=>({state:'confirmed',fid:nativeFid}),
+            lookup:async()=>{calls.push('lookup-native-registry');return {state:'confirmed',fid:nativeFid};},
+        })}),
+        __testImportDerivation:async()=>({deriveFarcasterCustody:async()=>({
+            address:'0x1111111111111111111111111111111111111111',
+            dispose(){calls.push('custody-disposed');},
         })}),
         location: {protocol:'https:', hostname:'example.test', origin:'https://example.test'},
         isSecureContext:true, crypto:{subtle:{sign(){}}}, indexedDB:{open(){}},
@@ -62,6 +68,14 @@ function harness(registered = false, initialRemembered = null) {
                     calls.push('restore:'+fid);
                     onState({fid,phase:registered?'ready':'missing',ready:registered,busy:false});
                     return registered ? { fid } : null;
+                },
+                async provision(fid,provider) {
+                    calls.push('authorize-native:'+fid);
+                    const custody=await provider(fid);
+                    assert.equal(custody.address,'0x1111111111111111111111111111111111111111');
+                    custody.dispose();
+                    onState({fid,phase:'ready',ready:true,busy:false});
+                    return {fid};
                 },
                 async provisionFromRecovery(fid,phrase) {
                     calls.push('authorize:'+fid+':'+phrase);
@@ -270,4 +284,43 @@ test('a repeated Setup recovery click produces a visible one-shot failure instea
     assert.equal(h.events.some(e=>e.kind==='write'&&e.error),false);
     h.bridge.start('signed-out','','https://snapchain.example.test','');
     await tick();
+});
+
+test('native HyperSnap authorization requests the browser-only custody recovery flow and enables signer',async()=>{
+    const h=harness(false);
+    h.bridge.start('provision',nativeFid,'https://snapchain.example.test',
+        JSON.stringify({protocol:'hypersnap-v2'}));
+    await tick();
+    assert.deepEqual(h.calls,[
+        'restore:'+nativeFid,
+        'phrase-dialog',
+        'authorize-native:'+nativeFid,
+        'lookup-native-registry',
+        'custody-disposed',
+    ]);
+    const ready=h.events.find(e=>e.kind==='signer'&&e.phase==='ready');
+    assert.equal(ready?.protocol,'hypersnap-v2');
+    assert.equal(ready?.fid,nativeFid);
+    assert.equal(ready?.ready,true);
+    assert.ok(!JSON.stringify(h.events).includes('test-vector-no-secrets'));
+});
+
+test('a native HyperSnap browser signer already authorized in the vault restores without a new recovery prompt',async()=>{
+    const h=harness(true);
+    h.bridge.start('restore',nativeFid,'https://snapchain.example.test',
+        JSON.stringify({protocol:'hypersnap-v2'}));
+    await tick();
+    assert.deepEqual(h.calls,['restore:'+nativeFid]);
+    assert.ok(h.events.some(e=>e.kind==='signer'&&e.protocol==='hypersnap-v2'
+                              &&e.ready===true));
+});
+
+test('repeated HyperSnap Enable interactions recovers previously registered signer without asking for words',async()=>{
+    const h=harness(true);
+    h.bridge.start('provision',nativeFid,'https://snapchain.example.test',
+        JSON.stringify({protocol:'hypersnap-v2'}));
+    await tick();
+    assert.deepEqual(h.calls,['restore:'+nativeFid]);
+    assert.equal(h.events.some(e=>e.kind==='signer' &&e.protocol==='hypersnap-v2'
+                          &&e.phase==='ready'&&e.ready===true),true);
 });

@@ -4574,12 +4574,20 @@ void connectRuntime(
 #endif
         ] {
 #if defined(Q_OS_WASM)
-            // This JS EIP-712 authority targets Optimism Farcaster KEY_ADD,
-            // never the separate HyperSnap native signer registry.
-            if (bridge.isAuthenticated() && bridge.accountFid() != 0
-                && !bridge.nativeCustodyAccount())
+            // Browser authorization must be routed by the verified account
+            // issuer, NOT by the currently selected reader. HyperSnap uses
+            // its own signer vault, native custody/FID registry, and node.
+            // The JS bridge prompts locally for the phrase only when a new
+            // signer must be authorized; an existing vault signer is restored
+            // separately without collecting the phrase again.
+            if (bridge.isAuthenticated() && bridge.accountFid() != 0) {
+                const bool native = bridge.nativeCustodyAccount();
                 browserSigner->start(QStringLiteral("provision"),
-                    QString::number(bridge.accountFid()));
+                    QString::number(bridge.accountFid()),
+                    QJsonObject{{QStringLiteral("protocol"), native
+                        ? QStringLiteral("hypersnap-v2")
+                        : QStringLiteral("farcaster-snapchain")}});
+            }
             return;
 #endif
             if (!runtime->signerService) {
