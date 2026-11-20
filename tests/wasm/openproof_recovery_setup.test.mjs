@@ -99,3 +99,40 @@ test('Setup session adopts only verified OpenProof issuer/subject with the same 
   assert.match(auth,/fid != m_viewerFid/);
   assert.doesNotMatch(pre,/JSON\.stringify\(\{[^}]*?mnemonic/);
 });
+
+
+test('caller cancellation does not disable bounded OpenProof fetch deadline',async()=>{
+  const signal=new AbortController();
+  const custody={address:'0x1111111111111111111111111111111111111111',
+    signMessage:async()=> '0x'+'ab'.repeat(64)+'1b'};
+  let requested=0;
+  await assert.rejects(verifyRecoveredFarcasterIdentity({
+    fid:'123',custody,gatewayOrigin:'https://safe.example.test',
+    signal:signal.signal,timeoutMs:20,
+    fetchImpl:async(_url,options)=>{
+      requested++;
+      return new Promise((_resolve,reject)=>{
+        options.signal.addEventListener('abort',()=>reject(
+          options.signal.reason||new Error('aborted')),{once:true});
+      });
+    },
+  }),/timed out/);
+  assert.equal(requested,1);
+  assert.equal(signal.signal.aborted,false);
+});
+
+test('user cancellation aborts OpenProof while preserving its own signal state',async()=>{
+  const cancel=new AbortController();
+  const custody={address:'0x1111111111111111111111111111111111111111',
+    signMessage:async()=> '0x'+'ab'.repeat(64)+'1b'};
+  const request=verifyRecoveredFarcasterIdentity({
+    fid:'123',custody,gatewayOrigin:'https://safe.example.test',
+    signal:cancel.signal,timeoutMs:1200,
+    fetchImpl:async(_url,options)=>new Promise((_resolve,reject)=>{
+      options.signal.addEventListener('abort',()=>reject(
+        new Error('Recovery cancelled')),{once:true});
+    })
+  });
+  setImmediate(()=>cancel.abort());
+  await assert.rejects(request,/Recovery cancelled/);
+});

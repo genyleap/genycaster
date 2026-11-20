@@ -4,7 +4,8 @@
  * The gateway holds the cookie-bound OpenProof state (not the browser).
  */
 export async function verifyRecoveredFarcasterIdentity({
-  fid, custody, gatewayOrigin, fetchImpl = globalThis.fetch, signal
+  fid, custody, gatewayOrigin, fetchImpl = globalThis.fetch, signal,
+  timeoutMs = 12_000
 }) {
   const origin = new URL(gatewayOrigin);
   if (origin.protocol !== 'https:' || origin.username || origin.password ||
@@ -17,20 +18,35 @@ export async function verifyRecoveredFarcasterIdentity({
       typeof custody.signMessage !== 'function')
     throw new Error('Invalid verified Farcaster custody identity');
 
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 120_000)
+    throw new Error('Invalid OpenProof request deadline');
   const request = async (path, body) => {
     if (signal?.aborted) throw new Error('Recovery cancelled');
-    const response = await fetchImpl(origin.origin + path, {
-      method:'POST',mode:'cors',credentials:'omit',redirect:'error',
-      headers:{'content-type':'application/json',accept:'application/json'},
-      body:JSON.stringify(body),signal:signal ?? AbortSignal.timeout(12_000),
-    });
-    if (!response.ok || !String(response.headers.get('content-type') || '')
-        .toLowerCase().startsWith('application/json') ||
-        Number(response.headers.get('content-length')||0)>4096)
-      throw new Error('OpenProof recovery unavailable');
-    const raw=await response.text();
-    if (raw.length>4096)throw new Error('OpenProof response too large');
-    return JSON.parse(raw);
+    // Caller cancellation must not disable the network deadline. Apply the
+    // same bounded timeout to both response headers and response body.
+    const controller=new AbortController();
+    const cancel=()=>controller.abort(signal?.reason);
+    if(signal?.aborted)cancel();
+    else signal?.addEventListener('abort',cancel,{once:true});
+    const deadline=setTimeout(()=>controller.abort(
+      new Error('OpenProof request timed out')),timeoutMs);
+    try{
+      const response = await fetchImpl(origin.origin + path, {
+        method:'POST',mode:'cors',credentials:'omit',redirect:'error',
+        headers:{'content-type':'application/json',accept:'application/json'},
+        body:JSON.stringify(body),signal:controller.signal,
+      });
+      if (!response.ok || !String(response.headers.get('content-type') || '')
+          .toLowerCase().startsWith('application/json') ||
+          Number(response.headers.get('content-length')||0)>4096)
+        throw new Error('OpenProof recovery unavailable');
+      const raw=await response.text();
+      if (raw.length>4096)throw new Error('OpenProof response too large');
+      return JSON.parse(raw);
+    }finally{
+      clearTimeout(deadline);
+      signal?.removeEventListener('abort',cancel);
+    }
   };
   const started=await request('/v1/browser/farcaster/recovery/start',{
     fid,address:custody.address,
