@@ -58,7 +58,7 @@ Rectangle {
             Image {
                 objectName: "compactSidebarGenycasterLogo"
                 anchors.fill: parent
-                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                source: (Qt.platform.os === "android" ? "image://genycaster-brand/mark" : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg")
                 sourceSize.width: 128
                 sourceSize.height: 128
                 fillMode: Image.PreserveAspectFit
