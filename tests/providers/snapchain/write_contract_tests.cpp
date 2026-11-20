@@ -142,6 +142,30 @@ void submitUsesCanonicalBinaryEndpoint()
     assert(request.headers.at(1) == "Content-Type: application/octet-stream");
 }
 
+void submitRecognizesGrpcUnavailableWrappedInHttp400()
+{
+    FakeTransport http{};
+    http.postReplies.push_back({
+        .statusCode = 400U,
+        .body = R"({"error":"Failed to submit message","error_detail":"status: Unavailable, message: \"unavailable/mempool channel send error\", details: [], metadata: MetadataMap { headers: {\"x-err-code\": \"unavailable\"} }"})",
+    });
+    http.postReplies.push_back({
+        .statusCode = 400U,
+        .body = R"({"error":"Failed to submit message","error_detail":"status: InvalidArgument, message: \"invalid message\""})",
+    });
+    auto submitter = provider::snapchain::write::makeSubmitter(
+        http, provider::snapchain::write::Config{.baseUrl = "https://snapchain.test"});
+    const auto signedOperation = operation();
+    const auto unavailable = submitter->submit(signedOperation);
+    assert(!unavailable);
+    assert(unavailable.error().code == foundation::error::ErrorCode::Unavailable);
+    const auto rejected = submitter->submit(signedOperation);
+    assert(!rejected);
+    assert(rejected.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    assert(http.posts.size() == 2U);
+    assert(http.gets.empty());
+}
+
 void acceptsExactProtoJsonNativeFid()
 {
     // HyperSnap native IDs begin at 2^32; protobuf JSON serializes uint64
@@ -623,6 +647,7 @@ int main()
     invalidReadEndpointFailsClosed();
     explicitAuthorizationHeaderIsForwarded();
     submitUsesCanonicalBinaryEndpoint();
+    submitRecognizesGrpcUnavailableWrappedInHttp400();
     acceptsExactProtoJsonNativeFid();
     userDataAddSubmitsAndReconcilesByExactHash();
     invalidCanonicalAuthorFailsBeforePosting();

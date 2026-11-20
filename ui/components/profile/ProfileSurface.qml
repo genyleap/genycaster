@@ -2161,8 +2161,10 @@ Item {
                                 id: profileDisplayName
                                 objectName: "profileDisplayName"
                                 Layout.minimumWidth: 0
+                                // Use the content column's independent width. The
+                                // enclosing row computes its own size from this hint.
                                 Layout.preferredWidth: Math.min(implicitWidth, Math.max(0,
-                                    profileIdentityFlow.width
+                                    root.profileContentWidth
                                     - (profileFollowAction.visible ? profileFollowAction.implicitWidth : 0)
                                     - (followsYouBadge.visible ? followsYouBadge.implicitWidth : 0)
                                     - (genyHolderBadge.visible ? genyHolderBadge.implicitWidth : 0)

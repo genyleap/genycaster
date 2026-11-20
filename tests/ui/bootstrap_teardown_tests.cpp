@@ -6,11 +6,14 @@
 #include <QObject>
 #include <QPointer>
 #include <QQmlApplicationEngine>
+#include <QQmlComponent>
+#include <QQmlIncubator>
 #include <QQuickWindow>
 #include <QQuickItem>
 #include <QUrl>
 #include <array>
 #include <atomic>
+#include <memory>
 #include <QDebug>
 
 import genycaster.ui.bootstrap.teardown;
@@ -189,8 +192,20 @@ int main(int argc, char** argv)
         return 11;
     }
 
+    // Queue an object after the last frame so the teardown, rather than the
+    // window's incubation timer, must advance it while the engine is live.
+    QQmlIncubationController controller{};
+    engine.setIncubationController(&controller);
+    QQmlComponent component{&engine};
+    component.setData(QByteArrayLiteral("import QtQuick\nItem {}"), QUrl{});
+    QQmlIncubator pending{QQmlIncubator::Asynchronous};
+    component.create(pending);
+    if (!pending.isLoading() || controller.incubatingObjectCount() != 1) return 12;
+
     // The native composition root calls this after the GUI event loop returns.
     genycaster::ui::bootstrap::releaseQmlRoots(engine, window);
+    const std::unique_ptr<QObject> completed{pending.object()};
+    if (!completed || !pending.isReady() || engine.incubationController()) return 13;
     if (tracked || trackedSecond || !engine.rootObjects().isEmpty()) return 3;
     for (const WindowOrder& state : order) {
         if (!state.orderValid

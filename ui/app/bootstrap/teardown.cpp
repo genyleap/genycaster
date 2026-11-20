@@ -8,6 +8,7 @@ module;
 #include <QString>
 #include <QVariant>
 #include <QQmlApplicationEngine>
+#include <QQmlIncubationController>
 #include <QQmlProperty>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -17,6 +18,14 @@ module genycaster.ui.bootstrap.teardown;
 namespace genycaster::ui::bootstrap {
 void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
 {
+    // The window normally advances incubators on frame/timer callbacks. At
+    // shutdown give them a bounded final pass while QML contexts are live,
+    // then disable further deferred creation before destroying their owners.
+    if (auto* const controller = engine.incubationController()) {
+        controller->incubateFor(50);
+        engine.setIncubationController(nullptr);
+    }
+
     // macOS / Qt 6.12: deleting QQuickWindow clears its contentItem
     // pointer before the QQuickRootItem (and its QQuickOverlay) is destroyed.
     // At that point QQuickItemPrivate::derefWindow() can access an invalid

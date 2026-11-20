@@ -711,7 +711,18 @@ struct ProtoField final {
 {
     foundation::error::ErrorCode code = foundation::error::ErrorCode::ProtocolFailure;
     switch (statusCode) {
-    case 400: code = foundation::error::ErrorCode::ProtocolFailure; break;
+    case 400:
+        // The Snapchain HTTP bridge can wrap a gRPC Unavailable status in 400.
+        // Only the structured status prefix changes how the outbox handles it.
+        if (auto document = parseJson(body); document && document->is_object()) {
+            const auto* detail = findValue(document->as_object(), "error_detail");
+            if (detail && detail->is_string()
+                && std::string_view{detail->as_string().data(), detail->as_string().size()}
+                    .starts_with("status: Unavailable, message:")) {
+                code = foundation::error::ErrorCode::Unavailable;
+            }
+        }
+        break;
     case 401:
     case 403: code = foundation::error::ErrorCode::Unauthorized; break;
     case 404: code = foundation::error::ErrorCode::NotFound; break;
@@ -981,6 +992,7 @@ public:
         if (response->statusCode < 200U || response->statusCode >= 300U) {
             auto failure = httpStatusError(response->statusCode, response->body);
             if (response->statusCode == 400U
+                && failure.code == foundation::error::ErrorCode::ProtocolFailure
                 && response->body.find("bad_request.validation_failure/unknown fid")
                     != std::string::npos) {
                 auto evidence = nativeUnknownFidEvidence(m_transport, m_config, operation);

@@ -231,7 +231,7 @@ test('Pro navigation, payment and mobile profile use responsive layout and brand
  assert.match(profile,/RowLayout\s*\{\s*id: profileIdentityFlow/);
  assert.match(profile,/objectName: "profileIdentityLeading"/);
  assert.doesNotMatch(profile,/Flow\s*\{[^}]*implicitHeight:\s*childrenRect\.height/);
- assert.match(profile,/id: profileDisplayName[\s\S]*?Layout\.preferredWidth: Math\.min\(implicitWidth, Math\.max\(0,/);
+ assert.match(profile,/id: profileDisplayName[\s\S]*?Layout\.preferredWidth: Math\.min\(implicitWidth, Math\.max\(0,\s*root\.profileContentWidth/);
  assert.match(profile,/id: profileFollowAction[\s\S]*?Layout\.alignment: Qt\.AlignRight \| Qt\.AlignVCenter/);
  assert.match(profile,/id: followsYouBadge[\s\S]*?Layout\.alignment: Qt\.AlignVCenter/);
  assert.match(profile,/id: profileDisplayName[\s\S]*?Layout\.alignment: Qt\.AlignVCenter/);
