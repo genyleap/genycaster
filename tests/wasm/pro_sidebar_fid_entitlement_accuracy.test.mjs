@@ -227,7 +227,7 @@ test('Pro navigation, payment and mobile profile use responsive layout and brand
    < profile.indexOf('id: identityLinks'));
  assert.ok(profile.indexOf('id: identityLinks')
    < profile.indexOf('objectName: "profileUsernameAndLinksRow"'));
- assert.match(profile,/ColumnLayout\s*\{\s*objectName: "profileIdentityRow"/);
+ assert.match(profile,/GridLayout\s*\{\s*objectName: "profileIdentityRow"/);
  assert.match(profile,/RowLayout\s*\{\s*id: profileIdentityFlow/);
  assert.match(profile,/objectName: "profileIdentityLeading"/);
  assert.doesNotMatch(profile,/Flow\s*\{[^}]*implicitHeight:\s*childrenRect\.height/);

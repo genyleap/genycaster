@@ -2139,10 +2139,15 @@ Item {
                     x: root.profileContentX
                     spacing: Theme.space1
 
-                    ColumnLayout {
+                    GridLayout {
                         objectName: "profileIdentityRow"
                         Layout.fillWidth: true
-                        spacing: Theme.space1
+                        layoutDirection: Theme.uiDirection
+                        columnSpacing: Theme.space2
+                        rowSpacing: Theme.space1
+                        columns: identityLinkSlot.visible
+                                 && profileIdentityFlow.implicitWidth + columnSpacing + identityLinkSlot.fullLinkWidth
+                                    <= root.profileContentWidth ? 2 : 1
 
                         RowLayout {
                             id: profileIdentityFlow
@@ -2346,7 +2351,7 @@ Item {
                             Layout.minimumWidth: Math.min(fullLinkWidth, root.profileContentWidth)
                             Layout.maximumWidth: fullLinkWidth
                             Layout.alignment: Qt.AlignVCenter | (Theme.rtl ? Qt.AlignLeft : Qt.AlignRight)
-                            Layout.preferredHeight: Math.max(profileDisplayName.implicitHeight, identityLinks.implicitHeight)
+                            Layout.preferredHeight: identityLinks.implicitHeight
 
                             RowLayout {
                                 id: identityLinks

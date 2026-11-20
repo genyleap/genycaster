@@ -91,10 +91,7 @@ class LinuxDistroBrandAssetsTest(unittest.TestCase):
         self.assertIn("clip: false", inline_label)
         self.assertIn("Layout.minimumWidth: Layout.preferredWidth", inline_label)
         self.assertIn("wrapMode: Text.WrapAnywhere", tooltip)
-        # The current responsive profile header uses a dedicated identity
-        # ColumnLayout, not the retired width-switched GridLayout. Keep the
-        # link slot's minimum bound to the actual viewport while preserving
-        # its unelided intrinsic maximum and the separate follow/name row.
+        # The link group keeps its intrinsic width when the identity header reflows.
         self.assertIn('objectName: "profileIdentityRow"', qml)
         self.assertIn('id: profileIdentityFlow', qml)
         self.assertIn("Layout.minimumWidth: Math.min(fullLinkWidth, root.profileContentWidth)", qml)

@@ -1156,12 +1156,17 @@ int main(int argc, char** argv)
                 expect(slotStart.x() >= -1
                     && slotStart.x() + slot->width() <= flow->width() + 2,
                     "identity links stay within the profile content gutter");
-                expect(slotStart.y() >= nameEnd.y(),
-                    "secondary links do not compete with the full-width identity row");
+                if (viewportWidth >= 700 || flow->property("columns").toInt() == 2) {
+                    expect(qAbs(slotCenter.y() - nameEnd.y()) <= 1,
+                        "inline profile links are vertically centered with the display name");
+                    expect(slotStart.x() >= nameEnd.x(),
+                        "inline profile links leave the display name unobstructed");
+                } else {
+                    expect(slotStart.y() >= nameEnd.y() + name->height() / 2 - 1,
+                        "links move below the name when both groups cannot fit");
+                }
                 expect(qAbs(slotStart.x() + slot->width() - flow->width()) <= 4,
                     "links remain anchored to the trailing edge of the header");
-                expect(slotCenter.y() > nameEnd.y(),
-                    "URL and and-N-more remain a compact separate header line");
             }
 
             // The viewer visits a mutual-follow profile. Both relation badges
