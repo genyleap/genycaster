@@ -1970,12 +1970,9 @@ void PresentationBridge::openProfileFid(const qulonglong fid)
         return;
     }
     if (m_activeView == QStringLiteral("profile") && m_profileFid == fid) {
-        if (m_profileIsOwnAccount) {
-            emit ownProfileReadAffinityRequested(false, nativeCustodyAccount());
-            m_profileIsOwnAccount = false;
-            m_ownProfileReadReady = false;
-            emit stateChanged();
-        }
+        // A same-FID navigation is idempotent. Do not demote an explicitly
+        // authenticated own-profile read into a public profile (which would
+        // briefly expose Follow and hide account-only actions).
         return;
     }
     rememberDetailLocation();
@@ -3917,10 +3914,24 @@ void PresentationBridge::applyAuthenticationState(
     } else {
         m_writeReady = m_signerPhase == QStringLiteral("ready");
     }
+    // Recovery can complete while the app is showing a public profile of
+    // precisely the recovered FID. This was painted as "Follow" until the
+    // user manually reopened their account from the mobile dock. Promote
+    // only an explicit custody/recovery sign-in to its authenticated route;
+    // do not equate colliding numeric FIDs across social read protocols.
+    const bool recoveredOwnProfile = m_isAuthenticated && m_profileFid == m_accountFid
+        && m_activeView == QStringLiteral("profile")
+        && !m_profileIsOwnAccount
+        && (m_authenticationRoute == QStringLiteral("farcaster-native-recovery")
+            || m_authenticationRoute == QStringLiteral("hypersnap-recovery")
+            || m_authenticationRoute == QStringLiteral("browser-protocol-recovery")
+            || m_authenticationRoute == QStringLiteral("recovery"));
     emit authenticationStateChanged();
     emit setupStateChanged();
     if (accountRowsChanged) emit rowsChanged();
     emit stateChanged();
+    if (recoveredOwnProfile)
+        openMyProfile();
 }
 
 void PresentationBridge::applyAccountProfile(

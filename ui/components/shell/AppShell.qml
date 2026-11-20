@@ -115,12 +115,15 @@ Item {
         id: interactionAuthorizationDialog
         objectName: "interactionAuthorizationExplanation"
         parent: Overlay.overlay
-        blurSourceItem: Qt.platform.os === "android" ? null : shellContent
-        fullScreen: Qt.platform.os === "android"
+        blurSourceItem: Qt.platform.os === "android" || Qt.platform.os === "ios"
+            ? null : shellContent
+        fullScreen: Qt.platform.os === "android" || Qt.platform.os === "ios"
         readonly property bool nativeAccount:
             presentationBridge.nativeCustodyAccount
         property bool enteringNativeWords: false
         property bool authorizationSubmitted: false
+        readonly property bool mobileRecoveryInput: Qt.platform.os === "android"
+                                                   || Qt.platform.os === "ios"
         property bool showRecoveryWords: false
         property int recoveryRevision: 0
         function recoveryWord(index) {
@@ -128,18 +131,29 @@ Item {
             return input ? String(input.word || "").trim().toLowerCase() : ""
         }
         function recoveryPhrase() {
+            if (mobileRecoveryInput)
+                return String(nativeSignerPhraseInput.text || "")
+                    .trim().toLowerCase().replace(/\s+/g, " ")
             const words = []
             for (let i = 0; i < 24; ++i) words.push(recoveryWord(i))
             return words.join(" ")
         }
         function recoveryReady() {
-            // The revision binds the button to all 24 independent inputs.
+            // Bind the button to each field or the single secure mobile
+            // phrase entry; never submit a partial recovery phrase.
             const revision = recoveryRevision
+            if (mobileRecoveryInput) {
+                const phrase = recoveryPhrase()
+                const words = phrase.length > 0 ? phrase.split(" ") : []
+                return words.length === 24
+                    && words.every(word => /^[a-z]+$/.test(word))
+            }
             for (let i = 0; i < 24; ++i)
                 if (!/^[a-z]+$/.test(recoveryWord(i))) return false
             return true
         }
         function clearRecoveryWords() {
+            nativeSignerPhraseInput.text = ""
             for (let i = 0; i < 24; ++i) {
                 const input = nativeSignerWordGrid.itemAt(i)
                 if (input) input.word = ""
@@ -158,7 +172,17 @@ Item {
             const next = nativeSignerWordGrid.itemAt(start + words.length)
             if (next) next.focusWord()
         }
-        onOpened: authorizationSubmitted = false
+        onOpened: {
+            authorizationSubmitted = false
+            // Settings can open the recovery editor directly. Give the
+            // newly mounted mobile input the focus after Popup relocation.
+            if (enteringNativeWords && mobileRecoveryInput)
+                Qt.callLater(function() {
+                    if (!interactionAuthorizationDialog.opened) return
+                    nativeSignerPhraseInput.forceActiveFocus()
+                    Qt.inputMethod.show()
+                })
+        }
         onClosed: {
             if (enteringNativeWords && !presentationBridge.writeReady)
                 authorizationSubmitted = false
@@ -225,8 +249,19 @@ Item {
                 text: qsTrId("genycaster.shell.native_signer_use_words")
                 onClicked: {
                     interactionAuthorizationDialog.enteringNativeWords = true
-                    const first = nativeSignerWordGrid.itemAt(0)
-                    if (first) first.focusWord()
+                    // The grid/field was hidden at pointer-down time. Wait
+                    // until the visible editor has been laid out before
+                    // focusing it, so Android's IME can actually open.
+                    Qt.callLater(function() {
+                        if (!interactionAuthorizationDialog.opened) return
+                        if (interactionAuthorizationDialog.mobileRecoveryInput) {
+                            nativeSignerPhraseInput.forceActiveFocus()
+                            Qt.inputMethod.show()
+                        } else {
+                            const first = nativeSignerWordGrid.itemAt(0)
+                            if (first) first.focusWord()
+                        }
+                    })
                 }
             }
             DirectionAwareLabel {
@@ -239,10 +274,30 @@ Item {
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap
             }
+            // On phones a single, real TextInput accepts either keyboard
+            // entry or pasting all 24 words. Nested ScrollViews containing 24
+            // Password fields could steal the pointer/IME focus on Android.
+            DirectionAwareTextField {
+                id: nativeSignerPhraseInput
+                objectName: "nativeSignerRecoveryPhraseInput"
+                visible: interactionAuthorizationDialog.mobileRecoveryInput
+                         && interactionAuthorizationDialog.enteringNativeWords
+                         && !presentationBridge.signerBusy
+                Layout.fillWidth: true
+                forceLeftToRight: true
+                placeholderText: qsTrId("genycaster.setup.native_recovery_placeholder")
+                echoMode: interactionAuthorizationDialog.showRecoveryWords
+                    ? TextInput.Normal : TextInput.Password
+                maximumLength: 512
+                inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
+                                  | Qt.ImhNoAutoUppercase
+                onTextChanged: ++interactionAuthorizationDialog.recoveryRevision
+            }
             ScrollView {
                 id: nativeRecoveryScroll
                 objectName: "nativeSignerRecoveryGrid"
                 visible: Qt.platform.os !== "wasm"
+                         && !interactionAuthorizationDialog.mobileRecoveryInput
                          && interactionAuthorizationDialog.enteringNativeWords
                          && !presentationBridge.signerBusy
                 Layout.fillWidth: true
@@ -304,7 +359,8 @@ Item {
                 }
             }
             ActionButton {
-                visible: nativeRecoveryScroll && nativeRecoveryScroll.visible
+                visible: (nativeRecoveryScroll && nativeRecoveryScroll.visible)
+                         || nativeSignerPhraseInput.visible
                 Layout.alignment: Qt.AlignRight
                 compact: true
                 quiet: true
@@ -315,7 +371,8 @@ Item {
                     !interactionAuthorizationDialog.showRecoveryWords
             }
             DirectionAwareLabel {
-                visible: nativeRecoveryScroll && nativeRecoveryScroll.visible
+                visible: (nativeRecoveryScroll && nativeRecoveryScroll.visible)
+                         || nativeSignerPhraseInput.visible
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.setup.native_recovery_privacy")
                 color: Theme.inkMuted
@@ -813,6 +870,7 @@ Item {
     property bool setupReviewOpen: false
     readonly property bool initialSetupOpen: !!initialSetup && initialSetup.visible
     readonly property bool overlayOpen: root.initialSetupOpen || root.localeSettingsOpen || root.dataStorageSettingsOpen
+                                         || (interactionAuthorizationDialog && interactionAuthorizationDialog.opened)
                                          || (composerDrawer && composerDrawer.opened)
                                          || (accountPopup && accountPopup.opened)
                                          || (renderingSettingsPopup && renderingSettingsPopup.opened)
@@ -852,6 +910,16 @@ Item {
             return
         }
         accountPopup.open()
+    }
+
+    function requestWriteInteraction() {
+        // Follow/Like/Reply from an authenticated but signer-locked account
+        // is an authority operation, NOT a new identity login. Never divert
+        // this user to the Genyleap account/profile inspector.
+        if (!presentationBridge.isAuthenticated)
+            root.openAccountPopup()
+        else if (!presentationBridge.writeReady)
+            root.requestInteractionAuthorization()
     }
 
     function resolvePendingComposer() {
@@ -1954,7 +2022,7 @@ Item {
                                                     // Preserve the original destination on back.
                                                     presentationBridge.openCast(hash)
                                                 }
-                                                onAuthenticationRequested: root.openAccountPopup()
+                                                onAuthenticationRequested: root.requestWriteInteraction()
                                             }
                                         }
                                     }
@@ -2274,7 +2342,7 @@ Item {
                                                 onIdentityRequested: presentationBridge.selectFeed("trending")
                                                 onFollowingRequested: presentationBridge.selectFeed("following")
                                                 onTrendingRequested: root.openExplorer()
-                                                onAuthenticationRequested: root.openAccountPopup()
+                                                onAuthenticationRequested: root.requestWriteInteraction()
                                             }
                                         }
 
@@ -2444,7 +2512,7 @@ Item {
                                                     presentationBridge.removeCast(Number(cast.authorFid || 0), String(cast.castId || ""))
                                                 onExternalRequested: url => root.openCastTextLink(url)
                                                 onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
-                                                onAuthenticationRequested: root.openAccountPopup()
+                                                onAuthenticationRequested: root.requestWriteInteraction()
                                                 onLoadMoreRequested: {
                                                     if(root.topicBrowseActive && root.topicBrowseScope==="profile")
                                                         openProofConnections.loadMoreTopicCasts()
@@ -2519,7 +2587,7 @@ Item {
                                                     presentationBridge.removeCast(Number(cast.authorFid || 0), String(cast.castId || ""))
                                                 onExternalRequested: url => root.openCastTextLink(url)
                                                 onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
-                                                onAuthenticationRequested: root.openAccountPopup()
+                                                onAuthenticationRequested: root.requestWriteInteraction()
                                             }
                                         }
 
@@ -2630,7 +2698,7 @@ Item {
                             // This stays under readingPane; never reparent a
                             // Layout-owned item after layout has run.
                             visible: root.mobile && presentationBridge.authenticationStateObserved
-                 && !root.initialSetupOpen
+                                     && !root.overlayOpen
                                      && !root.homeComposerFocused
                             z: 800
                             height: Qt.platform.os === "android" && root.mobile ? 74 : 88

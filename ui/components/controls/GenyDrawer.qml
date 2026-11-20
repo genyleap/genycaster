@@ -139,6 +139,10 @@ Drawer {
         curveDepth: control.fullScreen ? 0
                     : control.floatingSheet ? Theme.curveSheetFloating
                     : control.bottomSheet ? Theme.curveSheet : Theme.curveDrawer
+        // Bottom sheets must have genuine circular corner arcs on Android,
+        // iOS and narrow WASM, not the highly squared exponent-4 geometry
+        // stretched over a tall, screen-wide mobile sheet.
+        exponent: control.bottomSheet ? 2.0 : Theme.superellipseExponent
         elevation: Theme.elevationNone
         // Corners facing the originating window edge are ALWAYS square.
         // FloatingSheet affects insets, not the geometry of the attached side.

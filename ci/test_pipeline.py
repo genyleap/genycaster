@@ -319,8 +319,14 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("emit nativeRecoveryRequested(std::move(recoveryWords));", bridge)
         self.assertIn("Qt.ImhSensitiveData", setup)
         self.assertIn("nativeRecoveryGrid.clearAll()", setup)
-        self.assertIn("root.nativeRecoverFarcasterAccount(words, deviceSignerConsent.checked)", setup)
-        self.assertIn("root.nativeRecoverHyperSnapAccount(words, deviceSignerConsent.checked)", setup)
+        # Device signer consent must survive the one-shot zeroization of the
+        # recovery editor. Clearing that editor resets its opt-in checkbox.
+        self.assertIn("const authorizeDeviceSigner = deviceSignerConsent.checked", setup)
+        self.assertLess(
+            setup.index("const authorizeDeviceSigner = deviceSignerConsent.checked"),
+            setup.index("nativeRecoveryGrid.clearAll()", setup.index("let words = nativeRecoveryGrid.phrase()")))
+        self.assertIn("root.nativeRecoverFarcasterAccount(words, authorizeDeviceSigner)", setup)
+        self.assertIn("root.nativeRecoverHyperSnapAccount(words, authorizeDeviceSigner)", setup)
         self.assertIn("nativeCustodyWallet.restoreForRegistration(words)", setup)
         # The native recovery DTO owns an ICustodyAuthorizer. Imports of other
         # C++26 modules do not make that capability declaration transitive.

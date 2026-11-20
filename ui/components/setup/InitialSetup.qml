@@ -3005,6 +3005,10 @@ Item {
                           && nativeRecoveryGrid.completeWordCount === 24
                     onClicked: {
                         let words = nativeRecoveryGrid.phrase()
+                        // Snapshot explicit device-signer consent BEFORE
+                        // clearing the sensitive form: clearAll() resets its
+                        // checkbox, and previously always sent false.
+                        const authorizeDeviceSigner = deviceSignerConsent.checked
                         nativeRecoveryGrid.clearAll()
                         if (root.resumingRegistration) {
                             const restored =
@@ -3024,9 +3028,9 @@ Item {
                         }
                         root.recoverySubmitPending = true
                         if (root.recoveryProtocol === "hypersnap-v2")
-                            root.nativeRecoverHyperSnapAccount(words, deviceSignerConsent.checked)
+                            root.nativeRecoverHyperSnapAccount(words, authorizeDeviceSigner)
                         else
-                            root.nativeRecoverFarcasterAccount(words, deviceSignerConsent.checked)
+                            root.nativeRecoverFarcasterAccount(words, authorizeDeviceSigner)
                         root.switchStep(5)
                         words = ""
                     }

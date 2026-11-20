@@ -1080,6 +1080,43 @@ void testPortableCastProfileLinksWithoutLocalModeration()
     assert(bridge.rows().size() == 2);
 }
 
+void testRecoveredProfileKeepsOwnAccountAffiliation()
+{
+    PresentationBridge bridge{};
+    bridge.applyRuntimeState(true);
+    assert(bridge.acceptLegalConsent(true, true, true));
+    bridge.openProfileFid(42);
+    assert(!bridge.ownProfileNavigation());
+
+    // The 24-word custody flow is explicitly selected before the session
+    // observer commits the registry-verified FID. No secret is retained.
+    const QString phrase = QStringLiteral("abandon ").repeated(23)
+        + QStringLiteral("art");
+    bool requested = false;
+    QObject::connect(&bridge, &PresentationBridge::nativeFarcasterRecoveryRequested,
+        &bridge, [&requested](QString, bool allowed) {
+            requested = allowed;
+        });
+    bridge.beginNativeFarcasterRecoverySetup(phrase, true);
+    assert(requested);
+    bridge.applyAuthenticationState(
+        true, QStringLiteral("authenticated"), 42,
+        QStringLiteral("owner"), QStringLiteral("Owner"), {},
+        QStringLiteral("farcaster:optimism-id-registry"), {}, {});
+
+    assert(bridge.ownProfileNavigation());
+    assert(bridge.accountFid() == 42U);
+    // Receiving the same profile ID again (from a delayed public read or an
+    // activity card) must not turn the signed-in owner into a Follow target.
+    bridge.openProfileFid(42);
+    assert(bridge.ownProfileNavigation());
+    bridge.openProfileFid(77);
+    assert(!bridge.ownProfileNavigation());
+    bridge.applyAuthenticationState(
+        true, QStringLiteral("signed-out"), 0, {}, {}, {}, {}, {}, {});
+    assert(!bridge.ownProfileNavigation());
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -1103,6 +1140,7 @@ int main(int argc, char* argv[])
     testReferencedPreviewHydratesReplyAndQuoteMetrics();
     testNestedQuoteHydrationNotifiesDetailExactlyOnce();
     testAuthenticatedProfilePresentationIsCached();
+    testRecoveredProfileKeepsOwnAccountAffiliation();
     testProfileNavigationKeepsIndependentMetadataAndCachedCounts();
     testInitialSetupRequiresAuthenticationAndFirstRunCompletion();
     return 0;
