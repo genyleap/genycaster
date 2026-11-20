@@ -133,6 +133,56 @@
             return custody;
         }catch(error){custody.dispose();throw error;}
     }
+    // Show feedback in the same browser frame as the click, before ES module
+    // parsing or cryptographic initialization can delay the recovery form.
+    // This overlay owns no secret; it is removed before the 24-word UI opens.
+    async function openRecoveryDialog(signal, onAuthorize, options) {
+        const previous=document.getElementById('genycaster-recovery-opening');
+        if(previous)previous.remove();
+        const layer=document.createElement('div');
+        layer.id='genycaster-recovery-opening';
+        layer.setAttribute('role','status');
+        layer.setAttribute('aria-live','polite');
+        const isPersian=(window.__genycasterPreferredLanguage
+            ||window.navigator?.language||'en').toLowerCase().startsWith('fa');
+        const light=document.documentElement?.dataset?.theme==='light'
+            ||(document.documentElement?.dataset?.theme!=='dark'
+               &&window.matchMedia?.('(prefers-color-scheme: light)')?.matches);
+        layer.style.cssText='position:fixed;inset:0;z-index:2147483647;'
+            +'display:flex;align-items:center;justify-content:center;'
+            +'background:'+(light?'#fff':'#101116')+';color:'
+            +(light?'#17181c':'#f4f6ff')+';font:600 16px system-ui,sans-serif';
+        const indicator=document.createElement('span');
+        indicator.textContent=isPersian?'در حال آماده‌سازی بازیابی امن…'
+            :'Preparing secure recovery…';
+        const spinner=document.createElement('span');
+        spinner.setAttribute('aria-hidden','true');
+        spinner.style.cssText='display:inline-block;vertical-align:middle;'
+            +'width:19px;height:19px;margin-inline-end:12px;border-radius:50%;'
+            +'border:2px solid currentColor;border-top-color:transparent;'
+            +'animation:genycaster-recovery-opening-spin .8s linear infinite';
+        const style=document.createElement('style');
+        style.textContent='@keyframes genycaster-recovery-opening-spin'
+            +'{to{transform:rotate(360deg)}}'
+            +'@media(prefers-reduced-motion:reduce)'
+            +'{#genycaster-recovery-opening span{animation:none!important}}';
+        layer.append(style,spinner,indicator);
+        document.body.appendChild(layer);
+        try {
+            // Two frames allow the browser to display the indicator before a
+            // cold dynamic import evaluates the BIP39 wordlist and signer code.
+            if(typeof window.requestAnimationFrame==='function')
+                await new Promise(resolve=>window.requestAnimationFrame(
+                    ()=>window.requestAnimationFrame(resolve)));
+            else await new Promise(resolve=>setTimeout(resolve,0));
+            if(signal?.aborted)throw new Error('Recovery import cancelled');
+            const {promptForFarcasterRecovery}=
+                await import('./recovery-phrase-dialog.mjs');
+            if(signal?.aborted)throw new Error('Recovery import cancelled');
+            layer.remove();
+            return await promptForFarcasterRecovery(window,signal,onAuthorize,options);
+        }finally{layer.remove();}
+    }
     async function authorizeNativeRecovery(current,fid,thisEpoch) {
         const controller=new AbortController();recoveryController=controller;
         const {promptForFarcasterRecovery}=
@@ -286,29 +336,30 @@
                     recoveryController=controller;
                     const isCurrent=()=>epoch===thisEpoch && owner===fid
                         && !controller.signal.aborted;
-                    const registryModule=action==="create-farcaster"
-                        ?null:await import('./hypersnap_native_account.mjs');
+                    // A native registry module and its crypto dependencies
+                    // are needed only AFTER the 24-word form has opened and
+                    // the user has submitted a locally verified phrase.
                     let confirmed=null;
                     if(action==="recover-hypersnap"){
-                        const {promptForFarcasterRecovery}=
-                            await import('./recovery-phrase-dialog.mjs');
-                        confirmed=await promptForFarcasterRecovery(window,controller.signal,
+                        confirmed=await openRecoveryDialog(controller.signal,
                             async phrase=>{
                                 if(!isCurrent())throw new Error('Recovery cancelled');
-                                const registry=registryModule.createBrowserNativeRegistry();
-                                const recovered=await registry.recover(phrase,
-                                {signal:controller.signal});
-                            if(!isCurrent())throw new Error('Recovery cancelled');
-                            // Confirm the same FID independently with the
-                            // native KEY_ADD registry before establishing a
-                            // fully authorized browser profile session.
-                            const signer=await createNativeClient();
-                            await signer.provision(recovered.fid,
-                                requestedFid=>nativeCustodyForFid(requestedFid,phrase),
-                                isCurrent);
-                            return recovered;
+                                const {createBrowserNativeRegistry}=
+                                    await import('./hypersnap_native_account.mjs');
+                                const recovered=await createBrowserNativeRegistry().recover(
+                                    phrase,{signal:controller.signal});
+                                if(!isCurrent())throw new Error('Recovery cancelled');
+                                // Native custody registry verification alone is
+                                // the proof for *account recovery*. KEY_ADD is a
+                                // separate, optional permission to publish.
+                                // Never block importing a verified FID merely
+                                // because signer authorization is missing,
+                                // unreachable, or rejected by the node.
+                                return recovered;
                             },{presentation:'full',protocol:'hypersnap-v2'});
                     }else {
+                        const registryModule=action==="create-farcaster"
+                            ?null:await import('./hypersnap_native_account.mjs');
                         const {promptCreateBrowserWallet}=
                             await import('./browser_account_create_dialog.mjs');
                         // Never solicit a new recovery phrase if the paid
@@ -393,15 +444,13 @@
                     if(typeof requestId !== 'string' ||
                        !/^[0-9a-f-]{36}$/i.test(requestId))
                         throw new Error('Invalid recovery request');
-                    const {promptForFarcasterRecovery} =
-                        await import('./recovery-phrase-dialog.mjs');
                     const controller=new AbortController();
                     recoveryController=controller;
                     if(epoch!==thisEpoch || owner!==fid) return;
                     const {openProofGatewayOrigin}=JSON.parse(payloadString);
                     let verifiedOpenProof=null;
-                    const recoveredFid=await promptForFarcasterRecovery(
-                        window,controller.signal,async phrase=>{
+                    const recoveredFid=await openRecoveryDialog(
+                        controller.signal,async phrase=>{
                             if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted)
                                 throw new Error("Recovery was cancelled");
                             const current=await createClient(base);
@@ -462,7 +511,8 @@
                         if(options.rememberLocal===true){
                             rememberedWrite=rememberedWrite.catch(()=>{}).then(async()=>{
                                 if(epoch!==thisEpoch || owner!==fid)return;
-                                await (await deviceSession()).remember(fid);
+                                await (await deviceSession()).remember(fid,
+                                    native?'hypersnap-v2':'farcaster-snapchain');
                                 if(epoch===thisEpoch && owner===fid)
                                     try{window.localStorage?.removeItem(signOutKey);}catch{}
                             });

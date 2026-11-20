@@ -282,10 +282,27 @@ export function createBrowserNativeRegistry({
     const custody=await deriveFarcasterCustody(phrase);
     try{
       if(signal?.aborted)throw new Error('Recovery cancelled');
-      const result=await lookup(custody.address,signal);
-      if(result.state!=='confirmed')fail(result.state==='not-found'
-        ?'no HyperSnap FID is registered to this recovery phrase'
-        :'HyperSnap registry is unavailable; no session was created');
+      let result;
+      try {
+        result=await lookup(custody.address,signal);
+      }catch(cause) {
+        if(signal?.aborted)throw new Error('Recovery cancelled');
+        const invalid=/mismatch|malformed|invalid native|untrusted native/i
+          .test(String(cause?.message||cause));
+        const error=new Error(invalid
+          ?'HyperSnap native registry returned an invalid custody proof'
+          :'HyperSnap native registry could not be reached');
+        error.code=invalid?'recovery-verification':'recovery-network';
+        throw error;
+      }
+      if(result.state!=='confirmed') {
+        const error=new Error(result.state==='not-found'
+          ?'no HyperSnap FID is registered to this recovery phrase'
+          :'HyperSnap native registry is unavailable; no session was created');
+        error.code=result.state==='not-found'
+          ?'recovery-unregistered':'recovery-network';
+        throw error;
+      }
       if(signal?.aborted)throw new Error('Recovery cancelled');
       return result;
     }finally{custody.dispose();}

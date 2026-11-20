@@ -302,11 +302,14 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                 const message=String(cause?.message||cause);
                 const checksum=/checksum/i.test(message);
                 const category=cause?.code;
+                // Stable recovery error codes win over incidental substrings.
+                // For example an unreachable *custody* registry is a network
+                // fault, NOT proof that the recovery phrase owns no FID.
                 const ownership=category==='recovery-unregistered'
                     ||category==='recovery-ownership'
-                    ||/custody|does not control|does not own|registered Farcaster FID/i.test(message);
+                    ||(!category && /does not control|does not own|registered Farcaster FID/i.test(message));
                 const network=category==='recovery-network'
-                    ||/HTTP|RPC|Snapchain|timeout|fetch|network|CORS|AbortError/i.test(message);
+                    ||(!category && /HTTP|RPC|Snapchain|timeout|fetch|network|CORS|AbortError/i.test(message));
                 const signer=category==='recovery-signer';
                 const storage=category==='recovery-storage';
                 const derivation=category==='recovery-derivation';
@@ -334,8 +337,12 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                     ? (lang==='fa'?'تأیید مالکیت حساب در شبکهٔ انتخاب‌شده کامل نشد. دوباره تلاش کنید؛ در صورت تکرار از اتصال دیگری استفاده کنید.':
                         'Account ownership could not be confirmed on the selected protocol. Retry or use a different network connection.')
                     : network
-                    ? (lang==='fa'?'بررسی حساب یا مجوز انتشار به‌دلیل خطای اتصال کامل نشد. واژه‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
-                        'Account or signer verification could not reach the network. Your entries are still here; please retry.')
+                    ? native
+                        ? (lang==='fa'
+                            ? 'رجیستری هایپراسنپ در دسترس نیست یا پاسخ معتبر نداده است. واژه‌ها محفوظ مانده‌اند؛ اتصال را بررسی کنید و دوباره تلاش کنید.'
+                            : 'HyperSnap registry lookup did not complete. Your recovery words are preserved. Check the network connection and retry.')
+                        : (lang==='fa'?'بررسی حساب یا مجوز انتشار به‌دلیل خطای اتصال کامل نشد. واژه‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
+                            'Account or signer verification could not reach the network. Your entries are still here; please retry.')
                     : (lang==='fa'?'واژه‌ها به‌صورت محلی معتبرند، اما فعال‌سازی حساب کامل نشد. ورودی‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
                         'The recovery words passed local validation, but account authorization did not complete. Your entries are preserved.'));
             }finally{

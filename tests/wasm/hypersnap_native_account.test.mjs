@@ -177,3 +177,37 @@ test('no unsafe resend when native submission is ambiguous',async()=>{
   assert.equal(submits,1);
   custody.dispose();
 });
+
+
+test('verified native recovery confirms custody FID without requiring a KEY_ADD write',async()=>{
+  const wallet=await deriveFarcasterCustody(phrase);
+  const requested=[];
+  try {
+    const registry=createBrowserNativeRegistry({browser,fetchImpl:async(url,opts)=>{
+      requested.push({url,method:opts.method});
+      return status(200,native('4294967380',wallet.address));
+    }});
+    const verified=await registry.recover(phrase);
+    assert.equal(verified.fid,'4294967380');
+    assert.equal(verified.address,wallet.address);
+    assert.equal(requested.length,1);
+    assert.equal(requested[0].method,'GET');
+    assert.match(requested[0].url,/\/v1\/nativeAccount\?custody=/);
+    assert.ok(!requested.some(item=>item.url.includes('submitMessage')));
+  }finally{wallet.dispose();}
+});
+
+test('native registry transport failures remain retryable network errors, not invalid phrases',async()=>{
+  const registry=createBrowserNativeRegistry({browser,fetchImpl:async()=>{
+    throw new TypeError('Failed to fetch');
+  }});
+  await assert.rejects(registry.recover(phrase),error=>
+    error.code==='recovery-network'&&/registry could not be reached/.test(error.message));
+});
+
+test('native registry invalid custody response fails verification rather than signer provisioning',async()=>{
+  const registry=createBrowserNativeRegistry({browser,fetchImpl:async()=>
+    status(200,native('4294967380','0x'+'a'.repeat(40)))});
+  await assert.rejects(registry.recover(phrase),error=>
+    error.code==='recovery-verification'&&/invalid custody proof/.test(error.message));
+});
