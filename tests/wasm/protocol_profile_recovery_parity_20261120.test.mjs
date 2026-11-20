@@ -59,7 +59,8 @@ test('successful Farcaster recovery adopts verified signer owner before signed c
   const composition=read('ui/app/runtime/bindings.cpp');
   assert.match(composition,/const bool recoveryHasAccountGrant = !restoredDevice/);
   assert.match(composition,/sessionObserver\(std::move\(state\)\);[\s\S]*?QMetaObject::invokeMethod\(&bridge,[\s\S]*?connections\.retryAccountSession\(\)/);
-  assert.match(section,/return current\.recoverAccountFromPhrase\(/);
+  assert.match(section,/return verifyFarcasterRecovery\(/);
+  assert.match(section,/await import\('\.\/farcaster_custody_recovery\.mjs'\)/);
   assert.match(section,/verifiedOpenProof\?\.accountTicket/);
   assert.match(session,/isVerifiedFarcasterOwner\(granted,fid\)/);
   assert.match(session,/const restored=await request\(fetchImpl,endpoint,\{method:'GET',signal\}\)/);

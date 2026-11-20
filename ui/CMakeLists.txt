@@ -772,6 +772,7 @@ if(EMSCRIPTEN)
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/protocol-signer-pre.js"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/recovery-phrase-dialog.mjs"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_recovery.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_custody_recovery.mjs"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/hypersnap_native_account.mjs"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_protocol_signer.mjs"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_device_session.mjs"
@@ -854,6 +855,9 @@ if(EMSCRIPTEN)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_recovery.mjs"
             "$<TARGET_FILE_DIR:genycaster>/farcaster_recovery.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_custody_recovery.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/farcaster_custody_recovery.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/openproof_recovery.mjs"
             "$<TARGET_FILE_DIR:genycaster>/openproof_recovery.mjs"

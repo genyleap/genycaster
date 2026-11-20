@@ -330,7 +330,7 @@ test('invalid recovery BIP39 checksum fails closed without touching Snapchain',a
 });
 
 
-test('direct setup recovery derives an onchain FID and verifies KEY_ADD without SIWF',async()=>{
+test('direct setup recovery verifies custody without requiring KEY_ADD or signer storage',async()=>{
     const data=fixture({noWallet:true});
     const requests=[];
     const signer=createBrowserProtocolSigner({
@@ -360,8 +360,8 @@ test('direct setup recovery derives an onchain FID and verifies KEY_ADD without 
         },onState:s=>data.states.push(s),delay:async()=>{},
     });
     assert.equal(await signer.recoverAccountFromPhrase(recoveredPhrase),fid);
-    assert.equal(signer.ready,true);
-    assert.equal(data.submitted.length,1);
+    assert.equal(signer.ready,false,'sign-in must not grant publishing authority');
+    assert.equal(data.submitted.length,0,'recovery must never submit KEY_ADD');
     assert.deepEqual(requests.map(x=>x.method),['eth_chainId','eth_call','eth_call']);
     assert.equal(data.typed.length,0);
 });

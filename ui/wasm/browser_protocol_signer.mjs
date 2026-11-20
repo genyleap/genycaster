@@ -331,17 +331,16 @@ export function createBrowserProtocolSigner({
                 throw recoveryError('recovery-ownership',
                     'Recovery phrase does not control the registered Farcaster FID');
             assertCurrent();
-            step='signer';
-            const registration=await provision(fid,async requestedFid=>{
-                assertCurrent();
-                if(requestedFid!==fid)throw new Error('Farcaster identity changed');
-                return custody;
-            },stillCurrent);
-            if(!registration || lastPhase!=='ready' || activeFid!==fid || !activeKey)
-                throw recoveryError('recovery-signer',
-                    'Signer registration has not been verified by Snapchain');
-            // A failed OPTIONAL central identity request must not undo a
-            // locally verified Farcaster signer or require a second mnemonic.
+            // An independently verified Optimism custody FID is sufficient
+            // for ACCOUNT RECOVERY. Never submit KEY_ADD, write a signer vault
+            // key or wait for Snapchain here: those are separate, explicit
+            // publishing permissions. In particular, a blocked Snapchain
+            // endpoint must not turn a valid Farcaster identity into a
+            // "network recovery" failure.
+            step='identity';
+            // An optional central identity check may use the ephemeral
+            // custody signer for a fresh challenge. It may not block local
+            // recovery or silently grant publishing authority.
             if (typeof onVerifiedCustody === 'function') {
                 try {
                     assertCurrent();

@@ -6812,6 +6812,18 @@ Company | https://company.com</source>
             <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
             <translation>Не удалось подтвердить восстановление аккаунта. Проверьте слова восстановления и выбранный протокол, затем повторите попытку.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_custody_unregistered">
+            <source>This wallet does not own an active Farcaster FID on Optimism. Verify the 24 words or choose the correct protocol.</source>
+            <translation>This wallet does not own an active Farcaster FID on Optimism. Verify the 24 words or choose the correct protocol.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_custody_rpc_unavailable">
+            <source>Farcaster ownership could not be checked on Optimism. Check your connection and Optimism RPC settings, then retry.</source>
+            <translation>Farcaster ownership could not be checked on Optimism. Check your connection and Optimism RPC settings, then retry.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_custody_mismatch">
+            <source>The wallet derived from these recovery words is not the current Farcaster custody owner of its FID.</source>
+            <translation>The wallet derived from these recovery words is not the current Farcaster custody owner of its FID.</translation>
+        </message>
         <message id="genycaster.setup.hypersnap_recovery_not_found">
             <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>
             <translation>Для этих слов восстановления не найден зарегистрированный аккаунт HyperSnap. Если аккаунт был создан в Farcaster, выберите Farcaster и повторите попытку.</translation>

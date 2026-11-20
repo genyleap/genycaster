@@ -1069,6 +1069,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.farcaster_custody_unregistered");
     //% "Farcaster ownership could not be checked on Optimism. Check your connection and Optimism RPC settings, then retry."
     (void)qtTrId("genycaster.setup.farcaster_custody_rpc_unavailable");
+    //% "The wallet derived from these recovery words is not the current Farcaster custody owner of its FID."
+    (void)qtTrId("genycaster.setup.farcaster_custody_mismatch");
     //% "These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry."
     (void)qtTrId("genycaster.setup.hypersnap_recovery_not_found");
     //% "The HyperSnap account registry is unavailable. Check your network connection and try again."

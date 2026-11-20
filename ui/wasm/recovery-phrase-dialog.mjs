@@ -341,8 +341,9 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                         ? (lang==='fa'
                             ? 'رجیستری هایپراسنپ در دسترس نیست یا پاسخ معتبر نداده است. واژه‌ها محفوظ مانده‌اند؛ اتصال را بررسی کنید و دوباره تلاش کنید.'
                             : 'HyperSnap registry lookup did not complete. Your recovery words are preserved. Check the network connection and retry.')
-                        : (lang==='fa'?'بررسی حساب یا مجوز انتشار به‌دلیل خطای اتصال کامل نشد. واژه‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
-                            'Account or signer verification could not reach the network. Your entries are still here; please retry.')
+                        : (lang==='fa'
+                            ? 'تأیید مالکیت فارکستر در رجیستری آپتیمیسم به‌دلیل اختلال شبکه کامل نشد. واژه‌ها حفظ شده‌اند؛ دوباره تلاش کنید.'
+                            : 'Farcaster custody verification on Optimism could not complete. Your recovery words are preserved; please retry.')
                     : (lang==='fa'?'واژه‌ها به‌صورت محلی معتبرند، اما فعال‌سازی حساب کامل نشد. ورودی‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
                         'The recovery words passed local validation, but account authorization did not complete. Your entries are preserved.'));
             }finally{

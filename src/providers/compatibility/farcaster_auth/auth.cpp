@@ -667,7 +667,7 @@ public:
         if (!fid) return std::unexpected(std::move(fid.error()));
         if (*fid == 0U) {
             return std::unexpected(makeError(
-                foundation::error::ErrorCode::Unauthorized,
+                foundation::error::ErrorCode::NotFound,
                 "This custody address has no registered Farcaster FID."));
         }
         const domain::identity::Fid identity{*fid};
@@ -675,7 +675,7 @@ public:
         if (!registered) return std::unexpected(std::move(registered.error()));
         if (lower(*registered) != lower(address)) {
             return std::unexpected(makeError(
-                foundation::error::ErrorCode::Unauthorized,
+                foundation::error::ErrorCode::Conflict,
                 "Farcaster IdRegistry does not confirm custody for this FID."));
         }
         return identity;

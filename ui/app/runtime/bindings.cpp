@@ -3389,7 +3389,9 @@ void connectRuntime(
                               ? "genycaster.setup.farcaster_custody_unregistered"
                               : recovered.failure == QStringLiteral("network")
                                 ? "genycaster.setup.farcaster_custody_rpc_unavailable"
-                                : "genycaster.setup.recovery_failed_retry";
+                                : recovered.failure == QStringLiteral("ownership")
+                                  ? "genycaster.setup.farcaster_custody_mismatch"
+                                  : "genycaster.setup.recovery_failed_retry";
                         bridge.applyAuthenticationError(qtTrId(errorId));
                         return;
                     }
@@ -3422,9 +3424,16 @@ void connectRuntime(
                     if (!verified) {
                         using Code = foundation::error::ErrorCode;
                         const auto category = verified.error().code;
-                        if (category == Code::Unauthorized || category == Code::NotFound)
+                        // Only an explicit, successful IdRegistry idOf==0
+                        // is proof of an unregistered wallet. HTTP 401/403
+                        // from RPC is Unauthorized too; never mislabel it
+                        // as "no FID" or ask users to change valid words.
+                        if (category == Code::NotFound)
                             return {0, {}, QStringLiteral("unregistered")};
-                        if (category == Code::Unavailable || category == Code::Timeout
+                        if (category == Code::Conflict)
+                            return {0, {}, QStringLiteral("ownership")};
+                        if (category == Code::Unauthorized
+                            || category == Code::Unavailable || category == Code::Timeout
                             || category == Code::TransportFailure
                             || category == Code::RateLimited)
                             return {0, {}, QStringLiteral("network")};
@@ -3457,8 +3466,7 @@ void connectRuntime(
          commitVerifiedIdentity, hyperRecoveryGeneration](QString words) {
             const auto id = hyperRecoveryGeneration->fetch_add(
                 1U, std::memory_order_acq_rel) + 1U;
-            if (!nativePublisher || !nativePublisher->registrationSupported()
-                || !runtime->sessionService) {
+            if (!nativePublisher || !runtime->sessionService) {
                 words.fill(QChar{});
                 bridge.applyAuthenticationError(
                     qtTrId("genycaster.setup.recovery_failed_retry"));
@@ -3492,13 +3500,10 @@ void connectRuntime(
                             qtTrId("genycaster.setup.recovery_phrase_invalid"));
                         return;
                     }
-                    auto* transport = new HyperSnapRegistrationTransport(
-                        nativePublisher->nodeEndpoint(), &bridge);
-                    transport->lookupByCustody(address,
-                        [transport, secret, address, &bridge, hyperRecoveryGeneration,
+                    auto finalizeLookup =
+                        [secret, address, &bridge, hyperRecoveryGeneration,
                          id, commitVerifiedIdentity](
                             HyperSnapRegistrationTransport::LookupResult result) {
-                            transport->deleteLater();
                             if (hyperRecoveryGeneration->load(
                                     std::memory_order_acquire) != id
                                 || bridge.authenticationRoute()
@@ -3515,11 +3520,19 @@ void connectRuntime(
                             if (result.state
                                     != HyperSnapRegistrationTransport::LookupState::Confirmed
                                 || result.fid < (1ULL << 32)) {
-                                bridge.applyAuthenticationError(
-                                    result.state
-                                        == HyperSnapRegistrationTransport::LookupState::Unavailable
+                                // Only public transport diagnostics are logged:
+                                // never the secret, derived address or FID.
+                                qWarning() << "HyperSnap custody registry lookup:"
+                                           << static_cast<int>(result.state)
+                                           << "HTTP" << result.httpStatus;
+                                QString message = result.state
+                                    == HyperSnapRegistrationTransport::LookupState::Unavailable
                                     ? qtTrId("genycaster.setup.hypersnap_recovery_unavailable")
-                                    : qtTrId("genycaster.setup.recovery_failed_retry"));
+                                    : qtTrId("genycaster.setup.recovery_failed_retry");
+                                if (result.httpStatus >= 400)
+                                    message += QStringLiteral(" (HTTP %1)")
+                                        .arg(result.httpStatus);
+                                bridge.applyAuthenticationError(std::move(message));
                                 return;
                             }
                             // Only after registry confirmation may this key
@@ -3527,17 +3540,49 @@ void connectRuntime(
                             const auto mnemonic = std::string_view{
                                 secret->constData(),
                                 static_cast<std::size_t>(secret->size())};
-                            auto permit = farcaster::platform::custody_recovery::
+                            auto optionalSigner = farcaster::platform::custody_recovery::
                                 makeOneShotRecoveryAuthorizer(
                                     mnemonic, address.toLower().toStdString(),
                                     result.fid);
-                            if (!permit) {
-                                bridge.applyAuthenticationError(
-                                    qtTrId("genycaster.setup.recovery_failed_retry"));
+                            // This proof was confirmed by the native registry.
+                            // A missing publishing capability must not erase
+                            // a verified account or block readonly sign-in.
+                            std::shared_ptr<capability::signer::ICustodyAuthorizer> permit{};
+                            if (optionalSigner) permit = std::move(*optionalSigner);
+                            commitVerifiedIdentity(result.fid, address,
+                                                   std::move(permit), false);
+                        };
+                    // A user-selected social read node need not implement the
+                    // HyperSnap native account registry. Retry READ-ONLY on
+                    // the configured public native registry if that node does
+                    // not respond; never send a registration or KEY_ADD here.
+                    const QUrl selectedNode = nativePublisher->nodeEndpoint();
+                    const QUrl trustedNode{QString::fromUtf8(
+                        genycaster::deployment::hypersnapOrigin.data(),
+                        static_cast<qsizetype>(
+                            genycaster::deployment::hypersnapOrigin.size()))};
+                    auto* transport = new HyperSnapRegistrationTransport(
+                        selectedNode, &bridge);
+                    transport->lookupByCustody(address,
+                        [transport, selectedNode, trustedNode, address, &bridge,
+                         finish = std::move(finalizeLookup)](
+                            HyperSnapRegistrationTransport::LookupResult result) mutable {
+                            transport->deleteLater();
+                            using State = HyperSnapRegistrationTransport::LookupState;
+                            if ((result.state == State::Unavailable
+                                 || result.state == State::InvalidResponse)
+                                && selectedNode != trustedNode) {
+                                auto* fallback = new HyperSnapRegistrationTransport(
+                                    trustedNode, &bridge);
+                                fallback->lookupByCustody(address,
+                                    [fallback, finish = std::move(finish)](
+                                        HyperSnapRegistrationTransport::LookupResult retry) mutable {
+                                        fallback->deleteLater();
+                                        finish(retry);
+                                    });
                                 return;
                             }
-                            commitVerifiedIdentity(result.fid, address,
-                                                   std::move(*permit), false);
+                            finish(result);
                         });
                 });
             watcher->setFuture(QtConcurrent::run([secret]() -> QString {

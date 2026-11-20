@@ -19,7 +19,7 @@ test('recovered Farcaster custody proves the same OpenProof identity without ext
     assert.match(enrollment, /recoveredWords->fill\(char\{0\}\)/);
     assert.match(enrollment, /proof->address[\s\S]*?compare\(custody, Qt::CaseInsensitive\) != 0/);
     assert.match(enrollment, /completeRecoveryChallenge\(/);
-    assert.match(runtime, /commitVerifiedIdentity\(fid, address, std::move\(\*permit\), true,\s*secret\)/);
+    assert.match(runtime, /commitVerifiedIdentity\(fid, address, std::move\(permit\), true, secret\)/);
     assert.match(runtime, /beginNativeOpenProofEnrollment\(fid, custody, std::move\(recoveredWords\)\)/);
     assert.match(runtime, /connections.acceptRecoveryGrant\(/);
     assert.doesNotMatch(enrollment, /Qt\.openUrlExternally|beginFarcasterSignIn\(/);

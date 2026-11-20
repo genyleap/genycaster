@@ -605,7 +605,7 @@ void nativeRecoveryMustVerifyOptimismAndRoundTripCustody()
             "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x" + abiAddressWord('2') + "\"}");
         const auto result = provider::resolveRecoveryCustodyFid(chain, address, config);
         assert(!result);
-        assert(result.error().code == foundation::error::ErrorCode::Unauthorized);
+        assert(result.error().code == foundation::error::ErrorCode::Conflict);
         assert(chain.calls().size() == 3U);
     }
     {
@@ -615,8 +615,18 @@ void nativeRecoveryMustVerifyOptimismAndRoundTripCustody()
             "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x" + abiWord(0) + "\"}");
         const auto result = provider::resolveRecoveryCustodyFid(chain, address, config);
         assert(!result);
-        assert(result.error().code == foundation::error::ErrorCode::Unauthorized);
+        assert(result.error().code == foundation::error::ErrorCode::NotFound);
         assert(chain.calls().size() == 2U);
+    }
+    {
+        // A denied RPC request is NOT evidence that a custody has no FID.
+        // Only a successful IdRegistry idOf(address) == 0 is NotFound.
+        FakeTransport chain{};
+        chain.enqueue(401, R"({"error":"Unauthorized"})");
+        const auto result = provider::resolveRecoveryCustodyFid(chain, address, config);
+        assert(!result);
+        assert(result.error().code == foundation::error::ErrorCode::Unauthorized);
+        assert(chain.calls().size() == 1U);
     }
     {
         FakeTransport chain{};

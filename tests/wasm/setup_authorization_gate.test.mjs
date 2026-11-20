@@ -9,6 +9,7 @@ const original = readFileSync(new URL('../../ui/wasm/protocol-signer-pre.js', im
 const source = original
   .replace("await import('./browser_protocol_signer.mjs')", "await window.__testImportSigner()")
   .replaceAll("await import('./recovery-phrase-dialog.mjs')", "await window.__testImportPhrase()")
+  .replace("await import('./farcaster_custody_recovery.mjs')", "await window.__testImportIdentity()")
   .replace("import('./browser_device_session.mjs')", "window.__testImportDevice()");
 assert.notEqual(source, original);
 assert.ok(source.includes('window.__testImportPhrase()'));
@@ -21,11 +22,24 @@ function harness(registered = false) {
     let remembered=null;
     let releasePrompt;
     let delayPrompt = false;
+    // Minimal DOM for the visible recovery-preparation layer; real phrase
+    // form imports remain mocked, but the browser bridge executes unchanged.
+    const fakeElement=()=>({
+        style:{},setAttribute(){},append(){},remove(){},textContent:''
+    });
+    const fakeDocument={
+        getElementById(){return null;},createElement(){return fakeElement();},
+        documentElement:{dataset:{theme:'light'}},
+        body:{appendChild(){},style:{}},
+    };
     const fakeWindow = {
+        document:fakeDocument,
+        requestAnimationFrame:fn=>{fn();return 1;},
         localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},
         __testImportDevice: async()=>({createDeviceSession:()=>({
             remember:async fid=>{remembered=fid;return fid;},
             restore:async()=>remembered,
+            protocolFor:async()=>remembered?'farcaster-snapchain':'',
             clear:async()=>{remembered=null;}
         })}),
         location: {protocol:'https:', hostname:'example.test', origin:'https://example.test'},
@@ -49,6 +63,12 @@ function harness(registered = false) {
                 }
             })
         }),
+        __testImportIdentity: async () => ({
+            verifyFarcasterRecovery: async phrase=>{
+                calls.push('recover-account:'+phrase);
+                return '101';
+            },
+        }),
         __testImportPhrase: async () => ({
             promptForFarcasterRecovery: async (browser,signal,onAuthorize) => {
                 calls.push('phrase-dialog');
@@ -60,7 +80,9 @@ function harness(registered = false) {
             }
         }),
     };
-    const context = vm.createContext({window:fakeWindow,console,URL,AbortController});
+    const context = vm.createContext({
+        window:fakeWindow,document:fakeDocument,console,URL,AbortController,
+    });
     vm.runInContext(source, context, {filename:'protocol-signer-pre.js'});
     const bridge=fakeWindow.__genycasterBrowserSigning;
     return {bridge,calls,events:bridge.events,storage,

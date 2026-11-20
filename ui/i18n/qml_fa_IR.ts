@@ -6837,6 +6837,18 @@ Company | https://company.com</source>
             <source>Account recovery could not be verified. Review your recovery words and selected protocol, then retry.</source>
             <translation>بازیابی حساب تأیید نشد. واژه‌های بازیابی و پروتکل انتخاب‌شده را بررسی کنید و دوباره تلاش کنید.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_custody_unregistered">
+            <source>This wallet does not own an active Farcaster FID on Optimism. Verify the 24 words or choose the correct protocol.</source>
+            <translation>این کیف پول مالک FID فعال فارکستر در شبکهٔ آپتیمیسم نیست. ۲۴ واژه یا پروتکل انتخاب‌شده را بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_custody_rpc_unavailable">
+            <source>Farcaster ownership could not be checked on Optimism. Check your connection and Optimism RPC settings, then retry.</source>
+            <translation>تأیید مالکیت حساب فارکستر در شبکهٔ آپتیمیسم کامل نشد. اتصال اینترنت و تنظیمات RPC را بررسی کنید و دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_custody_mismatch">
+            <source>The wallet derived from these recovery words is not the current Farcaster custody owner of its FID.</source>
+            <translation>کیف پول حاصل از این واژه‌های بازیابی، مالک فعلی FID فارکستر نیست. انتقال مالکیت حساب و عبارت بازیابی را بررسی کنید.</translation>
+        </message>
         <message id="genycaster.setup.hypersnap_recovery_not_found">
             <source>These recovery words do not belong to a registered HyperSnap account. If this account was created on Farcaster, select Farcaster instead and retry.</source>
             <translation>برای این واژه‌های بازیابی، حسابی در هایپراسنپ ثبت نشده است. اگر حساب را در فارکستر ساخته‌اید، گزینهٔ فارکستر را انتخاب کنید و دوباره تلاش کنید.</translation>

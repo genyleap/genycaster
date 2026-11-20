@@ -453,12 +453,16 @@
                         controller.signal,async phrase=>{
                             if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted)
                                 throw new Error("Recovery was cancelled");
-                            const current=await createClient(base);
+                            // Importing an existing account is read-only.
+                            // Do not initialize IndexedDB signer storage or
+                            // create a Snapchain signer before verifying FID.
+                            const {verifyFarcasterRecovery}=
+                                await import('./farcaster_custody_recovery.mjs');
                             if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted)
                                 throw new Error("Recovery was cancelled");
-                            return current.recoverAccountFromPhrase(
-                                phrase,()=>epoch===thisEpoch && owner===fid && !controller.signal.aborted,
-                                async (verifiedFid,custody)=>{
+                            return verifyFarcasterRecovery(
+                                phrase,{signal:controller.signal,
+                                onVerifiedCustody:async (verifiedFid,custody)=>{
                                     if(!openProofGatewayOrigin) return;
                                     const {verifyRecoveredFarcasterIdentity}=
                                         await import('./openproof_recovery.mjs');
@@ -466,7 +470,7 @@
                                         fid:verifiedFid,custody,gatewayOrigin:openProofGatewayOrigin,
                                         signal:controller.signal,
                                     });
-                                });
+                                }});
                         });
                     if(epoch!==thisEpoch || owner!==fid) return;
                     rememberedWrite=rememberedWrite.catch(()=>{}).then(async()=>{
