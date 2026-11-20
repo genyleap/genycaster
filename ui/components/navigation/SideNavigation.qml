@@ -184,7 +184,7 @@ Rectangle {
                 height: navigationBrand.markSize
                 x: Theme.rtl ? navigationBrand.width - width : 0
                 y: (navigationBrand.height - height) / 2
-                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                source: (Qt.platform.os === "android" ? "image://genycaster-brand/mark" : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg")
                 sourceSize.width: 70
                 sourceSize.height: 70
                 fillMode: Image.PreserveAspectFit
@@ -207,8 +207,8 @@ Rectangle {
                     horizontalAlignment: Theme.rtl ? Image.AlignRight : Image.AlignLeft
                     fillMode: Image.PreserveAspectFit
                     source: Theme.dark
-                            ? "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark-dark.svg"
-                            : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark.svg"
+                            ? (Qt.platform.os === "android" ? "image://genycaster-brand/wordmark-dark" : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark-dark.svg")
+                            : (Qt.platform.os === "android" ? "image://genycaster-brand/wordmark" : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark.svg")
                     sourceSize.width: 340
                     sourceSize.height: 44
                     Accessible.name: qsTrId("genycaster.app.genycaster")
