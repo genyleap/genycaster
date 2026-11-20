@@ -62,7 +62,8 @@ Item {
         id: interactionAuthorizationDialog
         objectName: "interactionAuthorizationExplanation"
         parent: Overlay.overlay
-        blurSourceItem: shellContent
+        blurSourceItem: Qt.platform.os === "android" && root.compact ? null : shellContent
+        fullScreen: Qt.platform.os === "android" && root.compact
         readonly property bool nativeAccount:
             presentationBridge.nativeCustodyAccount
         property bool enteringNativeWords: false
@@ -107,15 +108,29 @@ Item {
             clearRecoveryWords()
             enteringNativeWords = false
         }
-        width: parent ? Math.min(470, parent.width - Theme.space4 * 2) : 450
-        height: parent ? Math.min(parent.height - Theme.space4 * 2,
-                                  confirmationContent.implicitHeight + Theme.space5 * 2)
-                       : confirmationContent.implicitHeight + Theme.space5 * 2
-        padding: Theme.space4
-        ColumnLayout {
-            id: confirmationContent
-            width: parent.width
-            spacing: Theme.space3
+        width: fullScreen ? (parent ? parent.width : root.width)
+              : (parent ? Math.min(470, parent.width - Theme.space4 * 2) : 450)
+        height: fullScreen ? (parent ? parent.height : root.height)
+               : (parent ? Math.min(parent.height - Theme.space4 * 2,
+                                   confirmationContent.implicitHeight + Theme.scaleUi(120))
+                         : confirmationContent.implicitHeight + Theme.scaleUi(120))
+        padding: fullScreen ? Theme.mobileGutter : Theme.space4
+        Item {
+            anchors.fill: parent
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: Theme.space3
+                ScrollView {
+                    id: interactionAuthorizationScroller
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    contentWidth: availableWidth
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    ColumnLayout {
+                        id: confirmationContent
+                        width: interactionAuthorizationScroller.availableWidth
+                        spacing: Theme.space3
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.shell.enable_interactions")
@@ -171,12 +186,16 @@ Item {
                          && interactionAuthorizationDialog.nativeAccount
                          && interactionAuthorizationDialog.enteringNativeWords
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.scaleUi(304)
-                Layout.maximumHeight: Theme.scaleUi(360)
+                // Let the outer inspector scroll all 24 words on narrow screens.
+                Layout.preferredHeight: interactionAuthorizationDialog.fullScreen
+                    ? nativeSignerWordColumns.implicitHeight + Theme.space2 : Theme.scaleUi(304)
+                Layout.maximumHeight: interactionAuthorizationDialog.fullScreen
+                    ? 3000 : Theme.scaleUi(360)
                 clip: true
                 contentWidth: availableWidth
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 GridLayout {
+                    id: nativeSignerWordColumns
                     layoutDirection: Theme.uiDirection
                     width: nativeRecoveryScroll ? nativeRecoveryScroll.availableWidth : 0
                     columns: nativeRecoveryScroll.width < Theme.scaleUi(420) ? 3 : 4
@@ -243,6 +262,8 @@ Item {
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap
             }
+                    }
+                }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space2
@@ -282,6 +303,7 @@ Item {
                         interactionAuthorizationDialog.close()
                     }
                 }
+            }
             }
         }
     }
