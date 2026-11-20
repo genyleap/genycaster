@@ -31,7 +31,7 @@ export namespace farcaster::provider::compatibility::auth {
 struct Config final {
     std::string relayBaseUrl{"https://relay.farcaster.xyz"};
     std::string relayVersion{"v1"};
-    std::string optimismRpcUrl{"https://mainnet.optimism.io"};
+    std::string optimismRpcUrl{"https://optimism-rpc.publicnode.com"};
     std::chrono::milliseconds requestTimeout{10'000};
     std::chrono::minutes attemptLifetime{5};
     std::chrono::hours sessionLifetime{24};

@@ -648,7 +648,6 @@ export function createMediaGateway(config, storage, dependencies = {}) {
             ? await farcasterBroker.completeDirect(requestBody.ticket,requestBody.signature)
             : isStart ? await farcasterBroker.start()
                       : await farcasterBroker.poll(ticket);
-        if (output.authenticated && !isRecoveryComplete) farcasterBroker.consume(ticket);
         writeJson(response, output.pending ? 202 : 200, output);
       } catch (error) {
         writeJson(response, Number.isInteger(error.status) ? error.status : 502, {

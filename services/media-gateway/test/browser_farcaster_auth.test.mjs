@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createBrowserFarcasterBroker } from '../browser_farcaster_auth.mjs';
 
-function fixture({ mismatch = false, linkedFid = '123' } = {}) {
+function fixture({ mismatch = false, linkedFid = '123', verificationStatus = 200 } = {}) {
   let nowMs = 1_000_000;
   let completed = false;
   const calls = [];
@@ -50,6 +50,9 @@ function fixture({ mismatch = false, linkedFid = '123' } = {}) {
     }
     if (url === 'https://openproof.genyleap.com/auth/web3/complete') {
       assert.match(options.headers.cookie, /__Host-openproof-web3-binding=b2/);
+      if (verificationStatus !== 200) {
+        return data({ error: { code: 'AUTHENTICATION_FAILED' } }, { status: verificationStatus });
+      }
       const response = data({ authenticated: true });
       response.headers.getSetCookie = () => [
         '__Host-openproof-session=verified-session; Path=/',
@@ -93,7 +96,6 @@ test('direct Farcaster proof is accepted only after OpenProof verification and l
     cookie: '__Host-openproof-web3-continuation=a1; __Host-openproof-web3-binding=b2; __Host-openproof-web3-transaction=c3; __Host-openproof-web3-challenge=d4; __Host-openproof-session=verified-session',
   });
   assert.equal(calls.length, 7);
-  broker.consume(started.ticket);
   await assert.rejects(() => broker.poll(started.ticket), /auth_expired_or_unknown/);
   advance(45 * 60_000 + 1);
   assert.equal(broker.authorizeRecoveryAccount('Bearer ' + result.account_ticket), null,
@@ -106,6 +108,17 @@ test('a wrong relay nonce fails closed before contacting OpenProof verification'
   approve();
   await assert.rejects(() => broker.poll(started.ticket), /auth_invalid_farcaster_proof/);
   assert.equal(calls.filter(call => call.url.includes('web3/complete')).length, 0);
+});
+
+test('an OpenProof rejection is returned as unauthorized and consumes the relay attempt', async () => {
+  const { broker, calls, approve } = fixture({ verificationStatus: 401 });
+  const { ticket } = await broker.start();
+  approve();
+  await assert.rejects(() => broker.poll(ticket), {
+    code: 'auth_openproof_not_verified', status: 401,
+  });
+  await assert.rejects(() => broker.poll(ticket), /auth_expired_or_unknown/);
+  assert.equal(calls.filter(call => call.url.endsWith('/auth/web3/complete')).length, 1);
 });
 
 test('invalid and unknown tickets never contact an upstream service', async () => {

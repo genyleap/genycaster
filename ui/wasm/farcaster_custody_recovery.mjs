@@ -4,9 +4,8 @@
  * Words and derived private material never leave this browser module.
  */
 import {deriveFarcasterCustody} from './farcaster_recovery.mjs';
-import {keccak256} from './browser_protocol_signer.mjs';
+import {keccak256, optimismRpcUrl as rpcOrigin} from './browser_protocol_signer.mjs';
 const registry='0x00000000fc6c5f01fc30151999387bb99a9f489b';
-const rpcOrigin='https://mainnet.optimism.io';
 const utf8=new TextEncoder();
 const selector=name=>'0x'+Array.from(keccak256(utf8.encode(name)).slice(0,4),
     b=>b.toString(16).padStart(2,'0')).join('');

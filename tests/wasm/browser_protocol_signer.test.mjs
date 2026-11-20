@@ -270,7 +270,7 @@ test('recovery phrase authorizes KEY_ADD without any browser wallet extension',a
     const signer=createBrowserProtocolSigner({
         browser:data.browser,vault:data.vault,
         fetchImpl:async(url,options)=>{
-            if(url==='https://mainnet.optimism.io'){
+            if(url==='https://optimism-rpc.publicnode.com'){
                 assert.equal(options.method,'POST');
                 assert.equal(options.credentials,'omit');
                 const body=JSON.parse(options.body);
@@ -305,7 +305,7 @@ test('wrong recovery phrase FID ownership rejects KEY_ADD and does not submit',a
     const signer=createBrowserProtocolSigner({
         browser:data.browser,vault:data.vault,
         fetchImpl:async(url,options)=>{
-            if(url==='https://mainnet.optimism.io'){
+            if(url==='https://optimism-rpc.publicnode.com'){
                 const request=JSON.parse(options.body);
                 if(request.method==='eth_chainId')
                     return new Response(JSON.stringify({result:'0xa'}));
@@ -336,7 +336,7 @@ test('direct setup recovery verifies custody without requiring KEY_ADD or signer
     const signer=createBrowserProtocolSigner({
         browser:data.browser,vault:data.vault,
         fetchImpl:async(url,options)=>{
-            if(url==='https://mainnet.optimism.io'){
+            if(url==='https://optimism-rpc.publicnode.com'){
                 assert.equal(options.credentials,'omit');
                 assert.equal(options.method,'POST');
                 assert.ok(!options.body.includes(recoveredPhrase));
@@ -371,7 +371,7 @@ test('direct recovery wraps readonly DOMException-style codes without losing ver
     const signer=createBrowserProtocolSigner({
         browser:data.browser,vault:data.vault,
         fetchImpl:async(url,options)=>{
-            if(url==='https://mainnet.optimism.io'){
+            if(url==='https://optimism-rpc.publicnode.com'){
                 const failure=new Error('Unexpected provider response');
                 Object.defineProperty(failure,'code',{value:18,writable:false});
                 throw failure;
@@ -391,7 +391,7 @@ test('direct setup refuses unregistered or transferred custody before KEY_ADD',a
         const signer=createBrowserProtocolSigner({
             browser:data.browser,vault:data.vault,
             fetchImpl:async(url,options)=>{
-                if(url==='https://mainnet.optimism.io'){
+                if(url==='https://optimism-rpc.publicnode.com'){
                     const body=JSON.parse(options.body);
                     let result;
                     if(body.method==='eth_chainId')
@@ -434,7 +434,7 @@ test('sign-out while resolving IdRegistry aborts before any signer submission',a
     const signer=createBrowserProtocolSigner({
         browser:data.browser,vault:data.vault,
         fetchImpl:async(url,options)=>{
-            if(url==='https://mainnet.optimism.io'){
+            if(url==='https://optimism-rpc.publicnode.com'){
                 const body=JSON.parse(options.body);
                 if(body.method==='eth_chainId')
                     return new Response(JSON.stringify({result:'0xa'}));

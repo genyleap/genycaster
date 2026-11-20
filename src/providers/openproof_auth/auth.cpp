@@ -227,19 +227,22 @@ public:
                 || lower(trim(header.substr(0, separator))) != "set-cookie") {
                 continue;
             }
-            const std::string cookie = trim(header.substr(separator + 1U));
-            const auto semicolon = cookie.find(';');
-            const std::string pair = trim(cookie.substr(0, semicolon));
-            const auto equals = pair.find('=');
-            if (equals == std::string::npos || equals == 0U) {
-                continue;
-            }
-            const std::string key = trim(pair.substr(0, equals));
-            const std::string value = pair.substr(equals + 1U);
-            if (value.empty()) {
-                m_values.erase(key);
-            } else {
-                m_values[key] = value;
+            // QNetworkReply::rawHeaderPairs() joins repeated Set-Cookie
+            // values with newlines. Expires attributes can contain commas.
+            std::istringstream cookies{header.substr(separator + 1U)};
+            for (std::string cookie{}; std::getline(cookies, cookie);) {
+                const std::string pair = trim(cookie.substr(0, cookie.find(';')));
+                const auto equals = pair.find('=');
+                if (equals == std::string::npos || equals == 0U) {
+                    continue;
+                }
+                const std::string key = trim(pair.substr(0, equals));
+                const std::string value = pair.substr(equals + 1U);
+                if (value.empty()) {
+                    m_values.erase(key);
+                } else {
+                    m_values[key] = value;
+                }
             }
         }
     }

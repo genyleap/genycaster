@@ -355,7 +355,12 @@ void directFarcasterStillCreatesCanonicalOpenProofIdentity()
             .status = 200,
             .responseBody =
                 R"({"provider":"farcaster","challenge_id":"direct-1","expires_at":"2026-09-29T07:00:00Z","chain_id":"10","nonce":"direct-nonce-1234","domain":"genyleap.example","uri":"https://genyleap.example/openproof","statement":"Farcaster Auth","resource_prefix":"farcaster://fid/","signer_kind":"custody"})",
-            .responseHeaders = {"Set-Cookie: __Host-openproof-web3=direct-ceremony; Path=/; Secure; HttpOnly"},
+            .responseHeaders = {
+                "Set-Cookie: __Host-openproof-web3-continuation=continue; Path=/; Secure; HttpOnly\n"
+                "__Host-openproof-web3-binding=bind; Path=/; Secure; HttpOnly\n"
+                "__Host-openproof-web3-transaction=transaction; Path=/; Secure; HttpOnly\n"
+                "__Host-openproof-web3-challenge=challenge; Path=/; Secure; HttpOnly",
+            },
         },
         Step{
             .method = Method::Post,
@@ -378,6 +383,10 @@ void directFarcasterStillCreatesCanonicalOpenProofIdentity()
             .responseBody = R"({"authenticated":true})",
             .responseHeaders = {"Set-Cookie: __Host-openproof-session=session-126; Path=/; Secure; HttpOnly"},
             .requestBodyContains = "\"message\":\"direct signed message\"",
+            .requestHeaderContains = "Cookie: __Host-openproof-web3-binding=bind; "
+                "__Host-openproof-web3-challenge=challenge; "
+                "__Host-openproof-web3-continuation=continue; "
+                "__Host-openproof-web3-transaction=transaction",
         },
         Step{
             .method = Method::Get,

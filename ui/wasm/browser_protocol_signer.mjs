@@ -11,6 +11,7 @@ import {
     unsignedUserDataAdd,
 } from './farcaster_protocol.mjs';
 
+export const optimismRpcUrl = 'https://optimism-rpc.publicnode.com';
 const registryAddress = '0x00000000fc6c5f01fc30151999387bb99a9f489b';
 const farcasterEpoch = 1609459200;
 const mask = (1n<<64n)-1n;
@@ -247,10 +248,9 @@ export function createBrowserProtocolSigner({
         try{
             // Public chain lookup from the canonical Optimism IdRegistry.
             // Do not trust the local mnemonic's address without checking FID.
-            const rpc='https://mainnet.optimism.io';
             let requestId=0;
             const call=async(method,params)=>{
-                const response=await fetchImpl(rpc,{
+                const response=await fetchImpl(optimismRpcUrl,{
                     method:'POST',credentials:'omit',redirect:'error',mode:'cors',
                     headers:{'content-type':'application/json'},
                     signal:AbortSignal.timeout(16000),
@@ -296,10 +296,9 @@ export function createBrowserProtocolSigner({
             assertCurrent();
             const address = requireAddress(custody.address);
             step='ownership';
-            const rpc = 'https://mainnet.optimism.io';
             let sequence = 0;
             async function rpcCall(method,params) {
-                const response = await fetchImpl(rpc,{
+                const response = await fetchImpl(optimismRpcUrl,{
                     method:'POST',credentials:'omit',redirect:'error',mode:'cors',
                     headers:{'content-type':'application/json'},
                     signal:AbortSignal.timeout(16000),

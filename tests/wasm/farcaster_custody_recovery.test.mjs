@@ -9,7 +9,7 @@ function harness(mode='valid'){
   const calls=[];
   const fetchImpl=async(url,options)=>{
     calls.push({url,options});
-    assert.equal(url,'https://mainnet.optimism.io');
+    assert.equal(url,'https://optimism-rpc.publicnode.com');
     assert.equal(options.method,'POST');
     assert.equal(options.credentials,'omit');
     assert.ok(!options.body.includes(phrase));

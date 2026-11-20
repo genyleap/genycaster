@@ -197,7 +197,7 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
     const ticket = randomBytes(32).toString('base64url');
     attempts.set(createHash('sha256').update(ticket).digest('hex'),{
       cookies, direct:true, fid, message:body.message,
-      expiresAt:now()+Math.min(attemptLifetimeMs, 120_000),busy:false,
+      expiresAt:now()+Math.min(attemptLifetimeMs, 120_000),
     });
     return {ticket,message:body.message,fid,expires_in:120};
   }
@@ -209,22 +209,13 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
     cleanup();
     const key = createHash('sha256').update(ticket).digest('hex');
     const attempt = attempts.get(key);
-    if (!attempt || !attempt.direct || attempt.busy)
+    if (!attempt || !attempt.direct)
       throw resultError('auth_expired_or_unknown',404);
     // Consume before awaiting any network operation: concurrent calls cannot
     // replay or race a cookie-bound OpenProof completion.
     attempts.delete(key);
-    attempt.busy = true;
     try {
-      const completed = await upstreamJson(fetchImpl,issuer+'/auth/web3/complete',{
-        method:'POST',
-        headers:{accept:'application/json','content-type':'application/json',
-                 cookie:cookieHeader(attempt.cookies)},
-        body:JSON.stringify({message:attempt.message,signature}),
-      });
-      if (completed.json.authenticated !== true)
-        throw resultError('auth_openproof_not_verified',401);
-      absorbCookies(attempt.cookies,completed.response.headers);
+      await completeOpenProof(attempt.cookies, attempt.message, signature);
       const headers={accept:'application/json',cookie:cookieHeader(attempt.cookies)};
       const profile=await upstreamJson(fetchImpl,issuer+'/account/profile',{
         method:'GET',headers,
@@ -247,6 +238,19 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
     }
   }
 
+  async function completeOpenProof(cookies, message, signature) {
+    const completed = await upstreamJson(fetchImpl, issuer + '/auth/web3/complete', {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json',
+        cookie: cookieHeader(cookies) },
+      body: JSON.stringify({ message, signature }),
+    }, [200, 401, 403]);
+    if (completed.response.status !== 200 || completed.json.authenticated !== true) {
+      throw resultError('auth_openproof_not_verified', 401);
+    }
+    absorbCookies(cookies, completed.response.headers);
+  }
+
   async function poll(ticket) {
     if (typeof ticket !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(ticket))
       throw resultError('auth_invalid_ticket', 400);
@@ -266,6 +270,7 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
       }, [200, 202]);
       const proof = relayResponse.json;
       if (proof.state === 'pending') return { pending: true };
+      attempts.delete(key);
       if (proof.state !== 'completed' || proof.nonce !== attempt.nonce ||
           typeof proof.message !== 'string' || proof.message.length > 8192 ||
           typeof proof.signature !== 'string' || proof.signature.length > 8192 ||
@@ -273,19 +278,7 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
           (typeof proof.fid === 'number' && !Number.isSafeInteger(proof.fid))) {
         throw resultError('auth_invalid_farcaster_proof');
       }
-      const completed = await upstreamJson(fetchImpl, issuer + '/auth/web3/complete', {
-        method: 'POST',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-          cookie: cookieHeader(attempt.cookies),
-        },
-        body: JSON.stringify({ message: proof.message, signature: proof.signature }),
-      });
-      if (completed.json.authenticated !== true) {
-        throw resultError('auth_openproof_not_verified');
-      }
-      absorbCookies(attempt.cookies, completed.response.headers);
+      await completeOpenProof(attempt.cookies, proof.message, proof.signature);
       const verifiedCookies = cookieHeader(attempt.cookies);
       const headers = { accept: 'application/json', cookie: verifiedCookies };
       const profile = await upstreamJson(fetchImpl, issuer + '/account/profile', {
@@ -314,8 +307,6 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
         expires_in: 3600,
       };
     } finally {
-      // Completed or failed terminal proofs cannot be replayed. Pending
-      // challenges remain available until expiry.
       attempt.busy = false;
     }
   }
@@ -331,9 +322,5 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
       cookie:cookieHeader(session.cookies)};
   }
 
-  function consume(ticket) {
-    if (typeof ticket === 'string')
-      attempts.delete(createHash('sha256').update(ticket).digest('hex'));
-  }
-  return { start, poll, startDirect, completeDirect, authorizeRecoveryAccount, consume };
+  return { start, poll, startDirect, completeDirect, authorizeRecoveryAccount };
 }

@@ -774,11 +774,10 @@ test('Farcaster browser sign-in endpoints never put the secret ticket in a URL',
     });
     assert.equal(polled.status, 200);
     assert.equal((await polled.json()).authenticated, true);
-    assert.deepEqual(calls, ['start', 'poll:' + ticket, 'consume:' + ticket]);
+    assert.deepEqual(calls, ['start', 'poll:' + ticket]);
   }, { farcasterBroker: {
     async start() { calls.push('start'); return { ticket, approval_url: 'https://warpcast.com' }; },
     async poll(value) { calls.push('poll:' + value); return { authenticated: true }; },
-    consume(value) { calls.push('consume:' + value); },
   } });
 });
 
