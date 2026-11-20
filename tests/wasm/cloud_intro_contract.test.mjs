@@ -52,6 +52,18 @@ test('Intro uses the Base network emblem from the project icon set, never the fo
   assert.match(intro,/stroke="#fff"/);
   assert.doesNotMatch(intro,/1280 417\.43|cls-1|<rect/);
 });
+test('Intro uses the canonical OpenProof shield and refreshes cached artwork',()=>{
+  const logo=source('ui/wasm/intro-openproof.svg');
+  const html=source('ui/wasm/genycaster-shell.html');
+  const sw=source('ui/wasm/genycaster-sw.js');
+  assert.ok(html.includes('src="./intro-openproof.svg?v=20261120-user-dark"'));
+  for(const id of ['outer-shield','teal-shield','op-monogram','fingerprint'])
+    assert.ok(logo.includes('id="'+id+'"'),'canonical OpenProof artwork missing '+id);
+  assert.match(logo,/viewBox="0 0 1254 1254"/);
+  assert.doesNotMatch(logo,/openproof-v3-source|id="wordmark"|id="background"/);
+  assert.match(sw,/const CACHE="genycaster-static-v14"/);
+});
+
 test('Cloud schema isolates all intended owner features, not speculative leaderboards',()=>{
   const first=source('services/account-sync/migrations/001_bookmarks.sql');
   const second=source('services/account-sync/migrations/002_cloud_state.sql');
