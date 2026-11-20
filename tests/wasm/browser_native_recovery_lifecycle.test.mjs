@@ -14,12 +14,13 @@ test('recovery click gets a visible indicator before cold module loading',()=>{
   assert.match(bridge,/await openRecoveryDialog\(controller\.signal/);
 });
 
-test('HyperSnap Existing Account verifies native custody without mandatory signer KEY_ADD',()=>{
+test('HyperSnap Existing Account attempts KEY_ADD after custody verification but never gates recovery',()=>{
   const section=bridge.split('if(action==="recover-hypersnap"){')[1]
     ?.split('}else {')[0];
   assert.ok(section,'native recovery must exist');
   assert.match(section,/createBrowserNativeRegistry\(\)\.recover\(/);
-  assert.doesNotMatch(section,/signer\.provision\(|current\.provision\(/);
+  assert.match(section,/await signer\.provision\(recovered\.fid/);
+  assert.match(section,/catch\(error\)[\s\S]*?signer activation is pending/);
   assert.match(bridge,/const verifiedFid=String\(confirmed\?\.fid\|\|''\)/);
   assert.match(bridge,/await device\.remember\(verifiedFid,protocol\)/);
 });

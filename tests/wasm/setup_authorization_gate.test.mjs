@@ -89,8 +89,11 @@ function harness(registered = false, initialRemembered = null) {
             })
         }),
         __testImportIdentity: async () => ({
-            verifyFarcasterRecovery: async phrase=>{
+            verifyFarcasterRecovery: async (phrase,options={})=>{
                 calls.push('recover-account:'+phrase);
+                await options.onVerifiedCustody?.('101',{
+                    address:'0x1111111111111111111111111111111111111111',
+                });
                 return '101';
             },
         }),
@@ -167,6 +170,7 @@ test('direct Setup recovery returns only a verified FID and the one-shot request
     await tick();
     assert.ok(h.calls.includes('phrase-dialog'), JSON.stringify({calls:h.calls,events:h.events}));
     assert.ok(h.calls.includes('recover-account:test-vector-no-secrets'));
+    assert.ok(h.calls.includes('authorize:101:test-vector-no-secrets'));
     const event=h.events.find(e=>e.kind==='setup-account');
     assert.equal(event.phase,'ready');
     assert.equal(event.fid,'101');
@@ -214,6 +218,7 @@ test('read-only HyperSnap recovery reopens after a reload without a registered s
     await tick();
     assert.equal(first.events.find(event=>event.kind==='setup-account')?.phase,'ready');
     assert.deepEqual(first.remembered,{fid:nativeFid,protocol});
+    assert.ok(first.calls.includes('authorize-native:'+nativeFid));
 
     const reloaded=harness(false,first.remembered);
     const requestId='aaaaaaaa-bbbb-4ccc-8ddd-000000000004';
@@ -323,4 +328,31 @@ test('repeated HyperSnap Enable interactions recovers previously registered sign
     assert.deepEqual(h.calls,['restore:'+nativeFid]);
     assert.equal(h.events.some(e=>e.kind==='signer' &&e.protocol==='hypersnap-v2'
                           &&e.phase==='ready'&&e.ready===true),true);
+});
+
+test('Farcaster recovery accepts verified custody even when signer provisioning is unavailable',async()=>{
+    const h=harness(false);
+    h.failSignerInit();
+    const requestId='01234567-89ab-4def-8abc-0123456789ab';
+    h.bridge.start('recover-account','','https://snapchain.example.test',
+        JSON.stringify({requestId}));
+    await tick();
+    const ready=h.events.find(e=>e.kind==='setup-account'&&e.requestId===requestId);
+    assert.equal(ready?.phase,'ready');
+    assert.equal(ready?.fid,'101');
+    assert.equal(h.calls.filter(x=>x==='phrase-dialog').length,1);
+    assert.ok(!JSON.stringify(h.events).includes('test-vector-no-secrets'));
+});
+
+test('HyperSnap recovery preserves verified identity when signer provisioning is unavailable',async()=>{
+    const h=harness(false);
+    h.failSignerInit();
+    const requestId='01234567-89ab-4def-8abc-0123456789ac';
+    h.bridge.start('recover-hypersnap','','https://snapchain.example.test',
+        JSON.stringify({requestId,protocol:'hypersnap-v2'}));
+    await tick();
+    const ready=h.events.find(e=>e.kind==='setup-account'&&e.requestId===requestId);
+    assert.equal(ready?.phase,'ready');
+    assert.equal(ready?.fid,nativeFid);
+    assert.equal(h.calls.filter(x=>x==='phrase-dialog').length,1);
 });

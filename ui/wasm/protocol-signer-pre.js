@@ -340,12 +340,22 @@
                                 const recovered=await createBrowserNativeRegistry().recover(
                                     phrase,{signal:controller.signal});
                                 if(!isCurrent())throw new Error('Recovery cancelled');
-                                // Native custody registry verification alone is
-                                // the proof for *account recovery*. KEY_ADD is a
-                                // separate, optional permission to publish.
-                                // Never block importing a verified FID merely
-                                // because signer authorization is missing,
-                                // unreachable, or rejected by the node.
+                                // The explicit recovery confirmation also
+                                // authorizes this device's signer using the
+                                // phrase already in the current secure dialog.
+                                // KEY_ADD failure never erases verified identity
+                                // or repeats the account registration.
+                                try {
+                                    const signer=await createNativeClient();
+                                    if(!isCurrent())throw new Error('Recovery cancelled');
+                                    await signer.provision(recovered.fid,
+                                        requestedFid=>nativeCustodyForFid(requestedFid,phrase),
+                                        isCurrent);
+                                }catch(error){
+                                    if(!isCurrent())throw error;
+                                    console.warn('HyperSnap signer activation is pending',
+                                        String(error?.message||error).slice(0,160));
+                                }
                                 return recovered;
                             },{presentation:'full',protocol:'hypersnap-v2'});
                     }else {
@@ -454,6 +464,26 @@
                             return verifyFarcasterRecovery(
                                 phrase,{signal:controller.signal,
                                 onVerifiedCustody:async (verifiedFid,custody)=>{
+                                    // Setup's explicit "Import and authorize"
+                                    // grants the device signer in the SAME
+                                    // recovery transaction, while the phrase
+                                    // remains confined to the browser dialog.
+                                    // The signer checks the exact custody/FID
+                                    // mapping again before submitting KEY_ADD.
+                                    try {
+                                        const signer=await createClient(base);
+                                        if(epoch!==thisEpoch || owner!==fid
+                                            || controller.signal.aborted)
+                                            throw new Error('Recovery cancelled');
+                                        await signer.provisionFromRecovery(verifiedFid,phrase);
+                                    }catch(error){
+                                        if(epoch!==thisEpoch || owner!==fid
+                                            || controller.signal.aborted)throw error;
+                                        // Recovering a verified account does
+                                        // not depend on Snapchain write health.
+                                        console.warn('Farcaster signer activation is pending',
+                                            String(error?.message||error).slice(0,160));
+                                    }
                                     if(!openProofGatewayOrigin) return;
                                     const {verifyRecoveredFarcasterIdentity}=
                                         await import('./openproof_recovery.mjs');

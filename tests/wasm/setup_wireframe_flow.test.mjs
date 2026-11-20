@@ -29,7 +29,7 @@ test('Setup allows return and review without resetting the account', () => {
 
 test('existing authentication and secure recovery stay connected to the bridge', () => {
   for(const s of ['root.continueWithGenyleap()', 'root.continueWithFarcaster()',
-                  'root.nativeRecoverFarcasterAccount(words, deviceSignerConsent.checked)','root.openApproval()',
+                  'root.nativeRecoverFarcasterAccount(words, authorizeDeviceSigner)','root.openApproval()',
                   'root.cancelAuthentication()','nativeRecoveryGrid.clearAll()'])
     assert.ok(setup.includes(s),s);
   assert.match(setup, /Qt.ImhSensitiveData/);
@@ -777,8 +777,8 @@ test('HyperSnap native signup, recovery and signer stay in distinct guarded path
     'nativeRegistrationPublisher.registrationSupported',
     'nativeRegistrationPublisher.submitPrepared()',
     'nativeRegistrationPublisher.checkConfirmation()',
-    'nativeRecoverHyperSnapAccount(words, deviceSignerConsent.checked)',
-    'root.nativeRecoverFarcasterAccount(words, deviceSignerConsent.checked)',
+    'nativeRecoverHyperSnapAccount(words, authorizeDeviceSigner)',
+    'root.nativeRecoverFarcasterAccount(words, authorizeDeviceSigner)',
     'objectName: "setupExistingHyperSnap"',
     'objectName: "setupExistingFarcaster"'
   ])assert.ok(setup.includes(s),s);

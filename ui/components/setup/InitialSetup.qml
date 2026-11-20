@@ -2849,7 +2849,7 @@ Item {
                         }
                         completeWordCount = 0
                         revealWords.checked = false
-                        deviceSignerConsent.checked = false
+                        deviceSignerConsent.checked = true
                     }
                     function countWords() {
                         let result = 0
@@ -2994,6 +2994,9 @@ Item {
                         objectName: "nativeRecoveryDeviceSignerConsent"
                         Layout.fillWidth: true
                         label: qsTrId("genycaster.setup.recovery_signer_consent")
+                        // The recovery action includes device signing by
+                        // default. Users may uncheck for read-only access.
+                        checked: true
                     }
                 }
                 SetupPrimaryButton {

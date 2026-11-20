@@ -15,8 +15,9 @@ test('desktop Farcaster recovery does not require device signer consent to sign 
   const section=setup.split('objectName: "nativeRecoveryDeviceSignerConsent"')[1]
     ?.split('root.switchStep(5)')[0];
   assert.ok(section);
-  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, deviceSignerConsent\.checked\)/);
-  assert.match(section,/if \(root\.recoveryProtocol === "hypersnap-v2"\)\s+root\.nativeRecoverHyperSnapAccount\([^\n]+\)\s+else\s+root\.nativeRecoverFarcasterAccount\(words, deviceSignerConsent\.checked\)/);
+  assert.match(setup,/const authorizeDeviceSigner = deviceSignerConsent\.checked/);
+  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
+  assert.match(section,/if \(root\.recoveryProtocol === "hypersnap-v2"\)\s+root\.nativeRecoverHyperSnapAccount\([^\n]+\)\s+else\s+root\.nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
   assert.match(shell,/beginNativeFarcasterRecoverySetup\(recoveryWords, authorizeSigner\)/);
   assert.match(header,/nativeFarcasterRecoveryRequested\(QString recoveryWords, bool authorizeSigner\)/);
   assert.match(bridge,/m_farcasterRecoverySignerConsent = authorizeSigner/);

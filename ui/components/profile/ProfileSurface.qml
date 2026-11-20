@@ -2145,15 +2145,18 @@ Item {
                         layoutDirection: Theme.uiDirection
                         columnSpacing: Theme.space2
                         rowSpacing: Theme.space1
-                        columns: identityLinkSlot.visible
-                                 && profileIdentityFlow.implicitWidth + columnSpacing + identityLinkSlot.fullLinkWidth
-                                    <= root.profileContentWidth ? 2 : 1
+                        // Keep identity and links on the same baseline at all
+                        // viewport widths. Elide the URL instead of moving the
+                        // entire link group below the display name on Android.
+                        columns: identityLinkSlot.visible ? 2 : 1
 
                         RowLayout {
                             id: profileIdentityFlow
                             objectName: "profileIdentityLeading"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
+                            Layout.preferredWidth: Math.max(0, root.profileContentWidth
+                                - (identityLinkSlot.visible ? identityLinkSlot.fittedWidth + Theme.space2 : 0))
                             Layout.preferredHeight: Math.max(
                                 profileDisplayName.implicitHeight, profileFollowAction.implicitHeight)
                             spacing: Theme.space2
@@ -2169,7 +2172,7 @@ Item {
                                 // Use the content column's independent width. The
                                 // enclosing row computes its own size from this hint.
                                 Layout.preferredWidth: Math.min(implicitWidth, Math.max(0,
-                                    root.profileContentWidth
+                                    profileIdentityFlow.Layout.preferredWidth
                                     - (profileFollowAction.visible ? profileFollowAction.implicitWidth : 0)
                                     - (followsYouBadge.visible ? followsYouBadge.implicitWidth : 0)
                                     - (genyHolderBadge.visible ? genyHolderBadge.implicitWidth : 0)
@@ -2347,9 +2350,15 @@ Item {
                                 primaryButtonWidth
                                 + (identityMoreLinks.visible
                                    ? identityMoreLinks.implicitWidth + identityLinks.spacing : 0)
-                            Layout.preferredWidth: fullLinkWidth
-                            Layout.minimumWidth: Math.min(fullLinkWidth, root.profileContentWidth)
-                            Layout.maximumWidth: fullLinkWidth
+                            // A long link must not force a second grid row.
+                            // Desktop retains its full URL whenever it fits;
+                            // compact layouts reserve room for the display name.
+                            readonly property real fittedWidth: Math.min(fullLinkWidth,
+                                Math.max(Theme.scaleUi(118), root.profileContentWidth
+                                    * (root.compact ? 0.52 : 0.48)))
+                            Layout.preferredWidth: fittedWidth
+                            Layout.minimumWidth: 0
+                            Layout.maximumWidth: fittedWidth
                             Layout.alignment: Qt.AlignVCenter | (Theme.rtl ? Qt.AlignLeft : Qt.AlignRight)
                             Layout.preferredHeight: identityLinks.implicitHeight
 
@@ -2365,10 +2374,12 @@ Item {
                                 Button {
                                     id: identityPrimaryLink
                                     objectName: "profileIdentityPrimaryLink"
-                                    Layout.fillWidth: false
-                                    Layout.preferredWidth: identityLinkSlot.primaryButtonWidth
-                                    Layout.minimumWidth: Layout.preferredWidth
-                                    Layout.maximumWidth: Layout.preferredWidth
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: Math.min(identityLinkSlot.primaryButtonWidth,
+                                        Math.max(0, identityLinkSlot.fittedWidth
+                                            - (identityMoreLinks.visible
+                                               ? identityMoreLinks.implicitWidth + identityLinks.spacing : 0)))
+                                    Layout.minimumWidth: 0
                                     flat: true
                                     hoverEnabled: true
                                     padding: 0
@@ -2385,21 +2396,22 @@ Item {
                                         }
                                         Label {
                                             id: identityLinkText
-                                            Layout.fillWidth: false
+                                            Layout.fillWidth: true
                                             Layout.preferredWidth: Math.ceil(
                                                 Math.max(profileLinkMetrics.advanceWidth, implicitWidth)
                                                 + Theme.scaleUi(4))
-                                            Layout.minimumWidth: Layout.preferredWidth
+                                            Layout.minimumWidth: 0
                                             text: root.displayUrl(root.primaryProfileLinkUrl)
                                             horizontalAlignment: Theme.textStartAlignment
                                             LayoutMirroring.enabled: false
                                             color: Theme.accent
                                             font.family: Theme.latinFontFamily
                                             font.pixelSize: Theme.typeCaptionSize
-                                            // URL is one logical line, not clipped or elided.
+                                            // A full URL remains accessible via the
+                                            // link action / tooltip when space is scarce.
                                             wrapMode: Text.NoWrap
-                                            elide: Text.ElideNone
-                                            clip: false
+                                            elide: Text.ElideRight
+                                            clip: true
                                             verticalAlignment: Text.AlignVCenter
                                         }
                                     }

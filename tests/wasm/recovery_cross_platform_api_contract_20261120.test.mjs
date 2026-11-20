@@ -34,12 +34,14 @@ test('all recovery error keys have compiled-catalog source definitions',()=>{
   }
 });
 
-test('web existing Farcaster recovery neither instantiates nor requires a signer',()=>{
+test('web Farcaster recovery authorizes the device signer without gating account login',()=>{
   const section=source.slice(source.indexOf('} else if (action === "recover-account") {'),
     source.indexOf('} else {\n                    const options=payloadString?JSON.parse(payloadString):{};'));
   assert.ok(section.includes("await import('./farcaster_custody_recovery.mjs')"));
   assert.ok(section.includes('return verifyFarcasterRecovery('));
-  assert.doesNotMatch(section,/await createClient\(base\)|\.provision\(|\.recoverAccountFromPhrase\(/);
+  assert.match(section,/await createClient\(base\)/);
+  assert.match(section,/await signer\.provisionFromRecovery\(verifiedFid,phrase\)/);
+  assert.match(section,/catch\(error\)[\s\S]*?Farcaster signer activation is pending/);
   assert.ok(build.includes('wasm/farcaster_custody_recovery.mjs'));
   assert.ok(assets.includes('"farcaster_custody_recovery.mjs"'));
 });
@@ -59,8 +61,10 @@ test('both desktop protocol imports permit read-only recovery without consenting
   const shell=read('ui/components/shell/AppShell.qml');
   const bridge=read('src/presentation/qt/presentation_bridge.cpp');
   const header=read('src/presentation/qt/presentation_bridge.hpp');
-  assert.match(setup,/root\.nativeRecoverHyperSnapAccount\(words, deviceSignerConsent\.checked\)/);
-  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, deviceSignerConsent\.checked\)/);
+  assert.match(setup,/const authorizeDeviceSigner = deviceSignerConsent\.checked/);
+  assert.match(setup,/root\.nativeRecoverHyperSnapAccount\(words, authorizeDeviceSigner\)/);
+  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
+  assert.match(setup,/id: deviceSignerConsent[\s\S]*?checked: true/);
   const action=setup.slice(setup.indexOf('objectName: "nativeRecoveryDeviceSignerConsent"'),
     setup.indexOf('root.recoverySubmitPending = true'));
   assert.doesNotMatch(action,/&& deviceSignerConsent\.checked/);

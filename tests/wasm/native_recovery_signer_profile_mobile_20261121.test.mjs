@@ -9,6 +9,8 @@ test('native recovery snapshots signer consent before clearing sensitive fields'
   const submit = setup.slice(setup.indexOf('let words = nativeRecoveryGrid.phrase()'),
                              setup.indexOf('root.switchStep(5)', setup.indexOf('let words = nativeRecoveryGrid.phrase()')));
   assert.ok(submit.includes('const authorizeDeviceSigner = deviceSignerConsent.checked'));
+  assert.match(setup,/id: deviceSignerConsent[\s\S]*?checked: true/);
+  assert.match(setup,/deviceSignerConsent\.checked = true/);
   assert.ok(submit.indexOf('const authorizeDeviceSigner') < submit.indexOf('nativeRecoveryGrid.clearAll()'));
   assert.match(submit, /nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
   assert.match(submit, /nativeRecoverHyperSnapAccount\(words, authorizeDeviceSigner\)/);
