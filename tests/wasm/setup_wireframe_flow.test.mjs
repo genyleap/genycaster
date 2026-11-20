@@ -460,7 +460,8 @@ test('desktop brand visual persists across all stages without blocking RTL title
   assert.match(s,/root\.currentStep >= 3 && root\.currentStep <= 6 \? 810 : 680/);
   assert.match(header,/Theme.rtl \? Qt.AlignRight : Qt.AlignLeft/);
   assert.match(s,/iconGlyph: Theme.iconPalette/);
-  assert.match(s,/brandImageSource: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon.svg"/);
+  assert.ok(s.includes('brandImageSource: (Qt.platform.os === "android" ? "image://genycaster-brand/mark"'));
+  assert.match(s,/qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon.svg/);
   assert.match(card,/property url brandImageSource/);
 });
 
