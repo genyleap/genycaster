@@ -57,6 +57,7 @@ def checked_archives(html: str, expected: tuple[str, ...]) -> tuple[str, ...]:
 
 def check_installation(root: Path) -> None:
     for relative in (
+        "lib/cmake/Qt6Positioning/Qt6PositioningConfig.cmake",
         "lib/cmake/Qt6WebEngineCore/Qt6WebEngineCoreConfig.cmake",
         "lib/cmake/Qt6WebEngineWidgets/Qt6WebEngineWidgetsConfig.cmake",
         "lib/cmake/Qt6WebEngineQuick/Qt6WebEngineQuickConfig.cmake",

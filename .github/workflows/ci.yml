@@ -695,7 +695,7 @@ jobs:
           # partial SDK installation, not Qt 6.12 addon metadata.
           python ci/install_qt_webengine_windows.py --destination Qt --architecture ${{ matrix.arch }}
           if ($LASTEXITCODE -ne 0) { throw 'Official Qt WebEngine extension installation failed' }
-          foreach ($config in @('Qt6WebEngineWidgets', 'Qt6WebEngineQuick')) {
+          foreach ($config in @('Qt6Positioning', 'Qt6WebEngineCore', 'Qt6WebEngineWidgets', 'Qt6WebEngineQuick')) {
             $path = Join-Path $env:QT_ROOT_DIR "lib/cmake/$config/$($config)Config.cmake"
             if (-not (Test-Path $path)) {
               throw "Required WebEngine extension component missing: $path"

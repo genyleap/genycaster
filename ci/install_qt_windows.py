@@ -67,6 +67,9 @@ def archive_layout(architecture: str) -> tuple[str, dict[str, tuple[str, ...]]]:
         # WebEngine runtimes and their isolated WebChannel transport are
         # mandatory. A partial install must fail before compilation.
         f"qt.qt6.6120.addons.qtwebchannel.{suffix}": ("qtwebchannel",),
+        # Qt WebEngine Core 6.140 requires Qt6Positioning. Its config can
+        # exist while Qt6_FOUND is false if this official addon is omitted.
+        f"qt.qt6.6120.addons.qtpositioning.{suffix}": ("qtpositioning",),
     }
     return base, packages
 
@@ -175,6 +178,7 @@ def main() -> int:
     for relative in ("lib/cmake/Qt6Multimedia/Qt6MultimediaConfig.cmake",
                      "lib/cmake/Qt6Qml/Qt6QmlConfig.cmake",
                      "lib/cmake/Qt6WebChannel/Qt6WebChannelConfig.cmake",
+                     "lib/cmake/Qt6Positioning/Qt6PositioningConfig.cmake",
                      "bin/qmake.exe"):
         if not (root / relative).is_file():
             raise ValueError(f"Installed Qt is incomplete: {root / relative}")

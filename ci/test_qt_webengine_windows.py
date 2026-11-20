@@ -10,9 +10,25 @@ from ci.install_qt_webengine_windows import (
     ARCHITECTURES, WEBENGINE_STAMP, checked_archives,
     check_installation, extension_layout,
 )
+from ci.install_qt_windows import archive_layout, archives_from_index, STAMP
 
 
 class WindowsWebEngineExtensionTest(unittest.TestCase):
+    def test_base_sdk_includes_official_qt_positioning_for_both_architectures(self):
+        for architecture in ARCHITECTURES:
+            with self.subTest(architecture=architecture):
+                origin, packages = archive_layout(architecture)
+                self.assertTrue(origin.startswith("https://download.qt.io/"))
+                package = next(key for key in packages if ".qtpositioning." in key)
+                self.assertEqual(packages[package], ("qtpositioning",))
+                self.assertEqual(
+                    archives_from_index(
+                        f'<a href="{STAMP}qtpositioning-Windows-ARCH.7z">signed archive</a>',
+                        ("qtpositioning",)
+                    ),
+                    [f"{STAMP}qtpositioning-Windows-ARCH.7z"],
+                )
+
     def test_archives_are_pinned_and_architecture_specific(self):
         for architecture in ARCHITECTURES:
             with self.subTest(architecture=architecture):
@@ -70,6 +86,11 @@ class WindowsWebEngineExtensionTest(unittest.TestCase):
                 directory_path = root / f"lib/cmake/{component}"
                 directory_path.mkdir(parents=True, exist_ok=True)
                 (directory_path / f"{component}Config.cmake").write_text("# fixture")
+            with self.assertRaisesRegex(ValueError, "Qt6Positioning"):
+                check_installation(root)
+            positioning = root / "lib/cmake/Qt6Positioning/Qt6PositioningConfig.cmake"
+            positioning.parent.mkdir(parents=True, exist_ok=True)
+            positioning.write_text("# official base addon")
             with self.assertRaisesRegex(ValueError, "QtWebEngineProcess"):
                 check_installation(root)
             (root / "bin").mkdir()
