@@ -32,7 +32,11 @@ test('manual Pro and Streak session retries use the registered WASM browser sign
   // even before Snapchain reports a protocol write-ready signer.
   assert.match(pre,/owner !== fid \|\| window\.location\.origin !== "https:\/\/genycaster\.xyz"/);
   assert.doesNotMatch(pre,/owner !== fid \|\| !client/);
-  assert.match(pre,/if \(existing && epoch===thisEpoch && owner===fid\)/);
+  assert.match(pre,/if \(existing && !native && epoch===thisEpoch && owner===fid\)/);
+  assert.match(pre,/nativeClient=createBrowserProtocolSigner\(\{/);
+  // HyperSnap is deliberately excluded from the Farcaster-only account
+  // session retry; its independent signer is verified on HyperSnap.
+  assert.match(pre,/ownerProtocol === "hypersnap-v2"/);
   assert.doesNotMatch(pre,/https:\/\/app\.genycaster\.xyz/);
   assert.match(pre,/if \(accountSessionPromise && accountSessionOwner === fid\)/);
   assert.match(pre,/ensureBrowserAccountSession\(\{/);
