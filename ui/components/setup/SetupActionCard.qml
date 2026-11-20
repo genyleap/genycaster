@@ -369,12 +369,13 @@ Button {
                     Layout.fillWidth: true
                     layoutDirection: Theme.uiDirection
                     spacing: Theme.space1
-                    Rectangle {
+                    Superellipse {
                         Layout.preferredWidth: 6
                         Layout.preferredHeight: 6
-                        radius: 3
-                        color: root.connectionWarning ? Theme.warning
-                             : root.connectionState === "reachable" ? Theme.success : Theme.inkMuted
+                        curveDepth: 3
+                        borderWidth: 0
+                        fillColor: root.connectionWarning ? Theme.warning
+                                   : root.connectionState === "reachable" ? Theme.success : Theme.inkMuted
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true

@@ -18,6 +18,20 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class PrimaryMigrationTests(unittest.TestCase):
+    def test_atomic_vhost_write_preserves_content_and_refuses_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "site.conf"
+            primary.atomic_write(target, "server { listen 80; }\\n")
+            self.assertEqual(target.read_text(), "server { listen 80; }\\n")
+            primary.atomic_write(target, "server { listen 443 ssl; }\\n")
+            self.assertEqual(target.read_text(), "server { listen 443 ssl; }\\n")
+            alias = root / "linked.conf"
+            alias.symlink_to(target)
+            with self.assertRaises(RuntimeError):
+                primary.atomic_write(alias, "unexpected")
+            self.assertEqual(target.read_text(), "server { listen 443 ssl; }\\n")
+
     def test_primary_nginx_is_exactly_scoped_and_preserves_landing_and_api(self):
         config = primary.check_template()
         self.assertIn("root /var/www/genycaster.xyz/public;", config)

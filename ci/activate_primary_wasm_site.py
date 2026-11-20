@@ -10,20 +10,38 @@ from __future__ import annotations
 import argparse
 import http.client
 import json
+import os
 from pathlib import Path
 import shutil
 import socket
 import ssl
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
 
-if __package__:
-    from .activate_app_site import atomic_write
-else:
-    from activate_app_site import atomic_write
+def atomic_write(path: Path, content: str) -> None:
+    """Atomically replace a validated Nginx file without following symlinks."""
+    if path.is_symlink():
+        raise RuntimeError(f"Refusing to overwrite symlink: {path}")
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=f".{path.name}.", delete=False,
+        ) as stream:
+            temporary = Path(stream.name)
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
 
 HOST = "genycaster.xyz"
 BASE = Path("/var/www/genycaster.xyz")

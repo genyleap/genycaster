@@ -1053,13 +1053,29 @@ if ('id: setupProgress' not in setup
     errors.append('Setup progress indicator and accessible back-navigation contract regressed')
 if ('readonly property bool visuallyDisabled: !enabled && !busy' not in setup_card):
     errors.append('In-flight sign-in action must retain its primary visual state while non-clickable')
-if (not re.search(
-        r'qsTrId\("genycaster\.setup\.network_farcaster_category"\)\s*'
-        r'\.arg\(qsTrId\("genycaster\.setup\.centralized_service_label"\)\)', setup)
-        or not re.search(
-        r'qsTrId\("genycaster\.setup\.network_hypersnap_category"\)\s*'
-        r'\.arg\(qsTrId\("genycaster\.setup\.decentralized_label"\)\)', setup)):
-    errors.append('Setup must distinguish centralized Farcaster from decentralized Hypersnap in translated network labels')
+# The unified New/Existing onboarding now offers a single distinct protocol
+# picker, rather than separate centralized/decentralized status cards. Verify
+# each choice has a localized label and protocol-specific registration copy.
+if not all(
+        re.search(
+            r'objectName: "' + object_name + r'"[\s\S]*?'
+            r'title: qsTrId\("' + re.escape(title_id) + r'"\)',
+            setup,
+        )
+        for object_name, title_id in (
+            ("setupRegisterHyperSnap", "genycaster.settings.hypersnap_label"),
+            ("setupRegisterNeynar", "genycaster.setup.registration_neynar_label"),
+            ("setupExistingFarcaster", "genycaster.settings.farcaster_label"),
+            ("setupExistingHyperSnap", "genycaster.settings.hypersnap_label"),
+        )
+) or not all(
+        f'qsTrId("{identifier}")' in setup
+        for identifier in (
+            "genycaster.setup.registration_hypersnap_description",
+            "genycaster.setup.registration_neynar_description",
+        )
+):
+    errors.append("Setup must keep distinct localized Farcaster and HyperSnap protocol choices")
 
 if errors:
     print('UI design guard failed:')
