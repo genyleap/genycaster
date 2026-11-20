@@ -615,7 +615,25 @@ jobs:
           # run deployment again and re-introduce optional SDK frameworks.
           hdiutil create -ov -volname GenyCaster -srcfolder "$APP" -format UDZO "$DMG"
           test -s "$DMG"
-          hdiutil verify "$DMG"
+          # macOS hosted runners may keep the just-created compressed image
+          # temporarily busy. Retry ONLY this transient hdiutil error. Any
+          # other verification failure, or four busy responses, fails closed.
+          dmg_verified=0
+          for attempt in 1 2 3 4; do
+            if verify_output="$(hdiutil verify "$DMG" 2>&1)"; then
+              printf '%s\n' "$verify_output"
+              dmg_verified=1
+              break
+            fi
+            printf '%s\n' "$verify_output" >&2
+            if [[ "$verify_output" != *"Resource temporarily unavailable"* || "$attempt" -eq 4 ]]; then
+              echo "::error::DMG integrity verification failed" >&2
+              exit 1
+            fi
+            echo "::warning::hdiutil verify temporarily busy (attempt $attempt/4)"
+            sleep $((attempt * 3))
+          done
+          test "$dmg_verified" -eq 1
           if [[ "$signing_mode" == "developer-id" ]]; then
             bash ci/notarize_macos_dmg.sh "$DMG"
           else

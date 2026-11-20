@@ -41,6 +41,17 @@ class MacOSSigningPolicyTest(unittest.TestCase):
         self.assertLess(mac.index("ci/notarize_macos_dmg.sh"),
                         mac.index('ci/audit_macos_bundle.py "$MOUNT/Genycaster.app"'))
 
+    def test_dmg_verification_retries_only_transient_busy_runner_state(self):
+        mac = self.mac
+        self.assertIn('verify_output="$(hdiutil verify "$DMG" 2>&1)"', mac)
+        self.assertIn('for attempt in 1 2 3 4; do', mac)
+        self.assertIn('*"Resource temporarily unavailable"*', mac)
+        self.assertIn('"$attempt" -eq 4', mac)
+        self.assertIn('test "$dmg_verified" -eq 1', mac)
+        self.assertIn('DMG integrity verification failed', mac)
+        self.assertLess(mac.index('test "$dmg_verified" -eq 1'),
+                        mac.index('ci/notarize_macos_dmg.sh'))
+
     def test_signer_requires_nested_codesign_verification(self):
         signer = SIGN.read_text(encoding="utf-8")
         self.assertIn('find "$app/Contents" -depth -type d', signer)
