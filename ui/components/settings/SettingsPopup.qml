@@ -68,6 +68,10 @@ GenyAdaptiveDialog {
             root.signOutConfirmationRequested()
             return
         }
+        if (section === -3 && root.webAssembly) {
+            presentationBridge.openBrowserNativeDownloads()
+            return
+        }
         if (section < 0 || section > 6
                 || (section === 5 && !presentationBridge.isAuthenticated)) return
         root.currentSection = section
@@ -713,6 +717,16 @@ GenyAdaptiveDialog {
                 SettingsProfileCard {}
 
                 MobileSettingsGroup {
+                    objectName: "mobileNativeAppsSettingsEntry"
+                    visible: root.webAssembly && presentationBridge.isAuthenticated
+                    heading: qsTrId("genycaster.apps.native")
+                    entries: [
+                        { label: qsTrId("genycaster.apps.native"),
+                          icon: Theme.iconDownload, section: -3 }
+                    ]
+                }
+
+                MobileSettingsGroup {
                     visible: presentationBridge.isAuthenticated
                     heading: ""
                     entries: [
@@ -785,6 +799,17 @@ GenyAdaptiveDialog {
                     SettingsProfileCard {
                         visible: presentationBridge.isAuthenticated
                         Layout.fillWidth: true
+                    }
+                    ActionButton {
+                        objectName: "desktopNativeAppsSettingsEntry"
+                        visible: root.webAssembly && presentationBridge.isAuthenticated
+                        Layout.fillWidth: true
+                        compact: true
+                        quiet: true
+                        alignStart: true
+                        iconGlyph: Theme.iconDownload
+                        text: qsTrId("genycaster.apps.native")
+                        onClicked: presentationBridge.openBrowserNativeDownloads()
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true

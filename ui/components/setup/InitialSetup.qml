@@ -206,6 +206,7 @@ Item {
     signal openApproval()
     signal cancelAuthentication()
     signal authorizeSigner()
+    signal nativeAppDownloadsRequested()
     signal recoverAccount(string protocol)
     signal browserCreateAccount(string protocol)
     signal nativeRecoverAccount(string recoveryWords)
@@ -1288,7 +1289,10 @@ Item {
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
             contentHeight: Math.max(height, stagePanel.y + stagePanel.implicitHeight
-                                    + (root.showsPrimaryCta && !root.desktopStageFooter ? 116 : 32))
+                                    + (root.showsPrimaryCta && !root.desktopStageFooter ? 116 : 32),
+                                    setupNativeAppEntry.visible
+                                        ? setupNativeAppEntry.y + setupNativeAppEntry.height + Theme.space4
+                                        : 0)
             ScrollBar.vertical: GenyScrollBar {
                 policy: stageScroll.contentHeight > stageScroll.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
             }
@@ -1338,6 +1342,71 @@ Item {
                                      : root.currentStep === 4 ? signInStage
                                      : root.currentStep === 5 ? verifyingStage
                                      : root.currentStep === 6 ? appearanceStage : completeStage
+                }
+            }
+
+            // Native editions are discoverable inside onboarding instead of
+            // floating above recovery phrases or the setup CTA. The verified
+            // download catalog decides whether an install is actually ready.
+            NeonSurface {
+                id: setupNativeAppEntry
+                objectName: "setupNativeAppEntry"
+                visible: Qt.platform.os === "wasm" && !root.reviewMode
+                         && !root.authenticated
+                         && (root.currentStep === 3 || root.currentStep === 4)
+                x: stagePanel.x
+                y: stagePanel.y + stagePanel.implicitHeight + Theme.space4
+                width: stagePanel.width
+                height: root.phone ? 92 : 76
+                curveDepth: Theme.curveContainer
+                fillColor: Theme.surfaceMuted
+                borderWidth: Theme.strokeHairline
+                borderColor: Theme.borderSubtle
+                interactive: true
+                ambientNeon: true
+                neonStrength: Theme.neonCardStrength
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: Theme.space3
+                    spacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
+                    Icon {
+                        text: Theme.iconDownload
+                        preferredSize: Theme.iconSize
+                        color: Theme.accent
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        spacing: 2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.apps.native")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                            elide: Text.ElideRight
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.apps.native_description")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                        }
+                    }
+                    ActionButton {
+                        objectName: "setupExploreNativeApps"
+                        compact: true
+                        quiet: true
+                        iconOnly: root.phone
+                        iconGlyph: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                        text: qsTrId("genycaster.apps.native")
+                        onClicked: root.nativeAppDownloadsRequested()
+                    }
                 }
             }
         }
@@ -1430,6 +1499,17 @@ Item {
                 currentStep: root.currentStep
                 Accessible.name: root.stepTitle(root.currentStep)
                                  + " (" + (root.currentStep + 1) + "/" + root.progressCount + ")"
+            }
+            ActionButton {
+                objectName: "setupWelcomeNativeApps"
+                visible: Qt.platform.os === "wasm" && !root.authenticated && !root.reviewMode
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: Theme.space2
+                compact: true
+                quiet: true
+                iconGlyph: Theme.iconDownload
+                text: qsTrId("genycaster.apps.native")
+                onClicked: root.nativeAppDownloadsRequested()
             }
         }
     }

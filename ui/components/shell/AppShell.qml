@@ -1345,6 +1345,36 @@ Item {
             width: parent ? parent.width : 0
             spacing: 0
 
+            // Discoverable account and app entry points live INSIDE the
+            // scrollable Explore header, never as a permanent HTML overlay.
+            // Authentication, not publishing/signer readiness, owns visibility.
+            RowLayout {
+                objectName: "webGuestDiscoveryActions"
+                width: parent.width
+                visible: Qt.platform.os === "wasm"
+                         && presentationBridge.authenticationStateObserved
+                         && !presentationBridge.isAuthenticated
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+                Item { Layout.fillWidth: true }
+                ActionButton {
+                    objectName: "webGuestNativeApps"
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconDownload
+                    text: qsTrId("genycaster.apps.native")
+                    onClicked: presentationBridge.openBrowserNativeDownloads()
+                }
+                ActionButton {
+                    objectName: "webGuestSignIn"
+                    compact: true
+                    prominent: true
+                    iconGlyph: Theme.iconSignIn
+                    text: qsTrId("genycaster.header.sign_in")
+                    onClicked: root.openAccountPopup()
+                }
+                Item { Layout.fillWidth: true }
+            }
             // Explorer's brand/action bar is fixed by the shell. Everything from
             // the greeting downward belongs to the scrolling/pullable feed.
             HomeFeedHeader {
@@ -3768,6 +3798,7 @@ Item {
         onOpenApproval: presentationBridge.openAuthenticationApproval()
         onCancelAuthentication: presentationBridge.cancelSignIn()
         onAuthorizeSigner: root.requestInteractionAuthorization()
+        onNativeAppDownloadsRequested: presentationBridge.openBrowserNativeDownloads()
         onRecoverAccount: (protocol) =>
             presentationBridge.beginBrowserProtocolSetup(protocol, false)
         onBrowserCreateAccount: (protocol) =>

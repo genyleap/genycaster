@@ -2503,6 +2503,18 @@ void PresentationBridge::openExternalUrl(const QString& url)
     }
 }
 
+void PresentationBridge::openBrowserNativeDownloads()
+{
+#if defined(Q_OS_WASM)
+    // The platform release selector is a first-party browser dialog. Its
+    // catalog still verifies published assets; this call conveys no account
+    // identity, credentials, FID or native install permission.
+    EM_ASM({
+        window.__genycasterOpenNativeDownloads?.();
+    });
+#endif
+}
+
 void PresentationBridge::openEmbeddedMedia(const QString& url, const QString& title)
 {
     const QUrl parsed{url.trimmed()};

@@ -345,6 +345,11 @@ public:
     void applyFollowingStoryActivities(qulonglong viewerFid, QVariantList activities, bool finished, bool successful);
     Q_INVOKABLE void openExternalUrl(const QString& url);
 
+    /** @brief Open the website's verified native release selector on WASM.
+     * Native builds do not open a browser download overlay.
+     */
+    Q_INVOKABLE void openBrowserNativeDownloads();
+
     /** @brief Opens an approved rich-media URL in Genycaster's isolated native web-media host. */
     Q_INVOKABLE void openEmbeddedMedia(const QString& url, const QString& title = {});
 

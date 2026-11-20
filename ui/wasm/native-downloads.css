@@ -68,6 +68,13 @@
 #native-downloads-nudge[hidden],#native-downloads-action[hidden],
 #native-downloads-options[hidden] {display:none!important}
 
+/* The app itself owns guest, onboarding and Settings download entry points.
+ * Keep legacy floating DOM controls inaccessible, including to keyboard and
+ * touch users; the release selector remains available through the Qt bridge.
+ * Do not reintroduce a floating download CTA when a session is authorized. */
+#native-downloads-dock,
+#native-downloads-nudge { display:none!important; }
+
 /* Floating affordance uses the exact same palette, not an OS-material chip. */
 #native-downloads-trigger {
     position:fixed;
