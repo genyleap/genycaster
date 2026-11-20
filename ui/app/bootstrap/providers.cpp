@@ -1,6 +1,8 @@
 // Endpoint precedence and credential checks are isolated from UI startup.
 module;
 
+#include "genycaster_deployment.hpp"
+
 #include <QDebug>
 #include <QSettings>
 #include <QString>
@@ -68,7 +70,7 @@ struct ProviderEndpoints::Impl {
             // provider: never reuse the HyperSnap identity namespace.
             // Explicit Neynar credentials still select their canonical host.
             readBaseUrl = readApiKey.isEmpty()
-                ? QStringLiteral("https://haatz.quilibrium.com")
+                ? QString::fromUtf8(genycaster::deployment::hypersnapOrigin.data())
                 : QStringLiteral("https://api.neynar.com");
         }
         readBaseUrl = normalizeConfigurationToken(std::move(readBaseUrl));

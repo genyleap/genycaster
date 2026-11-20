@@ -37,6 +37,16 @@ class DeploymentConfigurationTests(unittest.TestCase):
         self.assertIn("siwfOrigin: 'https://genycaster.xyz'", browser)
         self.assertIn("env.GENYCASTER_PUBLIC_ORIGIN || 'https://genycaster.xyz'", server)
 
+    def test_bootstrap_hosted_read_default_is_deployment_configured(self):
+        root = SCRIPT.parent.parent
+        bootstrap = (root / "ui/app/bootstrap/providers.cpp").read_text()
+        self.assertIn('#include "genycaster_deployment.hpp"', bootstrap)
+        self.assertIn(
+            "QString::fromUtf8(genycaster::deployment::hypersnapOrigin.data())",
+            bootstrap,
+        )
+        self.assertNotIn("https://haatz.quilibrium.com", bootstrap)
+
     def test_generate_public_files_and_type_safe_cpp(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
