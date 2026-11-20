@@ -251,20 +251,38 @@ export function createBrowserNativeRegistry({
   browser=globalThis,fetchImpl=globalThis.fetch,
   base=deployment.hypersnapOrigin,
   delay=ms=>new Promise(resolve=>setTimeout(resolve,ms)),
-  maxAttempts=24<<20
+  maxAttempts=24<<20,requestTimeoutMs=15000
 }={}) {
   requireSecure(browser);
   if(typeof fetchImpl!=='function')fail('network fetch is unavailable');
+  if(!Number.isSafeInteger(requestTimeoutMs)||requestTimeoutMs<1
+      ||requestTimeoutMs>120000)fail('invalid native registry request timeout');
   const origin=endpointUrl(base);
   const getJson=async(url,signal)=>{
-    const response=await fetchImpl(origin+url,{method:'GET',mode:'cors',
-      credentials:'omit',redirect:'error',headers:{accept:'application/json'},
-      signal:signal??AbortSignal.timeout(15000)});
-    const text=await response.text();
-    if(text.length>32768)fail('oversized native registry response');
-    let body;
-    try{body=JSON.parse(text);}catch{fail('native registry returned non-JSON data');}
-    return {status:response.status,body};
+    // A caller AbortSignal must not silently disable the request deadline.
+    // Bound both response headers and response body; always release the timer
+    // and cancellation listener even when fetch or JSON parsing fails.
+    const controller=new AbortController();
+    const cancel=()=>controller.abort(signal?.reason);
+    if(signal?.aborted)cancel();
+    else signal?.addEventListener('abort',cancel,{once:true});
+    const timer=setTimeout(()=>controller.abort(
+      new Error('HyperSnap native registry request timed out')),requestTimeoutMs);
+    try {
+      const response=await fetchImpl(origin+url,{method:'GET',mode:'cors',
+        credentials:'omit',redirect:'error',headers:{accept:'application/json'},
+        signal:controller.signal});
+      if(Number(response.headers?.get?.('content-length')||0)>32768)
+        fail('oversized native registry response');
+      const text=await response.text();
+      if(text.length>32768)fail('oversized native registry response');
+      let body;
+      try{body=JSON.parse(text);}catch{fail('native registry returned non-JSON data');}
+      return {status:response.status,body};
+    }finally{
+      clearTimeout(timer);
+      signal?.removeEventListener('abort',cancel);
+    }
   };
   const lookup=async(address,signal)=>{
     if(!validAddress(address))fail('invalid custody address');

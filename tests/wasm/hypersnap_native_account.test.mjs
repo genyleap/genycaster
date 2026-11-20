@@ -211,3 +211,38 @@ test('native registry invalid custody response fails verification rather than si
   await assert.rejects(registry.recover(phrase),error=>
     error.code==='recovery-verification'&&/invalid custody proof/.test(error.message));
 });
+
+
+test('an external cancellation signal cannot disable the native registry timeout',async()=>{
+  let requested=0;
+  const registry=createBrowserNativeRegistry({
+    browser,requestTimeoutMs:20,
+    fetchImpl:async(_url,options)=>{
+      requested++;
+      return await new Promise((_resolve,reject)=>{
+        options.signal.addEventListener('abort',()=>reject(
+          options.signal.reason||new Error('request aborted')),{once:true});
+      });
+    }
+  });
+  const parent=new AbortController();
+  await assert.rejects(registry.recover(phrase,{signal:parent.signal}),error=>
+    error.code==='recovery-network'&&/could not be reached/.test(error.message));
+  assert.equal(requested,1);
+  assert.equal(parent.signal.aborted,false);
+});
+
+test('native registry parent cancellation still wins over the request timeout',async()=>{
+  const controller=new AbortController();
+  const registry=createBrowserNativeRegistry({
+    browser,requestTimeoutMs:1500,
+    fetchImpl:async(_url,opts)=>{
+      setImmediate(()=>controller.abort());
+      return await new Promise((_resolve,reject)=>{
+        opts.signal.addEventListener('abort',()=>reject(
+          new Error('cancelled by user')),{once:true});
+      });
+    }
+  });
+  await assert.rejects(registry.recover(phrase,{signal:controller.signal}),/Recovery cancelled/);
+});
