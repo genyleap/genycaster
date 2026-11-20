@@ -48,7 +48,8 @@ test('browser OpenProof routes require verified subject; device-only continuity 
     assert.match(browser, /BrowserOpenProofAuth::beginFarcaster\(/);
     assert.match(browser, /"\/v1\/browser\/farcaster\/poll"/);
     assert.match(browser, /m_subject = object\.value\(QStringLiteral\("sub"\)\)/);
-    assert.match(bindings, /const bool canonicalOpenProof = !restoredDevice/);
+    assert.match(bindings, /const bool canonicalOpenProof = !nativeHyperSnap && !restoredDevice/);
+    assert.match(bindings, /nativeHyperSnap\s*\? std::string\{"hypersnap:native-registry"\}/);
     assert.match(bindings, /std::string\{"genycaster:device-local"\}/);
     assert.match(bindings, /\.identityIssuer = std::string\{genycaster::deployment::openProofIssuer\}/);
     assert.match(policy, /set\(GENYCASTER_ENABLE_OPENPROOF_AUTH OFF CACHE BOOL "" FORCE\)/);

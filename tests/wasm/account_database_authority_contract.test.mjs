@@ -37,12 +37,16 @@ test('category and bookmark account transport are compiled into every Qt client,
   const bookmarks=readFileSync(new URL('../../ui/components/profile/BookmarksSurface.qml',import.meta.url),'utf8');
   const profile=readFileSync(new URL('../../ui/components/profile/ProfileSurface.qml',import.meta.url),'utf8');
   const config=readFileSync(new URL('../fixtures/public_endpoints.json',import.meta.url),'utf8');
-  const nativeBoundary=cmake.indexOf('\nif(EMSCRIPTEN)');
-  assert.ok(nativeBoundary>0);
+  const executable=cmake.indexOf('qt_add_executable(genycaster');
+  const endExecutable=cmake.indexOf('\n)',executable);
+  assert.ok(executable>0 && endExecutable>executable);
+  // The custody implementation is platform-selected, but the common
+  // connections controller belongs to the unconditional executable target.
+  assert.ok(cmake.slice(executable,endExecutable).includes('app/identity/connections.cpp'));
+  // Shared QML sources are declared ahead of the platform custody switch.
   for(const entry of [
-    'app/identity/connections.cpp',
     'components/profile/ProfileSurface.qml','components/profile/BookmarksSurface.qml'
-  ]) assert.ok(cmake.indexOf(entry)>0 && cmake.indexOf(entry)<nativeBoundary,entry);
+  ]) assert.ok(cmake.indexOf(entry)>0 && cmake.indexOf(entry)<executable,entry);
   assert.match(cpp,/void OpenProofConnectionsController::recordBookmarkMutation/);
   assert.match(cpp,/void OpenProofConnectionsController::sendCloudProfileRequest/);
   assert.match(cpp,/QNetworkRequest/);
