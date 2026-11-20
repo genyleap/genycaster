@@ -121,7 +121,7 @@ def audit(app: Path, architecture: str, *, inspect_macho: bool = True) -> None:
                         f"Unbundled Qt framework {name} referenced by {binary}")
 
 
-def smoke(app: Path) -> None:
+def smoke(app: Path, architecture: str) -> None:
     executable = app / "Contents/MacOS/Genycaster"
     with tempfile.TemporaryDirectory(prefix="genycaster-clean-macos-") as home:
         env = dict(os.environ)
@@ -140,11 +140,22 @@ def smoke(app: Path) -> None:
         try:
             completed = subprocess.run(
                 [str(executable), "--smoke-test", f"--settings-path={settings}"],
-                env=env, capture_output=True, text=True, timeout=45,
+                env=env, capture_output=True, text=True,
+                # Intel CI runners can take longer to initialize the
+                # full Qt Quick scene with software RHI on a cold bundle.
+                # Bound the timeout rather than silently skipping smoke.
+                timeout=120 if architecture == "x86_64" else 45,
                 check=False,
             )
         except subprocess.TimeoutExpired as exc:
-            raise ValueError("Packaged macOS app did not finish startup smoke test") from exc
+            def decode_partial(value: bytes | str | None) -> str:
+                return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else (value or "")
+            diagnostic = (decode_partial(exc.stdout) + "\n" +
+                          decode_partial(exc.stderr))[-6000:]
+            raise ValueError(
+                f"Packaged macOS {architecture} startup smoke timed out; "
+                f"last output:\n{diagnostic}"
+            ) from exc
         combined = (completed.stdout + "\n" + completed.stderr)[-10000:]
         require(completed.returncode == 0,
                 f"Packaged macOS app failed startup smoke test "
@@ -165,7 +176,7 @@ def main() -> None:
     audit(args.app, args.arch, inspect_macho=not args.skip_macho)
     if args.smoke:
         require(sys.platform == "darwin", "macOS bundle smoke must run on macOS")
-        smoke(args.app)
+        smoke(args.app, args.arch)
     print(f"Verified standalone macOS {args.arch} bundle: {args.app}")
 
 

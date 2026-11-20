@@ -22,6 +22,12 @@ GenyDrawer {
     // cast containing a reference; a reply has a canonical parent cast.
     readonly property string composeIntent: root.quotedCast !== null ? "quote"
                                              : root.parentCast !== null ? "reply" : "new"
+    function dismissTopLayer() {
+        if (channelPicker.opened) { channelPicker.close(); return }
+        if (topicPicker.opened) { topicPicker.close(); return }
+        if (emojiPicker.opened) { emojiPicker.close(); return }
+        root.close()
+    }
     readonly property bool replyMode: composeIntent === "reply"
     readonly property bool quoteMode: composeIntent === "quote"
     readonly property bool showTaxonomyControls: composeIntent !== "reply"
@@ -941,7 +947,8 @@ GenyDrawer {
             ? Math.max(0, Math.min(520,
                 (root.contentItem ? root.contentItem.height : root.height) * 0.72))
             : Math.max(0, Math.min(390, root.contentItem
-                ? root.contentItem.height - boundaryInset - triggerOrigin.y - y : 0))
+                ? root.contentItem.height - boundaryInset - triggerOrigin.y
+                  - (triggerItem ? triggerItem.height + Theme.space2 : 0) : 0))
         background: PopupSurface {
             fillColor: root.compact ? Theme.surfaceRaised : Theme.surfaceElevated
             borderWidth: 1
@@ -962,12 +969,6 @@ GenyDrawer {
         enter: Transition {
             ParallelAnimation {
                 NumberAnimation {
-                    property: "y"
-                    from: root.compact ? root.height : channelPicker.y
-                    duration: root.compact && !Theme.reduceMotion ? Theme.motionStandard : 0
-                    easing.type: Easing.OutCubic
-                }
-                NumberAnimation {
                     property: "opacity"
                     from: 0; to: 1
                     duration: Theme.reduceMotion ? 0 : Theme.motionFast
@@ -976,12 +977,6 @@ GenyDrawer {
         }
         exit: Transition {
             ParallelAnimation {
-                NumberAnimation {
-                    property: "y"
-                    to: root.compact ? root.height : channelPicker.y
-                    duration: root.compact && !Theme.reduceMotion ? Theme.motionFast : 0
-                    easing.type: Easing.InCubic
-                }
                 NumberAnimation {
                     property: "opacity"
                     to: 0
@@ -1255,7 +1250,8 @@ GenyDrawer {
             ? Math.max(0, Math.min(460,
                 (root.contentItem ? root.contentItem.height : root.height) * 0.62))
             : Math.max(0, Math.min(330, root.contentItem
-                ? root.contentItem.height - boundaryInset - triggerOrigin.y - y : 0))
+                ? root.contentItem.height - boundaryInset - triggerOrigin.y
+                  - (triggerItem ? triggerItem.height + Theme.space2 : 0) : 0))
         background: PopupSurface {
             fillColor: root.compact ? Theme.surfaceRaised : Theme.surfaceElevated
             borderWidth: 1
@@ -1276,12 +1272,6 @@ GenyDrawer {
         enter: Transition {
             ParallelAnimation {
                 NumberAnimation {
-                    property: "y"
-                    from: root.compact ? root.height : topicPicker.y
-                    duration: root.compact && !Theme.reduceMotion ? Theme.motionStandard : 0
-                    easing.type: Easing.OutCubic
-                }
-                NumberAnimation {
                     property: "opacity"
                     from: 0; to: 1
                     duration: Theme.reduceMotion ? 0 : Theme.motionFast
@@ -1290,12 +1280,6 @@ GenyDrawer {
         }
         exit: Transition {
             ParallelAnimation {
-                NumberAnimation {
-                    property: "y"
-                    to: root.compact ? root.height : topicPicker.y
-                    duration: root.compact && !Theme.reduceMotion ? Theme.motionFast : 0
-                    easing.type: Easing.InCubic
-                }
                 NumberAnimation {
                     property: "opacity"
                     to: 0

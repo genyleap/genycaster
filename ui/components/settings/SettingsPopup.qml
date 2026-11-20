@@ -42,6 +42,7 @@ GenyAdaptiveDialog {
                                           ? Overlay.overlay.width
                                           : (root.parent ? root.parent.width : 0)
     readonly property bool mobilePresentation: Qt.platform.os === "android"
+                                              || Qt.platform.os === "ios"
                                               || (viewportWidth > 0
                                                   && viewportWidth < Theme.breakpointMobile)
     function scrollToBeginning() {
@@ -955,8 +956,18 @@ GenyAdaptiveDialog {
                             font.pixelSize: Theme.typeLabelSize
                             font.weight: Theme.weightDemiBold
                         }
+                        // Match the text-selection column's explanatory row,
+                        // so both segmented controls share one desktop baseline.
+                        Item {
+                            visible: root.contentColumns === 2
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: visible && textSelectionDescription
+                                ? textSelectionDescription.implicitHeight : 0
+                        }
                         Superellipse {
                             Layout.fillWidth: true
+                            Layout.maximumWidth: Theme.scaleUi(360)
+                            Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
                             implicitHeight: Theme.controlHeight + Theme.space1 * 2
                             fillColor: Theme.surfaceMuted
                             curveDepth: Theme.curveControl
@@ -1162,6 +1173,7 @@ GenyAdaptiveDialog {
                             font.weight: Theme.weightDemiBold
                         }
                         DirectionAwareLabel {
+                            id: textSelectionDescription
                             Layout.fillWidth: true
                             text: qsTrId("genycaster.settings.text_selection_description")
                             color: Theme.inkMuted

@@ -75,8 +75,9 @@ test('unverified token branding cannot replace market-source artwork',()=>{
 test('composer waits for remembered signer verification instead of showing the sign-in sheet',()=>{
   const shell=read('ui/components/shell/AppShell.qml');
   assert.match(shell,/property var pendingComposerIntent: null/);
-  assert.ok(shell.includes('presentationBridge.isAuthenticated && presentationBridge.signerBusy'));
-  assert.ok(shell.includes('presentationBridge.signerPhase === "checking"'));
+  assert.ok(shell.includes('if (!presentationBridge.signerBusy)'));
+  assert.ok(shell.includes('root.requestInteractionAuthorization()'));
+  assert.ok(shell.includes('root.pendingComposerIntent = {'));
   assert.ok(shell.includes('function resolvePendingComposer()'));
   assert.ok(shell.includes('function onStateChanged() { root.resolvePendingComposer() }'));
   assert.ok(shell.includes('presentationBridge.isAuthenticated && presentationBridge.writeReady'));
@@ -86,8 +87,10 @@ test('compact navigation uses the canonical GenyCaster G-arrow logo instead of D
   const compact=read('ui/components/navigation/CompactNavigationRail.qml');
   const full=read('ui/components/navigation/SideNavigation.qml');
   assert.match(compact,/objectName: "compactSidebarGenycasterLogo"/);
-  assert.match(compact,/source: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg"/);
-  assert.match(full,/source: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg"/);
+  assert.match(compact,/image:\/\/genycaster-brand\/mark/);
+  assert.match(full,/image:\/\/genycaster-brand\/mark/);
+  assert.match(compact,/qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg/);
+  assert.match(full,/qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg/);
   assert.doesNotMatch(compact,/Theme\.iconLeaf|brands\/geny|brands\/genyleap/);
   assert.match(compact,/fillMode: Image\.PreserveAspectFit/);
   const shell=read('ui/components/shell/AppShell.qml');

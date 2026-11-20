@@ -27,6 +27,7 @@ Item {
     property real mobileHeightRatio: 0.90
     property real popupZ: 1000
     readonly property bool compactPresentation: Qt.platform.os === "android"
+        || Qt.platform.os === "ios"
         || (parent ? parent.width < Theme.breakpointMobile : false)
     readonly property bool opened: (desktopDialog && desktopDialog.opened)
                                   || (mobileDrawer && mobileDrawer.opened)

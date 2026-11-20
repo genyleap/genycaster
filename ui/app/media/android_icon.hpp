@@ -74,7 +74,6 @@ public:
     }
 };
 
-
 /**
  * Qt Quick SVG decoding may upload BGRA textures through the host GLES
  * translator on Android emulators. Convert the small, bundled brand assets to

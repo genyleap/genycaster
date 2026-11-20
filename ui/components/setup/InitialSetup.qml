@@ -175,7 +175,8 @@ Item {
     }
     property bool showAdvanced: false
     property bool consentChecked: false
-    readonly property bool phone: width < 680
+    readonly property bool phone: Qt.platform.os === "android"
+                                  || Qt.platform.os === "ios" || width < 680
     readonly property int setupGutter: phone ? 24 : Theme.scaleUi(32)
     // A compact secondary choice accompanies Get Started in the Web welcome
     // step. Do not repeat download promotions during custody or recovery.

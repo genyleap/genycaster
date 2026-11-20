@@ -1663,9 +1663,23 @@ target_include_directories(genycaster
 find_package(Qt6 QUIET COMPONENTS Lottie)
 if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
     target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_LOTTIE=1)
-    qt_import_plugins(genycaster
-        INCLUDE Qt6::QLottieVectorImagePlugin
-        EXCLUDE_BY_TYPE sqldrivers)
+    if(EMSCRIPTEN)
+        # The VectorImage Lottie generator creates QtQuick.Timeline content at
+        # runtime. Static WASM's QML dependency scanner cannot see that import.
+        # Bundle its actual Qt plugin explicitly, keeping Noto animations
+        # functional rather than producing repeated missing-plugin warnings.
+        find_package(Qt6 REQUIRED COMPONENTS QuickTimeline)
+        if(NOT TARGET Qt6::qtquicktimelineplugin)
+            message(FATAL_ERROR "WASM Lottie requires the QtQuick.Timeline QML plugin")
+        endif()
+        qt_import_plugins(genycaster
+            INCLUDE Qt6::QLottieVectorImagePlugin Qt6::qtquicktimelineplugin
+            EXCLUDE_BY_TYPE sqldrivers)
+    else()
+        qt_import_plugins(genycaster
+            INCLUDE Qt6::QLottieVectorImagePlugin
+            EXCLUDE_BY_TYPE sqldrivers)
+    endif()
 else()
     qt_import_plugins(genycaster EXCLUDE_BY_TYPE sqldrivers)
 endif()

@@ -948,12 +948,15 @@ if ('contentItem: ScrollView {' not in rendering_popup
 if ('GenyModal {' not in adaptive_dialog
         or 'GenyDrawer {' not in adaptive_dialog
         or 'bottomSheet: true' not in adaptive_dialog
-        or 'compactPresentation: parent ? parent.width < Theme.breakpointMobile' not in adaptive_dialog
+        or 'Qt.platform.os === "android"' not in adaptive_dialog
+        or 'Qt.platform.os === "ios"' not in adaptive_dialog
+        or 'parent.width < Theme.breakpointMobile' not in adaptive_dialog
         or 'GenyAdaptiveDialog {' not in accent_studio
         or 'GenyAdaptiveDialog {' not in feedback_dialog):
     errors.append('Transient settings/feedback dialogs must use a true bottom Drawer on mobile and a centered modal on desktop')
 locale_settings = (ui/'components'/'settings'/'SettingsPopup.qml').read_text(encoding='utf-8')
-if ('readonly property bool mobilePresentation: viewportWidth > 0' not in locale_settings
+if ('readonly property bool mobilePresentation: Qt.platform.os === "android"' not in locale_settings
+        or 'Qt.platform.os === "ios"' not in locale_settings
         or 'viewportWidth < Theme.breakpointMobile' not in locale_settings
         or 'desktopFullScreen: true' not in locale_settings
         or 'mobileFullScreen: true' not in locale_settings):

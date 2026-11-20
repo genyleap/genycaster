@@ -277,6 +277,10 @@ void CastViewController::dispatch()
     }
     const QJsonObject payload{{QStringLiteral("casts"), casts}};
     QNetworkRequest request{m_endpoint};
+    // This gateway can reset multiplexed Qt HTTP/2 streams after sending a
+    // 200 response. Pin its derived read-only POST to HTTP/1.1; preserve the
+    // existing deadline, CORS origin and bounded response limits.
+    request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     request.setHeader(QNetworkRequest::ContentTypeHeader,
                       QStringLiteral("application/json"));
     request.setRawHeader("Accept", "application/json");

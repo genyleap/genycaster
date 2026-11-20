@@ -58,6 +58,58 @@ Item {
             && !presentationBridge.nativeCustodySignerAvailable
         interactionAuthorizationDialog.open()
     }
+
+    // Native Back must dismiss the topmost transient surface before navigating
+    // the content history. Reuse the same hierarchy on Android and future iOS
+    // hosts; do not discard an in-progress Cast while a nested picker is open.
+    function handlePlatformBack() {
+        if (interactionAuthorizationDialog.opened) {
+            interactionAuthorizationDialog.close()
+            root.pendingComposerIntent = null
+            return true
+        }
+        if (localeSettingsOpen) {
+            const settings = localePopupLoader.item
+            if (settings.mobilePresentation && !settings.mobileIndexOpen)
+                settings.mobileIndexOpen = true
+            else
+                settings.close()
+            return true
+        }
+        if (dataStorageSettingsOpen) { dataStoragePopupLoader.item.close(); return true }
+        if (composerDrawer.opened) { composerDrawer.dismissTopLayer(); return true }
+        if (mediaGallery.opened) { mediaGallery.close(); return true }
+        if (mobileCreateMenu.opened) { mobileCreateMenu.close(); return true }
+        if (searchPalette.opened) { searchPalette.close(); return true }
+        if (accountPopup.opened) { accountPopup.close(); return true }
+        if (genyProDetailsDrawer.opened) { genyProDetailsDrawer.close(); return true }
+        if (contextDrawer.opened) { contextDrawer.close(); return true }
+        if (renderingSettingsPopup.opened) { renderingSettingsPopup.close(); return true }
+        if (taskManagerPopup.opened) { taskManagerPopup.close(); return true }
+        if (feedbackDialog.opened) { feedbackDialog.close(); return true }
+        if (signOutConfirm.opened) { signOutConfirm.close(); return true }
+        if (releaseNotice.opened) { releaseNotice.close(); return true }
+        if (root.initialSetupOpen) {
+            if (root.setupReviewOpen)
+                root.setupReviewOpen = false
+            else
+                initialSetup.previousStep()
+            return true
+        }
+        if (root.topicBrowseActive) { root.closeTopicBrowser(); return true }
+        if (presentationBridge.activeView === "cast"
+                || presentationBridge.activeView === "profile") {
+            root.returnFromCastDetail()
+            return true
+        }
+        if (root.shellRoute.length > 0) { root.shellRoute = ""; return true }
+        if (root.primaryDestination !== "home") {
+            root.primaryDestination = "home"
+            return true
+        }
+        return false
+    }
+
     GenyModal {
         id: interactionAuthorizationDialog
         objectName: "interactionAuthorizationExplanation"
@@ -67,6 +119,7 @@ Item {
         readonly property bool nativeAccount:
             presentationBridge.nativeCustodyAccount
         property bool enteringNativeWords: false
+        property bool authorizationSubmitted: false
         property bool showRecoveryWords: false
         property int recoveryRevision: 0
         function recoveryWord(index) {
@@ -104,7 +157,10 @@ Item {
             const next = nativeSignerWordGrid.itemAt(start + words.length)
             if (next) next.focusWord()
         }
+        onOpened: authorizationSubmitted = false
         onClosed: {
+            if (!authorizationSubmitted)
+                root.pendingComposerIntent = null
             clearRecoveryWords()
             enteringNativeWords = false
         }
@@ -288,6 +344,7 @@ Item {
                     enabled: !interactionAuthorizationDialog.enteringNativeWords
                              || interactionAuthorizationDialog.recoveryReady()
                     onClicked: {
+                        interactionAuthorizationDialog.authorizationSubmitted = true
                         if (interactionAuthorizationDialog.nativeAccount
                             && interactionAuthorizationDialog.enteringNativeWords) {
                             // One-shot secret: forward directly to native C++,
@@ -319,13 +376,20 @@ Item {
     }
 
     readonly property bool isReady: presentationBridge.architectureState.length > 0
-    readonly property bool largeDesktop: width >= Theme.breakpointLargeDesktop
-    readonly property bool desktop: width >= Theme.breakpointCompactDesktop
-    readonly property bool compactDesktop: width >= Theme.breakpointNarrow && width < Theme.breakpointCompactDesktop
-    readonly property bool narrow: width >= Theme.breakpointMobile && width < Theme.breakpointNarrow
-    readonly property bool mobile: width < Theme.breakpointMobile
+    // A physical handset may report its display in device pixels rather than
+    // logical pixels (high-DPI Android / iOS). Never treat it as a desktop
+    // merely because the reported pixel width crosses a desktop breakpoint.
+    readonly property bool phonePlatform: Qt.platform.os === "android"
+                                          || Qt.platform.os === "ios"
+    readonly property bool largeDesktop: !phonePlatform && width >= Theme.breakpointLargeDesktop
+    readonly property bool desktop: !phonePlatform && width >= Theme.breakpointCompactDesktop
+    readonly property bool compactDesktop: !phonePlatform && width >= Theme.breakpointNarrow
+                                           && width < Theme.breakpointCompactDesktop
+    readonly property bool narrow: !phonePlatform && width >= Theme.breakpointMobile
+                                   && width < Theme.breakpointNarrow
+    readonly property bool mobile: phonePlatform || width < Theme.breakpointMobile
     readonly property bool wide: root.desktop
-    readonly property bool compact: width < Theme.breakpointNarrow
+    readonly property bool compact: phonePlatform || width < Theme.breakpointNarrow
     readonly property int socialMinimumReadingWidth: 680
     readonly property bool homeSurfaceActive: root.shellRoute.length === 0
                                                && presentationBridge.activeView === "feed"
@@ -783,11 +847,15 @@ Item {
         }
         if (presentationBridge.signerBusy)
             return
-        root.pendingComposerIntent = null
         if (!presentationBridge.writeReady) {
-            accountPopup.open()
+            // Keep the explicit Cast intent during an asynchronous signer
+            // check. Once it settles, open the device consent sheet exactly
+            // once rather than redirecting the user to the profile inspector.
+            if (!interactionAuthorizationDialog.opened)
+                root.requestInteractionAuthorization()
             return
         }
+        root.pendingComposerIntent = null
         // Recheck after the signer event has completed; never publish or
         // open an authorized editor from a stale account transition.
         Qt.callLater(function() {
@@ -1102,19 +1170,24 @@ Item {
     }
 
     function openComposer(parentCast, initialAction, suggestedText, quoteCast, structuredReport) {
-        if (!presentationBridge.isAuthenticated || !presentationBridge.writeReady) {
-            if (presentationBridge.isAuthenticated && presentationBridge.signerBusy
-                    && presentationBridge.signerPhase === "checking") {
-                root.pendingComposerIntent = {
-                    "parentCast": parentCast || null,
-                    "initialAction": initialAction || "",
-                    "suggestedText": suggestedText || "",
-                    "quoteCast": quoteCast || null,
-                    "structuredReport": Boolean(structuredReport)
-                }
-                return
-            }
+        if (!presentationBridge.isAuthenticated) {
+            root.pendingComposerIntent = null
             accountPopup.open()
+            return
+        }
+        if (!presentationBridge.writeReady) {
+            // On Safari/PWA an imported Farcaster identity can be valid while
+            // the per-device signer is still locked. Preserve the draft intent
+            // and open the *authorization* sheet, not the account/profile drawer.
+            root.pendingComposerIntent = {
+                "parentCast": parentCast || null,
+                "initialAction": initialAction || "",
+                "suggestedText": suggestedText || "",
+                "quoteCast": quoteCast || null,
+                "structuredReport": Boolean(structuredReport)
+            }
+            if (!presentationBridge.signerBusy)
+                root.requestInteractionAuthorization()
             return
         }
         root.pendingComposerIntent = null

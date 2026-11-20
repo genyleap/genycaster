@@ -28,7 +28,7 @@ test('Settings palette never recreates all eight model delegates when dark mode 
   assert.match(qml,/required property string modelData/);
   assert.match(qml,/readonly property color presetSwatch:/);
   assert.match(qml,/readonly property string presetLabel:/);
-  assert.match(qml,/color: themePreset\.presetSwatch/);
+  assert.match(qml,/fillColor: themePreset\.presetSwatch/);
   assert.match(qml,/text: themePreset\.presetLabel/);
   assert.match(qml,/onTapped: themePreset\.selectPreset\(\)/);
   assert.doesNotMatch(qml,/\{ id: "ocean", label:.*Theme\.swatchOcean/);

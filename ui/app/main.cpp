@@ -16,6 +16,10 @@
 #include "miniapp/browser_linux_quick.hpp"
 #endif
 #include <QIcon>
+#if defined(Q_OS_ANDROID)
+#include <QInputMethod>
+#include <QKeyEvent>
+#endif
 #include <QFile>
 #include <QFileInfo>
 #include <QMetaObject>
@@ -229,6 +233,38 @@ makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalle
         return {};
     };
 }
+
+#if defined(Q_OS_ANDROID)
+// The Android back gesture arrives at the Qt window, not necessarily the
+// focused QML item (especially with a modal overlay). Dispatch centrally,
+// while letting the platform close an active software keyboard first.
+class AndroidBackDispatcher final : public QObject {
+public:
+    AndroidBackDispatcher(QQuickWindow* window, QObject* shell)
+        : QObject{window}, m_window{window}, m_shell{shell} {}
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (watched != m_window || event->type() != QEvent::KeyPress || !m_shell)
+            return false;
+        const auto* key = static_cast<QKeyEvent*>(event);
+        if (key->key() != Qt::Key_Back && key->key() != Qt::Key_Escape)
+            return false;
+        if (QGuiApplication::inputMethod()
+            && QGuiApplication::inputMethod()->isVisible())
+            return false;
+        QVariant handled{};
+        if (!QMetaObject::invokeMethod(m_shell.data(), "handlePlatformBack",
+                                       Q_RETURN_ARG(QVariant, handled)))
+            return false;
+        return handled.toBool();
+    }
+
+private:
+    QQuickWindow* m_window{};
+    QPointer<QObject> m_shell{};
+};
+#endif
 
 }
 
@@ -1448,6 +1484,11 @@ int main(int argc, char* argv[])
     desktopInstance.setWindow(mainWindow);
 #endif
     renderingController.attachWindow(mainWindow);
+#if defined(Q_OS_ANDROID)
+    if (auto* shell = mainWindow->findChild<QObject*>(QStringLiteral("appShell"))) {
+        mainWindow->installEventFilter(new AndroidBackDispatcher{mainWindow, shell});
+    }
+#endif
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)) \
  || (defined(Q_OS_WIN) && defined(GENYCASTER_HAS_WINDOWS_MINIAPP_HOST))
     // Native in-window Mini App drawers must use the stable Qt Quick host,
