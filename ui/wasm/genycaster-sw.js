@@ -1,6 +1,6 @@
 /* Public application assets only. Never cache user API responses or credentials. */
 "use strict";
-const CACHE="genycaster-static-v14";
+const CACHE="genycaster-static-v15";
 const WASM_HASH=/^genycaster\.[0-9a-f]{20}\.wasm$/;
 // Explicit allowlist: a same-origin .json/.html URL might contain personal
 // account data. Never cache arbitrary paths based solely on file extension.

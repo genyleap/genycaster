@@ -1345,27 +1345,8 @@ Item {
             width: parent ? parent.width : 0
             spacing: 0
 
-            // Discoverable account and app entry points live INSIDE the
-            // scrollable Explore header, never as a permanent HTML overlay.
-            // Authentication, not publishing/signer readiness, owns visibility.
-            NativeAppDiscoveryCTA {
-                objectName: "webGuestDiscoveryActions"
-                visible: Qt.platform.os === "wasm"
-                         && presentationBridge.authenticationStateObserved
-                         && !presentationBridge.isAuthenticated
-                x: Theme.space3
-                width: Math.max(0, parent.width - Theme.space3 * 2)
-                height: visible ? implicitHeight : 0
-                showSignIn: true
-                onDownloadsRequested: presentationBridge.openBrowserNativeDownloads()
-                onSignInRequested: root.openAccountPopup()
-            }
-            Item {
-                width: parent.width
-                height: presentationBridge.authenticationStateObserved
-                        && !presentationBridge.isAuthenticated
-                        && Qt.platform.os === "wasm" ? Theme.space3 : 0
-            }
+            // Explore uses its existing account header action. The native
+            // download choice belongs only beside Get Started on Welcome.
             // Explorer's brand/action bar is fixed by the shell. Everything from
             // the greeting downward belongs to the scrolling/pullable feed.
             HomeFeedHeader {

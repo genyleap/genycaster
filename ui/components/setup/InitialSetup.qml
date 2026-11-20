@@ -177,6 +177,13 @@ Item {
     property bool consentChecked: false
     readonly property bool phone: width < 680
     readonly property int setupGutter: phone ? 24 : Theme.scaleUi(32)
+    // A compact secondary choice accompanies Get Started in the Web welcome
+    // step. Do not repeat download promotions during custody or recovery.
+    readonly property bool welcomeNativeAppsVisible: Qt.platform.os === "wasm"
+        && currentStep === 0 && !authenticated && !reviewMode
+    readonly property real welcomeActionsWidth: Math.max(0, Math.min(
+        root.phone ? root.width - root.setupGutter * 2 : stagePanel.width,
+        root.phone ? 440 : 560))
     readonly property bool desktopStageFooter: !phone && currentStep > 0 && showsPrimaryCta
     readonly property bool wideStage: !phone && stagePanel.width >=
         Theme.scaleUi(520) * Math.max(1, Theme.fontScale)
@@ -1289,10 +1296,7 @@ Item {
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
             contentHeight: Math.max(height, stagePanel.y + stagePanel.implicitHeight
-                                    + (root.showsPrimaryCta && !root.desktopStageFooter ? 116 : 32),
-                                    setupNativeAppEntry.visible
-                                        ? setupNativeAppEntry.y + setupNativeAppEntry.height + Theme.space4
-                                        : 0)
+                                    + (root.showsPrimaryCta && !root.desktopStageFooter ? 116 : 32))
             ScrollBar.vertical: GenyScrollBar {
                 policy: stageScroll.contentHeight > stageScroll.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
             }
@@ -1345,22 +1349,6 @@ Item {
                 }
             }
 
-            // Native editions are discoverable inside onboarding instead of
-            // floating above recovery phrases or the setup CTA. The verified
-            // download catalog decides whether an install is actually ready.
-            NativeAppDiscoveryCTA {
-                id: setupNativeAppEntry
-                objectName: "setupNativeAppEntry"
-                visible: Qt.platform.os === "wasm" && !root.reviewMode
-                         && !root.authenticated
-                         && (root.currentStep === 3 || root.currentStep === 4)
-                x: stagePanel.x
-                y: stagePanel.y + stagePanel.implicitHeight + Theme.space4
-                width: stagePanel.width
-                height: visible ? implicitHeight : 0
-                dense: true
-                onDownloadsRequested: root.nativeAppDownloadsRequested()
-            }
         }
 
         // An action belonging to the active onboarding stage, not a footer bar.
@@ -1378,11 +1366,16 @@ Item {
                                              - Theme.space7 - height)
                                   : root.phone ? Theme.space5
                                   : Theme.space4
-            width: root.phone ? Math.min(root.width - root.setupGutter * 2, 440)
-                              : Math.min(root.desktopStageFooter
-                                         ? Theme.scaleUi(230) : 330,
-                                         stagePanel.width * 0.65)
-            x: root.desktopStageFooter
+            width: root.welcomeNativeAppsVisible
+                   ? (root.welcomeActionsWidth - Theme.space2) * (root.phone ? 0.42 : 0.47)
+                   : root.phone ? Math.min(root.width - root.setupGutter * 2, 440)
+                   : Math.min(root.desktopStageFooter
+                              ? Theme.scaleUi(230) : 330,
+                              stagePanel.width * 0.65)
+            x: root.welcomeNativeAppsVisible
+               ? setupCanvas.formStart + (setupCanvas.formWidth - root.welcomeActionsWidth) / 2
+                 + (Theme.rtl ? root.welcomeActionsWidth - width : 0)
+               : root.desktopStageFooter
                ? (Theme.rtl ? stagePanel.x : stagePanel.x + stagePanel.width - width)
                : setupCanvas.formStart + (setupCanvas.formWidth - width) / 2
             text: root.actionText()
@@ -1392,6 +1385,25 @@ Item {
             enabled: !root.stageTransitioning && root.actionEnabled()
             showArrow: root.currentStep === 0
             onClicked: root.nextStep()
+        }
+
+        // No banner, card or extra onboarding step: native builds remain one
+        // directly accessible secondary action alongside Get Started.
+        ActionButton {
+            objectName: "setupWelcomeNativeApps"
+            visible: root.welcomeNativeAppsVisible
+            z: 10
+            anchors.bottom: stageAction.bottom
+            width: Math.max(0, root.welcomeActionsWidth - Theme.space2 - stageAction.width)
+            height: stageAction.height
+            x: Theme.rtl ? stageAction.x - Theme.space2 - width
+                         : stageAction.x + stageAction.width + Theme.space2
+            text: qsTrId("genycaster.apps.download_cta_button")
+            iconGlyph: Theme.iconDownload
+            wrapText: true
+            elevated: false
+            focusPolicy: Qt.StrongFocus
+            onClicked: root.nativeAppDownloadsRequested()
         }
     }
 
@@ -1451,15 +1463,6 @@ Item {
                 currentStep: root.currentStep
                 Accessible.name: root.stepTitle(root.currentStep)
                                  + " (" + (root.currentStep + 1) + "/" + root.progressCount + ")"
-            }
-            NativeAppDiscoveryCTA {
-                objectName: "setupWelcomeNativeApps"
-                visible: Qt.platform.os === "wasm" && !root.authenticated && !root.reviewMode
-                Layout.fillWidth: true
-                Layout.topMargin: Theme.space4
-                Layout.preferredHeight: visible ? implicitHeight : 0
-                dense: true
-                onDownloadsRequested: root.nativeAppDownloadsRequested()
             }
         }
     }

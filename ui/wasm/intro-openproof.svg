@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254" role="img" aria-labelledby="logo-title logo-description">
-  <title id="logo-title">OP Authentication — teal shield</title>
-  <desc id="logo-description">Scalable vector reconstruction of the supplied logo: a dark navy shield surrounding a teal field, a white OP monogram and fingerprint. All artwork consists of editable vector paths.</desc>
+  <title id="logo-title">OpenProof — monochrome identity shield</title>
+  <desc id="logo-description">Monochrome white OpenProof shield, OP monogram, and fingerprint for the dark Genycaster intro. Based on the official Genyleap icon geometry.</desc>
   <g id="shield">
-    <path id="outer-shield" fill="#082a35" d="M627 45
+    <path id="outer-shield" fill="none" stroke="#F7F8FA" stroke-width="28" stroke-linejoin="round" d="M627 45
       C588 45 498 111 409 158
       C329 203 269 221 175 225
       C149 225 129 245 129 273
@@ -15,14 +15,14 @@
       C1125 245 1105 225 1079 225
       C985 221 925 203 845 158
       C756 111 666 45 627 45Z"/>
-    <path id="white-inset" fill="#fff" d="M627 115
+    <path id="white-inset" fill="none" d="M627 115
       C501 182 378 271 202 295
       V424
       C202 714.12 361.84 951.02 627 1136
       C892.16 951.02 1052 714.12 1052 424
       V295
       C876 271 753 182 627 115Z"/>
-    <path id="teal-shield" fill="#008c79" d="M627 161
+    <path id="teal-shield" fill="none" d="M627 161
       C499 234 375 305 238 329
       V426
       C238 689.65 379.49 909.80 627 1094
@@ -30,7 +30,7 @@
       V329
       C879 305 755 234 627 161Z"/>
   </g>
-  <g id="op-monogram" fill="#fff">
+  <g id="op-monogram" fill="#F7F8FA">
     <path id="letter-o" d="M701 551
       C686 450 607 373 508 373
       C400 373 312 463 312 575
@@ -50,7 +50,7 @@
       C870 479 841 448 807 448
       H689Z"/>
   </g>
-  <g id="fingerprint" fill="none" stroke="#fff" stroke-width="17" stroke-linecap="round" stroke-linejoin="round">
+  <g id="fingerprint" fill="none" stroke="#F7F8FA" stroke-width="17" stroke-linecap="round" stroke-linejoin="round">
     <path id="outer-ridge" d="M401 553C418 501 456 474 500 474C549 472 592 503 612 553"/>
     <path id="middle-ridge" d="M408 609C418 598 425 582 430 567C441 537 468 514 500 514C551 513 588 554 593 604C595 617 594 629 592 638"/>
     <path id="inner-ridge" d="M425 647C444 630 451 610 458 589C467 562 484 553 504 554C535 554 558 581 561 610C564 639 554 668 541 689"/>

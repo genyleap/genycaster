@@ -221,3 +221,13 @@ genycaster.streak.badge_days
 genycaster.streak.profile_badge
 genycaster.streak.top_100
 genycaster.topics.hint
+# The recovery error IDs are chosen dynamically by qtTrId(errorId) in C++,
+# and cannot be extracted by the literal-only source scanner.
+genycaster.setup.farcaster_custody_mismatch
+genycaster.setup.farcaster_custody_unregistered
+# Older cached onboarding clients still reference these protocol-specific
+# registration and browser-recovery labels. Keep them during migration.
+genycaster.setup.browser_hypersnap_recovery_notice
+genycaster.setup.browser_native_registration_notice
+genycaster.setup.registration_choose_provider
+genycaster.setup.registration_shared_fid

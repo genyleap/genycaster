@@ -5301,21 +5301,9 @@ Company | https://company.com</source>
             <source>Native Genycaster Apps are in development.</source>
             <translation>برنامه‌های بومی جنی‌کستر در حال توسعه هستند.</translation>
         </message>
-        <message id="genycaster.apps.download_cta_eyebrow">
-            <source>DESKTOP &amp; MOBILE</source>
-            <translation>دسکتاپ و موبایل</translation>
-        </message>
-        <message id="genycaster.apps.download_cta_title">
-            <source>Get GenyCaster for your device</source>
-            <translation>جنی‌کستر را برای دستگاه خود دریافت کنید</translation>
-        </message>
-        <message id="genycaster.apps.download_cta_description">
-            <source>Explore macOS, Windows, Linux and Android editions. See what's available and what's coming soon.</source>
-            <translation>نسخه‌های macOS، Windows، Linux و Android را ببینید؛ مشخص کنید کدام نسخه منتشر شده و کدام‌یک به‌زودی می‌آید.</translation>
-        </message>
         <message id="genycaster.apps.download_cta_button">
-            <source>Explore downloads</source>
-            <translation>مشاهدهٔ دانلودها</translation>
+            <source>Download Native Apps</source>
+            <translation>دانلود برنامه‌های بومی</translation>
         </message>
         <message id="genycaster.apps.my_miniapps">
             <source>My MiniApps</source>

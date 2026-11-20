@@ -5280,21 +5280,9 @@ Company | https://company.com</source>
             <source>Native Genycaster Apps are in development.</source>
             <translation>Os aplicativos nativos do Genycaster estão em desenvolvimento.</translation>
         </message>
-        <message id="genycaster.apps.download_cta_eyebrow">
-            <source>DESKTOP &amp; MOBILE</source>
-            <translation>DESKTOP E CELULAR</translation>
-        </message>
-        <message id="genycaster.apps.download_cta_title">
-            <source>Get GenyCaster for your device</source>
-            <translation>Tenha o GenyCaster no seu dispositivo</translation>
-        </message>
-        <message id="genycaster.apps.download_cta_description">
-            <source>Explore macOS, Windows, Linux and Android editions. See what's available and what's coming soon.</source>
-            <translation>Explore as versões para macOS, Windows, Linux e Android. Veja quais estão disponíveis e quais chegam em breve.</translation>
-        </message>
         <message id="genycaster.apps.download_cta_button">
-            <source>Explore downloads</source>
-            <translation>Explorar downloads</translation>
+            <source>Download Native Apps</source>
+            <translation>Baixar aplicativos nativos</translation>
         </message>
         <message id="genycaster.apps.my_miniapps">
             <source>My MiniApps</source>
