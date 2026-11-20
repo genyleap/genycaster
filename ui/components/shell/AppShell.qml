@@ -1584,7 +1584,10 @@ Item {
                         presentationBridge.openProfileFid(Number(profile.fid))
                     }
                 }
-                onAuthenticationRequested: root.openAccountPopup()
+                // HomeComposer's "authenticationRequested" also means a
+                // signed-in user lacks write authority. Never show a second
+                // Genyleap account sheet for an existing verified identity.
+                onAuthenticationRequested: root.requestWriteInteraction()
                 onSearchRequested: searchPalette.open()
             }
             // Phone navigation has a bounded six-destination dock. Reach the

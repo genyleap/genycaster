@@ -37,7 +37,8 @@ test('authentication-needed in social writers routes signed-in session to signer
                               shell.indexOf('function resolvePendingComposer()'));
   assert.match(handler, /if \(!presentationBridge.isAuthenticated\)\s+root.openAccountPopup\(\)/);
   assert.match(handler, /else if \(!presentationBridge.writeReady\)\s+root.requestInteractionAuthorization\(\)/);
-  assert.ok((shell.match(/onAuthenticationRequested: root.requestWriteInteraction\(\)/g) || []).length >= 4);
+  assert.ok((shell.match(/onAuthenticationRequested: root.requestWriteInteraction\(\)/g) || []).length >= 5);
+  assert.match(shell, /HomeComposer's "authenticationRequested" also means a/);
   // Explicit account management and app sign-in requests still open account.
   assert.ok((shell.match(/onAuthenticationRequested: root.openAccountPopup\(\)/g) || []).length >= 1);
 });
