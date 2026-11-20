@@ -760,6 +760,22 @@ if(EMSCRIPTEN)
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/portrait-orientation-pre.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/protocol-signer-pre.js"
     )
+    # Emscripten --pre-js files and dynamic browser modules are runtime
+    # sources. Without explicit dependencies Ninja reports "no work to do"
+    # after changing their contents and ships the previous recovery bridge.
+    # Trigger link + post-build asset hash regeneration on every such edit.
+    set_property(TARGET genycaster APPEND PROPERTY LINK_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/persistence-pre.js"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-host-pre.js"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser-hls-pre.js"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/portrait-orientation-pre.js"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/protocol-signer-pre.js"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/recovery-phrase-dialog.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_recovery.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/hypersnap_native_account.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_protocol_signer.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_device_session.mjs"
+    )
 
     # The WASM Mini App host must use Farcaster's official origin-filtered
     # Comlink implementation. Bundle it into a first-party asset so browser
