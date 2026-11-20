@@ -1425,7 +1425,7 @@ Item {
                                   : (parent.width - width) / 2
                     width: root.phone ? 54 : 58
                     height: width
-                    source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                    source: (Qt.platform.os === "android" ? "image://genycaster-brand/mark" : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg")
                     fillMode: Image.PreserveAspectFit
                     sourceSize: Qt.size(160, 160)
                     smooth: true
@@ -1852,7 +1852,7 @@ Item {
                         compactCard: true
                         onboardingStyle: true
                         title: qsTrId("genycaster.shell.continue_with_genyleap")
-                        brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                        brandImageSource: (Qt.platform.os === "android" ? "image://genycaster-brand/mark" : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg")
                         enabled: root.runtimeReady && root.authenticationAvailable
                                  && !root.authenticationInProgress
                         onClicked: {
@@ -2762,7 +2762,7 @@ Item {
                     compactCard: true
                     wrapTitle: true
                     onboardingStyle: true
-                    brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                    brandImageSource: (Qt.platform.os === "android" ? "image://genycaster-brand/mark" : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg")
                     title: qsTrId("genycaster.shell.continue_with_genyleap")
                     busy: root.authenticationInProgress && root.authenticationRoute === "openproof"
                     enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
@@ -3201,7 +3201,7 @@ Item {
                 Layout.fillWidth: true
                 compactCard: true
                 onboardingStyle: true
-                brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                brandImageSource: (Qt.platform.os === "android" ? "image://genycaster-brand/mark" : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg")
                 title: qsTrId("genycaster.shell.continue_with_genyleap")
                 enabled: root.runtimeReady && root.authenticationAvailable
                 onClicked: root.continueWithGenyleap()
