@@ -78,7 +78,8 @@ test('backup cards disappear in favor of interactive progress; cancellation befo
   void create.onclick();
   await new Promise(resolve=>setImmediate(resolve));
   const grid=ui.nodes.find(x=>x.tagName==='DIV'&&x.children.length===24);
-  const progress=ui.nodes.find(x=>x.tagName==='SECTION');
+  const progress=ui.nodes.find(x=>x.tagName==='SECTION'&&x.style.display==='block');
+  assert.ok(progress,'The real progress section must be visible');
   assert.equal(grid.style.display,'none');
   assert.equal(grid.children.every(x=>x.children.length===0),true);
   assert.equal(progress.style.display,'block');
