@@ -130,6 +130,23 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         self.assertIn("python3 ci/release_artifacts.py artifacts release", publish)
         self.assertIn("softprops/action-gh-release@v2", publish)
 
+    def test_public_1_0_beta_is_tagged_without_rc_and_published_as_prerelease(self) -> None:
+        s = WORKFLOW.read_text(encoding="utf-8")
+        publish = s.split("\n  publish:\n", 1)[1]
+        self.assertIn("'v1.0.0' && 'Genycaster 1.0 Beta'", publish)
+        self.assertIn(
+            "contains(github.ref_name, '-') || github.ref_name == 'v1.0.0'",
+            publish)
+        self.assertIn("          draft: false", publish)
+        self.assertIn("          fail_on_unmatched_files: true", publish)
+        self.assertIn("needs: [gate, linux, macos, windows, android, web]", publish)
+        self.assertIn("      - name: Refuse overwriting an existing release", publish)
+        cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn('set(GENYCASTER_RELEASE_CHANNEL "stable")', cmake)
+        self.assertIn('set(GENYCASTER_RELEASE_CHANNEL_NUMBER "0")', cmake)
+        self.assertTrue((ROOT / "release-notes/v1.0.0.json").is_file())
+        self.assertTrue((ROOT / "release-notes/v1.0.0.md").is_file())
+
     def test_windows_release_script_keeps_cmdlet_arguments_parseable(self) -> None:
         # GitHub Windows x64 #44389704729 failed in pwsh parsing BEFORE
         # running CMake because -Path and -Pattern were split across lines.
