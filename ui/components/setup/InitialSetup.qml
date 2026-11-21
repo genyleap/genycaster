@@ -70,8 +70,7 @@ Item {
     property string registrationProviderId: "hypersnap-v2"
     readonly property bool nativeFidRegistered:
         registrationProviderId === "hypersnap-v2"
-        && (nativeRegistrationPublisher.confirmed
-            || nativeRegistrationStatus.existingNativeFid.length > 0)
+        && nativeRegistrationPublisher.confirmed
     readonly property bool farcasterFidRegistered:
         registrationProviderId === "farcaster-snapchain"
         && neynarRegistration.confirmed
@@ -119,6 +118,17 @@ Item {
     // One explicit Create Account click owns the entire proof + submit
     // operation. Network checks are read-only until that click, and no proof
     // completion can submit anything without this in-memory consent token.
+    function resumeNativePendingChecks() {
+        if (visible && currentStep === 3 && choosingRegistrationProvider
+            && registrationProviderId === "hypersnap-v2"
+            && nativeCustodyWallet.backupVerified
+            && nativeRegistrationPublisher.pending
+            && !nativeRegistrationPublisher.busy
+            && !nativeRegistrationPublisher.checkingConfirmation)
+            nativeRegistrationPublisher.checkConfirmation()
+    }
+    onCurrentStepChanged: Qt.callLater(root.resumeNativePendingChecks)
+    onChoosingRegistrationProviderChanged: Qt.callLater(root.resumeNativePendingChecks)
     function startNativeAccountCreation() {
         if (nativeCreationRequested || currentStep !== 3
             || !choosingRegistrationProvider || registrationProviderId !== "hypersnap-v2"
@@ -518,14 +528,13 @@ Item {
                 neynarRegistration.checkConfirmation()
                 return
             }
-            if (nativeRegistrationPublisher.pending) {
-                // Leave any submitted registration journal intact; going back
-                // one visual choice cannot cancel an irreversible write.
-                nativeRegistrationPublisher.stopPolling()
-            } else {
+            // Back can stop local proof preparation, but never the already
+            // submitted network write. Keep its read-only confirmation live.
+            if (!nativeRegistrationPublisher.pending) {
                 nativeRegistrationPublisher.clear()
                 neynarRegistration.reset()
             }
+            root.nativeCreationRequested = false
             nativeRegistrationPreparation.cancel()
             nativeRegistrationStatus.clearExistingLookup()
             // Back is a navigation action, never a wallet replacement.
@@ -589,6 +598,7 @@ Item {
     onVisibleChanged: {
         if (!visible) {
             // Closing onboarding stops polling; it cannot cancel a blockchain write.
+            root.nativeCreationRequested = false
             nativeRegistrationPublisher.clear()
             nativeRegistrationPreparation.cancel()
             nativeRegistrationStatus.clearExistingLookup()
@@ -627,6 +637,7 @@ Item {
             consentChecked = legalConsentAccepted
         }
         forceActiveFocus()
+        Qt.callLater(root.resumeNativePendingChecks)
     }
     onAuthenticationPhaseChanged: {
         if (authenticationPhase === "failed" || authenticationPhase === "signed-out")
