@@ -1513,7 +1513,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp "release-notes/${GITHUB_REF_NAME}.md" "$RUNNER_TEMP/genycaster-release-body.md"
+          cp "release-notes/v${{ needs.gate.outputs.version }}.md" "$RUNNER_TEMP/genycaster-release-body.md"
           if find release -maxdepth 1 -name '*-adhoc-UNNOTARIZED.dmg' | grep -q .; then
             cat >> "$RUNNER_TEMP/genycaster-release-body.md" <<'MACOS_ADHOC_NOTICE'
 

@@ -85,6 +85,9 @@ class BotReleaseGateTests(unittest.TestCase):
         self.assertIn("refs/heads/main", publish)
         self.assertIn("github.event_name == 'workflow_dispatch'", publish)
         self.assertIn("Refuse overwriting an existing release", publish)
+        # workflow_dispatch GITHUB_REF_NAME is main, not v1.0.0.
+        self.assertIn('cp "release-notes/v${{ needs.gate.outputs.version }}.md"', publish)
+        self.assertNotIn('release-notes/${GITHUB_REF_NAME}.md', publish)
 
 
 if __name__ == "__main__":
