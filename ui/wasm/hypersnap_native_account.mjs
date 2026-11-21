@@ -130,7 +130,7 @@ export function nativeCommitment(nonce,bits) {
 }
 export async function mineNativePow({
   address,anchor,bits,maxAttempts=24<<20,signal,
-  starting=0n,chunkSize=4096,onProgress=()=>{},
+  starting=0n,chunkSize=256,onProgress=()=>{},
   yieldControl=()=>new Promise(resolve=>setTimeout(resolve,0))
 }) {
   if(!validAddress(address)||typeof anchor!=='string'
@@ -155,6 +155,83 @@ export async function mineNativePow({
   }
   fail('PoW budget exhausted; refresh the node challenge, do not submit');
 }
+/**
+ * Offload the SHA-256 search to a dedicated module Worker when available.
+ * The worker sees PUBLIC challenge/address data only; no mnemonic, signature
+ * or custody private key crosses the Worker boundary. Verify its nonce in the
+ * caller before proceeding to EIP-712 signing. A startup/CSP failure falls
+ * back to short, yielding UI-thread chunks rather than freezing the page.
+ */
+export async function mineNativePowResponsive({
+  browser=globalThis,address,anchor,bits,maxAttempts=24<<20,
+  signal,onProgress=()=>{}
+}={}) {
+  if(signal?.aborted)throw new Error('Native registration cancelled');
+  const fallback=()=>mineNativePow({
+    address,anchor,bits,maxAttempts,signal,onProgress,chunkSize:256
+  });
+  if(typeof browser.Worker!=='function')return fallback();
+  let worker;
+  try{
+    worker=new browser.Worker(
+      new URL('./hypersnap_native_pow_worker.mjs',import.meta.url),{type:'module'});
+  }catch{
+    return fallback();
+  }
+  const done=new Promise((resolve,reject)=>{
+    let settled=false;
+    const cleanup=()=>{
+      signal?.removeEventListener('abort',abort);
+      worker.terminate();
+    };
+    const finish=(error,value)=>{
+      if(settled)return;
+      settled=true;
+      cleanup();
+      if(error)reject(error);
+      else resolve(value);
+    };
+    const abort=()=>finish(new Error('Native registration cancelled'));
+    signal?.addEventListener('abort',abort,{once:true});
+    if(signal?.aborted){abort();return;}
+    worker.onmessage=event=>{
+      if(settled)return;
+      const message=event?.data;
+      if(message?.type==='progress'){
+        if(Number.isSafeInteger(message.done)&&Number.isSafeInteger(message.total)
+          && message.done>=0 && message.total===maxAttempts
+          && message.done<=message.total)
+          onProgress(message.done,message.total);
+      }else if(message?.type==='done'){
+        const nonce=message.nonce;
+        if(typeof nonce!=='string'||!/^0x[0-9a-f]{16}$/i.test(nonce)
+          ||BigInt(nonce)>=BigInt(maxAttempts)
+          ||!zeroBits(nativePowHash(address,anchor,nonce),bits))
+          finish(new Error('Invalid HyperSnap proof result'));
+        else finish(null,nonce);
+      }else if(message?.type==='error'){
+        finish(new Error('Native registration proof was not found within the safe budget'));
+      }
+    };
+    worker.onerror=()=> {
+      const error=new Error('Worker unavailable');
+      error.workerStartupFailure=true;
+      finish(error);
+    };
+    try{
+      worker.postMessage({type:'start',address,anchor,bits,maxAttempts});
+    }catch{
+      const error=new Error('Worker unavailable');
+      error.workerStartupFailure=true;
+      finish(error);
+    }
+  });
+  return done.catch(error=>{
+    if(error.workerStartupFailure&&!signal?.aborted)return fallback();
+    throw error;
+  });
+}
+
 export async function generateNativePhrase(browser=globalThis) {
   requireSecure(browser);
   const entropy=new Uint8Array(32);
@@ -350,7 +427,7 @@ export function createBrowserNativeRegistry({
       if(before.state!=='not-found')fail(before.state==='confirmed'
         ?'this wallet already has a HyperSnap FID; use Existing account'
         :'cannot prove this wallet is unregistered');
-      const nonce=await mineNativePow({address,anchor:gate.hash,bits:gate.bits,
+      const nonce=await mineNativePowResponsive({browser,address,anchor:gate.hash,bits:gate.bits,
         maxAttempts,signal,onProgress});
       if(signal?.aborted)throw new Error('Registration cancelled');
       const fresh=await challenge(signal);
