@@ -18,6 +18,13 @@ constexpr qint64 kDayMs = 86'400'000;
 constexpr qint64 kFarcasterWindowDays = 365;
 constexpr qint64 kGithubWindowDays = 30;
 constexpr qint64 kCacheMs = 10 * 60 * 1000;
+// GitHub may impose a one-hour anonymous/IP-wide limit. Reopening Profile
+// must not repeatedly hammer the endpoint while it returns HTTP 403/429.
+constexpr qint64 kGithubRateLimitCacheMs = 60 * 60 * 1000;
+qint64 githubCacheMs(const QVariantMap& snapshot) {
+    return snapshot.value(QStringLiteral("status")).toString() ==
+           QStringLiteral("rate-limited") ? kGithubRateLimitCacheMs : kCacheMs;
+}
 constexpr int kCastPages = 40;
 constexpr int kGithubPages = 3;
 constexpr int kMaxResponseBytes = 1024 * 1024;
@@ -211,7 +218,8 @@ void GenyPulseActivityController::requestGitHub(const QString& username) {
     const QString login=username.trimmed();
     if(login.compare(m_githubLogin,Qt::CaseInsensitive)==0 &&
        (m_githubReply||(m_githubFetchedAt>0&&
-          QDateTime::currentMSecsSinceEpoch()-m_githubFetchedAt<kCacheMs)))return;
+          QDateTime::currentMSecsSinceEpoch()-m_githubFetchedAt <
+              githubCacheMs(m_github))))return;
     ++m_githubGeneration;
     cancelReply(m_githubReply, this);
     cancelReply(m_githubResolveReply, this);
@@ -242,7 +250,8 @@ void GenyPulseActivityController::requestGitHubId(const QString& accountId) {
     if(id==m_githubAccountId &&
        (m_githubResolveReply || m_githubReply ||
         (m_githubFetchedAt>0 &&
-         QDateTime::currentMSecsSinceEpoch()-m_githubFetchedAt<kCacheMs)))return;
+         QDateTime::currentMSecsSinceEpoch()-m_githubFetchedAt <
+             githubCacheMs(m_github))))return;
 
     ++m_githubGeneration;
     cancelReply(m_githubReply, this);
@@ -285,6 +294,9 @@ void GenyPulseActivityController::requestGitHubId(const QString& accountId) {
                 ?QStringLiteral("rate-limited"):QStringLiteral("error"),
                 QStringLiteral("github-events"));
             m_github.insert(QStringLiteral("accountId"),id);
+            // Remember failures as well as success. A 403 otherwise creates
+            // a new request on every panel refresh.
+            m_githubFetchedAt = QDateTime::currentMSecsSinceEpoch();
             emit githubChanged();
             return;
         }
@@ -338,6 +350,7 @@ void GenyPulseActivityController::fetchGitHubPage(const QString& username,const 
                 m_github.insert(QStringLiteral("username"),username);
                 if(!m_githubAccountId.isEmpty())
                     m_github.insert(QStringLiteral("accountId"),m_githubAccountId);
+                m_githubFetchedAt = QDateTime::currentMSecsSinceEpoch();
                 emit githubChanged();
             }
             return;

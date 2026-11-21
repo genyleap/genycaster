@@ -173,11 +173,16 @@ Item {
         // An uninitialized FID must not cancel a valid profile's network read.
         if (Number(profileFid) > 0)
             genyPulseActivity.requestFarcaster(Math.floor(profileFid))
-        if(verifiedGitHub.length>0)
-            genyPulseActivity.requestGitHub(verifiedGitHub)
-        else if(isOwnProfile && githubLinked && githubAccountId.length>0)
+        // The yearly heatmap is served by the owner-verified cloud
+        // contributions endpoint. Fetching *public events* as well added
+        // three GitHub REST calls per profile open and exhausted anonymous
+        // browser rate limits without providing data used by this panel.
+        // Only a verified numeric provider ID still needs a one-time
+        // login resolution. Do not reset a shared controller from an
+        // unrelated hidden panel or fetch public events for known logins.
+        if(verifiedGitHub.length===0 && isOwnProfile && githubLinked
+                && githubAccountId.length>0)
             genyPulseActivity.requestGitHubId(githubAccountId)
-        else genyPulseActivity.requestGitHub("")
         genyPulseActivity.setVerifiedWallet(verifiedWallet)
         refreshGithubCalendar()
         if(!farcasterReady)selectedDate=""

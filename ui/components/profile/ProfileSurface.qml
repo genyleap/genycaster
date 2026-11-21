@@ -2611,8 +2611,11 @@ Item {
                         visible: root.normalizedBio.length > 0
                         Layout.fillWidth: true
                         sourceText: root.normalizedBio
-                        textSize: Theme.typeBodySize
-                        textLineHeight: Theme.typeBodyLineHeight
+                        // Compact profiles use a normal 14sp reading scale,
+                        // not the desktop 16sp body used for wide biographies.
+                        textSize: root.compact ? Theme.typeLabelSize : Theme.typeBodySize
+                        textLineHeight: root.compact ? Theme.typeLabelLineHeight
+                                                     : Theme.typeBodyLineHeight
                         onExternalRequested: url => root.externalRequested(url)
                     }
 
@@ -2650,32 +2653,32 @@ Item {
                         // verified zero followers/following on an empty header.
                         visible: Number(root.activeDetail.fid || 0) > 0
                         Layout.fillWidth: true
-                        spacing: Theme.space1
+                        spacing: root.compact ? Theme.scaleUi(3) : Theme.space1
                         layoutDirection: Theme.uiDirection
 
                         Button {
                             id: followingCountButton
                             objectName: "profileFollowingCount"
-                            implicitHeight: Theme.scaleUi(32)
+                            implicitHeight: Theme.scaleUi(root.compact ? 28 : 32)
                             flat: true
                             hoverEnabled: true
                             onClicked: root.followingRequested()
                             Accessible.name: qsTrId("genycaster.profile.value_following")
                                 .arg(root.compactCount(root.activeDetail.followingCount))
                             background: Item {}
-                            padding: Theme.space1
+                            padding: root.compact ? Theme.scaleUi(2) : Theme.space1
                             contentItem: Row {
                                 spacing: Theme.space1
                                 Label {
                                     text: root.compactCount(root.activeDetail.followingCount)
                                     color: Theme.ink
-                                    font.pixelSize: Theme.typeBodySize
+                                    font.pixelSize: root.compact ? Theme.typeLabelSize : Theme.typeBodySize
                                     font.weight: Theme.weightDemiBold
                                 }
                                 Label {
                                     text: qsTrId("genycaster.profile.following")
                                     color: followingCountButton.hovered ? Theme.ink : Theme.inkMuted
-                                    font.pixelSize: Theme.typeBodySize
+                                    font.pixelSize: root.compact ? Theme.typeLabelSize : Theme.typeBodySize
                                 }
                             }
                         }
@@ -2683,26 +2686,26 @@ Item {
                         Button {
                             id: followersCountButton
                             objectName: "profileFollowersCount"
-                            implicitHeight: Theme.scaleUi(32)
+                            implicitHeight: Theme.scaleUi(root.compact ? 28 : 32)
                             flat: true
                             hoverEnabled: true
                             onClicked: root.followersRequested()
                             Accessible.name: qsTrId("genycaster.profile.value_followers")
                                 .arg(root.compactCount(root.activeDetail.followerCount))
                             background: Item {}
-                            padding: Theme.space1
+                            padding: root.compact ? Theme.scaleUi(2) : Theme.space1
                             contentItem: Row {
                                 spacing: Theme.space1
                                 Label {
                                     text: root.compactCount(root.activeDetail.followerCount)
                                     color: Theme.ink
-                                    font.pixelSize: Theme.typeBodySize
+                                    font.pixelSize: root.compact ? Theme.typeLabelSize : Theme.typeBodySize
                                     font.weight: Theme.weightDemiBold
                                 }
                                 Label {
                                     text: qsTrId("genycaster.profile.followers")
                                     color: followersCountButton.hovered ? Theme.ink : Theme.inkMuted
-                                    font.pixelSize: Theme.typeBodySize
+                                    font.pixelSize: root.compact ? Theme.typeLabelSize : Theme.typeBodySize
                                 }
                             }
                         }
@@ -2712,18 +2715,23 @@ Item {
                         // the cluster intact on compact screens.
                         Item {
                             objectName: "profileStreakAlignmentSpacer"
-                            width: Math.max(0, profileStatsFlow.width -
+                            // The desktop spacer forced a *second* row on
+                            // narrow mobile widths, leaving a large empty area
+                            // before Pro/Streak. Let the compact cluster follow
+                            // both counters directly.
+                            visible: !root.compact
+                            width: root.compact ? 0 : Math.max(0, profileStatsFlow.width -
                                 followingCountButton.width - followersCountButton.width -
                                 profileBadgesRow.width - profileStatsFlow.spacing * 3)
-                            height: Theme.scaleUi(32)
+                            height: root.compact ? 0 : Theme.scaleUi(32)
                         }
 
                         Row {
                             id: profileBadgesRow
                             objectName: "profileAchievementBadges"
                             width: implicitWidth
-                            height: Theme.scaleUi(32)
-                            spacing: Theme.space2
+                            height: Theme.scaleUi(root.compact ? 28 : 32)
+                            spacing: root.compact ? Theme.space1 : Theme.space2
                             layoutDirection: Theme.uiDirection
 
                             ProfileProBadge {
@@ -2741,7 +2749,7 @@ Item {
                                 objectName: "profileStreakBadge"
                                 visible: root.isOwnProfile
                                 hoverEnabled: true
-                                implicitHeight: Theme.scaleUi(32)
+                                implicitHeight: Theme.scaleUi(root.compact ? 28 : 32)
                                 implicitWidth: streakBadgeContent.implicitWidth + Theme.space1 * 2
                                 padding: 0
                                 Accessible.name: qsTrId("genycaster.streak.open")
@@ -2805,7 +2813,7 @@ Item {
                                     Item {
                                         id: profileStreakRing
                                         objectName: "profileStreakRing"
-                                        width: Theme.scaleUi(28)
+                                        width: Theme.scaleUi(root.compact ? 22 : 28)
                                         height: width
                                         anchors.verticalCenter: parent.verticalCenter
                                         ProgressRing {
@@ -2823,7 +2831,7 @@ Item {
                                         Icon {
                                             anchors.centerIn: parent
                                             text: Theme.iconStreakFlame
-                                            preferredSize: Theme.scaleUi(14)
+                                            preferredSize: Theme.scaleUi(root.compact ? 12 : 14)
                                             color: profileStreakBadge.streakActive
                                                 ? Theme.streak : Theme.inkMuted
                                         }

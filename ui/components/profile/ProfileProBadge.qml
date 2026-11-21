@@ -22,11 +22,11 @@ Button {
         : qsTrId("genycaster.pro.check_pro_status")
     signal detailsRequested()
     visible: showUpgrade || eligible
-    implicitHeight: Theme.scaleUi(compact ? 29 : 32)
-    implicitWidth: Math.max(Theme.scaleUi(compact ? 64 : 68),
-                            badgeContents.implicitWidth + Theme.space3 * 2)
-    leftPadding: Theme.space3
-    rightPadding: Theme.space3
+    implicitHeight: Theme.scaleUi(compact ? 27 : 32)
+    implicitWidth: Math.max(Theme.scaleUi(compact ? 60 : 68),
+                            badgeContents.implicitWidth + (compact ? Theme.space2 : Theme.space3) * 2)
+    leftPadding: compact ? Theme.space2 : Theme.space3
+    rightPadding: compact ? Theme.space2 : Theme.space3
     topPadding: 0
     bottomPadding: 0
     hoverEnabled: !compact
