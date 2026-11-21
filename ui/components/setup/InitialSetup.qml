@@ -2584,7 +2584,9 @@ Item {
                         objectName: "setupNativeAwaitingConfirmation"
                         Layout.fillWidth: true
                         visible: nativeRegistrationPublisher.pending
-                        text: qsTr("Creating your account…")
+                        text: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                              ? qsTr("Waiting for HyperSnap to sync")
+                              : qsTr("Creating your account…")
                         color: Theme.ink
                         font.pixelSize: Theme.typeTitle3Size
                         font.weight: Theme.weightDemiBold
