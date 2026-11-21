@@ -371,6 +371,15 @@
                             :null;
                         if(enrollment)await enrollment.preflight();
                         const nativeRegistry=registryModule?.createBrowserNativeRegistry();
+                        if(nativeRegistry){
+                            // Check blockchain catch-up BEFORE generating any
+                            // new 24-word wallet or prompting an irreversible
+                            // request. Qt's onboarding card shows the same
+                            // readiness state and a safe Existing-account path.
+                            const health=await nativeRegistry.networkHealth(controller.signal);
+                            if(!health.ready)
+                                throw new Error('HyperSnap blockchain is catching up. New account creation will be available when shard-0 blocks are current. No registration was sent.');
+                        }
                         confirmed=await promptCreateBrowserWallet({
                             browser:window,signal:controller.signal,
                             protocol,
