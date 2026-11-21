@@ -134,7 +134,18 @@ def smoke(app: Path, architecture: str) -> None:
             env.pop(key, None)
         env["HOME"] = home
         env["QT_QPA_PLATFORM"] = "cocoa"
-        env["QSG_RHI_BACKEND"] = "software"
+        # QSG_RHI_BACKEND=software is NOT a Qt 6 RHI selection. On the
+        # headless Intel macOS 26 GitHub runner it fell back to Metal and
+        # wedged the QML startup probe for 120 seconds even though the
+        # signed x86_64 executable was valid. Request Qt Quick's documented
+        # SOFTWARE SCENE GRAPH, not an invalid RHI name. The real release
+        # application keeps its normal GPU backend; this is strictly an
+        # isolated, no-SDK dependency smoke-test process.
+        env.pop("QSG_RHI_BACKEND", None)
+        if architecture == "x86_64":
+            env["QT_QUICK_BACKEND"] = "software"
+        else:
+            env.pop("QT_QUICK_BACKEND", None)
         env["QML_DISABLE_DISK_CACHE"] = "1"
         settings = str(Path(home) / "settings.ini")
         try:
