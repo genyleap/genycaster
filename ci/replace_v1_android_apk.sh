@@ -6,8 +6,8 @@ REPO=genyleap/genycaster
 TAG=v1.0.0
 APK=GenyCaster-v1.0.0-android-arm64-v8a.apk
 TEST_APK=GenyCaster-v1.0.0-android-arm64-v8a-CI-TEST.apk
-CI_RUN=44922640207
-CI_SHA=b3747c75cb6281a632ae761e38b05473b20a65bb
+CI_RUN=44924051617
+CI_SHA=a6b6c4578a82e32ecebf725d658edc5afe63d73a
 
 [[ "$GITHUB_ACTIONS" == true && "$GITHUB_REPOSITORY" == "$REPO" &&
    "$GITHUB_REF" == refs/heads/main && -n "$GH_TOKEN" ]] ||
