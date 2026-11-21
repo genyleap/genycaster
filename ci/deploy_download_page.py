@@ -115,6 +115,21 @@ def verify_https() -> None:
         if marker not in response:
             raise RuntimeError("Canonical HTTPS route contains wrong asset: " + filename)
 
+    for alias in ("/download/", "/download/index.html"):
+        headers = run(
+            "curl", "--head", "--silent", "--show-error", "--max-time", "14",
+            "--resolve", "genycaster.xyz:443:127.0.0.1",
+            "https://genycaster.xyz" + alias,
+        )
+        lines = headers.splitlines()
+        status = lines[0] if lines else ""
+        destination = next(
+            (line.partition(":")[2].strip() for line in lines
+             if line.lower().startswith("location:")), ""
+        )
+        if " 308 " not in status or not destination.endswith("/download"):
+            raise RuntimeError("Noncanonical URL must redirect permanently: " + alias)
+
 
 def deploy_legacy_route() -> None:
     """Keep /download functional even when the Nginx vhost is read-only.

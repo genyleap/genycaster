@@ -315,6 +315,8 @@ test('download sources survive WASM publication and preserve primary API routing
   assert.match(deploy,/deploy_legacy_route/);
   assert.match(deploy,/--legacy-route/);
   assert.match(deploy,/if path.parent == SITE \/ "download"/);
+  assert.match(deploy,/for alias in \("\/download\/", "\/download\/index\.html"\)/);
+  assert.match(deploy,/if " 308 " not in status/);
 });
 
 test('Qt exponent-4 SVG outline mounts once per platform and updates architecture controls',async()=>{
