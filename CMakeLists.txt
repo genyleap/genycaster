@@ -8,8 +8,12 @@ project(Genycaster
 
 # Version identity has independent numeric, channel, and channel-number fields.
 # CMake alone constructs the serialized semantic tag used by update discovery.
-set(GENYCASTER_RELEASE_CHANNEL "rc")
-set(GENYCASTER_RELEASE_CHANNEL_NUMBER "1")
+# The public 1.0 Beta ships under the canonical v1.0.0 tag (no -rcN
+# or -betaN suffix). The GitHub Release itself is explicitly marked Beta
+# / prerelease until the remaining beta acceptance gates are closed.
+# Keep semantic versioning stable so native installers and web assets agree.
+set(GENYCASTER_RELEASE_CHANNEL "stable")
+set(GENYCASTER_RELEASE_CHANNEL_NUMBER "0")
 set(GENYCASTER_RELEASE_SUFFIX "")
 if(NOT GENYCASTER_RELEASE_CHANNEL STREQUAL "stable")
     if(NOT GENYCASTER_RELEASE_CHANNEL MATCHES "^(alpha|beta|rc)$"

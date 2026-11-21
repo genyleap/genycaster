@@ -1,6 +1,6 @@
 # GenyCaster — Development Roadmap
 
-**Status snapshot:** November 2026 · **Product:** Beta · **Source channel:** v1.0.0-rc1
+**Status snapshot:** November 2026 · **Product:** Beta · **Release tag:** v1.0.0 (public prerelease)
 
 This page tracks **implementation** independently from **qualification and release readiness**. Features that already work are not labeled “In progress” merely because cross-platform hardening or a broader release test matrix remains. A source implementation does not imply a released or fully tested capability on every platform.
 

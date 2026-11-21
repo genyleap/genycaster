@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "type": "feature",
+  "changes": [
+    {
+      "id": "platforms",
+      "category": "feature"
+    },
+    {
+      "id": "protocols",
+      "category": "feature"
+    },
+    {
+      "id": "social",
+      "category": "feature"
+    },
+    {
+      "id": "mini-apps",
+      "category": "feature"
+    },
+    {
+      "id": "neon",
+      "category": "improvement"
+    },
+    {
+      "id": "beta-quality",
+      "category": "maintenance"
+    }
+  ],
+  "translations": {
+    "en-US": {
+      "title": "Genycaster 1.0 Beta",
+      "summary": "Public beta for native desktop, Android and the web, built around Farcaster and HyperSnap.",
+      "items": {
+        "platforms": "Genycaster ships for macOS, Windows, Linux, Android arm64 and WebAssembly on genycaster.xyz.",
+        "protocols": "Explore Farcaster and HyperSnap profiles and timelines with account creation and recovery flows.",
+        "social": "Create casts, reply, quote, react, and browse a responsive social feed.",
+        "mini-apps": "Discover Mini Apps and connect to external wallet flows where supported.",
+        "neon": "A GPU-oriented Qt interface brings adaptive layouts, NEON accents and color-responsive glass.",
+        "beta-quality": "This is a public beta: some workflows and platform-specific features may still need refinement. Report reproducible problems on GitHub."
+      }
+    },
+    "fa-IR": {
+      "title": "جنی‌کستر ۱.۰ بتا",
+      "summary": "نسخهٔ بتای عمومی جنی‌کستر برای دسکتاپ، اندروید و وب با پشتیبانی از فارکستر و هایپراسنپ.",
+      "items": {
+        "platforms": "نسخه‌های macOS، ویندوز، لینوکس، اندروید ARM64 و WebAssembly در genycaster.xyz ارائه می‌شوند.",
+        "protocols": "پروفایل‌ها و تایم‌لاین‌های فارکستر و هایپراسنپ را مرور کنید و از ساخت و بازیابی حساب بهره ببرید.",
+        "social": "کست بنویسید، پاسخ دهید، نقل‌قول کنید، واکنش نشان دهید و فید واکنش‌گرا را مرور کنید.",
+        "mini-apps": "مینی‌اپ‌ها را پیدا کنید و در پلتفرم‌های پشتیبانی‌شده از اتصال کیف پول خارجی استفاده کنید.",
+        "neon": "رابط Qt با چیدمان تطبیقی، جلوه‌های NEON و شیشهٔ واکنش‌پذیر به رنگ، برای پردازش گرافیکی طراحی شده است.",
+        "beta-quality": "این نسخه بتای عمومی است؛ برخی جریان‌ها و ویژگی‌های پلتفرم‌ها هنوز نیازمند بهبود هستند. ایرادهای قابل بازتولید را در گیت‌هاب گزارش کنید."
+      }
+    },
+    "ar-SA": {
+      "title": "Genycaster 1.0 التجريبي",
+      "summary": "إصدار تجريبي عام لسطح المكتب وأندرويد والويب، يدعم Farcaster وHyperSnap.",
+      "items": {
+        "platforms": "تتوفر نسخ macOS وWindows وLinux وAndroid ARM64 وWebAssembly على genycaster.xyz.",
+        "protocols": "تصفح ملفات Farcaster وHyperSnap وخطوطهما الزمنية مع إمكان إنشاء الحساب واستعادته.",
+        "social": "انشر المنشورات وردّ عليها واقتبسها وتفاعل معها داخل موجز متجاوب.",
+        "mini-apps": "اكتشف التطبيقات المصغّرة واستخدم المحافظ الخارجية حيث تتوفر.",
+        "neon": "توفر واجهة Qt تخطيطات متكيفة وتأثيرات NEON وزجاجاً يتفاعل مع ألوان المحتوى.",
+        "beta-quality": "هذه نسخة تجريبية عامة؛ قد تحتاج بعض الميزات والمنصات إلى تحسين. بلّغ عن المشكلات القابلة للتكرار على GitHub."
+      }
+    },
+    "de-DE": {
+      "title": "Genycaster 1.0 Beta",
+      "summary": "Öffentliche Beta für Desktop, Android und Web mit Farcaster und HyperSnap.",
+      "items": {
+        "platforms": "Verfügbar für macOS, Windows, Linux, Android ARM64 und als WebAssembly-App auf genycaster.xyz.",
+        "protocols": "Farcaster- und HyperSnap-Profile und Feeds mit Kontoerstellung und Wiederherstellung.",
+        "social": "Casts schreiben, beantworten, zitieren und mit ihnen interagieren – in einem adaptiven Feed.",
+        "mini-apps": "Mini-Apps entdecken und externe Wallets nutzen, wo dies unterstützt wird.",
+        "neon": "Die Qt-Oberfläche bietet adaptive Layouts, NEON-Effekte und farbabhängige Glasreflexionen.",
+        "beta-quality": "Dies ist eine öffentliche Beta. Einzelne Abläufe und Plattformfunktionen benötigen möglicherweise noch Verbesserungen. Reproduzierbare Fehler bitte auf GitHub melden."
+      }
+    },
+    "es-ES": {
+      "title": "Genycaster 1.0 Beta",
+      "summary": "Beta pública para escritorio, Android y web, compatible con Farcaster y HyperSnap.",
+      "items": {
+        "platforms": "Disponible para macOS, Windows, Linux, Android ARM64 y WebAssembly en genycaster.xyz.",
+        "protocols": "Explora perfiles y cronologías de Farcaster y HyperSnap con creación y recuperación de cuentas.",
+        "social": "Publica casts, responde, cita y reacciona en un feed adaptable.",
+        "mini-apps": "Descubre miniaplicaciones y utiliza carteras externas donde estén disponibles.",
+        "neon": "La interfaz Qt incluye diseños adaptables, efectos NEON y reflejos de cristal sensibles al color.",
+        "beta-quality": "Esta es una beta pública. Algunas funciones y plataformas pueden necesitar mejoras. Informa de errores reproducibles en GitHub."
+      }
+    },
+    "fr-FR": {
+      "title": "Genycaster 1.0 Bêta",
+      "summary": "Bêta publique pour ordinateur, Android et Web, compatible avec Farcaster et HyperSnap.",
+      "items": {
+        "platforms": "Disponible sur macOS, Windows, Linux, Android ARM64 et en WebAssembly sur genycaster.xyz.",
+        "protocols": "Explorez les profils et fils Farcaster et HyperSnap, avec création et récupération de compte.",
+        "social": "Publiez des casts, répondez, citez et réagissez dans un fil adaptatif.",
+        "mini-apps": "Découvrez les mini-applications et utilisez des portefeuilles externes si pris en charge.",
+        "neon": "L’interface Qt propose des mises en page adaptatives, des effets NEON et des reflets colorés.",
+        "beta-quality": "Cette version est une bêta publique. Certaines fonctions peuvent encore évoluer. Signalez les problèmes reproductibles sur GitHub."
+      }
+    },
+    "hi-IN": {
+      "title": "Genycaster 1.0 बीटा",
+      "summary": "Farcaster और HyperSnap के साथ डेस्कटॉप, Android और वेब के लिए सार्वजनिक बीटा।",
+      "items": {
+        "platforms": "macOS, Windows, Linux, Android ARM64 और genycaster.xyz पर WebAssembly संस्करण उपलब्ध हैं।",
+        "protocols": "Farcaster और HyperSnap प्रोफ़ाइल व फ़ीड देखें; खाता बनाएं और पुनर्प्राप्त करें।",
+        "social": "अनुकूल फ़ीड में कास्ट लिखें, जवाब दें, उद्धृत करें और प्रतिक्रिया दें।",
+        "mini-apps": "जहाँ समर्थित हो वहाँ मिनी ऐप्स खोजें और बाहरी वॉलेट का उपयोग करें।",
+        "neon": "Qt इंटरफ़ेस अनुकूल लेआउट, NEON प्रभाव और रंग के प्रति संवेदनशील ग्लास रिफ़्लेक्शन देता है।",
+        "beta-quality": "यह सार्वजनिक बीटा है; कुछ सुविधाओं में सुधार शेष हो सकता है। दोहराई जा सकने वाली समस्याएँ GitHub पर रिपोर्ट करें।"
+      }
+    },
+    "ja-JP": {
+      "title": "Genycaster 1.0 ベータ",
+      "summary": "Farcaster と HyperSnap に対応したデスクトップ、Android、Web 向け公開ベータです。",
+      "items": {
+        "platforms": "macOS、Windows、Linux、Android ARM64、genycaster.xyz の WebAssembly 版を提供します。",
+        "protocols": "Farcaster と HyperSnap のプロフィールやタイムラインを閲覧し、アカウントを作成・復元できます。",
+        "social": "キャストの投稿、返信、引用、リアクションを柔軟なフィードで利用できます。",
+        "mini-apps": "ミニアプリを探し、対応環境では外部ウォレットを利用できます。",
+        "neon": "Qt UI は適応型レイアウト、NEON 効果、色に反応するガラスの反射を備えています。",
+        "beta-quality": "公開ベータのため、一部機能は改善中です。再現可能な問題は GitHub に報告してください。"
+      }
+    },
+    "ko-KR": {
+      "title": "Genycaster 1.0 베타",
+      "summary": "Farcaster와 HyperSnap을 지원하는 데스크톱, Android 및 웹 공개 베타입니다.",
+      "items": {
+        "platforms": "macOS, Windows, Linux, Android ARM64 및 genycaster.xyz의 WebAssembly 버전을 제공합니다.",
+        "protocols": "Farcaster와 HyperSnap 프로필 및 피드를 탐색하고 계정을 생성하거나 복구할 수 있습니다.",
+        "social": "반응형 피드에서 캐스트 작성, 답글, 인용 및 반응을 사용할 수 있습니다.",
+        "mini-apps": "미니 앱을 발견하고 지원 환경에서 외부 지갑을 연결할 수 있습니다.",
+        "neon": "Qt UI는 적응형 레이아웃, NEON 효과 및 콘텐츠 색상에 반응하는 유리 반사를 제공합니다.",
+        "beta-quality": "공개 베타 버전이므로 일부 기능은 개선 중입니다. 재현 가능한 오류를 GitHub에 신고해 주세요."
+      }
+    },
+    "pt-BR": {
+      "title": "Genycaster 1.0 Beta",
+      "summary": "Beta pública para desktop, Android e Web, com Farcaster e HyperSnap.",
+      "items": {
+        "platforms": "Disponível para macOS, Windows, Linux, Android ARM64 e WebAssembly em genycaster.xyz.",
+        "protocols": "Explore perfis e feeds do Farcaster e HyperSnap com criação e recuperação de contas.",
+        "social": "Publique casts, responda, cite e interaja em um feed adaptável.",
+        "mini-apps": "Descubra Mini Apps e use carteiras externas onde houver suporte.",
+        "neon": "A interface Qt oferece layouts adaptáveis, efeitos NEON e reflexos de vidro sensíveis às cores.",
+        "beta-quality": "Esta é uma versão beta pública. Alguns recursos ainda podem exigir melhorias. Relate problemas reproduzíveis no GitHub."
+      }
+    },
+    "ru-RU": {
+      "title": "Genycaster 1.0 Бета",
+      "summary": "Публичная бета для компьютеров, Android и веба с Farcaster и HyperSnap.",
+      "items": {
+        "platforms": "Доступны версии для macOS, Windows, Linux, Android ARM64 и WebAssembly на genycaster.xyz.",
+        "protocols": "Просматривайте профили и ленты Farcaster и HyperSnap, создавайте и восстанавливайте аккаунты.",
+        "social": "Публикуйте касты, отвечайте, цитируйте и оставляйте реакции в адаптивной ленте.",
+        "mini-apps": "Открывайте мини-приложения и используйте внешние кошельки, где это поддерживается.",
+        "neon": "Интерфейс Qt включает адаптивную компоновку, эффекты NEON и стеклянные отражения с учетом цвета.",
+        "beta-quality": "Это публичная бета: отдельные функции ещё дорабатываются. Сообщайте о воспроизводимых ошибках на GitHub."
+      }
+    },
+    "zh-CN": {
+      "title": "Genycaster 1.0 测试版",
+      "summary": "面向桌面、Android 和网页的公开测试版，支持 Farcaster 和 HyperSnap。",
+      "items": {
+        "platforms": "提供 macOS、Windows、Linux、Android ARM64 及 genycaster.xyz 上的 WebAssembly 版本。",
+        "protocols": "浏览 Farcaster 和 HyperSnap 的个人资料与信息流，并创建或恢复账户。",
+        "social": "在自适应信息流中发布、回复、引用和互动。",
+        "mini-apps": "发现迷你应用，并在受支持的平台连接外部钱包。",
+        "neon": "Qt 界面提供自适应布局、NEON 效果和随内容色彩变化的玻璃反射。",
+        "beta-quality": "这是公开测试版，部分功能仍需完善。请在 GitHub 报告可复现的问题。"
+      }
+    }
+  }
+}

@@ -427,11 +427,11 @@ class PipelineTests(unittest.TestCase):
     def test_version_tag_gate(self) -> None:
         numeric = project_version(Path.cwd())
         version = release_designation(Path.cwd())
-        self.assertTrue(version.startswith(numeric + "-"))
+        self.assertEqual(version, numeric)
         self.assertEqual(release_version("refs/heads/main", version), (version, False))
         self.assertEqual(release_version(f"refs/tags/v{version}", version), (version, True))
         for bad in ("refs/tags/v1.2", "refs/tags/latest", "refs/tags/v01.2.3",
-                    f"refs/tags/v{numeric}", f"refs/tags/v{numeric}-rc999",
+                    f"refs/tags/v{numeric}-beta1", f"refs/tags/v{numeric}-rc999",
                     "refs/tags/v999.0.0"):
             with self.assertRaises(ValueError):
                 release_version(bad, version)

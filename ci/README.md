@@ -11,7 +11,7 @@ pull-request, schedule, or release-edit triggers**.
 | Ordinary commit pushed to main | No | No |
 | Pull request | No | No |
 | Actions > GenyCaster CI and Release > Run workflow | All requested targets in one run (default) | No |
-| Push of vMAJOR.MINOR.PATCH-rcN version tag | All required platforms | Only if all jobs succeed |
+| Push of a matching version tag (including `v1.0.0` public Beta) | All required platforms | Only if all jobs succeed |
 
 **One invocation is the release-candidate validation unit**, as in
 GenyConnect: one shared preflight gate fans out to Linux x86_64/ARM64,
@@ -39,15 +39,15 @@ GitHub Free compute limits. Manual runs upload artifacts for 14 days,
 but cannot create GitHub Releases.
 
 For tag runs, `ci/release_gate.py` checks that the tag matches the
-`project(Genycaster VERSION ...)` numeric version plus the configured RC
-suffix, that the canonical `release-notes/vVERSION.json` and generated Markdown exist, and that the tagged commit
+`project(Genycaster VERSION ...)` numeric version and configured semantic
+channel (for `v1.0.0` the suffix is intentionally empty), that the canonical `release-notes/vVERSION.json` and generated Markdown exist, and that the tagged commit
 is an ancestor of `main`. Missing/failed jobs prevent publishing. An existing release
 is never deleted or overwritten.
 
 ## Canonical multilingual release notes
 
 Each release has a **single authored JSON source**, for example
-`release-notes/v1.0.0-rc1.json`. It contains a typed release, stable
+`release-notes/v1.0.0.json`. It contains a typed release, stable
 change identifiers, and complete, independently translated titles, summaries
 and change descriptions for the application's 12 supported locales.
 The numeric version, channel and channel number are independent **CMake**
@@ -56,8 +56,8 @@ fields, never duplicated in the authored notes.
 Generate the GitHub Release body from the JSON source:
 
 ```bash
-python3 ci/release_notes.py --source release-notes/v1.0.0-rc1.json \
-  --version 1.0.0-rc1 --markdown release-notes/v1.0.0-rc1.md
+python3 ci/release_notes.py --source release-notes/v1.0.0.json \
+  --version 1.0.0 --markdown release-notes/v1.0.0.md
 ```
 
 The release gate validates that every locale is complete and the generated
@@ -185,9 +185,10 @@ is eligible to publish after signing, feature, runtime and artifact gates.
 ## How to publish a version-tag candidate
 
 1. Set the numeric version in the top-level CMake `project()` declaration,
-   and keep `GENYCASTER_RELEASE_CANDIDATE` in sync with the intended RC suffix.
-   Author the canonical, fully localized JSON source, such as
-   `release-notes/v1.0.0-rc1.json`, and generate its Markdown using
+   and keep the release channel and tag suffix consistent. The first public
+   Beta uses the numeric `v1.0.0` tag and GitHub's Beta/prerelease label,
+   NOT a `-rc` or `-betaN` tag. Author the fully localized JSON source
+   `release-notes/v1.0.0.json`, and generate its Markdown using
    `ci/release_notes.py`. The JSON is embedded into native and WebAssembly
    resources; the release gate verifies the generated Markdown matches the
    JSON before that Markdown is published as the GitHub Release description.
@@ -203,12 +204,14 @@ is eligible to publish after signing, feature, runtime and artifact gates.
    ```bash
    git checkout main
    git pull --ff-only
-   git tag -a v1.0.0-rc1 -m "Genycaster v1.0.0-rc1"
-   git push origin v1.0.0-rc1
+   git tag -a v1.0.0 -m "Genycaster 1.0 Beta"
+   git push origin v1.0.0
    ```
 
 6. Only that tag runs the complete matrix and, if all required jobs finish,
-   publishes a **pre-release** with packages and aggregate SHA256SUMS.
+   publishes **Genycaster 1.0 Beta** as a public, non-draft **prerelease**
+   with native packages and aggregate SHA256SUMS. The WASM artifact is deployed
+   separately to the verified canonical `genycaster.xyz` website.
 
 ## Release limitations and verification
 

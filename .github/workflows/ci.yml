@@ -1490,10 +1490,12 @@ jobs:
         with:
           token: ${{ github.token }}
           tag_name: ${{ github.ref_name }}
-          name: GenyCaster ${{ github.ref_name }}
+          name: ${{ github.ref_name == 'v1.0.0' && 'Genycaster 1.0 Beta' || format('GenyCaster {0}', github.ref_name) }}
           body_path: ${{ runner.temp }}/genycaster-release-body.md
-          # RC/beta/alpha tags remain prereleases. A stable tag is a normal
-          # Release only after every mandatory platform job passes.
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          # 1.0.0 is a PUBLISHED Beta (not Draft and not RC). Its numeric
+          # tag intentionally remains v1.0.0. Future versioned alpha/beta/rc
+          # tags retain ordinary prerelease semantics.
+          prerelease: ${{ contains(github.ref_name, '-') || github.ref_name == 'v1.0.0' }}
+          draft: false
           files: release/*
           fail_on_unmatched_files: true
