@@ -1,0 +1,36 @@
+name: Replace Android APK in existing Genycaster v1.0.0 release
+
+# Manual, narrow, artifact-only repair. No tag creation and no native rebuild.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: genycaster-replace-v1-android-apk
+  cancel-in-progress: false
+
+jobs:
+  replace-android-only:
+    if: github.repository == 'genyleap/genycaster' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Verify CI and owner signing identity; replace only the existing v1.0.0 APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: bash ci/replace_v1_android_apk.sh
