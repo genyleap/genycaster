@@ -20,7 +20,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "ui/wasm"
 LIVE = Path("/var/www/genycaster.xyz/public")
-ASSET_NAMES = ("og-genycaster-1-beta.png", "og-genycaster-download-v1.png")
+ASSET_NAMES = ("og-genycaster-home-v2.png", "og-genycaster-download-v2.png")
 IMAGE_URLS = {
     "home": "https://genycaster.xyz/" + ASSET_NAMES[0],
     "downloads": "https://genycaster.xyz/" + ASSET_NAMES[1],
@@ -131,6 +131,7 @@ def collect() -> dict[Path, bytes]:
         SRC / "genycaster-shell.html": "home",
         SRC / "download/index.html": "downloads",
         LIVE / "genycaster.html": "home",
+        LIVE / "index.html": "home",
         LIVE / "download/index.html": "downloads",
         # /download currently 302s here. Crawlers don't run the JS forwarder.
         LIVE / "about/index.html": "downloads",
@@ -179,6 +180,7 @@ def main() -> None:
             png_check(LIVE / name)
         for path, which in (
             (LIVE / "genycaster.html", "home"),
+            (LIVE / "index.html", "home"),
             (LIVE / "download/index.html", "downloads"),
             (LIVE / "about/index.html", "downloads"),
         ):

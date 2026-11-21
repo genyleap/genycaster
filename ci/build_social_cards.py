@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 from pathlib import Path
 import struct
 import subprocess
@@ -18,15 +19,15 @@ from xml.sax.saxutils import escape
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "ui/wasm"
 CARDS = {
-    "og-genycaster-1-beta": {
+    "og-genycaster-home-v2": {
         "headline": "GenyCaster",
         "second": "Farcaster + HyperSnap",
         "detail": "One local-first social client. Web, desktop and Android.",
         "footer": "WINDOWS  /  MACOS  /  LINUX  /  ANDROID  /  WEB",
     },
-    "og-genycaster-download-v1": {
+    "og-genycaster-download-v2": {
         "headline": "Download GenyCaster",
-        "second": "Your device. Your choice.",
+        "second": "Choose your platform.",
         "detail": "Official v1.0.0 Beta installers for desktop and Android.",
         "footer": "WINDOWS  /  MACOS  /  LINUX  /  ANDROID",
     },
@@ -59,6 +60,64 @@ def render_source(card: dict[str, str]) -> bytes:
 """.encode("utf-8")
 
 
+
+# ImageMagick's older SVG text delegate renders some font glyphs at the same
+# x-coordinate (visibly scrambled in Telegram). It is safe for the icon and
+# geometric background, but NEVER for text. Draw all text with the native
+# raster annotation engine and measure text width before rendering.
+TEXT_FONT = "DejaVu-Sans-Bold"
+BODY_FONT = "DejaVu-Sans"
+MONO_FONT = "DejaVu-Sans-Mono"
+
+
+def measure(text: str, font: str, point_size: int) -> tuple[int, int]:
+    run = subprocess.run(
+        ["/usr/bin/convert", "-font", font, "-pointsize", str(point_size),
+         "label:" + text, "-format", "%w %h", "info:"],
+        check=True, capture_output=True, text=True, timeout=15,
+    )
+    width, height = map(int, run.stdout.split())
+    return width, height
+
+
+def rasterize(card: dict[str, str], svg: bytes, target: Path) -> bytes:
+    # Only vector shapes reach SVG delegates. A text-free SVG cannot
+    # reproduce the overlapping glyph issue in the released PNG.
+    background = re.sub(rb"(?m)^  <text.*?</text>\r?\n", b"", svg)
+    if b"<text " in background:
+        raise ValueError("SVG text not fully excluded from raster renderer")
+    with tempfile.TemporaryDirectory(prefix="genycaster-og-") as work:
+        base = Path(work) / "shapes.svg"
+        base.write_bytes(background)
+        command = ["/usr/bin/convert", "-background", "none",
+                   "-density", "96", str(base), "-gravity", "NorthWest"]
+        layers = [
+            (card["headline"], TEXT_FONT,
+             57 if card["headline"].startswith("Download") else 74,
+             "#F7F7F8", 105, 226, 985),
+            (card["second"], TEXT_FONT,
+             55 if card["headline"].startswith("Download") else 57,
+             "#829AFF", 105, 330, 985),
+            (card["detail"], BODY_FONT, 23, "#AFB2BA", 107, 432, 1000),
+            ("GENYCASTER", TEXT_FONT, 30, "#F7F7F8", 153, 72, 500),
+            ("v1.0.0 BETA", TEXT_FONT, 17, "#829AFF", 959, 84, 160),
+            (card["footer"], MONO_FONT, 15, "#AFB2BA", 75, 523, 870),
+            ("genycaster.xyz", MONO_FONT, 15, "#F7F7F8", 960, 523, 170),
+        ]
+        for text, font, size, color, left, top, limit in layers:
+            width, height = measure(text, font, size)
+            # Raster annotation may have a larger advance than label:
+            # allow 30% margin for the delegate's font metrics.
+            if width * 1.3 > limit or left + width * 1.3 > 1145 or top + height > 590:
+                raise ValueError(f"Social text exceeds safe bounding box: {text!r} ({width}x{height})")
+            command.extend(["-font", font, "-pointsize", str(size),
+                            "-fill", color, "-annotate", f"+{left}+{top}", text])
+        command.extend(["-strip", "-define", "png:compression-level=9",
+                        str(target)])
+        subprocess.run(command, check=True, timeout=60, capture_output=True)
+        return target.read_bytes()
+
+
 def png_dimensions(payload: bytes) -> tuple[int, int]:
     if len(payload) < 24 or payload[:8] != bytes.fromhex("89504e470d0a1a0a"):
         raise ValueError("ImageMagick did not produce a PNG")
@@ -75,15 +134,7 @@ def main() -> None:
         png = OUT / f"{name}.png"
         if args.apply:
             path.write_bytes(svg)
-            with tempfile.TemporaryDirectory(prefix="genycaster-og-") as d:
-                temp = Path(d) / "card.png"
-                subprocess.run(
-                    ["/usr/bin/convert", "-background", "none",
-                     "-density", "96", str(path), "-strip",
-                     "-define", "png:compression-level=9", str(temp)],
-                    check=True, timeout=40, capture_output=True,
-                )
-                result = temp.read_bytes()
+            result = rasterize(card, svg, png)
             if png_dimensions(result) != (1200, 630):
                 raise ValueError("Unexpected OG preview dimensions")
             if len(result) > 3_000_000:

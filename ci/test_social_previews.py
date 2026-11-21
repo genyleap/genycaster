@@ -5,7 +5,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 import unittest
 
-from ci.build_social_cards import CARDS, png_dimensions, render_source
+from ci.build_social_cards import CARDS, png_dimensions, render_source, measure, TEXT_FONT
 from ci.deploy_social_previews import META, SRC, LIVE, with_tags, collect
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -68,6 +68,33 @@ class SocialPreviewTests(unittest.TestCase):
                          [META["downloads"]["image"]])
         self.assertIn('/download/about-forward.js?v=3', html)
 
+    def test_fallback_index_has_current_home_preview(self):
+        # A second public HTML document previously retained the 2025-style
+        # "Your Farcaster" image even after WASM itself was updated.
+        source = LIVE / "index.html"
+        if not source.is_file():
+            self.skipTest("Production server only")
+        contents = source.read_text(encoding="utf-8")
+        current = with_tags(contents, "home")
+        parsed = HeadMetadata()
+        parsed.feed(current)
+        self.assertEqual(parsed.metatags.get("og:image"),
+                         [META["home"]["image"]])
+        self.assertNotIn("og-genycaster-v5.png", current)
+        self.assertEqual(current, with_tags(current, "home"))
+
+    def test_raster_text_is_measured_and_not_rendered_through_svg_delegate(self):
+        # The old ImageMagick SVG font delegate overlapped glyphs on the PNG.
+        source = (ROOT / "ci/build_social_cards.py").read_text()
+        self.assertIn('background = re.sub', source)
+        self.assertIn('if b"<text " in background:', source)
+        self.assertIn('"-annotate"', source)
+        self.assertIn('width * 1.3 > limit', source)
+        width, height = measure("Download GenyCaster", TEXT_FONT, 57)
+        self.assertGreater(width, 500)
+        self.assertLess(width, 800)
+        self.assertGreater(height, 50)
+
     def test_png_cards_use_correct_dimensions_and_expected_messages(self):
         for name, detail in CARDS.items():
             with self.subTest(name=name):
@@ -86,7 +113,7 @@ class SocialPreviewTests(unittest.TestCase):
         packer = (ROOT / "ci/package_wasm_assets.py").read_text()
         for name in CARDS:
             self.assertEqual(packer.count(f'"{name}.png"'), 2)
-        self.assertEqual(len(collect()), 7)
+        self.assertEqual(len(collect()), 8)
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@
   <path d="M72 151 H1128" fill="none" stroke="#343844" stroke-width="2"/>
   <rect x="74" y="203" width="8" height="43" rx="4" fill="#829AFF"/>
   <text x="105" y="302" font-family="DejaVu Sans,sans-serif" font-weight="bold" font-size="76" letter-spacing="-1.5" fill="#F7F7F8">Download GenyCaster</text>
-  <text x="105" y="399" font-family="DejaVu Sans,sans-serif" font-weight="bold" font-size="61" letter-spacing="-1.0" fill="#829AFF">Your device. Your choice.</text>
+  <text x="105" y="399" font-family="DejaVu Sans,sans-serif" font-weight="bold" font-size="61" letter-spacing="-1.0" fill="#829AFF">Choose your platform.</text>
   <text x="107" y="459" font-family="DejaVu Sans,sans-serif" font-size="23" fill="#AFB2BA">Official v1.0.0 Beta installers for desktop and Android.</text>
   <path d="M72 505 H1128" fill="none" stroke="#343844" stroke-width="2"/>
   <text x="75" y="549" font-family="DejaVu Sans Mono,monospace" font-size="15" letter-spacing=".15" fill="#AFB2BA">WINDOWS  /  MACOS  /  LINUX  /  ANDROID</text>
