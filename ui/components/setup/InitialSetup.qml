@@ -2608,7 +2608,8 @@ Item {
                         text: (nativeRegistrationPublisher.confirmationLookupState === "not_found"
                                ? qsTrId("genycaster.setup.native_confirmation_no_fid_yet")
                                : qsTrId("genycaster.setup.native_existing_error"))
-                              + (nativeRegistrationPublisher.confirmationLookupHttpStatus > 0
+                              + (nativeRegistrationPublisher.confirmationLookupState !== "not_found"
+                                    && nativeRegistrationPublisher.confirmationLookupHttpStatus > 0
                                  ? " (HTTP " + nativeRegistrationPublisher.confirmationLookupHttpStatus + ")"
                                  : "")
                         color: nativeRegistrationPublisher.confirmationLookupState === "not_found"
@@ -2858,7 +2859,7 @@ Item {
                         }
                         completeWordCount = 0
                         revealWords.checked = false
-                        deviceSignerConsent.checked = true
+                        deviceSignerConsent.checked = false
                     }
                     function countWords() {
                         let result = 0
@@ -3003,9 +3004,10 @@ Item {
                         objectName: "nativeRecoveryDeviceSignerConsent"
                         Layout.fillWidth: true
                         label: qsTrId("genycaster.setup.recovery_signer_consent")
-                        // The recovery action includes device signing by
-                        // default. Users may uncheck for read-only access.
-                        checked: true
+                        // Recovering an existing FID is independent of publishing authority.
+                        // Device signer authorization is a separate, explicit
+                        // opt-in, never a prerequisite for successful recovery.
+                        checked: false
                     }
                 }
                 SetupPrimaryButton {
