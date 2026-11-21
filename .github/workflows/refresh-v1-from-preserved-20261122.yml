@@ -1,0 +1,196 @@
+name: Refresh existing v1.0.0 assets from verified CI artifacts
+
+# The full matrix in run 44947297537 built seven deployable artifacts.
+# Only the macOS Intel *startup smoke* timed out (the signed bundle survived).
+# This workflow recompiles nothing; macOS 15 Intel retests the identical signed
+# bundle and packages it. The existing Release ID and tag are never changed.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: genycaster-v1.0.0-assets-only-recovery-44947297537
+  cancel-in-progress: false
+
+jobs:
+  recover-intel:
+    name: Verify signed Intel bundle and create installer (no compilation)
+    if: github.repository == 'genyleap/genycaster' && github.ref == 'refs/heads/main'
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Verify original CI run and same signed Intel bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          python3 - <<'PY'
+          import json, subprocess
+          def get(path):
+              return json.loads(subprocess.check_output(
+                  ["gh","api","repos/genyleap/genycaster/"+path],text=True))
+          base = get("actions/runs/44947297537")
+          assert base["head_sha"] == "a7adb3fa11cc8aa31ec28c5ee4eec592990c4bb2"
+          assert base["conclusion"] == "failure" and base["status"] == "completed"
+          assert base["head_branch"] == "main" and base["event"] == "workflow_dispatch"
+          jobs = get("actions/runs/44947297537/jobs?per_page=100")["jobs"]
+          success = ("Linux AppImage and DEB (arm64","Linux AppImage and DEB (x86_64",
+                     "Windows NSIS installer (arm64","Windows NSIS installer (x86_64",
+                     "Android APK (arm64-v8a","macOS DMG (arm64","WebAssembly (")
+          assert all(sum(j["name"].startswith(name) and j["conclusion"]=="success"
+                         for j in jobs)==1 for name in success), "Missing a passing native/WASM build"
+          assert sum(j["name"].startswith("macOS DMG (x86_64") and
+                     j["conclusion"]=="failure" for j in jobs)==1, "Intel is not the only failure"
+          found = get("actions/runs/44947297537/artifacts?per_page=100")["artifacts"]
+          intel = [a for a in found if a["name"]=="GenyCaster-macos-intel-signed-recovery"]
+          assert len(intel)==1 and not intel[0]["expired"] and intel[0]["size_in_bytes"]>4096
+          print("PASS: 7 successful binaries + exact signed Intel bundle from original build")
+          PY
+          gh run download 44947297537 --repo "$GITHUB_REPOSITORY" \
+            --name GenyCaster-macos-intel-signed-recovery --dir signed-source
+          (cd signed-source && shasum -a 256 --check SHA256SUMS)
+          mkdir -p recovered
+          ditto -x -k signed-source/Genycaster-intel-signed.app.zip recovered
+          APP="$GITHUB_WORKSPACE/recovered/Genycaster.app"
+          test -d "$APP/Contents/Frameworks"
+          /usr/bin/lipo "$APP/Contents/MacOS/Genycaster" -verify_arch x86_64
+          codesign --verify --deep --strict --verbose=4 "$APP"
+          python3 ci/audit_macos_bundle.py "$APP" x86_64
+
+      - name: Test real Qt Quick startup on a dedicated Intel macOS 15 host
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/recover_intel_smoke.py recovered/Genycaster.app \
+            --stage bundle --diagnostics "$RUNNER_TEMP/intel-smoke-diagnostics" \
+            --selection-file "$RUNNER_TEMP/intel-selected-backend.txt"
+
+      - name: Repackage the IDENTICAL signed Intel executable and retest mounted DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$GITHUB_WORKSPACE/recovered/Genycaster.app"
+          mkdir -p dist
+          DMG="$RUNNER_TEMP/Genycaster-v1.0.0-verified.dmg"
+          hdiutil create -ov -volname GenyCaster -srcfolder "$APP" -format UDZO "$DMG"
+          passed=0
+          for attempt in 1 2 3 4; do
+            if message="$(hdiutil verify "$DMG" 2>&1)"; then
+              echo "$message"; passed=1; break
+            fi
+            echo "$message" >&2
+            if [[ "$message" != *"Resource temporarily unavailable"* || "$attempt" -eq 4 ]]; then exit 1; fi
+            sleep "$((attempt * 3))"
+          done
+          test "$passed" = 1
+          MOUNT="$RUNNER_TEMP/genycaster-intel-mount"
+          mkdir -p "$MOUNT"
+          hdiutil attach -readonly -nobrowse -mountpoint "$MOUNT" "$DMG"
+          trap 'hdiutil detach "$MOUNT" -quiet || true' EXIT
+          test -f "$MOUNT/Genycaster.app/Contents/MacOS/Genycaster"
+          codesign --verify --deep --strict --verbose=4 "$MOUNT/Genycaster.app"
+          python3 ci/audit_macos_bundle.py "$MOUNT/Genycaster.app" x86_64
+          python3 ci/recover_intel_smoke.py "$MOUNT/Genycaster.app" \
+            --stage mounted --diagnostics "$RUNNER_TEMP/intel-smoke-diagnostics" \
+            --selection-file "$RUNNER_TEMP/intel-selected-backend.txt"
+          hdiutil detach "$MOUNT"
+          trap - EXIT
+          cp "$DMG" dist/GenyCaster-v1.0.0-macos-x86_64-adhoc-UNNOTARIZED.dmg
+          python3 ci/verify_platform_package.py macos dist/GenyCaster-v1.0.0-macos-x86_64-adhoc-UNNOTARIZED.dmg
+          python3 ci/package_selfupdate.py --platform macos --arch x86_64 \
+            --version 1.0.0 --source "$APP" --output dist/selfupdate
+          python3 ci/verify_selfupdate_snapshot.py \
+            dist/selfupdate/GenyCaster-selfupdate-v1.0.0-macos-x86_64.tar.gz
+          (cd dist && shasum -a 256 *.dmg > SHA256SUMS)
+      - name: Preserve Intel diagnostic logs even if smoke fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-intel-v1-refresh-diagnostics
+          path: ${{ runner.temp }}/intel-smoke-diagnostics/*
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload independently verified Intel installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-macos-x86_64
+          path: |
+            dist/*.dmg
+            dist/selfupdate/*
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+
+  refresh-existing:
+    name: Replace files in SAME v1.0.0 Release without creating a new one
+    needs: [recover-intel]
+    if: github.repository == 'genyleap/genycaster' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GENYCASTER_REFRESH_EXISTING_RELEASE: 'true'
+      GENYCASTER_PUBLISH_PUBLIC_BETA: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify original run, unchanged Release identity and immutable tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/refresh_existing_release.py preflight \
+            --snapshot "$RUNNER_TEMP/genycaster-v1-release-identity.json"
+      - name: Get the seven already-successful original platform artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in GenyCaster-linux-arm64 GenyCaster-linux-x86_64 \
+                      GenyCaster-macos-arm64 GenyCaster-windows-arm64 \
+                      GenyCaster-windows-x86_64 GenyCaster-android-arm64-v8a \
+                      GenyCaster-web-wasm; do
+            gh run download 44947297537 --repo "$GITHUB_REPOSITORY" \
+              --name "$name" --dir "artifacts/$name"
+          done
+      - name: Get the independently revalidated Intel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: GenyCaster-macos-x86_64
+          path: artifacts/GenyCaster-macos-x86_64
+      - name: Verify complete matrix artifacts, checksums, filenames, and web package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/refresh_existing_release.py verify-artifacts
+          python3 ci/release_artifacts.py artifacts release
+          (cd release && sha256sum --check --strict SHA256SUMS)
+          python3 ci/refresh_existing_release.py verify-assets \
+            --snapshot "$RUNNER_TEMP/genycaster-v1-release-identity.json"
+      - name: Update only existing Release asset bytes through github-actions bot
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload v1.0.0 release/* --clobber --repo "$GITHUB_REPOSITORY"
+      - name: Confirm same Release ID, unchanged notes/tag/latest and all 16 updated assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/refresh_existing_release.py postflight \
+            --snapshot "$RUNNER_TEMP/genycaster-v1-release-identity.json"
