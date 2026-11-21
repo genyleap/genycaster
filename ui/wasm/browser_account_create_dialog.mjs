@@ -19,8 +19,15 @@ const translations={
   checking:'Submission sent. Checking for an independently confirmed FID…',
   working:'Creating your account',
   progressNote:'Proof search is running. This percentage is the hash-search budget, not network confirmation.',
-  pending:'Network result is uncertain. Do not repeat registration. Recover this wallet with your saved words to check its FID.',
-  voucher:'Paid or sponsored enrollment voucher',username:'Choose a Farcaster username'
+  pending:'Your registration may still be processing on the blockchain. Do not submit it again. Return with the same recovery words to check your account.',
+  stepOne:'Recovery phrase secured',stepTwo:'Registration request sent',stepThree:'Blockchain confirms your account',
+  paidStepTwo:'Sponsored registration authorized',paidStepThree:'Farcaster confirms your account',
+  chainPending:'The blockchain confirms registrations in new blocks. You can return later with your 24 recovery words.',
+  voucher:'Genycaster sponsorship code',username:'Choose a Farcaster username',
+  voucherHelp:'A sponsorship code is provided by the Genycaster operator after verified payment or sponsorship. It is not a Neynar API key or wallet password. Codes cannot currently be purchased inside Genycaster.',
+  voucherLink:'No code? Create an account on Farcaster',
+  paidReserve:'Preparing sponsored registration…',paidSign:'Confirming wallet ownership…',
+  paidSubmit:'Submitting Farcaster registration…',paidVerify:'Waiting for Farcaster blockchain confirmation…'
  },
  fa:{
   title:'پشتیبان‌گیری از کیف پول جدید',subtitle:'واژه‌های بازیابی، مالکیت هویت جدید شما در پروتکل انتخاب‌شده را تعیین می‌کنند.',
@@ -35,8 +42,15 @@ const translations={
   checking:'درخواست ارسال شد. در حال بررسی مستقل ثبت FID…',
   working:'در حال ایجاد حساب',
   progressNote:'درصد، میزان جستجوی اثبات را نشان می‌دهد، نه تأیید ثبت در شبکه.',
-  pending:'نتیجهٔ شبکه نامشخص است. ثبت‌نام را تکرار نکنید. با واژه‌های ذخیره‌شده، وضعیت FID را بررسی کنید.',
-  voucher:'کد معتبر ثبت‌نام پولی یا حمایت‌شده',username:'نام کاربری فارکستر'
+  pending:'ممکن است ثبت‌نام شما هنوز در بلاک‌چین در حال پردازش باشد. درخواست را دوباره ارسال نکنید. برای بررسی حساب از همان ۲۴ واژه استفاده کنید.',
+  stepOne:'واژه‌های بازیابی ذخیره شدند',stepTwo:'درخواست ثبت‌نام ارسال شد',stepThree:'تأیید حساب در بلاک‌چین',
+  paidStepTwo:'ثبت‌نام حمایت‌شده تأیید شد',paidStepThree:'تأیید حساب در فارکستر',
+  chainPending:'بلاک‌چین ثبت‌نام‌ها را در بلاک‌های جدید تأیید می‌کند. بعداً می‌توانید با همان ۲۴ واژه برگردید.',
+  voucher:'کد حمایت مالی جنی‌کستر',username:'نام کاربری فارکستر',
+  voucherHelp:'کد حمایت مالی را اپراتور جنی‌کستر پس از پرداخت یا حمایت تأییدشده صادر می‌کند. این کد، کلید API نینار یا رمز کیف‌پول نیست و فعلاً در خود جنی‌کستر فروخته نمی‌شود.',
+  voucherLink:'کد ندارید؟ در فارکستر حساب بسازید',
+  paidReserve:'در حال آماده‌سازی ثبت‌نام حمایت‌شده…',paidSign:'در حال تأیید مالکیت کیف‌پول…',
+  paidSubmit:'در حال ارسال ثبت‌نام فارکستر…',paidVerify:'در انتظار تأیید ثبت‌نام در بلاک‌چین فارکستر…'
  }
 };
 const titleFor=network=>network==='hypersnap-v2'?'HyperSnap':'Farcaster';
@@ -98,7 +112,26 @@ export async function promptCreateBrowserWallet({
  progressTrack.appendChild(progressFill);
  const progressNote=document.createElement('p');progressNote.textContent=t.progressNote;
  progressNote.style.cssText='font-size:12px;line-height:1.6;color:'+colors.muted+';margin:10px 0 0';
- progressPanel.append(progressHeading,progressCaption,progressTrack,progressNote);;
+ const stepList=document.createElement('ol');
+ stepList.style.cssText='list-style:none;padding:0;margin:16px 0 0;display:grid;gap:11px;';
+ const stepNames=[t.stepOne,protocol==='hypersnap-v2'?t.stepTwo:t.paidStepTwo,
+   protocol==='hypersnap-v2'?t.stepThree:t.paidStepThree];
+ const stepEntries=stepNames.map((name,index)=>{
+   const item=document.createElement('li');
+   item.textContent=(index+1)+'.  '+name;
+   item.style.cssText='padding:8px 12px;border-radius:11px;background:'+
+     (index===0?'rgba(12,194,129,.12)':'transparent')+
+     ';color:'+(index===0?colors.fg:colors.muted)+';font-size:14px;line-height:1.5;';
+   stepList.appendChild(item);return item;
+ });
+ const showProgressStep=step=>{
+   stepEntries.forEach((item,index)=>{
+     item.style.background=index===step?'rgba(0,126,255,.13)':
+       index<step?'rgba(12,194,129,.10)':'transparent';
+     item.style.color=index<=step?colors.fg:colors.muted;
+   });
+ };
+ progressPanel.append(progressHeading,progressCaption,progressTrack,progressNote,stepList);
  const cells=[];
  words.forEach((word,i)=>{
   const cell=document.createElement('div');
@@ -153,6 +186,17 @@ export async function promptCreateBrowserWallet({
  if(protocol==='farcaster-snapchain'){
   for(const [field,label,limit,secret] of [
     ['voucher',t.voucher,1100,true],['username',t.username,16,false]]) {
+    if(field==='voucher'){
+      const help=document.createElement('p');
+      help.textContent=t.voucherHelp;
+      help.style.cssText='margin:18px 0 8px;color:'+colors.muted+';line-height:1.6;font-size:14px;';
+      const official=document.createElement('a');
+      official.href='https://farcaster.xyz/';
+      official.target='_blank';official.rel='noopener noreferrer';
+      official.textContent=t.voucherLink;
+      official.style.cssText='display:inline-block;margin:0 0 12px;color:#218cff;text-decoration:underline;font-weight:600;';
+      content.append(help,official);
+    }
     const container=document.createElement('label');
     container.textContent=label;
     container.style.cssText='display:flex;flex-direction:column;gap:7px;margin:12px 0;font-weight:600;';
@@ -166,7 +210,9 @@ export async function promptCreateBrowserWallet({
  }
  content.appendChild(result);
  const cancel=button(t.cancel,false),submit=button(t.create,true);
- form.append(content,buttons);layer.appendChild(form);
+ // The action stays directly below its form, not detached at screen bottom.
+ content.appendChild(buttons);
+ form.append(content);layer.appendChild(form);
  const oldFocus=document.activeElement;
  const oldOverflow=document.body.style.overflow;
  document.body.style.overflow='hidden';document.body.appendChild(layer);
@@ -232,6 +278,7 @@ export async function promptCreateBrowserWallet({
    subtitle.style.display='none';
    progressHeading.style.display='none';
    progressPanel.hidden=false;progressPanel.style.display='block';
+   showProgressStep(1);
    content.scrollTop=0;
    processing=true;submit.disabled=true;cancel.disabled=false;
    result.textContent='';
@@ -239,12 +286,21 @@ export async function promptCreateBrowserWallet({
     if(settled)return;
     if(phase==='submitting'||phase==='checking'||phase==='outcome-unknown') {
       submissionStarted=true;
+      showProgressStep(phase==='submitting'?1:2);
       phrase=''; // Only the registry's ephemeral in-flight custody owns it now.
       cancel.disabled=true;
-      progressCaption.textContent=phase==='submitting'?t.submitting:
-        phase==='checking'?t.checking:t.pending;
+      progressCaption.textContent=phase==='submitting'
+        ? (protocol==='hypersnap-v2'?t.submitting:t.paidSubmit)
+        :phase==='checking'
+          ? (protocol==='hypersnap-v2'?t.checking:t.paidVerify)
+          :t.pending;
       progressTrack.style.display='none';
       progressNote.style.display='none';
+    }else if(protocol==='farcaster-snapchain'){
+      progressCaption.textContent=phase==='reserve'?t.paidReserve:
+        phase==='sign'?t.paidSign:
+        phase==='verify'?t.paidVerify:t.busy;
+      progressFill.style.width=Math.max(0,Math.min(100,Math.floor(done/Math.max(1,total)*100)))+'%';
     }else{
       const percent=Math.max(0,Math.min(100,Math.floor(done/Math.max(1,total)*100)));
       progressCaption.textContent=t.progress+' · '+percent+'%';
