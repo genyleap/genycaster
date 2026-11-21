@@ -18,7 +18,7 @@ Item {
         + quoteButton.implicitWidth + recastButton.implicitWidth
         + likeButton.implicitWidth + reactionActions.columnSpacing * 3
     readonly property bool stackedActions: width < reactionRowWidth
-        + utilityActions.implicitWidth + actionSpacing
+        + utilityActions.implicitWidth + actionSpacing && !root.compact
     // The card measures this wrapper, not a grid whose row count and size
     // constraints are being renegotiated by its enclosing RowLayout.
     implicitWidth: reactionRowWidth + utilityActions.implicitWidth + actionSpacing
@@ -229,18 +229,42 @@ Item {
     signal likeRequested(bool active)
     signal authenticationRequested()
 
-    // Keep reaction and utility groups readable without reducing hit targets.
-    // Narrow cards place utilities on a second line instead of clipping them.
+    // Preserve every touch target and action count. Compact cast footers
+    // stay on ONE horizontal baseline; if their intrinsic width exceeds a
+    // tiny handset they scroll sideways instead of splitting into two
+    // drifting rows with a large vertical gap.
     Accessible.description: qsTrId("genycaster.engagement.value_replies").arg(LocaleFormat.formatInteger(root.replyCount))
+
+    Flickable {
+        id: actionViewport
+        anchors.fill: parent
+        contentWidth: root.compact
+            ? Math.max(width, root.reactionRowWidth + utilityActions.implicitWidth
+                             + root.actionSpacing) : width
+        contentHeight: root.implicitHeight
+        flickableDirection: Flickable.HorizontalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        interactive: root.compact && contentWidth > width
+        clip: root.compact
+        // Open at the actual leading edge even for Arabic/Persian RTL casts.
+        function showLeadingActions() {
+            if (root.compact)
+                contentX = root.layoutDirection === Qt.RightToLeft
+                    ? Math.max(0, contentWidth - width) : 0
+        }
+        onWidthChanged: showLeadingActions()
+        onContentWidthChanged: showLeadingActions()
+        onVisibleChanged: if (visible) showLeadingActions()
 
     GridLayout {
         id: reactionActions
         objectName: "castReactionActions"
-        x: root.layoutDirection === Qt.RightToLeft ? root.width - width : 0
+        x: root.layoutDirection === Qt.RightToLeft ? actionViewport.contentWidth - width : 0
         y: 0
-        width: Math.min(root.width, root.reactionRowWidth)
+        width: root.compact ? root.reactionRowWidth
+             : Math.min(root.width, root.reactionRowWidth)
         height: implicitHeight
-        columns: root.width < root.reactionRowWidth ? 2 : 4
+        columns: root.compact ? 4 : root.width < root.reactionRowWidth ? 2 : 4
         layoutDirection: root.layoutDirection
         columnSpacing: root.actionSpacing
         rowSpacing: 0
@@ -330,7 +354,9 @@ Item {
     RowLayout {
         id: utilityActions
         objectName: "castUtilityActions"
-        x: root.layoutDirection === Qt.RightToLeft ? 0 : root.width - width
+        x: root.layoutDirection === Qt.RightToLeft ? 0
+           : root.compact ? reactionActions.width + root.actionSpacing
+                          : root.width - width
         y: root.stackedActions ? reactionActions.height + Theme.space1 : 0
         width: implicitWidth
         height: implicitHeight
@@ -588,6 +614,7 @@ Item {
             }
         }
     }
-    }
+    } // utilityActions
+    } // actionViewport
 
 }

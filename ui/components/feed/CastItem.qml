@@ -615,16 +615,25 @@ Item {
                                 Layout.minimumWidth: 0
                                 // Never bind a child width to the arranging RowLayout width.
                                 // This caused Qt 6 recursive rearrange warnings.
-                                Layout.preferredWidth: Math.min(implicitWidth,
-                                    root.magazineCard ? Math.max(76, root.width * 0.53)
-                                    : root.castChannel.length > 0
-                                        ? Math.max(78, root.width * 0.52)
-                                        : Math.max(78, root.width * 0.76))
+                                Layout.fillWidth: true
+                                // A viewport-derived cap, not a preferredWidth
+                                // binding fed back into the arranging RowLayout.
+                                // Reserve room for time, emoji, channel and menu.
+                                readonly property real nameWidthCap:
+                                    root.compact
+                                        ? Math.max(52, root.width * (root.castChannel.length > 0 ? 0.34 : 0.44))
+                                        : root.magazineCard ? Math.max(76, root.width * 0.53)
+                                        : root.castChannel.length > 0
+                                            ? Math.max(78, root.width * 0.52)
+                                            : Math.max(78, root.width * 0.76)
+                                Layout.preferredWidth: Math.min(implicitWidth, nameWidthCap)
+                                Layout.maximumWidth: nameWidthCap
                                 text: root.authorName
                                 color: Theme.ink
                                 font.pixelSize: Theme.typeLabelSize
                                 font.weight: Theme.weightDemiBold
                                 elide: Text.ElideRight
+                                wrapMode: Text.NoWrap
 
                                 TapHandler {
                                     enabled: Number(root.modelData.authorFid || 0) > 0
@@ -638,7 +647,8 @@ Item {
                                 // At 300-360dp, an inline channel plus timestamp
                                 // can push the author across the card gutter.
                                 visible: root.castChannel.length > 0
-                                         && (!root.magazineCard || root.width >= 390)
+                                         && (root.compact ? root.width >= 450
+                                                          : (!root.magazineCard || root.width >= 390))
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 0
                                 spacing: Theme.space1
@@ -753,6 +763,13 @@ Item {
                     ActionButton {
                         id: moreButton
                         Layout.alignment: root.magazineCard ? Qt.AlignVCenter : Qt.AlignTop
+                        // In the timeline the timestamp is centered on the
+                        // first author line. A 34dp menu touch target used to
+                        // sit lower than that text when the handle occupied
+                        // the second line; offset its frame, not the glyph.
+                        Layout.topMargin: root.compact && !root.magazineCard
+                            ? Math.min(0, (castNameAndChannel.implicitHeight
+                                           - implicitHeight) / 2) : 0
                         compact: true
                         quiet: true
                         iconOnly: true

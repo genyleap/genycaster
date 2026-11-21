@@ -90,26 +90,33 @@ Item {
         text: caption
         Accessible.name: caption
 
-        background: NeonSurface {
-            ambientNeon: destination.active
-            interactive: false
-            neonStrength: Theme.neonControlStrength
-            neonColor: Qt.rgba(Theme.navigationGlassInk.r,
-                               Theme.navigationGlassInk.g,
-                               Theme.navigationGlassInk.b, 0.25)
-            curveDepth: height / 2
-            exponent: 2.0
-            highQualityEdges: true
-            // The selected destination is a subtle wash, not an opaque button
-            // floating inside the glass navigation capsule.
-            fillColor: destination.active
-                ? Theme.dockSelectedWash : "transparent"
-            borderWidth: 0
-            scale: destination.down ? 0.96 : destination.active ? 1 : 0.93
+        background: Item {
+            NeonSurface {
+                // The Layout may stretch each navigation hit target, but the
+                // selected highlight must remain an actual circle. Only the
+                // optional wide-screen text mode uses a capsule.
+                width: destination.labelVisible ? parent.width
+                    : Math.min(parent.width, parent.height)
+                height: parent.height
+                anchors.centerIn: parent
+                ambientNeon: destination.active
+                interactive: false
+                neonStrength: Theme.neonControlStrength
+                neonColor: Qt.rgba(Theme.navigationGlassInk.r,
+                                   Theme.navigationGlassInk.g,
+                                   Theme.navigationGlassInk.b, 0.25)
+                curveDepth: height / 2
+                exponent: 2.0
+                highQualityEdges: true
+                fillColor: destination.active
+                    ? Theme.dockSelectedWash : "transparent"
+                borderWidth: 0
+                scale: destination.down ? 0.96 : destination.active ? 1 : 0.93
 
-            Behavior on scale {
-                enabled: root.animateDock
-                NumberAnimation { duration: 190; easing.type: Easing.OutCubic }
+                Behavior on scale {
+                    enabled: root.animateDock
+                    NumberAnimation { duration: 190; easing.type: Easing.OutCubic }
+                }
             }
         }
         contentItem: Item {

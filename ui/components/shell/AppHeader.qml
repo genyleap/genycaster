@@ -21,8 +21,8 @@ Rectangle {
     signal feedbackRequested()
     signal settingsRequested()
 
-    implicitHeight: root.compact && Qt.platform.os === "android"
-                    ? Theme.scaleUi(54) : Theme.appBarHeight
+    implicitHeight: root.compact ? Theme.scaleUi(54) : Theme.appBarHeight
+    clip: false
     color: Theme.backgroundPrimary
     layer.enabled: false
     LayoutMirroring.enabled: false
@@ -30,26 +30,17 @@ Rectangle {
 
     readonly property int gutter: Theme.gutter(root.width)
 
-    // Put the neutral hairline underneath the chromatic divider so the
-    // neighboring page actually supplies visible color at the lower edge.
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 1
-        color: Theme.borderMuted
-        opacity: 0.52
-    }
+    // Keep the diffuse NEON tint but remove the hard chromatic
+    // bottom-edge pass. That 1px divider was sampling the first row of
+    // scrolling media and painting a cropped strip across the header.
     NeonReflection {
         anchors.fill: parent
         reflectionSource: root.reflectionSource
-        strength: Theme.reflectionStrength * (root.compact ? 0.78 : 1)
+        strength: Theme.reflectionStrength * (root.compact ? 0.42 : 0.68)
         cornerRadius: 0
         borderInset: 0
-        edgeStrength: 0.88
-        edgeWidth: 1
-        edgeInset: 0.5
-        bottomEdgeOnly: true
+        edgeStrength: 0
+        bottomEdgeOnly: false
     }
 
     // All brand geometry is explicit, rather than nested RTL RowLayouts:
@@ -106,7 +97,7 @@ Rectangle {
                     width: parent.width
                     height: Theme.scaleUi(root.compact ? (Qt.platform.os === "android" ? 20 : 22) : 24)
                     x: 0
-                    y: 0
+                    y: root.compact ? (parent.height - height) / 2 : 0
                     LayoutMirroring.enabled: false
                     horizontalAlignment: Image.AlignLeft
                     fillMode: Image.PreserveAspectFit

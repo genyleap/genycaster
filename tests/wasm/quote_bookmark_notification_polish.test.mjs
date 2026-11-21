@@ -112,5 +112,5 @@ test('quoted-cast author avatar is inset and aligned inside the media card',()=>
   const card=read('ui/components/media/EmbedCard.qml');
   assert.match(card,/anchors.margins: root.isCastReference \? Theme.space4 : Theme.space2/);
   assert.match(card,/Layout.preferredWidth: 32[\s\S]*?Layout.preferredHeight: 32[\s\S]*?avatarSize: 32/);
-  assert.match(card,/spacing: Theme.space3[\s\S]*?layoutDirection: root.quotedRtl/);
+  assert.match(card,/spacing: Theme.space2[\s\S]*?layoutDirection: root.quotedRtl/);
 });

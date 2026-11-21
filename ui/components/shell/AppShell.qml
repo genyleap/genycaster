@@ -1762,8 +1762,11 @@ Item {
                     // already handled by the WASM viewport, so don't double it.
                     // Android already excludes the OS status bar from the Qt
                     // window. Do not stack an extra 24dp of header padding.
-                    Layout.topMargin: root.mobile && Qt.platform.os !== "android" ? Theme.space3 : 0
-                    Layout.bottomMargin: root.mobile && Qt.platform.os !== "android" ? Theme.space3 : 0
+                    // The Qt/WASM viewport already includes its safe-area
+                    // inset. Do not add a second top/bottom gap around the
+                    // brand bar on compact desktop/mobile windows.
+                    Layout.topMargin: 0
+                    Layout.bottomMargin: 0
                     // Cast details already have their own Back/Refresh bar.
                     // Keeping the global brand bar above that contextual bar
                     // duplicates navigation and wastes space on narrow phones.

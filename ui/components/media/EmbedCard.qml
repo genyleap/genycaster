@@ -72,6 +72,7 @@ Superellipse {
     }
 
     Layout.fillWidth: true
+    Layout.minimumWidth: 0
     implicitHeight: content.implicitHeight
                     + (root.isCastReference ? Theme.space4 : Theme.space2) * 2
     curveDepth: Theme.shapeMedia
@@ -94,7 +95,8 @@ Superellipse {
         RowLayout {
             visible: root.isCastReference
             Layout.fillWidth: true
-            spacing: Theme.space3
+            Layout.minimumWidth: 0
+            spacing: Theme.space2
             layoutDirection: root.quotedRtl ? Qt.RightToLeft : Qt.LeftToRight
 
             Avatar {
@@ -108,15 +110,18 @@ Superellipse {
 
             ColumnLayout {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 spacing: 2
 
                 RowLayout {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     spacing: Theme.space1
                     layoutDirection: root.quotedRtl ? Qt.RightToLeft : Qt.LeftToRight
 
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 0
                         text: root.quotedName.length > 0 ? root.quotedName : qsTrId("genycaster.embed.quoted_cast")
                         color: Theme.ink
                         font.pixelSize: Theme.typeMetaSize
@@ -127,6 +132,8 @@ Superellipse {
                     Label {
                         readonly property string actualHandle: String(root.embed.author || "").trim().replace(/^@/, "")
                         visible: actualHandle.length > 0 && !/^fid:[0-9]+$/i.test(actualHandle)
+                        Layout.minimumWidth: 0
+                        Layout.maximumWidth: Math.min(100, root.width * 0.24)
                         LayoutMirroring.enabled: false
                         text: visible ? root.ltrText("@" + actualHandle) : ""
                         font.family: Theme.latinFontFamily
@@ -138,6 +145,9 @@ Superellipse {
 
                     Label {
                         visible: Number(root.embed.createdAtMs || 0) > 0
+                        Layout.minimumWidth: 0
+                        Layout.maximumWidth: Math.min(84, root.width * 0.21)
+                        elide: Text.ElideRight
                         text: visible ? "· " + LocaleFormat.formatRelativeTime(
                             Number(root.embed.createdAtMs)) : ""
                         color: Theme.inkMuted
@@ -217,9 +227,17 @@ Superellipse {
 
             Item {
                 visible: String(root.quotedMedia.source || "").length > 0
-                Layout.preferredWidth: visible ? 92 : 0
+                // Reserve the image inside the actual card width. An
+                // unconstrained 92dp preview could overlap or protrude
+                // from narrow quoted casts when names/handles are long.
+                readonly property real boundedWidth: Math.min(92,
+                    Math.max(46, root.width * 0.23))
+                Layout.preferredWidth: visible ? boundedWidth : 0
+                Layout.maximumWidth: visible ? boundedWidth : 0
+                Layout.minimumWidth: 0
                 Layout.preferredHeight: visible ? 68 : 0
                 Layout.alignment: Qt.AlignVCenter
+                clip: true
 
                 SuperellipseImage {
                     anchors.fill: parent

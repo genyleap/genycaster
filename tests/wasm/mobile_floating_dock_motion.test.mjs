@@ -32,7 +32,9 @@ test('capsule, selected states and action button are border-free in light and da
   const primary=dock.slice(dock.indexOf('objectName: "mobilePrimaryActionButton"'));
   // Destination now uses a shared neon surface with an explicitly borderless
   // circular selected wash, not a separate flat Superellipse background.
-  assert.match(destination,/background: NeonSurface \{[\s\S]*?borderWidth: 0/);
+  assert.match(destination,/background: Item \{[\s\S]*?NeonSurface \{/);
+  assert.match(destination,/width: destination\.labelVisible \? parent\.width[\s\S]*?: Math\.min\(parent\.width, parent\.height\)/);
+  assert.match(destination,/height: parent\.height[\s\S]*?borderWidth: 0/);
   assert.match(destination,/ambientNeon: destination\.active/);
   assert.match(destination,/highQualityEdges: true/);
   assert.doesNotMatch(destination,/borderColor:/);
