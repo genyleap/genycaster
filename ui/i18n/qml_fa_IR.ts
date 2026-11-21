@@ -8205,5 +8205,213 @@ Company | https://company.com</source>
             <source>Wallet verification is unavailable or was declined. No payment was made. Retry.</source>
             <translation>تأیید کیف پول در دسترس نیست یا رد شد. هیچ پرداختی انجام نشده است. دوباره تلاش کنید.</translation>
         </message>
+        <message id="genycaster.setup.hypersnap_sync_pause">
+            <source>HyperSnap is catching up. Account creation is temporarily paused.</source>
+            <translation>هایپراسنپ در حال همگام‌سازی است. ساخت حساب موقتاً متوقف شده است.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_checking">
+            <source>Checking the HyperSnap network…</source>
+            <translation>در حال بررسی شبکهٔ هایپراسنپ…</translation>
+        </message>
+        <message id="genycaster.setup.network_status">
+            <source>Network status</source>
+            <translation>وضعیت شبکه</translation>
+        </message>
+        <message id="genycaster.setup.registration_sync_paused">
+            <source>Registration paused · Syncing</source>
+            <translation>ثبت‌نام متوقف شده · در حال همگام‌سازی</translation>
+        </message>
+        <message id="genycaster.setup.network_syncing">
+            <source>Network syncing</source>
+            <translation>در حال همگام‌سازی شبکه</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_paid_registration">
+            <source>Farcaster registration is paid. Create an account there, then sign in here.</source>
+            <translation>ثبت‌نام فارکستر هزینه دارد. آنجا حساب بسازید و سپس اینجا وارد شوید.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_create_external">
+            <source>Create account on Farcaster</source>
+            <translation>ساخت حساب در فارکستر</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_external_help">
+            <source>Opens the official Farcaster website. Return here and choose Existing account to sign in.</source>
+            <translation>وب‌سایت رسمی فارکستر باز می‌شود. سپس برگردید و «حساب موجود» را برای ورود انتخاب کنید.</translation>
+        </message>
+        <message id="genycaster.setup.sign_in_existing">
+            <source>Already have an account? Sign in</source>
+            <translation>حساب دارید؟ وارد شوید</translation>
+        </message>
+        <message id="genycaster.setup.sponsored_code_available">
+            <source>I have a Genycaster sponsorship code</source>
+            <translation>کد حمایت مالی جنی‌کستر دارم</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_checking">
+            <source>Checking sponsored enrollment availability…</source>
+            <translation>بررسی امکان ثبت‌نام حمایتی…</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_unavailable">
+            <source>Sponsored signup is unavailable here.</source>
+            <translation>ثبت‌نام حمایتی فعلاً در اینجا در دسترس نیست.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_chain">
+            <source>HYPERSNAP BLOCKCHAIN</source>
+            <translation>بلاک‌چین هایپراسنپ</translation>
+        </message>
+        <message id="genycaster.setup.registration_unavailable">
+            <source>Registration temporarily unavailable</source>
+            <translation>ثبت‌نام موقتاً در دسترس نیست</translation>
+        </message>
+        <message id="genycaster.setup.network_checking">
+            <source>Checking network</source>
+            <translation>در حال بررسی شبکه</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_nodes_syncing">
+            <source>HyperSnap nodes are syncing. Try again later.</source>
+            <translation>نودهای هایپراسنپ در حال همگام‌سازی‌اند. بعداً تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_checking_short">
+            <source>Checking HyperSnap…</source>
+            <translation>در حال بررسی هایپراسنپ…</translation>
+        </message>
+        <message id="genycaster.setup.check_network">
+            <source>Check network</source>
+            <translation>بررسی شبکه</translation>
+        </message>
+        <message id="genycaster.setup.cancel_registration">
+            <source>Cancel registration</source>
+            <translation>لغو ثبت‌نام</translation>
+        </message>
+        <message id="genycaster.setup.continue_sponsored">
+            <source>Continue sponsored registration</source>
+            <translation>ادامهٔ ثبت‌نام حمایتی</translation>
+        </message>
+        <message id="genycaster.setup.back_to_registration">
+            <source>Back to registration options</source>
+            <translation>بازگشت به گزینه‌های ثبت‌نام</translation>
+        </message>
+        <message id="genycaster.setup.recovery_words_verified_status">
+            <source>Recovery words verified</source>
+            <translation>واژه‌های بازیابی تأیید شدند</translation>
+        </message>
+        <message id="genycaster.setup.keys_on_device">
+            <source>Your keys stay on this device.</source>
+            <translation>کلیدهای شما روی این دستگاه می‌مانند.</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_explanation">
+            <source>A sponsorship code is issued by the Genycaster operator after verified payment or sponsorship. It is not a Neynar API key or wallet password. Genycaster does not currently sell these codes in the app.</source>
+            <translation>کد حمایت مالی را گردانندهٔ جنی‌کستر پس از تأیید پرداخت یا حمایت صادر می‌کند. این کد، کلید API نینار یا گذرواژهٔ کیف پول نیست. جنی‌کستر فعلاً این کدها را در برنامه نمی‌فروشد.</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_paste">
+            <source>Paste your Genycaster sponsorship code</source>
+            <translation>کد حمایت مالی جنی‌کستر را وارد کنید</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_label">
+            <source>Genycaster sponsorship code</source>
+            <translation>کد حمایت مالی جنی‌کستر</translation>
+        </message>
+        <message id="genycaster.setup.continue_username">
+            <source>Continue to username</source>
+            <translation>ادامه به نام کاربری</translation>
+        </message>
+        <message id="genycaster.setup.create_farcaster">
+            <source>Create Farcaster account</source>
+            <translation>ساخت حساب فارکستر</translation>
+        </message>
+        <message id="genycaster.setup.check_account_status">
+            <source>Check account status</source>
+            <translation>بررسی وضعیت حساب</translation>
+        </message>
+        <message id="genycaster.setup.create_account">
+            <source>Create account</source>
+            <translation>ساخت حساب</translation>
+        </message>
+        <message id="genycaster.setup.create_native_identity">
+            <source>Creates one self-custody identity on HyperSnap.</source>
+            <translation>یک هویت با نگه‌داری شخصی کلیدها در هایپراسنپ می‌سازد.</translation>
+        </message>
+        <message id="genycaster.setup.await_network_confirmation">
+            <source>Awaiting network confirmation</source>
+            <translation>در انتظار تأیید شبکه</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_unavailable">
+            <source>HyperSnap unavailable</source>
+            <translation>هایپراسنپ در دسترس نیست</translation>
+        </message>
+        <message id="genycaster.setup.confirmation_pending_dont_retry">
+            <source>Confirmation is pending. Do not submit again.</source>
+            <translation>تأیید هنوز انجام نشده است. درخواست را دوباره نفرستید.</translation>
+        </message>
+        <message id="genycaster.setup.account_creation_paused">
+            <source>Account creation is paused. Try again later.</source>
+            <translation>ساخت حساب متوقف شده است. بعداً تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.setup.backup">
+            <source>Backup</source>
+            <translation>پشتیبان‌گیری</translation>
+        </message>
+        <message id="genycaster.setup.checking_request">
+            <source>Checking request</source>
+            <translation>بررسی درخواست</translation>
+        </message>
+        <message id="genycaster.setup.request">
+            <source>Request</source>
+            <translation>درخواست</translation>
+        </message>
+        <message id="genycaster.setup.confirmed">
+            <source>Confirmed</source>
+            <translation>تأیید شد</translation>
+        </message>
+        <message id="genycaster.setup.keep_recovery_words">
+            <source>Keep your 24 recovery words. Return anytime.</source>
+            <translation>۲۴ واژهٔ بازیابی خود را نگه دارید. هر زمان می‌توانید برگردید.</translation>
+        </message>
+        <message id="genycaster.setup.check_status">
+            <source>Check status</source>
+            <translation>بررسی وضعیت</translation>
+        </message>
+        <message id="genycaster.setup.leave_for_now">
+            <source>Leave for now</source>
+            <translation>فعلاً خروج</translation>
+        </message>
+        <message id="genycaster.setup.leave_keeps_request">
+            <source>Leaving will not cancel your submitted request. Keep your recovery words.</source>
+            <translation>خروج از این صفحه درخواست ارسالی را لغو نمی‌کند. واژه‌های بازیابی را نگه دارید.</translation>
+        </message>
+        <message id="genycaster.setup.no_request_submitted">
+            <source>No account registration has been sent. Return to account options.</source>
+            <translation>هنوز درخواستی برای ثبت حساب ارسال نشده است. به گزینه‌های حساب برگردید.</translation>
+        </message>
+        <message id="genycaster.setup.account_found_signing_in">
+            <source>Account found. Signing you in…</source>
+            <translation>حساب پیدا شد. در حال ورود…</translation>
+        </message>
+        <message id="genycaster.setup.hide_diagnostics">
+            <source>Hide diagnostics</source>
+            <translation>پنهان‌کردن جزئیات فنی</translation>
+        </message>
+        <message id="genycaster.setup.developer_details">
+            <source>Developer details</source>
+            <translation>جزئیات توسعه‌دهنده</translation>
+        </message>
+        <message id="genycaster.setup.prepare_new_attempt">
+            <source>Prepare new attempt</source>
+            <translation>آماده‌سازی تلاش جدید</translation>
+        </message>
+        <message id="genycaster.setup.reset_expired_attempt">
+            <source>Resets the expired local attempt; does not send a registration request.</source>
+            <translation>تلاش محلی منقضی‌شده را بازنشانی می‌کند؛ درخواست ثبت‌نام جدیدی نمی‌فرستد.</translation>
+        </message>
+        <message id="genycaster.setup.signed_in_signer_separate">
+            <source>Your account is signed in. Publishing authorization is separate. Check the signer status before trying again.</source>
+            <translation>به حساب خود وارد شده‌اید. مجوز انتشار جداگانه است. پیش از تلاش دوباره، وضعیت امضاکننده را بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.setup.check_signer_status">
+            <source>Check signer status</source>
+            <translation>بررسی وضعیت امضاکننده</translation>
+        </message>
+        <message id="genycaster.setup.signer_read_only_check">
+            <source>Read-only network check; no new signer authorization is submitted.</source>
+            <translation>بررسی فقط‌خواندنی شبکه؛ درخواست جدیدی برای مجوز امضا ارسال نمی‌شود.</translation>
+        </message>
     </context>
 </TS>

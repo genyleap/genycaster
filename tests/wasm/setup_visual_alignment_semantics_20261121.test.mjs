@@ -31,7 +31,7 @@ test('protocol cards retain the same status anatomy on create and existing scree
   }
   assert.match(setup,/root\.currentStep === 4 \? \(root\.showRecovery \|\| root\.resumingRegistration \? 640 : 760\)/);
   assert.match(setup,/root\.currentStep === 3 && root\.choosingRegistrationProvider \? 760/);
-  assert.match(setup,/text: qsTr\("Registration paused · Syncing"\)/);
+  assert.match(setup,/text: qsTrId\("genycaster.setup.registration_sync_paused"\)/);
 });
 
 test('primary CTA reserves equal icon and arrow slots and centers its label', () => {
@@ -40,7 +40,10 @@ test('primary CTA reserves equal icon and arrow slots and centers its label', ()
   assert.match(cta,/Layout\.fillWidth: true\s+Layout\.minimumWidth: 0\s+text: root\.text/);
   assert.match(cta,/horizontalAlignment: Text\.AlignHCenter/);
   assert.match(cta,/visible: root\.showArrow && !root\.busy/);
-  assert.match(setup,/: \(stagePanel\.width - width\) \/ 2/);
+  assert.match(setup,/: \(setupFooterContent\.width - width\) \/ 2/);
+  assert.match(setup,/id: setupActionFooter/);
+  assert.match(setup,/anchors.bottom: setupActionFooter.top/);
+  assert.match(setup,/readonly property bool showsPrimaryCta: true/);
 });
 
 test('pending status is compact and actions remain safe and usable', () => {

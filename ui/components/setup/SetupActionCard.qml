@@ -410,7 +410,8 @@ Button {
                         DirectionAwareLabel {
                             id: latencyPillText
                             anchors.centerIn: parent
-                            text: LocaleFormat.localizeDigits(root.latencyMs) + " ms"
+                            text: qsTrId("genycaster.setup.connection_latency").arg(
+                                  LocaleFormat.localizeDigits(root.latencyMs))
                             color: root.latencyQualityColor
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightDemiBold

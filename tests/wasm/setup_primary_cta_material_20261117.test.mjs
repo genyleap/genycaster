@@ -8,8 +8,9 @@ test('active setup stage Continue is brand-primary, not flat white', () => {
     const setup = read('ui/components/setup/InitialSetup.qml');
     const action = read('ui/components/controls/ActionButton.qml');
     const primary = read('ui/components/setup/SetupPrimaryButton.qml');
-    const stage = setup.slice(setup.indexOf('SetupPrimaryButton {\n            id: stageAction'),
-                              setup.indexOf('\n        }', setup.indexOf('SetupPrimaryButton {\n            id: stageAction')));
+    const buttonStart = setup.indexOf('id: stageAction');
+    assert.ok(buttonStart > 0);
+    const stage = setup.slice(buttonStart, setup.indexOf('onClicked: root.nextStep()', buttonStart) + 26);
     assert.match(stage, /neutralPrimary: false/);
     assert.match(stage, /text: root\.actionText\(\)/);
     assert.match(stage, /onClicked: root\.nextStep\(\)/);

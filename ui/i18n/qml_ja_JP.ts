@@ -8204,5 +8204,213 @@ Company | https://company.com</source>
             <source>Wallet verification is unavailable or was declined. No payment was made. Retry.</source>
             <translation>ウォレットの確認を利用できないか拒否されました。支払いは行われていません。再試行してください。</translation>
         </message>
+        <message id="genycaster.setup.hypersnap_sync_pause">
+            <source>HyperSnap is catching up. Account creation is temporarily paused.</source>
+            <translation>HyperSnapは同期中です。アカウント作成は一時停止しています。</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_checking">
+            <source>Checking the HyperSnap network…</source>
+            <translation>HyperSnapネットワークを確認中…</translation>
+        </message>
+        <message id="genycaster.setup.network_status">
+            <source>Network status</source>
+            <translation>ネットワークの状態</translation>
+        </message>
+        <message id="genycaster.setup.registration_sync_paused">
+            <source>Registration paused · Syncing</source>
+            <translation>登録を一時停止 · 同期中</translation>
+        </message>
+        <message id="genycaster.setup.network_syncing">
+            <source>Network syncing</source>
+            <translation>ネットワークを同期中</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_paid_registration">
+            <source>Farcaster registration is paid. Create an account there, then sign in here.</source>
+            <translation>Farcasterの登録は有料です。Farcasterでアカウントを作成し、ここからログインしてください。</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_create_external">
+            <source>Create account on Farcaster</source>
+            <translation>Farcasterでアカウントを作成</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_external_help">
+            <source>Opens the official Farcaster website. Return here and choose Existing account to sign in.</source>
+            <translation>Farcasterの公式サイトを開きます。戻って「既存のアカウント」を選ぶとログインできます。</translation>
+        </message>
+        <message id="genycaster.setup.sign_in_existing">
+            <source>Already have an account? Sign in</source>
+            <translation>アカウントをお持ちですか？ ログイン</translation>
+        </message>
+        <message id="genycaster.setup.sponsored_code_available">
+            <source>I have a Genycaster sponsorship code</source>
+            <translation>Genycasterのスポンサーコードを持っています</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_checking">
+            <source>Checking sponsored enrollment availability…</source>
+            <translation>スポンサー登録の利用可否を確認中…</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_unavailable">
+            <source>Sponsored signup is unavailable here.</source>
+            <translation>スポンサー登録は現在ここでは利用できません。</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_chain">
+            <source>HYPERSNAP BLOCKCHAIN</source>
+            <translation>HYPERSNAPブロックチェーン</translation>
+        </message>
+        <message id="genycaster.setup.registration_unavailable">
+            <source>Registration temporarily unavailable</source>
+            <translation>登録は一時的に利用できません</translation>
+        </message>
+        <message id="genycaster.setup.network_checking">
+            <source>Checking network</source>
+            <translation>ネットワークを確認中</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_nodes_syncing">
+            <source>HyperSnap nodes are syncing. Try again later.</source>
+            <translation>HyperSnapのノードは同期中です。後でもう一度お試しください。</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_checking_short">
+            <source>Checking HyperSnap…</source>
+            <translation>HyperSnapを確認中…</translation>
+        </message>
+        <message id="genycaster.setup.check_network">
+            <source>Check network</source>
+            <translation>ネットワークを確認</translation>
+        </message>
+        <message id="genycaster.setup.cancel_registration">
+            <source>Cancel registration</source>
+            <translation>登録をキャンセル</translation>
+        </message>
+        <message id="genycaster.setup.continue_sponsored">
+            <source>Continue sponsored registration</source>
+            <translation>スポンサー登録を続行</translation>
+        </message>
+        <message id="genycaster.setup.back_to_registration">
+            <source>Back to registration options</source>
+            <translation>登録オプションに戻る</translation>
+        </message>
+        <message id="genycaster.setup.recovery_words_verified_status">
+            <source>Recovery words verified</source>
+            <translation>復元フレーズを確認しました</translation>
+        </message>
+        <message id="genycaster.setup.keys_on_device">
+            <source>Your keys stay on this device.</source>
+            <translation>秘密鍵はこの端末から外部に送信されません。</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_explanation">
+            <source>A sponsorship code is issued by the Genycaster operator after verified payment or sponsorship. It is not a Neynar API key or wallet password. Genycaster does not currently sell these codes in the app.</source>
+            <translation>スポンサーコードは、支払いまたはスポンサー提供の確認後にGenycaster運営者が発行します。NeynarのAPIキーやウォレットのパスワードではありません。現在、アプリ内でこれらのコードは販売していません。</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_paste">
+            <source>Paste your Genycaster sponsorship code</source>
+            <translation>Genycasterスポンサーコードを貼り付け</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_label">
+            <source>Genycaster sponsorship code</source>
+            <translation>Genycasterスポンサーコード</translation>
+        </message>
+        <message id="genycaster.setup.continue_username">
+            <source>Continue to username</source>
+            <translation>ユーザー名の設定へ</translation>
+        </message>
+        <message id="genycaster.setup.create_farcaster">
+            <source>Create Farcaster account</source>
+            <translation>Farcasterアカウントを作成</translation>
+        </message>
+        <message id="genycaster.setup.check_account_status">
+            <source>Check account status</source>
+            <translation>アカウントの状態を確認</translation>
+        </message>
+        <message id="genycaster.setup.create_account">
+            <source>Create account</source>
+            <translation>アカウントを作成</translation>
+        </message>
+        <message id="genycaster.setup.create_native_identity">
+            <source>Creates one self-custody identity on HyperSnap.</source>
+            <translation>HyperSnap上で自己管理型のIDを作成します。</translation>
+        </message>
+        <message id="genycaster.setup.await_network_confirmation">
+            <source>Awaiting network confirmation</source>
+            <translation>ネットワークの確認待ち</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_unavailable">
+            <source>HyperSnap unavailable</source>
+            <translation>HyperSnapを利用できません</translation>
+        </message>
+        <message id="genycaster.setup.confirmation_pending_dont_retry">
+            <source>Confirmation is pending. Do not submit again.</source>
+            <translation>確認待ちです。リクエストを再送しないでください。</translation>
+        </message>
+        <message id="genycaster.setup.account_creation_paused">
+            <source>Account creation is paused. Try again later.</source>
+            <translation>アカウント作成は一時停止中です。後でもう一度お試しください。</translation>
+        </message>
+        <message id="genycaster.setup.backup">
+            <source>Backup</source>
+            <translation>バックアップ</translation>
+        </message>
+        <message id="genycaster.setup.checking_request">
+            <source>Checking request</source>
+            <translation>リクエストを確認中</translation>
+        </message>
+        <message id="genycaster.setup.request">
+            <source>Request</source>
+            <translation>リクエスト</translation>
+        </message>
+        <message id="genycaster.setup.confirmed">
+            <source>Confirmed</source>
+            <translation>確認済み</translation>
+        </message>
+        <message id="genycaster.setup.keep_recovery_words">
+            <source>Keep your 24 recovery words. Return anytime.</source>
+            <translation>24個の復元ワードを保管してください。いつでも戻れます。</translation>
+        </message>
+        <message id="genycaster.setup.check_status">
+            <source>Check status</source>
+            <translation>状態を確認</translation>
+        </message>
+        <message id="genycaster.setup.leave_for_now">
+            <source>Leave for now</source>
+            <translation>今は終了</translation>
+        </message>
+        <message id="genycaster.setup.leave_keeps_request">
+            <source>Leaving will not cancel your submitted request. Keep your recovery words.</source>
+            <translation>ここから離れても送信済みのリクエストは取り消されません。復元ワードを保管してください。</translation>
+        </message>
+        <message id="genycaster.setup.no_request_submitted">
+            <source>No account registration has been sent. Return to account options.</source>
+            <translation>登録リクエストはまだ送信されていません。アカウントのオプションに戻ってください。</translation>
+        </message>
+        <message id="genycaster.setup.account_found_signing_in">
+            <source>Account found. Signing you in…</source>
+            <translation>アカウントが見つかりました。ログイン中…</translation>
+        </message>
+        <message id="genycaster.setup.hide_diagnostics">
+            <source>Hide diagnostics</source>
+            <translation>診断情報を隠す</translation>
+        </message>
+        <message id="genycaster.setup.developer_details">
+            <source>Developer details</source>
+            <translation>開発者向けの詳細</translation>
+        </message>
+        <message id="genycaster.setup.prepare_new_attempt">
+            <source>Prepare new attempt</source>
+            <translation>新しい試行を準備</translation>
+        </message>
+        <message id="genycaster.setup.reset_expired_attempt">
+            <source>Resets the expired local attempt; does not send a registration request.</source>
+            <translation>期限切れのローカル試行をリセットします。登録リクエストは送信しません。</translation>
+        </message>
+        <message id="genycaster.setup.signed_in_signer_separate">
+            <source>Your account is signed in. Publishing authorization is separate. Check the signer status before trying again.</source>
+            <translation>ログイン済みです。投稿の承認は別です。再試行する前に署名者の状態を確認してください。</translation>
+        </message>
+        <message id="genycaster.setup.check_signer_status">
+            <source>Check signer status</source>
+            <translation>署名者の状態を確認</translation>
+        </message>
+        <message id="genycaster.setup.signer_read_only_check">
+            <source>Read-only network check; no new signer authorization is submitted.</source>
+            <translation>読み取り専用のネットワーク確認です。署名承認の新しいリクエストは送信しません。</translation>
+        </message>
     </context>
 </TS>

@@ -316,14 +316,15 @@ test('shared theme, native project icons and all three theme modes are present',
   assert.match(languageStage, /SetupLanguageSelector \{\s*id: languageWheel\s*visible: root\.phone/);
 });
 
-test('stage CTA is adjacent to the active form, desktop retains a two-pane welcome', () => {
+test('every stage uses a fixed bottom CTA footer and the desktop retains two-pane welcome', () => {
   assert.match(setup, /id: stageScroll/);
   assert.match(setup, /id: stageAction/);
   assert.match(setup, /id: desktopBrandPane/);
   assert.match(setup, /width: root\.currentStep === 0 \? Math\.min\(parent\.width \* 0\.35, 560\)/);
-  assert.match(setup, /anchors.top: stageLoader.bottom/);
-  assert.match(setup, /anchors.topMargin: Theme.space4/);
-  assert.match(setup, /: \(stagePanel.width - width\) \/ 2/);
+  assert.match(setup, /id: setupActionFooter/);
+  assert.match(setup, /anchors.bottom: setupActionFooter.top/);
+  assert.match(setup, /anchors.verticalCenter: parent.verticalCenter/);
+  assert.match(setup, /: \(setupFooterContent.width - width\) \/ 2/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
 });
 
@@ -366,7 +367,7 @@ test('terms and privacy open internal scrollable reader with reliable whole-row 
   assert.doesNotMatch(legal,/Qt\.openUrlExternally/);
 });
 
-test('full-window setup removes shell chrome and has no fake desktop header or footer', () => {
+test('full-window setup removes shell chrome and keeps the setup action footer inside its canvas', () => {
   const s=source('ui/components/setup/InitialSetup.qml');
   const app=source('ui/components/shell/AppShell.qml');
   assert.match(s,/id: setupCanvas/);
@@ -374,7 +375,9 @@ test('full-window setup removes shell chrome and has no fake desktop header or f
   assert.match(s,/width: root\.currentStep === 0 \? Math\.min\(parent\.width \* 0\.35, 560\)/);
   assert.match(s,/id: stageAction/);
   assert.match(s,/anchors\.bottom: parent\.bottom/);
-  assert.doesNotMatch(s,/id: setupFooter/);
+  assert.match(s,/id: setupActionFooter/);
+  assert.match(s,/x: setupCanvas.formStart/);
+  assert.match(s,/width: setupCanvas.formWidth/);
   assert.match(app,/id: shellContent[\s\S]*?visible: presentationBridge\.authenticationStateObserved && !root\.initialSetupOpen/);
   assert.match(app,/id: globalStatus[\s\S]*?visible: !root\.mobile && presentationBridge\.authenticationStateObserved\s*&& !root\.initialSetupOpen/);
 });

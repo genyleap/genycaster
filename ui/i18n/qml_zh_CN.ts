@@ -8204,5 +8204,213 @@ Company | https://company.com</source>
             <source>Wallet verification is unavailable or was declined. No payment was made. Retry.</source>
             <translation>钱包验证不可用或遭到拒绝。未发生任何付款。请重试。</translation>
         </message>
+        <message id="genycaster.setup.hypersnap_sync_pause">
+            <source>HyperSnap is catching up. Account creation is temporarily paused.</source>
+            <translation>HyperSnap 正在同步，账户创建暂时暂停。</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_checking">
+            <source>Checking the HyperSnap network…</source>
+            <translation>正在检查 HyperSnap 网络…</translation>
+        </message>
+        <message id="genycaster.setup.network_status">
+            <source>Network status</source>
+            <translation>网络状态</translation>
+        </message>
+        <message id="genycaster.setup.registration_sync_paused">
+            <source>Registration paused · Syncing</source>
+            <translation>注册已暂停 · 同步中</translation>
+        </message>
+        <message id="genycaster.setup.network_syncing">
+            <source>Network syncing</source>
+            <translation>网络同步中</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_paid_registration">
+            <source>Farcaster registration is paid. Create an account there, then sign in here.</source>
+            <translation>Farcaster 注册需要付费。请先在那里创建账户，再返回此处登录。</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_create_external">
+            <source>Create account on Farcaster</source>
+            <translation>前往 Farcaster 创建账户</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_external_help">
+            <source>Opens the official Farcaster website. Return here and choose Existing account to sign in.</source>
+            <translation>打开 Farcaster 官方网站。完成后返回并选择“已有账户”登录。</translation>
+        </message>
+        <message id="genycaster.setup.sign_in_existing">
+            <source>Already have an account? Sign in</source>
+            <translation>已有账户？登录</translation>
+        </message>
+        <message id="genycaster.setup.sponsored_code_available">
+            <source>I have a Genycaster sponsorship code</source>
+            <translation>我有 Genycaster 赞助码</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_checking">
+            <source>Checking sponsored enrollment availability…</source>
+            <translation>正在检查赞助注册是否可用…</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_unavailable">
+            <source>Sponsored signup is unavailable here.</source>
+            <translation>此处暂不支持赞助注册。</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_chain">
+            <source>HYPERSNAP BLOCKCHAIN</source>
+            <translation>HYPERSNAP 区块链</translation>
+        </message>
+        <message id="genycaster.setup.registration_unavailable">
+            <source>Registration temporarily unavailable</source>
+            <translation>注册暂时不可用</translation>
+        </message>
+        <message id="genycaster.setup.network_checking">
+            <source>Checking network</source>
+            <translation>正在检查网络</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_nodes_syncing">
+            <source>HyperSnap nodes are syncing. Try again later.</source>
+            <translation>HyperSnap 节点正在同步，请稍后重试。</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_checking_short">
+            <source>Checking HyperSnap…</source>
+            <translation>正在检查 HyperSnap…</translation>
+        </message>
+        <message id="genycaster.setup.check_network">
+            <source>Check network</source>
+            <translation>检查网络</translation>
+        </message>
+        <message id="genycaster.setup.cancel_registration">
+            <source>Cancel registration</source>
+            <translation>取消注册</translation>
+        </message>
+        <message id="genycaster.setup.continue_sponsored">
+            <source>Continue sponsored registration</source>
+            <translation>继续赞助注册</translation>
+        </message>
+        <message id="genycaster.setup.back_to_registration">
+            <source>Back to registration options</source>
+            <translation>返回注册选项</translation>
+        </message>
+        <message id="genycaster.setup.recovery_words_verified_status">
+            <source>Recovery words verified</source>
+            <translation>恢复助记词已验证</translation>
+        </message>
+        <message id="genycaster.setup.keys_on_device">
+            <source>Your keys stay on this device.</source>
+            <translation>私钥始终保留在此设备上。</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_explanation">
+            <source>A sponsorship code is issued by the Genycaster operator after verified payment or sponsorship. It is not a Neynar API key or wallet password. Genycaster does not currently sell these codes in the app.</source>
+            <translation>Genycaster 运营方会在确认付款或赞助后发放赞助码。此码不是 Neynar API 密钥或钱包密码。Genycaster 目前不在应用内销售这些代码。</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_paste">
+            <source>Paste your Genycaster sponsorship code</source>
+            <translation>粘贴 Genycaster 赞助码</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_label">
+            <source>Genycaster sponsorship code</source>
+            <translation>Genycaster 赞助码</translation>
+        </message>
+        <message id="genycaster.setup.continue_username">
+            <source>Continue to username</source>
+            <translation>继续设置用户名</translation>
+        </message>
+        <message id="genycaster.setup.create_farcaster">
+            <source>Create Farcaster account</source>
+            <translation>创建 Farcaster 账户</translation>
+        </message>
+        <message id="genycaster.setup.check_account_status">
+            <source>Check account status</source>
+            <translation>检查账户状态</translation>
+        </message>
+        <message id="genycaster.setup.create_account">
+            <source>Create account</source>
+            <translation>创建账户</translation>
+        </message>
+        <message id="genycaster.setup.create_native_identity">
+            <source>Creates one self-custody identity on HyperSnap.</source>
+            <translation>在 HyperSnap 上创建自托管身份。</translation>
+        </message>
+        <message id="genycaster.setup.await_network_confirmation">
+            <source>Awaiting network confirmation</source>
+            <translation>等待网络确认</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_unavailable">
+            <source>HyperSnap unavailable</source>
+            <translation>HyperSnap 不可用</translation>
+        </message>
+        <message id="genycaster.setup.confirmation_pending_dont_retry">
+            <source>Confirmation is pending. Do not submit again.</source>
+            <translation>确认仍在进行中，请勿重复提交请求。</translation>
+        </message>
+        <message id="genycaster.setup.account_creation_paused">
+            <source>Account creation is paused. Try again later.</source>
+            <translation>账户创建已暂停，请稍后重试。</translation>
+        </message>
+        <message id="genycaster.setup.backup">
+            <source>Backup</source>
+            <translation>备份</translation>
+        </message>
+        <message id="genycaster.setup.checking_request">
+            <source>Checking request</source>
+            <translation>正在检查请求</translation>
+        </message>
+        <message id="genycaster.setup.request">
+            <source>Request</source>
+            <translation>请求</translation>
+        </message>
+        <message id="genycaster.setup.confirmed">
+            <source>Confirmed</source>
+            <translation>已确认</translation>
+        </message>
+        <message id="genycaster.setup.keep_recovery_words">
+            <source>Keep your 24 recovery words. Return anytime.</source>
+            <translation>请妥善保管 24 个恢复词，随时可以返回。</translation>
+        </message>
+        <message id="genycaster.setup.check_status">
+            <source>Check status</source>
+            <translation>检查状态</translation>
+        </message>
+        <message id="genycaster.setup.leave_for_now">
+            <source>Leave for now</source>
+            <translation>暂时离开</translation>
+        </message>
+        <message id="genycaster.setup.leave_keeps_request">
+            <source>Leaving will not cancel your submitted request. Keep your recovery words.</source>
+            <translation>离开此页面不会取消已提交的请求。请保管好恢复词。</translation>
+        </message>
+        <message id="genycaster.setup.no_request_submitted">
+            <source>No account registration has been sent. Return to account options.</source>
+            <translation>尚未提交注册请求，请返回账户选项。</translation>
+        </message>
+        <message id="genycaster.setup.account_found_signing_in">
+            <source>Account found. Signing you in…</source>
+            <translation>已找到账户，正在登录…</translation>
+        </message>
+        <message id="genycaster.setup.hide_diagnostics">
+            <source>Hide diagnostics</source>
+            <translation>隐藏诊断信息</translation>
+        </message>
+        <message id="genycaster.setup.developer_details">
+            <source>Developer details</source>
+            <translation>开发者详细信息</translation>
+        </message>
+        <message id="genycaster.setup.prepare_new_attempt">
+            <source>Prepare new attempt</source>
+            <translation>准备重新尝试</translation>
+        </message>
+        <message id="genycaster.setup.reset_expired_attempt">
+            <source>Resets the expired local attempt; does not send a registration request.</source>
+            <translation>重置已过期的本地尝试，不会提交新的注册请求。</translation>
+        </message>
+        <message id="genycaster.setup.signed_in_signer_separate">
+            <source>Your account is signed in. Publishing authorization is separate. Check the signer status before trying again.</source>
+            <translation>您已登录。发布授权需要另行完成。重试前请先检查签名者状态。</translation>
+        </message>
+        <message id="genycaster.setup.check_signer_status">
+            <source>Check signer status</source>
+            <translation>检查签名者状态</translation>
+        </message>
+        <message id="genycaster.setup.signer_read_only_check">
+            <source>Read-only network check; no new signer authorization is submitted.</source>
+            <translation>仅进行只读网络检查，不会提交新的签名授权请求。</translation>
+        </message>
     </context>
 </TS>

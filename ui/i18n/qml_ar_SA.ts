@@ -8204,5 +8204,213 @@ Company | https://company.com</source>
             <source>Wallet verification is unavailable or was declined. No payment was made. Retry.</source>
             <translation>التحقق من المحفظة غير متاح أو تم رفضه. لم يتم إجراء أي دفع. حاول مجددًا.</translation>
         </message>
+        <message id="genycaster.setup.hypersnap_sync_pause">
+            <source>HyperSnap is catching up. Account creation is temporarily paused.</source>
+            <translation>تُزامن شبكة هايبرسناب بياناتها. إنشاء الحسابات متوقف مؤقتًا.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_checking">
+            <source>Checking the HyperSnap network…</source>
+            <translation>جارٍ فحص شبكة هايبرسناب…</translation>
+        </message>
+        <message id="genycaster.setup.network_status">
+            <source>Network status</source>
+            <translation>حالة الشبكة</translation>
+        </message>
+        <message id="genycaster.setup.registration_sync_paused">
+            <source>Registration paused · Syncing</source>
+            <translation>التسجيل متوقف · جارٍ المزامنة</translation>
+        </message>
+        <message id="genycaster.setup.network_syncing">
+            <source>Network syncing</source>
+            <translation>جارٍ مزامنة الشبكة</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_paid_registration">
+            <source>Farcaster registration is paid. Create an account there, then sign in here.</source>
+            <translation>يتطلب تسجيل فاركاستر دفع رسوم. أنشئ حسابًا هناك ثم سجّل الدخول هنا.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_create_external">
+            <source>Create account on Farcaster</source>
+            <translation>إنشاء حساب على فاركاستر</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_external_help">
+            <source>Opens the official Farcaster website. Return here and choose Existing account to sign in.</source>
+            <translation>يفتح موقع فاركاستر الرسمي. عُد واختر «حساب موجود» لتسجيل الدخول.</translation>
+        </message>
+        <message id="genycaster.setup.sign_in_existing">
+            <source>Already have an account? Sign in</source>
+            <translation>هل لديك حساب؟ سجّل الدخول</translation>
+        </message>
+        <message id="genycaster.setup.sponsored_code_available">
+            <source>I have a Genycaster sponsorship code</source>
+            <translation>لديّ رمز رعاية من جني‌كاستر</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_checking">
+            <source>Checking sponsored enrollment availability…</source>
+            <translation>جارٍ التحقق من توفر التسجيل المدعوم…</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_unavailable">
+            <source>Sponsored signup is unavailable here.</source>
+            <translation>التسجيل المدعوم غير متاح هنا حاليًا.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_chain">
+            <source>HYPERSNAP BLOCKCHAIN</source>
+            <translation>سلسلة كتل هايبرسناب</translation>
+        </message>
+        <message id="genycaster.setup.registration_unavailable">
+            <source>Registration temporarily unavailable</source>
+            <translation>التسجيل غير متاح مؤقتًا</translation>
+        </message>
+        <message id="genycaster.setup.network_checking">
+            <source>Checking network</source>
+            <translation>جارٍ فحص الشبكة</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_nodes_syncing">
+            <source>HyperSnap nodes are syncing. Try again later.</source>
+            <translation>عُقد هايبرسناب قيد المزامنة. حاول لاحقًا.</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_checking_short">
+            <source>Checking HyperSnap…</source>
+            <translation>جارٍ فحص هايبرسناب…</translation>
+        </message>
+        <message id="genycaster.setup.check_network">
+            <source>Check network</source>
+            <translation>فحص الشبكة</translation>
+        </message>
+        <message id="genycaster.setup.cancel_registration">
+            <source>Cancel registration</source>
+            <translation>إلغاء التسجيل</translation>
+        </message>
+        <message id="genycaster.setup.continue_sponsored">
+            <source>Continue sponsored registration</source>
+            <translation>متابعة التسجيل المدعوم</translation>
+        </message>
+        <message id="genycaster.setup.back_to_registration">
+            <source>Back to registration options</source>
+            <translation>العودة إلى خيارات التسجيل</translation>
+        </message>
+        <message id="genycaster.setup.recovery_words_verified_status">
+            <source>Recovery words verified</source>
+            <translation>تم التحقق من كلمات الاسترداد</translation>
+        </message>
+        <message id="genycaster.setup.keys_on_device">
+            <source>Your keys stay on this device.</source>
+            <translation>تبقى مفاتيحك على هذا الجهاز.</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_explanation">
+            <source>A sponsorship code is issued by the Genycaster operator after verified payment or sponsorship. It is not a Neynar API key or wallet password. Genycaster does not currently sell these codes in the app.</source>
+            <translation>يصدر مشغّل جني‌كاستر رمز الرعاية بعد التحقق من الدفع أو الرعاية. ليس هذا الرمز مفتاح Neynar API أو كلمة مرور محفظة. لا يبيع جني‌كاستر هذه الرموز داخل التطبيق حاليًا.</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_paste">
+            <source>Paste your Genycaster sponsorship code</source>
+            <translation>ألصق رمز رعاية جني‌كاستر</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_label">
+            <source>Genycaster sponsorship code</source>
+            <translation>رمز رعاية جني‌كاستر</translation>
+        </message>
+        <message id="genycaster.setup.continue_username">
+            <source>Continue to username</source>
+            <translation>المتابعة إلى اسم المستخدم</translation>
+        </message>
+        <message id="genycaster.setup.create_farcaster">
+            <source>Create Farcaster account</source>
+            <translation>إنشاء حساب فاركاستر</translation>
+        </message>
+        <message id="genycaster.setup.check_account_status">
+            <source>Check account status</source>
+            <translation>فحص حالة الحساب</translation>
+        </message>
+        <message id="genycaster.setup.create_account">
+            <source>Create account</source>
+            <translation>إنشاء حساب</translation>
+        </message>
+        <message id="genycaster.setup.create_native_identity">
+            <source>Creates one self-custody identity on HyperSnap.</source>
+            <translation>ينشئ هوية تحت وصايتك الذاتية على هايبرسناب.</translation>
+        </message>
+        <message id="genycaster.setup.await_network_confirmation">
+            <source>Awaiting network confirmation</source>
+            <translation>بانتظار تأكيد الشبكة</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_unavailable">
+            <source>HyperSnap unavailable</source>
+            <translation>هايبرسناب غير متاح</translation>
+        </message>
+        <message id="genycaster.setup.confirmation_pending_dont_retry">
+            <source>Confirmation is pending. Do not submit again.</source>
+            <translation>التأكيد معلّق. لا تُرسل الطلب مرة أخرى.</translation>
+        </message>
+        <message id="genycaster.setup.account_creation_paused">
+            <source>Account creation is paused. Try again later.</source>
+            <translation>إنشاء الحساب متوقف. حاول لاحقًا.</translation>
+        </message>
+        <message id="genycaster.setup.backup">
+            <source>Backup</source>
+            <translation>النسخ الاحتياطي</translation>
+        </message>
+        <message id="genycaster.setup.checking_request">
+            <source>Checking request</source>
+            <translation>فحص الطلب</translation>
+        </message>
+        <message id="genycaster.setup.request">
+            <source>Request</source>
+            <translation>الطلب</translation>
+        </message>
+        <message id="genycaster.setup.confirmed">
+            <source>Confirmed</source>
+            <translation>تم التأكيد</translation>
+        </message>
+        <message id="genycaster.setup.keep_recovery_words">
+            <source>Keep your 24 recovery words. Return anytime.</source>
+            <translation>احتفظ بكلمات الاسترداد الأربع والعشرين. يمكنك العودة في أي وقت.</translation>
+        </message>
+        <message id="genycaster.setup.check_status">
+            <source>Check status</source>
+            <translation>فحص الحالة</translation>
+        </message>
+        <message id="genycaster.setup.leave_for_now">
+            <source>Leave for now</source>
+            <translation>المغادرة الآن</translation>
+        </message>
+        <message id="genycaster.setup.leave_keeps_request">
+            <source>Leaving will not cancel your submitted request. Keep your recovery words.</source>
+            <translation>المغادرة لن تلغي الطلب المُرسل. احتفظ بكلمات الاسترداد.</translation>
+        </message>
+        <message id="genycaster.setup.no_request_submitted">
+            <source>No account registration has been sent. Return to account options.</source>
+            <translation>لم يُرسل أي طلب تسجيل بعد. عُد إلى خيارات الحساب.</translation>
+        </message>
+        <message id="genycaster.setup.account_found_signing_in">
+            <source>Account found. Signing you in…</source>
+            <translation>تم العثور على الحساب. جارٍ تسجيل الدخول…</translation>
+        </message>
+        <message id="genycaster.setup.hide_diagnostics">
+            <source>Hide diagnostics</source>
+            <translation>إخفاء التشخيصات</translation>
+        </message>
+        <message id="genycaster.setup.developer_details">
+            <source>Developer details</source>
+            <translation>تفاصيل المطوّر</translation>
+        </message>
+        <message id="genycaster.setup.prepare_new_attempt">
+            <source>Prepare new attempt</source>
+            <translation>تحضير محاولة جديدة</translation>
+        </message>
+        <message id="genycaster.setup.reset_expired_attempt">
+            <source>Resets the expired local attempt; does not send a registration request.</source>
+            <translation>يعيد تعيين المحاولة المحلية المنتهية؛ ولا يُرسل طلب تسجيل.</translation>
+        </message>
+        <message id="genycaster.setup.signed_in_signer_separate">
+            <source>Your account is signed in. Publishing authorization is separate. Check the signer status before trying again.</source>
+            <translation>تم تسجيل دخولك. إذن النشر منفصل. تحقق من حالة الموقّع قبل المحاولة مجددًا.</translation>
+        </message>
+        <message id="genycaster.setup.check_signer_status">
+            <source>Check signer status</source>
+            <translation>فحص حالة الموقّع</translation>
+        </message>
+        <message id="genycaster.setup.signer_read_only_check">
+            <source>Read-only network check; no new signer authorization is submitted.</source>
+            <translation>فحص الشبكة للقراءة فقط؛ لن يُرسل طلب تفويض توقيع جديد.</translation>
+        </message>
     </context>
 </TS>

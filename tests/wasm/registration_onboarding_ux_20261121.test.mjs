@@ -9,19 +9,19 @@ test('HyperSnap explains blockchain catch-up with identical stage names on nativ
  const js=file('ui/wasm/browser_account_create_dialog.mjs');
  assert.match(qml,/objectName: "setupNativeChainStatusCard"/);
  assert.match(qml,/objectName: "setupBrowserHyperSnapNetworkStatus"/);
- for(const stage of ['Backup','Request','Confirmed']) {
-   assert.ok(qml.includes(stage),stage);
+ for(const stage of ['backup','request','confirmed']) {
+   assert.ok(qml.includes('qsTrId("genycaster.setup.'+stage+'")'),stage);
  }
- assert.match(qml,/Network syncing/);
- assert.match(qml,/Confirmation is pending\. Do not submit again/);
- assert.match(qml,/Registration temporarily unavailable/);
+ assert.match(qml,/genycaster.setup.network_syncing/);
+ assert.match(qml,/genycaster.setup.confirmation_pending_dont_retry/);
+ assert.match(qml,/genycaster.setup.registration_unavailable/);
  assert.match(qml,/objectName: "setupCancelPausedRegistration"/);
  assert.match(qml,/objectName: "setupBrowserCancelPausedRegistration"/);
  assert.match(qml,/objectName: "setupNativeDeveloperDiagnostics"/);
  assert.ok(qml.includes('confirmation.http_status='));
  assert.ok(qml.includes('registration.max_block_delay_s=120'));
  assert.match(qml,/onClicked: root\.previousStep\(\)/);
- assert.match(qml,/qsTr\("Keep your 24 recovery words\. Return anytime\."\)/);
+ assert.match(qml,/qsTrId\("genycaster.setup.keep_recovery_words"\)/);
  assert.match(js,/stepOne:'Backup'/);
  assert.match(js,/stepTwo:'Request'/);
  assert.match(js,/stepThree:'Confirmation'/);
@@ -51,7 +51,7 @@ test('Farcaster signup defaults to official path, never hides paid enrollment be
  assert.match(qml,/objectName: "setupFarcasterExistingAccount"/);
  assert.match(qml,/objectName: "setupFarcasterSponsorCodeChoice"[\s\S]*?neynarRegistration\.available/);
  assert.match(qml,/root\.farcasterSponsoredEnrollmentChosen[\s\S]*?neynarRegistration\.available/);
- assert.match(qml,/Sponsored signup is unavailable here/);
+ assert.match(qml,/genycaster.setup.sponsor_unavailable/);
  assert.match(browser,/https:\/\/farcaster\.xyz\//);
  assert.match(browser,/Genycaster operator after verified payment or sponsorship/);
  assert.match(header,/Q_PROPERTY\(bool available READ available NOTIFY changed\)/);

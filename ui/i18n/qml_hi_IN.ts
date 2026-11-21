@@ -8204,5 +8204,213 @@ Company | https://company.com</source>
             <source>Wallet verification is unavailable or was declined. No payment was made. Retry.</source>
             <translation>वॉलेट सत्यापन उपलब्ध नहीं है या अस्वीकार कर दिया गया। कोई भुगतान नहीं हुआ। फिर प्रयास करें।</translation>
         </message>
+        <message id="genycaster.setup.hypersnap_sync_pause">
+            <source>HyperSnap is catching up. Account creation is temporarily paused.</source>
+            <translation>HyperSnap सिंक हो रहा है। खाता बनाना अस्थायी रूप से रुका है।</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_checking">
+            <source>Checking the HyperSnap network…</source>
+            <translation>HyperSnap नेटवर्क की जाँच हो रही है…</translation>
+        </message>
+        <message id="genycaster.setup.network_status">
+            <source>Network status</source>
+            <translation>नेटवर्क स्थिति</translation>
+        </message>
+        <message id="genycaster.setup.registration_sync_paused">
+            <source>Registration paused · Syncing</source>
+            <translation>पंजीकरण रुका है · सिंक जारी</translation>
+        </message>
+        <message id="genycaster.setup.network_syncing">
+            <source>Network syncing</source>
+            <translation>नेटवर्क सिंक हो रहा है</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_paid_registration">
+            <source>Farcaster registration is paid. Create an account there, then sign in here.</source>
+            <translation>Farcaster पर पंजीकरण सशुल्क है। वहाँ खाता बनाकर यहाँ साइन इन करें।</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_create_external">
+            <source>Create account on Farcaster</source>
+            <translation>Farcaster पर खाता बनाएँ</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_external_help">
+            <source>Opens the official Farcaster website. Return here and choose Existing account to sign in.</source>
+            <translation>Farcaster की आधिकारिक वेबसाइट खुलेगी। लौटकर साइन इन करने के लिए «मौजूदा खाता» चुनें।</translation>
+        </message>
+        <message id="genycaster.setup.sign_in_existing">
+            <source>Already have an account? Sign in</source>
+            <translation>पहले से खाता है? साइन इन करें</translation>
+        </message>
+        <message id="genycaster.setup.sponsored_code_available">
+            <source>I have a Genycaster sponsorship code</source>
+            <translation>मेरे पास Genycaster प्रायोजन कोड है</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_checking">
+            <source>Checking sponsored enrollment availability…</source>
+            <translation>प्रायोजित पंजीकरण की उपलब्धता जाँची जा रही है…</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_unavailable">
+            <source>Sponsored signup is unavailable here.</source>
+            <translation>प्रायोजित पंजीकरण अभी यहाँ उपलब्ध नहीं है।</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_chain">
+            <source>HYPERSNAP BLOCKCHAIN</source>
+            <translation>HYPERSNAP ब्लॉकचेन</translation>
+        </message>
+        <message id="genycaster.setup.registration_unavailable">
+            <source>Registration temporarily unavailable</source>
+            <translation>पंजीकरण अस्थायी रूप से उपलब्ध नहीं</translation>
+        </message>
+        <message id="genycaster.setup.network_checking">
+            <source>Checking network</source>
+            <translation>नेटवर्क की जाँच</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_nodes_syncing">
+            <source>HyperSnap nodes are syncing. Try again later.</source>
+            <translation>HyperSnap नोड सिंक हो रहे हैं। बाद में फिर प्रयास करें।</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_checking_short">
+            <source>Checking HyperSnap…</source>
+            <translation>HyperSnap की जाँच हो रही है…</translation>
+        </message>
+        <message id="genycaster.setup.check_network">
+            <source>Check network</source>
+            <translation>नेटवर्क जाँचें</translation>
+        </message>
+        <message id="genycaster.setup.cancel_registration">
+            <source>Cancel registration</source>
+            <translation>पंजीकरण रद्द करें</translation>
+        </message>
+        <message id="genycaster.setup.continue_sponsored">
+            <source>Continue sponsored registration</source>
+            <translation>प्रायोजित पंजीकरण जारी रखें</translation>
+        </message>
+        <message id="genycaster.setup.back_to_registration">
+            <source>Back to registration options</source>
+            <translation>पंजीकरण विकल्पों पर वापस</translation>
+        </message>
+        <message id="genycaster.setup.recovery_words_verified_status">
+            <source>Recovery words verified</source>
+            <translation>रिकवरी शब्द सत्यापित</translation>
+        </message>
+        <message id="genycaster.setup.keys_on_device">
+            <source>Your keys stay on this device.</source>
+            <translation>आपकी कुंजियाँ इसी डिवाइस पर रहती हैं।</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_explanation">
+            <source>A sponsorship code is issued by the Genycaster operator after verified payment or sponsorship. It is not a Neynar API key or wallet password. Genycaster does not currently sell these codes in the app.</source>
+            <translation>Genycaster संचालक भुगतान या प्रायोजन सत्यापित होने के बाद प्रायोजन कोड जारी करता है। यह Neynar API कुंजी या वॉलेट पासवर्ड नहीं है। Genycaster अभी ऐप में ये कोड नहीं बेचता।</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_paste">
+            <source>Paste your Genycaster sponsorship code</source>
+            <translation>अपना Genycaster प्रायोजन कोड पेस्ट करें</translation>
+        </message>
+        <message id="genycaster.setup.sponsor_code_label">
+            <source>Genycaster sponsorship code</source>
+            <translation>Genycaster प्रायोजन कोड</translation>
+        </message>
+        <message id="genycaster.setup.continue_username">
+            <source>Continue to username</source>
+            <translation>उपयोगकर्ता नाम पर आगे बढ़ें</translation>
+        </message>
+        <message id="genycaster.setup.create_farcaster">
+            <source>Create Farcaster account</source>
+            <translation>Farcaster खाता बनाएँ</translation>
+        </message>
+        <message id="genycaster.setup.check_account_status">
+            <source>Check account status</source>
+            <translation>खाते की स्थिति जाँचें</translation>
+        </message>
+        <message id="genycaster.setup.create_account">
+            <source>Create account</source>
+            <translation>खाता बनाएँ</translation>
+        </message>
+        <message id="genycaster.setup.create_native_identity">
+            <source>Creates one self-custody identity on HyperSnap.</source>
+            <translation>HyperSnap पर स्व-नियंत्रित पहचान बनाता है।</translation>
+        </message>
+        <message id="genycaster.setup.await_network_confirmation">
+            <source>Awaiting network confirmation</source>
+            <translation>नेटवर्क पुष्टि की प्रतीक्षा</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_unavailable">
+            <source>HyperSnap unavailable</source>
+            <translation>HyperSnap उपलब्ध नहीं</translation>
+        </message>
+        <message id="genycaster.setup.confirmation_pending_dont_retry">
+            <source>Confirmation is pending. Do not submit again.</source>
+            <translation>पुष्टि लंबित है। अनुरोध दोबारा न भेजें।</translation>
+        </message>
+        <message id="genycaster.setup.account_creation_paused">
+            <source>Account creation is paused. Try again later.</source>
+            <translation>खाता बनाना रुका है। बाद में फिर प्रयास करें।</translation>
+        </message>
+        <message id="genycaster.setup.backup">
+            <source>Backup</source>
+            <translation>बैकअप</translation>
+        </message>
+        <message id="genycaster.setup.checking_request">
+            <source>Checking request</source>
+            <translation>अनुरोध की जाँच</translation>
+        </message>
+        <message id="genycaster.setup.request">
+            <source>Request</source>
+            <translation>अनुरोध</translation>
+        </message>
+        <message id="genycaster.setup.confirmed">
+            <source>Confirmed</source>
+            <translation>पुष्टि हो गई</translation>
+        </message>
+        <message id="genycaster.setup.keep_recovery_words">
+            <source>Keep your 24 recovery words. Return anytime.</source>
+            <translation>अपने 24 रिकवरी शब्द सँभालकर रखें। आप कभी भी लौट सकते हैं।</translation>
+        </message>
+        <message id="genycaster.setup.check_status">
+            <source>Check status</source>
+            <translation>स्थिति जाँचें</translation>
+        </message>
+        <message id="genycaster.setup.leave_for_now">
+            <source>Leave for now</source>
+            <translation>अभी के लिए बाहर जाएँ</translation>
+        </message>
+        <message id="genycaster.setup.leave_keeps_request">
+            <source>Leaving will not cancel your submitted request. Keep your recovery words.</source>
+            <translation>बाहर जाने से भेजा गया अनुरोध रद्द नहीं होगा। रिकवरी शब्द सुरक्षित रखें।</translation>
+        </message>
+        <message id="genycaster.setup.no_request_submitted">
+            <source>No account registration has been sent. Return to account options.</source>
+            <translation>अभी कोई पंजीकरण अनुरोध नहीं भेजा गया। खाता विकल्पों पर लौटें।</translation>
+        </message>
+        <message id="genycaster.setup.account_found_signing_in">
+            <source>Account found. Signing you in…</source>
+            <translation>खाता मिला। साइन इन हो रहा है…</translation>
+        </message>
+        <message id="genycaster.setup.hide_diagnostics">
+            <source>Hide diagnostics</source>
+            <translation>निदान छिपाएँ</translation>
+        </message>
+        <message id="genycaster.setup.developer_details">
+            <source>Developer details</source>
+            <translation>डेवलपर विवरण</translation>
+        </message>
+        <message id="genycaster.setup.prepare_new_attempt">
+            <source>Prepare new attempt</source>
+            <translation>नया प्रयास तैयार करें</translation>
+        </message>
+        <message id="genycaster.setup.reset_expired_attempt">
+            <source>Resets the expired local attempt; does not send a registration request.</source>
+            <translation>समय-सीमा समाप्त हुए स्थानीय प्रयास को रीसेट करता है; नया पंजीकरण अनुरोध नहीं भेजता।</translation>
+        </message>
+        <message id="genycaster.setup.signed_in_signer_separate">
+            <source>Your account is signed in. Publishing authorization is separate. Check the signer status before trying again.</source>
+            <translation>आप साइन इन हैं। प्रकाशन की अनुमति अलग है। दोबारा कोशिश से पहले हस्ताक्षरकर्ता की स्थिति जाँचें।</translation>
+        </message>
+        <message id="genycaster.setup.check_signer_status">
+            <source>Check signer status</source>
+            <translation>हस्ताक्षरकर्ता की स्थिति जाँचें</translation>
+        </message>
+        <message id="genycaster.setup.signer_read_only_check">
+            <source>Read-only network check; no new signer authorization is submitted.</source>
+            <translation>केवल पढ़ने के लिए नेटवर्क जाँच; हस्ताक्षर की नई अनुमति का अनुरोध नहीं भेजा जाएगा।</translation>
+        </message>
     </context>
 </TS>

@@ -405,7 +405,7 @@ Item {
                          && !presentationBridge.signerBusy
                          && !presentationBridge.writeReady
                          && presentationBridge.signerErrorText.length > 0
-                text: qsTr("Your account is signed in. Publishing authorization is separate. Check the signer status before trying again.")
+                text: qsTrId("genycaster.setup.signed_in_signer_separate")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap
@@ -420,8 +420,8 @@ Item {
                          && !presentationBridge.signerBusy
                          && !presentationBridge.writeReady
                          && presentationBridge.signerErrorText.length > 0
-                text: qsTr("Check signer status")
-                Accessible.description: qsTr("Read-only network check; no new signer authorization is submitted.")
+                text: qsTrId("genycaster.setup.check_signer_status")
+                Accessible.description: qsTrId("genycaster.setup.signer_read_only_check")
                 enabled: !presentationBridge.signerBusy
                 onClicked: presentationBridge.refreshSigner()
             }

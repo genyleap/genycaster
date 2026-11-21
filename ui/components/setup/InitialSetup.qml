@@ -45,7 +45,7 @@ Item {
     property real stageOpacity: 1.0
     property real stageOffset: 0.0
     property int pendingStep: -1
-    readonly property bool showsPrimaryCta: [0,1,2,6,7].includes(currentStep)
+    readonly property bool showsPrimaryCta: true
     readonly property int progressCount: wizardSteps.length
     Timer {
         id: stageTransitionTimer
@@ -249,9 +249,9 @@ Item {
             if (!nativeRegistrationPublisher.registrationSupported)
                 return qsTrId("genycaster.setup.native_registration_signing_unavailable")
             if (nativeRegistrationStatus.shardZeroBlockDelay > 120)
-                return qsTr("HyperSnap is catching up. Account creation is temporarily paused.")
+                return qsTrId("genycaster.setup.hypersnap_sync_pause")
             if (!nativeRegistrationStatus.syncedForRegistration)
-                return qsTr("Checking the HyperSnap network…")
+                return qsTrId("genycaster.setup.hypersnap_checking")
             return qsTrId("genycaster.setup.native_registration_node_ready")
         }
         if (!runtimeReady)
@@ -305,8 +305,8 @@ Item {
     readonly property real welcomeActionsWidth: Math.max(0, Math.min(
         root.phone ? root.width - root.setupGutter * 2 : stagePanel.width,
         root.phone ? 440 : 560))
-    // Stage buttons are adjacent to the fields they advance, not fixed to the window.
-    readonly property bool desktopStageFooter: false
+    // The action rail is fixed below the scrolling form on every platform.
+    readonly property bool desktopStageFooter: true
     readonly property bool wideStage: !phone && stagePanel.width >=
         Theme.scaleUi(520) * Math.max(1, Theme.fontScale)
     readonly property bool browserReadOnly: wasmReadOnly
@@ -466,7 +466,7 @@ Item {
                 compact: true
                 quiet: true
                 iconGlyph: details.expanded ? Theme.iconChevronUp : Theme.iconChevronDown
-                text: qsTr("Network status")
+                text: qsTrId("genycaster.setup.network_status")
                 Accessible.expandable: true
                 Accessible.expanded: details.expanded
                 onClicked: details.expanded = !details.expanded
@@ -522,7 +522,7 @@ Item {
                     DirectionAwareLabel {
                         visible: route.registrationLag
                         Layout.fillWidth: true
-                        text: qsTr("Registration paused · Syncing")
+                        text: qsTrId("genycaster.setup.registration_sync_paused")
                         font.pixelSize: Theme.typeCaptionSize
                         color: Theme.warning
                         alignToUi: true
@@ -561,7 +561,8 @@ Item {
                     DirectionAwareLabel {
                         id: nodeLatencyText
                         anchors.centerIn: parent
-                        text: LocaleFormat.localizeDigits(route.latency) + " ms"
+                        text: qsTrId("genycaster.setup.connection_latency").arg(
+                              LocaleFormat.localizeDigits(route.latency))
                         color: route.latencyColor
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold
@@ -1527,13 +1528,13 @@ Item {
                                     : desktopSetupNav.visible ? desktopSetupNav.bottom : parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: setupActionFooter.top
             anchors.bottomMargin: 0
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
-            contentHeight: Math.max(height, stagePanel.y + stagePanel.implicitHeight + Theme.space7)
+            contentHeight: Math.max(height, stagePanel.y + stagePanel.implicitHeight + Theme.space5)
             ScrollBar.vertical: GenyScrollBar {
                 policy: stageScroll.contentHeight > stageScroll.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
             }
@@ -1550,8 +1551,7 @@ Item {
                 x: setupCanvas.formStart + (setupCanvas.formWidth - width) / 2
                 y: !root.phone && root.currentStep === 0
                    ? Math.max(Theme.space7,
-                              (setupCanvas.height - stageLoader.implicitHeight
-                               - Theme.space7 - stageAction.implicitHeight) * 0.47)
+                              (stageScroll.height - stageLoader.implicitHeight) * 0.43)
                    : !root.phone && root.currentStep > 0
                    ? Theme.space4
                    : root.currentStep === 0 || root.currentStep === 7
@@ -1566,8 +1566,6 @@ Item {
                               Math.min(root.phone ? Theme.space7 : 125,
                                        stageScroll.height * 0.15))
                 implicitHeight: stageLoader.implicitHeight
-                                + (root.showsPrimaryCta
-                                   ? Theme.space5 + stageAction.implicitHeight : 0)
                 height: implicitHeight
 
                 Loader {
@@ -1590,50 +1588,85 @@ Item {
                                      : root.currentStep === 6 ? appearanceStage : completeStage
                 }
 
-                // Stage-owned action follows the current form in scroll content.
-                SetupPrimaryButton {
-            id: stageAction
-            objectName: "setupStageAction"
-            visible: root.showsPrimaryCta
-            z: 10
-            anchors.top: stageLoader.bottom
-            anchors.topMargin: Theme.space4
-            width: root.welcomeNativeAppsVisible
-                   ? (Math.min(root.welcomeActionsWidth, stagePanel.width) - Theme.space2)
-                     * (root.phone ? 0.42 : 0.47)
-                   : root.phone ? stagePanel.width
-                   : Math.min(Theme.scaleUi(360), stagePanel.width)
-            x: root.welcomeNativeAppsVisible
-               ? (stagePanel.width - Math.min(root.welcomeActionsWidth, stagePanel.width)) / 2
-                 + (Theme.rtl ? Math.min(root.welcomeActionsWidth, stagePanel.width) - width : 0)
-               : (stagePanel.width - width) / 2
-            text: root.actionText()
-            // The primary stage action uses the same brand-filled surface as
-            // the other prominent CTAs, rather than a flat white slab.
-            neutralPrimary: false
-            enabled: !root.stageTransitioning && root.actionEnabled()
-            showArrow: root.currentStep === 0
-            onClicked: root.nextStep()
+            }
         }
 
-        // No banner, card or extra onboarding step: native builds remain one
-        // directly accessible secondary action alongside Get Started.
-        ActionButton {
-            objectName: "setupWelcomeNativeApps"
-            visible: root.welcomeNativeAppsVisible
-            z: 10
-            anchors.bottom: stageAction.bottom
-            width: Math.max(0, root.welcomeActionsWidth - Theme.space2 - stageAction.width)
-            height: stageAction.height
-            x: Theme.rtl ? stageAction.x - Theme.space2 - width
-                         : stageAction.x + stageAction.width + Theme.space2
-            text: qsTrId("genycaster.apps.download_cta_button")
-            iconGlyph: Theme.iconDownload
-            wrapText: true
-            elevated: false
-            focusPolicy: Qt.StrongFocus
-            onClicked: root.nativeAppDownloadsRequested()
-        }
+        // Fixed action rail on all eight stages. Only the form scrolls;
+        // the primary CTA, its focus ring and the optional native-app action
+        // remain visible at the bottom in LTR, RTL, desktop and mobile.
+        Item {
+            id: setupActionFooter
+            objectName: "setupActionFooter"
+            z: 24
+            x: setupCanvas.formStart
+            width: setupCanvas.formWidth
+            anchors.bottom: parent.bottom
+            height: Math.max(stageAction.implicitHeight,
+                             setupWelcomeNativeApps.implicitHeight) + Theme.space3 * 2
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.background
+            }
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: Theme.strokeHairline
+                color: Theme.divider
+            }
+            Item {
+                id: setupFooterContent
+                width: stagePanel.width
+                x: stagePanel.x - setupActionFooter.x
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.topMargin: Theme.space3
+                anchors.bottomMargin: Theme.space3
+
+                SetupPrimaryButton {
+                    id: stageAction
+                    objectName: "setupStageAction"
+                    visible: root.showsPrimaryCta
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: root.welcomeNativeAppsVisible
+                           ? (Math.min(root.welcomeActionsWidth, setupFooterContent.width)
+                              - Theme.space2) * (root.phone ? 0.42 : 0.47)
+                           : root.phone ? setupFooterContent.width
+                           : Math.min(Theme.scaleUi(360), setupFooterContent.width)
+                    x: root.welcomeNativeAppsVisible
+                       ? (setupFooterContent.width
+                          - Math.min(root.welcomeActionsWidth, setupFooterContent.width)) / 2
+                         + (Theme.rtl
+                            ? Math.min(root.welcomeActionsWidth, setupFooterContent.width) - width
+                            : 0)
+                       : (setupFooterContent.width - width) / 2
+                    text: root.actionText()
+                    neutralPrimary: false
+                    enabled: !root.stageTransitioning && root.actionEnabled()
+                    showArrow: root.currentStep === 0
+                    onClicked: root.nextStep()
+                }
+
+                // Native-app discovery shares the welcome footer only;
+                // it never overlays other onboarding stages.
+                ActionButton {
+                    id: setupWelcomeNativeApps
+                    objectName: "setupWelcomeNativeApps"
+                    visible: root.welcomeNativeAppsVisible
+                    anchors.verticalCenter: stageAction.verticalCenter
+                    width: Math.max(0, Math.min(root.welcomeActionsWidth,
+                                               setupFooterContent.width)
+                                    - Theme.space2 - stageAction.width)
+                    height: stageAction.height
+                    x: Theme.rtl ? stageAction.x - Theme.space2 - width
+                                 : stageAction.x + stageAction.width + Theme.space2
+                    text: qsTrId("genycaster.apps.download_cta_button")
+                    iconGlyph: Theme.iconDownload
+                    wrapText: true
+                    elevated: false
+                    focusPolicy: Qt.StrongFocus
+                    onClicked: root.nativeAppDownloadsRequested()
+                }
             }
         }
     }
@@ -2017,7 +2050,7 @@ Item {
                         connectionState: nativeRegistrationStatus.shardZeroBlockDelay > 120
                                          ? "unavailable" : root.protocolConnectionState(false)
                         connectionText: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                        ? qsTr("Network syncing")
+                                        ? qsTrId("genycaster.setup.network_syncing")
                                         : root.protocolConnectionText(false, connectionState)
                         latencyMs: root.protocolLatencyMs(false)
                         selected: root.registrationProviderId === "hypersnap-v2"
@@ -2082,7 +2115,7 @@ Item {
                     DirectionAwareLabel {
                         objectName: "setupFarcasterPaymentExplanation"
                         Layout.fillWidth: true
-                        text: qsTr("Farcaster registration is paid. Create an account there, then sign in here.")
+                        text: qsTrId("genycaster.setup.farcaster_paid_registration")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeLabelSize
                         wrapMode: Text.WordWrap
@@ -2091,8 +2124,8 @@ Item {
                         objectName: "setupFarcasterOfficialSignup"
                         Layout.fillWidth: true
                         prominent: !root.farcasterSponsoredEnrollmentChosen
-                        text: qsTr("Create account on Farcaster")
-                        Accessible.description: qsTr("Opens the official Farcaster website. Return here and choose Existing account to sign in.")
+                        text: qsTrId("genycaster.setup.farcaster_create_external")
+                        Accessible.description: qsTrId("genycaster.setup.farcaster_external_help")
                         onClicked: Qt.openUrlExternally("https://farcaster.xyz/")
                     }
                     ActionButton {
@@ -2102,7 +2135,7 @@ Item {
                         quiet: true
                         visible: !neynarRegistration.pending
                                  && neynarRegistration.phase !== "reserved"
-                        text: qsTr("Already have an account? Sign in")
+                        text: qsTrId("genycaster.setup.sign_in_existing")
                         onClicked: {
                             root.accountIntent = "existing"
                             root.choosingRegistrationProvider = false
@@ -2120,7 +2153,7 @@ Item {
                         visible: neynarRegistration.available
                                  && neynarRegistration.registrationSupported
                                  && !root.farcasterSponsoredEnrollmentChosen
-                        text: qsTr("I have a Genycaster sponsorship code")
+                        text: qsTrId("genycaster.setup.sponsored_code_available")
                         onClicked: root.farcasterSponsoredEnrollmentChosen = true
                     }
                     DirectionAwareLabel {
@@ -2129,8 +2162,8 @@ Item {
                         visible: !root.farcasterSponsoredEnrollmentChosen
                                  && !neynarRegistration.available
                         text: neynarRegistration.checkingAvailability
-                            ? qsTr("Checking sponsored enrollment availability…")
-                            : qsTr("Sponsored signup is unavailable here.")
+                            ? qsTrId("genycaster.setup.sponsor_checking")
+                            : qsTrId("genycaster.setup.sponsor_unavailable")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2173,7 +2206,7 @@ Item {
                             spacing: Theme.space2
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: qsTr("HYPERSNAP BLOCKCHAIN")
+                                text: qsTrId("genycaster.setup.hypersnap_chain")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 font.weight: Theme.weightDemiBold
@@ -2191,8 +2224,8 @@ Item {
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
                                     text: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                          ? qsTr("Registration temporarily unavailable")
-                                          : qsTr("Checking network")
+                                          ? qsTrId("genycaster.setup.registration_unavailable")
+                                          : qsTrId("genycaster.setup.network_checking")
                                     color: Theme.ink
                                     font.pixelSize: Theme.typeTitle3Size
                                     font.weight: Theme.weightDemiBold
@@ -2202,8 +2235,8 @@ Item {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 text: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                      ? qsTr("HyperSnap nodes are syncing. Try again later.")
-                                      : qsTr("Checking HyperSnap…")
+                                      ? qsTrId("genycaster.setup.hypersnap_nodes_syncing")
+                                      : qsTrId("genycaster.setup.hypersnap_checking_short")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeLabelSize
                                 wrapMode: Text.WordWrap
@@ -2219,7 +2252,7 @@ Item {
                                     quiet: true
                                     busy: nativeRegistrationStatus.checking
                                     enabled: !nativeRegistrationStatus.checking
-                                    text: qsTr("Check network")
+                                    text: qsTrId("genycaster.setup.check_network")
                                     onClicked: nativeRegistrationStatus.refresh()
                                 }
                                 ActionButton {
@@ -2227,7 +2260,7 @@ Item {
                                     Layout.fillWidth: true
                                     compact: true
                                     quiet: true
-                                    text: qsTr("Cancel registration")
+                                    text: qsTrId("genycaster.setup.cancel_registration")
                                     onClicked: root.previousStep()
                                 }
                             }
@@ -2279,7 +2312,7 @@ Item {
                         compactCard: true
                         onboardingStyle: true
                         iconGlyph: "brands/farcaster"
-                        title: qsTr("Continue sponsored registration")
+                        title: qsTrId("genycaster.setup.continue_sponsored")
                         enabled: root.runtimeReady && !root.authenticationInProgress
                         onClicked: {
                             root.browserCreateAccount("farcaster-snapchain")
@@ -2385,7 +2418,7 @@ Item {
                         Layout.fillWidth: true
                         compact: true
                         quiet: true
-                        text: qsTr("Back to registration options")
+                        text: qsTrId("genycaster.setup.back_to_registration")
                         onClicked: root.farcasterSponsoredEnrollmentChosen = false
                     }
                     DirectionAwareLabel {
@@ -2592,7 +2625,7 @@ Item {
                                  && !nativeRegistrationPublisher.pending
                                  && nativeRegistrationStatus.syncedForRegistration
                         Layout.fillWidth: true
-                        text: qsTr("Recovery words verified")
+                        text: qsTrId("genycaster.setup.recovery_words_verified_status")
                         font.pixelSize: Theme.typeLabelSize
                         color: Theme.success
                         wrapMode: Text.WrapAnywhere
@@ -2613,7 +2646,7 @@ Item {
                              && root.registrationProviderId === "hypersnap-v2"
                              && !nativeRegistrationPublisher.confirmed
                              && nativeRegistrationStatus.existingNativeFid.length === 0
-                    text: qsTr("Your keys stay on this device.")
+                    text: qsTrId("genycaster.setup.keys_on_device")
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.inkMuted
                     wrapMode: Text.WordWrap
@@ -2654,7 +2687,7 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         visible: !neynarRegistration.confirmed
-                        text: qsTr("A sponsorship code is issued by the Genycaster operator after verified payment or sponsorship. It is not a Neynar API key or wallet password. Genycaster does not currently sell these codes in the app.")
+                        text: qsTrId("genycaster.setup.sponsor_code_explanation")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2667,11 +2700,11 @@ Item {
                         visible: !neynarRegistration.hasVoucher
                                  && !neynarRegistration.pending
                                  && !neynarRegistration.confirmed
-                        placeholderText: qsTr("Paste your Genycaster sponsorship code")
+                        placeholderText: qsTrId("genycaster.setup.sponsor_code_paste")
                         echoMode: TextInput.Password
                         maximumLength: 1100
                         inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
-                        Accessible.name: qsTr("Genycaster sponsorship code")
+                        Accessible.name: qsTrId("genycaster.setup.sponsor_code_label")
                     }
                     ActionButton {
                         objectName: "setupUseNeynarVoucher"
@@ -2703,7 +2736,7 @@ Item {
                         Layout.fillWidth: true
                         prominent: false
                         visible: neynarRegistration.phase === "ready"
-                        text: qsTr("Continue to username")
+                        text: qsTrId("genycaster.setup.continue_username")
                         busy: neynarRegistration.busy
                         enabled: root.runtimeReady && neynarRegistration.available
                                  && neynarRegistration.registrationSupported
@@ -2743,7 +2776,7 @@ Item {
                         Layout.fillWidth: true
                         prominent: true
                         visible: neynarRegistration.phase === "reserved"
-                        text: qsTr("Create Farcaster account")
+                        text: qsTrId("genycaster.setup.create_farcaster")
                         enabled: root.runtimeReady && neynarTransferConsent.checked
                                  && neynarRegistration.canSubmit
                                  && /^[a-z0-9][a-z0-9-]{0,15}$/.test(
@@ -2787,7 +2820,7 @@ Item {
                         visible: neynarRegistration.hasVoucher
                                  && neynarRegistration.pending
                                  && !neynarRegistration.confirmed
-                        text: qsTr("Check account status")
+                        text: qsTrId("genycaster.setup.check_account_status")
                         enabled: !neynarRegistration.busy
                         onClicked: neynarRegistration.checkConfirmation()
                     }
@@ -2810,7 +2843,7 @@ Item {
                                  && !nativeRegistrationPublisher.confirmed
                                  && nativeRegistrationStatus.syncedForRegistration
                                  && nativeRegistrationStatus.existingNativeFid.length === 0
-                        text: qsTr("Create account")
+                        text: qsTrId("genycaster.setup.create_account")
                         busy: root.nativeCreationRequested
                               || nativeRegistrationPreparation.busy
                               || nativeRegistrationPublisher.busy
@@ -2837,7 +2870,7 @@ Item {
                                  && !nativeRegistrationPreparation.busy
                                  && !nativeRegistrationPublisher.busy
                                  && nativeRegistrationStatus.syncedForRegistration
-                        text: qsTr("Creates one self-custody identity on HyperSnap.")
+                        text: qsTrId("genycaster.setup.create_native_identity")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2890,7 +2923,7 @@ Item {
                             spacing: Theme.space2
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: qsTr("HYPERSNAP BLOCKCHAIN")
+                                text: qsTrId("genycaster.setup.hypersnap_chain")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 font.weight: Theme.weightDemiBold
@@ -2912,13 +2945,13 @@ Item {
                                     objectName: "setupNativeAwaitingConfirmation"
                                     Layout.fillWidth: true
                                     text: nativeRegistrationPublisher.pending
-                                          ? qsTr("Awaiting network confirmation")
+                                          ? qsTrId("genycaster.setup.await_network_confirmation")
                                           : nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                            ? qsTr("Registration temporarily unavailable")
+                                            ? qsTrId("genycaster.setup.registration_unavailable")
                                             : (!nativeRegistrationStatus.active
                                                && !nativeRegistrationStatus.checking)
-                                              ? qsTr("HyperSnap unavailable")
-                                              : qsTr("Checking network")
+                                              ? qsTrId("genycaster.setup.hypersnap_unavailable")
+                                              : qsTrId("genycaster.setup.network_checking")
                                     font.pixelSize: Theme.typeTitle3Size
                                     font.weight: Theme.weightDemiBold
                                     color: Theme.ink
@@ -2929,13 +2962,13 @@ Item {
                                 objectName: "setupNativePendingDescription"
                                 Layout.fillWidth: true
                                 text: nativeRegistrationPublisher.pending
-                                      ? qsTr("Confirmation is pending. Do not submit again.")
+                                      ? qsTrId("genycaster.setup.confirmation_pending_dont_retry")
                                       : nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                        ? qsTr("HyperSnap nodes are syncing. Try again later.")
+                                        ? qsTrId("genycaster.setup.hypersnap_nodes_syncing")
                                         : (!nativeRegistrationStatus.active
                                            && !nativeRegistrationStatus.checking)
-                                          ? qsTr("Account creation is paused. Try again later.")
-                                          : qsTr("Checking HyperSnap…")
+                                          ? qsTrId("genycaster.setup.account_creation_paused")
+                                          : qsTrId("genycaster.setup.hypersnap_checking_short")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeLabelSize
                                 wrapMode: Text.WordWrap
@@ -2948,10 +2981,10 @@ Item {
                                 visible: nativeRegistrationPublisher.pending
                                 Repeater {
                                     model: nativeRegistrationPublisher.pending ? [
-                                        qsTr("Backup"),
+                                        qsTrId("genycaster.setup.backup"),
                                         nativeRegistrationPublisher.outcomeUnknown
-                                            ? qsTr("Checking request") : qsTr("Request"),
-                                        qsTr("Confirmed")
+                                            ? qsTrId("genycaster.setup.checking_request") : qsTrId("genycaster.setup.request"),
+                                        qsTrId("genycaster.setup.confirmed")
                                     ] : []
                                     delegate: RowLayout {
                                         required property int index
@@ -2990,7 +3023,7 @@ Item {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 visible: nativeRegistrationPublisher.pending
-                                text: qsTr("Keep your 24 recovery words. Return anytime.")
+                                text: qsTrId("genycaster.setup.keep_recovery_words")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.WordWrap
@@ -3017,7 +3050,7 @@ Item {
                                      && !nativeRegistrationPublisher.checkingConfirmation
                             iconGlyph: Theme.iconRefresh
                             text: nativeRegistrationPublisher.pending
-                                  ? qsTr("Check status") : qsTr("Check network")
+                                  ? qsTrId("genycaster.setup.check_status") : qsTrId("genycaster.setup.check_network")
                             onClicked: {
                                 nativeRegistrationStatus.refresh()
                                 if (nativeRegistrationPublisher.pending)
@@ -3030,10 +3063,10 @@ Item {
                             compact: true
                             quiet: true
                             text: nativeRegistrationPublisher.pending
-                                  ? qsTr("Leave for now") : qsTr("Cancel registration")
+                                  ? qsTrId("genycaster.setup.leave_for_now") : qsTrId("genycaster.setup.cancel_registration")
                             Accessible.description: nativeRegistrationPublisher.pending
-                                  ? qsTr("Leaving will not cancel your submitted request. Keep your recovery words.")
-                                  : qsTr("No account registration has been sent. Return to account options.")
+                                  ? qsTrId("genycaster.setup.leave_keeps_request")
+                                  : qsTrId("genycaster.setup.no_request_submitted")
                             enabled: !root.nativeCreationRequested
                                      && !nativeRegistrationPreparation.busy
                                      && !nativeRegistrationPublisher.busy
@@ -3045,7 +3078,7 @@ Item {
                         visible: nativeRegistrationStatus.existingNativeFid.length > 0
                                  && !nativeRegistrationPublisher.confirmed
                         Layout.fillWidth: true
-                        text: qsTr("Account found. Signing you in…")
+                        text: qsTrId("genycaster.setup.account_found_signing_in")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeLabelSize
                         wrapMode: Text.WordWrap
@@ -3088,7 +3121,7 @@ Item {
                         quiet: true
                         compact: true
                         text: root.nativeDetailsExpanded
-                              ? qsTr("Hide diagnostics") : qsTr("Developer details")
+                              ? qsTrId("genycaster.setup.hide_diagnostics") : qsTrId("genycaster.setup.developer_details")
                         onClicked: root.nativeDetailsExpanded = !root.nativeDetailsExpanded
                     }
                     ColumnLayout {
@@ -3128,8 +3161,8 @@ Item {
                                      && nativeRegistrationStatus.syncedForRegistration
                             compact: true
                             quiet: true
-                            text: qsTr("Prepare new attempt")
-                            Accessible.description: qsTr("Resets the expired local attempt; does not send a registration request.")
+                            text: qsTrId("genycaster.setup.prepare_new_attempt")
+                            Accessible.description: qsTrId("genycaster.setup.reset_expired_attempt")
                             onClicked: {
                                 if (nativeRegistrationPublisher.releaseExpiredAttempt()) {
                                     root.nativeCreationRequested = false
