@@ -480,7 +480,9 @@ test('desktop account keeps editorial cards while enabling registration provider
   assert.match(account,/objectName: "setupRegisterHyperSnap"/);
   assert.match(account,/objectName: "setupRegisterNeynar"/);
   assert.doesNotMatch(account,/setupEmphasis: true/);
-  assert.match(account,/onClicked: \{\s*neynarRegistration\.reset\(\)\s*nativeRegistrationPublisher\.clear\(\)\s*nativeRegistrationPreparation\.cancel\(\)\s*nativeRegistrationStatus\.clearExistingLookup\(\)\s*nativeCustodyWallet\.discard\(\)\s*root\.accountIntent = "existing"/);
+  assert.match(account,/enabled: true\s+onClicked: \{\s*if \(!nativeRegistrationPublisher\.pending/);
+  assert.match(account,/!neynarRegistration\.pending/);
+  assert.match(account,/nativeCustodyWallet\.discard\(\)[\s\S]*?root\.accountIntent = "existing"/);
   assert.match(account,/iconGlyph: Theme\.iconLink/);
   assert.match(card,/property bool accountShowcase: false/);
   assert.match(card,/property bool setupEmphasis: false/);

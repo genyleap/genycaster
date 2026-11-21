@@ -2011,15 +2011,21 @@ Item {
                     subtitle: qsTrId("genycaster.setup.design_existing_description")
                     iconGlyph: Theme.iconLink
                     showChevron: true
-                    enabled: !nativeRegistrationPublisher.pending
-                             && !neynarRegistration.pending
-                             && neynarRegistration.phase !== "reserved"
+                    // Availability of new-identity registration (including
+                    // HyperSnap shard synchronization) never gates recovery.
+                    // A previously submitted write must retain its custody
+                    // state and deduplication guard while the user signs in.
+                    enabled: true
                     onClicked: {
-                        neynarRegistration.reset()
-                        nativeRegistrationPublisher.clear()
-                        nativeRegistrationPreparation.cancel()
-                        nativeRegistrationStatus.clearExistingLookup()
-                        nativeCustodyWallet.discard()
+                        if (!nativeRegistrationPublisher.pending
+                                && !neynarRegistration.pending
+                                && neynarRegistration.phase !== "reserved") {
+                            neynarRegistration.reset()
+                            nativeRegistrationPublisher.clear()
+                            nativeRegistrationPreparation.cancel()
+                            nativeRegistrationStatus.clearExistingLookup()
+                            nativeCustodyWallet.discard()
+                        }
                         root.accountIntent = "existing"
                         root.existingProtocolSelected = false
                         root.recoveryProtocol = ""
@@ -2139,8 +2145,7 @@ Item {
                         Layout.fillWidth: true
                         compact: true
                         quiet: true
-                        visible: !neynarRegistration.pending
-                                 && neynarRegistration.phase !== "reserved"
+                        visible: true
                         text: qsTrId("genycaster.setup.sign_in_existing")
                         onClicked: {
                             root.accountIntent = "existing"
