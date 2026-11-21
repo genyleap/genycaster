@@ -1495,6 +1495,7 @@ Item {
         }
             }
         }
+    }
 
     Component {
         id: welcomeStage
