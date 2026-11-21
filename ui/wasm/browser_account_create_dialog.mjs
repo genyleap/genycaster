@@ -226,6 +226,11 @@ export async function promptCreateBrowserWallet({
    saved.parentElement.style.display='none';
    consent.parentElement.style.display='none';
    for(const field of Object.values(credentialFields))field.parentElement.style.display='none';
+   // One clear heading for the new operation, not the obsolete wallet
+   // backup title plus a second "Creating your account" heading.
+   heading.textContent=t.working;
+   subtitle.style.display='none';
+   progressHeading.style.display='none';
    progressPanel.hidden=false;progressPanel.style.display='block';
    content.scrollTop=0;
    processing=true;submit.disabled=true;cancel.disabled=false;
