@@ -64,7 +64,7 @@ test('both desktop protocol imports permit read-only recovery without consenting
   assert.match(setup,/const authorizeDeviceSigner = deviceSignerConsent\.checked/);
   assert.match(setup,/root\.nativeRecoverHyperSnapAccount\(words, authorizeDeviceSigner\)/);
   assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
-  assert.match(setup,/id: deviceSignerConsent[\s\S]*?checked: true/);
+  assert.match(setup,/id: deviceSignerConsent[\s\S]*?checked: false/);
   const action=setup.slice(setup.indexOf('objectName: "nativeRecoveryDeviceSignerConsent"'),
     setup.indexOf('root.recoverySubmitPending = true'));
   assert.doesNotMatch(action,/&& deviceSignerConsent\.checked/);
