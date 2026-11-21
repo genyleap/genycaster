@@ -1,18 +1,20 @@
 /* GenyCaster download hub: native Qt exponent-4 Superellipse SVG outlines.
    Product surfaces have ONE path for both fill and border; no halo effects. */
+/* Match ui/theme/Theme.qml's built-in Geny palette and semantic surfaces.
+   Keep this page neutral, as in the main native app (no colored glows). */
 :root {
   color-scheme:light;
-  --bg:#f5f6f8; --surface:#fff; --soft:#f0f2f6; --raised:#fff;
-  --ink:#1b1d26; --muted:#6d7482; --border:#dfe3eb;
-  --accent:#3a60e3; --accent-text:#fff; --success:#21785d;
-  --warning:#965b20; --warning-surface:#fff6e9; --shadow:rgba(21,31,55,.07);
+  --bg:#F1F1F3; --surface:#FFFFFF; --soft:#F7F7F8; --raised:#FFFFFF;
+  --ink:#17181B; --muted:#60636A; --border:#DFE1E5;
+  --accent:#315CF5; --accent-text:#FFFFFF; --success:#21785D;
+  --warning:#965B20; --warning-surface:#FFF6E9;
 }
 @media (prefers-color-scheme:dark) {
   :root { color-scheme:dark;
-    --bg:#101217; --surface:#191c24; --soft:#222631; --raised:#20242d;
-    --ink:#eff1f5; --muted:#abb0bc; --border:#383d49;
-    --accent:#a0b3ff; --accent-text:#101521; --success:#7bdfae;
-    --warning:#efbd81; --warning-surface:#33281c; --shadow:rgba(0,0,0,.17);
+    --bg:#0B0C0F; --surface:#121317; --soft:#17191E; --raised:#1B1D23;
+    --ink:#F7F7F8; --muted:#AFB2BA; --border:#292C33;
+    --accent:#829AFF; --accent-text:#111319; --success:#7BDFae;
+    --warning:#EFBD81; --warning-surface:#33281C;
   }
 }
 * { box-sizing:border-box }
@@ -174,8 +176,12 @@ h1,h2,h3,p {margin:0}
    and stroke, avoiding doubled CSS borders and inconsistent rounded corners. */
 .gs-shaped {position:relative;isolation:isolate;background:transparent!important;border-color:transparent!important;
   box-shadow:none!important;corner-shape:round!important;border-radius:0!important}
+/* SVG is decorative and must paint UNDER text nodes too. A z-index of
+   zero obscured bare text in the version chips, architecture buttons and
+   intro tags; only wrapped spans stayed visible. Follow the existing
+   native-downloads overlay implementation: isolated host + negative SVG. */
 .gs-shaped > svg.gs-shape {position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;
-  z-index:0;overflow:visible;fill:none;stroke:none}
+  z-index:-1;overflow:hidden;fill:none;stroke:none}
 .gs-shaped > svg.gs-shape > path {fill:var(--shape-fill,var(--surface));stroke:var(--shape-stroke,var(--border));
   stroke-width:var(--shape-width,1px);vector-effect:non-scaling-stroke;stroke-linejoin:round}
 .gs-shaped > :not(svg.gs-shape) {position:relative;z-index:1}

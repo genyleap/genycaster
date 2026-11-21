@@ -159,6 +159,46 @@ test('malicious, absent or malformed catalogs never create installer actions',as
   assert.match(offline.ids['download-pending'].textContent,/verification unavailable/);
 });
 
+test('Superellipse SVG must never cover bare labels, architecture text or badges',()=>{
+  // The SVG must be painted below unwrapped text nodes, unlike the previous
+  // zero-layer overlay that hid hero chips and the Apple Silicon/Intel labels.
+  const rule=css.match(/\.gs-shaped > svg\.gs-shape \{([^}]+)\}/);
+  assert.ok(rule, 'missing shared shape rule');
+  assert.match(rule[1],/z-index:\s*-1\s*;/);
+  assert.doesNotMatch(rule[1],/z-index:\s*0\s*;/);
+  assert.match(css,/\.gs-shaped\s*\{[^}]*isolation:isolate/);
+  assert.match(css,/\.gs-shaped > :not\(svg\.gs-shape\) \{position:relative;z-index:1\}/);
+  assert.match(html,/class="version">v1\.0\.0 · Beta/);
+  assert.match(html,/Version 1\.0\.0<\/span>/);
+  assert.match(script,/button\.textContent = label/);
+  assert.match(script,/label\.textContent = !loaded/);
+});
+
+test('download palette matches Theme.qml built-in Geny day and night colors',()=>{
+  const theme=read('ui/theme/Theme.qml');
+  const matches=[
+    ['dayCanvas','--bg','#F1F1F3'],
+    ['daySurface','--surface','#FFFFFF'],
+    ['daySurfaceMuted','--soft','#F7F7F8'],
+    ['dayInk','--ink','#17181B'],
+    ['dayInkMuted','--muted','#60636A'],
+    ['dayBorder','--border','#DFE1E5'],
+    ['accentGenyDay','--accent','#315CF5'],
+    ['nightCanvas','--bg','#0B0C0F'],
+    ['nightSurface','--surface','#121317'],
+    ['nightSurfaceMuted','--soft','#17191E'],
+    ['nightInk','--ink','#F7F7F8'],
+    ['nightInkMuted','--muted','#AFB2BA'],
+    ['nightBorder','--border','#292C33'],
+    ['accentGenyNight','--accent','#829AFF']
+  ];
+  for (const [token,variable,value] of matches) {
+    assert.ok(theme.includes(token+': "'+value+'"'),token+' changed upstream');
+    assert.ok(css.includes(variable+':'+value+';'),variable+' does not match '+token);
+  }
+  assert.match(html,/download\.css\?v=3/);
+});
+
 test('legacy /download redirect forwards only the exact downloads fragment', () => {
   const forward = read('ui/wasm/download/about-forward.js');
   assert.match(forward,/location\.replace\("\/download\/index.html"\)/);
