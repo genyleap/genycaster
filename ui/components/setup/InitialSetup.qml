@@ -1733,7 +1733,10 @@ Item {
                 subtitle: root.accountFidRegistered
                     ? qsTrId("genycaster.setup.registration_next_device")
                     : root.choosingRegistrationProvider
-                      ? qsTrId("genycaster.setup.choose_protocol_description")
+                      ? root.registrationProviderId === "hypersnap-v2"
+                        && nativeCustodyWallet.backupVerified
+                        ? ""
+                        : qsTrId("genycaster.setup.choose_protocol_description")
                       : qsTrId("genycaster.setup.design_account_description")
             }
             Item { Layout.preferredHeight: Theme.space2 }
@@ -1833,6 +1836,8 @@ Item {
                 spacing: Theme.space3
                 GridLayout {
                     visible: !root.accountFidRegistered
+                             && !(root.registrationProviderId === "hypersnap-v2"
+                                  && nativeCustodyWallet.backupVerified)
                     Layout.fillWidth: true
                     columns: root.wideStage ? 2 : 1
                     uniformCellWidths: columns > 1
@@ -1892,6 +1897,8 @@ Item {
                     objectName: "setupRegistrationConnections"
                     Layout.fillWidth: true
                     visible: root.showsSetupConnectivity
+                             && !(root.registrationProviderId === "hypersnap-v2"
+                                  && nativeCustodyWallet.backupVerified)
                 }
                 // Browser uses verified external identity paths until a
                 // WebCrypto custody signer and native chain registration
@@ -1982,7 +1989,8 @@ Item {
                     objectName: "setupWalletReplacement"
                     Layout.fillWidth: true
                     spacing: Theme.space2
-                    visible: nativeCustodyWallet.hasWallet
+                    visible: root.nativeDetailsExpanded
+                             && nativeCustodyWallet.hasWallet
                              && nativeCustodyWallet.backupVerified
                              && root.registrationProviderId === "hypersnap-v2"
                              && !nativeRegistrationPublisher.confirmed
@@ -2245,8 +2253,10 @@ Item {
                         visible: nativeCustodyWallet.backupVerified
                                  && !nativeRegistrationPublisher.confirmed
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.wallet_verified")
-                            .arg(nativeCustodyWallet.address)
+                        text: root.nativeDetailsExpanded
+                            ? qsTrId("genycaster.setup.wallet_verified")
+                                .arg(nativeCustodyWallet.address)
+                            : qsTr("Recovery words verified")
                         font.pixelSize: Theme.typeLabelSize
                         color: Theme.success
                         wrapMode: Text.WrapAnywhere
@@ -2262,7 +2272,8 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    visible: !root.browserReadOnly
+                    visible: root.nativeDetailsExpanded
+                             && !root.browserReadOnly
                              && root.registrationProviderId === "hypersnap-v2"
                              && !nativeRegistrationPublisher.confirmed
                              && nativeRegistrationStatus.existingNativeFid.length === 0
@@ -2287,7 +2298,7 @@ Item {
                     Layout.fillWidth: true
                     visible: !root.browserReadOnly && root.registrationProviderId.length > 0
                         && (root.registrationProviderId === "hypersnap-v2"
-                        ? !nativeRegistrationPublisher.pending
+                        ? root.nativeDetailsExpanded && !nativeRegistrationPublisher.pending
                           && !nativeRegistrationPublisher.busy
                           && !nativeRegistrationPublisher.confirmed
                           && nativeRegistrationStatus.existingNativeFid.length === 0
