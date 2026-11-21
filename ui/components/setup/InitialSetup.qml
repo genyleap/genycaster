@@ -2017,6 +2017,52 @@ Item {
                     visible: root.browserReadOnly && root.registrationProviderId.length > 0
                     Layout.fillWidth: true
                     spacing: Theme.space3
+                    NeonCard {
+                        objectName: "setupBrowserHyperSnapNetworkStatus"
+                        visible: root.registrationProviderId === "hypersnap-v2"
+                                 && !nativeRegistrationStatus.syncedForRegistration
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: browserChainNotice.implicitHeight + Theme.space4 * 2
+                        interactive: false
+                        deferredNeon: true
+                        neonStrength: Theme.neonPanelStrength
+                        fillColor: Theme.surface
+                        borderColor: Theme.borderMuted
+                        borderWidth: Theme.strokeStandard
+                        curveDepth: Theme.curveContainer
+                        ColumnLayout {
+                            id: browserChainNotice
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: Theme.space4
+                            spacing: Theme.space2
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTr("HYPERSNAP BLOCKCHAIN")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                      ? qsTr("The blockchain is catching up")
+                                      : qsTr("Checking blockchain readiness")
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeTitle3Size
+                                font.weight: Theme.weightDemiBold
+                                wrapMode: Text.WordWrap
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTr("HyperSnap needs up-to-date blocks to create an account. Genycaster checks the network automatically. You can still sign in with an existing account.")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeLabelSize
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
                     SetupActionCard {
                         objectName: "setupBrowserCreateHyperSnap"
                         visible: root.registrationProviderId === "hypersnap-v2"
@@ -2026,6 +2072,7 @@ Item {
                         iconGlyph: "quilibrium/hypersnap"
                         title: qsTrId("genycaster.setup.design_create_account")
                         enabled: root.runtimeReady && !root.authenticationInProgress
+                                 && nativeRegistrationStatus.syncedForRegistration
                         onClicked: {
                             root.browserCreateAccount("hypersnap-v2")
                         }
