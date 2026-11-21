@@ -1,0 +1,10 @@
+// Genycaster Android CI only. Do not modify Qt's generated Gradle project.
+// Mirror Maven Central from Google's officially published HTTPS mirror
+// BEFORE Android Gradle Plugin buildscript dependencies resolve.
+// Leave Google Maven and the original Maven Central fallback in Qt's project.
+gradle.beforeProject { project ->
+    project.buildscript.repositories.maven {
+        name = 'GenycasterGoogleMavenCentral'
+        url = project.uri('https://maven-central.storage-download.googleapis.com/maven2/')
+    }
+}

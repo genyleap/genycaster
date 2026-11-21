@@ -93,7 +93,7 @@ jobs:
           fi
       - name: Validate secure deployment configuration and URL boundaries
         run: |
-          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py ci/test_native_runtime_audits.py ci/test_nsis_cpack_config.py ci/test_packaging.py ci/test_linux_cpp_runtime.py ci/test_linux_release_parity.py ci/test_linux_distro_assets.py ci/test_macos_otool_headers.py ci/test_release_feature_contract.py ci/test_release_workflow_integrity.py ci/test_bot_release_gate.py ci/test_android_ffmpeg_release_policy.py ci/test_macos_signing_policy.py ci/test_platform_arm64_dispatch.py ci/test_qt_webengine_windows.py ci/test_wasm_domain_scope.py ci/test_wasm_webgl_shaders.py
+          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py ci/test_native_runtime_audits.py ci/test_nsis_cpack_config.py ci/test_packaging.py ci/test_linux_cpp_runtime.py ci/test_linux_release_parity.py ci/test_linux_distro_assets.py ci/test_macos_otool_headers.py ci/test_release_feature_contract.py ci/test_release_workflow_integrity.py ci/test_bot_release_gate.py ci/test_android_ffmpeg_release_policy.py ci/test_android_maven_mirror.py ci/test_macos_signing_policy.py ci/test_platform_arm64_dispatch.py ci/test_qt_webengine_windows.py ci/test_wasm_domain_scope.py ci/test_wasm_webgl_shaders.py
           python3 ci/check_deployment_boundaries.py
           python3 ci/check_media_upload_contract.py
           node --test services/test/deployment_config.test.mjs
@@ -1002,6 +1002,26 @@ jobs:
           test -f "$ndk/source.properties"
           test -x "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
           echo "ANDROID_NDK_ROOT=$ndk" >> "$GITHUB_ENV"
+      - name: Configure Google Cloud Maven Central mirror before Android toolchains
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The official Maven Central endpoint rate-limits shared GitHub
+          # runner egress (HTTP 429). Use Google's documented HTTPS mirror
+          # first; preserve Qt's Google Maven and Maven Central fallbacks.
+          # Verify a real AGP transitive artifact BEFORE expensive compilers.
+          mirror="https://maven-central.storage-download.googleapis.com/maven2/"
+          sample="org/jetbrains/kotlin/kotlin-stdlib/2.2.10/kotlin-stdlib-2.2.10.pom"
+          curl --proto '=https' --tlsv1.2 --fail --location \
+            --retry 3 --retry-all-errors --retry-delay 2 \
+            --max-time 45 --silent --show-error \
+            "${mirror}${sample}" -o "$RUNNER_TEMP/genycaster-maven-probe.pom"
+          test -s "$RUNNER_TEMP/genycaster-maven-probe.pom"
+          grep -q '<project' "$RUNNER_TEMP/genycaster-maven-probe.pom"
+          mkdir -p "$HOME/.gradle/init.d"
+          cp ci/gradle_maven_mirror.init.gradle \
+            "$HOME/.gradle/init.d/genycaster-maven-mirror.init.gradle"
+          echo "Verified official Google Cloud Maven Central mirror for Android Gradle"
       # install-qt-action defaults install-deps=true, which performs an
       # unbounded apt-get update against azure.archive.ubuntu.com. Hosted
       # runners repeatedly hung there for twenty minutes. Prepare a signed,
@@ -1205,7 +1225,7 @@ jobs:
           fi
           # Qt Network SSL feature was verified before OpenSSL packaging.
           cmake "${args[@]}"
-          cmake --build build/android --target genycaster_make_apk --parallel 3
+          bash ci/build_android_apk_with_retry.sh
           mkdir -p dist
           # Qt's deploy step may produce a native APK and a Gradle APK.
           # Never select arbitrarily from 'find *.apk' or package Debug.

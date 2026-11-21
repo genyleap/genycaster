@@ -224,8 +224,7 @@ then creates the tag and the public GitHub Release via `GITHUB_TOKEN` as
   The separately armed `publish_public_beta` run requires the persistent
   GitHub signing secrets. All Qt FFmpeg and first-party ELF PT_LOAD segments
   must satisfy 16 KiB alignment; vendor binaries are rebuilt from SHA-pinned
-  FFmpeg 9.0.1 sources rather than bypassing the release validator. Device startup, TLS, signer
-  vault, network access and login must be verified before wider distribution.
+  FFmpeg 9.0.1 sources rather than bypassing the release validator. Maven Central\'s shared GitHub\n  Actions egress may return HTTP 429; the Android runner preflights Google Cloud\'s officially\n  documented HTTPS mirror and injects it *before* Gradle buildscript resolution. Only\n  Maven 429/502/503/504 errors receive up to two incremental build retries; compiler\n  and signing errors never retry automatically. Device startup, TLS, signer vault,\n  network access and login must be verified before wider distribution.
 * macOS: macOS 26 runners build a macOS 15+ target using SHA-256-pinned
   OpenSSL 3.5.9 source compiled for the deployment target, rather than
   linking Homebrew bottles that may require macOS 26. `macdeployqt
