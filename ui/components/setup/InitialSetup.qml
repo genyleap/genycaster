@@ -494,7 +494,7 @@ Item {
         // is being authorized. This is the same guard as the visible CTA,
         // not merely a disabled button that keyboard shortcuts can bypass.
         if ((currentStep === 5 || currentStep === 7)
-                && (signerBusy || recoverySubmitPending || authenticationInProgress))
+                && (recoverySubmitPending || authenticationInProgress))
             return
         if (currentStep === 0) { switchStep(1); return }
         if (currentStep === 1) { switchStep(2); return }
@@ -515,15 +515,13 @@ Item {
             return
         }
         if (currentStep === 5) {
-            if (reviewMode || (authenticated
-                && (accountIntent !== "new" || signerReady))) switchStep(6)
+            if (reviewMode || authenticated) switchStep(6)
             return
         }
         if (currentStep === 6) { switchStep(7); return }
         if (currentStep === 7) {
             if (reviewMode) closeReviewRequested()
-            else if (legalConsentAccepted && authenticated
-                     && (accountIntent !== "new" || signerReady)) finishSetup()
+            else if (legalConsentAccepted && authenticated) finishSetup()
         }
     }
     function previousStep() {
@@ -590,16 +588,15 @@ Item {
     }
     function actionEnabled() {
         if ((currentStep === 5 || currentStep === 7)
-                && (signerBusy || recoverySubmitPending || authenticationInProgress))
+                && (recoverySubmitPending || authenticationInProgress))
             return false
         if (currentStep === 2) return consentChecked
         if (currentStep === 3) return accountIntent === "existing"
 
         if (currentStep === 4) return authenticated
-        if (currentStep === 5) return reviewMode || (authenticated
-            && (accountIntent !== "new" || signerReady))
+        if (currentStep === 5) return reviewMode || authenticated
         if (currentStep === 7) return reviewMode || (legalConsentAccepted
-            && authenticated && (accountIntent !== "new" || signerReady))
+            && authenticated)
         return true
     }
     onVisibleChanged: {
@@ -3187,12 +3184,7 @@ Item {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: root.authenticated
-                    ? root.signerReady
-                      ? qsTrId("genycaster.setup.recovery_signer_ready")
-                      : root.accountIdentityIssuer === "hypersnap:native-registry"
-                        || root.accountIdentityIssuer === "farcaster:optimism-id-registry"
-                        ? qsTrId("genycaster.setup.registration_next_device")
-                        : qsTrId("genycaster.setup.account_verified_body")
+                    ? qsTrId("genycaster.setup.account_verified_body")
                     : qsTrId("genycaster.setup.design_verifying_description")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
@@ -3205,13 +3197,10 @@ Item {
                 neutralPrimary: true
                 showArrow: false
                 text: qsTrId("genycaster.setup.continue")
-                enabled: !root.signerBusy && !root.recoverySubmitPending
+                enabled: !root.recoverySubmitPending
                          && !root.authenticationInProgress
-                         && (root.accountIntent !== "new" || root.signerReady)
                 onClicked: {
-                    if (!root.signerBusy && !root.recoverySubmitPending
-                            && !root.authenticationInProgress
-                            && (root.accountIntent !== "new" || root.signerReady))
+                    if (!root.recoverySubmitPending && !root.authenticationInProgress)
                         root.switchStep(6)
                 }
             }
@@ -3226,7 +3215,7 @@ Item {
             }
             DirectionAwareLabel {
                 objectName: "setupSignerVerificationStatus"
-                visible: root.authenticated && !root.signerReady
+                visible: root.reviewMode && root.authenticated && !root.signerReady
                          && root.signerStatusText.length > 0
                 Layout.fillWidth: true
                 text: root.signerStatusText
@@ -3236,7 +3225,7 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
             }
             SetupActionCard {
-                visible: root.authenticated && !root.signerReady
+                visible: root.reviewMode && root.authenticated && !root.signerReady
                 Layout.fillWidth: true
                 compactCard: true
                 title: qsTrId("genycaster.shell.enable_interactions")
