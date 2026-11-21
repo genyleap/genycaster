@@ -338,7 +338,11 @@ def main() -> None:
     assert "Cached update failed SHA-256 verification" in updates
     assert "QCoreApplication::quit();" in updates
     assert "token: ${{ github.token }}" in workflow
-    assert "prerelease: ${{ contains(github.ref_name, '-') }}" in workflow
+    # GitHub's first public 1.0 Beta uses the numeric v1.0.0 tag but
+    # must remain a published, non-draft prerelease. Future tags with
+    # alpha/beta/rc suffixes retain normal prerelease handling.
+    assert "prerelease: ${{ contains(github.ref_name, '-') || github.ref_name == 'v1.0.0' }}" in workflow
+    assert "draft: false" in workflow
     assert "windows-11-arm" in workflow
     assert "android_arm64_v8a" in workflow and "android_armv7" not in workflow
     assert "name: iOS arm64 unsigned device app" in workflow

@@ -30,7 +30,8 @@ test("public repository entry points and existing GenyCaster branding are availa
 test("repository root remains small and prototype-free after cleanup", () => {
     const allowed = [
         "README.md", "AGENTS.md", "CHANGELOG.md", "CODE_OF_CONDUCT.md",
-        "CONTRIBUTING.md", "SECURITY.md", "STATUS.md", "THIRD_PARTY_NOTICES.md"
+        "CONTRIBUTING.md", "SECURITY.md", "STATUS.md", "THIRD_PARTY_NOTICES.md",
+        "PLAN.md", "PROJECT_STATE.md", "SPEC.md"
     ];
     const rootMd = readdirSync(root).filter(name => name.endsWith(".md")).sort();
     assert.deepEqual(rootMd, allowed.sort());
@@ -63,9 +64,9 @@ test("public landing page shows provider-neutral architecture without claiming b
     assert.match(readme, /docs\/PERFORMANCE\.md/);
     assert.match(readme, /CONTRIBUTING\.md/);
     assert.match(readme, /SECURITY\.md/);
-    assert.match(cmake, /set\(GENYCASTER_RELEASE_CHANNEL "rc"\)/);
-    assert.match(cmake, /set\(GENYCASTER_RELEASE_CHANNEL_NUMBER "1"\)/);
-    assert.match(read("docs/12-roadmap.md"), /v1\.0\.0-rc1/);
+    assert.match(cmake, /set\(GENYCASTER_RELEASE_CHANNEL "stable"\)/);
+    assert.match(cmake, /set\(GENYCASTER_RELEASE_CHANNEL_NUMBER "0"\)/);
+    assert.match(read("docs/12-roadmap.md"), /v1\.0\.0 \(public prerelease\)/);
 });
 
 test("i18n and l10n are first-class, independently configurable product features", () => {
@@ -188,9 +189,12 @@ test("OpenProof identity, opp runtime and independent product database are docum
 
 test("roadmap reports implemented foundations without concealing unfinished acceptance", () => {
     const roadmap = read("docs/12-roadmap.md");
-    for (const phase of ["02", "03", "04", "06"])
+    for (const phase of ["02", "04", "06"])
         assert.match(roadmap, new RegExp("\\| \\*\\*" + phase +
             "\\*\\* \\|[^\\n]*\\| \\*\\*Complete\\*\\* \\|"));
+    // Phase 03 has an implemented baseline but does not claim full
+    // HyperSnap FID linking. The roadmap must preserve that qualification.
+    assert.match(roadmap, /\\| \\*\\*03\\*\\* \\|[^\\n]*\\| \\*\\*Complete \\(baseline only\\)\\*\\* \\|/);
     for (const phase of ["05", "08", "10"])
         assert.match(roadmap, new RegExp("\\| \\*\\*" + phase +
             "\\*\\* \\|[^\\n]*\\| \\*\\*In progress\\*\\* \\|"));
