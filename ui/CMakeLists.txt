@@ -778,6 +778,7 @@ if(EMSCRIPTEN)
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_custody_recovery.mjs"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/openproof_recovery.mjs"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/hypersnap_native_account.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/hypersnap_native_pow_worker.mjs"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_protocol_signer.mjs"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_device_session.mjs"
     )
@@ -871,6 +872,9 @@ if(EMSCRIPTEN)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/hypersnap_native_account.mjs"
             "$<TARGET_FILE_DIR:genycaster>/hypersnap_native_account.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/hypersnap_native_pow_worker.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/hypersnap_native_pow_worker.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_new_account.mjs"
             "$<TARGET_FILE_DIR:genycaster>/farcaster_new_account.mjs"
