@@ -86,7 +86,7 @@ test('backup cards disappear in favor of interactive progress; cancellation befo
   assert.equal(progress.style.display,'block');
   assert.equal(progress.hidden,false);
   assert.equal(cancel.disabled,false,'Cancel remains usable while only computing PoW');
-  assert.ok(ui.nodes.some(x=>/Searching for a registration proof · 20%/.test(x.textContent)));
+  assert.ok(ui.nodes.some(x=>/Preparing your registration/.test(x.textContent)));
   cancel.onclick();
   await assert.rejects(ui.dialog,/cancelled before submission/);
   assert.equal(abortObserved,true);
