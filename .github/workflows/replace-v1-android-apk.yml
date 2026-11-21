@@ -23,7 +23,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
-      github.event.workflow_run.id == 44922640207 &&
+      github.event.workflow_run.id == 44924051617 &&
       github.event.workflow_run.conclusion == 'success'))
     runs-on: ubuntu-24.04
     timeout-minutes: 25
