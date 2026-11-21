@@ -37,7 +37,7 @@ test('native HyperSnap pending results remain idempotent but confirmation pollin
  const src=read('ui/app/identity/native_publish.cpp');
  const begin=src.indexOf('void HyperSnapRegistrationPublisher::scheduleCheck(');
  assert.ok(begin>0);
- const schedule=src.slice(begin,begin+500);
+ const schedule=src.slice(begin,begin+950);
  assert.match(schedule,/m_poll\.start\(m_checks < 30 \? 2000 : m_checks < 90 \? 15000 : 60000\)/);
  assert.doesNotMatch(schedule,/\.submit\(/);
  const lookup=src.slice(src.indexOf('void HyperSnapRegistrationPublisher::lookup('),
