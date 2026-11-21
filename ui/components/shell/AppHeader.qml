@@ -36,7 +36,9 @@ Rectangle {
     NeonReflection {
         anchors.fill: parent
         reflectionSource: root.reflectionSource
-        strength: Theme.reflectionStrength * (root.compact ? 0.42 : 0.68)
+        // Restore an appreciable diffuse content-derived chromatic
+        // reflection; only the thin cropped edge shader stays disabled.
+        strength: Theme.reflectionStrength * (root.compact ? 1.65 : 1.30)
         cornerRadius: 0
         borderInset: 0
         edgeStrength: 0

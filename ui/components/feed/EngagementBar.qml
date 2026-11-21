@@ -354,8 +354,11 @@ Item {
     RowLayout {
         id: utilityActions
         objectName: "castUtilityActions"
+        // Bookmark/Share are pinned to the TRAILING edge of the
+        // viewport, not next to Like. A compact overflow row uses the
+        // scrollable content width; a normal row uses the actual bar width.
         x: root.layoutDirection === Qt.RightToLeft ? 0
-           : root.compact ? reactionActions.width + root.actionSpacing
+           : root.compact ? actionViewport.contentWidth - width
                           : root.width - width
         y: root.stackedActions ? reactionActions.height + Theme.space1 : 0
         width: implicitWidth

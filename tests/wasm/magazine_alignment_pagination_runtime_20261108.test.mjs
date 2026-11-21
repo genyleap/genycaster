@@ -15,7 +15,7 @@ test("Empty client attribution never paints a circular badge beside the timestam
                               cast.indexOf('objectName: "magazineCastTime"'));
     assert.match(header, /visible: sanitizedName\.length > 0\s*&& \(!root\.magazineCard \|\| root\.width >= 390\)/);
     assert.match(cast, /objectName: "magazineCastTime"[\s\S]*?Layout\.alignment: Qt\.AlignVCenter/);
-    assert.match(cast, /id: moreButton[\s\S]*?Layout\.alignment: root\.magazineCard \? Qt\.AlignVCenter/);
+    assert.match(cast, /id: castTrailingMetadata[\s\S]*?id: moreButton[\s\S]*?Layout\.alignment: Qt\.AlignVCenter/);
 });
 
 test("Magazine/Timeline segments have the same optical width and symmetric text/icon layout", () => {

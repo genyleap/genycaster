@@ -47,12 +47,13 @@ test('cast identity keeps name and handle stacked beside the avatar on narrow wi
   const cast=read('ui/components/feed/CastItem.qml');
   assert.match(cast,/id: messageSurface[\s\S]*?Layout.minimumWidth: 0/);
   assert.match(cast,/id: castAuthorIdentity/);
-  assert.match(cast,/id: castAuthorIdentity[\s\S]*?text: root.authorName[\s\S]*?text: root.ltrHandle/);
+  assert.match(cast,/id: castAuthorIdentity[\s\S]*?text: root.authorName[\s\S]*?root.ltrHandle\(root.authorHandle\)/);
   assert.match(cast,/objectName: "compactCastAuthorMetadata"/);
-  assert.match(cast,/Layout.minimumWidth: 0[\s\S]*?text: root.ltrHandle/);
+  assert.match(cast,/Layout.minimumWidth: 0[\s\S]*?root.ltrHandle\(root.authorHandle\)/);
   assert.match(cast,/id: castInlineChannel/);
   assert.match(cast,/visible: root.castChannel.length > 0/);
-  assert.ok(cast.indexOf('id: castInlineChannel') < cast.indexOf('objectName: "compactCastAuthorMetadata"'));
+  assert.ok(cast.indexOf('id: castInlineChannel') < cast.indexOf('id: castTrailingMetadata'));
+  assert.ok(cast.indexOf('root.ltrHandle(root.authorHandle)') < cast.indexOf('objectName: "compactCastAuthorMetadata"'));
   assert.doesNotMatch(cast,/Layout.leftMargin: root.mediaContentInset \+ 36 \+ Theme.space1/);
   assert.ok(cast.includes("LocaleFormat.formatRelativeTime("));
   assert.doesNotMatch(cast,/Layout.maximumWidth: root.compact[\s\S]*?messageSurface.width - Theme.space4 \* 2/);

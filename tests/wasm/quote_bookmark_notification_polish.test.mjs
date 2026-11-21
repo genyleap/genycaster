@@ -80,12 +80,13 @@ test('bookmarks persist on-device per verified account and have a navigable rout
   assert.match(read('ui/CMakeLists.txt'),/components\/profile\/BookmarksSurface.qml/);
 });
 
-test('main casts and every threaded reply show views in a common footer at all widths',()=>{
+test('timelines omit impressions but cast detail and its threaded replies keep them',()=>{
   const cast=read('ui/components/feed/CastItem.qml');
   const reply=read('ui/components/feed/ThreadReplyItem.qml');
   const bar=read('ui/components/feed/EngagementBar.qml');
   const button=read('ui/components/feed/EngagementButton.qml');
-  assert.equal((cast.match(/showViews: true/g)||[]).length,2);
+  assert.equal((cast.match(/showViews: false/g)||[]).length,2);
+  assert.match(read('ui/components/feed/DetailSurface.qml'),/showViews: true/);
   assert.match(reply,/showViews: true/);
   assert.match(reply,/authorFid: Number\(root.reply.authorFid \|\| 0\)/);
   assert.match(reply,/castText: String\(root.reply.text \|\| ""\)/);

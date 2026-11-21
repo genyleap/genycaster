@@ -124,7 +124,8 @@ test('Magazine timestamp stays alongside the overflow action in the top metadata
   assert.ok(start >= 0 && timestamp > start && more > timestamp && lowerStatus > more);
   const between = cast.slice(timestamp, more);
   assert.match(between, /Layout\.alignment: Qt\.AlignVCenter/);
-  assert.match(cast.slice(more, lowerStatus), /Layout\.alignment: root\.magazineCard \? Qt\.AlignVCenter : Qt\.AlignTop/);
+  assert.match(cast.slice(more, lowerStatus), /Layout\.alignment: Qt\.AlignVCenter/);
+  assert.match(cast, /id: castTrailingMetadata[\s\S]*?objectName: "magazineCastTime"[\s\S]*?id: moreButton/);
   assert.equal((cast.match(/objectName: "magazineCastTime"/g) || []).length, 1);
   assert.match(cast, /Layout\.minimumWidth: 0[\s\S]*?objectName: "magazineCastTime"/);
 });

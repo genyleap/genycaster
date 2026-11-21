@@ -15,8 +15,10 @@ test('cast header caps long names and aligns compact overflow to author line', (
     assert.match(name,/wrapMode: Text\.NoWrap/);
     assert.match(name,/elide: Text\.ElideRight/);
     assert.match(cast,/objectName: "compactCastAuthorMetadata"[\s\S]*?Layout\.alignment: Qt\.AlignVCenter/);
-    assert.match(menu,/Layout\.topMargin: root\.compact && !root\.magazineCard/);
-    assert.match(menu,/castNameAndChannel\.implicitHeight/);
+    assert.match(cast,/id: castTrailingMetadata[\s\S]*?objectName: "compactCastAuthorMetadata"/);
+    assert.match(cast,/id: castTrailingMetadata[\s\S]*?objectName: "magazineCastTime"[\s\S]*?id: moreButton/);
+    assert.match(menu,/Layout\.alignment: Qt\.AlignVCenter/);
+    assert.doesNotMatch(menu,/Layout\.topMargin:/);
     assert.match(cast,/objectName: "magazineCastTime"/);
 });
 
@@ -30,6 +32,10 @@ test('compact reaction bar is one swipeable baseline, without reducing hit targe
     assert.match(bar,/id: actionViewport[\s\S]*?id: reactionActions/);
     assert.match(bar,/columns: root\.compact \? 4/);
     assert.match(bar,/id: utilityActions[\s\S]*?y: root\.stackedActions \?/);
+    assert.match(bar,/root\.compact \? actionViewport\.contentWidth - width/);
+    assert.match(bar,/x: root\.layoutDirection === Qt\.RightToLeft \? 0/);
+    assert.equal((read('ui/components/feed/CastItem.qml').match(/showViews: false/g) || []).length, 2);
+    assert.match(read('ui/components/feed/DetailSurface.qml'),/showViews: true/);
     assert.match(bar,/root\.layoutDirection === Qt\.RightToLeft[\s\S]*?contentWidth - width/);
     assert.match(button,/implicitWidth: Math\.max\(Theme\.touchTarget/);
 });
@@ -54,6 +60,12 @@ test('header keeps diffuse NEON without clipped chromatic separator or duplicate
     assert.match(header,/implicitHeight: root\.compact \? Theme\.scaleUi\(54\)/);
     assert.match(header,/clip: false/);
     assert.match(header,/edgeStrength: 0/);
+    assert.match(header,/strength: Theme\.reflectionStrength \* \(root\.compact \? 1\.65 : 1\.30\)/);
+    const dock=read('ui/components/navigation/BottomNavigation.qml');
+    assert.match(dock,/objectName: "mobileNavigationChromaticReflection"/);
+    assert.match(dock,/reflectionSource: root\.reflectionSource/);
+    assert.match(dock,/cornerRadius: navigationCapsule\.height \/ 2/);
+    assert.match(shell,/reflectionSource: workspaceReflection/);
     assert.match(header,/bottomEdgeOnly: false/);
     assert.doesNotMatch(header,/height: 1\s+color: Theme\.borderMuted/);
     assert.match(header,/y: root\.compact \? \(parent\.height - height\) \/ 2 : 0/);

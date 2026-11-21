@@ -687,22 +687,6 @@ Item {
                                 Layout.preferredHeight: 1
                             }
 
-                            // Mobile timestamp belongs on the same baseline as
-                            // the author name, never below the handle or beside
-                            // the bottom edge of the overflow action.
-                            DirectionAwareLabel {
-                                objectName: "compactCastAuthorMetadata"
-                                visible: root.compact && !root.magazineCard
-                                         && Number(root.modelData.createdAtMs || 0) > 0
-                                Layout.alignment: Qt.AlignVCenter
-                                Layout.maximumWidth: Math.min(104, root.width * 0.25)
-                                text: visible ? LocaleFormat.formatRelativeTime(
-                                    Number(root.modelData.createdAtMs)) : ""
-                                color: Theme.inkSubtle
-                                font.pixelSize: Theme.typeCaptionSize
-                                elide: Text.ElideRight
-                                forceLeftToRight: true
-                            }
                         }
 
                         RowLayout {
@@ -742,40 +726,57 @@ Item {
                         }
                     }
 
-                    // The timestamp and overflow menu share one horizontal
-                    // axis. Putting time inside the author/handle column made
-                    // it drift down a row and sometimes clip into a neighbor.
-                    DirectionAwareLabel {
-                        objectName: "magazineCastTime"
-                        visible: root.magazineCard
-                                 && Number(root.modelData.createdAtMs || 0) > 0
-                        Layout.alignment: Qt.AlignVCenter
-                        Layout.maximumWidth: Math.min(104, root.width * 0.29)
+                    // The time and overflow glyph now have ONE RowLayout,
+                    // so they share the same vertical centre at every size.
+                    // Do not offset the action by negative margins: the name
+                    // and handle form a two-line column, not a single baseline.
+                    RowLayout {
+                        id: castTrailingMetadata
+                        Layout.alignment: Qt.AlignTop
                         Layout.minimumWidth: 0
-                        text: visible ? LocaleFormat.formatRelativeTime(
-                            Number(root.modelData.createdAtMs)) : ""
-                        font.pixelSize: Theme.typeCaptionSize
-                        color: Theme.inkSubtle
-                        elide: Text.ElideRight
-                        forceLeftToRight: true
-                    }
+                        spacing: root.compact ? Theme.scaleUi(2) : Theme.space1
+                        layoutDirection: Qt.LeftToRight
 
-                    ActionButton {
-                        id: moreButton
-                        Layout.alignment: root.magazineCard ? Qt.AlignVCenter : Qt.AlignTop
-                        // In the timeline the timestamp is centered on the
-                        // first author line. A 34dp menu touch target used to
-                        // sit lower than that text when the handle occupied
-                        // the second line; offset its frame, not the glyph.
-                        Layout.topMargin: root.compact && !root.magazineCard
-                            ? Math.min(0, (castNameAndChannel.implicitHeight
-                                           - implicitHeight) / 2) : 0
-                        compact: true
-                        quiet: true
-                        iconOnly: true
-                        iconGlyph: Theme.iconMore
-                        text: qsTrId("genycaster.cast.more_options")
-                        onClicked: root.openMoreMenu()
+                        DirectionAwareLabel {
+                            objectName: "compactCastAuthorMetadata"
+                            visible: root.compact && !root.magazineCard
+                                     && Number(root.modelData.createdAtMs || 0) > 0
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.minimumWidth: 0
+                            Layout.maximumWidth: Math.min(104, root.width * 0.25)
+                            text: visible ? LocaleFormat.formatRelativeTime(
+                                Number(root.modelData.createdAtMs)) : ""
+                            color: Theme.inkSubtle
+                            font.pixelSize: Theme.typeCaptionSize
+                            elide: Text.ElideRight
+                            forceLeftToRight: true
+                        }
+
+                        DirectionAwareLabel {
+                            objectName: "magazineCastTime"
+                            visible: root.magazineCard
+                                     && Number(root.modelData.createdAtMs || 0) > 0
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.minimumWidth: 0
+                            Layout.maximumWidth: Math.min(104, root.width * 0.29)
+                            text: visible ? LocaleFormat.formatRelativeTime(
+                                Number(root.modelData.createdAtMs)) : ""
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.inkSubtle
+                            elide: Text.ElideRight
+                            forceLeftToRight: true
+                        }
+
+                        ActionButton {
+                            id: moreButton
+                            Layout.alignment: Qt.AlignVCenter
+                            compact: true
+                            quiet: true
+                            iconOnly: true
+                            iconGlyph: Theme.iconMore
+                            text: qsTrId("genycaster.cast.more_options")
+                            onClicked: root.openMoreMenu()
+                        }
                     }
                 }
 
@@ -1088,7 +1089,7 @@ Item {
                         compact: root.compact
                         scrollMoving: root.scrollMoving
                         enrichmentActive: root.enrichmentActive
-                        showViews: true
+                        showViews: false
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)
                         likeCount: Number(root.modelData.likeCount || 0)
@@ -1185,7 +1186,7 @@ Item {
                         compact: root.compact
                         scrollMoving: root.scrollMoving
                         enrichmentActive: root.enrichmentActive
-                        showViews: true
+                        showViews: false
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)
                         likeCount: Number(root.modelData.likeCount || 0)

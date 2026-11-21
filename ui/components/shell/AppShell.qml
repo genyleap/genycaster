@@ -2723,6 +2723,7 @@ Item {
                             anchors.right: readingPane.right
                             anchors.bottom: readingPane.bottom
                             blurSourceItem: readingBackdrop
+                            reflectionSource: workspaceReflection
                             glassEnabled: true
                             activeView: presentationBridge.activeView
                             activeFeed: presentationBridge.activeFeed

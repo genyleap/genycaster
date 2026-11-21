@@ -18,6 +18,9 @@ Item {
     property string primaryDestination: "home"
     property bool widgetsOpen: false
     property Item blurSourceItem: null
+    // Reuse AppShell's shared (already blurred) color field, rather than
+    // capturing the scrolling page a second time for chromatic NEON.
+    property NeonReflectionSource reflectionSource: null
     property bool glassEnabled: false
     // GraphicsInfo.api can briefly be Unknown/Null while Qt recreates its
     // scenegraph on live theme changes. Treat that as a transient renderer
@@ -325,6 +328,22 @@ Item {
                 fillColor: root.useBackdropBlur
                     ? Theme.navigationGlassTint : Theme.surfaceElevated
                 borderWidth: 0
+            }
+
+            // The same content-derived chromatic material as the header.
+            // The shader masks to the capsule's superellipse geometry;
+            // no rectangular clipping or hard reflected divider is used.
+            NeonReflection {
+                objectName: "mobileNavigationChromaticReflection"
+                anchors.fill: parent
+                z: 1.5
+                reflectionSource: root.reflectionSource
+                strength: Theme.reflectionStrength * 1.45
+                cornerRadius: navigationCapsule.height / 2
+                cornerPower: 2.0
+                borderInset: 0
+                edgeStrength: 0
+                bottomEdgeOnly: false
             }
 
             // Restrained depth, without a painted footer.

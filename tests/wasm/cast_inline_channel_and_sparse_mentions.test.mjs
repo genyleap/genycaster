@@ -12,11 +12,11 @@ test('feed and profile headers keep channel after author name without a third mo
   assert.ok(identity.includes('text: root.authorName'));
   assert.ok(identity.includes('sourceUrl: root.channelImageUrl'));
   assert.ok(identity.includes('text: "/" + root.castChannel'));
-  assert.ok(identity.includes('text: root.ltrHandle'));
+  assert.ok(identity.includes('root.ltrHandle(root.authorHandle)'));
   assert.ok(identity.includes('objectName: "compactCastAuthorMetadata"'));
   assert.ok(identity.indexOf('text: root.authorName') < identity.indexOf('id: castInlineChannel'));
-  assert.ok(identity.indexOf('id: castInlineChannel') < identity.indexOf('text: root.ltrHandle'));
-  assert.ok(identity.indexOf('compactCastAuthorMetadata') < identity.indexOf('text: root.ltrHandle'));
+  assert.ok(identity.indexOf('id: castInlineChannel') < identity.indexOf('root.ltrHandle(root.authorHandle)'));
+  assert.ok(identity.indexOf('root.ltrHandle(root.authorHandle)') < identity.indexOf('compactCastAuthorMetadata'));
   assert.doesNotMatch(feed, /Keep channel attribution separate from the two-line identity/);
 });
 
@@ -24,8 +24,8 @@ test('cast detail uses same first-line channel layout and second-line handle', (
   const detail = read('ui/components/feed/DetailSurface.qml');
   const header = detail.slice(detail.indexOf('id: detailNameAndChannel'), detail.indexOf('// Timestamp belongs with the author identity'));
   assert.ok(header.includes('text: root.resolvedChannelName'));
-  assert.ok(header.includes('text: root.ltrHandle(root.detail.username)'));
-  assert.ok(header.indexOf('text: root.resolvedChannelName') < header.indexOf('text: root.ltrHandle(root.detail.username)'));
+  assert.ok(header.includes('root.ltrHandle(root.detail.username)'));
+  assert.ok(header.indexOf('text: root.resolvedChannelName') < header.indexOf('root.ltrHandle(root.detail.username)'));
 });
 
 test('sparse search casts receive exactly one bounded provider-local bulk hydration, keeping signed text intact', () => {

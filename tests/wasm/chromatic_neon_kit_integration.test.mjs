@@ -69,7 +69,10 @@ test('headers, nav rows and inspector surfaces consume shared material without t
     assert.match(c,/property NeonReflectionSource reflectionSource: null/);
   for(const c of [header,sidebar,compact,nav,rail,social,buttons])
     assert.doesNotMatch(c,/NeonReflectionSource\s*\{/);
-  assert.match(header,/bottomEdgeOnly: true/);
+  assert.match(header,/bottomEdgeOnly: false/);
+  assert.match(header,/edgeStrength: 0/);
+  assert.match(read('ui/components/navigation/BottomNavigation.qml'),/objectName: "mobileNavigationChromaticReflection"/);
+  assert.match(read('ui/components/navigation/BottomNavigation.qml'),/reflectionSource: root\.reflectionSource/);
   assert.match(sidebar,/reflectionSource: root\.reflectionSource/);
   assert.match(nav,/reflectionSource: control\.reflectionSource/);
   assert.match(rail,/component WidgetCard: NeonCard[\s\S]*reflectionSource: root\.reflectionSource/);

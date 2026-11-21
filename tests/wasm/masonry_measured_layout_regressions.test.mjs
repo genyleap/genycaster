@@ -100,6 +100,6 @@ test('magazine relative timestamp and the overflow action share one horizontal a
     assert.ok(authorEnd >= 0 && time > authorEnd && more > time);
     assert.match(cast.slice(time, more), /Layout\.alignment: Qt\.AlignVCenter/);
     assert.match(cast.slice(more, more + 180),
-        /Layout\.alignment: root\.magazineCard \? Qt\.AlignVCenter : Qt\.AlignTop/);
+        /Layout\.alignment: Qt\.AlignVCenter/);
     assert.match(cast.slice(time, more), /Layout\.maximumWidth: Math\.min\(104, root\.width \* 0\.29\)/);
 });

@@ -10,8 +10,8 @@ const profile=read('ui/components/profile/ProfileSurface.qml');
 test('mobile header gains vertical breathing room without duplicating iOS safe-area',()=>{
   const block=shell.slice(shell.indexOf('id: mobileWorkspace'),
       shell.indexOf('id: readingPane'));
-  assert.match(block,/AppHeader \{[\s\S]*?Layout\.topMargin: root\.mobile && Qt\.platform\.os !== \"android\" \? Theme\.space3 : 0/);
-  assert.match(block,/AppHeader \{[\s\S]*?Layout\.bottomMargin: root\.mobile && Qt\.platform\.os !== \"android\" \? Theme\.space3 : 0/);
+  assert.match(block,/AppHeader \{[\s\S]*?Layout\.topMargin: 0/);
+  assert.match(block,/AppHeader \{[\s\S]*?Layout\.bottomMargin: 0/);
   assert.doesNotMatch(block,/safeAreaTop|safe-area-inset-top/);
 });
 
@@ -52,7 +52,9 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
   assert.match(glass,/blurMultiplier: 1\.3/);
   assert.match(glass,/id: capsuleBackdrop[\s\S]*?visible: false/);
   assert.match(glass,/id: capsuleMask/);
-  assert.match(glass,/radius: height \/ 2/);
+  assert.match(glass,/curveDepth: height \/ 2/);
+  assert.match(glass,/objectName: "mobileNavigationChromaticReflection"/);
+  assert.match(glass,/reflectionSource: root\.reflectionSource/);
   assert.match(glass,/maskEnabled: true/);
   assert.match(glass,/maskSource: capsuleMaskTexture/);
   assert.match(glass,/objectName: "mobileCapsuleGlassTint"/);
