@@ -702,8 +702,11 @@ target_compile_definitions(genycaster
 )
 
 if(ANDROID)
-    find_package(Qt6 6.12 REQUIRED COMPONENTS Svg)
-    target_link_libraries(genycaster PRIVATE Qt6::Svg)
+    # QAndroidActivityResultReceiver opens scoped ACTION_OPEN_DOCUMENT
+    # without asking for broad Android media or storage permissions.
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Svg CorePrivate)
+    target_sources(genycaster PRIVATE app/media/android_document_picker.hpp)
+    target_link_libraries(genycaster PRIVATE Qt6::Svg Qt6::CorePrivate)
 endif()
 
 if(ANDROID AND TARGET Qt6Keychain::Qt6Keychain)
