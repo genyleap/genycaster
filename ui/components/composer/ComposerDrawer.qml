@@ -271,10 +271,16 @@ GenyDrawer {
 
 
     function openMediaPicker() {
-        if (Qt.platform.os === "wasm")
+        if (Qt.platform.os === "wasm") {
             mediaUpload.browseBrowserImage(root.pendingMediaBlockIndex)
-        else
+        } else if (Qt.platform.os === "android") {
+            // The native Android Storage Access Framework grants content://
+            // access, which is copied privately before normal media upload.
+            root.insertKind = "media"
+            mediaUpload.browseBrowserImage(root.pendingMediaBlockIndex)
+        } else {
             mediaFileDialog.open()
+        }
     }
 
     function clearPendingMediaQueue() {
