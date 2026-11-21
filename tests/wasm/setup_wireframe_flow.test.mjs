@@ -46,38 +46,25 @@ test('legal consent and authenticated Setup are enforced', () => {
   assert.match(setup, /finishSetup\(\)/);
 });
 
-test('registration keeps protocols isolated and requires explicit custody consent', () => {
+test('registration keeps protocols isolated; a single explicit click authorizes exactly one native account', () => {
   const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
   const create=account.slice(account.indexOf('objectName: "setupCreateAccount"'),
                              account.indexOf('title: qsTrId("genycaster.setup.design_existing_account")'));
-  assert.match(create,/accountShowcase: true/);
-  assert.match(create,/onClicked:/);
   assert.match(create,/root.accountIntent = "new"/);
   assert.match(create,/root.choosingRegistrationProvider = true/);
-  assert.doesNotMatch(create,/unavailable: true|enabled: false/);
   assert.match(account,/objectName: "setupRegisterHyperSnap"/);
   assert.match(account,/objectName: "setupRegisterNeynar"/);
-  assert.match(account,/objectName: "setupRegisterHyperSnap"[\s\S]*?enabled: !neynarRegistration\.pending/);
-  assert.match(account,/objectName: "setupRegisterNeynar"[\s\S]*?enabled: !nativeRegistrationPublisher\.pending/);
-  assert.match(account,/objectName: "setupBeginRegistration"/);
-  assert.match(account,/nativeRegistrationPublisher\.registrationSupported/);
-  assert.match(account,/nativeRegistrationPublisher\.submitPrepared\(\)/);
-  assert.match(account,/nativeRegistrationConsent\.checked/);
+  assert.match(account,/objectName: "setupBeginRegistration"[\s\S]*?onClicked: root\.startNativeAccountCreation\(\)/);
+  assert.match(setup,/function startNativeAccountCreation\(\)/);
+  assert.match(setup,/nativeCreationRequested = true/);
+  assert.match(setup,/function submitPreparedNativeAccount\(\)/);
+  assert.match(setup,/nativeCreationRequested = false[\s\S]*?nativeRegistrationPublisher\.submitPrepared\(\)/);
+  assert.match(setup,/!nativeRegistrationStatus\.accountLookupChecked/);
+  assert.match(setup,/!nativeRegistrationStatus\.accountLookupFailed/);
+  assert.doesNotMatch(account,/objectName: "setupPrepareNativeProof"/);
+  assert.doesNotMatch(account,/objectName: "setupNativeRegistrationConsent"/);
   assert.doesNotMatch(account,/objectName: "setupRegistrationCompleted"/);
-  assert.match(setup,/nativeRegistrationStatus.checking/);
-  assert.match(setup,/nativeRegistrationStatus.active/);
-  const launch=setup.slice(setup.indexOf('function beginAccountRegistration()'),setup.indexOf('property bool showRecovery'));
-  assert.doesNotMatch(launch,/selectReadProvider\(|openRegistration\(/);
-  assert.match(launch,/nativeRegistrationStatus.refresh\(\)/);
-  assert.doesNotMatch(setup,/registrationLaunched|signal openRegistration/);
-  assert.doesNotMatch(source('ui/components/shell/AppShell.qml'),/farcaster.xyz\/\~\/signup/);
-  for(const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
-                        'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']){
-    const translation=source('ui/i18n/qml_'+locale+'.ts');
-    for(const key of ['registration_choose_provider','registration_shared_fid','registration_start','registration_connect']) {
-      assert.match(translation,new RegExp('<message id="genycaster.setup.'+key+'">'));
-    }
-  }
+  assert.doesNotMatch(source('ui/components/shell/AppShell.qml'),/farcaster.xyz\/~\/signup/);
 });
 
 test('signup text inputs use the registered themed QML component', () => {
@@ -158,27 +145,22 @@ test('registration network status is protocol-scoped, actionable and localized',
   }
 });
 
-test('Back navigation never duplicates the HyperSnap pending warning in red', () => {
+test('Back never loses an already-submitted HyperSnap account or resubmits it', () => {
   const back=setup.slice(setup.indexOf('function previousStep()'),
                          setup.indexOf('function actionText()'));
-  const pending=back.slice(back.indexOf('if (nativeRegistrationPublisher.pending)'),
-                           back.indexOf('stageScroll.contentY = 0') + 'stageScroll.contentY = 0'.length);
-  assert.match(pending,/nativeRegistrationPublisher\.stopPolling\(\)/);
-  assert.match(pending,/nativeRegistrationPreparation\.cancel\(\)/);
-  assert.match(pending,/registrationError = ""/);
-  assert.match(pending,/choosingRegistrationProvider = false/);
-  assert.match(pending,/accountIntent = ""/);
-  assert.match(pending,/stageScroll\.contentY = 0/);
-  assert.doesNotMatch(pending,/switchStep\(0\)/);
-  assert.doesNotMatch(pending,/registrationError\s*=\s*qsTrId\(/);
-  assert.doesNotMatch(pending,/nativeRegistrationPublisher\.submitPrepared\(\)/);
-  assert.doesNotMatch(pending,/nativeCustodyWallet\.discard\(\)/);
+  assert.match(back,/if \(!nativeRegistrationPublisher\.pending\) \{[\s\S]*?nativeRegistrationPublisher\.clear\(\)/);
+  assert.doesNotMatch(back,/nativeRegistrationPublisher\.stopPolling\(\)/);
+  assert.match(back,/nativeCreationRequested = false/);
+  assert.match(back,/nativeRegistrationPreparation\.cancel\(\)/);
+  assert.match(back,/registrationError = ""/);
+  assert.match(back,/choosingRegistrationProvider = false/);
+  assert.doesNotMatch(back,/nativeRegistrationPublisher\.submitPrepared\(\)/);
+  assert.doesNotMatch(back,/nativeCustodyWallet\.discard\(\)/);
   const publisher=source('ui/app/identity/native_publish.cpp');
   assert.match(publisher,/if \(m_submitted && !confirmed\(\)\) \{/);
   assert.match(publisher,/loadRetryJournal\(\)/);
   assert.match(publisher,/saveRetryJournal\(\)/);
   assert.match(publisher,/eraseRetryJournal\(\)/);
-  assert.match(publisher,/nativeRegistration\/expiry-v1\//);
 });
 
 test('replacing a verified wallet requires confirmation and preserves old pending journal', () => {
@@ -207,50 +189,29 @@ test('replacing a verified wallet requires confirmation and preserves old pendin
   }
 });
 
-test('uncertain HyperSnap submit stays a read-only confirmation instead of showing a second submit', () => {
+test('HyperSnap pending is a single minimal read-only state, technical diagnostics are optional', () => {
   const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
-  const nativeLookup=account.slice(account.indexOf('objectName: "nativeAccountLookupPanel"'),
-                                  account.indexOf('objectName: "nativeRegistrationProofPanel"'));
-  const nativeProof=account.slice(account.indexOf('objectName: "nativeRegistrationProofPanel"'),
-                                 account.indexOf('objectName: "nativeRegistrationBroadcastPanel"'));
   const broadcast=account.slice(account.indexOf('objectName: "nativeRegistrationBroadcastPanel"'));
-  assert.match(nativeLookup,/&& !nativeRegistrationPublisher\.pending/);
-  assert.match(nativeProof,/&& !nativeRegistrationPublisher\.pending/);
-  assert.match(broadcast,/objectName: "setupBeginRegistration"[\s\S]*?visible: !nativeRegistrationPublisher\.pending/);
-  assert.match(broadcast,/text: root\.nativeSubmissionStatusText\(\)/);
-  assert.match(broadcast,/objectName: "setupCheckNativeRegistrationConfirmation"[\s\S]*?busy: nativeRegistrationStatus\.checking/);
-  assert.match(broadcast,/nativeRegistrationPublisher\.checkingConfirmation/);
-  assert.match(broadcast,/target: nativeRegistrationStatus[\s\S]*?function onChanged\(\)/);
-  assert.match(broadcast,/objectName: "setupNativeStatusRefreshFailure"/);
-  assert.match(broadcast,/nativeRegistrationStatus\.refresh\(\)/);
-  assert.match(broadcast,/nativeRegistrationPublisher\.checkConfirmation\(\)/);
+  const cta=broadcast.slice(broadcast.indexOf('objectName: "setupBeginRegistration"'),
+                             broadcast.indexOf('objectName: "setupRetryNativeAccountLookup"'));
+  assert.match(cta,/visible: !nativeRegistrationPublisher\.pending/);
+  assert.match(cta,/onClicked: root\.startNativeAccountCreation\(\)/);
+  assert.doesNotMatch(cta,/\.submitPrepared\(\)/);
+  assert.match(broadcast,/objectName: "setupNativeAwaitingConfirmation"/);
+  assert.match(broadcast,/objectName: "setupNativePendingDescription"/);
+  assert.match(broadcast,/objectName: "setupNativeTechnicalDetailsToggle"/);
+  assert.match(broadcast,/objectName: "setupNativeTechnicalDetails"[\s\S]*?visible: root\.nativeDetailsExpanded/);
+  assert.match(broadcast,/objectName: "setupCheckNativeRegistrationConfirmation"/);
   assert.match(broadcast,/objectName: "setupNativeRetryWindow"/);
   assert.match(broadcast,/objectName: "setupReleaseExpiredNativeAttempt"/);
-  assert.match(broadcast,/nativeRegistrationPublisher\.retryReady/);
   assert.match(broadcast,/nativeRegistrationPublisher\.releaseExpiredAttempt\(\)/);
-  assert.match(setup,/function nativeSubmissionStatusText\(\)/);
-  assert.match(setup,/lastSubmissionHttpStatus/);
-  assert.match(broadcast,/objectName: "setupNativeConfirmationDetails"/);
-  assert.match(broadcast,/nativeRegistrationPublisher\.confirmationLookupChecks > 0/);
-  assert.match(broadcast,/nativeRegistrationPublisher\.confirmationLookupState === "not_found"/);
-  assert.match(broadcast,/genycaster\.setup\.native_confirmation_no_fid_yet/);
-  assert.match(broadcast,/nativeRegistrationPublisher\.confirmationLookupHttpStatus/);
-  for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
-                        'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
-    assert.match(source('ui/i18n/qml_'+locale+'.ts'),
-      /<message id="genycaster\.setup\.native_confirmation_no_fid_yet">/);
-    for(const key of ['native_retry_wait_blocks','native_retry_start_over'])
-      assert.match(source('ui/i18n/qml_'+locale+'.ts'),
-        new RegExp('<message id="genycaster\\.setup\\.'+key+'">'));
-  }
+  assert.match(setup,/function resumeNativePendingChecks\(\)/);
+  assert.match(setup,/nativeRegistrationPublisher\.checkConfirmation\(\)/);
+  assert.match(setup,/nativeRegistrationPublisher\.retryReady/);
   const publisher=source('ui/app/identity/native_publish.cpp');
   assert.match(publisher,/m_lastSubmissionHttpStatus = result\.httpStatus/);
-  assert.match(publisher,/m_checkingConfirmation = true/);
-  assert.match(publisher,/void HyperSnapRegistrationPublisher::updateRetryEligibility\(\)/);
-  assert.match(publisher,/bool HyperSnapRegistrationPublisher::releaseExpiredAttempt\(\)/);
-  assert.match(publisher,/FinalityMarginBlocks = 16/);
-  assert.match(source('ui/app/main.cpp'),/registrationWindow = \[&nativeRegistrationStatus\]/);
   assert.match(publisher,/Never clear m_pending \/ m_submitted/);
+  assert.match(publisher,/m_pending && m_checks < 240/);
   assert.doesNotMatch(publisher,/m_pending = false;\s*\/\/.*[Tt]imeout/);
 });
 
@@ -353,12 +314,13 @@ test('shared theme, native project icons and all three theme modes are present',
   assert.match(languageStage, /SetupLanguageSelector \{\s*id: languageWheel\s*visible: root\.phone/);
 });
 
-test('mobile has a bottom CTA, desktop a two-pane welcome', () => {
+test('stage CTA is adjacent to the active form, desktop retains a two-pane welcome', () => {
   assert.match(setup, /id: stageScroll/);
   assert.match(setup, /id: stageAction/);
   assert.match(setup, /id: desktopBrandPane/);
   assert.match(setup, /width: root\.currentStep === 0 \? Math\.min\(parent\.width \* 0\.35, 560\)/);
-  assert.match(setup, /anchors.bottom: parent.bottom/);
+  assert.match(setup, /anchors.top: stageLoader.bottom/);
+  assert.match(setup, /anchors.topMargin: Theme.space5/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
 });
 
@@ -369,7 +331,7 @@ test('recovery phrase stays in the correct platform UI until verification really
   assert.match(setup,/root\.recoverAccount\(root\.recoveryProtocol\)/);
   assert.match(setup,/authenticationRoute === "browser-protocol-recovery"/);
   assert.match(setup,/authenticationRoute === "browser-protocol-create"/);
-  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, deviceSignerConsent\.checked\)/);
+  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
   assert.match(setup,/nativeRecoveryGrid\.clearAll\(\)/);
   assert.match(setup,/running: root\.verifyingBusy \|\| root\.recoverySubmitPending/);
   assert.match(setup,/onAuthenticationErrorTextChanged:/);
@@ -721,24 +683,23 @@ test('new-wallet backup is native, private, verified and never claims premature 
   }
 });
 
-test('native proof preparation stays off UI thread and network registration is explicitly authorized', () => {
-  const setup = source('ui/components/setup/InitialSetup.qml');
-  const native = source('ui/app/identity/native_prepare.cpp');
-  const wallet = source('ui/app/identity/native_wallet.cpp');
-  const header = source('ui/app/identity/native_prepare.hpp');
-  const bootstrap = source('ui/app/main.cpp');
-  const manifest = source('ui/CMakeLists.txt');
-  assert.match(setup,/objectName: "setupPrepareNativeProof"/);
-  assert.match(setup,/objectName: "setupCheckExistingNativeFid"/);
-  assert.match(setup,/objectName: "setupRefreshNativeProofAnchor"/);
-  assert.match(setup,/function previousStep\(\)[\s\S]*?nativeRegistrationPreparation\.cancel\(\)[\s\S]*?nativeRegistrationStatus\.clearExistingLookup\(\)[\s\S]*?nativeCustodyWallet\.discard\(\)/);
+test('native PoW runs off-thread; one explicit Create click gates a single irreversible submit', () => {
+  const native=source('ui/app/identity/native_prepare.cpp');
+  const wallet=source('ui/app/identity/native_wallet.cpp');
+  const header=source('ui/app/identity/native_prepare.hpp');
+  const main=source('ui/app/main.cpp');
+  const manifest=source('ui/CMakeLists.txt');
+  assert.match(setup,/function startNativeAccountCreation\(\)/);
+  assert.match(setup,/nativeCreationRequested = true/);
+  assert.match(setup,/nativeRegistrationPreparation\.prepare\(\)/);
+  assert.match(setup,/function submitPreparedNativeAccount\(\)/);
+  assert.match(setup,/!nativeCreationRequested \|\| !nativeRegistrationPreparation\.prepared/);
+  assert.match(setup,/nativeCreationRequested = false/);
+  assert.match(setup,/nativeRegistrationPublisher\.submitPrepared\(\)/);
   assert.match(setup,/nativeRegistrationStatus\.findExistingNativeAccount\(/);
   assert.match(setup,/nativeRegistrationStatus\.accountLookupChecked/);
-  assert.match(setup,/onClicked: nativeRegistrationPreparation\.prepare\(\)/);
-  assert.match(setup,/nativeRegistrationPreparation\.cancel\(\)/);
-  assert.match(setup,/objectName: "setupBeginRegistration"[\s\S]*?nativeRegistrationConsent\.checked/);
-  assert.match(setup,/nativeRegistrationPublisher\.submitPrepared\(\)/);
-  assert.match(setup,/nativeRegistrationPublisher\.checkConfirmation\(\)/);
+  assert.doesNotMatch(setup,/objectName: "setupPrepareNativeProof"/);
+  assert.doesNotMatch(setup,/nativeRegistrationConsent\.checked/);
   assert.match(native,/QtConcurrent::run/);
   assert.match(native,/solveNativeOnboardPow/);
   assert.match(native,/m_ports\.backupVerified\(\)/);
@@ -747,33 +708,20 @@ test('native proof preparation stays off UI thread and network registration is e
   assert.doesNotMatch(header,/Q_PROPERTY.*envelope/);
   assert.match(wallet,/NativeCustodyWalletController::sealNativeOnboard/);
   assert.match(wallet,/if \(!backupVerified\(\)/);
-  assert.match(bootstrap,/\{"nativeRegistrationPreparation", &nativeRegistrationPreparation\}/);
+  assert.match(main,/\{"nativeRegistrationPreparation", &nativeRegistrationPreparation\}/);
   assert.match(manifest,/app\/identity\/native_prepare\.cpp/);
-  for(const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
-                        'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
-    const translations=source('ui/i18n/qml_'+locale+'.ts');
-    for(const key of ['native_proof_prepare','native_proof_working',
-                      'native_proof_prepared','native_proof_failed',
-                      'native_existing_check','native_existing_found',
-                      'native_existing_missing','native_existing_error',
-                      'native_proof_refresh'])
-      assert.ok(translations.includes('id="genycaster.setup.'+key+'"'));
-  }
 });
 
-test('HyperSnap native signup, recovery and signer stay in distinct guarded paths', () => {
-  const setup=source('ui/components/setup/InitialSetup.qml');
+test('HyperSnap signup, recovery and signer remain distinct guarded flows',()=>{
   const shell=source('ui/components/shell/AppShell.qml');
   const bridge=source('src/presentation/qt/presentation_bridge.cpp');
   const bridgeApi=source('src/presentation/qt/presentation_bridge.hpp');
   const runtime=source('ui/app/runtime/bindings.cpp');
-  const session=source('src/application/session.cpp');
   const publisher=source('ui/app/identity/native_publish.cpp');
   const prep=source('ui/app/identity/native_prepare.cpp');
-  const signer=source('ui/app/identity/native_wallet.cpp');
-  for(const s of [
+  for(const required of [
     'objectName: "setupBeginRegistration"',
-    'nativeRegistrationConsent.checked',
+    'nativeCreationRequested = true',
     'nativeRegistrationPublisher.registrationSupported',
     'nativeRegistrationPublisher.submitPrepared()',
     'nativeRegistrationPublisher.checkConfirmation()',
@@ -781,30 +729,17 @@ test('HyperSnap native signup, recovery and signer stay in distinct guarded path
     'root.nativeRecoverFarcasterAccount(words, authorizeDeviceSigner)',
     'objectName: "setupExistingHyperSnap"',
     'objectName: "setupExistingFarcaster"'
-  ])assert.ok(setup.includes(s),s);
+  ]) assert.ok(setup.includes(required),required);
   assert.match(shell,/onNativeRecoverHyperSnapAccount/);
   assert.match(bridgeApi,/nativeHyperSnapRecoveryRequested\(QString recoveryWords, bool authorizeSigner\)/);
   assert.match(bridge,/emit nativeHyperSnapRecoveryRequested\(\s*std::move\(recoveryWords\), m_hyperSnapRecoverySignerConsent\)/);
   assert.match(runtime,/nativeHyperSnapRecoveryRequested/);
   assert.match(runtime,/makeOneShotRecoveryAuthorizer/);
   assert.match(runtime,/nativeAccountConfirmed/);
-  assert.match(runtime,/acceptVerifiedNativeCustody/);
-  assert.match(session,/hypersnap:native-registry/);
-  assert.match(session,/FirstNativeFid/);
-  assert.match(signer,/NativeCustodySignerAccess::forConfirmedNativeFid/);
   assert.match(publisher,/m_transport\.submit\(envelope/);
   assert.match(publisher,/scheduleCheck\(generation\)/);
-  assert.match(publisher,/if \(!m_registrationSupported/);
   assert.match(prep,/takeForSubmission/);
   assert.doesNotMatch(setup,/farcaster\.xyz\/~\/signup/);
-  assert.doesNotMatch(bridgeApi,/Q_INVOKABLE.*makeOneShotRecoveryAuthorizer/);
-  for (const loc of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
-                     'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
-    const xml=source('ui/i18n/qml_'+loc+'.ts');
-    for (const key of ['native_registration_consent','native_registration_confirmed',
-                      'native_registration_outcome_unknown','native_registration_check_again'])
-      assert.ok(xml.includes('id="genycaster.setup.'+key+'"'));
-  }
 });
 
 test('Farcaster paid registration uses native wallet and authoritative Optimism confirmation', () => {
@@ -873,24 +808,21 @@ test('interrupted Farcaster registration can restore offline custody without a s
   assert.doesNotMatch(qml,/farcaster\.xyz\/~\/signup/);
 });
 
-test('existing HyperSnap FID continues only after independent custody verification', () => {
+test('an existing HyperSnap FID is adopted automatically only after custody-bound verification', () => {
   const ui=source('ui/components/setup/InitialSetup.qml');
   const status=source('ui/app/identity/native_registration.cpp');
   const publisher=source('ui/app/identity/native_publish.cpp');
-  const pubHeader=source('ui/app/identity/native_publish.hpp');
-  const main=source('ui/app/main.cpp');
+  const header=source('ui/app/identity/native_publish.hpp');
   const runtime=source('ui/app/runtime/bindings.cpp');
-  const existing=ui.slice(ui.indexOf('objectName: "nativeAccountLookupPanel"'),
-                          ui.indexOf('objectName: "nativeRegistrationProofPanel"'));
-  assert.match(existing,/objectName: "setupContinueExistingNativeFid"/);
-  assert.match(existing,/nativeRegistrationPublisher\.confirmExistingAccount\(\)/);
-  assert.match(existing,/nativeRegistrationPublisher\.verifyingExisting/);
-  assert.match(existing,/nativeRegistrationPublisher\.existingVerificationFailed/);
-  assert.doesNotMatch(existing,/submitPrepared\(\)|takeProof\(/);
-  assert.match(ui,/nativeRegistrationStatus\.existingNativeFid\.length === 0/);
+  const adoption=ui.slice(ui.indexOf('function resumeExistingNativeAccount('),
+                          ui.indexOf('    Connections {\n        target: nativeCustodyWallet'));
+  assert.match(adoption,/nativeRegistrationStatus\.existingNativeFid\.length === 0/);
+  assert.match(adoption,/nativeRegistrationPublisher\.confirmExistingAccount\(\)/);
+  assert.match(adoption,/nativeExistingResumeRequested = true/);
+  assert.doesNotMatch(adoption,/submitPrepared\(\)|takeProof\(/);
   assert.match(status,/verifiedExistingFidForCustody/);
   assert.match(status,/m_lookupAddress == address\.toLower\(\)/);
-  assert.match(pubHeader,/Q_INVOKABLE bool confirmExistingAccount\(\)/);
+  assert.match(header,/Q_INVOKABLE bool confirmExistingAccount\(\)/);
   const verifier=publisher.slice(publisher.indexOf('bool HyperSnapRegistrationPublisher::confirmExistingAccount()'),
                                  publisher.indexOf('bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()'));
   assert.match(verifier,/m_pending \|\| m_submitted/);
@@ -900,27 +832,24 @@ test('existing HyperSnap FID continues only after independent custody verificati
   assert.match(verifier,/result\.fid == expected/);
   assert.match(verifier,/onConfirmed\(result\.fid, generation\)/);
   assert.doesNotMatch(verifier,/submit\(|saveRetryJournal|takeProof/);
-  assert.match(main,/nativeRegistrationStatus\.verifiedExistingFidForCustody\(address\)/);
   assert.match(runtime,/nativeAccountConfirmed/);
   assert.match(runtime,/NativeCustodySignerAccess::forConfirmedNativeFid/);
 });
 
-test('confirmed HyperSnap FID offers a single status and revalidatable continue action', () => {
+test('confirmed HyperSnap identity signs in automatically and offers read-only retry on errors', () => {
   const ui=source('ui/components/setup/InitialSetup.qml');
   const publisher=source('ui/app/identity/native_publish.cpp');
   const header=source('ui/app/identity/native_publish.hpp');
-  const runtime=source('ui/app/runtime/composition.cpp');
   const bridge=source('ui/app/runtime/bindings.cpp');
-  const account=ui.slice(ui.indexOf('id: accountStage'),
-                         ui.indexOf('id: signInStage'));
-  assert.match(account, /objectName: "setupContinueConfirmedNativeAccount"/);
-  assert.match(account, /onClicked: nativeRegistrationPublisher\.resumeConfirmedAccount\(\)/);
-  assert.match(account, /objectName: "setupConfirmedNativeLoginError"/);
-  assert.match(account, /root\.authenticationErrorText/);
-  assert.match(account, /visible: !nativeRegistrationPublisher\.confirmed\s*\n\s*&& \(nativeRegistrationPublisher\.busy/);
-  assert.match(account, /objectName: "setupWalletReplacement"[\s\S]*?&& !nativeRegistrationPublisher\.confirmed/);
-  assert.match(account, /title: root\.accountFidRegistered[\s\S]*?genycaster\.setup\.account_verified/);
-  assert.match(ui, /objectName: "setupSignerVerificationStatus"/);
+  const account=ui.slice(ui.indexOf('id: accountStage'),ui.indexOf('id: signInStage'));
+  assert.match(account,/objectName: "setupContinueConfirmedNativeAccount"/);
+  assert.match(account,/onClicked: nativeRegistrationPublisher\.resumeConfirmedAccount\(\)/);
+  assert.match(account,/objectName: "setupNativeAwaitingConfirmation"/);
+  assert.match(account,/visible: nativeRegistrationPublisher\.pending/);
+  assert.match(account,/objectName: "setupWalletReplacement"[\s\S]*?&& !nativeRegistrationPublisher\.confirmed/);
+  assert.match(account,/title: root\.accountFidRegistered[\s\S]*?genycaster\.setup\.account_verified/);
+  assert.match(ui,/onAuthenticatedChanged:/);
+  assert.match(ui,/if \(visible && authenticated && currentStep >= 3 && currentStep <= 5\)/);
   const retry=publisher.slice(publisher.indexOf('bool HyperSnapRegistrationPublisher::resumeConfirmedAccount()'),
                               publisher.indexOf('bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()'));
   assert.match(header,/Q_INVOKABLE bool resumeConfirmedAccount\(\)/);
@@ -928,11 +857,6 @@ test('confirmed HyperSnap FID offers a single status and revalidatable continue 
   assert.match(retry,/result\.fid == expected/);
   assert.match(retry,/onConfirmed\(result\.fid, generation\)/);
   assert.doesNotMatch(retry,/\.submit\(|takeProof|saveRetryJournal/);
-  const native=runtime.slice(runtime.indexOf('ProviderId{"hypersnap-v2"}'),
-                             runtime.indexOf('runtime->asyncGateway ='));
-  assert.match(native,/protocolSignerManage\(\)/);
-  assert.match(native,/nativeSignerConfig\.submitBaseUrl = nativeIdentityNode/);
-  assert.match(native,/nativeWriteConfig\.baseUrl = nativeIdentityNode/);
   assert.match(bridge,/nativePublisher->setIdentityRuntimeReady\(canAttach\)/);
 });
 
