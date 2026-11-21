@@ -1834,8 +1834,11 @@ Item {
                     showChevron: true
                     onClicked: {
                         root.accountIntent = "new"
-                        if (!nativeRegistrationPublisher.pending && neynarRegistration.phase !== "reserved")
+                        if (!nativeRegistrationPublisher.pending && !neynarRegistration.pending
+                            && neynarRegistration.phase !== "reserved") {
                             root.registrationProviderId = ""
+                            root.farcasterSponsoredEnrollmentChosen = false
+                        }
                         root.choosingRegistrationProvider = true
                         stageScroll.contentY = 0
                         root.confirmWalletReplacement = false
@@ -1948,6 +1951,7 @@ Item {
                     objectName: "setupFarcasterRegistrationIntro"
                     visible: root.registrationProviderId === "farcaster-snapchain"
                              && !root.accountFidRegistered
+                             && !root.farcasterSponsoredEnrollmentChosen
                     Layout.fillWidth: true
                     spacing: Theme.space3
 
@@ -2203,6 +2207,19 @@ Item {
                                      && neynarRegistration.available))
                     Layout.fillWidth: true
                     spacing: Theme.space3
+                    ActionButton {
+                        objectName: "setupFarcasterSponsorBack"
+                        visible: root.registrationProviderId === "farcaster-snapchain"
+                                 && root.farcasterSponsoredEnrollmentChosen
+                                 && !neynarRegistration.pending
+                                 && neynarRegistration.phase !== "reserved"
+                                 && !nativeCustodyWallet.recoveryVisible
+                        Layout.fillWidth: true
+                        compact: true
+                        quiet: true
+                        text: qsTr("Back to registration options")
+                        onClicked: root.farcasterSponsoredEnrollmentChosen = false
+                    }
                     DirectionAwareLabel {
                         visible: !nativeCustodyWallet.hasWallet
                         Layout.fillWidth: true
