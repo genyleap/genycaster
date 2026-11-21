@@ -41,8 +41,8 @@ test('legal consent and authenticated Setup are enforced', () => {
   assert.match(setup, /acceptLegalConsent\(true, true, true\)/);
   assert.match(setup, /if \(currentStep === 2\) return consentChecked/);
   assert.doesNotMatch(setup, /guestSelected|continue_as_guest/);
-  assert.match(setup, /if \(currentStep === 7\) return reviewMode \|\| \(legalConsentAccepted\s*&& authenticated && \(accountIntent !== "new" \|\| signerReady\)\)/);
-  assert.match(setup, /if \(currentStep === 5\) return reviewMode \|\| \(authenticated\s*&& \(accountIntent !== "new" \|\| signerReady\)\)/);
+  assert.match(setup, /if \(currentStep === 7\) return reviewMode \|\| \(legalConsentAccepted\s*&& authenticated\)/);
+  assert.match(setup, /if \(currentStep === 5\) return reviewMode \|\| authenticated/);
   assert.match(setup, /finishSetup\(\)/);
 });
 
@@ -345,7 +345,7 @@ test('verification success has an explicit next-step action without sign-in popu
   assert.match(stage,/visible: root\.authenticated/);
   assert.match(stage,/text: qsTrId\("genycaster\.setup\.continue"\)/);
   assert.match(stage,/enabled: !root\.recoverySubmitPending[\s\S]*?&& !root\.authenticationInProgress/);
-  assert.match(stage,/if \(root\.accountIntent !== "new" \|\| root\.signerReady\)\s*root\.switchStep\(6\)/);
+  assert.match(stage,/if \(!root\.recoverySubmitPending && !root\.authenticationInProgress\)\s*root\.switchStep\(6\)/);
   assert.match(stage,/root\.authenticationApprovalAvailable/);
 });
 
