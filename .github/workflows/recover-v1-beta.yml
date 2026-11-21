@@ -1,0 +1,116 @@
+name: Recover Genycaster 1.0 Beta (preserved artifacts only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_recovery:
+        description: Reuse exactly seven verified artifacts from run 44897476297 and one successful Intel artifact from run 44900638292; publish as GitHub Actions bot
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: genycaster-v1-beta-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover-and-publish:
+    name: Verify eight retained installers and publish as Actions bot
+    if: github.ref == 'refs/heads/main' && inputs.confirm_recovery == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require completed Intel-only CI and matching original application source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GENYCASTER_APPROVED_RECOVERY: ${{ inputs.confirm_recovery }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/recover_v1_beta.py --preflight
+      - name: Download ONLY the original seven successful artifacts and repaired Intel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GENYCASTER_APPROVED_RECOVERY: ${{ inputs.confirm_recovery }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/recover_v1_beta.py --download artifacts
+      - name: Re-aggregate installers and validate all release checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/release_artifacts.py artifacts release
+          cd release
+          sha256sum --check --strict SHA256SUMS
+          test -n "$(find . -type f -name '*macos-x86_64-adhoc-UNNOTARIZED.dmg' -print -quit)"
+          test -n "$(find . -type f -name '*macos-arm64-adhoc-UNNOTARIZED.dmg' -print -quit)"
+      - name: Prepare public Beta release notes and explicit Gatekeeper disclosure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp release-notes/v1.0.0.md "$RUNNER_TEMP/genycaster-release-body.md"
+          cat >> "$RUNNER_TEMP/genycaster-release-body.md" <<'MACOS_NOTICE'
+
+          ## macOS security notice
+
+          Both macOS DMGs (Apple Silicon and Intel) are **ad-hoc signed,
+          not Developer ID signed, and NOT Apple notarized**. macOS Gatekeeper
+          may block the first launch after a browser download. Code-signing,
+          bundle dependencies, mounted-DMG smoke tests and package hashes were
+          verified by GitHub Actions. Do not disable Gatekeeper globally.
+
+          This public Beta reuses seven successful, checksum-verified artifacts
+          of full-matrix run [44897476297](https://github.com/genyleap/genycaster/actions/runs/44897476297).
+          Only the macOS x86_64 package was rebuilt in the dedicated
+          [44900638292](https://github.com/genyleap/genycaster/actions/runs/44900638292)
+          diagnostic run. Both runs compile the same v1.0.0 application
+          source commit; only the macOS Intel CI smoke-test environment changed.
+          MACOS_NOTICE
+      - name: Create release tag with GitHub Actions bot identity ONLY after verification
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source_sha="f5016b6dcddc42dc464146941d2b980dc1c646d7"
+          tag="v1.0.0"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Public v1.0.0 release already exists"; exit 1
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::v1.0.0 tag already exists; refuse overwrite"; exit 1
+          fi
+          annotation="$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/tags" \
+            -f tag="$tag" \
+            -f message="Genycaster 1.0 Beta - repaired Intel from verified CI artifacts" \
+            -f object="$source_sha" -f type=commit \
+            -f 'tagger[name]=github-actions[bot]' \
+            -f 'tagger[email]=41898282+github-actions[bot]@users.noreply.github.com' \
+            --jq .sha)"
+          [[ "$annotation" =~ ^[a-f0-9]{40}$ ]] || exit 1
+          gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f ref="refs/tags/$tag" -f sha="$annotation" >/dev/null
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$annotation" --jq '.tagger.name')" == "github-actions[bot]" ]]
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$annotation" --jq '.object.sha')" == "$source_sha" ]]
+      - name: Publish Genycaster 1.0 Beta via github-actions[bot]
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ github.token }}
+          tag_name: v1.0.0
+          name: Genycaster 1.0 Beta
+          body_path: ${{ runner.temp }}/genycaster-release-body.md
+          prerelease: true
+          draft: false
+          files: release/*
+          fail_on_unmatched_files: true
