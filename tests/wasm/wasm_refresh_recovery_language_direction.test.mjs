@@ -103,7 +103,7 @@ test('Setup re-entry and authentication routes stay connected',()=>{
     assert.match(setup,/root.continueWithGenyleap\(\)/);
     assert.match(setup,/root.continueWithFarcaster\(\)/);
     assert.match(setup,/root.nativeRecoverHyperSnapAccount\(words, authorizeDeviceSigner\)/);
-    assert.match(setup,/root.nativeRecoverFarcasterAccount\(words, deviceSignerConsent\.checked\)/);
+    assert.match(setup,/root.nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
     assert.match(shell,/function openSetupReview\(step\)/);
     assert.match(shell,/onCloseReviewRequested: root.setupReviewOpen = false/);
 });
