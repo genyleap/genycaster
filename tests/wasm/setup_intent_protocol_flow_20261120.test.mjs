@@ -72,7 +72,15 @@ test('connection details start collapsed and a manual check stays available when
   assert.match(panel, /property bool expanded: false/);
   assert.match(panel, /onClicked: details.expanded = !details.expanded/);
   assert.match(panel, /model: details.expanded/);
-  assert.match(panel, /SetupConnectionRefresh \{ visible: details.expanded \}/);
+  assert.match(panel, /SetupConnectionRefresh \{ visible: true \}/);
+  assert.match(panel, /readonly property int latency: root\.protocolLatencyMs\(farcaster\)/);
+  assert.match(panel, /route\.statusColor/);
+  assert.match(setup, /function protocolLatencyMs\(farcaster\)/);
+  for(const card of ['setupRegisterHyperSnap','setupRegisterNeynar','setupExistingFarcaster','setupExistingHyperSnap']){
+    const start=setup.indexOf('objectName: "'+card+'"');
+    assert.ok(start>=0,card);
+    assert.match(setup.slice(start,start+1200),/latencyMs: root\.protocolLatencyMs\((?:false|true)\)/,card);
+  }
 });
 
 test('browser registration prevents dead stub wallet while offering verified identity providers',()=>{

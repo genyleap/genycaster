@@ -29,6 +29,12 @@ Button {
     property string connectionText: ""
     property string connectionState: ""
     readonly property bool connectionWarning: connectionState === "unavailable" || connectionState === "disabled"
+    readonly property color connectionQualityColor:
+        root.connectionWarning ? Theme.warning
+        : root.connectionState === "reachable"
+          ? (root.latencyMs > 800 ? Theme.danger
+             : root.latencyMs > 300 ? Theme.warning : Theme.success)
+          : Theme.inkMuted
     property bool setupEmphasis: false
     // Recovery protocol choices reuse this same card material, not a
     // separate ActionButton selected-state and radius.
@@ -374,18 +380,38 @@ Button {
                         Layout.preferredHeight: 6
                         curveDepth: 3
                         borderWidth: 0
-                        fillColor: root.connectionWarning ? Theme.warning
-                                   : root.connectionState === "reachable" ? Theme.success : Theme.inkMuted
+                        fillColor: root.connectionQualityColor
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                         text: root.connectionText
-                        color: root.connectionWarning ? Theme.warning : Theme.inkMuted
+                        color: root.connectionQualityColor
                         font.pixelSize: Theme.typeCaptionSize
                         alignToUi: true
                         selectableText: false
                         wrapMode: Text.Wrap
+                    }
+                    Superellipse {
+                        visible: root.latencyMs >= 0
+                        Layout.preferredWidth: latencyPillText.implicitWidth + Theme.space2 * 2
+                        Layout.preferredHeight: Theme.scaleUi(24)
+                        fillColor: Qt.rgba(root.connectionQualityColor.r,
+                                           root.connectionQualityColor.g,
+                                           root.connectionQualityColor.b, 0.10)
+                        borderColor: Qt.rgba(root.connectionQualityColor.r,
+                                             root.connectionQualityColor.g,
+                                             root.connectionQualityColor.b, 0.25)
+                        borderWidth: Theme.strokeStandard
+                        curveDepth: Theme.curveControl
+                        DirectionAwareLabel {
+                            id: latencyPillText
+                            anchors.centerIn: parent
+                            text: LocaleFormat.localizeDigits(root.latencyMs) + " ms"
+                            color: root.connectionQualityColor
+                            font.pixelSize: Theme.typeCaptionSize
+                            font.weight: Theme.weightDemiBold
+                        }
                     }
                 }
             }

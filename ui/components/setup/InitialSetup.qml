@@ -366,6 +366,53 @@ Item {
     readonly property bool checkingSetupConnections:
         Object.values(setupConnections).some(result => result.state === "checking")
 
+    // Show the slowest applicable measured route, never a fabricated ping.
+    // Reachability is independent from HyperSnap blockchain synchronization.
+    function protocolLatencyMs(farcaster) {
+        const routes = farcaster
+            ? [setupConnections.farcasterRecovery, setupConnections.farcasterSignIn]
+            : [setupConnections.hypersnapRecovery]
+        let slowest = -1
+        for (const route of routes) {
+            if (!route || route.state === "not-applicable") continue
+            const ms = Number(route.elapsedMs)
+            if (route.state !== "reachable" || !Number.isFinite(ms) || ms < 0)
+                return -1
+            slowest = Math.max(slowest, Math.round(ms))
+        }
+        return slowest
+    }
+
+    // No secret phrase, private key, raw server response or HTTP body is
+    // included in diagnostic text. This is safe to select/copy for support.
+    function nativeRegistrationDiagnostics() {
+        const pub = nativeRegistrationPublisher
+        const node = nativeRegistrationStatus
+        return [
+            "protocol=HyperSnap native FID",
+            "node.active=" + node.active,
+            "shard=0",
+            "shard.block_delay_s=" + node.shardZeroBlockDelay,
+            "registration.max_block_delay_s=120",
+            "registration.node_synced=" + node.syncedForRegistration,
+            "registration.node_checking=" + node.checking,
+            "custody.wallet=" + nativeCustodyWallet.address,
+            "fid.lookup_checked=" + node.accountLookupChecked,
+            "fid.lookup_busy=" + node.accountLookupBusy,
+            "fid.lookup_failed=" + node.accountLookupFailed,
+            "fid.existing=" + (node.existingNativeFid || "none"),
+            "submission.pending=" + pub.pending,
+            "submission.outcome_unknown=" + pub.outcomeUnknown,
+            "submission.failed=" + pub.failed,
+            "submission.http_status=" + pub.lastSubmissionHttpStatus,
+            "confirmation.lookup_state=" + pub.confirmationLookupState,
+            "confirmation.http_status=" + pub.confirmationLookupHttpStatus,
+            "confirmation.checks=" + pub.confirmationLookupChecks,
+            "confirmation.retry_remaining_blocks=" + pub.retryRemainingBlocks,
+            "confirmation.retry_ready=" + pub.retryReady
+        ].join("\n")
+    }
+
     component SetupConnectionRefresh: ActionButton {
         objectName: "setupCheckConnections"
         compact: true
@@ -418,13 +465,13 @@ Item {
                 compact: true
                 quiet: true
                 iconGlyph: details.expanded ? Theme.iconChevronUp : Theme.iconChevronDown
-                text: qsTrId("genycaster.setup.connection_status_title")
+                text: qsTr("Network status")
                 Accessible.expandable: true
                 Accessible.expanded: details.expanded
                 onClicked: details.expanded = !details.expanded
             }
             Item { Layout.fillWidth: true }
-            SetupConnectionRefresh { visible: details.expanded }
+            SetupConnectionRefresh { visible: true }
         }
         Repeater {
             model: details.expanded ? [
@@ -434,23 +481,60 @@ Item {
             delegate: RowLayout {
                 id: route
                 required property var modelData
+                readonly property bool farcaster: modelData.protocol === "farcaster-snapchain"
+                readonly property string nodeState: root.protocolConnectionState(farcaster)
+                readonly property int latency: root.protocolLatencyMs(farcaster)
+                readonly property color statusColor:
+                    nodeState === "unavailable" || nodeState === "disabled" ? Theme.warning
+                    : nodeState === "reachable"
+                      ? (latency < 0 || latency <= 300 ? Theme.success
+                         : latency <= 800 ? Theme.warning : Theme.danger)
+                      : Theme.inkMuted
                 Layout.fillWidth: true
                 layoutDirection: Theme.uiDirection
                 visible: !details.protocol || details.protocol === modelData.protocol
+                spacing: Theme.space2
+                Icon {
+                    text: route.nodeState === "unavailable" || route.nodeState === "disabled"
+                          ? Theme.iconWarning
+                          : route.nodeState === "reachable" ? Theme.iconCheck : Theme.iconInfo
+                    preferredSize: Theme.iconSizeSmall
+                    color: route.statusColor
+                }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     text: route.modelData.label
-                    font.pixelSize: Theme.typeCaptionSize
-                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightMedium
+                    color: Theme.ink
                     alignToUi: true
-                    wrapMode: Text.Wrap
+                }
+                Superellipse {
+                    Layout.preferredWidth: nodeStatusText.implicitWidth + Theme.space3 * 2
+                    Layout.preferredHeight: Theme.scaleUi(26)
+                    fillColor: Qt.rgba(route.statusColor.r, route.statusColor.g,
+                                       route.statusColor.b, 0.10)
+                    borderColor: Qt.rgba(route.statusColor.r, route.statusColor.g,
+                                         route.statusColor.b, 0.25)
+                    borderWidth: Theme.strokeStandard
+                    curveDepth: Theme.curveControl
+                    DirectionAwareLabel {
+                        id: nodeStatusText
+                        anchors.centerIn: parent
+                        text: route.nodeState === "reachable" ? qsTr("Connected")
+                              : root.setupConnectionStatusText({state: route.nodeState}, false)
+                        color: route.statusColor
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightDemiBold
+                    }
                 }
                 DirectionAwareLabel {
-                    Layout.maximumWidth: details.width * 0.45
-                    text: root.protocolConnectionText(route.modelData.protocol === "farcaster-snapchain")
+                    visible: route.latency >= 0 && route.nodeState === "reachable"
+                    text: LocaleFormat.localizeDigits(route.latency) + " ms"
+                    color: route.statusColor
                     font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.Wrap
+                    font.weight: Theme.weightDemiBold
                 }
             }
         }
@@ -1898,6 +1982,7 @@ Item {
                         connectionText: nativeRegistrationStatus.shardZeroBlockDelay > 120
                                         ? qsTr("Network syncing")
                                         : root.protocolConnectionText(false, connectionState)
+                        latencyMs: root.protocolLatencyMs(false)
                         selected: root.registrationProviderId === "hypersnap-v2"
                         enabled: !neynarRegistration.pending
                                  && neynarRegistration.phase !== "reserved"
@@ -1924,6 +2009,7 @@ Item {
                         iconGlyph: "brands/farcaster"
                         connectionState: root.protocolConnectionState(true)
                         connectionText: root.protocolConnectionText(true, connectionState)
+                        latencyMs: root.protocolLatencyMs(true)
                         selected: root.registrationProviderId === "farcaster-snapchain"
                         enabled: !nativeRegistrationPublisher.pending
                                  && !neynarRegistration.pending
@@ -2031,8 +2117,12 @@ Item {
                         interactive: false
                         deferredNeon: true
                         neonStrength: Theme.neonPanelStrength
-                        fillColor: Theme.surface
-                        borderColor: Theme.borderMuted
+                        fillColor: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                   ? Theme.warningSurface : Theme.surface
+                        borderColor: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                     ? Qt.rgba(Theme.warning.r, Theme.warning.g,
+                                               Theme.warning.b, 0.35)
+                                     : Theme.borderMuted
                         borderWidth: Theme.strokeStandard
                         curveDepth: Theme.curveContainer
                         ColumnLayout {
@@ -2049,28 +2139,65 @@ Item {
                                 font.pixelSize: Theme.typeCaptionSize
                                 font.weight: Theme.weightDemiBold
                             }
-                            DirectionAwareLabel {
+                            RowLayout {
                                 Layout.fillWidth: true
-                                text: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                      ? qsTr("Network syncing")
-                                      : qsTr("Checking network")
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeTitle3Size
-                                font.weight: Theme.weightDemiBold
-                                wrapMode: Text.WordWrap
+                                layoutDirection: Theme.uiDirection
+                                spacing: Theme.space2
+                                Icon {
+                                    visible: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                    text: Theme.iconWarning
+                                    color: Theme.warning
+                                    preferredSize: Theme.iconSize
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                          ? qsTr("Registration temporarily unavailable")
+                                          : qsTr("Checking network")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeTitle3Size
+                                    font.weight: Theme.weightDemiBold
+                                    wrapMode: Text.WordWrap
+                                }
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: qsTr("New accounts are paused. Existing accounts can still sign in.")
+                                text: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                      ? qsTr("HyperSnap nodes are syncing. Try again later.")
+                                      : qsTr("Checking HyperSnap…")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeLabelSize
                                 wrapMode: Text.WordWrap
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                layoutDirection: Theme.uiDirection
+                                spacing: Theme.space2
+                                ActionButton {
+                                    objectName: "setupBrowserRefreshPausedRegistration"
+                                    Layout.fillWidth: true
+                                    compact: true
+                                    quiet: true
+                                    busy: nativeRegistrationStatus.checking
+                                    enabled: !nativeRegistrationStatus.checking
+                                    text: qsTr("Check network")
+                                    onClicked: nativeRegistrationStatus.refresh()
+                                }
+                                ActionButton {
+                                    objectName: "setupBrowserCancelPausedRegistration"
+                                    Layout.fillWidth: true
+                                    compact: true
+                                    quiet: true
+                                    text: qsTr("Cancel registration")
+                                    onClicked: root.previousStep()
+                                }
                             }
                         }
                     }
                     SetupActionCard {
                         objectName: "setupBrowserCreateHyperSnap"
                         visible: root.registrationProviderId === "hypersnap-v2"
+                                 && nativeRegistrationStatus.syncedForRegistration
                         Layout.fillWidth: true
                         compactCard: true
                         onboardingStyle: true
@@ -2670,6 +2797,7 @@ Item {
                                  && !root.nativeCreationRequested
                                  && !nativeRegistrationPreparation.busy
                                  && !nativeRegistrationPublisher.busy
+                                 && nativeRegistrationStatus.syncedForRegistration
                         text: qsTr("Creates one self-custody identity on HyperSnap.")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
@@ -2705,8 +2833,11 @@ Item {
                         interactive: false
                         deferredNeon: true
                         neonStrength: Theme.neonPanelStrength
-                        fillColor: Theme.surface
-                        borderColor: Theme.borderMuted
+                        fillColor: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                   ? Theme.warningSurface : Theme.surface
+                        borderColor: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                     ? Qt.rgba(Theme.warning.r, Theme.warning.g,
+                                               Theme.warning.b, 0.35) : Theme.borderMuted
                         borderWidth: Theme.strokeStandard
                         curveDepth: Theme.curveContainer
                         ColumnLayout {
@@ -2723,41 +2854,58 @@ Item {
                                 font.pixelSize: Theme.typeCaptionSize
                                 font.weight: Theme.weightDemiBold
                             }
-                            DirectionAwareLabel {
-                                objectName: "setupNativeAwaitingConfirmation"
+                            RowLayout {
                                 Layout.fillWidth: true
-                                text: nativeRegistrationPublisher.pending
-                                      ? (nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                         ? qsTr("Waiting for confirmation")
-                                         : qsTr("Confirming your account"))
-                                      : nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                        ? qsTr("Network syncing")
-                                        : qsTr("Checking network")
-                                font.pixelSize: Theme.typeTitle3Size
-                                font.weight: Theme.weightDemiBold
-                                color: Theme.ink
-                                wrapMode: Text.WordWrap
+                                layoutDirection: Theme.uiDirection
+                                spacing: Theme.space2
+                                Icon {
+                                    visible: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                             || (!nativeRegistrationStatus.active
+                                                 && !nativeRegistrationStatus.checking)
+                                    text: Theme.iconWarning
+                                    color: Theme.warning
+                                    preferredSize: Theme.iconSize
+                                }
+                                DirectionAwareLabel {
+                                    objectName: "setupNativeAwaitingConfirmation"
+                                    Layout.fillWidth: true
+                                    text: nativeRegistrationPublisher.pending
+                                          ? qsTr("Awaiting network confirmation")
+                                          : nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                            ? qsTr("Registration temporarily unavailable")
+                                            : (!nativeRegistrationStatus.active
+                                               && !nativeRegistrationStatus.checking)
+                                              ? qsTr("HyperSnap unavailable")
+                                              : qsTr("Checking network")
+                                    font.pixelSize: Theme.typeTitle3Size
+                                    font.weight: Theme.weightDemiBold
+                                    color: Theme.ink
+                                    wrapMode: Text.WordWrap
+                                }
                             }
                             DirectionAwareLabel {
                                 objectName: "setupNativePendingDescription"
                                 Layout.fillWidth: true
                                 text: nativeRegistrationPublisher.pending
-                                      ? qsTr("Checking automatically. Don't submit again.")
+                                      ? qsTr("Confirmation is pending. Do not submit again.")
                                       : nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                        ? qsTr("Account creation is paused until the network syncs.")
-                                        : qsTr("Checking HyperSnap…")
+                                        ? qsTr("HyperSnap nodes are syncing. Try again later.")
+                                        : (!nativeRegistrationStatus.active
+                                           && !nativeRegistrationStatus.checking)
+                                          ? qsTr("Account creation is paused. Try again later.")
+                                          : qsTr("Checking HyperSnap…")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeLabelSize
                                 wrapMode: Text.WordWrap
                             }
                             Repeater {
-                                model: [
+                                model: nativeRegistrationPublisher.pending ? [
                                     qsTr("Backup"),
                                     nativeRegistrationPublisher.outcomeUnknown
                                         ? qsTr("Checking request")
                                         : qsTr("Request"),
                                     qsTr("Confirmed")
-                                ]
+                                ] : []
                                 delegate: RowLayout {
                                     required property int index
                                     required property string modelData
@@ -2798,6 +2946,43 @@ Item {
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.WordWrap
                             }
+                        }
+                    }
+                    RowLayout {
+                        objectName: "setupPausedRegistrationActions"
+                        Layout.fillWidth: true
+                        layoutDirection: Theme.uiDirection
+                        visible: !nativeRegistrationPublisher.confirmed
+                                 && (nativeRegistrationPublisher.pending
+                                     || !nativeRegistrationStatus.syncedForRegistration)
+                        spacing: Theme.space2
+                        ActionButton {
+                            objectName: "setupRefreshPausedRegistration"
+                            Layout.fillWidth: true
+                            compact: true
+                            quiet: true
+                            visible: !nativeRegistrationPublisher.pending
+                            busy: nativeRegistrationStatus.checking
+                            enabled: !nativeRegistrationStatus.checking
+                                     && !nativeRegistrationPublisher.busy
+                            iconGlyph: Theme.iconRefresh
+                            text: qsTr("Check network")
+                            onClicked: nativeRegistrationStatus.refresh()
+                        }
+                        ActionButton {
+                            objectName: "setupCancelPausedRegistration"
+                            Layout.fillWidth: true
+                            compact: true
+                            quiet: true
+                            text: nativeRegistrationPublisher.pending
+                                  ? qsTr("Leave for now") : qsTr("Cancel registration")
+                            Accessible.description: nativeRegistrationPublisher.pending
+                                  ? qsTr("Leaving will not cancel your submitted request. Keep your recovery words.")
+                                  : qsTr("No account registration has been sent. Return to account options.")
+                            enabled: !root.nativeCreationRequested
+                                     && !nativeRegistrationPreparation.busy
+                                     && !nativeRegistrationPublisher.busy
+                            onClicked: root.previousStep()
                         }
                     }
                     DirectionAwareLabel {
@@ -2848,7 +3033,7 @@ Item {
                         quiet: true
                         compact: true
                         text: root.nativeDetailsExpanded
-                              ? qsTr("Hide details") : qsTr("More options")
+                              ? qsTr("Hide diagnostics") : qsTr("Developer details")
                         onClicked: root.nativeDetailsExpanded = !root.nativeDetailsExpanded
                     }
                     ColumnLayout {
@@ -2857,29 +3042,14 @@ Item {
                         visible: root.nativeDetailsExpanded
                         spacing: Theme.space2
                         DirectionAwareLabel {
+                            objectName: "setupNativeDeveloperDiagnostics"
                             Layout.fillWidth: true
-                            visible: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                            text: qsTr("Sync delay: %1 min").arg(
-                                  LocaleFormat.localizeDigits(
-                                      Math.ceil(nativeRegistrationStatus.shardZeroBlockDelay / 60)))
-                            color: Theme.warning
-                            font.pixelSize: Theme.typeCaptionSize
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTr("Wallet %1").arg(
-                                  nativeCustodyWallet.address.slice(0, 6) + "…"
-                                  + nativeCustodyWallet.address.slice(-4))
+                            text: root.nativeRegistrationDiagnostics()
                             color: Theme.inkMuted
+                            font.family: "monospace"
                             font.pixelSize: Theme.typeCaptionSize
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: nativeRegistrationPublisher.failed
-                            text: qsTr("Registration failed. Check status before trying again.")
-                            color: Theme.warning
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
+                            wrapMode: Text.WrapAnywhere
+                            selectableText: true
                         }
                         ActionButton {
                             objectName: "setupCheckNativeRegistrationConfirmation"
@@ -2967,6 +3137,7 @@ Item {
                     title: qsTrId("genycaster.settings.farcaster_label")
                     connectionState: root.protocolConnectionState(true)
                     connectionText: root.protocolConnectionText(true, connectionState)
+                    latencyMs: root.protocolLatencyMs(true)
                     onClicked: {
                         root.recoveryProtocol = "farcaster-snapchain"
                         root.existingProtocolSelected = true
@@ -2985,6 +3156,7 @@ Item {
                     title: qsTrId("genycaster.settings.hypersnap_label")
                     connectionState: root.protocolConnectionState(false)
                     connectionText: root.protocolConnectionText(false, connectionState)
+                    latencyMs: root.protocolLatencyMs(false)
                     onClicked: {
                         root.recoveryProtocol = "hypersnap-v2"
                         root.existingProtocolSelected = true

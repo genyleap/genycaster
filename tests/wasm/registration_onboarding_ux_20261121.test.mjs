@@ -13,7 +13,14 @@ test('HyperSnap explains blockchain catch-up with identical stage names on nativ
    assert.ok(qml.includes(stage),stage);
  }
  assert.match(qml,/Network syncing/);
- assert.match(qml,/Checking automatically\. Don't submit again/);
+ assert.match(qml,/Confirmation is pending\. Do not submit again/);
+ assert.match(qml,/Registration temporarily unavailable/);
+ assert.match(qml,/objectName: "setupCancelPausedRegistration"/);
+ assert.match(qml,/objectName: "setupBrowserCancelPausedRegistration"/);
+ assert.match(qml,/objectName: "setupNativeDeveloperDiagnostics"/);
+ assert.ok(qml.includes('confirmation.http_status='));
+ assert.ok(qml.includes('registration.max_block_delay_s=120'));
+ assert.match(qml,/onClicked: root\.previousStep\(\)/);
  assert.match(qml,/qsTr\("Keep your 24 recovery words\. Return anytime\."\)/);
  assert.match(js,/stepOne:'Backup'/);
  assert.match(js,/stepTwo:'Request'/);
