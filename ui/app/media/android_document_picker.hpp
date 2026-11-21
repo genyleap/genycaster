@@ -158,7 +158,10 @@ public:
                 const QJniObject resolver = context.callObjectMethod(
                     "getContentResolver", "()Landroid/content/ContentResolver;");
                 if (resolver.isValid()) {
-                    mimeString = resolver.callObjectMethod<jstring>(
+                    // The explicit JNI descriptor overload accepts jobject here;
+                    // the typed return-template overload rejects this
+                    // mixed signature under Qt 6.12's constraints.
+                    mimeString = resolver.callObjectMethod(
                         "getType", "(Landroid/net/Uri;)Ljava/lang/String;",
                         uri.object<jobject>()).toString();
                 }
