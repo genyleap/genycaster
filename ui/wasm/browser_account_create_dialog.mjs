@@ -220,6 +220,7 @@ export async function promptCreateBrowserWallet({
    // backup form with a responsive progress panel; no mnemonic enters logs,
    // URLs, QML, or the proof worker. Cancellation stays available until POST.
    for(const cell of cells)clearNode(cell);
+   words.fill(''); // The verified word array is not needed during PoW.
    for(const element of [grid,backupAction,challengeHeading,challenge,warning])
      element.style.display='none';
    saved.parentElement.style.display='none';
@@ -233,6 +234,7 @@ export async function promptCreateBrowserWallet({
     if(settled)return;
     if(phase==='submitting'||phase==='checking'||phase==='outcome-unknown') {
       submissionStarted=true;
+      phrase=''; // Only the registry's ephemeral in-flight custody owns it now.
       cancel.disabled=true;
       progressCaption.textContent=phase==='submitting'?t.submitting:
         phase==='checking'?t.checking:t.pending;
