@@ -45,7 +45,8 @@ struct FarcasterRegistrationPorts final {
 
 class NeynarRegistrationController final : public QObject {
     Q_OBJECT
-    Q_PROPERTY(bool available READ available CONSTANT)
+    Q_PROPERTY(bool available READ available NOTIFY changed)
+    Q_PROPERTY(bool checkingAvailability READ checkingAvailability NOTIFY changed)
     Q_PROPERTY(bool registrationSupported READ registrationSupported NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(bool hasVoucher READ hasVoucher NOTIFY changed)
@@ -63,6 +64,9 @@ public:
     ~NeynarRegistrationController() override;
 
     [[nodiscard]] bool available() const noexcept { return m_available; }
+    [[nodiscard]] bool checkingAvailability() const noexcept { return m_probeBusy; }
+    /** Safe, voucher-free 401 challenge: confirms paid relay is actually installed. */
+    Q_INVOKABLE void refreshAvailability();
     [[nodiscard]] bool registrationSupported() const noexcept {
         return m_registrationSupported;
     }
@@ -109,6 +113,7 @@ private:
 
     QNetworkAccessManager m_network{};
     QPointer<QNetworkReply> m_reply{};
+    QPointer<QNetworkReply> m_probeReply{};
     QUrl m_origin{};
     FarcasterRegistrationPorts m_ports{};
     QByteArray m_voucher{};
@@ -120,6 +125,8 @@ private:
     QString m_error{};
     qint64 m_expiresAtMs{};
     bool m_available{false};
+    bool m_endpointValid{false};
+    bool m_probeBusy{false};
     bool m_registrationSupported{false};
     bool m_busy{false};
     int m_checks{};
