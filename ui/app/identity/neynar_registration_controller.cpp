@@ -62,20 +62,67 @@ const QRegularExpression UuidPattern{
 NeynarRegistrationController::NeynarRegistrationController(
     QUrl origin, FarcasterRegistrationPorts ports, QObject* parent, bool allowLocalTesting)
     : QObject{parent}, m_origin{std::move(origin)}, m_ports{std::move(ports)},
-      m_available{canonicalEndpoint(m_origin, allowLocalTesting)}
-{}
+      m_endpointValid{canonicalEndpoint(m_origin, allowLocalTesting)}
+{
+    // A syntactically valid HTTPS origin is NOT evidence of a deployed
+    // funded enrollment service. Probe safely before offering a voucher.
+    QTimer::singleShot(0, this, [this] { refreshAvailability(); });
+}
 
 NeynarRegistrationController::~NeynarRegistrationController()
 {
     ++m_generation;
     if (m_reply) m_reply->abort();
+    if (m_probeReply) m_probeReply->abort();
     m_voucher.fill('\0');
+}
+
+void NeynarRegistrationController::refreshAvailability()
+{
+    if (!m_endpointValid || m_probeBusy || pending() || confirmed()) return;
+    auto url = m_origin.resolved(QUrl{QStringLiteral(
+        "/api/v1/registration/farcaster/reserve")});
+    QNetworkRequest request{url};
+    request.setTransferTimeout(10000);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    request.setRawHeader("Accept", "application/json");
+    // An empty, unauthenticated request MUST be refused with 401, before
+    // reading a wallet, leasing an FID, or spending sponsorship funds.
+    // This distinguishes an installed protected relay from Nginx 404.
+    m_probeBusy = true;
+    m_probeReply = m_network.post(request, QByteArrayLiteral("{}"));
+    auto* reply = m_probeReply.data();
+    QObject::connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        if (reply != m_probeReply) return;
+        m_probeReply = nullptr;
+        m_probeBusy = false;
+        const int status = reply->attribute(
+            QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto fault = reply->error();
+        const QByteArray body = reply->bytesAvailable() <= 2048
+            ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        // Qt reports 401 as an HTTP error; the expected status + exact
+        // error payload is nevertheless a successful guarded preflight.
+        const auto response = QJsonDocument::fromJson(body);
+        const bool installed = status == 401 && response.isObject()
+            && response.object().value(QStringLiteral("error")).toString()
+               == QStringLiteral("paid_enrollment_required");
+        Q_UNUSED(fault);
+        if (m_available != installed) m_available = installed;
+        emit changed();
+    });
+    emit changed();
 }
 
 void NeynarRegistrationController::setIdentityRuntimeReady(const bool ready)
 {
     if (m_registrationSupported == ready) return;
     m_registrationSupported = ready;
+    if (ready && !m_available) refreshAvailability();
     emit changed();
 }
 
