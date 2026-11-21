@@ -38,6 +38,19 @@ struct Hub {
                     if(data->size()<end+4+bytes)return;
                     const auto body=QJsonDocument::fromJson(data->mid(end+4,bytes)).object();
                     const auto path=data->left(data->indexOf("\r\n"));
+                    // Real paid relay challenges unauthenticated callers
+                    // BEFORE touching the funded FID allocator.
+                    if(path.contains("/reserve") && !data->left(end).toLower()
+                           .contains("x-genycaster-paid-enrollment:")) {
+                        const QByteArray error=R"({"error":"paid_enrollment_required"})";
+                        sock->write("HTTP/1.1 401 Unauthorized\r\n"
+                            "Content-Type: application/json\r\nContent-Length: "
+                            +QByteArray::number(error.size())
+                            +"\r\nConnection: close\r\n\r\n"+error);
+                        sock->flush();
+                        sock->disconnectFromHost();
+                        return;
+                    }
                     if(path.contains("/reserve") && serviceDisabled) {
                         const QByteArray error =
                             R"({"error":"registration_not_configured"})";
@@ -89,6 +102,20 @@ struct Hub {
         return QUrl{QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort())};
     }
 };
+void untilAvailable(NeynarRegistrationController& c) {
+    if(c.available() && !c.checkingAvailability()) return;
+    QEventLoop loop;
+    QTimer timer;
+    timer.setSingleShot(true);
+    QObject::connect(&timer,&QTimer::timeout,&loop,&QEventLoop::quit);
+    QObject::connect(&c,&NeynarRegistrationController::changed,
+                     &loop,[&]{
+        if(c.available() && !c.checkingAvailability())loop.quit();
+    });
+    timer.start(5000);
+    loop.exec();
+    assert(c.available() && !c.checkingAvailability());
+}
 void until(NeynarRegistrationController& c, const QString& phase) {
     if(c.phase()==phase&&!c.busy())return;
     QEventLoop loop;
@@ -127,6 +154,7 @@ int main(int argc,char** argv) {
     verified=true;
     assert(!controller.useEnrollmentVoucher(voucher)); // No signer runtime.
     controller.setIdentityRuntimeReady(true);
+    untilAvailable(controller); // Distinguish protected 401 from missing relay.
     assert(controller.useEnrollmentVoucher(voucher));
     assert(!controller.submit("genycaster"));
     hub.serviceDisabled=true;
