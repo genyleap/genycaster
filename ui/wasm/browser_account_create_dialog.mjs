@@ -13,11 +13,11 @@ const translations={
   consent:'I authorize the one-time registration of this wallet on the selected network.',
   create:'Create account',cancel:'Cancel',close:'Close',copy:'Copy words',copied:'Words copied — clear your clipboard afterward',
   failed:'The selected recovery words do not match. Confirm your backup.',
-  busy:'Preparing secure registration…',progress:'Searching for a registration proof',
+  busy:'Preparing your account…',progress:'Preparing your registration',
   stopping:'Stopping the proof before network submission…',
-  submitting:'Submitting registration to HyperSnap. Do not submit it again.',
-  checking:'Submission sent. Checking for an independently confirmed FID…',
-  working:'Creating your account',
+  submitting:'Sending your account request to HyperSnap…',
+  checking:'HyperSnap needs to confirm your account in a blockchain block. Genycaster checks automatically.',
+  working:'Creating your account',blockchainCaption:'HYPERSNAP BLOCKCHAIN',farcasterCaption:'FARCASTER NETWORK',
   progressNote:'Proof search is running. This percentage is the hash-search budget, not network confirmation.',
   pending:'Your registration may still be processing on the blockchain. Do not submit it again. Return with the same recovery words to check your account.',
   stepOne:'Recovery phrase secured',stepTwo:'Registration request sent',stepThree:'Blockchain confirms your account',
@@ -36,11 +36,11 @@ const translations={
   consent:'ثبت یک‌بارهٔ این کیف پول در شبکهٔ انتخاب‌شده را تأیید می‌کنم.',
   create:'ساخت حساب',cancel:'انصراف',close:'بستن',copy:'کپی واژه‌ها',copied:'واژه‌ها کپی شدند؛ پس از استفاده کلیپ‌بورد را پاک کنید',
   failed:'واژه‌های انتخاب‌شده درست نیستند. نسخهٔ پشتیبان را بررسی کنید.',
-  busy:'در حال آماده‌سازی ثبت‌نام امن…',progress:'در حال جستجوی اثبات ثبت‌نام',
+  busy:'در حال آماده‌سازی حساب…',progress:'در حال آماده‌سازی ثبت‌نام',
   stopping:'در حال توقف محاسبه پیش از ارسال شبکه…',
-  submitting:'ثبت‌نام به هایپراسنپ ارسال می‌شود؛ دوباره ارسال نکنید.',
-  checking:'درخواست ارسال شد. در حال بررسی مستقل ثبت FID…',
-  working:'در حال ایجاد حساب',
+  submitting:'در حال ارسال درخواست ساخت حساب به هایپراسنپ…',
+  checking:'هایپراسنپ باید حساب را در یک بلاک تأیید کند. جنی‌کستر خودکار بررسی می‌کند.',
+  working:'در حال ایجاد حساب',blockchainCaption:'بلاک‌چین هایپراسنپ',farcasterCaption:'شبکه فارکستر',
   progressNote:'درصد، میزان جستجوی اثبات را نشان می‌دهد، نه تأیید ثبت در شبکه.',
   pending:'ممکن است ثبت‌نام شما هنوز در بلاک‌چین در حال پردازش باشد. درخواست را دوباره ارسال نکنید. برای بررسی حساب از همان ۲۴ واژه استفاده کنید.',
   stepOne:'واژه‌های بازیابی ذخیره شدند',stepTwo:'درخواست ثبت‌نام ارسال شد',stepThree:'تأیید حساب در بلاک‌چین',
@@ -103,9 +103,11 @@ export async function promptCreateBrowserWallet({
  const progressPanel=document.createElement('section');
  progressPanel.hidden=true;
  progressPanel.style.cssText='display:none;margin:22px 0;padding:20px;border:1px solid '+colors.border+';border-radius:18px;background:'+colors.cell+';';
- const progressHeading=document.createElement('h2');progressHeading.textContent=t.working;
- progressHeading.style.cssText='font-size:19px;font-weight:700;margin:0 0 12px;color:'+colors.fg;
+ const progressHeading=document.createElement('h2');
+ progressHeading.textContent=protocol==='hypersnap-v2'?t.blockchainCaption:t.farcasterCaption;
+ progressHeading.style.cssText='font-size:12px;font-weight:700;letter-spacing:.09em;margin:0 0 12px;color:'+colors.muted;
  const progressCaption=document.createElement('p');progressCaption.textContent=t.busy;
+ progressCaption.setAttribute('aria-live','polite');
  progressCaption.style.cssText='font-size:15px;line-height:1.6;color:'+colors.muted+';margin:0 0 12px;overflow-wrap:anywhere;';
  const progressTrack=document.createElement('div');progressTrack.style.cssText='height:6px;background:'+colors.border+';border-radius:9px;overflow:hidden;';
  const progressFill=document.createElement('div');progressFill.style.cssText='height:100%;width:0%;border-radius:9px;background:#008bff;transition:width 150ms linear;';
@@ -276,7 +278,6 @@ export async function promptCreateBrowserWallet({
    // backup title plus a second "Creating your account" heading.
    heading.textContent=t.working;
    subtitle.style.display='none';
-   progressHeading.style.display='none';
    progressPanel.hidden=false;progressPanel.style.display='block';
    showProgressStep(1);
    content.scrollTop=0;
@@ -307,9 +308,12 @@ export async function promptCreateBrowserWallet({
         phase==='verify'?t.paidVerify:t.busy;
       progressFill.style.width=Math.max(0,Math.min(100,Math.floor(done/Math.max(1,total)*100)))+'%';
     }else{
-      const percent=Math.max(0,Math.min(100,Math.floor(done/Math.max(1,total)*100)));
-      progressCaption.textContent=t.progress+' · '+percent+'%';
-      progressFill.style.width=percent+'%';
+      // PoW is a random search, NOT a deterministic completion percentage.
+      // Keep the UI responsive and report the actual stage instead of a
+      // misleading percent-complete indicator.
+      progressCaption.textContent=t.progress;
+      progressTrack.style.display='none';
+      progressNote.style.display='none';
     }
     onProgress(done,total,phase);
    };
