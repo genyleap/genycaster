@@ -139,3 +139,38 @@ test('malicious, absent or malformed catalogs never create installer actions',as
   assert.equal(offline.ids['download-primary'].hidden,true);
   assert.match(offline.ids['download-pending'].textContent,/verification unavailable/);
 });
+
+test('legacy /download redirect forwards only the exact downloads fragment', () => {
+  const forward = read('ui/wasm/download/about-forward.js');
+  assert.match(forward,/location\.replace\("\/download\/index.html"\)/);
+  const calls = [];
+  const listeners = {};
+  const location = {
+    pathname:'/about/',hash:'#downloads',
+    replace(url){calls.push(url);}
+  };
+  vm.runInNewContext(forward,{location,addEventListener(name,fn){listeners[name]=fn;}});
+  assert.deepEqual(calls,['/download/index.html']);
+  location.hash = '#explore';
+  listeners.hashchange();
+  assert.equal(calls.length,1);
+  location.pathname = '/download/index.html';
+  location.hash = '#downloads';
+  listeners.hashchange();
+  assert.equal(calls.length,1);
+});
+
+test('download sources survive WASM publication and preserve primary API routing',()=>{
+  const packer=read('ci/package_wasm_assets.py');
+  for(const file of ['download/index.html','download/download.css',
+                     'download/download.js','download/about-forward.js'])
+    assert.equal(packer.split('"'+file+'"').length,3);
+  const nginx=read('ci/primary_genycaster_nginx.conf');
+  assert.match(nginx,/location = \/download \{/);
+  assert.match(nginx,/try_files \/download\/index.html =404/);
+  assert.match(nginx,/location \^~ \/api\/v1\/cloud\//);
+  const deploy=read('ci/deploy_download_page.py');
+  assert.match(deploy,/deploy_legacy_route/);
+  assert.match(deploy,/--legacy-route/);
+  assert.match(deploy,/if path.parent == SITE \/ "download"/);
+});

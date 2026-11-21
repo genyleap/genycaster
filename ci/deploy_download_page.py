@@ -20,7 +20,7 @@ SOURCE = REPO / "ui/wasm/download"
 VHOST = Path("/etc/nginx/sites-available/genycaster.xyz")
 ENABLED = Path("/etc/nginx/sites-enabled/genycaster.xyz")
 TEMPLATE = REPO / "ci/primary_genycaster_nginx.conf"
-FILES = ("index.html", "download.css", "download.js")
+FILES = ("index.html", "download.css", "download.js", "about-forward.js")
 OLD_ROUTE = (
     "    location = /download { return 302 /about/#downloads; }\n"
     "    location = /download/ { return 302 /about/#downloads; }"
@@ -83,6 +83,10 @@ def write_atomic(path: Path, payload: bytes) -> None:
     if path.is_symlink():
         raise RuntimeError("Refusing symlink: " + str(path))
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.parent == SITE / "download":
+        # The operator's umask is private (0700); Nginx still needs to
+        # traverse this public directory to serve the static page.
+        os.chmod(path.parent, 0o755)
     fd, temporary = tempfile.mkstemp(prefix=".genycaster-download.", dir=path.parent)
     try:
         with os.fdopen(fd, "wb") as file:
@@ -112,11 +116,78 @@ def verify_https() -> None:
             raise RuntimeError("Canonical HTTPS route contains wrong asset: " + filename)
 
 
+def deploy_legacy_route() -> None:
+    """Keep /download functional even when the Nginx vhost is read-only.
+
+    The existing server redirect sends /download to /about/#downloads.
+    A tiny same-origin, CSP-compatible script forwards that precise fragment
+    to /download/index.html. It does not touch Nginx, the WASM build, or APIs.
+    """
+    historic = SITE / "about/index.html"
+    if historic.is_symlink() or not historic.is_file():
+        raise RuntimeError("Historic /about landing unavailable")
+    before = historic.read_text(encoding="utf-8")
+    script_tag = '<script src="/download/about-forward.js?v=1" defer></script>'
+    if script_tag not in before and before.count("</head>") != 1:
+        raise RuntimeError("Historic landing HTML layout has changed")
+    after = before
+    if script_tag not in after:
+        after = after.replace("</head>", f"  {script_tag}" + chr(10) + "</head>", 1)
+    after = after.replace('href="#downloads"', 'href="/download/index.html"')
+
+    backup = Path(tempfile.mkdtemp(prefix=".genycaster-download-backup.", dir=BASE))
+    changed: list[tuple[Path, Path | None]] = []
+    try:
+        for name in FILES:
+            target = SITE / "download" / name
+            original = backup / name if target.is_file() else None
+            if original is not None:
+                shutil.copy2(target, original)
+            write_atomic(target, (SOURCE / name).read_bytes())
+            changed.append((target, original))
+        if after != before:
+            original = backup / "about-index.html"
+            shutil.copy2(historic, original)
+            write_atomic(historic, after.encode("utf-8"))
+            changed.append((historic, original))
+        for route, marker in (
+            ("/download/index.html", 'id="download-primary"'),
+            ("/download/download.js?v=1", "verifiedRecord("),
+            ("/download/download.css?v=1", "corner-shape:superellipse(4)"),
+            ("/download/about-forward.js?v=1", "openDedicatedDownloads"),
+            ("/about/", script_tag),
+        ):
+            response = run("curl", "--fail", "--silent", "--show-error",
+                           "--max-time", "14", "--resolve",
+                           "genycaster.xyz:443:127.0.0.1",
+                           "https://genycaster.xyz" + route)
+            if marker not in response:
+                raise RuntimeError("Download fallback HTTPS verification failed: " + route)
+        print("PUBLISHED download hub via the existing /download -> /about/ redirect")
+        print("DIRECT PAGE https://genycaster.xyz/download/index.html")
+        print("BACKUP:", backup)
+    except Exception:
+        for target, original in reversed(changed):
+            if original is not None and original.is_file():
+                write_atomic(target, original.read_bytes())
+            else:
+                target.unlink(missing_ok=True)
+        shutil.rmtree(backup)
+        raise
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--legacy-route", action="store_true",
+                        help="Deploy through the existing /about/#downloads redirect without changing Nginx")
     options = parser.parse_args()
+    if options.apply and options.legacy_route:
+        parser.error("Choose exactly one deployment mode")
     original = check()
+    if options.legacy_route:
+        deploy_legacy_route()
+        return
     if not options.apply:
         print("Download assets, manifest and Nginx route validated (dry run)")
         return
