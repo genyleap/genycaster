@@ -38,13 +38,13 @@ test('native HyperSnap pending results remain idempotent but confirmation pollin
  const begin=src.indexOf('void HyperSnapRegistrationPublisher::scheduleCheck(');
  assert.ok(begin>0);
  const schedule=src.slice(begin,begin+500);
- assert.match(schedule,/m_poll\.start\(m_checks < 60 \? 2000 : 15000\)/);
+ assert.match(schedule,/m_poll\.start\(m_checks < 30 \? 2000 : m_checks < 90 \? 15000 : 60000\)/);
  assert.doesNotMatch(schedule,/\.submit\(/);
  const lookup=src.slice(src.indexOf('void HyperSnapRegistrationPublisher::lookup('),
                         src.indexOf('void HyperSnapRegistrationPublisher::updateRetryEligibility()'));
- assert.match(lookup,/m_pending && m_checks < 240/);
+ assert.match(lookup,/if \(m_pending\) scheduleCheck\(generation\)/);
  assert.match(lookup,/LookupState::NotFound|State::NotFound/);
  const qml=read('ui/components/setup/InitialSetup.qml');
  assert.match(qml,/nativeRegistrationPublisher\.checkConfirmation\(\)/);
- assert.match(qml,/confirmationLookupState !== "not_found"/);
+ assert.match(qml,/nativeRegistrationStatus\.shardZeroBlockDelay > 120/);
 });
