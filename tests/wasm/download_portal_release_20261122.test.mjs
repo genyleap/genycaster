@@ -224,24 +224,82 @@ test('download page always presents the canonical clean URL without index.html',
   assert.match(nginx,/location = \/download\/index\.html \{ return 308 \/download; \}/);
 });
 
-test('legacy /download redirect forwards only the exact downloads fragment', () => {
+test('legacy redirect mounts download without painting About or navigating again',async()=>{
   const forward = read('ui/wasm/download/about-forward.js');
-  assert.match(forward,/location\.replace\("\/download\/index.html"\)/);
-  const calls = [];
-  const listeners = {};
-  const location = {
-    pathname:'/about/',hash:'#downloads',
-    replace(url){calls.push(url);}
+  assert.match(forward,/root\.style\.visibility = "hidden"/);
+  assert.match(forward,/document\.body\.replaceWith/);
+  assert.match(forward,/history\.replaceState\(history\.state, "", "\/download"\)/);
+  const navigations=[];
+  const replaceCalls=[];
+  const root={
+    style:{visibility:''},
+    setAttribute(){},
+    removeAttribute(){}
   };
-  vm.runInNewContext(forward,{location,addEventListener(name,fn){listeners[name]=fn;}});
-  assert.deepEqual(calls,['/download/index.html']);
-  location.hash = '#explore';
-  listeners.hashchange();
-  assert.equal(calls.length,1);
-  location.pathname = '/download/index.html';
-  location.hash = '#downloads';
-  listeners.hashchange();
-  assert.equal(calls.length,1);
+  const listener={};
+  const imported={};
+  let replaced=false;
+  const previousStyle={remove(){}};
+  const doc={
+    readyState:'loading',documentElement:root,
+    addEventListener(name,fn){listener[name]=fn;},
+    querySelectorAll(){return [previousStyle];},
+    querySelector(){return null;},
+    createElement(tag){return {tag};},
+    importNode(value){return value;},
+    body:{replaceWith(value){replaced=value===imported;}},
+    head:{appendChild(element){
+      if(element.tag==='link')queueMicrotask(()=>element.onload?.());
+      if(element.tag==='script')queueMicrotask(()=>element.onload?.());
+    }}
+  };
+  const parsed={
+    body:imported,title:'Download GenyCaster',
+    documentElement:{lang:'en'},
+    getElementById(id){return ['download-primary','platform-list'].includes(id)?{}:null;},
+    querySelector(selector){
+      if(selector==='link[rel="stylesheet"]')return {getAttribute:()=>'/download/download.css?v=3'};
+      if(selector.startsWith('script['))return {getAttribute:()=>'/download/download.js?v=3'};
+      return null;
+    }
+  };
+  const location={
+    pathname:'/about/',hash:'#downloads',
+    replace(url){replaceCalls.push(url);}
+  };
+  const history={
+    state:{view:'download'},
+    replaceState(state,title,url){navigations.push(url);}
+  };
+  vm.runInNewContext(forward,{
+    location,document:doc,history,DOMParser:class{parseFromString(){return parsed;}},
+    fetch:async()=>({ok:true,text:async()=>'<html id="download-primary"></html>'}),
+    queueMicrotask,console
+  });
+  assert.equal(root.style.visibility,'hidden','hide About before first render');
+  assert.equal(root.style.opacity,'0','never allow child styles to override hidden route');
+  assert.deepEqual(navigations,['/download'],'rewrite URL before any paint or DOM fetch');
+  assert.equal(typeof listener.DOMContentLoaded,'function');
+  listener.DOMContentLoaded();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(replaced,true,'download body mounted');
+  assert.equal(root.style.visibility,'','download made visible');
+  assert.equal(root.style.opacity,'','download became opaque');
+  assert.deepEqual(navigations,['/download'],'only history rewrite, no second navigation');
+  assert.deepEqual(replaceCalls,[],'should not open /download/index.html');
+  assert.equal(doc.title,'Download GenyCaster');
+  assert.equal(root.dir,'ltr');
+
+  const untouched={pathname:'/about/',hash:'#experience'};
+  vm.runInNewContext(forward,{location:untouched});
+  assert.equal(untouched.hash,'#experience','ordinary About unaffected');
+});
+
+test('legacy bootstrap loads in head before About scripts and never defers',()=>{
+  const deploy=read('ci/deploy_download_page.py');
+  assert.match(deploy,/script_tag = '<script src="\/download\/about-forward\.js\?v=3"><\/script>'/);
+  assert.match(deploy,/after = after\.replace\(marker, marker \+ chr\(10\)/);
+  assert.match(deploy,/before\.replace\(legacy_tag, ""\)\.replace\(prior_tag, ""\)/);
 });
 
 test('download sources survive WASM publication and preserve primary API routing',()=>{

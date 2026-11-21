@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Deploy Genycaster's dedicated /download page without touching WASM or Release assets.
 
-Only the three public /download files and the two explicit Nginx route clauses
-are modified. A source-controlled Nginx template retains the same route.
+The canonical mode updates the four /download assets and exact Nginx routes.
+When /etc is read-only, the fallback also patches the historic /about head
+with an early, parser-blocking bootstrap so the legacy 302 never paints About.
+The source-controlled Nginx template remains the permanent routing solution.
 """
 from __future__ import annotations
 
@@ -118,19 +120,25 @@ def deploy_legacy_route() -> None:
     """Keep /download functional even when the Nginx vhost is read-only.
 
     The existing server redirect sends /download to /about/#downloads.
-    A tiny same-origin, CSP-compatible script forwards that precise fragment
-    to /download/index.html. It does not touch Nginx, the WASM build, or APIs.
+    A parser-blocking, same-origin bootstrap suppresses the About paint,
+    then mounts the verified download HTML in the same document without
+    a second browser navigation. It does not touch Nginx, WASM or APIs.
     """
     historic = SITE / "about/index.html"
     if historic.is_symlink() or not historic.is_file():
         raise RuntimeError("Historic /about landing unavailable")
     before = historic.read_text(encoding="utf-8")
-    script_tag = '<script src="/download/about-forward.js?v=1" defer></script>'
-    if script_tag not in before and before.count("</head>") != 1:
+    script_tag = '<script src="/download/about-forward.js?v=3"></script>'
+    legacy_tag = '<script src="/download/about-forward.js?v=1" defer></script>'
+    prior_tag = '<script src="/download/about-forward.js?v=2"></script>'
+    marker = '<meta charset="utf-8">'
+    if before.count(marker) != 1 or before.count("</head>") != 1:
         raise RuntimeError("Historic landing HTML layout has changed")
-    after = before
+    after = before.replace(legacy_tag, "").replace(prior_tag, "")
     if script_tag not in after:
-        after = after.replace("</head>", f"  {script_tag}" + chr(10) + "</head>", 1)
+        # This MUST block parsing in <head>, ahead of all visual resources.
+        # Defer/async here reintroduces a visible flash of the About page.
+        after = after.replace(marker, marker + chr(10) + "  " + script_tag, 1)
     after = (after.replace('href="#downloads"', 'href="/download"')
                   .replace('href="/download/index.html"', 'href="/download"'))
 
@@ -153,7 +161,7 @@ def deploy_legacy_route() -> None:
             ("/download/index.html", 'id="download-primary"'),
             ("/download/download.js?v=3", "verifiedRecord("),
             ("/download/download.css?v=3", "corner-shape:superellipse(4)"),
-            ("/download/about-forward.js?v=1", "openDedicatedDownloads"),
+            ("/download/about-forward.js?v=3", "mountDownload"),
             ("/about/", script_tag),
         ):
             response = run("curl", "--fail", "--silent", "--show-error",
@@ -162,7 +170,7 @@ def deploy_legacy_route() -> None:
                            "https://genycaster.xyz" + route)
             if marker not in response:
                 raise RuntimeError("Download fallback HTTPS verification failed: " + route)
-        print("PUBLISHED download hub via the existing /download -> /about/ redirect")
+        print("PUBLISHED download hub, no visible About paint or second page navigation")
         print("PUBLIC PAGE https://genycaster.xyz/download (browser address canonicalized)")
         print("BACKUP:", backup)
     except Exception:
