@@ -165,13 +165,14 @@ Item {
             nativeRegistrationStatus.refresh()
         }
     }
-    function resumeExistingNativeAccount() {
+    function resumeExistingNativeAccount(explicitRetry) {
         if (nativeExistingResumeRequested || !nativeCustodyWallet.backupVerified
             || registrationProviderId !== "hypersnap-v2"
             || nativeRegistrationPublisher.pending || nativeRegistrationPublisher.busy
             || nativeRegistrationPublisher.confirmed || authenticated
             || nativeRegistrationStatus.existingNativeFid.length === 0
-            || nativeRegistrationPublisher.existingVerificationFailed)
+            || (nativeRegistrationPublisher.existingVerificationFailed
+                && !explicitRetry))
             return
         nativeExistingResumeRequested = true
         if (!nativeRegistrationPublisher.confirmExistingAccount())
@@ -2602,8 +2603,7 @@ Item {
                         text: qsTrId("genycaster.empty.retry")
                         onClicked: {
                             root.nativeExistingResumeRequested = false
-                            nativeRegistrationStatus.findExistingNativeAccount(
-                                nativeCustodyWallet.address)
+                            root.resumeExistingNativeAccount(true)
                         }
                     }
                     // Diagnostics and abnormal recovery belong behind one
