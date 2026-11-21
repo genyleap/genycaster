@@ -109,10 +109,26 @@ class SocialPreviewTests(unittest.TestCase):
                 self.assertNotIn("Coming soon", svg)
                 self.assertNotIn("IOS", detail["footer"])
 
+    def test_static_share_page_has_independent_graph_identity_and_no_wasm(self):
+        # A new document path avoids Telegram's long-lived root cache.
+        html = (SRC / "share.html").read_text(encoding="utf-8")
+        parsed = HeadMetadata()
+        parsed.feed(html)
+        self.assertEqual(parsed.canonical, ["https://genycaster.xyz/share.html"])
+        self.assertEqual(parsed.metatags["og:url"],
+                         ["https://genycaster.xyz/share.html"])
+        self.assertEqual(parsed.metatags["og:image"], [META["home"]["image"]])
+        self.assertEqual(parsed.metatags["og:title"], [META["home"]["title"]])
+        self.assertEqual(parsed.metatags["twitter:card"], ["summary_large_image"])
+        self.assertIn('window.location.replace("/")', html)
+        self.assertNotIn('genycaster.wasm', html)
+        self.assertNotIn("Coming Soon", html)
+
     def test_future_wasm_bundles_keep_social_previews(self):
         packer = (ROOT / "ci/package_wasm_assets.py").read_text()
         for name in CARDS:
             self.assertEqual(packer.count(f'"{name}.png"'), 2)
+        self.assertEqual(packer.count('"share.html"'), 2)
         self.assertEqual(len(collect()), 8)
 
 

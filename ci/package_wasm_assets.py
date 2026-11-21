@@ -28,7 +28,7 @@ directory = args.dir.resolve()
 if args.source:
     source=args.source.resolve()
     for rel in (
-        "genycaster-brand.svg", "genycaster-wordmark.svg", "genycaster-wordmark-dark.svg", "genycaster-boot-icon.svg", "intro-base.svg", "intro-farcaster.svg", "intro-hypersnap.svg", "intro-openproof.svg", "genycaster-update-icon.svg", "genycaster-shell.html", "genycaster-loader.js", "genycaster-sw.js",
+        "genycaster-brand.svg", "genycaster-wordmark.svg", "genycaster-wordmark-dark.svg", "genycaster-boot-icon.svg", "intro-base.svg", "intro-farcaster.svg", "intro-hypersnap.svg", "intro-openproof.svg", "genycaster-update-icon.svg", "genycaster-shell.html", "share.html", "genycaster-loader.js", "genycaster-sw.js",
         "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
         "favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png",
         "genycaster-192.png", "genycaster-512.png",
@@ -108,7 +108,7 @@ if not compressed.is_file():
 # Keep older hashed binaries until operators retire older deployments:
 # tabs that loaded an older JS version can still request those exact URLs.
 # Never auto-delete an active content-addressed release during packaging.
-public = ["genycaster.html", "qtloader.js", "genycaster.js",
+public = ["genycaster.html", "share.html", "qtloader.js", "genycaster.js",
           "genycaster-loader.js", "genycaster-sw.js",
           "genycaster.webmanifest", "genycaster-icon.svg", "genycaster-brand.svg", "genycaster-wordmark.svg", "genycaster-wordmark-dark.svg", "genycaster-boot-icon.svg", "intro-base.svg", "intro-farcaster.svg", "intro-hypersnap.svg", "intro-openproof.svg", "genycaster-update-icon.svg",
           "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
