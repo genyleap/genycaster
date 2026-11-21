@@ -344,7 +344,7 @@ test('verification success has an explicit next-step action without sign-in popu
   const stage=setup.slice(setup.indexOf('id: verifyingStage'),setup.indexOf('id: appearanceStage'));
   assert.match(stage,/visible: root\.authenticated/);
   assert.match(stage,/text: qsTrId\("genycaster\.setup\.continue"\)/);
-  assert.match(stage,/enabled: root\.accountIntent !== "new" \|\| root\.signerReady/);
+  assert.match(stage,/enabled: !root\.recoverySubmitPending[\s\S]*?&& !root\.authenticationInProgress/);
   assert.match(stage,/if \(root\.accountIntent !== "new" \|\| root\.signerReady\)\s*root\.switchStep\(6\)/);
   assert.match(stage,/root\.authenticationApprovalAvailable/);
 });
