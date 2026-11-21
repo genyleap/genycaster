@@ -62,7 +62,7 @@ test('account choices follow storyboard and pending registration cannot launch F
     assert.match(account,/objectName: "setupRegisterHyperSnap"/);
     assert.match(account,/nativeRegistrationStatus.active/);
     assert.match(account,/objectName: "nativeRegistrationBroadcastPanel"[\s\S]*?visible: !root.browserReadOnly/);
-    assert.match(account,/objectName: "setupBeginRegistration"[\s\S]*?enabled: root.runtimeReady/);
+    assert.match(account,/objectName: "setupBeginRegistration"[\s\S]*?enabled: root.registrationNodeUsable/);
     assert.match(account,/root.accountIntent = "existing"/);
     assert.doesNotMatch(account,/root.openRegistration\(\)/);
     assert.doesNotMatch(setup,/farcaster.xyz\/\~\/signup/);
