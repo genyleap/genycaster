@@ -8,9 +8,9 @@ const bridge = read('src/presentation/qt/presentation_bridge.cpp');
 const bridgeHeader = read('src/presentation/qt/presentation_bridge.hpp');
 const bindings = read('ui/app/runtime/bindings.cpp');
 const property = qml.slice(
-  qml.indexOf('    readonly property var activeDetail: {') +
-    '    readonly property var activeDetail: {'.length,
-  qml.indexOf('    property var rows', qml.indexOf('readonly property var activeDetail: {'))
+  qml.indexOf('    function resolveActiveDetail() {') +
+    '    function resolveActiveDetail() {'.length,
+  qml.indexOf('    function synchronizeActiveDetail()', qml.indexOf('function resolveActiveDetail()'))
 ).trim().replace(/\}\s*$/, '');
 const evaluateDetail = new Function('root','presentationBridge',property);
 

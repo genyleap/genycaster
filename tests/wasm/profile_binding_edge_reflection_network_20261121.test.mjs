@@ -8,8 +8,8 @@ const header = read('ui/components/shell/AppHeader.qml');
 const navigation = read('ui/components/navigation/BottomNavigation.qml');
 const connections = read('ui/app/identity/connections.cpp');
 const connectionHeader = read('ui/app/identity/connections.hpp');
-const activeDetailExpression = profile.split('readonly property var activeDetail: {')[1]
-    .split('    property var rows')[0].trim().replace(/\}\s*$/, '');
+const activeDetailExpression = profile.split('function resolveActiveDetail() {')[1]
+    .split('    function synchronizeActiveDetail()')[0].trim().replace(/\}\s*$/, '');
 const resolveDetail = new Function('root','presentationBridge',activeDetailExpression);
 
 test('profile identity is a one-way binding: bridge request -> detail; no retained QML feedback loop', () => {
@@ -19,6 +19,13 @@ test('profile identity is a one-way binding: bridge request -> detail; no retain
     assert.match(key,/presentationBridge\.activeProfileFidText/);
     assert.doesNotMatch(activeDetailExpression,/root\.profileFidText|root\.profileNetwork|root\.retainedDetail/);
     assert.doesNotMatch(profile,/root\.retainedDetail = root\.detail/);
+    assert.match(profile,/property var activeDetail: \(\{\}\)/);
+    assert.doesNotMatch(profile,/readonly property var activeDetail:/);
+    assert.match(profile,/function synchronizeActiveDetail\(\)/);
+    assert.match(profile,/if \(signature === root\.activeDetailSignature\) return/);
+    assert.match(profile,/root\.activeDetail = next/);
+    assert.match(profile,/onDetailChanged: \{\s*root\.synchronizeActiveDetail\(\)/);
+    assert.match(profile,/onAuthenticationStateChanged\(\) \{ Qt\.callLater\(root\.synchronizeActiveDetail\) \}/);
     const state = {
         ownProfileNavigation:false, accountFidText:'42',
         detail:{fid:12,fidString:'12',displayName:'Previous person'},
@@ -31,7 +38,7 @@ test('profile identity is a one-way binding: bridge request -> detail; no retain
 
 test('chromatic light has a soft source-driven bottom lip in header and top rounded rim in navbar', () => {
     assert.match(header, /reflectionSource: root\.reflectionSource/);
-    assert.match(header, /edgeStrength: 0\.68\s+edgeWidth: 4\s+edgeInset: 1\.7\s+bottomEdgeOnly: true/);
+    assert.match(header, /edgeStrength: 0\.24\s+edgeWidth: 1\.15\s+edgeInset: 0\.6\s+bottomEdgeOnly: true/);
     assert.doesNotMatch(header,/height: 1\s+color: Theme\.borderMuted/);
     assert.match(navigation,/objectName: "mobileNavigationChromaticReflection"/);
     const top = navigation.split('id: navigationTopReflectionMask')[1]
@@ -42,7 +49,8 @@ test('chromatic light has a soft source-driven bottom lip in header and top roun
     assert.match(top,/objectName: "mobileNavigationTopEdgeReflection"/);
     assert.match(top,/width: navigationCapsule\.width\s+height: navigationCapsule\.height/);
     assert.match(top,/reflectionSource: root\.reflectionSource/);
-    assert.match(top,/edgeStrength: 0\.72/);
+    assert.match(top,/edgeStrength: 0\.26/);
+    assert.match(top,/edgeWidth: 1\.25/);
     assert.match(top,/bottomEdgeOnly: false/);
     assert.doesNotMatch(top,/NeonReflectionSource\s*\{/);
 });

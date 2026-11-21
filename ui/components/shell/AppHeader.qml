@@ -30,20 +30,18 @@ Rectangle {
 
     readonly property int gutter: Theme.gutter(root.width)
 
-    // Chromatic light from the reading content catches the INSIDE of the
-    // header's bottom lip. This is a soft multi-pixel reflected rim, not
-    // a clipped one-pixel screenshot stripe or a permanent accent line.
+    // Keep a fine, content-derived chromatic edge at the lower lip.
+    // Avoid a thick, solid-tint divider when bright media is immediately
+    // below the header; the diffuse reflection remains independent.
     NeonReflection {
         anchors.fill: parent
         reflectionSource: root.reflectionSource
-        // Restore an appreciable diffuse content-derived chromatic
-        // reflection; only the thin cropped edge shader stays disabled.
-        strength: Theme.reflectionStrength * (root.compact ? 2.30 : 2.10)
+        strength: Theme.reflectionStrength * (root.compact ? 1.50 : 1.35)
         cornerRadius: 0
         borderInset: 0
-        edgeStrength: 0.68
-        edgeWidth: 4
-        edgeInset: 1.7
+        edgeStrength: 0.24
+        edgeWidth: 1.15
+        edgeInset: 0.6
         bottomEdgeOnly: true
     }
 

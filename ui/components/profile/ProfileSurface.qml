@@ -13,11 +13,13 @@ Item {
     // Explicit navigation to the authenticated account is independent of the
     // global read-provider selector. It is set only by PresentationBridge.
     property bool ownProfileNavigation: false
-    // Identity comes solely from the bridge's requested profile and the
-    // authenticated account snapshot. Retaining a second QML detail snapshot
-    // made activeDetail/profileFidText and the metadata refresh callbacks
-    // form a binding cycle on Qt 6.12 after Back.
-    readonly property var activeDetail: {
+    // Qt 6.12 can reenter a live activeDetail *binding* when the bridge
+    // notifies both profile and session state in the same navigation turn.
+    // Keep the resolved snapshot as a normal value, with a single explicit
+    // commit. Never derive the requested identity from the resolved value.
+    property var activeDetail: ({})
+    property string activeDetailSignature: ""
+    function resolveActiveDetail() {
         const current = root.detail || ({})
         const requestedFid = root.ownProfileNavigation
             ? root.accountFidText : String(presentationBridge.activeProfileFidText || "0")
@@ -61,6 +63,29 @@ Item {
         // refresh. During navigation a stale snapshot must never be reused.
         return ({})
     }
+    function synchronizeActiveDetail() {
+        const next = root.resolveActiveDetail()
+        const signature = JSON.stringify(next)
+        // A general bridge stateChanged() can fire for a feed or pending
+        // operation unrelated to profile metadata. Avoid restarting the
+        // Pro/status/streak reads and the entire header layout for those.
+        if (signature === root.activeDetailSignature) return
+        root.activeDetailSignature = signature
+        root.activeDetail = next
+    }
+    // Coalesce duplicate session and read notifications on the next event
+    // turn. The activeDetail value is never a QML binding, so observers
+    // cannot synchronously reenter its computation.
+    Connections {
+        target: presentationBridge
+        function onStateChanged() { Qt.callLater(root.synchronizeActiveDetail) }
+        function onAuthenticationStateChanged() { Qt.callLater(root.synchronizeActiveDetail) }
+    }
+    onOwnProfileNavigationChanged: Qt.callLater(root.synchronizeActiveDetail)
+    onAccountFidTextChanged: Qt.callLater(root.synchronizeActiveDetail)
+    onAccountFidChanged: Qt.callLater(root.synchronizeActiveDetail)
+    onAccountIsNativeCustodyChanged: Qt.callLater(root.synchronizeActiveDetail)
+    onActiveReadNetworkChanged: Qt.callLater(root.synchronizeActiveDetail)
     property var rows
     // Navigation must show the cover, even when this Loader is reused.
     property int navigationRevision: 0
@@ -621,6 +646,7 @@ Item {
     onProfileExtrasOwnerKeyChanged: root.migrateLegacyProfileExtras()
     onAccountIssuerChanged: root.migrateLegacyProfileExtras()
     Component.onCompleted: {
+        root.synchronizeActiveDetail()
         root.migrateLegacyProfileExtras()
         profileStatusFetch.start()
     }
@@ -1381,6 +1407,7 @@ Item {
     }
 
     onVisibleChanged: {
+        if (root.visible) root.synchronizeActiveDetail()
         if (!root.visible) {
             accountConnectionsPopup.close()
             return
@@ -1391,6 +1418,7 @@ Item {
         publicProfileExtrasFetch.restart()
     }
     onDetailChanged: {
+        root.synchronizeActiveDetail()
         const incomingFid = Number((root.detail || ({})).fid || 0)
         // The bridge, not a mutable QML snapshot, retains metadata for an
         // in-place refresh and validates the incoming FID.

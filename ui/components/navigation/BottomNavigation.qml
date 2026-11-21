@@ -340,7 +340,7 @@ Item {
                 anchors.fill: parent
                 z: 1.5
                 reflectionSource: root.reflectionSource
-                strength: Theme.reflectionStrength * 2.00
+                strength: Theme.reflectionStrength * 1.25
                 cornerRadius: navigationCapsule.height / 2
                 cornerPower: 2.0
                 borderInset: 0
@@ -367,9 +367,9 @@ Item {
                     cornerRadius: navigationCapsule.height / 2
                     cornerPower: 2.0
                     borderInset: 0
-                    edgeStrength: 0.72
-                    edgeWidth: 3.4
-                    edgeInset: 1.7
+                    edgeStrength: 0.26
+                    edgeWidth: 1.25
+                    edgeInset: 0.65
                     bottomEdgeOnly: false
                 }
             }

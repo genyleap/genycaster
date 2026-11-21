@@ -59,9 +59,9 @@ test('header keeps diffuse NEON without clipped chromatic separator or duplicate
     const shell=read('ui/components/shell/AppShell.qml');
     assert.match(header,/implicitHeight: root\.compact \? Theme\.scaleUi\(54\)/);
     assert.match(header,/clip: false/);
-    assert.match(header,/edgeStrength: 0\.68/);
-    assert.match(header,/edgeWidth: 4/);
-    assert.match(header,/strength: Theme\.reflectionStrength \* \(root\.compact \? 2\.30 : 2\.10\)/);
+    assert.match(header,/edgeStrength: 0\.24/);
+    assert.match(header,/edgeWidth: 1\.15/);
+    assert.match(header,/strength: Theme\.reflectionStrength \* \(root\.compact \? 1\.50 : 1\.35\)/);
     const dock=read('ui/components/navigation/BottomNavigation.qml');
     assert.match(dock,/objectName: "mobileNavigationChromaticReflection"/);
     assert.match(dock,/reflectionSource: root\.reflectionSource/);
@@ -69,7 +69,8 @@ test('header keeps diffuse NEON without clipped chromatic separator or duplicate
     assert.match(shell,/reflectionSource: workspaceReflection/);
     assert.match(header,/bottomEdgeOnly: true/);
     assert.match(dock,/objectName: "mobileNavigationTopEdgeReflection"/);
-    assert.match(dock,/edgeStrength: 0\.72/);
+    assert.match(dock,/edgeStrength: 0\.26/);
+    assert.match(dock,/edgeWidth: 1\.25/);
     assert.doesNotMatch(header,/height: 1\s+color: Theme\.borderMuted/);
     assert.match(header,/y: root\.compact \? \(parent\.height - height\) \/ 2 : 0/);
     assert.match(shell,/Layout\.topMargin: 0\s+Layout\.bottomMargin: 0/);

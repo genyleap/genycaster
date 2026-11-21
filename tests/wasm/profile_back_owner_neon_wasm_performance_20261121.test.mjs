@@ -15,8 +15,8 @@ const shell = read('ui/components/shell/AppShell.qml');
 const section = (src, before, after) =>
     src.split(before)[1]?.split(after)[0] ?? '';
 const activeDetailBody = section(profile,
-    '    readonly property var activeDetail: {',
-    '    property var rows').trim().replace(/\}\s*$/, '');
+    '    function resolveActiveDetail() {',
+    '    function synchronizeActiveDetail()').trim().replace(/\}\s*$/, '');
 const resolveProfile = new Function('root', 'presentationBridge', activeDetailBody);
 
 test('Back preserves authenticated ownership in the native breadcrumb, not just FID and tab', () => {
@@ -112,7 +112,7 @@ test('WASM reflections reuse one capture at reduced area and cadence; dock glass
     assert.match(source, /live: root\.capturing && !root\.browserRenderer/);
     assert.match(source, /sourceIsSafe: \{/);
     assert.match(reflection, /Math\.max\(0, Math\.min\(0\.42, strength\)\) \* Theme\.reflectionGain/);
-    assert.match(appHeader, /strength: Theme\.reflectionStrength \* \(root\.compact \? 2\.30 : 2\.10\)/);
+    assert.match(appHeader, /strength: Theme\.reflectionStrength \* \(root\.compact \? 1\.50 : 1\.35\)/);
     assert.match(dock, /blurMax: Qt\.platform\.os === "wasm" \? 16 : 32/);
     assert.match(dock, /blurMultiplier: Qt\.platform\.os === "wasm" \? 1\.65 : 1\.3/);
     assert.match(dock, /reflectionSource: root\.reflectionSource/);
