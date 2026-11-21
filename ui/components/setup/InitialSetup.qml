@@ -2457,139 +2457,31 @@ Item {
                         onClicked: neynarRegistration.checkConfirmation()
                     }
                 }
-                ColumnLayout {
-                    objectName: "nativeAccountLookupPanel"
-                    // An earlier NotFound lookup does not rule out an
-                    // ambiguous native registration still in flight.
-                    visible: !root.browserReadOnly
-                             && root.registrationProviderId === "hypersnap-v2"
-                             && nativeCustodyWallet.backupVerified
-                             && !nativeRegistrationPublisher.pending
-                             && !nativeRegistrationPublisher.confirmed
-                    Layout.fillWidth: true
-                    spacing: Theme.space2
-                    ActionButton {
-                        objectName: "setupCheckExistingNativeFid"
-                        Layout.fillWidth: true
-                        compact: true
-                        text: qsTrId("genycaster.setup.native_existing_check")
-                        enabled: !nativeRegistrationStatus.accountLookupBusy
-                        onClicked: nativeRegistrationStatus.findExistingNativeAccount(
-                            nativeCustodyWallet.address)
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        visible: nativeRegistrationStatus.accountLookupBusy
-                                 || nativeRegistrationStatus.accountLookupChecked
-                        text: nativeRegistrationStatus.accountLookupBusy
-                            ? qsTrId("genycaster.setup.native_existing_checking")
-                            : nativeRegistrationStatus.accountLookupFailed
-                              ? qsTrId("genycaster.setup.native_existing_error")
-                              : nativeRegistrationStatus.existingNativeFid.length > 0
-                                ? qsTrId("genycaster.setup.native_existing_found")
-                                    .arg(nativeRegistrationStatus.existingNativeFid)
-                                : qsTrId("genycaster.setup.native_existing_missing")
-                        color: nativeRegistrationStatus.existingNativeFid.length > 0
-                            ? Theme.success : Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
-                    ActionButton {
-                        objectName: "setupContinueExistingNativeFid"
-                        visible: nativeRegistrationStatus.existingNativeFid.length > 0
-                        Layout.fillWidth: true
-                        prominent: true
-                        text: qsTrId("genycaster.setup.continue")
-                        busy: nativeRegistrationPublisher.verifyingExisting
-                        enabled: root.runtimeReady
-                                 && nativeRegistrationPublisher.registrationSupported
-                                 && !nativeRegistrationStatus.accountLookupBusy
-                                 && !nativeRegistrationPublisher.busy
-                                 && !nativeRegistrationPublisher.pending
-                        // Consent to local signer setup is an explicit click.
-                        // C++ rechecks (custody, FID) on shard 0 before login.
-                        onClicked: nativeRegistrationPublisher.confirmExistingAccount()
-                    }
-                    DirectionAwareLabel {
-                        visible: nativeRegistrationPublisher.existingVerificationFailed
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.native_existing_error")
-                        color: Theme.danger
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
-                }
-                ColumnLayout {
-                    objectName: "nativeRegistrationProofPanel"
-                    visible: !root.browserReadOnly
-                             && root.registrationProviderId === "hypersnap-v2"
-                             && nativeCustodyWallet.backupVerified
-                             && !nativeRegistrationPublisher.pending
-                             && !nativeRegistrationPublisher.confirmed
-                             && nativeRegistrationStatus.existingNativeFid.length === 0
-                    Layout.fillWidth: true
-                    spacing: Theme.space2
-                    ActionButton {
-                        objectName: "setupPrepareNativeProof"
-                        Layout.fillWidth: true
-                        prominent: false
-                        text: qsTrId("genycaster.setup.native_proof_prepare")
-                        busy: nativeRegistrationPreparation.busy
-                        enabled: nativeRegistrationStatus.active
-                                 && !nativeRegistrationPublisher.pending
-                                 && !nativeRegistrationPublisher.confirmed
-                                 && nativeRegistrationStatus.accountLookupChecked
-                                 && !nativeRegistrationStatus.accountLookupFailed
-                                 && nativeRegistrationStatus.existingNativeFid.length === 0
-                                 && !nativeRegistrationPreparation.busy
-                                 && !nativeRegistrationPreparation.prepared
-                        onClicked: nativeRegistrationPreparation.prepare()
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        visible: nativeRegistrationPreparation.busy
-                                 || nativeRegistrationPreparation.prepared
-                                 || nativeRegistrationPreparation.failed
-                        text: nativeRegistrationPreparation.busy
-                            ? qsTrId("genycaster.setup.native_proof_working")
-                            : nativeRegistrationPreparation.prepared
-                              ? qsTrId("genycaster.setup.native_proof_prepared")
-                              : qsTrId("genycaster.setup.native_proof_failed")
-                        color: nativeRegistrationPreparation.prepared
-                            ? Theme.success : Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
-                    ActionButton {
-                        objectName: "setupRefreshNativeProofAnchor"
-                        visible: nativeRegistrationPreparation.failed
-                        Layout.fillWidth: true
-                        compact: true
-                        text: qsTrId("genycaster.setup.native_proof_refresh")
-                        onClicked: {
-                            nativeRegistrationPreparation.cancel()
-                            nativeRegistrationStatus.clearExistingLookup()
-                            nativeRegistrationStatus.refresh()
-                        }
-                    }
-                }
+                // ONE public action controls lookup -> proof -> submit -> FID.
+                // No protocol-specific engineering steps are exposed as CTAs.
                 ColumnLayout {
                     objectName: "nativeRegistrationBroadcastPanel"
                     visible: !root.browserReadOnly
                              && root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
-                             && (nativeRegistrationPublisher.pending
-                                 || nativeRegistrationPublisher.confirmed
-                                 || nativeRegistrationStatus.existingNativeFid.length === 0)
                     Layout.fillWidth: true
-                    spacing: Theme.space2
-                    GenyCheckRow {
-                        id: nativeRegistrationConsent
-                        objectName: "setupNativeRegistrationConsent"
-                        visible: !nativeRegistrationPublisher.confirmed
-                                 && !nativeRegistrationPublisher.pending
+                    spacing: Theme.space3
+
+                    DirectionAwareLabel {
+                        objectName: "setupNativeCreationSummary"
+                        visible: !nativeRegistrationPublisher.pending
+                                 && !nativeRegistrationPublisher.confirmed
+                                 && nativeRegistrationStatus.existingNativeFid.length === 0
                         Layout.fillWidth: true
-                        label: qsTrId("genycaster.setup.native_registration_consent")
+                        text: nativeRegistrationStatus.accountLookupBusy
+                              || !nativeRegistrationStatus.accountLookupChecked
+                              ? qsTr("Checking your account…")
+                              : nativeRegistrationStatus.accountLookupFailed
+                                ? qsTr("Couldn't reach HyperSnap. Try again.")
+                                : qsTr("Ready to create your HyperSnap account.")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
                     }
                     ActionButton {
                         objectName: "setupBeginRegistration"
@@ -2597,148 +2489,212 @@ Item {
                         prominent: true
                         visible: !nativeRegistrationPublisher.pending
                                  && !nativeRegistrationPublisher.confirmed
-                        text: qsTrId("genycaster.setup.registration_start")
-                        busy: nativeRegistrationPublisher.busy
-                              && !nativeRegistrationPublisher.checkingConfirmation
-                        enabled: root.runtimeReady
-                                 && !nativeRegistrationPublisher.pending
-                                 && nativeRegistrationPublisher.registrationSupported
-                                 && nativeRegistrationConsent.checked
-                                 && nativeRegistrationPreparation.prepared
+                                 && nativeRegistrationStatus.existingNativeFid.length === 0
+                        text: qsTr("Create account")
+                        busy: root.nativeCreationRequested
+                              || nativeRegistrationPreparation.busy
+                              || nativeRegistrationPublisher.busy
+                              || nativeRegistrationStatus.accountLookupBusy
+                        enabled: root.registrationNodeUsable
+                                 && nativeRegistrationStatus.accountLookupChecked
+                                 && !nativeRegistrationStatus.accountLookupFailed
+                                 && !nativeRegistrationStatus.accountLookupBusy
+                                 && !root.nativeCreationRequested
+                                 && !nativeRegistrationPreparation.busy
                                  && !nativeRegistrationPublisher.busy
                                  && !nativeRegistrationPublisher.pending
+                        // This single explicit click authorizes ONE irreversible
+                        // registration. Async proof completion does not have
+                        // permission to initiate a separate second request.
+                        onClicked: root.startNativeAccountCreation()
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: !nativeRegistrationPublisher.pending
                                  && !nativeRegistrationPublisher.confirmed
-                        onClicked: nativeRegistrationPublisher.submitPrepared()
-                    }
-                    DirectionAwareLabel {
-                        visible: !nativeRegistrationPublisher.confirmed
-                                 && (nativeRegistrationPublisher.busy
-                                     || nativeRegistrationPublisher.pending
-                                     || nativeRegistrationPublisher.failed)
-                        Layout.fillWidth: true
-                        text: root.nativeSubmissionStatusText()
-                        font.pixelSize: Theme.typeCaptionSize
-                        color: Theme.warning
-                        wrapMode: Text.WordWrap
-                    }
-                    ActionButton {
-                        objectName: "setupContinueConfirmedNativeAccount"
-                        Layout.fillWidth: true
-                        visible: nativeRegistrationPublisher.confirmed
-                                 && !root.authenticated
-                        prominent: true
-                        text: qsTrId("genycaster.setup.continue")
-                        busy: nativeRegistrationPublisher.verifyingExisting
-                        enabled: root.runtimeReady
-                                 && nativeRegistrationPublisher.registrationSupported
+                                 && nativeRegistrationStatus.existingNativeFid.length === 0
+                                 && !root.nativeCreationRequested
+                                 && !nativeRegistrationPreparation.busy
                                  && !nativeRegistrationPublisher.busy
-                        // The FID is already registered. This performs only a
-                        // fresh custody-bound lookup, then resumes sign-in.
-                        onClicked: nativeRegistrationPublisher.resumeConfirmedAccount()
-                    }
-                    DirectionAwareLabel {
-                        objectName: "setupConfirmedNativeLoginError"
-                        Layout.fillWidth: true
-                        visible: nativeRegistrationPublisher.confirmed
-                                 && !root.authenticated
-                                 && (nativeRegistrationPublisher.existingVerificationFailed
-                                     || root.authenticationErrorText.length > 0)
-                        text: nativeRegistrationPublisher.existingVerificationFailed
-                            ? qsTrId("genycaster.setup.native_existing_error")
-                            : root.authenticationErrorText
-                        color: Theme.danger
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
-                    ActionButton {
-                        objectName: "setupCheckNativeRegistrationConfirmation"
-                        visible: nativeRegistrationPublisher.pending
-                        Layout.fillWidth: true
-                        compact: true
-                        busy: nativeRegistrationStatus.checking
-                              || nativeRegistrationPublisher.checkingConfirmation
-                        enabled: !nativeRegistrationPublisher.busy
-                                 && !nativeRegistrationStatus.checking
-                        text: qsTrId("genycaster.setup.native_registration_check_again")
-                        // Refresh node head FIRST. The Connections handler then
-                        // performs a custody lookup against the same node,
-                        // avoiding a race with a stale registration window.
-                        onClicked: nativeRegistrationStatus.refresh()
-                    }
-                    Connections {
-                        target: nativeRegistrationStatus
-                        function onChanged() {
-                            Qt.callLater(root.maybeLookupNativeFid)
-                            if (!nativeRegistrationStatus.checking
-                                && nativeRegistrationStatus.active
-                                && nativeRegistrationPublisher.pending
-                                && !nativeRegistrationPublisher.busy
-                                && root.registrationProviderId === "hypersnap-v2"
-                                && nativeCustodyWallet.backupVerified)
-                                nativeRegistrationPublisher.checkConfirmation()
-                        }
-                    }
-                    DirectionAwareLabel {
-                        objectName: "setupNativeConfirmationDetails"
-                        Layout.fillWidth: true
-                        visible: nativeRegistrationPublisher.pending
-                                 && !nativeRegistrationPublisher.checkingConfirmation
-                                 && nativeRegistrationPublisher.confirmationLookupChecks > 0
-                        text: (nativeRegistrationPublisher.confirmationLookupState === "not_found"
-                               ? qsTrId("genycaster.setup.native_confirmation_no_fid_yet")
-                               : qsTrId("genycaster.setup.native_existing_error"))
-                              + (nativeRegistrationPublisher.confirmationLookupState !== "not_found"
-                                    && nativeRegistrationPublisher.confirmationLookupHttpStatus > 0
-                                 ? " (HTTP " + nativeRegistrationPublisher.confirmationLookupHttpStatus + ")"
-                                 : "")
-                        color: nativeRegistrationPublisher.confirmationLookupState === "not_found"
-                               ? Theme.warning : Theme.danger
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
-                    DirectionAwareLabel {
-                        objectName: "setupNativeStatusRefreshFailure"
-                        Layout.fillWidth: true
-                        visible: nativeRegistrationPublisher.pending
-                                 && !nativeRegistrationStatus.checking
-                                 && !nativeRegistrationStatus.active
-                                 && nativeRegistrationStatus.error.length > 0
-                        text: nativeRegistrationStatus.error
-                        color: Theme.danger
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
-                    DirectionAwareLabel {
-                        objectName: "setupNativeRetryWindow"
-                        Layout.fillWidth: true
-                        visible: nativeRegistrationPublisher.pending
-                                 && nativeRegistrationPublisher.confirmationLookupState === "not_found"
-                                 && nativeRegistrationPublisher.retryRemainingBlocks > 0
-                        text: qsTrId("genycaster.setup.native_retry_wait_blocks")
-                            .arg(nativeRegistrationPublisher.retryRemainingBlocks)
+                        text: qsTr("Creates one self-custody identity on HyperSnap.")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
                     ActionButton {
-                        objectName: "setupReleaseExpiredNativeAttempt"
+                        objectName: "setupRetryNativeAccountLookup"
+                        visible: nativeRegistrationStatus.accountLookupFailed
+                                 && !nativeRegistrationPublisher.pending
+                                 && !nativeRegistrationPublisher.busy
                         Layout.fillWidth: true
-                        visible: nativeRegistrationPublisher.retryReady
-                                 && nativeRegistrationPublisher.pending
-                        enabled: !nativeRegistrationPublisher.busy
-                                 && !nativeRegistrationStatus.checking
-                                 && nativeRegistrationStatus.active
                         compact: true
-                        text: qsTrId("genycaster.setup.native_retry_start_over")
+                        quiet: true
+                        text: qsTrId("genycaster.empty.retry")
                         onClicked: {
-                            if (nativeRegistrationPublisher.releaseExpiredAttempt()) {
-                                // The existing verified wallet is preserved.
-                                // Another proof must be prepared and consented
-                                // to explicitly; nothing is auto-submitted.
-                                nativeRegistrationPreparation.cancel()
-                                nativeRegistrationStatus.clearExistingLookup()
-                                nativeRegistrationStatus.refresh()
-                                root.registrationError = ""
+                            nativeRegistrationStatus.clearExistingLookup()
+                            nativeRegistrationStatus.refresh()
+                            root.maybeLookupNativeFid()
+                        }
+                    }
+                    DirectionAwareLabel {
+                        objectName: "setupNativeAwaitingConfirmation"
+                        Layout.fillWidth: true
+                        visible: nativeRegistrationPublisher.pending
+                        text: qsTr("Creating your account…")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeTitle3Size
+                        font.weight: Theme.weightDemiBold
+                        wrapMode: Text.WordWrap
+                    }
+                    DirectionAwareLabel {
+                        objectName: "setupNativePendingDescription"
+                        Layout.fillWidth: true
+                        visible: nativeRegistrationPublisher.pending
+                        text: qsTr("Waiting for network confirmation. We'll continue automatically when your account is ready.")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeLabelSize
+                        wrapMode: Text.WordWrap
+                    }
+                    DirectionAwareLabel {
+                        objectName: "setupNativePreviouslyRegistered"
+                        visible: nativeRegistrationStatus.existingNativeFid.length > 0
+                                 && !nativeRegistrationPublisher.confirmed
+                        Layout.fillWidth: true
+                        text: qsTr("Account found. Signing you in…")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeLabelSize
+                        wrapMode: Text.WordWrap
+                    }
+                    // When a confirmed account could not be admitted (e.g.
+                    // secure-store error), show one recovery action, not the
+                    // normal two-phase proof/submit interface.
+                    ActionButton {
+                        objectName: "setupContinueConfirmedNativeAccount"
+                        visible: nativeRegistrationPublisher.confirmed
+                                 && !root.authenticated
+                                 && !nativeRegistrationPublisher.busy
+                        Layout.fillWidth: true
+                        prominent: true
+                        text: qsTrId("genycaster.empty.retry")
+                        enabled: root.runtimeReady
+                                 && nativeRegistrationPublisher.registrationSupported
+                        onClicked: nativeRegistrationPublisher.resumeConfirmedAccount()
+                    }
+                    ActionButton {
+                        objectName: "setupRetryExistingNativeAccount"
+                        visible: nativeRegistrationPublisher.existingVerificationFailed
+                                 && nativeRegistrationStatus.existingNativeFid.length > 0
+                                 && !nativeRegistrationPublisher.pending
+                        Layout.fillWidth: true
+                        prominent: true
+                        text: qsTrId("genycaster.empty.retry")
+                        onClicked: {
+                            root.nativeExistingResumeRequested = false
+                            nativeRegistrationStatus.findExistingNativeAccount(
+                                nativeCustodyWallet.address)
+                        }
+                    }
+                    // Diagnostics and abnormal recovery belong behind one
+                    // optional, quiet disclosure; never in the main flow.
+                    ActionButton {
+                        objectName: "setupNativeTechnicalDetailsToggle"
+                        visible: !root.authenticated
+                        Layout.fillWidth: true
+                        quiet: true
+                        compact: true
+                        text: root.nativeDetailsExpanded
+                              ? qsTr("Hide details") : qsTr("More options")
+                        onClicked: root.nativeDetailsExpanded = !root.nativeDetailsExpanded
+                    }
+                    ColumnLayout {
+                        objectName: "setupNativeTechnicalDetails"
+                        Layout.fillWidth: true
+                        visible: root.nativeDetailsExpanded
+                        spacing: Theme.space2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.wallet_verified")
+                                  .arg(nativeCustodyWallet.address)
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WrapAnywhere
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: nativeRegistrationPublisher.pending
+                                     || nativeRegistrationPublisher.failed
+                                     || nativeRegistrationPublisher.outcomeUnknown
+                            text: root.nativeSubmissionStatusText()
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            objectName: "setupNativeConfirmationDetails"
+                            Layout.fillWidth: true
+                            visible: nativeRegistrationPublisher.pending
+                                     && nativeRegistrationPublisher.confirmationLookupChecks > 0
+                            text: nativeRegistrationPublisher.confirmationLookupState === "not_found"
+                                  ? qsTrId("genycaster.setup.native_confirmation_no_fid_yet")
+                                  : qsTrId("genycaster.setup.native_existing_error")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            objectName: "setupNativeRetryWindow"
+                            Layout.fillWidth: true
+                            visible: nativeRegistrationPublisher.pending
+                                     && nativeRegistrationPublisher.retryRemainingBlocks > 0
+                            text: qsTrId("genycaster.setup.native_retry_wait_blocks")
+                                  .arg(nativeRegistrationPublisher.retryRemainingBlocks)
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            objectName: "setupNativeStatusRefreshFailure"
+                            Layout.fillWidth: true
+                            visible: nativeRegistrationPublisher.pending
+                                     && !nativeRegistrationStatus.checking
+                                     && !nativeRegistrationStatus.active
+                                     && nativeRegistrationStatus.error.length > 0
+                            text: nativeRegistrationStatus.error
+                            color: Theme.warning
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        ActionButton {
+                            objectName: "setupCheckNativeRegistrationConfirmation"
+                            Layout.fillWidth: true
+                            compact: true
+                            quiet: true
+                            visible: nativeRegistrationPublisher.pending
+                            busy: nativeRegistrationStatus.checking
+                                  || nativeRegistrationPublisher.checkingConfirmation
+                            enabled: !nativeRegistrationPublisher.busy
+                                     && !nativeRegistrationStatus.checking
+                            text: qsTrId("genycaster.setup.native_registration_check_again")
+                            onClicked: nativeRegistrationStatus.refresh()
+                        }
+                        ActionButton {
+                            objectName: "setupReleaseExpiredNativeAttempt"
+                            Layout.fillWidth: true
+                            visible: nativeRegistrationPublisher.retryReady
+                                     && nativeRegistrationPublisher.pending
+                            enabled: !nativeRegistrationPublisher.busy
+                                     && !nativeRegistrationStatus.checking
+                                     && nativeRegistrationStatus.active
+                            compact: true
+                            text: qsTrId("genycaster.setup.native_retry_start_over")
+                            onClicked: {
+                                if (nativeRegistrationPublisher.releaseExpiredAttempt()) {
+                                    root.nativeCreationRequested = false
+                                    nativeRegistrationPreparation.cancel()
+                                    nativeRegistrationStatus.clearExistingLookup()
+                                    nativeRegistrationStatus.refresh()
+                                    root.registrationError = ""
+                                }
                             }
                         }
                     }
