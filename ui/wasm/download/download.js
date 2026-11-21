@@ -1,6 +1,16 @@
 /* GenyCaster download hub: strict release manifest and explicit architectures. */
 (() => {
   "use strict";
+  // Until the canonical Nginx location can be installed, its legacy 302
+  // reaches this exact static entry through /about/#downloads. Preserve the
+  // public address in the browser without adding a navigation/history entry.
+  // All assets use absolute URLs, so subsequent fetches are unaffected.
+  if (typeof location !== "undefined" && typeof history !== "undefined" &&
+      (location.pathname === "/download/index.html" ||
+       location.pathname === "/download/")) {
+    history.replaceState(history.state, "", "/download" +
+      location.search + location.hash);
+  }
   const $ = (id) => document.getElementById(id);
   const version = "1.0.0";
   const releasePrefix = "https://github.com/genyleap/genycaster/releases/download/v1.0.0/";

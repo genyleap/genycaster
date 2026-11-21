@@ -31,10 +31,9 @@ NEW_ROUTE = (
     '        add_header Cache-Control "no-store" always;\n'
     '        try_files /download/index.html =404;\n'
     '    }\n'
-    '    location = /download/ {\n'
-    '        add_header Cache-Control "no-store" always;\n'
-    '        try_files /download/index.html =404;\n'
-    '    }'
+    '    # Exactly one public URL, without a trailing slash or index.html.\n'
+    '    location = /download/ { return 308 /download; }\n'
+    '    location = /download/index.html { return 308 /download; }'
 )
 
 
@@ -103,8 +102,7 @@ def write_atomic(path: Path, payload: bytes) -> None:
 def verify_https() -> None:
     for filename, marker in (
         ("/download", 'id="download-primary"'),
-        ("/download/", 'id="download-primary"'),
-        ("/download/download.js?v=2", "verifiedRecord("),
+        ("/download/download.js?v=3", "verifiedRecord("),
         ("/download/download.css?v=3", "corner-shape:superellipse(4)"),
     ):
         response = run(
@@ -133,7 +131,8 @@ def deploy_legacy_route() -> None:
     after = before
     if script_tag not in after:
         after = after.replace("</head>", f"  {script_tag}" + chr(10) + "</head>", 1)
-    after = after.replace('href="#downloads"', 'href="/download/index.html"')
+    after = (after.replace('href="#downloads"', 'href="/download"')
+                  .replace('href="/download/index.html"', 'href="/download"'))
 
     backup = Path(tempfile.mkdtemp(prefix=".genycaster-download-backup.", dir=BASE))
     changed: list[tuple[Path, Path | None]] = []
@@ -152,7 +151,7 @@ def deploy_legacy_route() -> None:
             changed.append((historic, original))
         for route, marker in (
             ("/download/index.html", 'id="download-primary"'),
-            ("/download/download.js?v=2", "verifiedRecord("),
+            ("/download/download.js?v=3", "verifiedRecord("),
             ("/download/download.css?v=3", "corner-shape:superellipse(4)"),
             ("/download/about-forward.js?v=1", "openDedicatedDownloads"),
             ("/about/", script_tag),
@@ -164,7 +163,7 @@ def deploy_legacy_route() -> None:
             if marker not in response:
                 raise RuntimeError("Download fallback HTTPS verification failed: " + route)
         print("PUBLISHED download hub via the existing /download -> /about/ redirect")
-        print("DIRECT PAGE https://genycaster.xyz/download/index.html")
+        print("PUBLIC PAGE https://genycaster.xyz/download (browser address canonicalized)")
         print("BACKUP:", backup)
     except Exception:
         for target, original in reversed(changed):

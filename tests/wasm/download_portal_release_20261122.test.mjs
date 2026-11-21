@@ -42,7 +42,7 @@ class Element {
   closest(selector){return selector.startsWith('button[')?this:null;}
 }
 
-function harness({os='Windows NT 10.0',data=manifest(),fail=false,withShapes=false}={}) {
+function harness({os='Windows NT 10.0',data=manifest(),fail=false,withShapes=false,route=null}={}) {
   const ids = Object.fromEntries([
     'selected-name','selected-icon','selected-description','selected-version','release-number','file-name','file-hash',
     'detected','detected-text','arch-block','architectures','arch-tip',
@@ -71,9 +71,16 @@ function harness({os='Windows NT 10.0',data=manifest(),fail=false,withShapes=fal
   const fetch=async()=>{if(fail)throw Error('offline');return {
     ok:true,headers:{get:()=>null},text:async()=>JSON.stringify(data)
   }};
-  vm.runInNewContext(script,{document:doc,navigator,fetch,URL,console,window:{devicePixelRatio:2}});
+  const navigation=[];
+  const location=route===null?undefined:{pathname:route,search:'?source=site',hash:'#platform'};
+  const history=route===null?undefined:{
+    state:{view:'download'},
+    replaceState(state,title,path){navigation.push({state,title,path});}
+  };
+  vm.runInNewContext(script,{document:doc,navigator,fetch,URL,console,
+    window:{devicePixelRatio:2},location,history});
   return {
-    ids,tabs,doc,
+    ids,tabs,doc,navigation,
     async ready(){await new Promise(resolve=>setImmediate(resolve));},
     choose(os){const target=tabs.find(t=>t.dataset.platform===os);
       ids['platform-list'].listeners.click({target});},
@@ -92,6 +99,8 @@ test('dedicated canonical page is compact, English-only, and uses native geometr
   assert.doesNotMatch(html,/hero-orbit|hero-art|orbit-pip/);
   assert.match(html,/class="platform-version" data-version/);
   assert.match(html,/id="selected-version"/);
+  assert.match(html,/src="\/download\/download\.js\?v=3"/);
+  assert.match(script,/history\.replaceState\(history\.state/);
   assert.match(html,/https:\/\/github.com\/genyleap\/genycaster\/releases\/download\/v1.0.0\/SHA256SUMS/);
   assert.match(css,/@media\(max-width:690px\)/);
   assert.doesNotMatch(css,/html\[dir="rtl"\]/);
@@ -197,6 +206,22 @@ test('download palette matches Theme.qml built-in Geny day and night colors',()=
     assert.ok(css.includes(variable+':'+value+';'),variable+' does not match '+token);
   }
   assert.match(html,/download\.css\?v=3/);
+});
+
+test('download page always presents the canonical clean URL without index.html', async()=>{
+  for (const route of ['/download/index.html','/download/','/download']) {
+    const h=harness({route});
+    await h.ready();
+    const expected=route==='/download'?[]:[{
+      state:{view:'download'}, title:'', path:'/download?source=site#platform'
+    }];
+    assert.deepEqual(h.navigation,expected,route);
+    assert.equal(h.ids['download-primary'].hidden,false,'download must keep working');
+  }
+  const nginx=read('ci/primary_genycaster_nginx.conf');
+  assert.match(nginx,/location = \/download \{/);
+  assert.match(nginx,/location = \/download\/ \{ return 308 \/download; \}/);
+  assert.match(nginx,/location = \/download\/index\.html \{ return 308 \/download; \}/);
 });
 
 test('legacy /download redirect forwards only the exact downloads fragment', () => {
