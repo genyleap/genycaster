@@ -9,16 +9,15 @@ test('HyperSnap explains blockchain catch-up with identical stage names on nativ
  const js=file('ui/wasm/browser_account_create_dialog.mjs');
  assert.match(qml,/objectName: "setupNativeChainStatusCard"/);
  assert.match(qml,/objectName: "setupBrowserHyperSnapNetworkStatus"/);
- for(const stage of ['Recovery phrase secured','Registration request sent',
-    'Account confirmed on blockchain']) {
+ for(const stage of ['Backup','Request','Confirmed']) {
    assert.ok(qml.includes(stage),stage);
  }
- assert.match(qml,/The blockchain is catching up/);
- assert.match(qml,/HyperSnap must include your registration in a confirmed block/);
- assert.match(qml,/qsTr\("You can return later using the same 24 recovery words\."\)/);
- assert.match(js,/stepOne:'Recovery phrase secured'/);
- assert.match(js,/stepTwo:'Registration request sent'/);
- assert.match(js,/stepThree:'Blockchain confirms your account'/);
+ assert.match(qml,/Network syncing/);
+ assert.match(qml,/Checking automatically\. Don't submit again/);
+ assert.match(qml,/qsTr\("Keep your 24 recovery words\. Return anytime\."\)/);
+ assert.match(js,/stepOne:'Backup'/);
+ assert.match(js,/stepTwo:'Request'/);
+ assert.match(js,/stepThree:'Confirmation'/);
  assert.match(js,/HYPERSNAP BLOCKCHAIN/);
  assert.doesNotMatch(js,/progressCaption\.textContent=t\.progress\+' · '/);
 });
@@ -45,7 +44,7 @@ test('Farcaster signup defaults to official path, never hides paid enrollment be
  assert.match(qml,/objectName: "setupFarcasterExistingAccount"/);
  assert.match(qml,/objectName: "setupFarcasterSponsorCodeChoice"[\s\S]*?neynarRegistration\.available/);
  assert.match(qml,/root\.farcasterSponsoredEnrollmentChosen[\s\S]*?neynarRegistration\.available/);
- assert.match(qml,/Sponsored registration in Genycaster is not available/);
+ assert.match(qml,/Sponsored signup is unavailable here/);
  assert.match(browser,/https:\/\/farcaster\.xyz\//);
  assert.match(browser,/Genycaster operator after verified payment or sponsorship/);
  assert.match(header,/Q_PROPERTY\(bool available READ available NOTIFY changed\)/);

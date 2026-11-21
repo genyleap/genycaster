@@ -16,13 +16,13 @@ const translations={
   busy:'Preparing your account…',progress:'Preparing your registration',
   stopping:'Stopping the proof before network submission…',
   submitting:'Sending your account request to HyperSnap…',
-  checking:'HyperSnap needs to confirm your account in a blockchain block. Genycaster checks automatically.',
+  checking:'Waiting for confirmation. Checking automatically.',
   working:'Creating your account',blockchainCaption:'HYPERSNAP BLOCKCHAIN',farcasterCaption:'FARCASTER NETWORK',
   progressNote:'Proof search is running. This percentage is the hash-search budget, not network confirmation.',
-  pending:'Your registration may still be processing on the blockchain. Do not submit it again. Return with the same recovery words to check your account.',
-  stepOne:'Recovery phrase secured',stepTwo:'Registration request sent',stepThree:'Blockchain confirms your account',
+  pending:'Request status unknown. Do not retry. Return with your 24 words.',
+  stepOne:'Backup',stepTwo:'Request',stepThree:'Confirmation',
   paidStepTwo:'Sponsored registration authorized',paidStepThree:'Farcaster confirms your account',
-  chainPending:'The blockchain confirms registrations in new blocks. You can return later with your 24 recovery words.',
+  chainPending:'Keep your 24 recovery words. Return anytime.',
   voucher:'Genycaster sponsorship code',username:'Choose a Farcaster username',
   voucherHelp:'A sponsorship code is provided by the Genycaster operator after verified payment or sponsorship. It is not a Neynar API key or wallet password. Codes cannot currently be purchased inside Genycaster.',
   voucherLink:'No code? Create an account on Farcaster',
@@ -39,13 +39,13 @@ const translations={
   busy:'در حال آماده‌سازی حساب…',progress:'در حال آماده‌سازی ثبت‌نام',
   stopping:'در حال توقف محاسبه پیش از ارسال شبکه…',
   submitting:'در حال ارسال درخواست ساخت حساب به هایپراسنپ…',
-  checking:'هایپراسنپ باید حساب را در یک بلاک تأیید کند. جنی‌کستر خودکار بررسی می‌کند.',
+  checking:'در انتظار تأیید شبکه؛ بررسی خودکار ادامه دارد.',
   working:'در حال ایجاد حساب',blockchainCaption:'بلاک‌چین هایپراسنپ',farcasterCaption:'شبکه فارکستر',
   progressNote:'درصد، میزان جستجوی اثبات را نشان می‌دهد، نه تأیید ثبت در شبکه.',
-  pending:'ممکن است ثبت‌نام شما هنوز در بلاک‌چین در حال پردازش باشد. درخواست را دوباره ارسال نکنید. برای بررسی حساب از همان ۲۴ واژه استفاده کنید.',
-  stepOne:'واژه‌های بازیابی ذخیره شدند',stepTwo:'درخواست ثبت‌نام ارسال شد',stepThree:'تأیید حساب در بلاک‌چین',
+  pending:'وضعیت درخواست نامشخص است. دوباره ارسال نکنید؛ با همان ۲۴ واژه برگردید.',
+  stepOne:'پشتیبان',stepTwo:'درخواست',stepThree:'تأیید شبکه',
   paidStepTwo:'ثبت‌نام حمایت‌شده تأیید شد',paidStepThree:'تأیید حساب در فارکستر',
-  chainPending:'بلاک‌چین ثبت‌نام‌ها را در بلاک‌های جدید تأیید می‌کند. بعداً می‌توانید با همان ۲۴ واژه برگردید.',
+  chainPending:'۲۴ واژه را نگه دارید؛ بعداً می‌توانید برگردید.',
   voucher:'کد حمایت مالی جنی‌کستر',username:'نام کاربری فارکستر',
   voucherHelp:'کد حمایت مالی را اپراتور جنی‌کستر پس از پرداخت یا حمایت تأییدشده صادر می‌کند. این کد، کلید API نینار یا رمز کیف‌پول نیست و فعلاً در خود جنی‌کستر فروخته نمی‌شود.',
   voucherLink:'کد ندارید؟ در فارکستر حساب بسازید',
@@ -279,7 +279,7 @@ export async function promptCreateBrowserWallet({
    heading.textContent=t.working;
    subtitle.style.display='none';
    progressPanel.hidden=false;progressPanel.style.display='block';
-   showProgressStep(1);
+   showProgressStep(0);
    content.scrollTop=0;
    processing=true;submit.disabled=true;cancel.disabled=false;
    result.textContent='';
@@ -327,7 +327,7 @@ export async function promptCreateBrowserWallet({
    }catch(error){
     if(error.outcomeUnknown){
       progressCaption.textContent=t.pending;
-      result.textContent=t.pending;
+      result.textContent='';
       progressTrack.style.display='none';progressNote.style.display='none';
       submit.disabled=true;cancel.disabled=false;
       cancel.textContent=t.close; // The network write cannot be cancelled.

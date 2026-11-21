@@ -123,7 +123,7 @@ test('a network outcome that may have been accepted stays pending, never silentl
   await new Promise(resolve=>setImmediate(resolve));
   const close=ui.one('Close');
   assert.equal(close.disabled,false);
-  assert.ok(ui.nodes.some(n=>String(n.textContent).includes('Do not submit it again')));
+  assert.equal(ui.nodes.filter(n=>String(n.textContent).includes('Do not retry')).length,1);
   close.onclick();
   await assert.rejects(ui.dialog,/submission unconfirmed/);
 });

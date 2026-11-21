@@ -44,13 +44,14 @@ test('shared setup shows advisory recovery and sign-in checks on both account pa
   assert.match(account, /SetupConnectionPanel \{\s*objectName: "setupRegistrationConnections"/);
   assert.match(existing, /SetupConnectionPanel \{\s*objectName: "setupExistingConnections"/);
   assert.match(setup, /onShowsSetupConnectivityChanged:[^]*?checkSetupConnections\(\)/);
+  assert.match(account, /connectionState: nativeRegistrationStatus.shardZeroBlockDelay > 120/);
+  assert.match(existing, /connectionState: root.protocolConnectionState\(false\)/);
   for (const stage of [account, existing]) {
-    assert.match(stage, /connectionState: root.protocolConnectionState\(false\)/);
     assert.match(stage, /connectionState: root.protocolConnectionState\(true\)/);
   }
   assert.match(existing, /protocol: root.existingProtocolSelected \? root.recoveryProtocol : ""/);
   for (const service of ['hypersnapRecovery', 'farcasterRecovery', 'farcasterSignIn']) {
-    assert.ok(setup.includes('root.setupConnections.' + service), service);
+    assert.ok(setup.includes('setupConnections.' + service), service);
   }
   assert.match(existing, /enabled: !root.authenticationInProgress && !root.recoverySubmitPending/);
   assert.doesNotMatch(account + existing, /enabled:[^\n]*(setupConnections|showsSetupConnectivity)/);

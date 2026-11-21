@@ -202,7 +202,8 @@ test('HyperSnap pending is a single minimal read-only state, technical diagnosti
   assert.match(broadcast,/objectName: "setupNativeTechnicalDetailsToggle"/);
   assert.match(broadcast,/objectName: "setupNativeTechnicalDetails"[\s\S]*?visible: root\.nativeDetailsExpanded/);
   assert.match(broadcast,/objectName: "setupCheckNativeRegistrationConfirmation"/);
-  assert.match(broadcast,/objectName: "setupNativeRetryWindow"/);
+  assert.doesNotMatch(broadcast,/objectName: "setupNativeRetryWindow"/);
+  assert.match(broadcast,/visible: nativeRegistrationPublisher.retryReady/);
   assert.match(broadcast,/objectName: "setupReleaseExpiredNativeAttempt"/);
   assert.match(broadcast,/nativeRegistrationPublisher\.releaseExpiredAttempt\(\)/);
   assert.match(setup,/function resumeNativePendingChecks\(\)/);

@@ -428,17 +428,15 @@ Item {
         }
         Repeater {
             model: details.expanded ? [
-                {protocol: "farcaster-snapchain", label: qsTrId("genycaster.settings.farcaster_label") + " · " + qsTrId("genycaster.setup.connection_recovery"), result: root.setupConnections.farcasterRecovery},
-                {protocol: "farcaster-snapchain", label: qsTrId("genycaster.settings.farcaster_label") + " · " + qsTrId("genycaster.setup.connection_app_sign_in"), result: root.setupConnections.farcasterSignIn},
-                {protocol: "hypersnap-v2", label: qsTrId("genycaster.settings.hypersnap_label") + " · " + qsTrId("genycaster.setup.connection_recovery"), result: root.setupConnections.hypersnapRecovery}
+                {protocol: "farcaster-snapchain", label: qsTrId("genycaster.settings.farcaster_label")},
+                {protocol: "hypersnap-v2", label: qsTrId("genycaster.settings.hypersnap_label")}
             ] : []
             delegate: RowLayout {
                 id: route
                 required property var modelData
                 Layout.fillWidth: true
                 layoutDirection: Theme.uiDirection
-                visible: (!details.protocol || details.protocol === modelData.protocol)
-                         && modelData.result?.state !== "not-applicable"
+                visible: !details.protocol || details.protocol === modelData.protocol
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
@@ -450,7 +448,7 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.maximumWidth: details.width * 0.45
-                    text: root.setupConnectionStatusText(route.modelData.result || ({}), true)
+                    text: root.protocolConnectionText(route.modelData.protocol === "farcaster-snapchain")
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.Wrap
                 }
@@ -1895,8 +1893,11 @@ Item {
                         title: qsTrId("genycaster.settings.hypersnap_label")
                         subtitle: qsTrId("genycaster.setup.registration_hypersnap_description")
                         iconGlyph: "quilibrium/hypersnap"
-                        connectionState: root.protocolConnectionState(false)
-                        connectionText: root.protocolConnectionText(false, connectionState)
+                        connectionState: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                         ? "unavailable" : root.protocolConnectionState(false)
+                        connectionText: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                        ? qsTr("Network syncing")
+                                        : root.protocolConnectionText(false, connectionState)
                         selected: root.registrationProviderId === "hypersnap-v2"
                         enabled: !neynarRegistration.pending
                                  && neynarRegistration.phase !== "reserved"
@@ -1958,7 +1959,7 @@ Item {
                     DirectionAwareLabel {
                         objectName: "setupFarcasterPaymentExplanation"
                         Layout.fillWidth: true
-                        text: qsTr("Creating a new Farcaster ID requires a paid network registration. Genycaster does not currently offer payment or code purchases inside the app.")
+                        text: qsTr("Farcaster registration is paid. Create an account there, then sign in here.")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeLabelSize
                         wrapMode: Text.WordWrap
@@ -2006,7 +2007,7 @@ Item {
                                  && !neynarRegistration.available
                         text: neynarRegistration.checkingAvailability
                             ? qsTr("Checking sponsored enrollment availability…")
-                            : qsTr("Sponsored registration in Genycaster is not available at the moment. You can register using Farcaster and return to sign in.")
+                            : qsTr("Sponsored signup is unavailable here.")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2051,8 +2052,8 @@ Item {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 text: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                      ? qsTr("The blockchain is catching up")
-                                      : qsTr("Checking blockchain readiness")
+                                      ? qsTr("Network syncing")
+                                      : qsTr("Checking network")
                                 color: Theme.ink
                                 font.pixelSize: Theme.typeTitle3Size
                                 font.weight: Theme.weightDemiBold
@@ -2060,7 +2061,7 @@ Item {
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: qsTr("HyperSnap needs up-to-date blocks to create an account. Genycaster checks the network automatically. You can still sign in with an existing account.")
+                                text: qsTr("New accounts are paused. Existing accounts can still sign in.")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeLabelSize
                                 wrapMode: Text.WordWrap
@@ -2143,6 +2144,7 @@ Item {
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     visible: root.nativeDetailsExpanded
+                             && !nativeRegistrationPublisher.pending
                              && nativeCustodyWallet.hasWallet
                              && nativeCustodyWallet.backupVerified
                              && root.registrationProviderId === "hypersnap-v2"
@@ -2421,11 +2423,10 @@ Item {
                         objectName: "setupVerifiedCustodyWallet"
                         visible: nativeCustodyWallet.backupVerified
                                  && !nativeRegistrationPublisher.confirmed
+                                 && !nativeRegistrationPublisher.pending
+                                 && nativeRegistrationStatus.syncedForRegistration
                         Layout.fillWidth: true
-                        text: root.nativeDetailsExpanded
-                            ? qsTrId("genycaster.setup.wallet_verified")
-                                .arg(nativeCustodyWallet.address)
-                            : qsTr("Recovery words verified")
+                        text: qsTr("Recovery words verified")
                         font.pixelSize: Theme.typeLabelSize
                         color: Theme.success
                         wrapMode: Text.WrapAnywhere
@@ -2446,7 +2447,7 @@ Item {
                              && root.registrationProviderId === "hypersnap-v2"
                              && !nativeRegistrationPublisher.confirmed
                              && nativeRegistrationStatus.existingNativeFid.length === 0
-                    text: qsTrId("genycaster.setup.registration_storage_note")
+                    text: qsTr("Your keys stay on this device.")
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.inkMuted
                     wrapMode: Text.WordWrap
@@ -2465,13 +2466,9 @@ Item {
                 DirectionAwareLabel {
                     objectName: "setupRegistrationReadiness"
                     Layout.fillWidth: true
-                    visible: !root.browserReadOnly && root.registrationProviderId.length > 0
-                        && (root.registrationProviderId === "hypersnap-v2"
-                        ? root.nativeDetailsExpanded && !nativeRegistrationPublisher.pending
-                          && !nativeRegistrationPublisher.busy
-                          && !nativeRegistrationPublisher.confirmed
-                          && nativeRegistrationStatus.existingNativeFid.length === 0
-                        : neynarRegistration.phase === "idle")
+                    visible: !root.browserReadOnly
+                             && root.registrationProviderId === "farcaster-snapchain"
+                             && neynarRegistration.phase === "idle"
                     text: root.registrationReadinessText()
                     color: root.registrationNodeUsable ? Theme.accent
                            : Theme.inkMuted
@@ -2731,11 +2728,11 @@ Item {
                                 Layout.fillWidth: true
                                 text: nativeRegistrationPublisher.pending
                                       ? (nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                         ? qsTr("Waiting for the blockchain")
+                                         ? qsTr("Waiting for confirmation")
                                          : qsTr("Confirming your account"))
                                       : nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                        ? qsTr("The blockchain is catching up")
-                                        : qsTr("Checking blockchain readiness")
+                                        ? qsTr("Network syncing")
+                                        : qsTr("Checking network")
                                 font.pixelSize: Theme.typeTitle3Size
                                 font.weight: Theme.weightDemiBold
                                 color: Theme.ink
@@ -2745,21 +2742,21 @@ Item {
                                 objectName: "setupNativePendingDescription"
                                 Layout.fillWidth: true
                                 text: nativeRegistrationPublisher.pending
-                                      ? qsTr("HyperSnap must include your registration in a confirmed block. Genycaster checks automatically and will not resend your request.")
+                                      ? qsTr("Checking automatically. Don't submit again.")
                                       : nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                        ? qsTr("HyperSnap's blocks are behind. Creating an account is temporarily paused until the blockchain catches up. No action is needed.")
-                                        : qsTr("Checking the latest HyperSnap blocks before creating your account.")
+                                        ? qsTr("Account creation is paused until the network syncs.")
+                                        : qsTr("Checking HyperSnap…")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeLabelSize
                                 wrapMode: Text.WordWrap
                             }
                             Repeater {
                                 model: [
-                                    qsTr("Recovery phrase secured"),
-                                    nativeRegistrationPublisher.pending
-                                        ? qsTr("Registration request sent")
-                                        : qsTr("Blockchain ready for registration"),
-                                    qsTr("Account confirmed on blockchain")
+                                    qsTr("Backup"),
+                                    nativeRegistrationPublisher.outcomeUnknown
+                                        ? qsTr("Checking request")
+                                        : qsTr("Request"),
+                                    qsTr("Confirmed")
                                 ]
                                 delegate: RowLayout {
                                     required property int index
@@ -2770,13 +2767,15 @@ Item {
                                         width: Theme.scaleUi(22)
                                         height: width
                                         radius: width / 2
-                                        color: index === 0 || (index === 1 && nativeRegistrationPublisher.pending)
+                                        color: index === 0 || (index === 1 && nativeRegistrationPublisher.pending
+                                                  && !nativeRegistrationPublisher.outcomeUnknown)
                                                ? Theme.success
                                                : index === 1 || (index === 2 && nativeRegistrationPublisher.pending)
                                                  ? Theme.accent : Theme.borderMuted
                                         DirectionAwareLabel {
                                             anchors.centerIn: parent
-                                            text: index === 0 || (index === 1 && nativeRegistrationPublisher.pending)
+                                            text: index === 0 || (index === 1 && nativeRegistrationPublisher.pending
+                                                  && !nativeRegistrationPublisher.outcomeUnknown)
                                                   ? "✓" : String(index + 1)
                                             color: Theme.ink
                                             font.pixelSize: Theme.typeCaptionSize
@@ -2794,7 +2793,7 @@ Item {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 visible: nativeRegistrationPublisher.pending
-                                text: qsTr("You can return later using the same 24 recovery words.")
+                                text: qsTr("Keep your 24 recovery words. Return anytime.")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.WordWrap
@@ -2859,62 +2858,25 @@ Item {
                         spacing: Theme.space2
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            visible: nativeRegistrationStatus.shardZeroBlockDelay >= 0
-                            text: qsTr("Shard-0 block delay: %1 seconds")
-                                  .arg(nativeRegistrationStatus.shardZeroBlockDelay)
-                            color: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                   ? Theme.warning : Theme.inkMuted
+                            visible: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                            text: qsTr("Sync delay: %1 min").arg(
+                                  LocaleFormat.localizeDigits(
+                                      Math.ceil(nativeRegistrationStatus.shardZeroBlockDelay / 60)))
+                            color: Theme.warning
                             font.pixelSize: Theme.typeCaptionSize
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.wallet_verified")
-                                  .arg(nativeCustodyWallet.address)
+                            text: qsTr("Wallet %1").arg(
+                                  nativeCustodyWallet.address.slice(0, 6) + "…"
+                                  + nativeCustodyWallet.address.slice(-4))
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WrapAnywhere
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            visible: nativeRegistrationPublisher.pending
-                                     || nativeRegistrationPublisher.failed
-                                     || nativeRegistrationPublisher.outcomeUnknown
-                            text: root.nativeSubmissionStatusText()
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            objectName: "setupNativeConfirmationDetails"
-                            Layout.fillWidth: true
-                            visible: nativeRegistrationPublisher.pending
-                                     && nativeRegistrationPublisher.confirmationLookupChecks > 0
-                            text: nativeRegistrationPublisher.confirmationLookupState === "not_found"
-                                  ? qsTrId("genycaster.setup.native_confirmation_no_fid_yet")
-                                  : qsTrId("genycaster.setup.native_existing_error")
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            objectName: "setupNativeRetryWindow"
-                            Layout.fillWidth: true
-                            visible: nativeRegistrationPublisher.pending
-                                     && nativeRegistrationPublisher.retryRemainingBlocks > 0
-                            text: qsTrId("genycaster.setup.native_retry_wait_blocks")
-                                  .arg(nativeRegistrationPublisher.retryRemainingBlocks)
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            objectName: "setupNativeStatusRefreshFailure"
-                            Layout.fillWidth: true
-                            visible: nativeRegistrationPublisher.pending
-                                     && !nativeRegistrationStatus.checking
-                                     && !nativeRegistrationStatus.active
-                                     && nativeRegistrationStatus.error.length > 0
-                            text: nativeRegistrationStatus.error
+                            visible: nativeRegistrationPublisher.failed
+                            text: qsTr("Registration failed. Check status before trying again.")
                             color: Theme.warning
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.WordWrap
@@ -2929,8 +2891,12 @@ Item {
                                   || nativeRegistrationPublisher.checkingConfirmation
                             enabled: !nativeRegistrationPublisher.busy
                                      && !nativeRegistrationStatus.checking
-                            text: qsTrId("genycaster.setup.native_registration_check_again")
-                            onClicked: nativeRegistrationStatus.refresh()
+                                     && !nativeRegistrationPublisher.checkingConfirmation
+                            text: qsTr("Check status")
+                            onClicked: {
+                                nativeRegistrationStatus.refresh()
+                                nativeRegistrationPublisher.checkConfirmation()
+                            }
                         }
                         ActionButton {
                             objectName: "setupReleaseExpiredNativeAttempt"
