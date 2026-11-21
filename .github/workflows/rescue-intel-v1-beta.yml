@@ -46,7 +46,7 @@ jobs:
           ditto -x -k signed-source/Genycaster-intel-signed.app.zip recovered
           APP="$GITHUB_WORKSPACE/recovered/Genycaster.app"
           test -d "$APP/Contents/Frameworks"
-          /usr/bin/lipo -verify_arch x86_64 "$APP/Contents/MacOS/Genycaster"
+          /usr/bin/lipo "$APP/Contents/MacOS/Genycaster" -verify_arch x86_64
           codesign --verify --deep --strict --verbose=4 "$APP"
           python3 ci/audit_macos_bundle.py "$APP" x86_64
       - name: Probe real QML shell on macOS 15 Intel and preserve diagnostics
