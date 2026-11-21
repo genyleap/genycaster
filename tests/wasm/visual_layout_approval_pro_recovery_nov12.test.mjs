@@ -69,6 +69,6 @@ test('desktop setup reserves a non-scrolling progress header',()=>{
   const setup=read('ui/components/setup/InitialSetup.qml');
   assert.match(setup,/id: desktopSetupNav[\s\S]*?id: setupProgress[\s\S]*?currentStep: root\.currentStep/);
   assert.match(setup,/anchors\.top: root\.phone \? mobileSetupNav\.bottom\s*: desktopSetupNav\.visible \? desktopSetupNav\.bottom : parent\.top/);
-  assert.match(setup,/anchors\.bottom: parent\.bottom[\s\S]*?anchors\.bottomMargin: root\.desktopStageFooter\s*\? stageAction\.height \+ Theme\.space4 \+ Theme\.space3 : 0/);
+  assert.match(setup,/id: stageAction[\s\S]*?anchors.top: stageLoader.bottom/);
   assert.doesNotMatch(setup,/anchors\.bottom:.*stageAction\.top/);
 });
