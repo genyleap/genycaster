@@ -82,7 +82,7 @@ test('browser registration prevents dead stub wallet while offering verified ide
   assert.match(account,/objectName: "setupBrowserExternalHyperSnap"[\s\S]*?root.accountIntent = "existing"[\s\S]*?root.continueWithGenyleap\(\)/);
   assert.match(account,/objectName: "setupBrowserExternalFarcaster"[\s\S]*?root.accountIntent = "existing"[\s\S]*?root.continueWithFarcaster\(\)/);
   assert.match(account,/visible: !root.browserReadOnly && root.registrationProviderId.length > 0/);
-  for (const name of ['nativeAccountLookupPanel','nativeRegistrationProofPanel','nativeRegistrationBroadcastPanel','neynarFarcasterRegistration']) {
+  for (const name of ['nativeRegistrationBroadcastPanel','setupNativeAwaitingConfirmation','setupNativeTechnicalDetailsToggle','neynarFarcasterRegistration']) {
     assert.match(account,new RegExp('objectName: "'+name+'"[^]*?visible: !root.browserReadOnly'));
   }
   assert.match(existing,/visible: !root.authenticated && root.existingProtocolSelected/);
