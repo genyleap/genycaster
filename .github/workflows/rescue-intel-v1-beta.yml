@@ -1,7 +1,8 @@
 name: Recover Intel 1.0 Beta from signed bundle (no compilation)
 
 # This one-off recovery is intentionally independent of the costly CI matrix.
-# Updating this workflow on main launches it once; later retries are manual.
+# Updating this workflow on main launches this artifact-only recovery; later retries are manual.
+# No Qt installation or C++ compilation is performed.
 on:
   push:
     branches: [main]
