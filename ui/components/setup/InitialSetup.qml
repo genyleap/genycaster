@@ -184,6 +184,12 @@ Item {
     }
     Connections {
         target: nativeRegistrationStatus
+        function onChanged() {
+            // The readiness check and wallet-backup verification can finish
+            // in either order. Begin the custody-bound read when BOTH exist.
+            Qt.callLater(root.maybeLookupNativeFid)
+            Qt.callLater(root.resumeNativePendingChecks)
+        }
         function onLookupChanged() {
             // Already registered on shard-0? Accept the custody-bound FID
             // automatically instead of offering a second Continue button.
