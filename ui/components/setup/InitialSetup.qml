@@ -2488,13 +2488,15 @@ Item {
                         visible: !nativeRegistrationPublisher.pending
                                  && !nativeRegistrationPublisher.confirmed
                                  && nativeRegistrationStatus.existingNativeFid.length === 0
+                                 && (!nativeRegistrationStatus.active
+                                     || nativeRegistrationStatus.accountLookupBusy
+                                     || !nativeRegistrationStatus.accountLookupChecked
+                                     || nativeRegistrationStatus.accountLookupFailed)
                         Layout.fillWidth: true
-                        text: nativeRegistrationStatus.accountLookupBusy
-                              || !nativeRegistrationStatus.accountLookupChecked
-                              ? qsTr("Checking your account…")
-                              : nativeRegistrationStatus.accountLookupFailed
-                                ? qsTr("Couldn't reach HyperSnap. Try again.")
-                                : qsTr("Ready to create your HyperSnap account.")
+                        text: (!nativeRegistrationStatus.active && !nativeRegistrationStatus.checking)
+                              || nativeRegistrationStatus.accountLookupFailed
+                              ? qsTr("Couldn't reach HyperSnap. Try again.")
+                              : qsTr("Checking your account…")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2539,7 +2541,9 @@ Item {
                     }
                     ActionButton {
                         objectName: "setupRetryNativeAccountLookup"
-                        visible: nativeRegistrationStatus.accountLookupFailed
+                        visible: (nativeRegistrationStatus.accountLookupFailed
+                                  || (!nativeRegistrationStatus.active
+                                      && !nativeRegistrationStatus.checking))
                                  && !nativeRegistrationPublisher.pending
                                  && !nativeRegistrationPublisher.busy
                         Layout.fillWidth: true
@@ -2614,7 +2618,8 @@ Item {
                     ActionButton {
                         objectName: "setupNativeTechnicalDetailsToggle"
                         visible: !root.authenticated
-                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.maximumWidth: Theme.scaleUi(240)
                         quiet: true
                         compact: true
                         text: root.nativeDetailsExpanded
