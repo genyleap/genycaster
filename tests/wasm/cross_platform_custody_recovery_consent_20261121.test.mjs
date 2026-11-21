@@ -8,7 +8,7 @@ test('Farcaster custody recovery completes independently of optional signer KEY_
  const runtime=read('ui/app/runtime/bindings.cpp');
  const begin=setup.indexOf('objectName: "nativeRecoveryDeviceSignerConsent"');
  assert.ok(begin>0);
- const consent=setup.slice(begin,begin+430);
+ const consent=setup.slice(begin,begin+680);
  assert.match(consent,/checked: false/,'New/Farcaster recovery must not trigger a signer write by default');
  const clear=setup.slice(setup.indexOf('function clearAll()'),setup.indexOf('function countWords()'));
  assert.match(clear,/deviceSignerConsent\.checked = false/,'Clearing recovery words must restore safe opt-in');
