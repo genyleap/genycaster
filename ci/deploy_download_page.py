@@ -70,7 +70,7 @@ def check() -> str:
     html = (SOURCE / "index.html").read_text(encoding="utf-8")
     js = (SOURCE / "download.js").read_text(encoding="utf-8")
     if ('id="download-primary"' not in html or
-            "/download/download.css?v=1" not in html or
+            "/download/download.css?v=2" not in html or
             'fetch("/releases/native.json"' not in js or
             "verifiedRecord(" not in js):
         raise RuntimeError("Missing verified native installer UX")
@@ -104,8 +104,8 @@ def verify_https() -> None:
     for filename, marker in (
         ("/download", 'id="download-primary"'),
         ("/download/", 'id="download-primary"'),
-        ("/download/download.js?v=1", "verifiedRecord("),
-        ("/download/download.css?v=1", "corner-shape:superellipse(4)"),
+        ("/download/download.js?v=2", "verifiedRecord("),
+        ("/download/download.css?v=2", "corner-shape:superellipse(4)"),
     ):
         response = run(
             "curl", "--fail", "--silent", "--show-error", "--max-time", "14",
@@ -152,8 +152,8 @@ def deploy_legacy_route() -> None:
             changed.append((historic, original))
         for route, marker in (
             ("/download/index.html", 'id="download-primary"'),
-            ("/download/download.js?v=1", "verifiedRecord("),
-            ("/download/download.css?v=1", "corner-shape:superellipse(4)"),
+            ("/download/download.js?v=2", "verifiedRecord("),
+            ("/download/download.css?v=2", "corner-shape:superellipse(4)"),
             ("/download/about-forward.js?v=1", "openDedicatedDownloads"),
             ("/about/", script_tag),
         ):

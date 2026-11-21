@@ -4,7 +4,6 @@
   const $ = (id) => document.getElementById(id);
   const version = "1.0.0";
   const releasePrefix = "https://github.com/genyleap/genycaster/releases/download/v1.0.0/";
-  const releasePage = "https://github.com/genyleap/genycaster/releases/tag/v1.0.0";
   const supported = Object.freeze({
     windows: {name:"Windows", desc:"descWindows", format:"EXE", arches:{x64:"Windows x64",arm64:"Windows ARM64"}},
     macos: {name:"macOS",desc:"descMac",format:"DMG",arches:{arm64:"Apple Silicon",x64:"Intel"}},
@@ -24,8 +23,7 @@
     x64:"GenyCaster-v1.0.0-linux-x86_64.deb",
     arm64:"GenyCaster-v1.0.0-linux-arm64.deb"
   });
-  const copy = {
-    en:{
+  const copy = Object.freeze({
       skip:"Skip to downloads",webLink:"Open web app",eyebrow:"GENYCASTER / PUBLIC RELEASE",
       headlineFirst:"Your GenyCaster.",headlineSecond:"Any device.",intro:"Pick your platform, choose the processor, and download. No account needed to get the app.",
       free:"Free to download",open:"Open source",native:"Native apps",sectionKicker:"01 / GET THE APP",choose:"Choose your platform",soon:"Later",
@@ -42,27 +40,7 @@
       warningMac:"macOS builds use ad-hoc signing and are not Apple notarized. macOS may require approval in Privacy & Security.",
       warningAndroid:"Android APK installs outside the Play Store. Only install the file from the verified GitHub Release.",
       statusWait:"Checking verified public release…"
-    },
-    fa:{
-      skip:"رفتن به بخش دریافت",webLink:"نسخهٔ وب",eyebrow:"جنی‌کستر / انتشار عمومی",
-      headlineFirst:"جنی‌کستر شما.",headlineSecond:"روی هر دستگاه.",intro:"سیستم‌عامل و معماری دستگاه را انتخاب کنید و مستقیم دریافت کنید.",
-      free:"دریافت رایگان",open:"متن‌باز",native:"نسخه‌های بومی",sectionKicker:"۰۱ / دریافت برنامه",choose:"انتخاب سیستم‌عامل",soon:"بعداً",
-      selected:"سیستم‌عامل انتخاب‌شده",processor:"معماری پردازنده",checking:"بررسی نسخه",
-      readyTitle:"متناسب با دستگاه شما.",readyDescription:"فایل مناسب، مستقیم از انتشار رسمی گیت‌هاب.",
-      webTitle:"مرورگر را ترجیح می‌دهید؟",webDescription:"بدون نصب، جنی‌کستر را همین حالا باز کنید.",webAction:"اجرای نسخهٔ وب ↗",
-      verification:"فایل‌ها از انتشار رسمی گیت‌هاب هستند. با چک‌سام SHA-256 می‌توانید صحت آن‌ها را بررسی کنید.",
-      checksum:"چک‌سام‌ها ↗",about:"درباره",release:"مشاهدهٔ انتشار ↗",
-      detected:"شناسایی شد",available:"آمادهٔ دریافت",unavailable:"دریافت موقتاً در دسترس نیست",iosUnavailable:"نسخهٔ iOS هنوز منتشر نشده؛ از نسخهٔ وب استفاده کنید.",
-      download:"دریافت برای",releaseUnavailable:"تأیید فایل نصب امکان‌پذیر نیست. انتشار رسمی را در گیت‌هاب ببینید.",
-      defaultArch:"معماری متناسب با دستگاهتان را انتخاب کنید.",macArch:"در About This Mac مشخص کنید پردازندهٔ مک Apple Silicon است یا Intel.",
-      linuxAlt:"اوبونتو / دبیان (.deb)",otherFormat:"فرمت دیگر:",format:"فایل نصب",processorInfo:"معماری",
-      descWindows:"فایل نصب دسکتاپ ویندوز ۶۴ بیتی.",descMac:"نسخهٔ دسکتاپ برای macOS 15 و بالاتر.",descLinux:"AppImage برای لینوکس، به‌همراه بستهٔ دبیان.",descAndroid:"فایل APK اندروید ۶۴ بیتی برای نصب مستقیم.",descIos:"نسخهٔ آیفون و آیپد هنوز منتشر نشده است.",
-      warningMac:"نسخهٔ مک امضای ad-hoc دارد و تأیید رسمی Apple Notarization ندارد. ممکن است نیاز به تأیید در Privacy & Security باشد.",
-      warningAndroid:"فایل APK خارج از پلی‌استور نصب می‌شود. فقط فایل انتشار رسمی گیت‌هاب را نصب کنید.",
-      statusWait:"در حال بررسی انتشار رسمی…"
-    }
-  };
-  let language = "en";
+  });
   let platform = "windows";
   let detected = null;
   const chosen = Object.create(null);
@@ -70,26 +48,7 @@
   let loaded = false;
   let failed = false;
 
-  function dict(key) { return (copy[language] || copy.en)[key] || copy.en[key] || key; }
-  function storedLanguage() {
-    try {
-      const remembered = localStorage.getItem("genycaster.site.language");
-      if (remembered === "fa" || remembered === "en") return remembered;
-    } catch (_) { /* user may disable localStorage */ }
-    return /^fa(?:-|$)/i.test(navigator.language || "") ? "fa" : "en";
-  }
-  function setLanguage(next) {
-    language = next === "fa" ? "fa" : "en";
-    document.documentElement.lang = language;
-    document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
-    document.querySelectorAll("[data-i18n]").forEach(element => {
-      element.textContent = dict(element.dataset.i18n);
-    });
-    $("language").textContent = language === "fa" ? "EN" : "FA";
-    $("language").setAttribute("aria-label",
-      language === "fa" ? "Switch language to English" : "تغییر زبان به فارسی");
-    render();
-  }
+  function dict(key) { return copy[key] || key; }
   function detectOS() {
     const ua = String(navigator.userAgent || "").toLowerCase();
     const hint = String(navigator.userAgentData?.platform ||
@@ -115,7 +74,7 @@
       if (url.protocol !== "https:" || url.origin !== "https://github.com" ||
           url.username || url.password || url.hash || url.search) return null;
     } catch (_) { return null; }
-    return Object.freeze({url:exact,sha256:record.sha256});
+    return Object.freeze({url:exact,sha256:record.sha256,version:record.version});
   }
   function preferredArch() {
     const options = supported[platform].arches;
@@ -127,6 +86,12 @@
     if (!info) return;
     document.querySelectorAll("[data-platform]").forEach(button => {
       button.setAttribute("aria-pressed", String(button.dataset.platform === platform));
+      const label = button.querySelector?.("[data-version]");
+      if (!label) return;
+      const versions = Object.values(releases[button.dataset.platform] || {});
+      const available = versions.find(record => record?.version === version);
+      label.textContent = !loaded ? "Checking…" :
+        available ? "v" + available.version : "Not available";
     });
     $("selected-name").textContent = info.name;
     $("selected-icon").src = "/assets/platforms/" + platform + ".svg?v=1";
@@ -151,6 +116,13 @@
     const entry = arch && releases[platform]?.[arch];
     const available = Boolean(entry);
     const ready = loaded && available;
+    $("selected-version").textContent = ready ? "v" + entry.version :
+      !loaded ? "Checking…" : "Not available";
+    $("release-number").textContent = ready ? "v" + entry.version + " · Beta" : "—";
+    $("file-name").textContent = ready ? entry.url.slice(releasePrefix.length) :
+      platform === "ios" ? "No iOS build" : "Installer not available";
+    $("file-hash").textContent = ready ? entry.sha256.slice(0,16) + "…" : "—";
+    $("file-hash").setAttribute("title",ready ? entry.sha256 : "");
     $("release-bullet").classList.toggle("available",ready);
     $("release-label").textContent = platform === "ios" ? dict("unavailable") :
       !loaded ? dict("checking") : ready ? dict("available") : dict("unavailable");
@@ -160,8 +132,10 @@
     main.hidden = !ready;
     if (ready) {
       main.href = entry.url;
-      $("primary-text").textContent = dict("download") + " " + info.name;
-      main.setAttribute("aria-label",dict("download") + " " + info.name + " · " + info.arches[arch]);
+      $("primary-text").textContent = "Download " + info.name + " · v" + entry.version;
+      main.setAttribute("aria-label",
+        "Download GenyCaster " + info.name + " " + info.arches[arch] +
+        " version " + entry.version);
     } else {
       main.removeAttribute("href");
     }
@@ -189,6 +163,89 @@
     trust.hidden = !trustNeeded;
     if (trustNeeded) $("trust-text").textContent =
       dict(platform === "macos" ? "warningMac" : "warningAndroid");
+    mountShapes();
+  }
+
+
+  // Match the cubic geometry of ui/components/visual/Superellipse.qml
+  // (Qt high-quality path, exponent=4) rather than relying on browser
+  // corner-shape, which is inconsistent across current engines.
+  const shapes = new WeakMap();
+  const shapeTargets = Object.freeze([
+    [".platform", 19], [".arch-button",14], [".download-panel",30],
+    [".selected-logo",20], [".release-side",23], [".side-graphic",19],
+    [".primary-download",17], [".web-card",22], [".web-action",15],
+    [".version",16], [".intro-tags span",15], [".selected-version",12],
+    [".release-number",15], [".trust-notice",16]
+  ]);
+  const svgNamespace = "http://www.w3.org/2000/svg";
+  const shapeObserver = typeof ResizeObserver === "function" ?
+    new ResizeObserver(entries => {
+      for (const entry of entries) drawShape(entry.target);
+    }) : null;
+
+  function superellipsePath(width, height, depth) {
+    if (!(width > 0 && height > 0)) return "";
+    // Same path inset and physical-pixel guard as Qt's Shape renderer.
+    const inset = .5;
+    const right = Math.max(inset,width - inset);
+    const bottom = Math.max(inset,height - inset);
+    const edgeGuard = .25 / Math.max(1,window.devicePixelRatio || 1);
+    const radius = Math.max(0, Math.min(
+      depth - inset, (right-inset)/2 - edgeGuard,
+      (bottom-inset)/2 - edgeGuard
+    ));
+    const safeExponent = 4.0;
+    const diagonal = Math.pow(.5, 1 / safeExponent);
+    const cubicFactor = Math.max(.5522847498, Math.min(.985,(8 * diagonal - 4) / 3));
+    const r = radius, k = cubicFactor, l = inset, t = inset, b = bottom, x = right;
+    const f = n => Number(n.toFixed(3));
+    return [
+      "M",f(l+r),f(t),
+      "L",f(x-r),f(t),
+      "C",f(x-r+k*r),f(t),f(x),f(t+r-k*r),f(x),f(t+r),
+      "L",f(x),f(b-r),
+      "C",f(x),f(b-r+k*r),f(x-r+k*r),f(b),f(x-r),f(b),
+      "L",f(l+r),f(b),
+      "C",f(l+r-k*r),f(b),f(l),f(b-r+k*r),f(l),f(b-r),
+      "L",f(l),f(t+r),
+      "C",f(l),f(t+r-k*r),f(l+r-k*r),f(t),f(l+r),f(t),
+      "Z"
+    ].join(" ");
+  }
+  function drawShape(element) {
+    const entry = shapes.get(element);
+    if (!entry) return;
+    const width = element.clientWidth, height = element.clientHeight;
+    if (!(width > 0 && height > 0)) return;
+    const key = width + ":" + height;
+    if (entry.last === key) return;
+    entry.last = key;
+    entry.svg.setAttribute("viewBox","0 0 " + width + " " + height);
+    entry.path.setAttribute("d",superellipsePath(width,height,entry.depth));
+  }
+  function mountShapes() {
+    if (typeof document.createElementNS !== "function") return;
+    for (const [selector,depth] of shapeTargets) {
+      for (const element of document.querySelectorAll(selector)) {
+        if (shapes.has(element)) continue;
+        const svg = document.createElementNS(svgNamespace,"svg");
+        const path = document.createElementNS(svgNamespace,"path");
+        svg.setAttribute("aria-hidden","true");
+        svg.setAttribute("focusable","false");
+        svg.setAttribute("preserveAspectRatio","none");
+        svg.classList.add("gs-shape");
+        path.setAttribute("vector-effect","non-scaling-stroke");
+        path.setAttribute("stroke-linejoin","round");
+        svg.append(path);
+        element.prepend(svg);
+        shapes.set(element,{svg,path,depth,last:""});
+        element.classList.add("gs-shaped");
+        element.dataset.shapeReady = "true";
+        shapeObserver?.observe(element);
+        drawShape(element);
+      }
+    }
   }
 
   async function loadRelease() {
@@ -223,11 +280,6 @@
 
   detected = detectOS();
   if (detected) platform = detected;
-  $("language").addEventListener("click", () => {
-    const next = language === "fa" ? "en" : "fa";
-    try { localStorage.setItem("genycaster.site.language",next); } catch (_) {}
-    setLanguage(next);
-  });
   $("platform-list").addEventListener("click", (event) => {
     const button = event.target.closest("button[data-platform]");
     if (!button || !supported[button.dataset.platform]) return;
@@ -240,6 +292,6 @@
     chosen[platform] = button.dataset.arch;
     render();
   });
-  setLanguage(storedLanguage());
+  render();
   loadRelease();
 })();
