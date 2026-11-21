@@ -13,7 +13,12 @@ const translations={
   consent:'I authorize the one-time registration of this wallet on the selected network.',
   create:'Create account',cancel:'Cancel',copy:'Copy words',copied:'Words copied — clear your clipboard afterward',
   failed:'The selected recovery words do not match. Confirm your backup.',
-  busy:'Registering securely… Do not close this page until confirmation.',progress:'Preparing a proof',
+  busy:'Preparing secure registration…',progress:'Searching for a registration proof',
+  stopping:'Stopping the proof before network submission…',
+  submitting:'Submitting registration to HyperSnap. Do not submit it again.',
+  checking:'Submission sent. Checking for an independently confirmed FID…',
+  working:'Creating your account',
+  progressNote:'Proof search is running. This percentage is the hash-search budget, not network confirmation.',
   pending:'Network result is uncertain. Do not repeat registration. Recover this wallet with your saved words to check its FID.',
   voucher:'Paid or sponsored enrollment voucher',username:'Choose a Farcaster username'
  },
@@ -24,7 +29,12 @@ const translations={
   consent:'ثبت یک‌بارهٔ این کیف پول در شبکهٔ انتخاب‌شده را تأیید می‌کنم.',
   create:'ساخت حساب',cancel:'انصراف',copy:'کپی واژه‌ها',copied:'واژه‌ها کپی شدند؛ پس از استفاده کلیپ‌بورد را پاک کنید',
   failed:'واژه‌های انتخاب‌شده درست نیستند. نسخهٔ پشتیبان را بررسی کنید.',
-  busy:'در حال ثبت امن… تا زمان تأیید نهایی این صفحه را نبندید.',progress:'در حال آماده‌سازی اثبات',
+  busy:'در حال آماده‌سازی ثبت‌نام امن…',progress:'در حال جستجوی اثبات ثبت‌نام',
+  stopping:'در حال توقف محاسبه پیش از ارسال شبکه…',
+  submitting:'ثبت‌نام به هایپراسنپ ارسال می‌شود؛ دوباره ارسال نکنید.',
+  checking:'درخواست ارسال شد. در حال بررسی مستقل ثبت FID…',
+  working:'در حال ایجاد حساب',
+  progressNote:'درصد، میزان جستجوی اثبات را نشان می‌دهد، نه تأیید ثبت در شبکه.',
   pending:'نتیجهٔ شبکه نامشخص است. ثبت‌نام را تکرار نکنید. با واژه‌های ذخیره‌شده، وضعیت FID را بررسی کنید.',
   voucher:'کد معتبر ثبت‌نام پولی یا حمایت‌شده',username:'نام کاربری فارکستر'
  }
@@ -75,7 +85,20 @@ export async function promptCreateBrowserWallet({
  const warning=document.createElement('p');warning.textContent=t.warning;
  warning.style.cssText='line-height:1.6;color:'+colors.muted+';margin:0 0 16px';
  const grid=document.createElement('div');
- grid.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;direction:ltr;';
+ grid.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;direction:ltr;'
+ const progressPanel=document.createElement('section');
+ progressPanel.hidden=true;
+ progressPanel.style.cssText='display:none;margin:22px 0;padding:20px;border:1px solid '+colors.border+';border-radius:18px;background:'+colors.cell+';';
+ const progressHeading=document.createElement('h2');progressHeading.textContent=t.working;
+ progressHeading.style.cssText='font-size:19px;font-weight:700;margin:0 0 12px;color:'+colors.fg;
+ const progressCaption=document.createElement('p');progressCaption.textContent=t.busy;
+ progressCaption.style.cssText='font-size:15px;line-height:1.6;color:'+colors.muted+';margin:0 0 12px;overflow-wrap:anywhere;';
+ const progressTrack=document.createElement('div');progressTrack.style.cssText='height:6px;background:'+colors.border+';border-radius:9px;overflow:hidden;';
+ const progressFill=document.createElement('div');progressFill.style.cssText='height:100%;width:0%;border-radius:9px;background:#008bff;transition:width 150ms linear;';
+ progressTrack.appendChild(progressFill);
+ const progressNote=document.createElement('p');progressNote.textContent=t.progressNote;
+ progressNote.style.cssText='font-size:12px;line-height:1.6;color:'+colors.muted+';margin:10px 0 0';
+ progressPanel.append(progressHeading,progressCaption,progressTrack,progressNote);;
  const cells=[];
  words.forEach((word,i)=>{
   const cell=document.createElement('div');
@@ -124,7 +147,7 @@ export async function promptCreateBrowserWallet({
     ';border:1px solid '+colors.border+';cursor:pointer;';
   buttons.appendChild(b);return b;
  };
- content.append(heading,subtitle,warning,grid,backupAction,challengeHeading,challenge);
+ content.append(heading,subtitle,warning,grid,progressPanel,backupAction,challengeHeading,challenge);
  const saved=confirmation(t.complete),consent=confirmation(t.consent);
  const credentialFields={};
  if(protocol==='farcaster-snapchain'){
@@ -148,6 +171,9 @@ export async function promptCreateBrowserWallet({
  const oldOverflow=document.body.style.overflow;
  document.body.style.overflow='hidden';document.body.appendChild(layer);
  let attempts=0;
+ const operationController=new AbortController();
+ const cancelOperation=()=>operationController.abort(new Error('Account creation cancelled'));
+ signal?.addEventListener('abort',cancelOperation,{once:true});
  const wipe=()=>{
   for(const input of checks)input.value='';
   for(const input of Object.values(credentialFields))input.value='';
@@ -162,9 +188,17 @@ export async function promptCreateBrowserWallet({
   const finish=(error,value)=>{
    if(settled)return;
    settled=true;signal?.removeEventListener('abort',abort);
+   signal?.removeEventListener('abort',cancelOperation);
    wipe();if(error)reject(error);else resolve(value);
   };
-  const abort=()=>{if(!processing)finish(new Error('Account creation cancelled'));};
+  let submissionStarted=false;
+  const abort=()=>{
+   if(!processing) { finish(new Error('Account creation cancelled'));return; }
+   if(submissionStarted||operationController.signal.aborted)return;
+   progressCaption.textContent=t.stopping;
+   cancel.disabled=true;
+   cancelOperation(); // Stop only before the irreversible network POST.
+  };
   signal?.addEventListener('abort',abort,{once:true});
   cancel.onclick=()=>abort();
   backupAction.onclick=async()=>{
@@ -182,28 +216,48 @@ export async function promptCreateBrowserWallet({
     if(attempts>=5)finish(new Error('Backup verification attempt limit reached'));
     return;
    }
-   // Hide the phrase before any network request. It remains in memory only
-   // for the short registration operation. Never persist or send raw words.
+   // Hide secret words and their now-empty 24 cards entirely. Replace the
+   // backup form with a responsive progress panel; no mnemonic enters logs,
+   // URLs, QML, or the proof worker. Cancellation stays available until POST.
    for(const cell of cells)clearNode(cell);
-   processing=true;submit.disabled=true;cancel.disabled=true;
-   result.textContent=t.busy;
+   for(const element of [grid,backupAction,challengeHeading,challenge,warning])
+     element.style.display='none';
+   saved.parentElement.style.display='none';
+   consent.parentElement.style.display='none';
+   for(const field of Object.values(credentialFields))field.parentElement.style.display='none';
+   progressPanel.hidden=false;progressPanel.style.display='block';
+   content.scrollTop=0;
+   processing=true;submit.disabled=true;cancel.disabled=false;
+   result.textContent='';
    const update=(done,total,phase)=>{
-    if(!settled) {
-      result.textContent=phase==='outcome-unknown'?t.pending:
-        t.progress+' '+Math.floor(done/Math.max(1,total)*100)+'%';
-      onProgress(done,total,phase);
+    if(settled)return;
+    if(phase==='submitting'||phase==='checking'||phase==='outcome-unknown') {
+      submissionStarted=true;
+      cancel.disabled=true;
+      progressCaption.textContent=phase==='submitting'?t.submitting:
+        phase==='checking'?t.checking:t.pending;
+      progressTrack.style.display='none';
+      progressNote.style.display='none';
+    }else{
+      const percent=Math.max(0,Math.min(100,Math.floor(done/Math.max(1,total)*100)));
+      progressCaption.textContent=t.progress+' · '+percent+'%';
+      progressFill.style.width=percent+'%';
     }
+    onProgress(done,total,phase);
    };
    try{
     const voucher=credentialFields.voucher?.value||'';
     const username=(credentialFields.username?.value||'').trim().toLowerCase();
-    const verified=await onRegister(phrase,{signal,onProgress:update,
+    const verified=await onRegister(phrase,{signal:operationController.signal,onProgress:update,
       confirmIrreversible:true,voucher,username});
     credentialFields.voucher && (credentialFields.voucher.value='');
     finish(null,verified);
    }catch(error){
     if(error.outcomeUnknown){
-      result.textContent=t.pending;submit.disabled=true;cancel.disabled=false;
+      progressCaption.textContent=t.pending;
+      result.textContent=t.pending;
+      progressTrack.style.display='none';progressNote.style.display='none';
+      submit.disabled=true;cancel.disabled=false;
       processing=false;cancel.onclick=()=>finish(error);
     }else{
       finish(error);
