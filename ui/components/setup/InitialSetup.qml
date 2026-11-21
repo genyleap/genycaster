@@ -1940,6 +1940,74 @@ Item {
                              && !(root.registrationProviderId === "hypersnap-v2"
                                   && nativeCustodyWallet.backupVerified)
                 }
+                // The official Farcaster account route is available to
+                // everyone. A Genycaster sponsorship voucher is a separate
+                // optional operator entitlement, NEVER an API key/payment
+                // code the user is expected to know or buy from Neynar.
+                ColumnLayout {
+                    objectName: "setupFarcasterRegistrationIntro"
+                    visible: root.registrationProviderId === "farcaster-snapchain"
+                             && !root.accountFidRegistered
+                    Layout.fillWidth: true
+                    spacing: Theme.space3
+
+                    DirectionAwareLabel {
+                        objectName: "setupFarcasterPaymentExplanation"
+                        Layout.fillWidth: true
+                        text: qsTr("Creating a new Farcaster ID requires a paid network registration. Genycaster does not currently offer payment or code purchases inside the app.")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeLabelSize
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        objectName: "setupFarcasterOfficialSignup"
+                        Layout.fillWidth: true
+                        prominent: !root.farcasterSponsoredEnrollmentChosen
+                        text: qsTr("Create account on Farcaster")
+                        Accessible.description: qsTr("Opens the official Farcaster website. Return here and choose Existing account to sign in.")
+                        onClicked: Qt.openUrlExternally("https://farcaster.xyz/")
+                    }
+                    ActionButton {
+                        objectName: "setupFarcasterExistingAccount"
+                        Layout.fillWidth: true
+                        compact: true
+                        quiet: true
+                        visible: !neynarRegistration.pending
+                                 && neynarRegistration.phase !== "reserved"
+                        text: qsTr("Already have an account? Sign in")
+                        onClicked: {
+                            root.accountIntent = "existing"
+                            root.choosingRegistrationProvider = false
+                            root.existingProtocolSelected = true
+                            root.recoveryProtocol = "farcaster-snapchain"
+                            root.showRecovery = false
+                            root.switchStep(4)
+                        }
+                    }
+                    ActionButton {
+                        objectName: "setupFarcasterSponsorCodeChoice"
+                        Layout.fillWidth: true
+                        compact: true
+                        quiet: true
+                        visible: neynarRegistration.available
+                                 && neynarRegistration.registrationSupported
+                                 && !root.farcasterSponsoredEnrollmentChosen
+                        text: qsTr("I have a Genycaster sponsorship code")
+                        onClicked: root.farcasterSponsoredEnrollmentChosen = true
+                    }
+                    DirectionAwareLabel {
+                        objectName: "setupFarcasterSponsorAvailability"
+                        Layout.fillWidth: true
+                        visible: !root.farcasterSponsoredEnrollmentChosen
+                                 && !neynarRegistration.available
+                        text: neynarRegistration.checkingAvailability
+                            ? qsTr("Checking sponsored enrollment availability…")
+                            : qsTr("Sponsored registration in Genycaster is not available at the moment. You can register using Farcaster and return to sign in.")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                }
                 // Browser uses verified external identity paths until a
                 // WebCrypto custody signer and native chain registration
                 // have been implemented and tested. Do not solicit a seed
@@ -1949,14 +2017,6 @@ Item {
                     visible: root.browserReadOnly && root.registrationProviderId.length > 0
                     Layout.fillWidth: true
                     spacing: Theme.space3
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        visible: root.registrationProviderId === "farcaster-snapchain"
-                        text: qsTrId("genycaster.setup.neynar_registration_requirements")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
                     SetupActionCard {
                         objectName: "setupBrowserCreateHyperSnap"
                         visible: root.registrationProviderId === "hypersnap-v2"
@@ -1995,11 +2055,13 @@ Item {
                     SetupActionCard {
                         objectName: "setupBrowserCreateFarcaster"
                         visible: root.registrationProviderId === "farcaster-snapchain"
+                                 && root.farcasterSponsoredEnrollmentChosen
+                                 && neynarRegistration.available
                         Layout.fillWidth: true
                         compactCard: true
                         onboardingStyle: true
                         iconGlyph: "brands/farcaster"
-                        title: qsTrId("genycaster.setup.design_create_account")
+                        title: qsTr("Continue sponsored registration")
                         enabled: root.runtimeReady && !root.authenticationInProgress
                         onClicked: {
                             root.browserCreateAccount("farcaster-snapchain")
