@@ -62,12 +62,21 @@ import os,re
 from pathlib import Path
 root=Path(os.environ['RUNNER_TEMP'])
 def metadata(name):
-    return dict(re.findall(r"(name|versionCode|versionName)='([^']+)'",
-                           (root/name).read_text()))
+    text = (root / name).read_text().strip()
+    # Anchor field names: otherwise compileSdkVersionCodename='16'
+    # overrides package name when converted to dict.
+    assert text.startswith('package: '), 'Invalid Android package metadata'
+    fields = re.findall(r"(?<![A-Za-z0-9_])(name|versionCode|versionName)='([^']+)'", text)
+    result = dict(fields)
+    assert len(fields) == 3 and len(result) == 3, 'Ambiguous package fields'
+    return result
 old=metadata('original-package.txt')
 new=metadata('test-package.txt')
 assert old['name'] == new['name'] == 'com.genyleap.genycaster', (old,new)
-assert old['versionName'] == new['versionName'] == '1.0.0', (old,new)
+# Preserve exactly the installed application's manifest version. The
+# existing release uses 1.0 in Android metadata while the GitHub tag
+# and artifact name are v1.0.0.
+assert old['versionName'] == new['versionName'] and old['versionName'] in ('1.0', '1.0.0'), (old,new)
 assert int(new['versionCode']) >= int(old['versionCode']), (old,new)
 print('VALIDATED: same Android package, release version and compatible versionCode')
 PY
