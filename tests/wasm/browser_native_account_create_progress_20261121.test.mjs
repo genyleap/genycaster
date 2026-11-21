@@ -121,9 +121,36 @@ test('a network outcome that may have been accepted stays pending, never silentl
   });
   void ui.one('Create account').onclick();
   await new Promise(resolve=>setImmediate(resolve));
-  const cancel=ui.one('Cancel');
-  assert.equal(cancel.disabled,false);
-  assert.ok(ui.nodes.some(n=>String(n.textContent).includes('Do not repeat registration')));
-  cancel.onclick();
+  const close=ui.one('Close');
+  assert.equal(close.disabled,false);
+  assert.ok(ui.nodes.some(n=>String(n.textContent).includes('Do not submit it again')));
+  close.onclick();
   await assert.rejects(ui.dialog,/submission unconfirmed/);
+});
+
+test('Farcaster FID reservation is clearly irreversible and keeps cancellation disabled',async()=>{
+  let resolveReservation;
+  const ui=await start((_phrase,{signal,onProgress})=>{
+    onProgress(0,4,'reserve');
+    return new Promise(resolve=>{resolveReservation=resolve;});
+  },{protocol:'farcaster-snapchain'});
+  void ui.one('Create account').onclick();
+  await new Promise(resolve=>setImmediate(resolve));
+  const cancel=ui.one('Cancel');
+  assert.equal(cancel.disabled,true,'paid reserve POST is an irreversible boundary');
+  assert.ok(ui.nodes.some(n=>String(n.textContent).includes('Preparing sponsored registration')));
+  resolveReservation({state:'confirmed',fid:'101'});
+  await ui.dialog;
+});
+
+test('Farcaster sponsorship code is explained with a verified official signup link',async()=>{
+ const ui=await start(()=>Promise.resolve({fid:'101'}),{protocol:'farcaster-snapchain'});
+ const links=ui.nodes.filter(n=>n.tagName==='A');
+ assert.equal(links.length,1);
+ assert.equal(links[0].href,'https://farcaster.xyz/');
+ assert.equal(links[0].target,'_blank');
+ assert.equal(links[0].rel,'noopener noreferrer');
+ assert.ok(ui.nodes.some(n=>String(n.textContent).includes('Genycaster operator')));
+ ui.one('Cancel').onclick();
+ await assert.rejects(ui.dialog,/cancelled/);
 });
