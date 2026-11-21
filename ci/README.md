@@ -223,8 +223,10 @@ is eligible to publish after signing, feature, runtime and artifact gates.
   and must not depend on unrelated database clients. The QML and Cocoa plugins, Qt
   frameworks and Mach-O dependencies are audited in both the build `.app`
   and the `.app` actually mounted from its DMG; both must pass a startup
-  smoke test with Qt SDK environment variables removed. Developer ID signing
-  and Apple notarization are NOT configured yet.
+  smoke test with Qt SDK environment variables removed. Free public macOS
+  releases are ad-hoc signed and explicitly marked UNNOTARIZED. Developer ID
+  signing and Apple notarization are optional, not configured yet. Gatekeeper
+  may block browser-downloaded ad-hoc DMGs; never claim Apple approval.
 * Windows: The staged application must bundle QtQuick.Controls, the Basic
   style and the Multimedia backend. Windows CI runs the executable's QML
   startup smoke test without Qt SDK/vcpkg PATH entries before NSIS packaging.
@@ -258,7 +260,10 @@ for tagged releases. The new desktop startup smoke tests go further and
 exercise the packaged QML root on CI, but they do not replace actual-device
 testing across supported OS versions, GPU drivers, secure-vault backends and
 wallet/identity flows. Neither an unsigned iOS bundle nor an unnotarized macOS
-DMG should be described as production-installable for every user.
+DMG should be described as Apple-approved or automatically installable for
+every user. Android public APKs require one persistent owner-controlled
+keystore in four GitHub Actions Secrets; temporary CI-TEST keys are never
+used for tagged releases. This does not require a paid Google Play account.
 
 The Android job also checks `QT_FEATURE_ssl=1` in the installed Qt Network
 SDK **for manual and tagged builds**, before building OpenSSL. Bundling TLS

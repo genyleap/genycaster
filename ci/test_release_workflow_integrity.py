@@ -162,9 +162,12 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         # cannot bypass architecture, translation, privacy or design gates.
         gate = job_source(s, "gate", "linux")
         self.assertIn("run: python3 ci/server_acceptance.py --strict-design", gate)
-        self.assertIn("Refuse an unsigned public release before installing toolchains", gate)
-        self.assertIn("MACOS_DEVELOPER_ID_P12_BASE64", gate)
+        self.assertIn("Require durable Android release signing key before installing toolchains", gate)
+        self.assertNotIn("MACOS_DEVELOPER_ID_P12_BASE64", gate)
         self.assertIn("ANDROID_KEYSTORE_BASE64", gate)
+        self.assertIn("ANDROID_KEYSTORE_PASSWORD", gate)
+        self.assertIn("ANDROID_KEY_ALIAS", gate)
+        self.assertIn("ANDROID_KEY_PASSWORD", gate)
         # Browser WASM stays a separately verified site artifact, not a
         # public downloadable installer in GitHub Release assets.
         from ci.release_artifacts import EXPECTED

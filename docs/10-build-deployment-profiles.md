@@ -160,9 +160,10 @@ transport snapshots, not installed update patches; no version-delta patch
 applicator is shipped. Linux `.zsync` is produced but is not yet consumed
 by the in-app updater.
 
-Unsigned CI test installers are not notarized/signed retail releases:
-Windows SmartScreen and macOS Gatekeeper can require a trusted publisher
-certificate and platform signing/notarization before general distribution.
+Unnotarized macOS public preview DMGs are ad-hoc signed and explicitly
+labeled `adhoc-UNNOTARIZED`; Gatekeeper may block them after download.
+Windows SmartScreen can likewise warn about an unknown publisher. Neither
+mode should be described as trusted-publisher signed or Apple-approved.
 Successful CI packaging alone does not establish retail release readiness.
 
 ## Current verification presets

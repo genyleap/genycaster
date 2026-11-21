@@ -93,8 +93,9 @@ or change the API host during rollback.
 
 ## Later: official native releases
 
-Once the full platform CI matrix, signing/notarization and release gates
-have genuinely passed and GitHub's tagged Release exists:
+Once the full platform CI matrix, persistent Android release signing,
+macOS ad-hoc code-signing audits (or optional Developer ID notarization),
+and release gates have genuinely passed and GitHub's tagged Release exists:
 
 ```bash
 python3 ci/generate_native_release_catalog.py \\

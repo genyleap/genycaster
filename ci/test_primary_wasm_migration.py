@@ -331,6 +331,37 @@ for(const [width,height,radius,mobile] of [
             with self.assertRaises(ValueError):
                 native.generate(root, "not-a-version")
 
+    def test_free_macos_adhoc_release_is_explicitly_labeled_and_never_ambiguous(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            checksums = []
+            for artifact, suffix in EXPECTED.items():
+                filename = (f"GenyCaster-v1.0.0-"
+                            f"{artifact.removeprefix('GenyCaster-')}{suffix}")
+                if artifact.startswith("GenyCaster-macos-"):
+                    filename = filename.removesuffix(".dmg") + "-adhoc-UNNOTARIZED.dmg"
+                content = ("release-" + artifact).encode("ascii")
+                (root / filename).write_bytes(content)
+                checksums.append(f"{hashlib.sha256(content).hexdigest()}  {filename}")
+            (root / "SHA256SUMS").write_text("\n".join(checksums) + "\n")
+            browser, landing = native.generate(root, "v1.0.0")
+            for arch in ("arm64", "x64"):
+                record = browser["platforms"]["macos"][arch]
+                self.assertEqual(record["distribution"], "ad-hoc-unnotarized")
+                self.assertIn("-adhoc-UNNOTARIZED.dmg", record["url"])
+                self.assertEqual(
+                    next(a for a in landing["platforms"]["macos"]["assets"]
+                         if a["architecture"] == arch)["distribution"],
+                    "ad-hoc-unnotarized")
+            self.assertNotIn("distribution",
+                             browser["platforms"]["android"]["arm64"])
+            # Two differently signed DMGs must never be silently selected
+            # by the same architecture's download catalog.
+            standard = root / "GenyCaster-v1.0.0-macos-arm64.dmg"
+            standard.write_bytes(b"duplicate")
+            with self.assertRaisesRegex(ValueError, "ambiguous"):
+                native.generate(root, "v1.0.0")
+
     def test_deploy_preview_preserves_about_and_limits_write_scope(self):
         prepare = (ROOT / "ci/prepare_primary_wasm_preview.py").read_text()
         self.assertIn('ROOT = Path("/var/www/genycaster.xyz/public")', prepare)

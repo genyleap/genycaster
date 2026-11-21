@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Sign the *finished* macOS app after macdeployqt and bundle pruning.
 # An ad-hoc signature seals experimental CI artifacts but does not make a
-# Safari-downloaded DMG Gatekeeper-approved. Public releases use Developer ID
-# Application and Apple notarization, never an ad-hoc fallback.
+# Safari-downloaded DMG Gatekeeper-approved. Public releases MAY include
+# explicitly labeled ad-hoc/UNNOTARIZED preview DMGs (GenyConnect model);
+# Developer ID + Apple notarization remains a stronger optional mode.
 set -euo pipefail
 
 app="${1:?Pass Genycaster.app path}"

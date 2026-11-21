@@ -31,7 +31,9 @@ class MacOSSigningPolicyTest(unittest.TestCase):
         self.assertIn('signing_mode="developer-id"', mac)
         self.assertIn('bash ci/sign_macos_bundle.sh "$APP" "$signing_mode"', mac)
         self.assertIn('bash ci/notarize_macos_dmg.sh "$DMG"', mac)
-        self.assertIn('Public macOS release requires Developer ID and Apple notarization', mac)
+        self.assertIn('Public macOS release will be ad-hoc signed and UNNOTARIZED', mac)
+        self.assertIn('if [[ "$REQUIRE_MACOS_NOTARIZATION" == "true" && "$signing_mode" == "ad-hoc" ]]', mac)
+        self.assertNotIn('Public macOS release requires Developer ID and Apple notarization', mac)
         self.assertIn('spctl --assess --type execute', mac)
         self.assertIn('codesign --verify --deep --strict', mac)
         self.assertLess(mac.index("ci/prune_macos_bundle.py"),

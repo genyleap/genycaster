@@ -414,12 +414,19 @@
         const entry = catalog[platform]?.[arch] || null;
         download.hidden = !entry;
         if (entry) {
+            const adHocMac = platform === "macos" &&
+                entry.distribution === "ad-hoc-unnotarized";
             download.href = entry.url;
-            download.textContent = "Download " + info.label + " · " + entry.version;
-            download.setAttribute("aria-label", "Download verified " + info.label +
-                " " + info.arches[arch] + " release " + entry.version);
-            status.textContent = "Published build · SHA-256 " +
-                entry.sha256.slice(0, 12) + "…";
+            download.textContent = "Download " + info.label + " · " +
+                entry.version + (adHocMac ? " · Ad-hoc" : "");
+            download.setAttribute("aria-label",
+                (adHocMac ? "Download ad-hoc signed, not notarized " :
+                    "Download checksum-verified ") + info.label + " " +
+                info.arches[arch] + " release " + entry.version);
+            status.textContent = adHocMac
+                ? "Ad-hoc signed · NOT notarized by Apple; macOS Gatekeeper may block the download. · SHA-256 " +
+                    entry.sha256.slice(0, 12) + "…"
+                : "Published build · SHA-256 " + entry.sha256.slice(0, 12) + "…";
         } else {
             download.removeAttribute("href");
             download.removeAttribute("aria-label");

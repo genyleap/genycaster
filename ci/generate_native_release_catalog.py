@@ -74,9 +74,17 @@ def generate(directory: Path, tag: str) -> tuple[dict, dict]:
         # filenames: GenyCaster-windows-x86_64 contains the versioned file
         # GenyCaster-v1.0.0-windows-x86_64.exe, not the folder prefix.
         expected_name = f"GenyCaster-{tag}-{artifact.removeprefix('GenyCaster-')}{suffix}"
+        # A GenyConnect-style free macOS release has a verified ad-hoc code
+        # signature, but NO Apple Developer ID or notarization. Keep that
+        # limitation explicit in both the asset filename and the download UI.
+        # Never silently choose between differently trusted DMGs.
+        names = {expected_name}
+        if os == "macos":
+            names.add(expected_name.removesuffix(".dmg")
+                      + "-adhoc-UNNOTARIZED.dmg")
         candidates = [p for p in directory.iterdir()
-                      if p.is_file() and not p.is_symlink() and
-                      p.name == expected_name]
+                      if p.is_file() and not p.is_symlink()
+                      and p.name in names]
         if len(candidates) != 1:
             raise ValueError(f"Missing/ambiguous verified {artifact} installer")
         file = candidates[0]
@@ -86,10 +94,18 @@ def generate(directory: Path, tag: str) -> tuple[dict, dict]:
         url = ("https://github.com/genyleap/genycaster/releases/download/" +
                quote(tag, safe="") + "/" + quote(file.name, safe=""))
         record = {"url": url, "version": version, "sha256": expected}
+        if os == "macos":
+            record["distribution"] = (
+                "ad-hoc-unnotarized"
+                if file.name.endswith("-adhoc-UNNOTARIZED.dmg")
+                else "developer-id-notarized"
+            )
         catalog["platforms"].setdefault(os, {})[arch] = record
         landing["platforms"][os]["version"] = version
-        landing["platforms"][os]["assets"].append({
-            "label": file.name, "architecture": arch, "url": url})
+        asset = {"label": file.name, "architecture": arch, "url": url}
+        if os == "macos":
+            asset["distribution"] = record["distribution"]
+        landing["platforms"][os]["assets"].append(asset)
     return catalog, landing
 
 

@@ -79,7 +79,9 @@ test('no UI hardcodes numeric versions or concatenates product and version',()=>
   assert.match(html, /<span class="boot-beta">BETA<\/span>/);
   assert.match(html, /id="boot-build-credit"/);
   assert.match(read('ui/wasm/genycaster-loader.js'), /creditBuild\.textContent=buildLabel/);
-  assert.doesNotMatch(html,/\b\d+\.\d+\.\d+(?:-rc\d+)?\b/);
+  // SVG path coordinates (e.g. 2.9 2.78 5.65) are not release
+  // versions. Check actual shell markup, excluding inline vector geometry.
+  assert.doesNotMatch(html.replace(/<path\b[^>]*>/g, ""),/\b\d+\.\d+\.\d+(?:-rc\d+)?\b/);
   assert.match(read('ci/package_wasm_assets.py'),/html\.replace\(release_placeholder, "v" \+ args\.app_version\)/);
   assert.match(read('ui/CMakeLists.txt'),/GENYCASTER_APP_VERSION="/);
   assert.match(read('ui/CMakeLists.txt'),/--release-channel/);
@@ -96,7 +98,9 @@ test('all platform notes use canonical JSON and generated GitHub Markdown',()=>{
   assert.match(cmake,/--release-notes "\$\{GENYCASTER_RELEASE_NOTES_FILE\}"/);
   assert.match(native,/genycaster-release-notes\/v%1\.json/);
   assert.match(native,/genycaster-locale:/);
-  assert.match(workflow,/body_path: release-notes\/\$\{\{ github\.ref_name \}\}\.md/);
+  assert.match(workflow,/body_path: \$\{\{ runner\.temp \}\}\/genycaster-release-body\.md/);
+  assert.match(workflow,/macOS distribution notice/);
+  assert.match(workflow,/adhoc-UNNOTARIZED\.dmg/);
   for(const tag of ['en-US','fa-IR','ar-SA','de-DE','es-ES','fr-FR',
                     'hi-IN','ja-JP','ko-KR','pt-BR','ru-RU','zh-CN']){
     const local=sourceNotes.translations[tag];

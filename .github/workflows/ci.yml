@@ -104,29 +104,23 @@ jobs:
             echo "::error::All-platform build requires the full-matrix budget checkbox."
             exit 1
           fi
-      - name: Refuse an unsigned public release before installing toolchains
+      - name: Require durable Android release signing key before installing toolchains
         if: steps.release.outputs.release == 'true'
         shell: bash
         env:
-          MACOS_DEVELOPER_ID_P12_BASE64: ${{ secrets.MACOS_DEVELOPER_ID_P12_BASE64 }}
-          MACOS_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_P12_PASSWORD }}
-          MACOS_NOTARY_KEY_P8_BASE64: ${{ secrets.MACOS_NOTARY_KEY_P8_BASE64 }}
-          MACOS_NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
-          MACOS_NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          # Never spend hours on macOS/Android builds that cannot be signed.
-          # The workflow receives secret values from GitHub only, never source.
-          for name in MACOS_DEVELOPER_ID_P12_BASE64 MACOS_DEVELOPER_ID_P12_PASSWORD \
-                      MACOS_NOTARY_KEY_P8_BASE64 MACOS_NOTARY_KEY_ID MACOS_NOTARY_ISSUER_ID \
-                      ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD \
+          # macOS follows the GenyConnect free ad-hoc signing model.
+          # Android MUST use a persistent owner-controlled signing key:
+          # a new ephemeral key on every tag would make upgrades impossible.
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD \
                       ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
             if [[ -z "${!name}" ]]; then
-              echo "::error::Public Release missing mandatory signing material: $name"
+              echo "::error::Release missing mandatory Android signing material: $name"
               exit 1
             fi
           done
@@ -603,9 +597,12 @@ jobs:
             echo "::error::Incomplete macOS Developer ID/notarization secrets"
             exit 1
           fi
-          if [[ "$REQUIRE_MACOS_NOTARIZATION" == "true" && "$signing_mode" != "developer-id" ]]; then
-            echo "::error::Public macOS release requires Developer ID and Apple notarization"
-            exit 1
+          # Public GitHub Release may contain explicitly labeled ad-hoc
+          # macOS preview DMGs, as in GenyConnect. Developer ID + notarization
+          # remains the stronger optional path when all five secrets exist.
+          # Incomplete credentials still fail above rather than falling back.
+          if [[ "$REQUIRE_MACOS_NOTARIZATION" == "true" && "$signing_mode" == "ad-hoc" ]]; then
+            echo "::warning::Public macOS release will be ad-hoc signed and UNNOTARIZED. Gatekeeper approval is NOT implied."
           fi
           bash ci/sign_macos_bundle.sh "$APP" "$signing_mode"
           python3 ci/audit_macos_bundle.py "$APP" "${{ matrix.arch }}" --smoke
@@ -637,7 +634,7 @@ jobs:
           if [[ "$signing_mode" == "developer-id" ]]; then
             bash ci/notarize_macos_dmg.sh "$DMG"
           else
-            echo "::warning::macOS CI DMG is ad-hoc signed, not notarized. Gatekeeper may block Safari downloads; this is not a public release."
+            echo "::warning::macOS DMG is ad-hoc signed, NOT notarized; Gatekeeper may block downloaded apps. Release asset must remain explicitly labeled."
           fi
           # Inspect and run the ACTUAL mounted DMG payload, not just the build
           # tree; this catches incomplete DMG copies and Qt SDK fallbacks.
@@ -1469,13 +1466,32 @@ jobs:
             test -n "$(find "artifacts/$name" -type f -print -quit)"
           done
           python3 ci/release_artifacts.py artifacts release
+      - name: Prepare release notes with macOS trust disclosure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "release-notes/${GITHUB_REF_NAME}.md" "$RUNNER_TEMP/genycaster-release-body.md"
+          if find release -maxdepth 1 -name '*-adhoc-UNNOTARIZED.dmg' | grep -q .; then
+            cat >> "$RUNNER_TEMP/genycaster-release-body.md" <<'MACOS_ADHOC_NOTICE'
+
+          ## macOS distribution notice
+
+          The macOS Apple Silicon and Intel DMGs in this release are **ad-hoc
+          signed, NOT Apple Developer ID signed, and NOT notarized**. This is
+          the free, self-distributed model also used by GenyConnect. Internal
+          code signatures and DMG integrity are verified by CI, but Gatekeeper
+          may block first launch after a browser download. Review the
+          project's [macOS release signing guide](https://github.com/genyleap/genycaster/blob/main/docs/MACOS_RELEASE_SIGNING.md)
+          for safe user-facing guidance. Do not disable Gatekeeper globally.
+          MACOS_ADHOC_NOTICE
+          fi
       - name: Publish versioned Release as GitHub Actions bot
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ github.token }}
           tag_name: ${{ github.ref_name }}
           name: GenyCaster ${{ github.ref_name }}
-          body_path: release-notes/${{ github.ref_name }}.md
+          body_path: ${{ runner.temp }}/genycaster-release-body.md
           # RC/beta/alpha tags remain prereleases. A stable tag is a normal
           # Release only after every mandatory platform job passes.
           prerelease: ${{ contains(github.ref_name, '-') }}

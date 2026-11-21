@@ -1,24 +1,31 @@
-# macOS Gatekeeper-ready distribution
+# macOS distribution: free ad-hoc vs. Apple Developer ID
 
 CI builds on `macos-26` for Apple Silicon and `macos-26-intel` for x86_64.
 A successful `macdeployqt` run, QML startup smoke test, and `hdiutil verify`
 do **not** prove that Safari-downloaded software will pass Gatekeeper.
 
-## Two intentionally different CI outputs
+## Two explicitly labeled distribution modes
 
-- **Experimental workflow_dispatch without Apple credentials:** The completed,
-  pruned `Genycaster.app` is signed ad-hoc, then checked with
-  `codesign --verify --deep --strict`. The DMG filename ends in
-  `-adhoc-UNNOTARIZED.dmg`. This tests code-signature integrity, but macOS
-  may reject the quarantined download. It is **not** a public release.
-- **Developer ID + notarization:** CI signs the finished bundle inside-out
-  with a Developer ID Application identity and Hardened Runtime, submits the
-  exact DMG using `xcrun notarytool`, checks Apple returned `Accepted`,
-  staples the ticket, and checks `spctl --assess` on the mounted payload.
-  A version-tag release **fails** instead of falling back to ad-hoc.
+- **Free ad-hoc mode (GenyConnect model):** The completed, pruned
+  `Genycaster.app` is signed inside-out with `codesign --sign -`, and both
+  the original and DMG-mounted bundles pass `codesign --verify --deep --strict`
+  and the Qt startup smoke tests. The public release DMG is explicitly named
+  `GenyCaster-vVERSION-macos-ARCH-adhoc-UNNOTARIZED.dmg`. This validates
+  bundle integrity but **does not** provide Apple Developer ID trust or
+  notarization. macOS Gatekeeper may block the quarantined download. Do not
+  describe it as Apple-approved.
+- **Developer ID + notarization (optional future upgrade):** Only when
+  **all five** Apple credentials are present, CI signs with a Developer ID
+  Application identity and Hardened Runtime, submits the exact DMG to Apple,
+  checks `Accepted`, staples the ticket, and checks `spctl --assess` on
+  the mounted app. Partial Apple credentials remain a hard error.
 
-GitHub repository **Settings → Secrets and variables → Actions** must contain
-all five secrets before a Gatekeeper-ready macOS artifact can be produced:
+Both variants require the same architecture validation, Qt deployment audits,
+DMG integrity verification and security gate. There is no paid Apple account
+requirement for the public ad-hoc mode.
+
+GitHub repository **Settings → Secrets and variables → Actions** needs the
+following five secrets **only for the optional Gatekeeper-ready mode**:
 
 | Secret | Source |
 | --- | --- |
@@ -49,9 +56,13 @@ clearing the builder's local xattrs cannot prevent that. Do not remove the
 user's quarantine metadata, disable Gatekeeper, or pretend ad-hoc signing
 provides Developer ID trust.
 
-The source of the re-signing model is the related GenyConnect workflow, but
-GenyCaster uses inside-out signing and a mandatory notarization gate for
-public releases rather than GenyConnect's ad-hoc-only approach.
+The free signing model follows the verified
+[GenyConnect v1.4.950 workflow](https://github.com/genyleap/GenyConnect/blob/v1.4.950/.github/workflows/ci.yml).
+GenyCaster adds inside-out signing, mounted-DMG audit and explicit
+`UNNOTARIZED` filenames, while preserving Developer ID notarization as a
+future optional upgrade. A release note and the native download catalog must
+disclose ad-hoc signing to users. Disabling Gatekeeper or stripping quarantine
+is not an acceptable distribution workaround.
 
 References:
 - https://developer.apple.com/developer-id/
