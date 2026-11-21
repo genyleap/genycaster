@@ -1,6 +1,8 @@
 name: Publish recovered Genycaster v1.0.0 Beta (artifacts ONLY)
 
 # One-off publishing retry: Intel and all seven other builds have already passed.
+# Tag current main: identical app source as original CI, but CI workflow files
+# match default branch (GitHub 2026 releases API workflow-file permission guard).
 # No macOS runner, Qt installation, compiler, or platform build in this workflow.
 on:
   push:
@@ -166,7 +168,7 @@ jobs:
         with:
           token: ${{ github.token }}
           tag_name: v1.0.0
-          target_commitish: f5016b6dcddc42dc464146941d2b980dc1c646d7
+          target_commitish: main
           name: Genycaster 1.0 Beta
           body_path: ${{ runner.temp }}/genycaster-release-body.md
           prerelease: true
@@ -182,5 +184,5 @@ jobs:
           author="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v1.0.0" --jq .author.login)"
           test "$author" = 'github-actions[bot]'
           tagged="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v1.0.0" --jq .object.sha)"
-          test "$tagged" = f5016b6dcddc42dc464146941d2b980dc1c646d7
-          echo "Verified v1.0.0 Beta public release by github-actions[bot], frozen source commit"
+          test "$tagged" = "${{ github.sha }}"
+          echo "Verified v1.0.0 Beta release by github-actions[bot] at main; packaged application matches original CI source"
