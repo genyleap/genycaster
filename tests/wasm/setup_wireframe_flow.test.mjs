@@ -324,7 +324,9 @@ test('every stage uses a fixed bottom CTA footer and the desktop retains two-pan
   assert.match(setup, /id: setupActionFooter/);
   assert.match(setup, /anchors.bottom: setupActionFooter.top/);
   assert.match(setup, /anchors.verticalCenter: parent.verticalCenter/);
-  assert.match(setup, /x: Theme\.rtl \? 0 : setupFooterContent\.width - width/);
+  assert.match(setup, /x: root\.phone \? \(setupFooterContent\.width - width\) \/ 2/);
+  assert.match(setup, /: Theme\.rtl \? 0 : setupFooterContent\.width - width/);
+  assert.match(setup, /anchors\.fill: parent\s+anchors\.leftMargin: root\.setupGutter/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
 });
 

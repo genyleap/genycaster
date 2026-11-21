@@ -1601,8 +1601,11 @@ Item {
             x: setupCanvas.formStart
             width: setupCanvas.formWidth
             anchors.bottom: parent.bottom
-            height: Math.max(stageAction.implicitHeight,
-                             setupWelcomeNativeApps.implicitHeight) + Theme.space3 * 2
+            height: (root.phone && root.welcomeNativeAppsVisible
+                     ? stageAction.implicitHeight + setupWelcomeNativeApps.implicitHeight
+                       + Theme.space2
+                     : Math.max(stageAction.implicitHeight,
+                                setupWelcomeNativeApps.implicitHeight)) + Theme.space3 * 2
             Rectangle {
                 anchors.fill: parent
                 color: Theme.background
@@ -1616,10 +1619,12 @@ Item {
             }
             Item {
                 id: setupFooterContent
-                width: stagePanel.width
-                x: stagePanel.x - setupActionFooter.x
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
+                // Footer layout uses its OWN coordinate space. Reusing
+                // stagePanel.x from the scrolling Flickable shifted the CTA
+                // inward on desktop and misaligned it in right-to-left UI.
+                anchors.fill: parent
+                anchors.leftMargin: root.setupGutter
+                anchors.rightMargin: root.setupGutter
                 anchors.topMargin: Theme.space3
                 anchors.bottomMargin: Theme.space3
 
@@ -1627,19 +1632,20 @@ Item {
                     id: stageAction
                     objectName: "setupStageAction"
                     visible: root.showsPrimaryCta
-                    anchors.verticalCenter: parent.verticalCenter
-                    // A fixed trailing action: bottom-right in LTR, bottom-left
-                    // in RTL. Never recenter on a language or step transition.
-                    // Compact windows keep a real touch target without forcing
-                    // a full-width button across the entire footer.
-                    width: root.welcomeNativeAppsVisible
-                           ? Math.min(Theme.scaleUi(264),
-                                      (Math.min(root.welcomeActionsWidth,
-                                                setupFooterContent.width) - Theme.space2) * 0.48)
-                           : Math.min(root.phone ? Theme.scaleUi(264)
-                                                 : Theme.scaleUi(340),
-                                      setupFooterContent.width)
-                    x: Theme.rtl ? 0 : setupFooterContent.width - width
+                    // Mobile: the primary action is centered in the footer.
+                    // Desktop: it occupies the logical trailing corner,
+                    // with equal insets in LTR and RTL.
+                    width: root.phone
+                           ? Math.min(Theme.scaleUi(264), setupFooterContent.width)
+                           : root.welcomeNativeAppsVisible
+                             ? Math.min(Theme.scaleUi(264),
+                                        (Math.min(root.welcomeActionsWidth,
+                                                  setupFooterContent.width) - Theme.space2) * 0.48)
+                             : Math.min(Theme.scaleUi(340), setupFooterContent.width)
+                    x: root.phone ? (setupFooterContent.width - width) / 2
+                                  : Theme.rtl ? 0 : setupFooterContent.width - width
+                    y: root.phone && root.welcomeNativeAppsVisible
+                       ? 0 : (setupFooterContent.height - height) / 2
                     text: root.actionText()
                     neutralPrimary: false
                     enabled: !root.stageTransitioning && root.actionEnabled()
@@ -1653,15 +1659,20 @@ Item {
                     id: setupWelcomeNativeApps
                     objectName: "setupWelcomeNativeApps"
                     visible: root.welcomeNativeAppsVisible
-                    anchors.verticalCenter: stageAction.verticalCenter
-                    width: Math.max(0, Math.min(root.welcomeActionsWidth,
-                                               setupFooterContent.width)
-                                    - Theme.space2 - stageAction.width)
+                    // Welcome on mobile: a centered secondary row below the
+                    // primary button. Desktop: inward from the trailing CTA.
+                    width: root.phone
+                           ? stageAction.width
+                           : Math.max(0, Math.min(root.welcomeActionsWidth,
+                                                  setupFooterContent.width)
+                                       - Theme.space2 - stageAction.width)
                     height: stageAction.height
-                    // Keep the secondary welcome action immediately inward
-                    // from the primary action, mirroring its order in RTL.
-                    x: Theme.rtl ? stageAction.x + stageAction.width + Theme.space2
-                                 : stageAction.x - Theme.space2 - width
+                    x: root.phone ? (setupFooterContent.width - width) / 2
+                                  : Theme.rtl
+                                    ? stageAction.x + stageAction.width + Theme.space2
+                                    : stageAction.x - Theme.space2 - width
+                    y: root.phone ? stageAction.y + stageAction.height + Theme.space2
+                                  : stageAction.y
                     text: qsTrId("genycaster.apps.download_cta_button")
                     iconGlyph: Theme.iconDownload
                     wrapText: true

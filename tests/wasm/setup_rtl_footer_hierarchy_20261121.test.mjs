@@ -14,12 +14,15 @@ function sectionAfter(anchor, end, file=setup) {
   return file.slice(start,stop);
 }
 
-test('CTA stays on the logical trailing edge of the fixed footer in desktop and mobile',()=>{
+test('CTA is centered on mobile and fixed to the logical trailing footer corner on desktop',()=>{
   const footer=sectionAfter('id: setupActionFooter','id: welcomeStage');
-  assert.match(footer,/x: Theme\.rtl \? 0 : setupFooterContent\.width - width/);
-  assert.match(footer,/root\.phone \? Theme\.scaleUi\(264\)/);
-  assert.match(footer,/Math\.min\(Theme\.scaleUi\(264\)/);
-  assert.match(footer,/x: Theme\.rtl \? stageAction\.x \+ stageAction\.width \+ Theme\.space2/);
+  assert.match(footer,/anchors\.fill: parent\s+anchors\.leftMargin: root\.setupGutter\s+anchors\.rightMargin: root\.setupGutter/);
+  assert.doesNotMatch(footer,/x: stagePanel\.x - setupActionFooter\.x/);
+  assert.match(footer,/width: root\.phone\s+\? Math\.min\(Theme\.scaleUi\(264\), setupFooterContent\.width\)/);
+  assert.match(footer,/x: root\.phone \? \(setupFooterContent\.width - width\) \/ 2\s+: Theme\.rtl \? 0 : setupFooterContent\.width - width/);
+  assert.match(footer,/x: root\.phone \? \(setupFooterContent\.width - width\) \/ 2\s+: Theme\.rtl\s+\? stageAction\.x \+ stageAction\.width \+ Theme\.space2/);
+  assert.match(footer,/y: root\.phone \? stageAction\.y \+ stageAction\.height \+ Theme\.space2/);
+  assert.match(footer,/root\.phone && root\.welcomeNativeAppsVisible\s+\? stageAction\.implicitHeight \+ setupWelcomeNativeApps\.implicitHeight/);
   assert.match(footer,/anchors.bottom: parent.bottom/);
   assert.match(setup,/anchors.bottom: setupActionFooter.top/);
   assert.match(footer,/neutralPrimary: false/);
