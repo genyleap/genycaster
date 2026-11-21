@@ -3386,8 +3386,9 @@ void connectRuntime(
     // New HyperSnap identity is verified by the native shard-0 registry,
     // independently of Farcaster IdRegistry and OpenProof account grants.
     if (nativePublisher) {
-        const bool canAttach = nativeWallet && runtime->sessionService
-            && runtime->signerService && runtime->signerVault;
+        // Registry-verified custody can establish an identity session even
+        // when secure signer storage or KEY_ADD is temporarily unavailable.
+        const bool canAttach = nativeWallet && runtime->sessionService;
         nativePublisher->setIdentityRuntimeReady(canAttach);
         if (canAttach) {
             QObject::connect(nativePublisher,
@@ -3407,11 +3408,9 @@ void connectRuntime(
                         return;
                     auto permit = NativeCustodySignerAccess::forConfirmedNativeFid(
                         *nativeWallet, static_cast<std::uint64_t>(fid), custody);
-                    if (!permit) {
-                        bridge.applyAuthenticationError(
-                            qtTrId("genycaster.setup.recovery_failed_retry"));
-                        return;
-                    }
+                    // Lack of a one-shot publishing permit is NOT loss of
+                    // the custody-verified identity. Accept read-only session
+                    // and let signer authorization be retried independently.
                     commitVerifiedIdentity(static_cast<std::uint64_t>(fid), custody,
                                            std::move(permit), false);
                 });
@@ -3420,14 +3419,12 @@ void connectRuntime(
 
     if (farcasterPublisher) {
         farcasterPublisher->setIdentityRuntimeReady(
-            nativeWallet && runtime->sessionService && runtime->signerService
-            && runtime->signerVault && runtime->router);
+            nativeWallet && runtime->sessionService && runtime->router);
     }
 
     // Farcaster's FID is a different identity: only the canonical Optimism
     // IdRegistry owner confirmation may authorize its custody signer.
-    if (farcasterPublisher && nativeWallet && runtime->sessionService
-        && runtime->signerService && runtime->signerVault) {
+    if (farcasterPublisher && nativeWallet && runtime->sessionService) {
         QObject::connect(farcasterPublisher,
             &NeynarRegistrationController::farcasterFidConfirmed, &bridge,
             [&bridge, nativeWallet, farcasterPublisher, commitVerifiedIdentity](
@@ -3443,7 +3440,8 @@ void connectRuntime(
                     return;
                 auto permit = NativeCustodySignerAccess::forConfirmedFarcasterFid(
                     *nativeWallet, static_cast<std::uint64_t>(fid), custody);
-                if (!permit) return;
+                // Do not discard a chain-confirmed Farcaster account just
+                // because this device could not provision a publishing key.
                 commitVerifiedIdentity(
                     static_cast<std::uint64_t>(fid), custody,
                     std::move(permit), true);
