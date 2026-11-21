@@ -211,7 +211,7 @@ test('HyperSnap pending is a single minimal read-only state, technical diagnosti
   const publisher=source('ui/app/identity/native_publish.cpp');
   assert.match(publisher,/m_lastSubmissionHttpStatus = result\.httpStatus/);
   assert.match(publisher,/Never clear m_pending \/ m_submitted/);
-  assert.match(publisher,/m_pending && m_checks < 240/);
+  assert.match(publisher,/if \(m_pending\) scheduleCheck\(generation\)/);
   assert.doesNotMatch(publisher,/m_pending = false;\s*\/\/.*[Tt]imeout/);
 });
 
