@@ -263,7 +263,14 @@
             !url.href.startsWith(releaseBase) ||
             url.username || url.password || url.search || url.hash ||
             /%2f|%5c|\.\./i.test(url.pathname)) return null;
-        return {url: url.href, version: record.version, sha256: record.sha256};
+        // Preserve only the two known macOS trust tiers. Without this,
+        // the verified catalog's "ad-hoc-unnotarized" disclosure is lost
+        // before rendering, making an unnotarized installer look certified.
+        const distribution = record.distribution === "ad-hoc-unnotarized" ||
+            record.distribution === "developer-id-notarized"
+            ? record.distribution : null;
+        return {url: url.href, version: record.version, sha256: record.sha256,
+            distribution};
     }
 
     async function loadCatalog() {
