@@ -89,6 +89,23 @@ Item {
     }
     property string registrationError: ""
     property bool confirmWalletReplacement: false
+    // Periodic read-only health refresh. No proof or submit runs from this.
+    Timer {
+        id: nativeRegistrationNetworkHealthTimer
+        interval: 30000
+        repeat: true
+        running: root.visible && root.currentStep === 3
+                 && root.choosingRegistrationProvider
+                 && root.registrationProviderId === "hypersnap-v2"
+                 && !root.browserReadOnly
+        onTriggered: {
+            if (!nativeRegistrationStatus.checking
+                && !root.nativeCreationRequested
+                && !nativeRegistrationPreparation.busy
+                && !nativeRegistrationPublisher.busy)
+                nativeRegistrationStatus.refresh()
+        }
+    }
     property bool nativeCreationRequested: false
     property bool nativeDetailsExpanded: false
     property bool nativeExistingResumeRequested: false
@@ -230,6 +247,10 @@ Item {
                 return qsTrId("genycaster.setup.registration_runtime_initializing")
             if (!nativeRegistrationPublisher.registrationSupported)
                 return qsTrId("genycaster.setup.native_registration_signing_unavailable")
+            if (nativeRegistrationStatus.shardZeroBlockDelay > 120)
+                return qsTr("HyperSnap is catching up. Account creation is temporarily paused.")
+            if (!nativeRegistrationStatus.syncedForRegistration)
+                return qsTr("Checking the HyperSnap network…")
             return qsTrId("genycaster.setup.native_registration_node_ready")
         }
         if (!runtimeReady)
@@ -259,7 +280,7 @@ Item {
     }
     readonly property bool registrationNodeUsable:
         registrationProviderId === "hypersnap-v2"
-        && nativeRegistrationStatus.active && runtimeReady
+        && nativeRegistrationStatus.syncedForRegistration && runtimeReady
         && nativeRegistrationPublisher.registrationSupported
     property bool showRecovery: false
     property string legalDocument: ""
@@ -2488,15 +2509,18 @@ Item {
                         visible: !nativeRegistrationPublisher.pending
                                  && !nativeRegistrationPublisher.confirmed
                                  && nativeRegistrationStatus.existingNativeFid.length === 0
-                                 && (!nativeRegistrationStatus.active
+                                 && (!nativeRegistrationStatus.syncedForRegistration
                                      || nativeRegistrationStatus.accountLookupBusy
                                      || !nativeRegistrationStatus.accountLookupChecked
                                      || nativeRegistrationStatus.accountLookupFailed)
                         Layout.fillWidth: true
-                        text: (!nativeRegistrationStatus.active && !nativeRegistrationStatus.checking)
-                              || nativeRegistrationStatus.accountLookupFailed
-                              ? qsTr("Couldn't reach HyperSnap. Try again.")
-                              : qsTr("Checking your account…")
+                        text: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                              ? qsTr("HyperSnap is catching up. Account creation will be available when the network is ready.")
+                              : (!nativeRegistrationStatus.active
+                                 && !nativeRegistrationStatus.checking)
+                                || nativeRegistrationStatus.accountLookupFailed
+                                ? qsTr("Couldn't reach HyperSnap. Try again.")
+                                : qsTr("Checking your account…")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2570,7 +2594,9 @@ Item {
                         objectName: "setupNativePendingDescription"
                         Layout.fillWidth: true
                         visible: nativeRegistrationPublisher.pending
-                        text: qsTr("Waiting for network confirmation. We'll continue automatically when your account is ready.")
+                        text: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                              ? qsTr("HyperSnap is catching up. Your registration is still unconfirmed; we'll keep checking without sending it again.")
+                              : qsTr("Waiting for network confirmation. We'll continue automatically when your account is ready.")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeLabelSize
                         wrapMode: Text.WordWrap
@@ -2631,6 +2657,15 @@ Item {
                         Layout.fillWidth: true
                         visible: root.nativeDetailsExpanded
                         spacing: Theme.space2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: nativeRegistrationStatus.shardZeroBlockDelay >= 0
+                            text: qsTr("Shard-0 block delay: %1 seconds")
+                                  .arg(nativeRegistrationStatus.shardZeroBlockDelay)
+                            color: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                   ? Theme.warning : Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: qsTrId("genycaster.setup.wallet_verified")
