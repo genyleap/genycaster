@@ -2575,33 +2575,13 @@ Item {
                     Layout.fillWidth: true
                     spacing: Theme.space3
 
-                    DirectionAwareLabel {
-                        objectName: "setupNativeCreationSummary"
-                        visible: !nativeRegistrationPublisher.pending
-                                 && !nativeRegistrationPublisher.confirmed
-                                 && nativeRegistrationStatus.existingNativeFid.length === 0
-                                 && (!nativeRegistrationStatus.syncedForRegistration
-                                     || nativeRegistrationStatus.accountLookupBusy
-                                     || !nativeRegistrationStatus.accountLookupChecked
-                                     || nativeRegistrationStatus.accountLookupFailed)
-                        Layout.fillWidth: true
-                        text: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                              ? qsTr("HyperSnap is catching up. Account creation will be available when the network is ready.")
-                              : (!nativeRegistrationStatus.active
-                                 && !nativeRegistrationStatus.checking)
-                                || nativeRegistrationStatus.accountLookupFailed
-                                ? qsTr("Couldn't reach HyperSnap. Try again.")
-                                : qsTr("Checking your account…")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
                     ActionButton {
                         objectName: "setupBeginRegistration"
                         Layout.fillWidth: true
                         prominent: true
                         visible: !nativeRegistrationPublisher.pending
                                  && !nativeRegistrationPublisher.confirmed
+                                 && nativeRegistrationStatus.syncedForRegistration
                                  && nativeRegistrationStatus.existingNativeFid.length === 0
                         text: qsTr("Create account")
                         busy: root.nativeCreationRequested
@@ -2651,28 +2631,111 @@ Item {
                             root.maybeLookupNativeFid()
                         }
                     }
-                    DirectionAwareLabel {
-                        objectName: "setupNativeAwaitingConfirmation"
+                    // One identical QML status view on desktop and Android.
+                    // A pending write stays read-only; block synchronization
+                    // is external to the user and never starts another POST.
+                    NeonCard {
+                        objectName: "setupNativeChainStatusCard"
                         Layout.fillWidth: true
                         visible: nativeRegistrationPublisher.pending
-                        text: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                              ? qsTr("Waiting for HyperSnap to sync")
-                              : qsTr("Creating your account…")
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeTitle3Size
-                        font.weight: Theme.weightDemiBold
-                        wrapMode: Text.WordWrap
-                    }
-                    DirectionAwareLabel {
-                        objectName: "setupNativePendingDescription"
-                        Layout.fillWidth: true
-                        visible: nativeRegistrationPublisher.pending
-                        text: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                              ? qsTr("HyperSnap is catching up. Your registration is still unconfirmed; we'll keep checking without sending it again.")
-                              : qsTr("Waiting for network confirmation. We'll continue automatically when your account is ready.")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeLabelSize
-                        wrapMode: Text.WordWrap
+                                 || (!nativeRegistrationStatus.syncedForRegistration
+                                     && nativeRegistrationStatus.existingNativeFid.length === 0)
+                        Layout.preferredHeight: nativeChainSteps.implicitHeight + Theme.space4 * 2
+                        interactive: false
+                        deferredNeon: true
+                        neonStrength: Theme.neonPanelStrength
+                        fillColor: Theme.surface
+                        borderColor: Theme.borderMuted
+                        borderWidth: Theme.strokeStandard
+                        curveDepth: Theme.curveContainer
+                        ColumnLayout {
+                            id: nativeChainSteps
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: Theme.space4
+                            spacing: Theme.space3
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTr("HYPERSNAP BLOCKCHAIN")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                            }
+                            DirectionAwareLabel {
+                                objectName: "setupNativeAwaitingConfirmation"
+                                Layout.fillWidth: true
+                                text: nativeRegistrationPublisher.pending
+                                      ? (nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                         ? qsTr("Waiting for the blockchain")
+                                         : qsTr("Confirming your account"))
+                                      : nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                        ? qsTr("The blockchain is catching up")
+                                        : qsTr("Checking blockchain readiness")
+                                font.pixelSize: Theme.typeTitle3Size
+                                font.weight: Theme.weightDemiBold
+                                color: Theme.ink
+                                wrapMode: Text.WordWrap
+                            }
+                            DirectionAwareLabel {
+                                objectName: "setupNativePendingDescription"
+                                Layout.fillWidth: true
+                                text: nativeRegistrationPublisher.pending
+                                      ? qsTr("HyperSnap must include your registration in a confirmed block. Genycaster checks automatically and will not resend your request.")
+                                      : nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                        ? qsTr("HyperSnap's blocks are behind. Creating an account is temporarily paused until the blockchain catches up. No action is needed.")
+                                        : qsTr("Checking the latest HyperSnap blocks before creating your account.")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeLabelSize
+                                wrapMode: Text.WordWrap
+                            }
+                            Repeater {
+                                model: [
+                                    qsTr("Recovery phrase secured"),
+                                    nativeRegistrationPublisher.pending
+                                        ? qsTr("Registration request sent")
+                                        : qsTr("Blockchain ready for registration"),
+                                    qsTr("Account confirmed on blockchain")
+                                ]
+                                delegate: RowLayout {
+                                    required property int index
+                                    required property string modelData
+                                    Layout.fillWidth: true
+                                    spacing: Theme.space2
+                                    Rectangle {
+                                        width: Theme.scaleUi(22)
+                                        height: width
+                                        radius: width / 2
+                                        color: index === 0 || (index === 1 && nativeRegistrationPublisher.pending)
+                                               ? Theme.success
+                                               : index === 1 || (index === 2 && nativeRegistrationPublisher.pending)
+                                                 ? Theme.accent : Theme.borderMuted
+                                        DirectionAwareLabel {
+                                            anchors.centerIn: parent
+                                            text: index === 0 || (index === 1 && nativeRegistrationPublisher.pending)
+                                                  ? "✓" : String(index + 1)
+                                            color: Theme.ink
+                                            font.pixelSize: Theme.typeCaptionSize
+                                        }
+                                    }
+                                    DirectionAwareLabel {
+                                        Layout.fillWidth: true
+                                        text: modelData
+                                        color: Theme.ink
+                                        font.pixelSize: Theme.typeLabelSize
+                                        wrapMode: Text.WordWrap
+                                    }
+                                }
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                visible: nativeRegistrationPublisher.pending
+                                text: qsTr("You can return later using the same 24 recovery words.")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.WordWrap
+                            }
+                        }
                     }
                     DirectionAwareLabel {
                         objectName: "setupNativePreviouslyRegistered"
