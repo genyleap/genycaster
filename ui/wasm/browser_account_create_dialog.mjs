@@ -11,7 +11,7 @@ const translations={
   warning:'Write down all 24 words in order, offline. Never share them. Browser storage is not a safe backup.',
   challenge:'Verify your saved recovery phrase',complete:'I saved my recovery phrase in a safe place',
   consent:'I authorize the one-time registration of this wallet on the selected network.',
-  create:'Create account',cancel:'Cancel',copy:'Copy words',copied:'Words copied — clear your clipboard afterward',
+  create:'Create account',cancel:'Cancel',close:'Close',copy:'Copy words',copied:'Words copied — clear your clipboard afterward',
   failed:'The selected recovery words do not match. Confirm your backup.',
   busy:'Preparing secure registration…',progress:'Searching for a registration proof',
   stopping:'Stopping the proof before network submission…',
@@ -34,7 +34,7 @@ const translations={
   warning:'هر ۲۴ واژه را به‌ترتیب و در محیط امن یادداشت کنید. آن‌ها را در اختیار هیچ‌کس قرار ندهید. ذخیره‌سازی مرورگر نسخهٔ پشتیبان امنی نیست.',
   challenge:'واژه‌های بازیابی ذخیره‌شده را تأیید کنید',complete:'عبارت بازیابی را در محل امن ذخیره کرده‌ام',
   consent:'ثبت یک‌بارهٔ این کیف پول در شبکهٔ انتخاب‌شده را تأیید می‌کنم.',
-  create:'ساخت حساب',cancel:'انصراف',copy:'کپی واژه‌ها',copied:'واژه‌ها کپی شدند؛ پس از استفاده کلیپ‌بورد را پاک کنید',
+  create:'ساخت حساب',cancel:'انصراف',close:'بستن',copy:'کپی واژه‌ها',copied:'واژه‌ها کپی شدند؛ پس از استفاده کلیپ‌بورد را پاک کنید',
   failed:'واژه‌های انتخاب‌شده درست نیستند. نسخهٔ پشتیبان را بررسی کنید.',
   busy:'در حال آماده‌سازی ثبت‌نام امن…',progress:'در حال جستجوی اثبات ثبت‌نام',
   stopping:'در حال توقف محاسبه پیش از ارسال شبکه…',
@@ -284,14 +284,19 @@ export async function promptCreateBrowserWallet({
    result.textContent='';
    const update=(done,total,phase)=>{
     if(settled)return;
-    if(phase==='submitting'||phase==='checking'||phase==='outcome-unknown') {
+    if(phase==='submitting'||phase==='checking'||phase==='outcome-unknown'
+       ||(protocol==='farcaster-snapchain'
+          && ['reserve','submit','verify'].includes(phase))) {
+      // Neynar FID reservation can itself be paid/irrevocable. Disable
+      // cancellation BEFORE the reserve POST, not merely before submit.
       submissionStarted=true;
-      showProgressStep(phase==='submitting'?1:2);
+      showProgressStep(phase==='submitting'||phase==='reserve'?1:2);
       phrase=''; // Only the registry's ephemeral in-flight custody owns it now.
       cancel.disabled=true;
-      progressCaption.textContent=phase==='submitting'
-        ? (protocol==='hypersnap-v2'?t.submitting:t.paidSubmit)
-        :phase==='checking'
+      progressCaption.textContent=phase==='reserve'?t.paidReserve
+        :phase==='submitting'||phase==='submit'
+          ? (protocol==='hypersnap-v2'?t.submitting:t.paidSubmit)
+        :phase==='checking'||phase==='verify'
           ? (protocol==='hypersnap-v2'?t.checking:t.paidVerify)
           :t.pending;
       progressTrack.style.display='none';
@@ -321,6 +326,7 @@ export async function promptCreateBrowserWallet({
       result.textContent=t.pending;
       progressTrack.style.display='none';progressNote.style.display='none';
       submit.disabled=true;cancel.disabled=false;
+      cancel.textContent=t.close; // The network write cannot be cancelled.
       processing=false;cancel.onclick=()=>finish(error);
     }else{
       finish(error);
