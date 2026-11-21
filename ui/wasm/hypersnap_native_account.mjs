@@ -368,7 +368,10 @@ export function createBrowserNativeRegistry({
         anchorHeight:gate.height,anchorHash:gate.hash,powNonce:nonce,bits:gate.bits});
       if(envelope.byteLength>8192)fail('oversized native registration message');
       if(signal?.aborted)throw new Error('Registration cancelled');
-      // An ambiguous POST must never be replayed. Check registry and wait.
+      // This is the irreversible network boundary. Tell the UI to disable
+      // cancellation BEFORE starting the POST; a late timeout is ambiguous
+      // and must never result in an automatic duplicate registration.
+      onProgress(0,1,'submitting');
       submissionStarted=true;
       const response=await fetchImpl(origin+'/v1/submitMessage',{
         method:'POST',mode:'cors',credentials:'omit',redirect:'error',
@@ -377,6 +380,7 @@ export function createBrowserNativeRegistry({
       if([400,403,422].includes(response.status))
         fail('native registration was rejected (HTTP '+response.status+')');
       if(response.status!==200)onProgress(0,1,'outcome-unknown');
+      else onProgress(0,1,'checking');
       for(let i=0;i<60;i++){
         if(signal?.aborted)throw new Error(
           'Registration submitted; check the native registry before retrying');
