@@ -395,6 +395,36 @@ Item {
                 color: presentationBridge.signerBusy ? Theme.textSecondary : Theme.warning
                 wrapMode: Text.WordWrap
             }
+            // Account/FID recovery has already completed. If the separate
+            // KEY_ADD signer operation stalls, inspect its CURRENT network
+            // state rather than requesting another irreversible signature.
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                visible: interactionAuthorizationDialog.authorizationSubmitted
+                         && presentationBridge.isAuthenticated
+                         && !presentationBridge.signerBusy
+                         && !presentationBridge.writeReady
+                         && presentationBridge.signerErrorText.length > 0
+                text: qsTr("Your account is signed in. Publishing authorization is separate. Check the signer status before trying again.")
+                color: Theme.textSecondary
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+            }
+            ActionButton {
+                objectName: "checkDeviceSignerAfterTimeout"
+                Layout.fillWidth: true
+                compact: true
+                quiet: true
+                visible: interactionAuthorizationDialog.authorizationSubmitted
+                         && presentationBridge.isAuthenticated
+                         && !presentationBridge.signerBusy
+                         && !presentationBridge.writeReady
+                         && presentationBridge.signerErrorText.length > 0
+                text: qsTr("Check signer status")
+                Accessible.description: qsTr("Read-only network check; no new signer authorization is submitted.")
+                enabled: !presentationBridge.signerBusy
+                onClicked: presentationBridge.refreshSigner()
+            }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space2
