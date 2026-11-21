@@ -10,11 +10,12 @@ ENABLED="/etc/nginx/sites-enabled/$DOMAIN"
 ACME_ROOT="/var/www/letsencrypt"
 CERT_DIR="/etc/letsencrypt/live/$DOMAIN"
 RESPONSE_FILE="$(mktemp)"
+TLS_ERROR_FILE="$(mktemp)"
 CREATED=0
 
 cleanup() {
   rc=$?
-  rm -f "$RESPONSE_FILE"
+  rm -f "$RESPONSE_FILE" "$TLS_ERROR_FILE"
   if [[ "$rc" -ne 0 && "$CREATED" -eq 1 ]]; then
     printf 'Rolling back newly created Nginx host after failure.\n' >&2
     rm -f "$ENABLED" "$SITE"
@@ -74,21 +75,36 @@ install -m 0644 "$BASE/status.genycaster.xyz.conf" "$SITE"
 nginx -t
 systemctl reload nginx
 
-# Check actual TLS name validation at the origin, not just Cloudflare's edge.
-HEALTH_STATUS="$(curl --silent --show-error --max-time 10 \
-  --resolve "$DOMAIN:443:127.0.0.1" \
-  --output "$RESPONSE_FILE" --write-out '%{http_code}' \
-  "https://$DOMAIN/api/health")"
-if [[ "$HEALTH_STATUS" != 200 && "$HEALTH_STATUS" != 503 ]]; then
-  echo "Origin health endpoint returned unexpected HTTP $HEALTH_STATUS" >&2
-  exit 1
-fi
-python3 -c 'import json,sys
+# Nginx reload is asynchronous: existing workers may briefly serve the old
+# default virtual host and its Cloudflare Origin CA certificate. Never bypass
+# certificate validation; instead retry until the new SNI vhost is active.
+HEALTH_STATUS="not_checked"
+VERIFIED=0
+for attempt in {1..20}; do
+  if HEALTH_STATUS="$(curl --silent --show-error --max-time 8 \
+    --resolve "$DOMAIN:443:127.0.0.1" \
+    --output "$RESPONSE_FILE" --write-out '%{http_code}' \
+    "https://$DOMAIN/api/health" 2>>"$TLS_ERROR_FILE")"; then
+    if [[ "$HEALTH_STATUS" == 200 || "$HEALTH_STATUS" == 503 ]]; then
+      if python3 -c 'import json,sys
 o=json.load(open(sys.argv[1]))
 assert o.get("service") == "genycaster"
 assert o.get("status") in ("operational","degraded","unavailable")
 assert set(o.get("checks",{})) == {"web","backend","snapchain","hypersnap"}
-' "$RESPONSE_FILE"
+assert all(s in ("operational","unavailable") for s in o["checks"].values())
+' "$RESPONSE_FILE"; then
+        VERIFIED=1
+        break
+      fi
+    fi
+  fi
+  if [[ "$attempt" -lt 20 ]]; then sleep 1; fi
+done
+if [[ "$VERIFIED" -ne 1 ]]; then
+  echo "Origin TLS/health did not become ready after 20 verified attempts; last HTTP: $HEALTH_STATUS" >&2
+  tail -n 8 "$TLS_ERROR_FILE" >&2 || true
+  exit 1
+fi
 
 echo "Origin: https://$DOMAIN/api/health (HTTP $HEALTH_STATUS)"
 echo "Public: https://$DOMAIN/api/health"

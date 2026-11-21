@@ -77,3 +77,21 @@ After installation, verify from outside and through the origin:
 The compatibility API on genycaster.xyz remains available. Nginx returns the
 actual worker status, including HTTP 503 for critical outages, and preserves JSON.
 For Snapdiff, publish the new URL only after these live tests pass.
+
+### Recovery from an initial TLS-check rollback
+
+If Certbot has already issued the certificate but the installer rolled back its
+newly created Nginx virtual host after a curl certificate verification error,
+rerun the same installer. It detects and reuses the existing
+status.genycaster.xyz certificate without requesting another certificate.
+The updated installer retries the origin HTTPS test with full hostname and
+certificate-chain validation, allowing old Nginx workers to finish serving
+connections after a reload.
+
+The fallback status.genyleap.com virtual host uses a Cloudflare Origin CA
+certificate that plain curl should reject. Never use insecure TLS flags to
+make the health check pass. Once the new virtual host becomes active, it serves
+the dedicated Let's Encrypt status.genycaster.xyz certificate.
+
+If a placeholder email was used for Certbot registration, update the ACME account
+contact to a monitored administrative email. Certificate reissuance is not needed.
