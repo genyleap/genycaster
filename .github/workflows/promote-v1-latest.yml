@@ -1,0 +1,33 @@
+name: Promote Genycaster v1.0.0 to Latest Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/promote-v1-latest.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    if: github.repository == 'genyleap/genycaster' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Set existing v1.0.0 as a final latest release (no rebuild)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
+          id="$(gh api "repos/$repo/releases/tags/v1.0.0" --jq '.id')"
+          [[ "$id" =~ ^[0-9]+$ ]] || exit 1
+          gh api --method PATCH "repos/$repo/releases/$id" \
+            -F prerelease=false -F draft=false -f make_latest=true >/dev/null
+          test "$(gh api "repos/$repo/releases/$id" --jq '.prerelease')" = false
+          test "$(gh api "repos/$repo/releases/latest" --jq '.tag_name')" = v1.0.0
+          echo "Genycaster v1.0.0 is the public Latest Release; no builds or assets changed"
