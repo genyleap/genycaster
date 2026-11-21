@@ -35,6 +35,8 @@ class NativeRegistrationStatusController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool active READ active NOTIFY changed)
     Q_PROPERTY(bool checking READ checking NOTIFY changed)
+    Q_PROPERTY(bool syncedForRegistration READ syncedForRegistration NOTIFY changed)
+    Q_PROPERTY(int shardZeroBlockDelay READ shardZeroBlockDelay NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(int difficultyBits READ difficultyBits NOTIFY changed)
     Q_PROPERTY(QString firstNativeFid READ firstNativeFid NOTIFY changed)
@@ -54,6 +56,10 @@ public:
     ~NativeRegistrationStatusController() override;
     [[nodiscard]] bool active() const noexcept { return m_active; }
     [[nodiscard]] bool checking() const noexcept { return m_checking; }
+    // A reachable HTTP endpoint may still be hours behind shard-0. Do not
+    // authorize new irreversible writes against an unsynchronized node.
+    [[nodiscard]] bool syncedForRegistration() const noexcept;
+    [[nodiscard]] int shardZeroBlockDelay() const noexcept { return m_shardZeroDelay; }
     [[nodiscard]] QString error() const { return m_error; }
     [[nodiscard]] int difficultyBits() const noexcept { return m_bits; }
     [[nodiscard]] QString firstNativeFid() const { return m_firstFid; }
@@ -81,6 +87,7 @@ private:
     QUrl m_base{};
     std::unique_ptr<HyperSnapRegistrationTransport> m_transport{};
     QPointer<QNetworkReply> m_reply{};
+    QPointer<QNetworkReply> m_healthReply{};
     bool m_active{false};
     bool m_checking{false};
     int m_bits{0};
@@ -88,6 +95,8 @@ private:
     QString m_error{};
     std::optional<Challenge> m_challenge{};
     qint64 m_checkedAtMs{};
+    qint64 m_healthCheckedAtMs{};
+    int m_shardZeroDelay{-1};
     quint64 m_lookupGeneration{};
     bool m_lookupBusy{false};
     bool m_lookupChecked{false};
