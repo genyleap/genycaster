@@ -108,6 +108,7 @@ Item {
     }
     property bool nativeCreationRequested: false
     property bool nativeDetailsExpanded: false
+    property bool farcasterSponsoredEnrollmentChosen: false
     property bool nativeExistingResumeRequested: false
     property bool recoveryWordsCopied: false
     Timer {
@@ -1902,6 +1903,7 @@ Item {
                             nativeRegistrationPreparation.cancel()
                             nativeRegistrationStatus.clearExistingLookup()
                             root.registrationProviderId = "hypersnap-v2"
+                            root.farcasterSponsoredEnrollmentChosen = false
                             root.registrationError = ""
                             nativeRegistrationStatus.refresh()
                         }
@@ -1926,6 +1928,7 @@ Item {
                             nativeRegistrationPreparation.cancel()
                             nativeRegistrationStatus.clearExistingLookup()
                             root.registrationProviderId = "farcaster-snapchain"
+                            root.farcasterSponsoredEnrollmentChosen = false
                             root.registrationError = ""
                         }
                     }
@@ -2086,6 +2089,9 @@ Item {
                 }
                 ColumnLayout {
                     visible: !root.browserReadOnly && root.registrationProviderId.length > 0
+                             && (root.registrationProviderId === "hypersnap-v2"
+                                 || (root.farcasterSponsoredEnrollmentChosen
+                                     && neynarRegistration.available))
                     Layout.fillWidth: true
                     spacing: Theme.space3
                     DirectionAwareLabel {
@@ -2350,6 +2356,8 @@ Item {
                     objectName: "neynarFarcasterRegistration"
                     visible: !root.browserReadOnly
                              && root.registrationProviderId === "farcaster-snapchain"
+                             && root.farcasterSponsoredEnrollmentChosen
+                             && neynarRegistration.available
                              && nativeCustodyWallet.backupVerified
                     Layout.fillWidth: true
                     spacing: Theme.space3
@@ -2357,7 +2365,7 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         visible: !neynarRegistration.confirmed
-                        text: qsTrId("genycaster.setup.neynar_voucher_explanation")
+                        text: qsTr("A sponsorship code is issued by the Genycaster operator after verified payment or sponsorship. It is not a Neynar API key or wallet password. Genycaster does not currently sell these codes in the app.")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2370,11 +2378,11 @@ Item {
                         visible: !neynarRegistration.hasVoucher
                                  && !neynarRegistration.pending
                                  && !neynarRegistration.confirmed
-                        placeholderText: qsTrId("genycaster.setup.neynar_voucher_placeholder")
+                        placeholderText: qsTr("Paste your Genycaster sponsorship code")
                         echoMode: TextInput.Password
                         maximumLength: 1100
                         inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
-                        Accessible.name: qsTrId("genycaster.setup.neynar_voucher_placeholder")
+                        Accessible.name: qsTr("Genycaster sponsorship code")
                     }
                     ActionButton {
                         objectName: "setupUseNeynarVoucher"
@@ -2406,7 +2414,7 @@ Item {
                         Layout.fillWidth: true
                         prominent: false
                         visible: neynarRegistration.phase === "ready"
-                        text: qsTrId("genycaster.setup.neynar_reserve_fid")
+                        text: qsTr("Continue to username")
                         busy: neynarRegistration.busy
                         enabled: root.runtimeReady && neynarRegistration.available
                                  && neynarRegistration.registrationSupported
@@ -2446,7 +2454,7 @@ Item {
                         Layout.fillWidth: true
                         prominent: true
                         visible: neynarRegistration.phase === "reserved"
-                        text: qsTrId("genycaster.setup.neynar_submit_registration")
+                        text: qsTr("Create Farcaster account")
                         enabled: root.runtimeReady && neynarTransferConsent.checked
                                  && neynarRegistration.canSubmit
                                  && /^[a-z0-9][a-z0-9-]{0,15}$/.test(
@@ -2488,8 +2496,9 @@ Item {
                         Layout.fillWidth: true
                         compact: true
                         visible: neynarRegistration.hasVoucher
+                                 && neynarRegistration.pending
                                  && !neynarRegistration.confirmed
-                        text: qsTrId("genycaster.setup.neynar_check_again")
+                        text: qsTr("Check account status")
                         enabled: !neynarRegistration.busy
                         onClicked: neynarRegistration.checkConfirmation()
                     }
