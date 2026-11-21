@@ -1327,6 +1327,9 @@ Item {
         root.homeDraftForCast = !composerParent && composerDrawer.suggestedText.length > 0
                                 ? composerDrawer.suggestedText : ""
         composerDrawer.suggestedEmbeds = []
+        // Qt Drawer determines edge geometry when open() starts, not
+        // when aboutToShow fires. Set mobile mode before that first frame.
+        composerDrawer.compact = root.mobile
         composerDrawer.open()
         composerDrawer.focusVisualEditorNow()
     }
@@ -1369,6 +1372,7 @@ Item {
         composerDrawer.structuredReport = false
         composerDrawer.suggestedText = root.pendingMiniAppComposeText
         composerDrawer.suggestedEmbeds = root.pendingMiniAppComposeEmbeds
+        composerDrawer.compact = root.mobile
         composerDrawer.open()
     }
 
@@ -2709,7 +2713,9 @@ Item {
                                      && !root.overlayOpen
                                      && !root.homeComposerFocused
                             z: 800
-                            height: Qt.platform.os === "android" && root.mobile ? 74 : 88
+                            // Dock reserves the system gesture safe area
+                            // and adapts independently of framebuffer DPR.
+                            height: implicitHeight
                             anchors.left: readingPane.left
                             anchors.right: readingPane.right
                             anchors.bottom: readingPane.bottom

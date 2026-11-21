@@ -338,7 +338,7 @@ test('mobile navigation belongs to readingPane, not the outer RowLayout or Qt ro
     assert.match(app.slice(dock,handle),/anchors\.bottom: readingPane\.bottom/);
     assert.match(app.slice(dock,handle),/blurSourceItem: readingBackdrop/);
     assert.match(app,/anchors\.bottomMargin: 0/);
-    assert.match(read('ui/components/feed/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
+    assert.match(read('ui/components/feed/FeedSurface.qml'),/bottomMargin: root\.compact\s+\? Math\.max\(96, root\.bottomOverlayInset \+ Theme\.space2\) : 0/);
 });
 
 test('mobile Sign Out is reachable through Settings and requires confirmation',()=>{
@@ -365,7 +365,7 @@ test('mobile Home editing collapses dashboard cards and removes floating navigat
     assert.match(app,/readonly property bool homeComposerFocused:/);
     assert.match(app,/visible: root\.mobile && presentationBridge\.authenticationStateObserved\s*&& !root\.initialSetupOpen\s*&& !root\.homeComposerFocused/);
     assert.match(app,/anchors\.bottomMargin: 0/);
-    assert.match(read('ui/components/feed/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
+    assert.match(read('ui/components/feed/FeedSurface.qml'),/bottomMargin: root\.compact\s+\? Math\.max\(96, root\.bottomOverlayInset \+ Theme\.space2\) : 0/);
 });
 
 test('account header navigates to profile when signed in and opens sign-in otherwise',()=>{
@@ -431,7 +431,8 @@ test('Splash logo, version, loading copy and progress share a centered layout ax
     assert.match(html,/\.boot-content\{[^}]*align-items:center[^}]*text-align:center/);
     assert.match(html,/\.boot-mark\{[^}]*align-items:center[^}]*width:100%/);
     assert.match(html,/\.boot-wordmark\{[^}]*object-position:center/);
-    assert.match(html,/\.boot-beta\{[^}]*width:100%;text-align:center/);
+    assert.match(html,/\.boot-wordmark-wrap\{[^}]*position:relative/);
+    assert.match(html,/\.boot-beta\{[^}]*position:absolute;top:-15px;right:0/);
     assert.match(html,/\.boot-track\{width:100%/);
     assert.match(html,/\.boot-foot\{display:flex;width:100%/);
 });

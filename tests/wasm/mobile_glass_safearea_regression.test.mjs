@@ -62,8 +62,8 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
 
 test('floating content paints behind dock and last items still scroll into view',()=>{
   assert.match(shell,/anchors\.bottomMargin: 0/);
-  assert.match(feed,/bottomMargin: root\.compact \? 96 : 0/);
-  assert.match(profile,/bottomMargin: root\.compact \? 96 : 0/);
+  assert.match(feed,/bottomMargin: root\.compact\s+\? Math\.max\(96, root\.bottomOverlayInset \+ Theme\.space2\) : 0/);
+  assert.match(profile,/bottomMargin: root\.compact\s+\? Math\.max\(96, root\.bottomOverlayInset \+ Theme\.space2\) : 0/);
   assert.match(shell,/bottomOverlayInset: mobileBottomNavigation\.visible \? mobileBottomNavigation\.height : 0/);
   assert.match(dock,/objectName: "mobilePrimaryActionButton"/);
   assert.doesNotMatch(dock,/mobileFooterBackground|mobileContentLowerEdge/);

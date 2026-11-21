@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
+import QtQuick.Window
 import Farcaster.Client
 
 // Compact navigation dock: five stable destinations in one
@@ -25,6 +26,12 @@ Item {
         && root.visible && root.width > 0 && root.height > 0
     // Six destinations need compact glyph slots on phones. The selected
     // label is an enhancement reserved for wide handsets.
+    readonly property bool smallHandset: width < 390
+    // Use Qt's logical viewport and actual gesture inset, not physical
+    // framebuffer pixels (720px on the emulator is usually 360dp).
+    readonly property real gestureInset: Math.max(0,
+        root.SafeArea.margins.bottom,
+        root.Window.window ? root.Window.window.SafeArea.margins.bottom : 0)
     readonly property bool showSelectedLabel: width >= 450
     // The footer owns touch targets only: no full-width painted backdrop.
     // Page content keeps its bottom reservation so lists never end beneath
@@ -41,7 +48,9 @@ Item {
     signal profileRequested()
     signal routeRequested(string route)
 
-    implicitHeight: Qt.platform.os === "android" ? 74 : 88
+    implicitHeight: (Qt.platform.os === "android"
+                     ? (root.smallHandset ? 70 : 74)
+                     : (root.smallHandset ? 80 : 88)) + root.gestureInset
     clip: false
 
     // A genuinely floating dock: the root is fully transparent. No footer
@@ -58,8 +67,8 @@ Item {
             + Math.ceil(captionMetrics.advanceWidth) + 16
         readonly property bool labelVisible: active && displayLabel
             && navigationCapsule.width >= expandedWidth + 5 * 40 + 12
-        implicitHeight: 48
-        implicitWidth: labelVisible ? expandedWidth : 44
+        implicitHeight: root.smallHandset ? 44 : 48
+        implicitWidth: labelVisible ? expandedWidth : (root.smallHandset ? 38 : 44)
         leftPadding: 8
         rightPadding: 8
         topPadding: 0
@@ -73,9 +82,9 @@ Item {
             text: destination.caption
         }
         Layout.fillWidth: true
-        Layout.minimumWidth: labelVisible ? expandedWidth : (root.width < 360 ? 34 : 39)
+        Layout.minimumWidth: labelVisible ? expandedWidth : (root.smallHandset ? 32 : 39)
         Layout.preferredWidth: implicitWidth
-        Layout.preferredHeight: 48
+        Layout.preferredHeight: root.smallHandset ? 44 : 48
         flat: true
         hoverEnabled: true
         text: caption
@@ -147,12 +156,11 @@ Item {
         // Slightly shorter floating dock, with generous exterior breathing
         // room. Use smaller extra margins on narrow phones so the five
         // destinations retain usable touch widths.
-        readonly property real extraInset: root.width >= 375
-                                           ? Theme.scaleUi(10) : Theme.scaleUi(4)
-        anchors.leftMargin: Theme.mobileGutter + extraInset
-        anchors.rightMargin: Theme.mobileGutter + extraInset
+        readonly property real extraInset: root.smallHandset ? 0 : Theme.scaleUi(10)
+        anchors.leftMargin: (root.smallHandset ? Theme.space2 : Theme.mobileGutter) + extraInset
+        anchors.rightMargin: (root.smallHandset ? Theme.space2 : Theme.mobileGutter) + extraInset
         anchors.topMargin: Qt.platform.os === "android" ? 4 : 8
-        spacing: Theme.space2
+        spacing: root.smallHandset ? Theme.space1 : Theme.space2
         layoutDirection: Theme.uiDirection
 
         Superellipse {
@@ -160,7 +168,7 @@ Item {
             objectName: "mobileNavigationCapsule"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            Layout.preferredHeight: 56
+            Layout.preferredHeight: root.smallHandset ? 50 : 56
             curveDepth: height / 2
             exponent: 2.0
             fillColor: "transparent"
@@ -326,8 +334,8 @@ Item {
             RowLayout {
                 z: 2
                 anchors.fill: parent
-                anchors.margins: 4
-                spacing: 1
+                anchors.margins: root.smallHandset ? 3 : 4
+                spacing: root.smallHandset ? 0 : 1
                 layoutDirection: Theme.uiDirection
 
                 DockDestination {
@@ -386,9 +394,9 @@ Item {
         Button {
             id: mobilePrimaryAction
             objectName: "mobilePrimaryActionButton"
-            Layout.preferredHeight: 52
-            Layout.preferredWidth: 52
-            Layout.minimumWidth: 52
+            Layout.preferredHeight: root.smallHandset ? 48 : 52
+            Layout.preferredWidth: root.smallHandset ? 48 : 52
+            Layout.minimumWidth: root.smallHandset ? 48 : 52
             Layout.alignment: Qt.AlignVCenter
             flat: true
             hoverEnabled: true

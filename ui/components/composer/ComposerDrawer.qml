@@ -2454,7 +2454,11 @@ GenyDrawer {
             // Keep the footer geometry stable as sheets overlay the composer.
             visible: root.compact && root.editorMode === "visual"
             Layout.fillWidth: true
-            Layout.minimumHeight: 0
+            // The media row, Add Cast, clear and counter must remain on
+            // screen even when an IME leaves little space for the editor.
+            // Shrink the ScrollView (minimum 0), never this fixed toolbar.
+            Layout.minimumHeight: implicitHeight
+            Layout.preferredHeight: implicitHeight
             spacing: Theme.space1
             Layout.leftMargin: Theme.mobileGutter
             Layout.rightMargin: Theme.mobileGutter

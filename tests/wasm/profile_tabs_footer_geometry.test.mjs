@@ -16,7 +16,8 @@ test('profile sort/filter shares the existing tab row instead of reserving an em
     assert.equal((header.match(/id: profileTabs/g) || []).length, 1);
     assert.match(header, /RowLayout \{\s+anchors\.fill: parent[\s\S]*?GenyTabStrip \{\s+id: profileTabs[\s\S]*?FilterDropdown \{\s+id: profileSortFilter/);
     assert.doesNotMatch(header, /implicitHeight: 34 \+ Theme\.space1/);
-    assert.match(header, /minimumTabWidth: root\.compact \? 52 : 68/);
+    assert.match(header, /distribute: !root\.compact \|\| root\.profileContentWidth >= 530/);
+    assert.match(header, /minimumTabWidth: root\.compact \? Theme\.scaleUi\(64\) : 68/);
     assert.match(header, /Layout\.fillWidth: true[\s\S]*?Layout\.minimumWidth: 0/);
     assert.match(header, /onActivated: tabId => root\.profileFeedRequested\(tabId\)/);
 });
@@ -34,8 +35,8 @@ test('mobile floating dock preserves scroll clearance without a painted footer',
     const shell = read('AppShell.qml');
     const footer = read('BottomNavigation.qml');
     assert.match(shell, /anchors\.bottomMargin: 0/);
-    assert.match(read('FeedSurface.qml'), /bottomMargin: root\.compact \? 96 : 0/);
-    assert.match(read('ProfileSurface.qml'), /bottomMargin: root\.compact \? 96 : 0/);
+    assert.match(read('FeedSurface.qml'), /bottomMargin: root\.compact\s+\? Math\.max\(96, root\.bottomOverlayInset \+ Theme\.space2\) : 0/);
+    assert.match(read('ProfileSurface.qml'), /bottomMargin: root\.compact\s+\? Math\.max\(96, root\.bottomOverlayInset \+ Theme\.space2\) : 0/);
     assert.doesNotMatch(shell, /mobileBottomNavigation\.height \+ Theme\.space5/);
     assert.match(footer, /anchors\.topMargin: Qt\.platform\.os === "android" \? 4 : 8/);
     assert.match(footer, /objectName: "mobilePrimaryActionButton"/);

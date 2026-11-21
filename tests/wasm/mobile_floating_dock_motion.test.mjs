@@ -13,17 +13,17 @@ test('floating navigation paints no full-width footer or separator, including PW
   assert.doesNotMatch(dock,/Rectangle\s*\{\s*anchors\.fill:\s*parent/);
   assert.doesNotMatch(html,/@media\(max-width:700px\)\{body::after/);
   assert.doesNotMatch(html,/background-color:#202128/);
-  assert.match(shell,/id: mobileBottomNavigation[\s\S]*?height: Qt\.platform\.os === "android" && root\.mobile \? 74 : 88/);
+  assert.match(shell,/id: mobileBottomNavigation[\s\S]*?height: implicitHeight/);
   assert.match(shell,/anchors\.bottomMargin: 0/);
-  assert.match(read('ui/components/feed/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
-  assert.match(read('ui/components/profile/ProfileSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
+  assert.match(read('ui/components/feed/FeedSurface.qml'),/bottomMargin: root\.compact\s+\? Math\.max\(96, root\.bottomOverlayInset \+ Theme\.space2\) : 0/);
+  assert.match(read('ui/components/profile/ProfileSurface.qml'),/bottomMargin: root\.compact\s+\? Math\.max\(96, root\.bottomOverlayInset \+ Theme\.space2\) : 0/);
   assert.match(dock,/anchors\.topMargin: Qt\.platform\.os === "android" \? 4 : 8/);
-  assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter \+ extraInset/);
-  assert.match(dock,/anchors\.rightMargin: Theme\.mobileGutter \+ extraInset/);
-  assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter \+ extraInset/);
-  assert.match(dock,/root\.width >= 375/);
-  assert.match(dock,/Theme\.scaleUi\(10\) : Theme\.scaleUi\(4\)/);
-  assert.match(dock,/Layout\.minimumWidth: labelVisible \? expandedWidth : \(root\.width < 360 \? 34 : 39\)/);
+  assert.match(dock,/anchors\.leftMargin: \(root\.smallHandset \? Theme\.space2 : Theme\.mobileGutter\) \+ extraInset/);
+  assert.match(dock,/anchors\.rightMargin: \(root\.smallHandset \? Theme\.space2 : Theme\.mobileGutter\) \+ extraInset/);
+  assert.match(dock,/anchors\.leftMargin: \(root\.smallHandset \? Theme\.space2 : Theme\.mobileGutter\) \+ extraInset/);
+  assert.match(dock,/readonly property bool smallHandset: width < 390/);
+  assert.match(dock,/root\.smallHandset \? 0 : Theme\.scaleUi\(10\)/);
+  assert.match(dock,/Layout\.minimumWidth: labelVisible \? expandedWidth : \(root\.smallHandset \? 32 : 39\)/);
 });
 
 test('capsule, selected states and action button are border-free in light and dark themes',()=>{

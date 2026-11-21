@@ -391,6 +391,12 @@ Item {
         stageTransitionTimer.restart()
     }
     function nextStep() {
+        // Never advance while a recovered device signer or custody grant
+        // is being authorized. This is the same guard as the visible CTA,
+        // not merely a disabled button that keyboard shortcuts can bypass.
+        if ((currentStep === 5 || currentStep === 7)
+                && (signerBusy || recoverySubmitPending || authenticationInProgress))
+            return
         if (currentStep === 0) { switchStep(1); return }
         if (currentStep === 1) { switchStep(2); return }
         if (currentStep === 2) {
@@ -485,6 +491,9 @@ Item {
         return qsTrId("genycaster.setup.continue")
     }
     function actionEnabled() {
+        if ((currentStep === 5 || currentStep === 7)
+                && (signerBusy || recoverySubmitPending || authenticationInProgress))
+            return false
         if (currentStep === 2) return consentChecked
         if (currentStep === 3) return accountIntent === "existing"
 
@@ -3141,9 +3150,13 @@ Item {
                 neutralPrimary: true
                 showArrow: false
                 text: qsTrId("genycaster.setup.continue")
-                enabled: root.accountIntent !== "new" || root.signerReady
+                enabled: !root.signerBusy && !root.recoverySubmitPending
+                         && !root.authenticationInProgress
+                         && (root.accountIntent !== "new" || root.signerReady)
                 onClicked: {
-                    if (root.accountIntent !== "new" || root.signerReady)
+                    if (!root.signerBusy && !root.recoverySubmitPending
+                            && !root.authenticationInProgress
+                            && (root.accountIntent !== "new" || root.signerReady))
                         root.switchStep(6)
                 }
             }

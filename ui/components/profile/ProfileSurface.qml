@@ -1499,7 +1499,8 @@ Item {
         anchors.fill: parent
         clip: true
         // Preserve trailing scroll clearance beneath the floating nav.
-        bottomMargin: root.compact ? 96 : 0
+        bottomMargin: root.compact
+            ? Math.max(96, root.bottomOverlayInset + Theme.space2) : 0
         visible: !root.profileMagazineEnabled
         model: root.profileMagazineEnabled ? null : profileRowsModel
         spacing: 0
@@ -2189,7 +2190,12 @@ Item {
                                           ? qsTrId("genycaster.settings.hypersnap_label")
                                           : qsTrId("genycaster.side_nav.profile"))
                                 color: Theme.ink
-                                font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
+                                // On 320–375dp handsets preserve the display name
+                                // rather than leaving only an ellipsis.
+                                font.pixelSize: root.compact && root.profileContentWidth < 390
+                                                ? Theme.typeTitle3Size
+                                                : root.compact ? Theme.typeTitle2Size
+                                                : Theme.typeTitle1Size
                                 font.weight: Theme.weightBold
                                 horizontalAlignment: Theme.textStartAlignment
                                 wrapMode: Text.NoWrap
@@ -2354,8 +2360,8 @@ Item {
                             // Desktop retains its full URL whenever it fits;
                             // compact layouts reserve room for the display name.
                             readonly property real fittedWidth: Math.min(fullLinkWidth,
-                                Math.max(Theme.scaleUi(118), root.profileContentWidth
-                                    * (root.compact ? 0.52 : 0.48)))
+                                Math.max(Theme.scaleUi(106), root.profileContentWidth
+                                    * (root.compact ? 0.42 : 0.48)))
                             Layout.preferredWidth: fittedWidth
                             Layout.minimumWidth: 0
                             Layout.maximumWidth: fittedWidth
@@ -2459,8 +2465,13 @@ Item {
                                         neonOnHover: false
                                     }
                                     contentItem: Label {
-                                        text: qsTrId("genycaster.profile.more_links").arg(
-                                            LocaleFormat.formatInteger(root.additionalProfileLinksCount))
+                                        // Preserve the primary URL and full display
+                                        // name on narrow phones; the drawer
+                                        // exposes the complete link collection.
+                                        text: root.compact && root.profileContentWidth < 390
+                                            ? "+" + LocaleFormat.formatInteger(root.additionalProfileLinksCount)
+                                            : qsTrId("genycaster.profile.more_links").arg(
+                                                LocaleFormat.formatInteger(root.additionalProfileLinksCount))
                                         color: Theme.inkMuted
                                         font.pixelSize: Theme.typeCaptionSize
                                         font.weight: Theme.weightDemiBold
@@ -3013,9 +3024,12 @@ Item {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             Layout.minimumWidth: 0
-                            distribute: true
+                            // Five full labels cannot fit beside the mobile
+                            // filter on a 320/360dp screen. Prefer a scrollable
+                            // strip with intrinsic-width tabs to ellipses.
+                            distribute: !root.compact || root.profileContentWidth >= 530
                             segmented: false
-                            minimumTabWidth: root.compact ? 52 : 68
+                            minimumTabWidth: root.compact ? Theme.scaleUi(64) : 68
                             spacing: 0
                             currentId: root.profileFeed
                             tabs: [

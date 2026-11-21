@@ -1386,7 +1386,8 @@ Item {
         clip: true
         // The mobile dock is an overlay, not an opaque reserved footer.
         // Allow the final cast to scroll clear of its touch targets.
-        bottomMargin: root.compact ? 96 : 0
+        bottomMargin: root.compact
+            ? Math.max(96, root.bottomOverlayInset + Theme.space2) : 0
         model: root.magazineEnabled ? null : stableRows
         spacing: 0
         // Pulling past the top is a deliberate refresh gesture; the content

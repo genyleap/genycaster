@@ -98,7 +98,7 @@ test("Boot Beta badge and footer remain in separate non-overlapping rows",()=>{
     assert.doesNotMatch(html,/id="boot-version"/);
     assert.match(html,/class="boot-credit"><div>Powered by <strong>Genyleap<\/strong> · WASM Engine<\/div><div class="boot-build" id="boot-build-credit"/);
     assert.match(html,/\.boot-credit\{[^}]*flex-direction:column/);
-    assert.match(html,/\.boot-beta\{[^}]*text-align:center/);
+    assert.match(html,/\.boot-beta\{[^}]*position:absolute;top:-15px;right:0/);
     for(const label of ["Installing Software…","Updating Software…","Initializing Runtime…","Opening Genycaster…"])
         assert.ok(loader.includes(label),label);
     assert.match(loader,/if\(creditBuild\)creditBuild\.textContent=buildLabel/);
