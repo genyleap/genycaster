@@ -58,6 +58,7 @@ export function createAccountApi({
   resolveProPaymentWallets = undefined,
   verifyBillingTransfer = undefined,
   marketReader = undefined,
+  healthFetchImpl = globalThis.fetch,
   registrationRelay = null,
   swapQuoteProvider = null,
   swapQuoteStatus = undefined,
@@ -131,6 +132,37 @@ export function createAccountApi({
     res.setHeader('X-Content-Type-Options','nosniff');
     res.setHeader('Content-Type','application/json; charset=utf-8');
     const path = new URL(req.url, 'http://localhost').pathname;
+    // Reuse the existing same-origin Nginx API proxy for public health monitors.
+    // The health worker uses its own loopback listener and never sees cookies.
+    if (path === '/api/v1/cloud/health') {
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        res.writeHead(405,{'Allow':'GET, HEAD'}).end(JSON.stringify({error:'method_not_allowed'}));
+        return;
+      }
+      try {
+        const healthResponse = await healthFetchImpl('http://127.0.0.1:8798/api/health', {
+          method: req.method, redirect:'error', signal:AbortSignal.timeout(6_000)
+        });
+        if (![200,503].includes(healthResponse.status)) throw new Error('health_unavailable');
+        if (req.method === 'HEAD') {
+          res.writeHead(healthResponse.status).end();
+          return;
+        }
+        const text = await healthResponse.text();
+        if (text.length > 8192) throw new Error('health_response_too_large');
+        const data = JSON.parse(text);
+        if (data.service !== 'genycaster' || !['operational','degraded','unavailable'].includes(data.status)
+            || !data.checks || typeof data.checks !== 'object') {
+          throw new Error('health_response_invalid');
+        }
+        if (healthResponse.status === 503) res.setHeader('Retry-After','30');
+        res.writeHead(healthResponse.status).end(JSON.stringify(data));
+      } catch {
+        res.writeHead(503,{'Retry-After':'30'}).end(
+          JSON.stringify({service:'genycaster',status:'unavailable'}));
+      }
+      return;
+    }
     // Only direct Base on-chain quote readiness is public. Neither wallet
     // credentials nor the authenticated quote endpoint are exposed.
     if (path === '/api/v1/cloud/swap/status') {
