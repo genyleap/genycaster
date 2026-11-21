@@ -364,12 +364,15 @@ void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generatio
             // A genuine pending write must not be declared failed after one
             // registry lookup; shard-0 inclusion is asynchronous.
             ++m_checks;
-            if (m_checks < 60 && m_pending) scheduleCheck(generation);
-            else m_unknown = true; // Manual "check again" is always possible.
+            // Inclusion may exceed the first two minutes. Resume bounded,
+            // read-only polling at a lower rate; never repeat the POST.
+            if (m_checks >= 60) m_unknown = true;
+            if (m_pending && m_checks < 240) scheduleCheck(generation);
         } else {
             m_unknown = true;
             ++m_checks;
-            if (m_checks < 60 && m_pending) scheduleCheck(generation);
+            if (m_checks >= 60) m_unknown = true;
+            if (m_pending && m_checks < 240) scheduleCheck(generation);
         }
         emit changed();
     });
@@ -485,7 +488,9 @@ bool HyperSnapRegistrationPublisher::detachWalletForNewRegistration()
 void HyperSnapRegistrationPublisher::scheduleCheck(quint64 generation)
 {
     if (generation != m_generation || !m_pending || confirmed()) return;
-    m_poll.start(2000);
+    // Never resubmit from this timer. After the initial quick checks, keep
+    // bounded, low-frequency custody/FID reads while the screen is open.
+    m_poll.start(m_checks < 60 ? 2000 : 15000);
 }
 
 bool HyperSnapRegistrationPublisher::checkConfirmation()
