@@ -90,6 +90,9 @@ Item {
     }
     property string registrationError: ""
     property bool confirmWalletReplacement: false
+    property bool nativeCreationRequested: false
+    property bool nativeDetailsExpanded: false
+    property bool nativeExistingResumeRequested: false
     property bool recoveryWordsCopied: false
     Timer {
         id: recoveryCopyFeedbackTimer
@@ -113,9 +116,87 @@ Item {
             || nativeRegistrationPublisher.confirmed) return
         nativeRegistrationStatus.findExistingNativeAccount(nativeCustodyWallet.address)
     }
+    // One explicit Create Account click owns the entire proof + submit
+    // operation. Network checks are read-only until that click, and no proof
+    // completion can submit anything without this in-memory consent token.
+    function startNativeAccountCreation() {
+        if (nativeCreationRequested || currentStep !== 3
+            || !choosingRegistrationProvider || registrationProviderId !== "hypersnap-v2"
+            || !nativeCustodyWallet.backupVerified || !registrationNodeUsable
+            || nativeRegistrationStatus.accountLookupBusy
+            || !nativeRegistrationStatus.accountLookupChecked
+            || nativeRegistrationStatus.accountLookupFailed
+            || nativeRegistrationPublisher.pending || nativeRegistrationPublisher.busy
+            || nativeRegistrationPublisher.confirmed) return
+        if (nativeRegistrationStatus.existingNativeFid.length > 0) {
+            resumeExistingNativeAccount()
+            return
+        }
+        registrationError = ""
+        nativeCreationRequested = true
+        if (nativeRegistrationPreparation.prepared) {
+            Qt.callLater(root.submitPreparedNativeAccount)
+        } else if (!nativeRegistrationPreparation.prepare()) {
+            nativeCreationRequested = false
+            registrationError = qsTrId("genycaster.setup.native_proof_failed")
+        }
+    }
+    function submitPreparedNativeAccount() {
+        if (!nativeCreationRequested || !nativeRegistrationPreparation.prepared)
+            return
+        // The original click is no longer reusable: a retry always needs
+        // another explicit user action and independent custody/FID preflight.
+        nativeCreationRequested = false
+        if (!nativeCustodyWallet.backupVerified
+            || registrationProviderId !== "hypersnap-v2"
+            || nativeRegistrationPublisher.pending || nativeRegistrationPublisher.confirmed
+            || !nativeRegistrationPublisher.submitPrepared()) {
+            registrationError = qsTrId("genycaster.setup.native_proof_failed")
+            nativeRegistrationStatus.refresh()
+        }
+    }
+    function resumeExistingNativeAccount() {
+        if (nativeExistingResumeRequested || !nativeCustodyWallet.backupVerified
+            || registrationProviderId !== "hypersnap-v2"
+            || nativeRegistrationPublisher.pending || nativeRegistrationPublisher.busy
+            || nativeRegistrationPublisher.confirmed || authenticated
+            || nativeRegistrationStatus.existingNativeFid.length === 0
+            || nativeRegistrationPublisher.existingVerificationFailed)
+            return
+        nativeExistingResumeRequested = true
+        if (!nativeRegistrationPublisher.confirmExistingAccount())
+            nativeExistingResumeRequested = false
+    }
     Connections {
         target: nativeCustodyWallet
         function onChanged() { Qt.callLater(root.maybeLookupNativeFid) }
+    }
+    Connections {
+        target: nativeRegistrationStatus
+        function onLookupChanged() {
+            // Already registered on shard-0? Accept the custody-bound FID
+            // automatically instead of offering a second Continue button.
+            if (root.currentStep === 3 && root.choosingRegistrationProvider
+                && root.registrationProviderId === "hypersnap-v2"
+                && nativeRegistrationStatus.existingNativeFid.length > 0)
+                Qt.callLater(root.resumeExistingNativeAccount)
+        }
+    }
+    Connections {
+        target: nativeRegistrationPreparation
+        function onChanged() {
+            if (!root.nativeCreationRequested) return
+            if (nativeRegistrationPreparation.prepared)
+                Qt.callLater(root.submitPreparedNativeAccount)
+            else if (nativeRegistrationPreparation.failed
+                     && !nativeRegistrationPreparation.busy) {
+                root.nativeCreationRequested = false
+                root.registrationError = qsTrId("genycaster.setup.native_proof_failed")
+                // A stale anchor is common after lengthy PoW. A fresh
+                // challenge read is safe, but a second submission is not.
+                nativeRegistrationStatus.refresh()
+            }
+        }
     }
     // Readiness is scoped to the selected registration registry. Neither a
     // reachable read node nor a generated custody wallet establishes an FID.
