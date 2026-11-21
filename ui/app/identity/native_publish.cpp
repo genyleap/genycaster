@@ -367,12 +367,12 @@ void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generatio
             // Inclusion may exceed the first two minutes. Resume bounded,
             // read-only polling at a lower rate; never repeat the POST.
             if (m_checks >= 60) m_unknown = true;
-            if (m_pending && m_checks < 240) scheduleCheck(generation);
+            if (m_pending) scheduleCheck(generation);
         } else {
             m_unknown = true;
             ++m_checks;
             if (m_checks >= 60) m_unknown = true;
-            if (m_pending && m_checks < 240) scheduleCheck(generation);
+            if (m_pending) scheduleCheck(generation);
         }
         emit changed();
     });
@@ -488,9 +488,12 @@ bool HyperSnapRegistrationPublisher::detachWalletForNewRegistration()
 void HyperSnapRegistrationPublisher::scheduleCheck(quint64 generation)
 {
     if (generation != m_generation || !m_pending || confirmed()) return;
-    // Never resubmit from this timer. After the initial quick checks, keep
-    // bounded, low-frequency custody/FID reads while the screen is open.
-    m_poll.start(m_checks < 60 ? 2000 : 15000);
+    // This timer performs ONLY read-only custody/FID lookups. A shard-0 node
+    // can lag tens of minutes or longer; arbitrarily stopping after 240
+    // requests made the UI promise automatic confirmation but cease polling.
+    // Slow down after the first attempts, and keep checking until the view is
+    // closed or the chain independently confirms the registration.
+    m_poll.start(m_checks < 30 ? 2000 : m_checks < 90 ? 15000 : 60000);
 }
 
 bool HyperSnapRegistrationPublisher::checkConfirmation()
