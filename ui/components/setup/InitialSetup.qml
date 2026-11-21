@@ -1628,18 +1628,18 @@ Item {
                     objectName: "setupStageAction"
                     visible: root.showsPrimaryCta
                     anchors.verticalCenter: parent.verticalCenter
+                    // A fixed trailing action: bottom-right in LTR, bottom-left
+                    // in RTL. Never recenter on a language or step transition.
+                    // Compact windows keep a real touch target without forcing
+                    // a full-width button across the entire footer.
                     width: root.welcomeNativeAppsVisible
-                           ? (Math.min(root.welcomeActionsWidth, setupFooterContent.width)
-                              - Theme.space2) * (root.phone ? 0.42 : 0.47)
-                           : root.phone ? setupFooterContent.width
-                           : Math.min(Theme.scaleUi(360), setupFooterContent.width)
-                    x: root.welcomeNativeAppsVisible
-                       ? (setupFooterContent.width
-                          - Math.min(root.welcomeActionsWidth, setupFooterContent.width)) / 2
-                         + (Theme.rtl
-                            ? Math.min(root.welcomeActionsWidth, setupFooterContent.width) - width
-                            : 0)
-                       : (setupFooterContent.width - width) / 2
+                           ? Math.min(Theme.scaleUi(264),
+                                      (Math.min(root.welcomeActionsWidth,
+                                                setupFooterContent.width) - Theme.space2) * 0.48)
+                           : Math.min(root.phone ? Theme.scaleUi(264)
+                                                 : Theme.scaleUi(340),
+                                      setupFooterContent.width)
+                    x: Theme.rtl ? 0 : setupFooterContent.width - width
                     text: root.actionText()
                     neutralPrimary: false
                     enabled: !root.stageTransitioning && root.actionEnabled()
@@ -1658,8 +1658,10 @@ Item {
                                                setupFooterContent.width)
                                     - Theme.space2 - stageAction.width)
                     height: stageAction.height
-                    x: Theme.rtl ? stageAction.x - Theme.space2 - width
-                                 : stageAction.x + stageAction.width + Theme.space2
+                    // Keep the secondary welcome action immediately inward
+                    // from the primary action, mirroring its order in RTL.
+                    x: Theme.rtl ? stageAction.x + stageAction.width + Theme.space2
+                                 : stageAction.x - Theme.space2 - width
                     text: qsTrId("genycaster.apps.download_cta_button")
                     iconGlyph: Theme.iconDownload
                     wrapText: true
@@ -1839,12 +1841,13 @@ Item {
             Button {
                 id: consentCheck
                 Layout.fillWidth: true
-                Layout.topMargin: Theme.space3
-                implicitHeight: Math.max(Theme.touchTarget, consentLabel.implicitHeight + Theme.space3 * 2)
+                Layout.topMargin: Theme.space2
+                implicitHeight: Math.max(Theme.touchTarget,
+                                         consentLabel.implicitHeight + Theme.space2 * 2)
                 leftPadding: Theme.space3
                 rightPadding: Theme.space3
-                topPadding: Theme.space3
-                bottomPadding: Theme.space3
+                topPadding: Theme.space2
+                bottomPadding: Theme.space2
                 enabled: true
                 focusPolicy: Qt.StrongFocus
                 Accessible.name: qsTrId("genycaster.setup.single_legal_consent")
@@ -1858,19 +1861,20 @@ Item {
                     externalHovered: consentCheck.hovered
                     neonStrength: Theme.neonControlStrength
                     fillColor: consentCheck.down ? Theme.surfacePressed
-                               : root.consentChecked ? Theme.surfaceSelected
                                : consentCheck.hovered ? Theme.surfaceHover : Theme.surfaceMuted
-                    borderWidth: Theme.keyboardFocusVisible(consentCheck) ? 2 : Theme.strokeHairline
+                    borderWidth: Theme.keyboardFocusVisible(consentCheck) ? 2 : Theme.strokeStandard
                     borderColor: Theme.keyboardFocusVisible(consentCheck) ? Theme.focus
-                               : root.consentChecked ? Theme.accent : Theme.borderMuted
+                               : root.consentChecked
+                                 ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.65)
+                                 : Theme.borderMuted
                     curveDepth: Theme.curveContainer
                 }
                 contentItem: RowLayout {
-                    spacing: Theme.space3
+                    spacing: Theme.space2
                     layoutDirection: Theme.uiDirection
                     Superellipse {
-                        Layout.preferredWidth: Theme.scaleUi(24)
-                        Layout.preferredHeight: Theme.scaleUi(24)
+                        Layout.preferredWidth: Theme.scaleUi(20)
+                        Layout.preferredHeight: Theme.scaleUi(20)
                         fillColor: root.consentChecked ? Theme.accent : Theme.surface
                         borderColor: root.consentChecked ? Theme.accent : Theme.borderStrong
                         borderWidth: Theme.strokeStandard
@@ -1880,7 +1884,7 @@ Item {
                             visible: root.consentChecked
                             text: Theme.iconCheck
                             color: Theme.contrastInk(Theme.accent)
-                            preferredSize: Theme.scaleUi(16)
+                            preferredSize: Theme.scaleUi(14)
                         }
                     }
                     DirectionAwareLabel {
@@ -1888,7 +1892,9 @@ Item {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.setup.single_legal_consent")
                         color: Theme.ink
-                        font.pixelSize: Theme.typeBodySize
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightRegular
+                        horizontalAlignment: Theme.textStartAlignment
                         wrapMode: Text.WordWrap
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -2976,6 +2982,7 @@ Item {
                             GridLayout {
                                 Layout.fillWidth: true
                                 columns: root.phone ? 1 : 3
+                                layoutDirection: Theme.uiDirection
                                 rowSpacing: Theme.space2
                                 columnSpacing: Theme.space3
                                 visible: nativeRegistrationPublisher.pending
@@ -2990,6 +2997,7 @@ Item {
                                         required property int index
                                         required property string modelData
                                         Layout.fillWidth: true
+                                        layoutDirection: Theme.uiDirection
                                         spacing: Theme.space2
                                         Rectangle {
                                             width: Theme.scaleUi(22)

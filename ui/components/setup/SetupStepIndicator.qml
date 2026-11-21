@@ -18,6 +18,8 @@ Item {
     Row {
         id: markers
         anchors.centerIn: parent
+        // Step 1 begins at the reading edge in both script directions.
+        layoutDirection: Theme.uiDirection
         spacing: root.markerSpacing
 
         Repeater {

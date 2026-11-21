@@ -324,7 +324,7 @@ test('every stage uses a fixed bottom CTA footer and the desktop retains two-pan
   assert.match(setup, /id: setupActionFooter/);
   assert.match(setup, /anchors.bottom: setupActionFooter.top/);
   assert.match(setup, /anchors.verticalCenter: parent.verticalCenter/);
-  assert.match(setup, /: \(setupFooterContent.width - width\) \/ 2/);
+  assert.match(setup, /x: Theme\.rtl \? 0 : setupFooterContent\.width - width/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
 });
 
@@ -458,12 +458,13 @@ test('RTL back and close do not occupy the same top corner', () => {
   assert.match(nav,/iconGlyph: Theme\.rtl \? Theme\.iconArrowRight : Theme\.iconArrowLeft/);
 });
 
-test('acceptance toggle is borderless unless keyboard focused', () => {
+test('acceptance toggle uses a restrained semantic border and compact label', () => {
   const s=source('ui/components/setup/InitialSetup.qml');
   const start=s.indexOf('id: consentCheck');
   const end=s.indexOf('id: accountStage');
   const terms=s.slice(start,end);
-  assert.match(terms,/borderWidth: Theme\.keyboardFocusVisible\(consentCheck\) \? 2 : Theme\.strokeHairline/);
+  assert.match(terms,/borderWidth: Theme\.keyboardFocusVisible\(consentCheck\) \? 2 : Theme\.strokeStandard/);
+  assert.match(terms,/font\.pixelSize: Theme\.typeLabelSize/);
   assert.match(terms,/fillColor: consentCheck\.down \? Theme\.surfacePressed/);
   assert.match(terms,/onClicked: root\.consentChecked = !root\.consentChecked/);
 });
