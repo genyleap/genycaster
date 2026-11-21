@@ -42,6 +42,7 @@
 #include <QQuickWindow>
 #if defined(Q_OS_ANDROID)
 #include "media/android_icon.hpp"
+#include "media/android_document_picker.hpp"
 #include <QtWebView/QtWebView>
 #endif
 #include <QProcess>
@@ -633,6 +634,9 @@ int main(int argc, char* argv[])
     std::unique_ptr<EmojiController> emojiControllerOwner{};
     std::unique_ptr<farcaster::runtime::emoji::EmojiRuntime> emojiRuntimeOwner{};
     std::unique_ptr<MediaUploadController> mediaUploadControllerOwner{};
+#if defined(Q_OS_ANDROID)
+    std::unique_ptr<AndroidComposerMediaPicker> androidMediaPickerOwner{};
+#endif
     std::unique_ptr<MediaClassifierController> mediaClassifierControllerOwner{};
     std::unique_ptr<MediaPlaybackCoordinator> mediaPlaybackCoordinatorOwner{};
     std::unique_ptr<LiveInsightsController> liveInsightsControllerOwner{};
@@ -1126,6 +1130,13 @@ int main(int argc, char* argv[])
     emojiRuntimeOwner = std::make_unique<farcaster::runtime::emoji::EmojiRuntime>(emojiController);
     mediaUploadControllerOwner = std::make_unique<MediaUploadController>();
     MediaUploadController& mediaUploadController = *mediaUploadControllerOwner;
+#if defined(Q_OS_ANDROID)
+    // Android SAF returns content://, not an uploadable local file URL.
+    // The native picker imports a user-granted document into a private file.
+    androidMediaPickerOwner = std::make_unique<AndroidComposerMediaPicker>(mediaUploadController);
+    QObject::connect(&mediaUploadController, &MediaUploadController::browserImagePickRequested,
+                     androidMediaPickerOwner.get(), &AndroidComposerMediaPicker::open);
+#endif
     mediaClassifierControllerOwner = std::make_unique<MediaClassifierController>();
     MediaClassifierController& mediaClassifier = *mediaClassifierControllerOwner;
     mediaPlaybackCoordinatorOwner = std::make_unique<MediaPlaybackCoordinator>(settings);
