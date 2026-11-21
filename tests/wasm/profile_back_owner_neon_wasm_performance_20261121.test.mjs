@@ -71,16 +71,19 @@ test('reused QML ProfileSurface never reveals previous identity or cross-protoco
         accountNetwork: 'farcaster',
         activeReadNetwork: 'farcaster',
         profileNetwork: 'farcaster',
-        detail: {},
-        retainedDetail: {fid: 42, fidString: '42', displayName: 'Old profile'},
-        retainedDetailNetwork: 'farcaster'
+        detail: {}
     };
     const pending = {activeProfileFidText: '73'};
     assert.deepEqual(resolveProfile(root, pending), {});
     const restored = {activeProfileFidText: '42'};
-    assert.equal(resolveProfile(root, restored).displayName, 'Old profile');
+    // Returning to a profile without a current bridge snapshot is an
+    // intentional empty/loading header, not the stale previous identity.
+    assert.deepEqual(resolveProfile(root, restored), {});
+    root.detail = {fid: 42, fidString: '42', displayName: 'Restored profile'};
+    assert.equal(resolveProfile(root, restored).displayName, 'Restored profile');
 
     root.profileNetwork = 'hypersnap';
+    root.detail = {};
     assert.deepEqual(resolveProfile(root, restored), {});
     root.detail = {fid: 81, fidString: '81', displayName: 'Late reply'};
     assert.deepEqual(resolveProfile(root, {activeProfileFidText: '42'}), {});
@@ -95,8 +98,11 @@ test('reused QML ProfileSurface never reveals previous identity or cross-protoco
     });
     assert.equal(own.displayName, 'Authenticated');
     assert.notEqual(own.displayName, 'Late reply');
-    assert.match(profile, /retainedDetailNetwork === root\.profileNetwork/);
+    assert.doesNotMatch(profile, /retainedDetailNetwork === root\.profileNetwork/);
     assert.match(profile, /presentationBridge\.activeProfileFidText/);
+    const target = profile.split('readonly property string profileFidText:')[1]
+        .split('readonly property string activeReadNetwork:')[0];
+    assert.doesNotMatch(target, /root\.activeDetail/);
 });
 
 test('WASM reflections reuse one capture at reduced area and cadence; dock glass uses fewer blur taps', () => {

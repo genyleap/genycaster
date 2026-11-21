@@ -330,9 +330,11 @@ Item {
                 borderWidth: 0
             }
 
-            // The same content-derived chromatic material as the header.
-            // The shader masks to the capsule's superellipse geometry;
-            // no rectangular clipping or hard reflected divider is used.
+            // A broad reflected color wash through the glass, followed by
+            // a *top-half only* superellipse rim. The edge shader reuses the
+            // same GPU color field as the header. Cropping the highlight to
+            // the upper half (not the content image) preserves the curved
+            // top corners without lighting the capsule's bottom edge.
             NeonReflection {
                 objectName: "mobileNavigationChromaticReflection"
                 anchors.fill: parent
@@ -344,6 +346,32 @@ Item {
                 borderInset: 0
                 edgeStrength: 0
                 bottomEdgeOnly: false
+            }
+            Item {
+                id: navigationTopReflectionMask
+                objectName: "mobileNavigationTopRimMask"
+                width: parent.width
+                height: parent.height / 2
+                anchors.top: parent.top
+                clip: true
+                z: 1.6
+
+                NeonReflection {
+                    objectName: "mobileNavigationTopEdgeReflection"
+                    width: navigationCapsule.width
+                    height: navigationCapsule.height
+                    x: 0
+                    y: 0
+                    reflectionSource: root.reflectionSource
+                    strength: 0
+                    cornerRadius: navigationCapsule.height / 2
+                    cornerPower: 2.0
+                    borderInset: 0
+                    edgeStrength: 0.72
+                    edgeWidth: 3.4
+                    edgeInset: 1.7
+                    bottomEdgeOnly: false
+                }
             }
 
             // Restrained depth, without a painted footer.

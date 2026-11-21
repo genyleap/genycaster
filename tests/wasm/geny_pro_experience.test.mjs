@@ -95,7 +95,7 @@ test('Pro-only actions explain why they are locked, but users may unlink and unf
     assert.match(formatting,/signal proFeatureRequested\(\)/);
     assert.match(formatting,/root\.proFeatureRequested\(\)/);
     assert.match(composer,/onProFeatureRequested: composerProNotice\.open\(\)/);
-    assert.match(notice,/openProofConnections\.fetchProEntitlements\(true\)/);
+    assert.match(notice,/openProofConnections\.retryProEntitlements\(\)/);
     assert.match(notice,/background: PopupSurface/);
     assert.match(notice,/Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
     assert.doesNotMatch(notice,/eligible\s*=\s*true/);

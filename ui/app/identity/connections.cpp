@@ -96,6 +96,25 @@ namespace {
         && url.fragment().isEmpty() && url.port() == -1;
 }
 
+// Callbacks may run after a timeout closes the underlying SSL socket.
+// bytesAvailable() alone is not evidence that QNetworkReply is readable;
+// reading a closed device repeatedly emits Qt's "device not open" warnings.
+// HTTP 4xx/5xx JSON error responses remain readable when Qt keeps their
+// device open; only aborted/unavailable network transports are discarded.
+[[nodiscard]] QByteArray readOpenReply(QNetworkReply* const reply)
+{
+    if (reply == nullptr || !reply->isOpen() || !reply->isReadable()
+        || reply->bytesAvailable() <= 0)
+        return {};
+    const auto networkError = reply->error();
+    if (networkError == QNetworkReply::TimeoutError
+        || networkError == QNetworkReply::OperationCanceledError
+        || (networkError != QNetworkReply::NoError
+            && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 0))
+        return {};
+    return reply->readAll();
+}
+
 // QNetworkReply::abort() may emit finished() synchronously on Qt backends.
 // Detach the QPointer and its callbacks before calling abort(), so neither
 // a reentrant completion nor a cancelled request can overwrite another
@@ -106,7 +125,9 @@ void cancelNetworkReply(QPointer<QNetworkReply>& tracked, QObject* receiver)
     tracked.clear();
     if (!pending) return;
     QObject::disconnect(pending.data(), nullptr, receiver, nullptr);
-    pending->abort();
+    // A finished reply can remain QPointer-valid while its SSL socket is
+    // already closed. Aborting it again triggers native Qt device warnings.
+    if (pending->isRunning()) pending->abort();
     if (pending) pending->deleteLater();
 }
 
@@ -303,7 +324,7 @@ void OpenProofConnectionsController::refreshSwapAvailability()
         const int status=reply->attribute(
             QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QByteArray content=reply->isReadable()
-            && reply->bytesAvailable()<=1024 ? reply->readAll() : QByteArray{};
+            && reply->bytesAvailable()<=1024 ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         const auto document=QJsonDocument::fromJson(content);
         const QJsonObject response=document.isObject()?document.object():QJsonObject{};
@@ -376,7 +397,7 @@ void OpenProofConnectionsController::requestSwapQuote(
         const int status=reply->attribute(
             QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QByteArray bytes=reply->isReadable()
-                && reply->bytesAvailable()<=262144 ? reply->readAll() : QByteArray{};
+                && reply->bytesAvailable()<=262144 ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         if (viewer!=m_viewerFid || generation!=m_grantGeneration
             || !cloudAuthorizationReady()) {
@@ -494,7 +515,7 @@ void OpenProofConnectionsController::beginSignedAccountSession()
         m_accountProofRequest.clear();
         const int status = challenge->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes = challenge->bytesAvailable() <= 2048
-            ? challenge->readAll() : QByteArray{};
+            ? readOpenReply(challenge) : QByteArray{};
         challenge->deleteLater();
         if (viewer != m_viewerFid || generation != m_grantGeneration) return;
         if (status != 200) {
@@ -683,7 +704,7 @@ void OpenProofConnectionsController::restoreAccountSession()
         // verified recovery bearer arrives. Do not read a closed reply:
         // QNetworkReply::abort() can synchronously emit finished() on Qt backends.
         const auto bytes=status==200 && reply->isReadable()
-            && reply->bytesAvailable()<8192 ? reply->readAll() : QByteArray{};
+            && reply->bytesAvailable()<8192 ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         if(generation!=m_grantGeneration || viewer!=m_viewerFid) return;
         if (status != 200) {
@@ -770,7 +791,7 @@ void OpenProofConnectionsController::bootstrapAccountSession()
         // verified recovery bearer arrives. Do not read a closed reply:
         // QNetworkReply::abort() can synchronously emit finished() on Qt backends.
         const auto bytes=status==200 && reply->isReadable()
-            && reply->bytesAvailable()<8192 ? reply->readAll() : QByteArray{};
+            && reply->bytesAvailable()<8192 ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         if(generation!=m_grantGeneration || viewer!=m_viewerFid) return;
         if (status != 200) {
@@ -891,7 +912,7 @@ void OpenProofConnectionsController::checkCloudService()
         if (m_cloudProbe == reply) m_cloudProbe = nullptr;
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto payload = reply->bytesAvailable() <= 12 * 1024
-            ? reply->readAll() : QByteArray{};
+            ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         const auto doc = QJsonDocument::fromJson(payload);
         // Production SPA fallbacks can return HTTP 200 with HTML. Never
@@ -1018,7 +1039,7 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
         if (m_cloudRequest==reply) m_cloudRequest=nullptr;
         const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes=reply->bytesAvailable() <= 100 * 1024
-            ? reply->readAll() : QByteArray{};
+            ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         if (generation!=m_grantGeneration || viewer!=m_viewerFid) return;
         if (status!=200) {
@@ -1211,7 +1232,7 @@ void OpenProofConnectionsController::pumpNotificationSeenAt(const bool upload)
         if (m_cloudRequest==reply) m_cloudRequest=nullptr;
         const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes=reply->bytesAvailable()<=64*1024
-            ? reply->readAll():QByteArray{};
+            ? readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if (generation!=m_grantGeneration || viewer!=m_viewerFid) return;
         if (status!=200) return;
@@ -1315,7 +1336,7 @@ void OpenProofConnectionsController::pumpDraftChanges()
         if (m_draftRequest==reply) m_draftRequest=nullptr;
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes=reply->bytesAvailable()<=384*1024
-            ? reply->readAll():QByteArray{};
+            ? readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if (generation!=m_grantGeneration || viewer!=m_viewerFid
             || status!=200) return;
@@ -1494,7 +1515,7 @@ void OpenProofConnectionsController::uploadDraftChange()
         if (m_draftRequest==reply) m_draftRequest=nullptr;
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes=reply->bytesAvailable()<=256*1024
-            ? reply->readAll():QByteArray{};
+            ? readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if (generation!=m_grantGeneration || viewer!=m_viewerFid) return;
         if (status==409) {
@@ -1594,7 +1615,7 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
         if (m_cloudRequest == reply) m_cloudRequest = nullptr;
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes = reply->bytesAvailable() < 64 * 1024
-            ? reply->readAll() : QByteArray{};
+            ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         // LinkedIn refresh must release the shared request lane for bookmarks
         // and read-watermark changes, including when the refresh fails.
@@ -1693,7 +1714,7 @@ void OpenProofConnectionsController::fetchPublicActivitySource(qulonglong fid)
         if(m_publicActivityRead!=reply){reply->deleteLater();return;}
         m_publicActivityRead.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<=1024?reply->readAll():QByteArray{};
+        const auto bytes=reply->bytesAvailable()<=1024?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(m_publicActivityFid!=fid)return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -1742,7 +1763,7 @@ void OpenProofConnectionsController::fetchMutedProfiles()
         if(m_mutedProfilesRead!=reply){reply->deleteLater();return;}
         m_mutedProfilesRead.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<=8192?reply->readAll():QByteArray{};
+        const auto bytes=reply->bytesAvailable()<=8192?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -1819,7 +1840,7 @@ void OpenProofConnectionsController::setProfileMuted(
         if(m_mutedProfilesWrite!=reply){reply->deleteLater();return;}
         m_mutedProfilesWrite.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<=8192?reply->readAll():QByteArray{};
+        const auto bytes=reply->bytesAvailable()<=8192?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -1876,7 +1897,7 @@ void OpenProofConnectionsController::fetchGenyBuzzPreferences()
         m_buzzPreferenceRead.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes=reply->isReadable() && reply->bytesAvailable()<=4096
-            ?reply->readAll():QByteArray{};
+            ?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto value=QJsonDocument::fromJson(bytes).object()
@@ -1923,7 +1944,7 @@ void OpenProofConnectionsController::setGenyBuzzEnabled(const bool enabled)
         m_buzzPreferenceWrite.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes=reply->isReadable() && reply->bytesAvailable()<=4096
-            ?reply->readAll():QByteArray{};
+            ?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto value=QJsonDocument::fromJson(bytes).object()
@@ -1991,7 +2012,7 @@ void OpenProofConnectionsController::sendGenyBuzz(
         m_buzzSend.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes=reply->isReadable() && reply->bytesAvailable()<=4096
-            ?reply->readAll():QByteArray{};
+            ?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto responsePayload=QJsonDocument::fromJson(bytes).object();
@@ -2030,7 +2051,7 @@ void OpenProofConnectionsController::fetchGenyBuzzInbox()
         m_buzzInboxRead.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes=reply->isReadable() && reply->bytesAvailable()<=16384
-            ?reply->readAll():QByteArray{};
+            ?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -2114,7 +2135,7 @@ void OpenProofConnectionsController::fetchStreakPreferences()
         if(m_streakPreferencesRead!=reply){reply->deleteLater();return;}
         m_streakPreferencesRead.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto body=reply->bytesAvailable()<=2048?reply->readAll():QByteArray{};
+        const auto body=reply->bytesAvailable()<=2048?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(m_viewerFid!=viewer || m_grantGeneration!=generation)return;
         const auto doc=QJsonDocument::fromJson(body);
@@ -2160,7 +2181,7 @@ void OpenProofConnectionsController::setStreakPreferences(
         if(m_streakPreferencesWrite!=reply){reply->deleteLater();return;}
         m_streakPreferencesWrite.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<=2048?reply->readAll():QByteArray{};
+        const auto bytes=reply->bytesAvailable()<=2048?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(m_viewerFid!=viewer || m_grantGeneration!=generation)return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -2279,7 +2300,7 @@ void OpenProofConnectionsController::fetchProPlan(const bool force)
         if (m_proPlanRequest != reply) { reply->deleteLater(); return; }
         m_proPlanRequest.clear();
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes = reply->bytesAvailable() <= 2048 ? reply->readAll() : QByteArray{};
+        const auto bytes = reply->bytesAvailable() <= 2048 ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         const auto doc = QJsonDocument::fromJson(bytes);
         const auto plan = doc.isObject()
@@ -2314,6 +2335,8 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
         return;
     }
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (!force && now < m_proEntitlementsRetryAfter)
+        return;
     if (!force && m_proEntitlementsFid == m_viewerFid &&
         m_proEntitlementsFetchedAt > 0 && now - m_proEntitlementsFetchedAt < 60'000)
         return;
@@ -2336,7 +2359,7 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
         m_proEntitlementsRead.clear();
         const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto networkError = reply->error();
-        const auto bytes = reply->bytesAvailable() <= 8192 ? reply->readAll() : QByteArray{};
+        const auto bytes = reply->bytesAvailable() <= 8192 ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         if (viewer != m_viewerFid || generation != m_grantGeneration) return;
         const auto doc = QJsonDocument::fromJson(bytes);
@@ -2361,6 +2384,17 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
                                   QStringLiteral("unavailable")}};
             m_proEntitlementsFid = viewer;
         }
+        // A timeout (Qt NetworkError 4), service failure or throttling is
+        // unavailable evidence, not an account downgrade. Preserve the last
+        // server-verified membership; back off automatic requests for one
+        // minute, but allow an explicit user refresh or confirmed payment.
+        if (verified || status == 401)
+            m_proEntitlementsRetryAfter = 0;
+        else if (networkError != QNetworkReply::NoError || status == 429
+                 || status == 502 || status == 503 || status == 504
+                 || status == 0)
+            m_proEntitlementsRetryAfter =
+                QDateTime::currentMSecsSinceEpoch() + 60'000;
         if (!verified) {
             // A rejected session is not still authenticated just because its
             // cookie was accepted on an earlier request. Invalidate only the
@@ -2437,7 +2471,7 @@ void OpenProofConnectionsController::requestProWalletChallenge(const QString& pa
         m_proWalletRequest.clear();
         const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QByteArray bytes=reply->isReadable() && reply->bytesAvailable()<=4096
-            ?reply->readAll():QByteArray{};
+            ?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto root=QJsonDocument::fromJson(bytes).object();
@@ -2500,7 +2534,7 @@ void OpenProofConnectionsController::confirmProWalletSignature(
         m_proWalletRequest.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QByteArray bytes=reply->isReadable() && reply->bytesAvailable()<=4096
-            ?reply->readAll():QByteArray{};
+            ?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto root=QJsonDocument::fromJson(bytes).object();
@@ -2553,7 +2587,7 @@ void OpenProofConnectionsController::requestProPaymentQuote(const QString& asset
         if (m_proBillingRequest != reply) { reply->deleteLater(); return; }
         m_proBillingRequest.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable() <= 8192 ? reply->readAll() : QByteArray{};
+        const auto bytes=reply->bytesAvailable() <= 8192 ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         if (viewer!=m_viewerFid || generation!=m_grantGeneration) return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -2624,7 +2658,7 @@ void OpenProofConnectionsController::verifyProPaymentForQuote(
         if (m_proBillingRequest != reply) { reply->deleteLater(); return; }
         m_proBillingRequest.clear();
         const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const QByteArray bytes=reply->bytesAvailable()<=8192 ? reply->readAll():QByteArray{};
+        const QByteArray bytes=reply->bytesAvailable()<=8192 ? readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if (viewer!=m_viewerFid || generation!=m_grantGeneration) return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -2687,7 +2721,7 @@ void OpenProofConnectionsController::fetchGenyAssets(const bool force)
         if (m_genyAssetsRead != reply) { reply->deleteLater(); return; }
         m_genyAssetsRead.clear();
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const QByteArray bytes = reply->bytesAvailable() <= 32768 ? reply->readAll() : QByteArray{};
+        const QByteArray bytes = reply->bytesAvailable() <= 32768 ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         if (viewer != m_viewerFid || generation != m_grantGeneration) return;
         m_genyAssets = QVariantMap{
@@ -2741,7 +2775,7 @@ void OpenProofConnectionsController::fetchStreakLeaderboard(const QString& track
         if(m_streakLeaderboardRead!=reply){reply->deleteLater();return;}
         m_streakLeaderboardRead.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<=65536?reply->readAll():QByteArray{};
+        const auto bytes=reply->bytesAvailable()<=65536?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(m_viewerFid!=viewer || m_grantGeneration!=generation)return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -2777,7 +2811,7 @@ void OpenProofConnectionsController::fetchStreak()
         if(m_streakRead!=reply){reply->deleteLater();return;}
         m_streakRead.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<=8192?reply->readAll():QByteArray{};
+        const auto bytes=reply->bytesAvailable()<=8192?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -2838,7 +2872,7 @@ void OpenProofConnectionsController::pumpStreakWrites()
         if(m_streakWrite!=reply){reply->deleteLater();return;}
         m_streakWrite.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<=8192?reply->readAll():QByteArray{};
+        const auto bytes=reply->bytesAvailable()<=8192?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -2929,7 +2963,7 @@ void OpenProofConnectionsController::fetchProfileStatus(const QString& fidText,
         }
         m_profileStatusRead=nullptr;
         const int code=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto data=reply->bytesAvailable()<=4096?reply->readAll():QByteArray{};
+        const auto data=reply->bytesAvailable()<=4096?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(m_profileStatusFid!=profileFid || m_profileStatusNetwork!=network
            || generation!=m_grantGeneration)return;
@@ -2991,7 +3025,7 @@ void OpenProofConnectionsController::saveProfileStatus(
     connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer]{
         if(m_profileStatusWrite==reply)m_profileStatusWrite=nullptr;
         const auto code=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<=4096?reply->readAll():QByteArray{};
+        const auto bytes=reply->bytesAvailable()<=4096?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(generation!=m_grantGeneration || viewer!=m_viewerFid)return;
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -3056,7 +3090,7 @@ void OpenProofConnectionsController::fetchPublicProfileExtras(
         if(m_publicProfileExtrasRead!=reply) {reply->deleteLater();return;}
         m_publicProfileExtrasRead=nullptr;
         const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<=8192?reply->readAll():QByteArray{};
+        const auto bytes=reply->bytesAvailable()<=8192?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(m_publicProfileExtrasFid!=fid || m_publicProfileExtrasNetwork!=network
            || generation!=m_grantGeneration)return;
@@ -3146,7 +3180,7 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
         if (m_cloudRequest == reply) m_cloudRequest = nullptr;
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QByteArray bytes = reply->bytesAvailable() <= 24 * 1024
-            ? reply->readAll() : QByteArray{};
+            ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         const auto doc = QJsonDocument::fromJson(bytes);
         if (status == 409) {
@@ -3229,7 +3263,7 @@ void OpenProofConnectionsController::refresh()
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const bool ok = reply->error() == QNetworkReply::NoError
             && status == 200 && reply->bytesAvailable() <= 32 * 1024;
-        const QByteArray payload = ok ? reply->readAll() : QByteArray{};
+        const QByteArray payload = ok ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         const QStringList latest = parseProviderCatalog(payload);
         // Catalog availability is informational, not an account operation
@@ -3290,7 +3324,7 @@ void OpenProofConnectionsController::refreshAccountConnectionsSnapshot()
     connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
         if(m_accountConnectionsRequest==reply)m_accountConnectionsRequest=nullptr;
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto body=reply->bytesAvailable()<=32768?reply->readAll():QByteArray{};
+        const auto body=reply->bytesAvailable()<=32768?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(viewer!=m_viewerFid || generation!=m_grantGeneration
            || status!=200)return;
@@ -3528,7 +3562,7 @@ void OpenProofConnectionsController::refreshAccountBookmarks()
         if(m_bookmarkSnapshotRequest==reply)m_bookmarkSnapshotRequest=nullptr;
         emit cloudStateChanged();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto data=reply->bytesAvailable()<=1'048'576?reply->readAll():QByteArray{};
+        const auto data=reply->bytesAvailable()<=1'048'576?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(viewer!=m_viewerFid || generation!=m_grantGeneration || status!=200)
             return;
@@ -3688,6 +3722,7 @@ void OpenProofConnectionsController::clearAccountGrant()
     m_proEntitlements.clear();
     m_proEntitlementsFid = 0;
     m_proEntitlementsFetchedAt = 0;
+    m_proEntitlementsRetryAfter = 0;
     emit proEntitlementsChanged();
     cancelNetworkReply(m_draftRequest, this);
     m_draftRemoteInitialized=false;
@@ -3749,7 +3784,7 @@ void OpenProofConnectionsController::fetchTopics()
         if(generation==m_grantGeneration && code==200
                 && reply->error()==QNetworkReply::NoError) {
             QJsonParseError error;
-            const auto document=QJsonDocument::fromJson(reply->readAll(),&error);
+            const auto document=QJsonDocument::fromJson(readOpenReply(reply),&error);
             const auto items=document.object().value(QStringLiteral("items")).toArray();
             QVariantList cleaned;
             QSet<QString> seen;
@@ -3858,7 +3893,7 @@ void OpenProofConnectionsController::fetchTopicCastPage()
             reply->deleteLater();
             return;
         }
-        const auto body=reply->readAll();
+        const auto body=readOpenReply(reply);
         if(status!=200 || reply->error()!=QNetworkReply::NoError
            || body.size()>64*1024) {
             m_topicCastsError=status==401
@@ -4042,7 +4077,7 @@ void OpenProofConnectionsController::sendBookmarkCollectionRequest(
         if(m_bookmarkCollectionRequest==reply) m_bookmarkCollectionRequest=nullptr;
         const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QByteArray bytes=reply->bytesAvailable()<=96*1024
-            ? reply->readAll() : QByteArray{};
+            ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         if(generation!=m_grantGeneration || viewer!=m_viewerFid)return;
         const QJsonDocument document=QJsonDocument::fromJson(bytes);
@@ -4488,7 +4523,7 @@ void OpenProofConnectionsController::sendAccountRequest(
             const bool valid = reply->error() == QNetworkReply::NoError
                 || (status >= 400 && status < 500);
             const QByteArray data = valid && reply->bytesAvailable() <= 64 * 1024
-                ? reply->readAll() : QByteArray{};
+                ? readOpenReply(reply) : QByteArray{};
             reply->deleteLater();
             if (generation != m_grantGeneration) return;
             if (status == 401 || status == 403) {
@@ -4792,7 +4827,7 @@ void OpenProofConnectionsController::fetchFeedback()
         const QByteArray bytes = status == 200 && reply->isReadable()
             // Owner-only history now includes full report text and notes.
             // Up to 30 bounded reports may exceed the old 32 KiB cap.
-            && reply->bytesAvailable() <= 512 * 1024 ? reply->readAll() : QByteArray{};
+            && reply->bytesAvailable() <= 512 * 1024 ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         if (viewer != m_viewerFid || generation != m_grantGeneration) return;
         const auto doc = QJsonDocument::fromJson(bytes);
@@ -4862,7 +4897,7 @@ void OpenProofConnectionsController::submitFeedback(
         // This prevents the newly submitted report disappearing while its GET
         // refresh is pending (or a previous history GET is still in flight).
         const QByteArray confirmationBytes = status == 201 && reply->isReadable()
-            && reply->bytesAvailable() <= 16 * 1024 ? reply->readAll() : QByteArray{};
+            && reply->bytesAvailable() <= 16 * 1024 ? readOpenReply(reply) : QByteArray{};
         reply->deleteLater();
         if (viewer != m_viewerFid || generation != m_grantGeneration) return;
         m_feedbackSubmitted = status == 201;

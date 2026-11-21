@@ -74,7 +74,8 @@ test('profile lifecycle and cast identity avoid undefined access and layout feed
     assert.doesNotMatch(cast, /castNameAndChannel\.width \* 0\.62/);
     assert.doesNotMatch(cast, /Layout\.maximumWidth: Layout\.preferredWidth/);
     assert.match(profile, /const current = root\.detail \|\| \(\{\}\)/);
-    assert.match(profile, /const retained = root\.retainedDetail \|\| \(\{\}\)/);
+    assert.match(profile, /const requestedFid = root\.ownProfileNavigation/);
+    assert.doesNotMatch(profile,/readonly property string profileFidText:[\s\S]*?root\.activeDetail\.fidString/);
 });
 
 
@@ -120,7 +121,9 @@ test('cast backgrounds and floating compose use page canvas and physical right e
     const cast = read('ui/components/feed/CastItem.qml');
     const reply = read('ui/components/feed/ThreadReplyItem.qml');
     const shell = read('ui/components/shell/AppShell.qml');
-    assert.match(cast, /fillColor: root\.magazineCard \? Theme\.surfaceRaised : Theme\.backgroundPrimary\s*borderWidth: 0/);
+    // Timeline casts deliberately have no per-delegate painted glass/card.
+    assert.match(cast, /fillColor: root\.magazineCard \? Theme\.surfaceRaised : "transparent"/);
+    assert.match(cast, /borderWidth: root\.magazineCard \? Theme\.strokeHairline : 0/);
     assert.match(reply, /fillColor: Theme\.backgroundPrimary/);
     assert.match(shell, /root\.width - Theme\.space5 - width/);
     assert.doesNotMatch(shell, /root\.width - root\.railReservation - Theme\.space5 - width/);

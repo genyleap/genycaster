@@ -30,9 +30,9 @@ Rectangle {
 
     readonly property int gutter: Theme.gutter(root.width)
 
-    // Keep the diffuse NEON tint but remove the hard chromatic
-    // bottom-edge pass. That 1px divider was sampling the first row of
-    // scrolling media and painting a cropped strip across the header.
+    // Chromatic light from the reading content catches the INSIDE of the
+    // header's bottom lip. This is a soft multi-pixel reflected rim, not
+    // a clipped one-pixel screenshot stripe or a permanent accent line.
     NeonReflection {
         anchors.fill: parent
         reflectionSource: root.reflectionSource
@@ -41,8 +41,10 @@ Rectangle {
         strength: Theme.reflectionStrength * (root.compact ? 2.30 : 2.10)
         cornerRadius: 0
         borderInset: 0
-        edgeStrength: 0
-        bottomEdgeOnly: false
+        edgeStrength: 0.68
+        edgeWidth: 4
+        edgeInset: 1.7
+        bottomEdgeOnly: true
     }
 
     // All brand geometry is explicit, rather than nested RTL RowLayouts:

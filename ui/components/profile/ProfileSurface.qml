@@ -13,22 +13,17 @@ Item {
     // Explicit navigation to the authenticated account is independent of the
     // global read-provider selector. It is set only by PresentationBridge.
     property bool ownProfileNavigation: false
-    // Metadata refreshes can briefly publish an empty profile. Keep the
-    // visible header and its height until a resolved identity arrives.
-    property var retainedDetail: ({})
-    property string retainedDetailNetwork: ""
+    // Identity comes solely from the bridge's requested profile and the
+    // authenticated account snapshot. Retaining a second QML detail snapshot
+    // made activeDetail/profileFidText and the metadata refresh callbacks
+    // form a binding cycle on Qt 6.12 after Back.
     readonly property var activeDetail: {
         const current = root.detail || ({})
-        const retained = root.retainedDetail || ({})
         const requestedFid = root.ownProfileNavigation
             ? root.accountFidText : String(presentationBridge.activeProfileFidText || "0")
         const currentFid = String(current.fidString || current.fid || "")
-        const retainedFid = String(retained.fidString || retained.fid || "")
         const currentMatches = currentFid.length > 0
             && (requestedFid === "0" || currentFid === requestedFid)
-        const retainedMatches = retainedFid.length > 0
-            && (requestedFid === "0" || retainedFid === requestedFid)
-            && root.retainedDetailNetwork === root.profileNetwork
         // Reading a different protocol cannot supply the editable metadata
         // for this signed-in identity. Use only authenticated session fields
         // until its own protocol data is available, never a foreign profile.
@@ -62,9 +57,9 @@ Item {
                 username: String(presentationBridge.accountUsername || ""),
                 avatarUrl: String(presentationBridge.accountAvatarUrl || "")}
         }
-        // Never revive another profile's cover, counters or activity while
-        // Back restores a different FID (or changes read protocols).
-        return retainedMatches ? retained : ({})
+        // The bridge already retains same-FID metadata through a failed
+        // refresh. During navigation a stale snapshot must never be reused.
+        return ({})
     }
     property var rows
     // Navigation must show the cover, even when this Loader is reused.
@@ -212,9 +207,14 @@ Item {
         return entry || root.moodOptions[root.moodOptions.length-1]
     }
     // Preserve protocol FIDs as decimal text; QML Numbers lose uint64 precision.
+    // Do not derive the request target from activeDetail: detail depends
+    // on the target, and the request-bound side effects also depend on this
+    // property. That cycle is observable on desktop Qt 6.12.
     readonly property string profileFidText: root.ownProfileNavigation
         ? root.accountFidText
-        : String(root.activeDetail.fidString || root.activeDetail.fid || "")
+        : (String(presentationBridge.activeProfileFidText || "0") !== "0"
+            ? String(presentationBridge.activeProfileFidText)
+            : String((root.detail || ({})).fidString || (root.detail || ({})).fid || ""))
     // The selected read provider identifies the profile's protocol. It must
     // not be inferred from FID magnitude or from a previous account session.
     readonly property string activeReadNetwork:
@@ -1392,12 +1392,8 @@ Item {
     }
     onDetailChanged: {
         const incomingFid = Number((root.detail || ({})).fid || 0)
-        if (incomingFid > 0
-                && String((root.detail || ({})).fidString || incomingFid)
-                    === String(presentationBridge.activeProfileFidText || "0")) {
-            root.retainedDetail = root.detail
-            root.retainedDetailNetwork = root.profileNetwork
-        }
+        // The bridge, not a mutable QML snapshot, retains metadata for an
+        // in-place refresh and validates the incoming FID.
         // A transient empty detail during metadata refresh is not a new
         // profile; clearing the ListView here teleports the reader to the top.
         if (incomingFid > 0 && incomingFid !== root.positionedProfileFid) {

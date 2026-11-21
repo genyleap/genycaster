@@ -525,6 +525,9 @@ private:
     QVariantMap m_proEntitlements{};
     qulonglong m_proEntitlementsFid{};
     qint64 m_proEntitlementsFetchedAt{};
+    // Transport failures do not revoke verified Pro and must not start an
+    // immediate network retry storm while a socket/backend is unavailable.
+    qint64 m_proEntitlementsRetryAfter{};
     QPointer<QNetworkReply> m_genyAssetsRead{};
     QVariantMap m_genyAssets{};
     qulonglong m_genyAssetsFid{};

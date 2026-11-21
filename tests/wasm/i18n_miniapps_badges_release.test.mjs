@@ -148,7 +148,11 @@ test("verified Geny Pro admission recovers saved sessions before rejecting anoth
         "void OpenProofConnectionsController::retryProEntitlements()"),
         openproof.indexOf("void OpenProofConnectionsController::fetchProEntitlements"));
     assert.match(retry,/cloudAuthorizationReady\(\)/);
-    assert.match(retry,/restoreAccountSession\(\)/);
+    assert.match(retry,/retryAccountSession\(\)/);
+    const restore=openproof.slice(openproof.indexOf(
+        "void OpenProofConnectionsController::retryAccountSession()"),
+        openproof.indexOf("void OpenProofConnectionsController::retryProEntitlements()"));
+    assert.match(restore,/restoreAccountSession\(\)/);
     assert.match(retry,/bootstrapAccountSession\(\)/);
     assert.doesNotMatch(retry,/authorizeAccount\(|signerService->|requestFid\(|provision\(/);
 
@@ -167,7 +171,7 @@ test("verified Geny Pro admission recovers saved sessions before rejecting anoth
     assert.match(startup,/miniAppHost\.setSessionLimit\(/);
     assert.match(card,/objectName: "sidebarProMembershipCard"/);
     assert.match(card,/root\.proEligible/);
-    assert.match(card,/fillColor: Theme\.proSurface/);
+    assert.match(card,/fillColor: root\.compact \? Theme\.surfaceMuted : Theme\.contextRailCard/);
     assert.match(sidebar,/proEligible: openProofConnections/);
     assert.match(openproof,/m_proEntitlementsFetchedAt = verified/);
 });
