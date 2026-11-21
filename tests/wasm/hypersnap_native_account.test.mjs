@@ -5,7 +5,7 @@ import {deriveFarcasterCustody,validateRecoveryWords} from '../../ui/wasm/farcas
 import {blake3Digest20,hex} from '../../ui/wasm/farcaster_protocol.mjs';
 import {deployment} from '../../ui/wasm/deployment_config.mjs';
 import {createBrowserNativeRegistry,generateNativePhrase,parseNativeLookup,
-  parseRegistrationChallenge,sha256,nativePowHash,nativeCommitment,
+  parseRegistrationChallenge,parseNativeNetworkHealth,sha256,nativePowHash,nativeCommitment,
   mineNativePow,encodeNativeOnboard} from '../../ui/wasm/hypersnap_native_account.mjs';
 
 const phrase=('abandon '.repeat(23)+'art').trim();
@@ -16,6 +16,8 @@ const challenge={active:true,anchorBlockHash:anchor,anchorBlockHeight:142,
   anchorWindow:1024,firstNativeFid:'4294967296',minDifficultyBits:1,nextBlock:142};
 const status=(code,body)=>new Response(JSON.stringify(body),{status:code,headers:{
   'content-type':'application/json'}});
+const syncedInfo={shardInfos:[{shardId:0,maxHeight:150,blockDelay:1},
+  {shardId:1,maxHeight:200,blockDelay:0}]};
 const notFound={error:'Native registration lookup failed',
   error_detail:'status: NotFound, message: "native account not found"'};
 const native=(fid,custody)=>({fid,custodyAddress:custody,
@@ -127,6 +129,7 @@ test('registration requires explicit consent and never posts for existing FID',a
   let posts=0;
   const registry=createBrowserNativeRegistry({browser,fetchImpl:async(url,opts)=>{
     if(opts.method==='POST')posts++;
+    if(url.endsWith('/v1/info'))return status(200,syncedInfo);
     if(url.endsWith('/v1/nativeRegistration'))return status(200,challenge);
     return status(200,native('4294967380',custody.address));
   }});
@@ -144,7 +147,8 @@ test('registration signs native EIP712, submits exactly once and confirms only o
     maxAttempts:500,
     fetchImpl:async(url,options)=>{
       calls.push({url,method:options.method});
-      if(url.endsWith('/v1/nativeRegistration'))return status(200,challenge);
+      if(url.endsWith('/v1/info'))return status(200,syncedInfo);
+    if(url.endsWith('/v1/nativeRegistration'))return status(200,challenge);
       if(url.includes('/v1/nativeAccount?'))return submitted
         ?status(200,native('4294967380',custody.address)):status(400,notFound);
       if(url.endsWith('/v1/submitMessage')){
@@ -167,7 +171,8 @@ test('no unsafe resend when native submission is ambiguous',async()=>{
   let submits=0;
   const registry=createBrowserNativeRegistry({browser,maxAttempts:500,
     delay:async()=>{},fetchImpl:async(url,options)=>{
-      if(url.endsWith('/v1/nativeRegistration'))return status(200,challenge);
+      if(url.endsWith('/v1/info'))return status(200,syncedInfo);
+    if(url.endsWith('/v1/nativeRegistration'))return status(200,challenge);
       if(url.includes('/v1/nativeAccount?'))return status(400,notFound);
       if(url.endsWith('/v1/submitMessage')){submits++;throw new Error('network interrupted after POST');}
     }});
@@ -290,4 +295,27 @@ test('native registry parent cancellation still wins over the request timeout',a
   });
   await assert.rejects(registry.recover(phrase,{signal:controller.signal}),/Recovery cancelled/);
   assert.equal(requested,1);
+});
+
+test('blockchain health is separate from registration activation and fails closed on stale shard-0',()=>{
+  assert.deepEqual(parseNativeNetworkHealth(200,syncedInfo),
+    {ready:true,delaySeconds:1,blockHeight:150});
+  assert.equal(parseNativeNetworkHealth(200,{shardInfos:[
+    {shardId:0,maxHeight:150,blockDelay:1900}]}).ready,false);
+  assert.throws(()=>parseNativeNetworkHealth(404,{}),/readiness/);
+  assert.throws(()=>parseNativeNetworkHealth(200,{shardInfos:[
+    {shardId:1,maxHeight:100,blockDelay:0}]}),/not verifiable/);
+});
+test('stale or unverified HyperSnap node never receives a native registration POST',async()=>{
+  let posts=0,healthReads=0;
+  const registry=createBrowserNativeRegistry({browser,fetchImpl:async(url,options)=>{
+    if(options.method==='POST'){posts++;throw new Error('no POST should be attempted');}
+    if(url.endsWith('/v1/info')){healthReads++;return status(200,{
+      shardInfos:[{shardId:0,maxHeight:1000,blockDelay:1900}]});}
+    throw new Error('no challenge or existing-lookup should be attempted');
+  }});
+  await assert.rejects(registry.register(phrase,{confirmIrreversible:true}),
+    error=>error?.code==='native-network-syncing'
+      && error.blockDelay===1900 && /catching up/.test(error.message));
+  assert.equal(posts,0);assert.equal(healthReads,1);
 });
