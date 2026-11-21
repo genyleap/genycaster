@@ -201,7 +201,8 @@ test('HyperSnap pending is a single minimal read-only state, technical diagnosti
   assert.match(broadcast,/objectName: "setupNativePendingDescription"/);
   assert.match(broadcast,/objectName: "setupNativeTechnicalDetailsToggle"/);
   assert.match(broadcast,/objectName: "setupNativeTechnicalDetails"[\s\S]*?visible: root\.nativeDetailsExpanded/);
-  assert.match(broadcast,/objectName: "setupCheckNativeRegistrationConfirmation"/);
+  assert.match(broadcast,/objectName: "setupRefreshPausedRegistration"/);
+  assert.match(broadcast,/nativeRegistrationPublisher\.checkConfirmation\(\)/);
   assert.doesNotMatch(broadcast,/objectName: "setupNativeRetryWindow"/);
   assert.match(broadcast,/visible: nativeRegistrationPublisher.retryReady/);
   assert.match(broadcast,/objectName: "setupReleaseExpiredNativeAttempt"/);
@@ -321,7 +322,8 @@ test('stage CTA is adjacent to the active form, desktop retains a two-pane welco
   assert.match(setup, /id: desktopBrandPane/);
   assert.match(setup, /width: root\.currentStep === 0 \? Math\.min\(parent\.width \* 0\.35, 560\)/);
   assert.match(setup, /anchors.top: stageLoader.bottom/);
-  assert.match(setup, /anchors.topMargin: Theme.space5/);
+  assert.match(setup, /anchors.topMargin: Theme.space4/);
+  assert.match(setup, /: \(stagePanel.width - width\) \/ 2/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
 });
 
@@ -481,7 +483,7 @@ test('desktop account keeps editorial cards while enabling registration provider
   assert.match(card,/id: editorialAccountCard/);
   assert.match(card,/property bool networkShowcase: false/);
   assert.match(card,/preferredSize: 36/);
-  assert.match(card,/preferredSize: root.connectionText \? 24 : 40/);
+  assert.match(card,/preferredSize: root.connectionText \? 26 : 36/);
   assert.match(card,/id: networkCardRow/);
   assert.match(account,/networkShowcase: true/);
   assert.match(account,/iconGlyph: "quilibrium\/hypersnap"/);

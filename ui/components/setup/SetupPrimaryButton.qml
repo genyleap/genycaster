@@ -21,28 +21,36 @@ ActionButton {
 
     Accessible.name: text
 
+    // Equal fixed-size leading/trailing slots keep the actual label centered,
+    // regardless of whether a spinner, icon or arrow is present (LTR/RTL).
     contentItem: RowLayout {
         spacing: Theme.space2
         layoutDirection: Theme.uiDirection
 
-        GenySpinner {
-            visible: root.busy
-            running: visible
-            color: root.foregroundColor
-            Layout.preferredWidth: 18
-            Layout.preferredHeight: 18
-        }
-
-        Icon {
-            visible: !root.busy && root.iconGlyph.length > 0
-            text: root.iconGlyph
-            color: root.foregroundColor
-            preferredSize: Theme.iconSizeSmall
+        Item {
+            Layout.preferredWidth: Theme.iconSizeSmall
+            Layout.preferredHeight: Theme.iconSizeSmall
+            GenySpinner {
+                anchors.centerIn: parent
+                width: Theme.iconSizeSmall
+                height: width
+                visible: root.busy
+                running: visible
+                color: root.foregroundColor
+            }
+            Icon {
+                anchors.centerIn: parent
+                visible: !root.busy && root.iconGlyph.length > 0
+                text: root.iconGlyph
+                color: root.foregroundColor
+                preferredSize: Theme.iconSizeSmall
+            }
         }
 
         DirectionAwareLabel {
             id: primaryLabel
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             text: root.text
             color: root.foregroundColor
             font.pixelSize: Theme.typeLabelSize
@@ -53,11 +61,16 @@ ActionButton {
             maximumLineCount: 2
         }
 
-        Icon {
-            visible: root.showArrow && !root.busy
-            text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
-            color: root.foregroundColor
-            preferredSize: Theme.iconSizeSmall
+        Item {
+            Layout.preferredWidth: Theme.iconSizeSmall
+            Layout.preferredHeight: Theme.iconSizeSmall
+            Icon {
+                anchors.centerIn: parent
+                visible: root.showArrow && !root.busy
+                text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                color: root.foregroundColor
+                preferredSize: Theme.iconSizeSmall
+            }
         }
     }
 }

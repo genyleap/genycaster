@@ -29,12 +29,15 @@ Button {
     property string connectionText: ""
     property string connectionState: ""
     readonly property bool connectionWarning: connectionState === "unavailable" || connectionState === "disabled"
-    readonly property color connectionQualityColor:
+    // Transport status and latency are two independent measurements.
+    // Never paint a connected node amber merely because its ping is 418 ms.
+    readonly property color connectionStatusColor:
         root.connectionWarning ? Theme.warning
-        : root.connectionState === "reachable"
-          ? (root.latencyMs > 800 ? Theme.danger
-             : root.latencyMs > 300 ? Theme.warning : Theme.success)
-          : Theme.inkMuted
+        : root.connectionState === "reachable" ? Theme.success : Theme.inkMuted
+    readonly property color latencyQualityColor:
+        root.latencyMs < 0 ? Theme.inkMuted
+        : root.latencyMs <= 300 ? Theme.success
+        : root.latencyMs <= 800 ? Theme.warning : Theme.danger
     property bool setupEmphasis: false
     // Recovery protocol choices reuse this same card material, not a
     // separate ActionButton selected-state and radius.
@@ -50,15 +53,15 @@ Button {
         enabled: Theme.neonEnabled
         blocking: false
     }
-    implicitHeight: Math.max(accountShowcase ? 182 : networkShowcase ? (connectionText ? 76 : 120)
+    implicitHeight: Math.max(accountShowcase ? 162 : networkShowcase ? 94
                              : compactCard ? 62 : onboardingStyle ? 78 : 96,
                              contentItem.implicitHeight + topPadding + bottomPadding)
     leftPadding: Theme.space4
     rightPadding: Theme.space4
-    topPadding: compactCard || (onboardingStyle && !accountShowcase && !networkShowcase)
-                ? Theme.space3 : Theme.space4
-    bottomPadding: compactCard || (onboardingStyle && !accountShowcase && !networkShowcase)
-                   ? Theme.space3 : Theme.space4
+    topPadding: networkShowcase || compactCard
+                || (onboardingStyle && !accountShowcase) ? Theme.space3 : Theme.space4
+    bottomPadding: networkShowcase || compactCard
+                   || (onboardingStyle && !accountShowcase) ? Theme.space3 : Theme.space4
 
     Accessible.name: title
     Accessible.role: root.protocolChoice ? Accessible.RadioButton : Accessible.Button
@@ -160,7 +163,7 @@ Button {
     }
 
     contentItem: Item {
-        implicitHeight: root.accountShowcase ? 150
+        implicitHeight: root.accountShowcase ? 130
                         : root.networkShowcase ? networkCardRow.implicitHeight
                         : standardCardRow.implicitHeight
         RowLayout {
@@ -333,7 +336,7 @@ Button {
             spacing: Theme.space3
             layoutDirection: Theme.uiDirection
             Superellipse {
-                Layout.preferredWidth: root.connectionText ? 38 : 64
+                Layout.preferredWidth: root.connectionText ? 42 : 56
                 Layout.preferredHeight: Layout.preferredWidth
                 fillColor: root.selected ? Theme.surfaceHover : Theme.surfaceMuted
                 borderWidth: root.selected ? Theme.strokeStandard : 0
@@ -342,7 +345,7 @@ Button {
                 Icon {
                     anchors.centerIn: parent
                     text: root.iconGlyph
-                    preferredSize: root.connectionText ? 24 : 40
+                    preferredSize: root.connectionText ? 26 : 36
                     color: root.foreground
                 }
             }
@@ -380,13 +383,13 @@ Button {
                         Layout.preferredHeight: 6
                         curveDepth: 3
                         borderWidth: 0
-                        fillColor: root.connectionQualityColor
+                        fillColor: root.connectionStatusColor
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                         text: root.connectionText
-                        color: root.connectionQualityColor
+                        color: root.connectionStatusColor
                         font.pixelSize: Theme.typeCaptionSize
                         alignToUi: true
                         selectableText: false
@@ -395,20 +398,20 @@ Button {
                     Superellipse {
                         visible: root.latencyMs >= 0
                         Layout.preferredWidth: latencyPillText.implicitWidth + Theme.space2 * 2
-                        Layout.preferredHeight: Theme.scaleUi(24)
-                        fillColor: Qt.rgba(root.connectionQualityColor.r,
-                                           root.connectionQualityColor.g,
-                                           root.connectionQualityColor.b, 0.10)
-                        borderColor: Qt.rgba(root.connectionQualityColor.r,
-                                             root.connectionQualityColor.g,
-                                             root.connectionQualityColor.b, 0.25)
+                        Layout.preferredHeight: Theme.scaleUi(22)
+                        fillColor: Qt.rgba(root.latencyQualityColor.r,
+                                           root.latencyQualityColor.g,
+                                           root.latencyQualityColor.b, 0.10)
+                        borderColor: Qt.rgba(root.latencyQualityColor.r,
+                                             root.latencyQualityColor.g,
+                                             root.latencyQualityColor.b, 0.25)
                         borderWidth: Theme.strokeStandard
                         curveDepth: Theme.curveControl
                         DirectionAwareLabel {
                             id: latencyPillText
                             anchors.centerIn: parent
                             text: LocaleFormat.localizeDigits(root.latencyMs) + " ms"
-                            color: root.connectionQualityColor
+                            color: root.latencyQualityColor
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightDemiBold
                         }

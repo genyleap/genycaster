@@ -447,7 +447,7 @@ Item {
                                  : qsTrId("genycaster.setup.connection_app_sign_in"))
                        + " · " + setupConnectionStatusText({state}, false)
         }
-        return state === "reachable" ? qsTrId("genycaster.status.reachable")
+        return state === "reachable" ? qsTrId("genycaster.connections.status_connected")
              : setupConnectionStatusText({state}, false)
     }
 
@@ -457,10 +457,11 @@ Item {
         property bool expanded: false
         onVisibleChanged: if (!visible) expanded = false
         onProtocolChanged: expanded = false
-        spacing: Theme.space1
+        spacing: Theme.space2
         RowLayout {
             Layout.fillWidth: true
             layoutDirection: Theme.uiDirection
+            spacing: Theme.space2
             ActionButton {
                 compact: true
                 quiet: true
@@ -484,12 +485,17 @@ Item {
                 readonly property bool farcaster: modelData.protocol === "farcaster-snapchain"
                 readonly property string nodeState: root.protocolConnectionState(farcaster)
                 readonly property int latency: root.protocolLatencyMs(farcaster)
+                // A good TCP/HTTP response is connected regardless of latency.
                 readonly property color statusColor:
                     nodeState === "unavailable" || nodeState === "disabled" ? Theme.warning
-                    : nodeState === "reachable"
-                      ? (latency < 0 || latency <= 300 ? Theme.success
-                         : latency <= 800 ? Theme.warning : Theme.danger)
-                      : Theme.inkMuted
+                    : nodeState === "reachable" ? Theme.success : Theme.inkMuted
+                readonly property color latencyColor:
+                    latency < 0 ? Theme.inkMuted
+                    : latency <= 300 ? Theme.success
+                    : latency <= 800 ? Theme.warning : Theme.danger
+                readonly property bool registrationLag:
+                    !farcaster && root.currentStep === 3
+                    && nativeRegistrationStatus.shardZeroBlockDelay > 120
                 Layout.fillWidth: true
                 layoutDirection: Theme.uiDirection
                 visible: !details.protocol || details.protocol === modelData.protocol
@@ -501,14 +507,26 @@ Item {
                     preferredSize: Theme.iconSizeSmall
                     color: route.statusColor
                 }
-                DirectionAwareLabel {
+                ColumnLayout {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
-                    text: route.modelData.label
-                    font.pixelSize: Theme.typeLabelSize
-                    font.weight: Theme.weightMedium
-                    color: Theme.ink
-                    alignToUi: true
+                    spacing: 0
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: route.modelData.label
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightMedium
+                        color: Theme.ink
+                        alignToUi: true
+                    }
+                    DirectionAwareLabel {
+                        visible: route.registrationLag
+                        Layout.fillWidth: true
+                        text: qsTr("Registration paused · Syncing")
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.warning
+                        alignToUi: true
+                    }
                 }
                 Superellipse {
                     Layout.preferredWidth: nodeStatusText.implicitWidth + Theme.space3 * 2
@@ -522,19 +540,32 @@ Item {
                     DirectionAwareLabel {
                         id: nodeStatusText
                         anchors.centerIn: parent
-                        text: route.nodeState === "reachable" ? qsTr("Connected")
+                        text: route.nodeState === "reachable"
+                              ? qsTrId("genycaster.connections.status_connected")
                               : root.setupConnectionStatusText({state: route.nodeState}, false)
                         color: route.statusColor
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold
                     }
                 }
-                DirectionAwareLabel {
+                Superellipse {
                     visible: route.latency >= 0 && route.nodeState === "reachable"
-                    text: LocaleFormat.localizeDigits(route.latency) + " ms"
-                    color: route.statusColor
-                    font.pixelSize: Theme.typeCaptionSize
-                    font.weight: Theme.weightDemiBold
+                    Layout.preferredWidth: nodeLatencyText.implicitWidth + Theme.space2 * 2
+                    Layout.preferredHeight: Theme.scaleUi(24)
+                    fillColor: Qt.rgba(route.latencyColor.r, route.latencyColor.g,
+                                       route.latencyColor.b, 0.10)
+                    borderColor: Qt.rgba(route.latencyColor.r, route.latencyColor.g,
+                                         route.latencyColor.b, 0.25)
+                    borderWidth: Theme.strokeStandard
+                    curveDepth: Theme.curveControl
+                    DirectionAwareLabel {
+                        id: nodeLatencyText
+                        anchors.centerIn: parent
+                        text: LocaleFormat.localizeDigits(route.latency) + " ms"
+                        color: route.latencyColor
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightDemiBold
+                    }
                 }
             }
         }
@@ -1512,8 +1543,8 @@ Item {
                 objectName: "setupStagePanel"
                 width: Math.max(0, Math.min(
                                    root.phone ? 440
-                                   : root.currentStep === 4 ? (root.showRecovery || root.resumingRegistration ? 640 : 540)
-                                   : root.currentStep === 3 && root.choosingRegistrationProvider ? 580
+                                   : root.currentStep === 4 ? (root.showRecovery || root.resumingRegistration ? 640 : 760)
+                                   : root.currentStep === 3 && root.choosingRegistrationProvider ? 760
                                    : root.currentStep >= 3 && root.currentStep <= 6 ? 810 : 680,
                                    setupCanvas.formWidth - root.setupGutter * 2))
                 x: setupCanvas.formStart + (setupCanvas.formWidth - width) / 2
@@ -1527,6 +1558,8 @@ Item {
                    ? Math.max(root.phone ? 110 : 52, (stageScroll.height - stageLoader.implicitHeight) * 0.39)
                    : root.currentStep === 5
                    ? Math.max(96, (stageScroll.height - stageLoader.implicitHeight) * 0.38)
+                   : root.phone && (root.currentStep === 3 || root.currentStep === 4)
+                   ? Theme.space4
                    : root.currentStep === 1
                    ? Math.max(76, (stageScroll.height - stageLoader.implicitHeight) * 0.21)
                    : Math.max(root.phone ? Theme.space6 : 115,
@@ -1564,16 +1597,16 @@ Item {
             visible: root.showsPrimaryCta
             z: 10
             anchors.top: stageLoader.bottom
-            anchors.topMargin: Theme.space5
+            anchors.topMargin: Theme.space4
             width: root.welcomeNativeAppsVisible
                    ? (Math.min(root.welcomeActionsWidth, stagePanel.width) - Theme.space2)
                      * (root.phone ? 0.42 : 0.47)
                    : root.phone ? stagePanel.width
-                   : Math.min(Theme.scaleUi(330), stagePanel.width * 0.65)
+                   : Math.min(Theme.scaleUi(360), stagePanel.width)
             x: root.welcomeNativeAppsVisible
                ? (stagePanel.width - Math.min(root.welcomeActionsWidth, stagePanel.width)) / 2
                  + (Theme.rtl ? Math.min(root.welcomeActionsWidth, stagePanel.width) - width : 0)
-               : root.phone ? 0 : Theme.rtl ? 0 : stagePanel.width - width
+               : (stagePanel.width - width) / 2
             text: root.actionText()
             // The primary stage action uses the same brand-filled surface as
             // the other prominent CTAs, rather than a flat white slab.
@@ -1859,7 +1892,10 @@ Item {
                         : qsTrId("genycaster.setup.choose_protocol_description")
                       : qsTrId("genycaster.setup.design_account_description")
             }
-            Item { Layout.preferredHeight: Theme.space2 }
+            Item {
+                visible: !root.choosingRegistrationProvider
+                Layout.preferredHeight: visible ? Theme.space2 : 0
+            }
             // A verified protocol FID is not automatically an OPP identity.
             // Show the independent proof result without obstructing the
             // already confirmed registration or repeating its chain write.
@@ -1964,8 +2000,9 @@ Item {
                     Layout.fillWidth: true
                     columns: root.wideStage ? 2 : 1
                     uniformCellWidths: columns > 1
-                    rowSpacing: Theme.space3
-                    columnSpacing: Theme.space3
+                    uniformCellHeights: columns > 1
+                    rowSpacing: Theme.space2
+                    columnSpacing: Theme.space2
                     layoutDirection: Theme.uiDirection
                     SetupActionCard {
                         objectName: "setupRegisterHyperSnap"
@@ -2117,9 +2154,11 @@ Item {
                         interactive: false
                         deferredNeon: true
                         neonStrength: Theme.neonPanelStrength
-                        fillColor: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                        fillColor: nativeRegistrationPublisher.pending
+                                   || nativeRegistrationStatus.shardZeroBlockDelay > 120
                                    ? Theme.warningSurface : Theme.surface
-                        borderColor: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                        borderColor: nativeRegistrationPublisher.pending
+                                     || nativeRegistrationStatus.shardZeroBlockDelay > 120
                                      ? Qt.rgba(Theme.warning.r, Theme.warning.g,
                                                Theme.warning.b, 0.35)
                                      : Theme.borderMuted
@@ -2761,7 +2800,7 @@ Item {
                              && root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
                     Layout.fillWidth: true
-                    spacing: Theme.space3
+                    spacing: Theme.space2
 
                     ActionButton {
                         objectName: "setupBeginRegistration"
@@ -2833,9 +2872,11 @@ Item {
                         interactive: false
                         deferredNeon: true
                         neonStrength: Theme.neonPanelStrength
-                        fillColor: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                        fillColor: nativeRegistrationPublisher.pending
+                                   || nativeRegistrationStatus.shardZeroBlockDelay > 120
                                    ? Theme.warningSurface : Theme.surface
-                        borderColor: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                        borderColor: nativeRegistrationPublisher.pending
+                                     || nativeRegistrationStatus.shardZeroBlockDelay > 120
                                      ? Qt.rgba(Theme.warning.r, Theme.warning.g,
                                                Theme.warning.b, 0.35) : Theme.borderMuted
                         borderWidth: Theme.strokeStandard
@@ -2846,7 +2887,7 @@ Item {
                             anchors.right: parent.right
                             anchors.top: parent.top
                             anchors.margins: Theme.space4
-                            spacing: Theme.space3
+                            spacing: Theme.space2
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 text: qsTr("HYPERSNAP BLOCKCHAIN")
@@ -2859,7 +2900,8 @@ Item {
                                 layoutDirection: Theme.uiDirection
                                 spacing: Theme.space2
                                 Icon {
-                                    visible: nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                    visible: nativeRegistrationPublisher.pending
+                                             || nativeRegistrationStatus.shardZeroBlockDelay > 120
                                              || (!nativeRegistrationStatus.active
                                                  && !nativeRegistrationStatus.checking)
                                     text: Theme.iconWarning
@@ -2898,43 +2940,50 @@ Item {
                                 font.pixelSize: Theme.typeLabelSize
                                 wrapMode: Text.WordWrap
                             }
-                            Repeater {
-                                model: nativeRegistrationPublisher.pending ? [
-                                    qsTr("Backup"),
-                                    nativeRegistrationPublisher.outcomeUnknown
-                                        ? qsTr("Checking request")
-                                        : qsTr("Request"),
-                                    qsTr("Confirmed")
-                                ] : []
-                                delegate: RowLayout {
-                                    required property int index
-                                    required property string modelData
-                                    Layout.fillWidth: true
-                                    spacing: Theme.space2
-                                    Rectangle {
-                                        width: Theme.scaleUi(22)
-                                        height: width
-                                        radius: width / 2
-                                        color: index === 0 || (index === 1 && nativeRegistrationPublisher.pending
-                                                  && !nativeRegistrationPublisher.outcomeUnknown)
-                                               ? Theme.success
-                                               : index === 1 || (index === 2 && nativeRegistrationPublisher.pending)
-                                                 ? Theme.accent : Theme.borderMuted
-                                        DirectionAwareLabel {
-                                            anchors.centerIn: parent
-                                            text: index === 0 || (index === 1 && nativeRegistrationPublisher.pending
-                                                  && !nativeRegistrationPublisher.outcomeUnknown)
-                                                  ? "✓" : String(index + 1)
-                                            color: Theme.ink
-                                            font.pixelSize: Theme.typeCaptionSize
-                                        }
-                                    }
-                                    DirectionAwareLabel {
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: root.phone ? 1 : 3
+                                rowSpacing: Theme.space2
+                                columnSpacing: Theme.space3
+                                visible: nativeRegistrationPublisher.pending
+                                Repeater {
+                                    model: nativeRegistrationPublisher.pending ? [
+                                        qsTr("Backup"),
+                                        nativeRegistrationPublisher.outcomeUnknown
+                                            ? qsTr("Checking request") : qsTr("Request"),
+                                        qsTr("Confirmed")
+                                    ] : []
+                                    delegate: RowLayout {
+                                        required property int index
+                                        required property string modelData
                                         Layout.fillWidth: true
-                                        text: modelData
-                                        color: Theme.ink
-                                        font.pixelSize: Theme.typeLabelSize
-                                        wrapMode: Text.WordWrap
+                                        spacing: Theme.space2
+                                        Rectangle {
+                                            width: Theme.scaleUi(22)
+                                            height: width
+                                            radius: width / 2
+                                            color: index === 0
+                                                   || (index === 1
+                                                       && !nativeRegistrationPublisher.outcomeUnknown)
+                                                   ? Theme.success
+                                                   : index === 1 ? Theme.accent : Theme.borderMuted
+                                            DirectionAwareLabel {
+                                                anchors.centerIn: parent
+                                                text: index === 0
+                                                      || (index === 1
+                                                          && !nativeRegistrationPublisher.outcomeUnknown)
+                                                      ? "✓" : String(index + 1)
+                                                color: Theme.ink
+                                                font.pixelSize: Theme.typeCaptionSize
+                                            }
+                                        }
+                                        DirectionAwareLabel {
+                                            Layout.fillWidth: true
+                                            text: modelData
+                                            color: index === 2 ? Theme.inkMuted : Theme.ink
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            wrapMode: Text.WordWrap
+                                        }
                                     }
                                 }
                             }
@@ -2961,13 +3010,19 @@ Item {
                             Layout.fillWidth: true
                             compact: true
                             quiet: true
-                            visible: !nativeRegistrationPublisher.pending
                             busy: nativeRegistrationStatus.checking
+                                  || nativeRegistrationPublisher.checkingConfirmation
                             enabled: !nativeRegistrationStatus.checking
                                      && !nativeRegistrationPublisher.busy
+                                     && !nativeRegistrationPublisher.checkingConfirmation
                             iconGlyph: Theme.iconRefresh
-                            text: qsTr("Check network")
-                            onClicked: nativeRegistrationStatus.refresh()
+                            text: nativeRegistrationPublisher.pending
+                                  ? qsTr("Check status") : qsTr("Check network")
+                            onClicked: {
+                                nativeRegistrationStatus.refresh()
+                                if (nativeRegistrationPublisher.pending)
+                                    nativeRegistrationPublisher.checkConfirmation()
+                            }
                         }
                         ActionButton {
                             objectName: "setupCancelPausedRegistration"
@@ -3041,31 +3096,26 @@ Item {
                         Layout.fillWidth: true
                         visible: root.nativeDetailsExpanded
                         spacing: Theme.space2
-                        DirectionAwareLabel {
-                            objectName: "setupNativeDeveloperDiagnostics"
+                        Superellipse {
                             Layout.fillWidth: true
-                            text: root.nativeRegistrationDiagnostics()
-                            color: Theme.inkMuted
-                            font.family: "monospace"
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WrapAnywhere
-                            selectableText: true
-                        }
-                        ActionButton {
-                            objectName: "setupCheckNativeRegistrationConfirmation"
-                            Layout.fillWidth: true
-                            compact: true
-                            quiet: true
-                            visible: nativeRegistrationPublisher.pending
-                            busy: nativeRegistrationStatus.checking
-                                  || nativeRegistrationPublisher.checkingConfirmation
-                            enabled: !nativeRegistrationPublisher.busy
-                                     && !nativeRegistrationStatus.checking
-                                     && !nativeRegistrationPublisher.checkingConfirmation
-                            text: qsTr("Check status")
-                            onClicked: {
-                                nativeRegistrationStatus.refresh()
-                                nativeRegistrationPublisher.checkConfirmation()
+                            Layout.preferredHeight: nativeDebugText.implicitHeight + Theme.space3 * 2
+                            fillColor: Theme.surfaceMuted
+                            borderColor: Theme.borderMuted
+                            borderWidth: Theme.strokeHairline
+                            curveDepth: Theme.curveContainer
+                            DirectionAwareLabel {
+                                id: nativeDebugText
+                                objectName: "setupNativeDeveloperDiagnostics"
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: Theme.space3
+                                text: root.nativeRegistrationDiagnostics()
+                                color: Theme.inkMuted
+                                font.family: "monospace"
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.WrapAnywhere
+                                selectableText: true
                             }
                         }
                         ActionButton {
@@ -3075,9 +3125,11 @@ Item {
                                      && nativeRegistrationPublisher.pending
                             enabled: !nativeRegistrationPublisher.busy
                                      && !nativeRegistrationStatus.checking
-                                     && nativeRegistrationStatus.active
+                                     && nativeRegistrationStatus.syncedForRegistration
                             compact: true
-                            text: qsTrId("genycaster.setup.native_retry_start_over")
+                            quiet: true
+                            text: qsTr("Prepare new attempt")
+                            Accessible.description: qsTr("Resets the expired local attempt; does not send a registration request.")
                             onClicked: {
                                 if (nativeRegistrationPublisher.releaseExpiredAttempt()) {
                                     root.nativeCreationRequested = false
@@ -3123,9 +3175,10 @@ Item {
                 Layout.fillWidth: true
                 columns: root.wideStage ? 2 : 1
                 uniformCellWidths: columns > 1
+                uniformCellHeights: columns > 1
                 layoutDirection: Theme.uiDirection
-                rowSpacing: Theme.space3
-                columnSpacing: Theme.space3
+                rowSpacing: Theme.space2
+                columnSpacing: Theme.space2
                 SetupActionCard {
                     objectName: "setupExistingFarcaster"
                     Layout.fillWidth: true
