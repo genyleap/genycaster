@@ -262,23 +262,13 @@ def validate_android(path: Path) -> None:
                         and not name.startswith(f"lib/{abi}/") for name in names),
                 "Android APK mixes native ABIs")
         for library in libraries:
-            # Qt 6.12's vendor-prebuilt libavformat.so has an invalid
-            # post-link PT_LOAD mapping. It is not loaded by QtLoader at
-            # startup, unlike OpenSSL. Permit only CI test artifacts while
-            # investigating FFmpeg separately; never publish a release that
-            # silently carries this unresolved 16 KiB mapping defect.
-            vendor_ffmpeg_ci_exception = (
-                path.name.endswith("-CI-TEST.apk")
-                and library == "lib/arm64-v8a/libavformat.so"
-            )
-            if vendor_ffmpeg_ci_exception:
-                print("WARNING: vendor Qt FFmpeg libavformat.so has an "
-                      "unresolved 16 KiB LOAD mapping defect (CI test only)")
+            # All shared libraries, including Qt FFmpeg, MUST satisfy the
+            # same 16 KiB PT_LOAD mapping rule on signed public releases
+            # and diagnostic CI-TEST APKs. Never hide a broken vendor build
+            # behind a test-only exception: that produced the v1.0.0 gate
+            # failure before we rebuilt FFmpeg from verified sources.
             if abi == "arm64-v8a":
-                validate_android_elf_alignment(
-                    library, apk.read(library),
-                    check_load_mapping=not vendor_ffmpeg_ci_exception,
-                )
+                validate_android_elf_alignment(library, apk.read(library))
             else:
                 validate_android_elf32_arm(library, apk.read(library))
 

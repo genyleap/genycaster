@@ -10,8 +10,9 @@ pull-request, schedule, or release-edit triggers**.
 |---|---|---|
 | Ordinary commit pushed to main | No | No |
 | Pull request | No | No |
-| Actions > GenyCaster CI and Release > Run workflow | All requested targets in one run (default) | No |
-| Push of a matching version tag (including `v1.0.0` public Beta) | All required platforms | Only if all jobs succeed |
+| Actions > GenyCaster CI and Release > Run workflow (normal validation) | All requested targets in one run (default) | No |
+| Actions > Run workflow, main + all + approval + `publish_public_beta=true` | All required platforms | Yes, only after every job and package audit succeeds |
+| Push of a personal version tag | Full gate rejects non-bot tagger | No |
 
 **One invocation is the release-candidate validation unit**, as in
 GenyConnect: one shared preflight gate fans out to Linux x86_64/ARM64,
@@ -26,7 +27,9 @@ release matrix. Never dispatch a separate CI run per release platform.
 Release-tag pushes use that same full matrix automatically, then one
 `publish` job waits for and checks every required artifact.
 Repeat diagnostic runs of the same ref/selection cancel superseded
-manual work; version-tag release jobs are never cancelled.
+manual work; explicitly armed public Beta release jobs are isolated from
+those cancellations. The Release tag is created by `github-actions[bot]`
+AFTER all artifacts are verified, never by a personal Git identity.
 
 The shared **gate** validates the version tag, main-branch ancestry and
 full-matrix budget consent. Dedicated unit, integration, cryptographic,
@@ -35,8 +38,10 @@ GitHub Actions. Hosted workflows are reserved for building and packaging.
 Artifact integrity, dependency and release-signing checks remain mandatory
 because they protect the actual deliverables.
 GitHub Actions' billing quota still applies: this design does not bypass
-GitHub Free compute limits. Manual runs upload artifacts for 14 days,
-but cannot create GitHub Releases.
+GitHub Free compute limits. Ordinary manual diagnostic runs upload artifacts
+for 14 days but cannot create GitHub Releases. Only a separately armed
+`publish_public_beta` dispatch on main, with all architectures and budget
+confirmation, may publish after the complete matrix succeeds.
 
 For tag runs, `ci/release_gate.py` checks that the tag matches the
 `project(Genycaster VERSION ...)` numeric version and configured semantic
@@ -178,9 +183,11 @@ gh workflow run ci.yml --repo genyleap/genycaster --ref main \
 ```
 
 One run fans out to the complete release-target matrix and aggregates
-the build evidence in that run. This manual validation **never publishes**
-a Release, even if invoked from a tag. Only a validated version-tag push
-is eligible to publish after signing, feature, runtime and artifact gates.
+the build evidence in that run. This ordinary manual validation **never
+publishes** a Release. A separate, explicitly armed `publish_public_beta`
+dispatch performs the same full matrix with permanent Android signing,
+then creates the tag and the public GitHub Release via `GITHUB_TOKEN` as
+`github-actions[bot]`, only after every required build succeeds.
 
 ## How to publish a version-tag candidate
 
@@ -199,24 +206,25 @@ is eligible to publish after signing, feature, runtime and artifact gates.
    `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`.
    Never commit the keystore. Missing release signing secrets fail the
    Android release job instead of publishing an unsigned package.
-5. From the intended main commit, create and push an annotated matching tag:
-
-   ```bash
-   git checkout main
-   git pull --ff-only
-   git tag -a v1.0.0 -m "Genycaster 1.0 Beta"
-   git push origin v1.0.0
-   ```
-
-6. Only that tag runs the complete matrix and, if all required jobs finish,
-   publishes **Genycaster 1.0 Beta** as a public, non-draft **prerelease**
-   with native packages and aggregate SHA256SUMS. The WASM artifact is deployed
-   separately to the verified canonical `genycaster.xyz` website.
+5. In GitHub Actions, select **GenyCaster CI and Release** and run it
+   on `main`. Choose `platform=all`, `target_arch=all`, check
+   `confirm_full_matrix`, and check `publish_public_beta` **only after a
+   passing, architecture-complete validation**. Do **not** create or push
+   `v1.0.0` from a personal Git identity.
+6. The workflow builds and audits everything, then creates the annotated
+   `v1.0.0` tag as `github-actions[bot]` using `GITHUB_TOKEN`, and
+   publishes **Genycaster 1.0 Beta** as a non-draft public **prerelease**
+   with native packages and aggregate SHA256SUMS. WASM deployment to
+   `genycaster.xyz` remains a separate artifact-verified, rollback-safe
+   operation, never automatic on a failed CI.
 
 ## Release limitations and verification
 
-* Android: Manually dispatched APKs are not release-signed. Tagged candidate
-  builds require the GitHub keystore secrets. Device startup, TLS, signer
+* Android: Diagnostic APKs are signed with disposable CI TEST keys only.
+  The separately armed `publish_public_beta` run requires the persistent
+  GitHub signing secrets. All Qt FFmpeg and first-party ELF PT_LOAD segments
+  must satisfy 16 KiB alignment; vendor binaries are rebuilt from SHA-pinned
+  FFmpeg 9.0.1 sources rather than bypassing the release validator. Device startup, TLS, signer
   vault, network access and login must be verified before wider distribution.
 * macOS: macOS 26 runners build a macOS 15+ target using SHA-256-pinned
   OpenSSL 3.5.9 source compiled for the deployment target, rather than

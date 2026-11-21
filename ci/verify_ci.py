@@ -75,7 +75,7 @@ def main() -> None:
     assert 'ci/audit_linux_appdir.py AppDir' in workflow
     assert 'bash ci/smoke_linux_install.sh' in workflow
     assert 'ci/smoke_windows_stage.ps1 -Stage dist/app' in workflow
-    assert "cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}" in workflow
+    assert "cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_public_beta != true }}" in workflow
     # Release-gate checks prevent accidental tag or main-branch bypass.
     gate = workflow.split("  gate:", 1)[1].split("  linux:", 1)[0]
     assert "ci/release_gate.py" in gate
@@ -86,7 +86,10 @@ def main() -> None:
     assert not re.search(r"^  (pull_request|schedule|release):", workflow, re.M)
     assert not re.search(r"^    (branches|paths):", workflow, re.M)
     assert re.search(r"^  publish:\n", workflow, re.M)
-    assert "github.event_name == 'push' && needs.gate.outputs.release == 'true'" in workflow
+    assert "needs.gate.outputs.release == 'true' && (github.event_name == 'push' || inputs.publish_public_beta == true)" in workflow
+    assert "publish_public_beta:" in workflow
+    assert "Create verified Release tag as github-actions[bot]" in workflow
+    assert "tagger[name]=github-actions[bot]" in workflow
     assert "needs: [gate, linux, macos, windows, android, web]" in workflow
     assert "FARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON" in workflow
     assert "linux_gcc_arm64" in workflow
@@ -341,7 +344,7 @@ def main() -> None:
     # GitHub's first public 1.0 Beta uses the numeric v1.0.0 tag but
     # must remain a published, non-draft prerelease. Future tags with
     # alpha/beta/rc suffixes retain normal prerelease handling.
-    assert "prerelease: ${{ contains(github.ref_name, '-') || github.ref_name == 'v1.0.0' }}" in workflow
+    assert "prerelease: ${{ contains(needs.gate.outputs.version, '-') || needs.gate.outputs.version == '1.0.0' }}" in workflow
     assert "draft: false" in workflow
     assert "windows-11-arm" in workflow
     assert "android_arm64_v8a" in workflow and "android_armv7" not in workflow

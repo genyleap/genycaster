@@ -71,8 +71,20 @@ def main() -> int:
 
     try:
         version, tagged = release_version(args.ref, release_designation(Path.cwd()))
-        if tagged and args.event != "push":
-            # A manually dispatched run on a tag must never publish a release.
+        manual_release = os.getenv("GENYCASTER_MANUAL_RELEASE", "").lower() == "true"
+        if manual_release:
+            # The version tag is created *after* all eight required build
+            # variants and the checksum aggregation pass, by GITHUB_TOKEN.
+            # Dispatching a tag, a diagnostic target or a partial matrix
+            # must never use the protected Android release signer.
+            if (args.event != "workflow_dispatch"
+                    or args.ref != "refs/heads/main"
+                    or os.getenv("GENYCASTER_DISPATCH_PLATFORM") != "all"
+                    or os.getenv("GENYCASTER_DISPATCH_ARCH") != "all"
+                    or os.getenv("GENYCASTER_FULL_MATRIX_CONFIRMED", "").lower() != "true"):
+                raise ValueError("Public Beta publication requires an approved full-matrix dispatch on main")
+            tagged = True
+        elif tagged and args.event != "push":
             tagged = False
         if args.event == "push" and not tagged:
             raise ValueError("Push-triggered CI is restricted to validated version tags")

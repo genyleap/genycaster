@@ -105,6 +105,7 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         dispatch = s.split("  workflow_dispatch:\n", 1)[1].split("  push:\n", 1)[0]
         self.assertIn("        default: all\n        options:\n          - all", dispatch)
         self.assertIn("confirm_full_matrix:", dispatch)
+        self.assertIn("publish_public_beta:", dispatch)
         gate = job_source(s, "gate", "linux")
         self.assertIn("GENYCASTER_FULL_MATRIX_CONFIRMED", gate)
         for job, following in (
@@ -125,7 +126,7 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         publish = s.split("\n  publish:\n", 1)[1]
         self.assertEqual(s.count("\n  publish:\n"), 1)
         self.assertIn("needs: [gate, linux, macos, windows, android, web]", publish)
-        self.assertIn("github.event_name == 'push'", publish)
+        self.assertIn("github.event_name == 'push' || inputs.publish_public_beta == true", publish)
         self.assertIn("actions/download-artifact@v4", publish)
         self.assertIn("python3 ci/release_artifacts.py artifacts release", publish)
         self.assertIn("softprops/action-gh-release@v2", publish)
@@ -133,10 +134,13 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
     def test_public_1_0_beta_is_tagged_without_rc_and_published_as_prerelease(self) -> None:
         s = WORKFLOW.read_text(encoding="utf-8")
         publish = s.split("\n  publish:\n", 1)[1]
-        self.assertIn("'v1.0.0' && 'Genycaster 1.0 Beta'", publish)
+        self.assertIn("'1.0.0' && 'Genycaster 1.0 Beta'", publish)
         self.assertIn(
-            "contains(github.ref_name, '-') || github.ref_name == 'v1.0.0'",
+            "contains(needs.gate.outputs.version, '-') || needs.gate.outputs.version == '1.0.0'",
             publish)
+        self.assertIn("Create verified Release tag as github-actions[bot]", publish)
+        self.assertIn("tagger[name]=github-actions[bot]", publish)
+        self.assertIn("tag_name: v${{ needs.gate.outputs.version }}", publish)
         self.assertIn("          draft: false", publish)
         self.assertIn("          fail_on_unmatched_files: true", publish)
         self.assertIn("needs: [gate, linux, macos, windows, android, web]", publish)
