@@ -185,7 +185,8 @@ Item {
     readonly property real welcomeActionsWidth: Math.max(0, Math.min(
         root.phone ? root.width - root.setupGutter * 2 : stagePanel.width,
         root.phone ? 440 : 560))
-    readonly property bool desktopStageFooter: !phone && currentStep > 0 && showsPrimaryCta
+    // Stage buttons are adjacent to the fields they advance, not fixed to the window.
+    readonly property bool desktopStageFooter: false
     readonly property bool wideStage: !phone && stagePanel.width >=
         Theme.scaleUi(520) * Math.max(1, Theme.fontScale)
     readonly property bool browserReadOnly: wasmReadOnly
@@ -1296,17 +1297,12 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            // Reserve the footer's height without reading its position. The
-            // Welcome action follows stagePanel.y, so reading its top here
-            // would feed the scroll viewport's height back into the panel.
-            anchors.bottomMargin: root.desktopStageFooter
-                                  ? stageAction.height + Theme.space4 + Theme.space3 : 0
+            anchors.bottomMargin: 0
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
-            contentHeight: Math.max(height, stagePanel.y + stagePanel.implicitHeight
-                                    + (root.showsPrimaryCta && !root.desktopStageFooter ? 116 : 32))
+            contentHeight: Math.max(height, stagePanel.y + stagePanel.implicitHeight + Theme.space7)
             ScrollBar.vertical: GenyScrollBar {
                 policy: stageScroll.contentHeight > stageScroll.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
             }
@@ -1337,6 +1333,9 @@ Item {
                               Math.min(root.phone ? Theme.space7 : 125,
                                        stageScroll.height * 0.15))
                 implicitHeight: stageLoader.implicitHeight
+                                + (root.showsPrimaryCta
+                                   ? Theme.space5 + stageAction.implicitHeight : 0)
+                height: implicitHeight
 
                 Loader {
                     id: stageLoader
@@ -1357,37 +1356,24 @@ Item {
                                      : root.currentStep === 5 ? verifyingStage
                                      : root.currentStep === 6 ? appearanceStage : completeStage
                 }
-            }
 
-        }
-
-        // An action belonging to the active onboarding stage, not a footer bar.
-        SetupPrimaryButton {
+                // Stage-owned action follows the current form in scroll content.
+                SetupPrimaryButton {
             id: stageAction
             objectName: "setupStageAction"
             visible: root.showsPrimaryCta
             z: 10
-            anchors.bottom: parent.bottom
-            // On Welcome, this single bottom anchor follows the centered
-            // content block. The other stages retain their fixed CTA footer.
-            anchors.bottomMargin: !root.phone && root.currentStep === 0
-                                  ? Math.max(Theme.space3, root.height - stagePanel.y
-                                             - stagePanel.implicitHeight
-                                             - Theme.space7 - height)
-                                  : root.phone ? Theme.space5
-                                  : Theme.space4
+            anchors.top: stageLoader.bottom
+            anchors.topMargin: Theme.space5
             width: root.welcomeNativeAppsVisible
-                   ? (root.welcomeActionsWidth - Theme.space2) * (root.phone ? 0.42 : 0.47)
-                   : root.phone ? Math.min(root.width - root.setupGutter * 2, 440)
-                   : Math.min(root.desktopStageFooter
-                              ? Theme.scaleUi(230) : 330,
-                              stagePanel.width * 0.65)
+                   ? (Math.min(root.welcomeActionsWidth, stagePanel.width) - Theme.space2)
+                     * (root.phone ? 0.42 : 0.47)
+                   : root.phone ? stagePanel.width
+                   : Math.min(Theme.scaleUi(330), stagePanel.width * 0.65)
             x: root.welcomeNativeAppsVisible
-               ? setupCanvas.formStart + (setupCanvas.formWidth - root.welcomeActionsWidth) / 2
-                 + (Theme.rtl ? root.welcomeActionsWidth - width : 0)
-               : root.desktopStageFooter
-               ? (Theme.rtl ? stagePanel.x : stagePanel.x + stagePanel.width - width)
-               : setupCanvas.formStart + (setupCanvas.formWidth - width) / 2
+               ? (stagePanel.width - Math.min(root.welcomeActionsWidth, stagePanel.width)) / 2
+                 + (Theme.rtl ? Math.min(root.welcomeActionsWidth, stagePanel.width) - width : 0)
+               : root.phone ? 0 : Theme.rtl ? 0 : stagePanel.width - width
             text: root.actionText()
             // The primary stage action uses the same brand-filled surface as
             // the other prominent CTAs, rather than a flat white slab.
@@ -1415,7 +1401,8 @@ Item {
             focusPolicy: Qt.StrongFocus
             onClicked: root.nativeAppDownloadsRequested()
         }
-    }
+            }
+        }
 
     Component {
         id: welcomeStage
