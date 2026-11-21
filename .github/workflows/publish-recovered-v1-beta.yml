@@ -1,0 +1,186 @@
+name: Publish recovered Genycaster v1.0.0 Beta (artifacts ONLY)
+
+# One-off publishing retry: Intel and all seven other builds have already passed.
+# No macOS runner, Qt installation, compiler, or platform build in this workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-recovered-v1-beta.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: genycaster-v1-beta-publication-from-preserved-artifacts
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify eight prior CI artifacts and publish through github-actions bot
+    if: github.repository == 'genyleap/genycaster' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify immutable source and validated original and Intel jobs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import subprocess
+          from ci.recover_v1_beta import PRESERVED
+          base = "f5016b6dcddc42dc464146941d2b980dc1c646d7"
+          intel_recovered = "3b826122a2b9a4ac70331f73b78d0fdccbc5d8ca"
+          allowed = {
+              ".github/workflows/ci.yml",
+              ".github/workflows/recover-v1-beta.yml",
+              ".github/workflows/rescue-intel-v1-beta.yml",
+              ".github/workflows/publish-recovered-v1-beta.yml",
+              "ci/audit_macos_bundle.py",
+              "ci/test_macos_smoke_backend.py",
+              "ci/test_macos_signing_policy.py",
+              "ci/recover_v1_beta.py",
+              "ci/test_recover_v1_beta.py",
+              "ci/recover_intel_smoke.py",
+          }
+          def command(*args):
+              return subprocess.check_output(args, text=True).strip()
+          def api(path):
+              return json.loads(command("gh", "api", "repos/genyleap/genycaster/" + path))
+          diff = set(command("git", "diff", "--name-only", base, "HEAD").splitlines())
+          assert diff <= allowed, f"Release application source differs: {diff - allowed}"
+          assert command("git", "status", "--porcelain") == "", "Dirty repository"
+          original = api("actions/runs/44897476297")
+          assert original["head_sha"] == base
+          assert original["status"] == "completed" and original["conclusion"] == "failure"
+          assert original["event"] == "workflow_dispatch"
+          original_jobs = api("actions/runs/44897476297/jobs?per_page=100")["jobs"]
+          required = (
+              "Linux AppImage and DEB (arm64",
+              "Linux AppImage and DEB (x86_64",
+              "macOS DMG (arm64",
+              "Windows NSIS installer (arm64",
+              "Windows NSIS installer (x86_64",
+              "Android APK (arm64-v8a",
+              "WebAssembly (single-threaded)",
+          )
+          for prefix in required:
+              assert sum(j["name"].startswith(prefix) and j["conclusion"] == "success"
+                         for j in original_jobs) == 1, f"Missing passing {prefix}"
+          assert sum(j["name"].startswith("macOS DMG (x86_64")
+                     and j["conclusion"] == "failure" for j in original_jobs) == 1
+          old_assets = api("actions/runs/44897476297/artifacts?per_page=100")["artifacts"]
+          assert {a["name"] for a in old_assets} == set(PRESERVED)
+          assert all(not a["expired"] and a["size_in_bytes"] > 4096
+                     for a in old_assets)
+          intel_run = api("actions/runs/44906925118")
+          assert intel_run["head_sha"] == intel_recovered
+          assert intel_run["status"] == "completed"
+          assert intel_run["event"] == "push"
+          intel_jobs = api("actions/runs/44906925118/jobs?per_page=100")["jobs"]
+          assert sum(j["name"].startswith("Verify retained Intel app, smoke and package DMG")
+                     and j["conclusion"] == "success" for j in intel_jobs) == 1
+          newer = api("actions/runs/44906925118/artifacts?per_page=100")["artifacts"]
+          installer = [a for a in newer if a["name"] == "GenyCaster-macos-x86_64"]
+          assert len(installer) == 1
+          assert not installer[0]["expired"] and installer[0]["size_in_bytes"] > 4096
+          assert command("git", "ls-remote", "--tags", "origin", "refs/tags/v1.0.0") == ""
+          print("PASS: same application source, seven successful original builds, "
+                "one successful recovered Intel macOS DMG; no rebuild needed")
+          PY
+          if gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Existing v1.0.0 release must not be overwritten"; exit 1
+          fi
+      - name: Download preserved Intel installer from successful Intel job
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 44906925118 --repo "$GITHUB_REPOSITORY" \
+            --name GenyCaster-macos-x86_64 --dir artifacts/GenyCaster-macos-x86_64
+      - name: Download seven original successful platform outputs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for name in GenyCaster-linux-arm64 GenyCaster-linux-x86_64 \
+                      GenyCaster-macos-arm64 GenyCaster-windows-arm64 \
+                      GenyCaster-windows-x86_64 GenyCaster-android-arm64-v8a \
+                      GenyCaster-web-wasm; do
+            gh run download 44897476297 --repo "$GITHUB_REPOSITORY" \
+              --name "$name" --dir "artifacts/$name"
+          done
+      - name: Verify all original checksum inventories and aggregate installers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from ci.recover_v1_beta import PRESERVED, INTEL, verify_checksum_inventory
+          root = Path("artifacts")
+          expected = set(PRESERVED) | {INTEL}
+          assert {p.name for p in root.iterdir()} == expected
+          for name in sorted(expected):
+              verify_checksum_inventory(root / name)
+          PY
+          python3 ci/release_artifacts.py artifacts release
+          (cd release && sha256sum --check --strict SHA256SUMS)
+          test -n "$(find release -type f -name '*macos-x86_64-adhoc-UNNOTARIZED.dmg' -print -quit)"
+          test -n "$(find release -type f -name '*macos-arm64-adhoc-UNNOTARIZED.dmg' -print -quit)"
+          test -n "$(find release -type f -name '*android-arm64-v8a.apk' -print -quit)"
+      - name: Prepare final Beta notes and macOS Gatekeeper warning
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp release-notes/v1.0.0.md "$RUNNER_TEMP/genycaster-release-body.md"
+          cat >> "$RUNNER_TEMP/genycaster-release-body.md" <<'NOTICE'
+
+          ## macOS security notice
+
+          Both macOS DMGs are ad-hoc signed, **not Apple notarized**.
+          Gatekeeper may require explicit first-launch approval after downloading.
+          Do not disable Gatekeeper globally.
+
+          The seven original successful packages come from
+          [full-matrix CI run 44897476297](https://github.com/genyleap/genycaster/actions/runs/44897476297).
+          The Intel DMG was generated and passed two real bundled-QML smoke checks
+          on macOS 15 Intel in
+          [artifact recovery run 44906925118](https://github.com/genyleap/genycaster/actions/runs/44906925118).
+          No application was recompiled in that recovery run.
+          NOTICE
+      - name: Publish Genycaster v1.0.0 Beta directly through GitHub Actions
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ github.token }}
+          tag_name: v1.0.0
+          target_commitish: f5016b6dcddc42dc464146941d2b980dc1c646d7
+          name: Genycaster 1.0 Beta
+          body_path: ${{ runner.temp }}/genycaster-release-body.md
+          prerelease: true
+          draft: false
+          files: release/*
+          fail_on_unmatched_files: true
+      - name: Confirm release was authored by github-actions bot and points to frozen source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          author="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v1.0.0" --jq .author.login)"
+          test "$author" = 'github-actions[bot]'
+          tagged="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v1.0.0" --jq .object.sha)"
+          test "$tagged" = f5016b6dcddc42dc464146941d2b980dc1c646d7
+          echo "Verified v1.0.0 Beta public release by github-actions[bot], frozen source commit"
