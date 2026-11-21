@@ -48,3 +48,30 @@ test('native HyperSnap pending results remain idempotent but confirmation pollin
  assert.match(qml,/nativeRegistrationPublisher\.checkConfirmation\(\)/);
  assert.match(qml,/nativeRegistrationStatus\.shardZeroBlockDelay > 120/);
 });
+
+
+test('native registration is blocked on a lagging shard-0 without blocking pending identity reads',()=>{
+ const statusHeader=read('ui/app/identity/native_registration.hpp');
+ const status=read('ui/app/identity/native_registration.cpp');
+ const main=read('ui/app/main.cpp');
+ const setup=read('ui/components/setup/InitialSetup.qml');
+ const publisher=read('ui/app/identity/native_publish.cpp');
+ assert.match(statusHeader,/Q_PROPERTY\(bool syncedForRegistration READ syncedForRegistration/);
+ assert.match(statusHeader,/Q_PROPERTY\(int shardZeroBlockDelay READ shardZeroBlockDelay/);
+ assert.match(status,/MaxAcceptableShardZeroLagSeconds = 120/);
+ assert.match(status,/m_shardZeroDelay <= MaxAcceptableShardZeroLagSeconds/);
+ assert.match(status,/QStringLiteral\("\/v1\/info"\)/);
+ assert.match(status,/QStringLiteral\("shardInfos"\)/);
+ assert.match(status,/QStringLiteral\("shardId"\)\)\.toInt\(-1\) != 0/);
+ assert.match(status,/QStringLiteral\("blockDelay"\)/);
+ assert.match(main,/\.challenge = \[&nativeRegistrationStatus\][\s\S]*?syncedForRegistration\(\)/);
+ assert.match(main,/\.anchorIsFresh = \[&nativeRegistrationStatus\][\s\S]*?syncedForRegistration\(\)/);
+ assert.match(setup,/readonly property bool registrationNodeUsable:[\s\S]*?syncedForRegistration/);
+ assert.match(setup,/objectName: "setupBeginRegistration"[\s\S]*?enabled: root\.registrationNodeUsable/);
+ assert.match(setup,/objectName: "setupNativePendingDescription"[\s\S]*?shardZeroBlockDelay > 120/);
+ assert.match(setup,/id: nativeRegistrationNetworkHealthTimer[\s\S]*?nativeRegistrationStatus\.refresh\(\)/);
+ const poll=publisher.slice(publisher.indexOf('void HyperSnapRegistrationPublisher::scheduleCheck('));
+ assert.match(poll,/if \(generation != m_generation \|\| !m_pending \|\| confirmed\(\)\) return/);
+ assert.match(poll,/m_poll\.start\(m_checks < 30 \? 2000 : m_checks < 90 \? 15000 : 60000\)/);
+ assert.doesNotMatch(poll.slice(0,poll.indexOf('bool HyperSnapRegistrationPublisher::checkConfirmation()')),/\.submit\(/);
+});
