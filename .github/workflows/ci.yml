@@ -625,6 +625,17 @@ jobs:
             echo "::warning::Public macOS release will be ad-hoc signed and UNNOTARIZED. Gatekeeper approval is NOT implied."
           fi
           bash ci/sign_macos_bundle.sh "$APP" "$signing_mode"
+          # Save an independently signed, fully deployed Intel bundle before
+          # running its GUI smoke. If a headless CI host wedges QML again,
+          # publish the debugging artifact on failure rather than wasting
+          # another 25-minute compilation just to reproduce the hang.
+          if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
+            mkdir -p "$RUNNER_TEMP/genycaster-intel-signed"
+            ditto -c -k --keepParent "$APP" \
+              "$RUNNER_TEMP/genycaster-intel-signed/Genycaster-intel-signed.app.zip"
+            (cd "$RUNNER_TEMP/genycaster-intel-signed" && \
+              shasum -a 256 Genycaster-intel-signed.app.zip > SHA256SUMS)
+          fi
           python3 ci/audit_macos_bundle.py "$APP" "${{ matrix.arch }}" --smoke
           mkdir -p dist
           DMG=build/native/bin/Genycaster.dmg
@@ -683,6 +694,14 @@ jobs:
           python3 ci/verify_selfupdate_snapshot.py \
             "dist/selfupdate/GenyCaster-selfupdate-v${VERSION}-macos-${{ matrix.arch }}.tar.gz"
           (cd dist && shasum -a 256 *.dmg > SHA256SUMS)
+      - name: Preserve signed Intel bundle if the CI smoke fails
+        if: failure() && matrix.arch == 'x86_64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-macos-intel-signed-recovery
+          path: ${{ runner.temp }}/genycaster-intel-signed/*
+          if-no-files-found: warn
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: GenyCaster-macos-${{ matrix.arch }}

@@ -39,6 +39,8 @@ INTEL = "GenyCaster-macos-x86_64"
 PERMITTED_RECOVERY_CHANGES = {
     "ci/audit_macos_bundle.py",
     "ci/test_macos_smoke_backend.py",
+    "ci/test_macos_signing_policy.py",
+    ".github/workflows/ci.yml",
     "ci/recover_v1_beta.py",
     "ci/test_recover_v1_beta.py",
     ".github/workflows/recover-v1-beta.yml",
@@ -67,8 +69,10 @@ def unchanged_application_source() -> None:
     ensure(diff.issubset(PERMITTED_RECOVERY_CHANGES),
            f"Recovery commit changes application files: {sorted(diff - PERMITTED_RECOVERY_CHANGES)}")
     intel_diff = set(command("git", "diff", "--name-only", BASE_SHA, INTEL_SHA).splitlines())
-    ensure(intel_diff == {"ci/audit_macos_bundle.py", "ci/test_macos_smoke_backend.py"},
-           f"Intel Build changed unexpected source files: {sorted(intel_diff)}")
+    ensure(intel_diff.issubset(PERMITTED_RECOVERY_CHANGES) and
+           {"ci/audit_macos_bundle.py", "ci/test_macos_smoke_backend.py"}.issubset(intel_diff),
+           f"Intel Build changed unexpected application files: "
+           f"{sorted(intel_diff - PERMITTED_RECOVERY_CHANGES)}")
     ensure(command("git", "status", "--porcelain").strip() == "",
            "Recovery requires clean tracked/untracked working tree")
 

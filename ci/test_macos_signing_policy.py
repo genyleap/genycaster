@@ -40,6 +40,10 @@ class MacOSSigningPolicyTest(unittest.TestCase):
                         mac.index("ci/sign_macos_bundle.sh"))
         self.assertLess(mac.index("ci/sign_macos_bundle.sh"),
                         mac.index('ci/audit_macos_bundle.py "$APP"'))
+        self.assertIn("Preserve signed Intel bundle if the CI smoke fails", mac)
+        self.assertIn("GenyCaster-macos-intel-signed-recovery", mac)
+        self.assertLess(mac.index("Genycaster-intel-signed.app.zip"),
+                        mac.index('ci/audit_macos_bundle.py "$APP"'))
         self.assertLess(mac.index("ci/notarize_macos_dmg.sh"),
                         mac.index('ci/audit_macos_bundle.py "$MOUNT/Genycaster.app"'))
 

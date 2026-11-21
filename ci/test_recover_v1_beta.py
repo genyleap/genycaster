@@ -15,6 +15,8 @@ class RecoveredReleaseSafetyTests(unittest.TestCase):
         self.assertNotIn(recovery.INTEL, recovery.PRESERVED)
         self.assertIn("ci/audit_macos_bundle.py",
                       recovery.PERMITTED_RECOVERY_CHANGES)
+        self.assertIn(".github/workflows/ci.yml",
+                      recovery.PERMITTED_RECOVERY_CHANGES)
         self.assertFalse(any(p.startswith(("ui/", "src/", "services/"))
                              for p in recovery.PERMITTED_RECOVERY_CHANGES))
         self.assertEqual(len(recovery.BASE_SHA), 40)

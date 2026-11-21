@@ -144,9 +144,18 @@ def smoke(app: Path, architecture: str) -> None:
         env.pop("QSG_RHI_BACKEND", None)
         if architecture == "x86_64":
             env["QT_QUICK_BACKEND"] = "software"
+            # The macOS Intel CI host runs Qt Quick without a physical
+            # display refresh. Force the single-threaded render loop: Qt's
+            # Metal threaded loop can wait indefinitely on vsync there.
+            # This applies ONLY to the isolated smoke-test subprocess.
+            env["QSG_RENDER_LOOP"] = "basic"
         else:
             env.pop("QT_QUICK_BACKEND", None)
+            env.pop("QSG_RENDER_LOOP", None)
         env["QML_DISABLE_DISK_CACHE"] = "1"
+        # Expose scenegraph selection if this smoke still stalls. Never
+        # accept a missing QML shell as a passing release check.
+        env["QSG_INFO"] = "1"
         settings = str(Path(home) / "settings.ini")
         try:
             completed = subprocess.run(

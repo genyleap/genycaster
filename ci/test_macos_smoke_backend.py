@@ -31,6 +31,8 @@ class MacOSSmokeBackendTests(unittest.TestCase):
         env = kwargs["env"]
         self.assertEqual(env["QT_QPA_PLATFORM"], "cocoa")
         self.assertEqual(env["QT_QUICK_BACKEND"], "software")
+        self.assertEqual(env["QSG_RENDER_LOOP"], "basic")
+        self.assertEqual(env["QSG_INFO"], "1")
         self.assertNotIn("QSG_RHI_BACKEND", env)
         self.assertNotIn("QT_PLUGIN_PATH", env)
         self.assertEqual(kwargs["timeout"], 120)
@@ -39,6 +41,7 @@ class MacOSSmokeBackendTests(unittest.TestCase):
         args, kwargs = self.run_smoke("arm64")[0]
         self.assertNotIn("QSG_RHI_BACKEND", kwargs["env"])
         self.assertNotIn("QT_QUICK_BACKEND", kwargs["env"])
+        self.assertNotIn("QSG_RENDER_LOOP", kwargs["env"])
         self.assertEqual(kwargs["timeout"], 45)
 
     def test_nonzero_smoke_still_fails_closed(self):
