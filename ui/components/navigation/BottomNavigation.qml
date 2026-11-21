@@ -301,11 +301,11 @@ Item {
                     source: capsuleBackdrop
                     blurEnabled: true
                     blur: 0.87
-                    blurMax: 32
-                    // Extend the radius beyond blurMax without increasing
-                    // texture lookups; the Qt 6 default (0) simply leaves
-                    // the radius unextended.
-                    blurMultiplier: 1.3
+                    // WASM uses the browser GPU and already performs the
+                    // shared chromatic capture. Use fewer Gaussian blur taps
+                    // for dock glass while preserving the visual radius.
+                    blurMax: Qt.platform.os === "wasm" ? 16 : 32
+                    blurMultiplier: Qt.platform.os === "wasm" ? 1.65 : 1.3
                     saturation: -0.22
                     maskEnabled: true
                     maskSource: capsuleMaskTexture
@@ -338,7 +338,7 @@ Item {
                 anchors.fill: parent
                 z: 1.5
                 reflectionSource: root.reflectionSource
-                strength: Theme.reflectionStrength * 1.45
+                strength: Theme.reflectionStrength * 2.00
                 cornerRadius: navigationCapsule.height / 2
                 cornerPower: 2.0
                 borderInset: 0

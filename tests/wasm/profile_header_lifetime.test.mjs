@@ -51,7 +51,8 @@ test('native composition explicitly preserves primary metadata while switching p
   assert.match(bindings, /selectFeedSurfaceIdentity\(surfaceIdentity, profileFeed\)/);
   assert.match(bridge, /emit profileRequested\(m_profileFid, recoveryProbe\);[\s\S]*?emit feedRequested\(m_profileFeed, m_profileFid/);
   assert.match(profileQml, /visible: Number\(root\.activeDetail\.fid \|\| 0\) > 0/);
-  assert.match(profileQml, /if \(incomingFid > 0\)\s*root\.retainedDetail = root\.detail/);
+  assert.match(profileQml, /if \(incomingFid > 0[\s\S]*?presentationBridge\.activeProfileFidText[\s\S]*?root\.retainedDetail = root\.detail/);
+  assert.match(profileQml, /root\.retainedDetailNetwork = root\.profileNetwork/);
   assert.match(profileQml, /if \(incomingFid > 0 && incomingFid !== root\.positionedProfileFid\)/);
 });
 

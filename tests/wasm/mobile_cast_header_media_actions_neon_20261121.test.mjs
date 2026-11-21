@@ -60,7 +60,7 @@ test('header keeps diffuse NEON without clipped chromatic separator or duplicate
     assert.match(header,/implicitHeight: root\.compact \? Theme\.scaleUi\(54\)/);
     assert.match(header,/clip: false/);
     assert.match(header,/edgeStrength: 0/);
-    assert.match(header,/strength: Theme\.reflectionStrength \* \(root\.compact \? 1\.65 : 1\.30\)/);
+    assert.match(header,/strength: Theme\.reflectionStrength \* \(root\.compact \? 2\.30 : 2\.10\)/);
     const dock=read('ui/components/navigation/BottomNavigation.qml');
     assert.match(dock,/objectName: "mobileNavigationChromaticReflection"/);
     assert.match(dock,/reflectionSource: root\.reflectionSource/);

@@ -24,22 +24,27 @@ Item {
     readonly property bool capturing: active && enabled && sourceIsSafe
         && Theme.reflectionGain > 0 && !Theme.paletteSwitchInProgress
         && width > 0 && height > 0
-    readonly property real captureScale: Math.min(0.125,
-        512 / Math.max(1, width, height))
+    readonly property real captureScale: root.browserRenderer
+        ? Math.min(0.0625, 256 / Math.max(1, width, height))
+        : Math.min(0.125, 512 / Math.max(1, width, height))
     readonly property size textureExtent: Qt.size(
         Math.max(1, Math.ceil(width * captureScale)),
         Math.max(1, Math.ceil(height * captureScale)))
-    readonly property real effectiveBlur: Math.max(24, Math.min(160, blurRadius))
+    // Retain broad color fields without blurring saturated pixels into a
+    // near-neutral average. Mobile keeps a shorter effective sampling reach.
+    readonly property real effectiveBlur: Math.max(14, Math.min(160, blurRadius))
 
     width: sourceItem ? sourceItem.width : 0
     height: sourceItem ? sourceItem.height : 0
     visible: false
 
-    // A single-threaded WebAssembly render loop must not recapture the entire
-    // adjacent scene on every frame. Refresh the shared low-resolution color
-    // field at a bounded rate; interactive neon geometry remains frame-paced.
+    // Qt/WASM runs scene-graph capture, texture upload and both blur passes
+    // on the browser's graphics path. A 160ms full-pane capture at 1/8 scale
+    // repeatedly stalled scrolling on mid-range GPUs. Keep one shared source
+    // but capture a coarse *color* field at a measured cadence; text/edges
+    // remain rendered by Qt at full resolution.
     Timer {
-        interval: 160
+        interval: 240
         repeat: true
         triggeredOnStart: true
         running: root.browserRenderer && root.capturing

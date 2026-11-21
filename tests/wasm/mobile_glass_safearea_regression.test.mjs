@@ -47,9 +47,10 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
   assert.match(glass,/live: root\.useBackdropBlur/);
   assert.match(glass,/recursive: false/);
   assert.match(glass,/objectName: "mobileCapsuleGlassBlur"/);
-  assert.match(glass,/blurMax: 32/);
+  assert.match(glass,/blurMax: Qt\.platform\.os === "wasm" \? 16 : 32/);
+  assert.match(glass,/blurMultiplier: Qt\.platform\.os === "wasm" \? 1\.65 : 1\.3/);
   assert.match(glass,/blur: 0\.87/);
-  assert.match(glass,/blurMultiplier: 1\.3/);
+  assert.match(glass,/blurMultiplier: Qt\.platform\.os === "wasm" \? 1\.65 : 1\.3/);
   assert.match(glass,/id: capsuleBackdrop[\s\S]*?visible: false/);
   assert.match(glass,/id: capsuleMask/);
   assert.match(glass,/curveDepth: height \/ 2/);

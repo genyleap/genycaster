@@ -1814,6 +1814,7 @@ void PresentationBridge::rememberDetailLocation()
         location.profileFid = m_profileFid;
         location.profileUsername = m_currentProfileUsername;
         location.profileFeed = m_profileFeed;
+        location.ownProfile = ownProfileNavigation();
     } else {
         return;
     }
@@ -1911,21 +1912,34 @@ void PresentationBridge::openMyProfile()
         emit stateChanged();
         return;
     }
-    openProfileFid(m_accountFid);
-    // A user's own profile must be read from the authenticated protocol,
-    // independently of the current feed's selected reader. Re-issue the
-    // request only after routing is pinned; request generations discard the
-    // first (possibly cross-network) refresh.
+    // Make the authenticated route atomic. Calling openProfileFid() first
+    // dispatches a PUBLIC read and can briefly paint "Follow" and public
+    // activity for our own FID, especially across HyperSnap/Farcaster
+    // selectors. Replaying that public route from Back also lost ownership.
+    // Reopening the already-active own profile is a refresh, not a new
+    // breadcrumb. Avoid a Back loop to the same exact surface.
+    if (!(m_activeView == QStringLiteral("profile")
+          && m_profileFid == m_accountFid && m_profileIsOwnAccount))
+        rememberDetailLocation();
     m_profileIsOwnAccount = true;
     m_ownProfileReadReady = false;
+    m_currentProfileUsername.clear();
+    m_profileFid = m_accountFid;
+    m_activeView = QStringLiteral("profile");
+    m_cachedFeedHasMore = false;
+    m_localNextOffset = 0;
+    m_localWindowPending = false;
     m_profileDetailCache.remove(m_accountFid);
+    // Do not show cached rows from an unrelated provider with the same
+    // numeric FID while the authenticated protocol-specific read resolves.
     m_detail.clear();
+    m_rows.clear();
+    m_next.clear();
+    emit rowsChanged();
+    // Bind the required protocol before issuing ANY profile/feed request.
     emit ownProfileReadAffinityRequested(true, nativeCustodyAccount());
-    emit stateChanged();
+    beginIntent(qtTrId("genycaster.bridge.reading_cached_profile"));
     emit profileRequested(m_accountFid, false);
-    // A profile request cancels shared in-flight read interests. Re-arm the
-    // timeline after the protocol-pinned request so it cannot disappear when
-    // "My profile" is opened from a different selected network.
     emit feedRequested(m_profileFeed, m_accountFid, {}, {}, false);
 }
 
@@ -2119,7 +2133,10 @@ void PresentationBridge::returnFromDetail()
         } else if (previous.view == QStringLiteral("profile")) {
             if (!previous.profileFeed.isEmpty())
                 m_profileFeed = previous.profileFeed;
-            if (previous.profileFid != 0)
+            if (previous.ownProfile && m_isAuthenticated
+                && previous.profileFid == m_accountFid && m_accountFid != 0)
+                openMyProfile();
+            else if (previous.profileFid != 0)
                 openProfileFid(previous.profileFid);
             else if (!previous.profileUsername.isEmpty())
                 openProfileUsername(previous.profileUsername);
@@ -4818,6 +4835,14 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
 void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString status,
     QString error, QString diagnostic, const bool busy, const bool stale, const bool sourceUnavailable)
 {
+    // An older asynchronous profile result must never replace the requested
+    // FID after Back/forward navigation. The view's identity is established
+    // by openProfileFid/openMyProfile, not by whichever network replies last.
+    const auto receivedFid = detail.value(QStringLiteral("fid")).toULongLong();
+    if (view == QStringLiteral("profile") && m_activeView == QStringLiteral("profile")
+        && m_profileFid != 0 && receivedFid != 0 && receivedFid != m_profileFid)
+        return;
+
     // A cache miss or failed profile refresh is not evidence that a resolved
     // identity has zero followers or no avatar. Preserve only the matching
     // profile's prior known metadata; openProfileFid clears the detail when

@@ -16,9 +16,19 @@ Item {
     // Metadata refreshes can briefly publish an empty profile. Keep the
     // visible header and its height until a resolved identity arrives.
     property var retainedDetail: ({})
+    property string retainedDetailNetwork: ""
     readonly property var activeDetail: {
         const current = root.detail || ({})
         const retained = root.retainedDetail || ({})
+        const requestedFid = root.ownProfileNavigation
+            ? root.accountFidText : String(presentationBridge.activeProfileFidText || "0")
+        const currentFid = String(current.fidString || current.fid || "")
+        const retainedFid = String(retained.fidString || retained.fid || "")
+        const currentMatches = currentFid.length > 0
+            && (requestedFid === "0" || currentFid === requestedFid)
+        const retainedMatches = retainedFid.length > 0
+            && (requestedFid === "0" || retainedFid === requestedFid)
+            && root.retainedDetailNetwork === root.profileNetwork
         // Reading a different protocol cannot supply the editable metadata
         // for this signed-in identity. Use only authenticated session fields
         // until its own protocol data is available, never a foreign profile.
@@ -42,7 +52,7 @@ Item {
                 bio: "", profileUrl: "", bannerUrl: ""
             }
         }
-        if (Number(current.fid || 0) > 0) return current
+        if (currentMatches) return current
         if (root.ownProfileNavigation && root.accountFidText.length > 0) {
             const owned = presentationBridge.accountProfile || ({})
             if (String(owned.fidString || owned.fid || "") === root.accountFidText)
@@ -52,7 +62,9 @@ Item {
                 username: String(presentationBridge.accountUsername || ""),
                 avatarUrl: String(presentationBridge.accountAvatarUrl || "")}
         }
-        return retained
+        // Never revive another profile's cover, counters or activity while
+        // Back restores a different FID (or changes read protocols).
+        return retainedMatches ? retained : ({})
     }
     property var rows
     // Navigation must show the cover, even when this Loader is reused.
@@ -1380,8 +1392,12 @@ Item {
     }
     onDetailChanged: {
         const incomingFid = Number((root.detail || ({})).fid || 0)
-        if (incomingFid > 0)
+        if (incomingFid > 0
+                && String((root.detail || ({})).fidString || incomingFid)
+                    === String(presentationBridge.activeProfileFidText || "0")) {
             root.retainedDetail = root.detail
+            root.retainedDetailNetwork = root.profileNetwork
+        }
         // A transient empty detail during metadata refresh is not a new
         // profile; clearing the ListView here teleports the reader to the top.
         if (incomingFid > 0 && incomingFid !== root.positionedProfileFid) {

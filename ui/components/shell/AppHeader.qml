@@ -38,7 +38,7 @@ Rectangle {
         reflectionSource: root.reflectionSource
         // Restore an appreciable diffuse content-derived chromatic
         // reflection; only the thin cropped edge shader stays disabled.
-        strength: Theme.reflectionStrength * (root.compact ? 1.65 : 1.30)
+        strength: Theme.reflectionStrength * (root.compact ? 2.30 : 2.10)
         cornerRadius: 0
         borderInset: 0
         edgeStrength: 0

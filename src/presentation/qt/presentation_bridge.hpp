@@ -75,6 +75,9 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString activeView READ activeView NOTIFY stateChanged)
     Q_PROPERTY(QString activeFeed READ activeFeed NOTIFY stateChanged)
     Q_PROPERTY(QString profileFeed READ profileFeed NOTIFY stateChanged)
+    // Exact decimal identity of the current *requested* profile. A Loader
+    // must not reuse the last public profile while this target is loading.
+    Q_PROPERTY(QString activeProfileFidText READ activeProfileFidText NOTIFY stateChanged)
     Q_PROPERTY(QString identityName READ identityName NOTIFY stateChanged)
     Q_PROPERTY(qulonglong identityFid READ identityFid NOTIFY stateChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY stateChanged)
@@ -176,6 +179,7 @@ public:
     [[nodiscard]] qulonglong accountFid() const noexcept;
     [[nodiscard]] QString accountFidText() const { return QString::number(accountFid()); }
     [[nodiscard]] bool ownProfileReadReady() const noexcept { return m_ownProfileReadReady; }
+    [[nodiscard]] QString activeProfileFidText() const { return QString::number(m_profileFid); }
     [[nodiscard]] bool ownProfileNavigation() const noexcept {
         return m_isAuthenticated && m_accountFid != 0 && m_profileIsOwnAccount
             && m_activeView == QStringLiteral("profile") && m_profileFid == m_accountFid;
@@ -800,6 +804,10 @@ private:
         qulonglong profileFid{};
         QString profileUsername{};
         QString profileFeed{};
+        // A profile FID alone cannot distinguish an authenticated own
+        // profile from a public read of the same (possibly colliding)
+        // numeric FID on a different social protocol.
+        bool ownProfile{false};
     };
     void rememberDetailLocation();
     std::vector<DetailLocation> m_detailHistory{};

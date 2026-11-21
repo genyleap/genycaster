@@ -23,7 +23,8 @@ test('low-resolution scene captures are shared, bounded, nonrecursive and outsid
   const shell=read('ui/components/shell/AppShell.qml');
   assert.match(source,/sourceIsSafe:[\s\S]*ancestor === sourceItem/);
   assert.match(source,/ShaderEffectSource\.RGBA16F/g);
-  assert.match(source,/Math\.min\(0\.125,[\s\S]*512 \//);
+  assert.match(source,/root\.browserRenderer[\s\S]*?Math\.min\(0\.0625, 256 \//);
+  assert.match(source,/Math\.min\(0\.125, 512 \//);
   assert.match(source,/recursive: false/);
   assert.match(source,/hideSource: false/);
   assert.match(source,/live: root\.capturing/);

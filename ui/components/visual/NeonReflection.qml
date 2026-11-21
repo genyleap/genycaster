@@ -50,7 +50,9 @@ ShaderEffect {
     property vector4d surfaceParameters: Qt.vector4d(
         width, height, cornerRadius, cornerPower)
     property vector4d materialParameters: Qt.vector4d(
-        Math.max(0, Math.min(0.25, strength)) * Theme.reflectionGain,
+        // The previous 0.25 ceiling clipped the restored header strength
+        // and made chromatic reflections barely visible over light chrome.
+        Math.max(0, Math.min(0.42, strength)) * Theme.reflectionGain,
         Math.max(0, borderInset), Math.max(1, reach),
         reflectionSource ? 2 * reflectionSource.effectiveBlur : 0)
     property vector4d edgeParameters: Qt.vector4d(

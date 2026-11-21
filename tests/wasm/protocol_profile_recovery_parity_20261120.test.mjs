@@ -8,7 +8,12 @@ test('own-profile editing is authorized by authenticated navigation rather than 
   const header=read('src/presentation/qt/presentation_bridge.hpp');
   const profile=read('ui/components/profile/ProfileSurface.qml');
   const shell=read('ui/components/shell/AppShell.qml');
-  assert.match(bridge,/void PresentationBridge::openMyProfile\(\)[\s\S]*?openProfileFid\(m_accountFid\);[\s\S]*?m_profileIsOwnAccount = true;/);
+  const ownEntry=bridge.split('void PresentationBridge::openMyProfile()')[1]
+    .split('void PresentationBridge::openProfileUsername(')[0];
+  assert.match(ownEntry,/m_profileIsOwnAccount = true;/);
+  assert.match(ownEntry,/m_profileFid = m_accountFid;/);
+  assert.match(ownEntry,/ownProfileReadAffinityRequested\(true, nativeCustodyAccount\(\)\)/);
+  assert.doesNotMatch(ownEntry,/openProfileFid\(m_accountFid\)/);
   assert.match(bridge,/void PresentationBridge::openProfileUsername\([\s\S]*?m_profileIsOwnAccount = false;/);
   assert.match(bridge,/void PresentationBridge::openProfileFid\([\s\S]*?m_profileIsOwnAccount = false;/);
   assert.match(header,/m_isAuthenticated && m_accountFid != 0 && m_profileIsOwnAccount/);
@@ -45,8 +50,9 @@ test('WASM setup explicitly shows protocol choices without faking desktop-only b
   assert.match(setup,/root\.recoverAccount\(root\.recoveryProtocol\)/);
   assert.match(setup,/root\.browserCreateAccount\("hypersnap-v2"\)/);
   assert.match(wallet,/bool NativeCustodyWalletController::generate\(\)[\s\S]*?return false;/);
-  assert.match(setup,/root\.nativeRecoverHyperSnapAccount\(words, deviceSignerConsent\.checked\)/);
-  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, deviceSignerConsent\.checked\)/);
+  assert.match(setup,/const authorizeDeviceSigner = deviceSignerConsent\.checked/);
+  assert.match(setup,/root\.nativeRecoverHyperSnapAccount\(words, authorizeDeviceSigner\)/);
+  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
 });
 
 test('successful Farcaster recovery adopts verified signer owner before signed cloud membership retry',()=>{
