@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm_recovery:
-        description: Reuse exactly seven verified artifacts from run 44897476297 and one successful Intel artifact from run 44900638292; publish as GitHub Actions bot
+        description: Reuse exactly seven verified artifacts from run 44897476297 and one successful Intel artifact from run 44903540178; publish as GitHub Actions bot
         required: true
         type: boolean
         default: false
@@ -73,7 +73,7 @@ jobs:
           This public Beta reuses seven successful, checksum-verified artifacts
           of full-matrix run [44897476297](https://github.com/genyleap/genycaster/actions/runs/44897476297).
           Only the macOS x86_64 package was rebuilt in the dedicated
-          [44900638292](https://github.com/genyleap/genycaster/actions/runs/44900638292)
+          [44903540178](https://github.com/genyleap/genycaster/actions/runs/44903540178)
           diagnostic run. Both runs compile the same v1.0.0 application
           source commit; only the macOS Intel CI smoke-test environment changed.
           MACOS_NOTICE
