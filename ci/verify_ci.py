@@ -75,7 +75,11 @@ def main() -> None:
     assert 'ci/audit_linux_appdir.py AppDir' in workflow
     assert 'bash ci/smoke_linux_install.sh' in workflow
     assert 'ci/smoke_windows_stage.ps1 -Stage dist/app' in workflow
-    assert "cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_public_beta != true }}" in workflow
+    # A full refresh of existing Release assets must never be superseded by
+    # another diagnostics dispatch while native installers are being built.
+    assert "cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_public_beta != true && inputs.refresh_existing_release != true }}" in workflow
+    assert "refresh_existing_release:" in workflow
+    assert "gh release upload v1.0.0 release/* --clobber" in workflow
     # Release-gate checks prevent accidental tag or main-branch bypass.
     gate = workflow.split("  gate:", 1)[1].split("  linux:", 1)[0]
     assert "ci/release_gate.py" in gate

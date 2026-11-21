@@ -1,12 +1,16 @@
-/*
- * Android Storage Access Framework picker for Genycaster cast attachments.
+/*!
+ * @file        ui/app/media/android_document_picker.hpp
+ * @brief       Android Storage Access Framework picker for cast attachments.
  *
- * The platform picker returns content:// URIs, not POSIX paths. Qt's native
- * cast-upload transport intentionally consumes only private, readable local
- * files. Import the user-granted document to a session-scoped temporary file
- * before handing it to the existing MediaUploadController.
+ * @details
+ * Imports user-granted content:// URIs to private, session-scoped files before
+ * MediaUploadController reads them. Android-only, without broad storage or
+ * READ_MEDIA permissions.
  *
- * This is Android-only. Do not request broad READ_MEDIA_* or storage access.
+ * @author      Genyleap Engineering
+ * @since       21 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
  */
 #pragma once
 

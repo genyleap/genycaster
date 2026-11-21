@@ -41,6 +41,11 @@ on:
         required: false
         type: boolean
         default: false
+      refresh_existing_release:
+        description: Replace assets in existing v1.0.0 only, without creating a release, tag or announcement
+        required: false
+        type: boolean
+        default: false
   push:
     tags:
       - 'v*'
@@ -51,8 +56,8 @@ permissions:
 concurrency:
   # Repeat dispatches for the same ref/platform supersede earlier manual runs.
   # Never cancel tag-triggered release jobs and never overlap unrelated platforms.
-  group: genycaster-cross-platform-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.platform || 'tag' }}-${{ github.event_name == 'workflow_dispatch' && inputs.target_arch || 'all' }}-${{ github.event_name == 'workflow_dispatch' && inputs.publish_public_beta && 'publish' || 'verify' }}
-  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_public_beta != true }}
+  group: genycaster-cross-platform-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.platform || 'tag' }}-${{ github.event_name == 'workflow_dispatch' && inputs.target_arch || 'all' }}-${{ github.event_name == 'workflow_dispatch' && inputs.publish_public_beta && 'publish' || inputs.refresh_existing_release && 'refresh' || 'verify' }}
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_public_beta != true && inputs.refresh_existing_release != true }}
 
 env:
   QT_VERSION: '6.12.0'
@@ -77,6 +82,7 @@ jobs:
       - id: release
         env:
           GENYCASTER_MANUAL_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_public_beta }}
+          GENYCASTER_REFRESH_EXISTING_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_existing_release }}
           GENYCASTER_DISPATCH_PLATFORM: ${{ inputs.platform }}
           GENYCASTER_DISPATCH_ARCH: ${{ inputs.target_arch }}
           GENYCASTER_FULL_MATRIX_CONFIRMED: ${{ inputs.confirm_full_matrix }}
@@ -1604,3 +1610,53 @@ jobs:
           draft: false
           files: release/*
           fail_on_unmatched_files: true
+
+  refresh_existing:
+    name: Refresh files in current v1.0.0 Release (no new release)
+    needs: [gate, linux, macos, windows, android, web]
+    if: github.event_name == 'workflow_dispatch' && inputs.refresh_existing_release == true && inputs.publish_public_beta != true && needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GENYCASTER_REFRESH_EXISTING_RELEASE: ${{ inputs.refresh_existing_release }}
+      GENYCASTER_PUBLISH_PUBLIC_BETA: ${{ inputs.publish_public_beta }}
+    concurrency:
+      group: genycaster-existing-v1.0.0-assets
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Confirm existing Release is immutable in identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ci/refresh_existing_release.py preflight --snapshot "$RUNNER_TEMP/genycaster-existing-release.json"
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Verify eight platform artifacts and aggregate existing filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/refresh_existing_release.py verify-artifacts
+          python3 ci/release_artifacts.py artifacts release
+          (cd release && sha256sum --check --strict SHA256SUMS)
+      - name: Refuse changes to the Release asset inventory
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ci/refresh_existing_release.py verify-assets --snapshot "$RUNNER_TEMP/genycaster-existing-release.json"
+      - name: Replace files in v1.0.0 through github-actions bot (no release creation)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload v1.0.0 release/* --clobber --repo "$GITHUB_REPOSITORY"
+      - name: Verify same Release ID, tag, notes and complete new asset set
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ci/refresh_existing_release.py postflight --snapshot "$RUNNER_TEMP/genycaster-existing-release.json"

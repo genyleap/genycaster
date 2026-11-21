@@ -72,17 +72,20 @@ def main() -> int:
     try:
         version, tagged = release_version(args.ref, release_designation(Path.cwd()))
         manual_release = os.getenv("GENYCASTER_MANUAL_RELEASE", "").lower() == "true"
-        if manual_release:
-            # The version tag is created *after* all eight required build
-            # variants and the checksum aggregation pass, by GITHUB_TOKEN.
-            # Dispatching a tag, a diagnostic target or a partial matrix
-            # must never use the protected Android release signer.
+        refresh_existing = os.getenv("GENYCASTER_REFRESH_EXISTING_RELEASE", "").lower() == "true"
+        if manual_release and refresh_existing:
+            raise ValueError("Cannot create a new Release and refresh an existing Release in one run")
+        if manual_release or refresh_existing:
+            # Both paths require the same full release-grade checks, including
+            # the permanent Android signing key. Refresh must NEVER move tags
+            # or create a Release; its workflow job replaces only asset bytes.
+            # Diagnostic/partial builds must not use the owner release signer.
             if (args.event != "workflow_dispatch"
                     or args.ref != "refs/heads/main"
                     or os.getenv("GENYCASTER_DISPATCH_PLATFORM") != "all"
                     or os.getenv("GENYCASTER_DISPATCH_ARCH") != "all"
                     or os.getenv("GENYCASTER_FULL_MATRIX_CONFIRMED", "").lower() != "true"):
-                raise ValueError("Public Beta publication requires an approved full-matrix dispatch on main")
+                raise ValueError("Release-grade publication/asset refresh requires an approved full-matrix dispatch on main")
             tagged = True
         elif tagged and args.event != "push":
             tagged = False

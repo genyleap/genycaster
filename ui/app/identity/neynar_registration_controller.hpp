@@ -65,6 +65,7 @@ public:
 
     [[nodiscard]] bool available() const noexcept { return m_available; }
     [[nodiscard]] bool checkingAvailability() const noexcept { return m_probeBusy; }
+
     /** Safe, voucher-free 401 challenge: confirms paid relay is actually installed. */
     Q_INVOKABLE void refreshAvailability();
     [[nodiscard]] bool registrationSupported() const noexcept {

@@ -3015,11 +3015,12 @@ Item {
                                         Layout.fillWidth: true
                                         layoutDirection: Theme.uiDirection
                                         spacing: Theme.space2
-                                        Rectangle {
+                                        Superellipse {
                                             width: Theme.scaleUi(22)
                                             height: width
-                                            radius: width / 2
-                                            color: index === 0
+                                            curveDepth: width / 2
+                                            exponent: 2
+                                            fillColor: index === 0
                                                    || (index === 1
                                                        && !nativeRegistrationPublisher.outcomeUnknown)
                                                    ? Theme.success
