@@ -774,7 +774,11 @@ int main(int argc, char* argv[])
                 return nativeRegistrationStatus.verifiedAbsentForCustody(wallet);
             },
             .challenge = [&nativeRegistrationStatus] {
-                return nativeRegistrationStatus.snapshot();
+                // A reachable but lagging shard-0 head is not safe for a
+                // fresh irreversible NATIVE_ONBOARD proof.
+                return nativeRegistrationStatus.syncedForRegistration()
+                    ? nativeRegistrationStatus.snapshot()
+                    : std::optional<NativeRegistrationStatusController::Challenge>{};
             },
             .seal = [&nativeCustodyWallet](
                 const NativeRegistrationStatusController::Challenge& anchor,
@@ -796,7 +800,8 @@ int main(int argc, char* argv[])
                 return nativeCustodyWallet.address();
             },
             .anchorIsFresh = [&nativeRegistrationStatus] {
-                return nativeRegistrationStatus.snapshot().has_value();
+                return nativeRegistrationStatus.syncedForRegistration()
+                    && nativeRegistrationStatus.snapshot().has_value();
             },
             .walletIsUnregistered = [&nativeRegistrationStatus](const QString& wallet) {
                 return nativeRegistrationStatus.verifiedAbsentForCustody(wallet);
