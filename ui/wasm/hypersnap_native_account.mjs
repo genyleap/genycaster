@@ -311,6 +311,24 @@ export function parseRegistrationChallenge(body) {
   return {height:body.anchorBlockHeight,hash:body.anchorBlockHash.toLowerCase(),
     window:body.anchorWindow,nextBlock:body.nextBlock,bits:body.minDifficultyBits};
 }
+/** The authoritative /v1/info node health contract reports blockDelay in seconds.
+ * Registration must not be broadcast against a stale shard-0 head. This is
+ * a safety gate for NEW writes only: custody/FID lookups remain available.
+ */
+export function parseNativeNetworkHealth(status,body) {
+  if(status!==200 || !body || !Array.isArray(body.shardInfos))
+    fail('cannot verify HyperSnap blockchain readiness');
+  const shard=body.shardInfos.find(s=>s?.shardId===0);
+  if(!shard || !Number.isSafeInteger(shard.blockDelay)
+      || shard.blockDelay<0 || !Number.isSafeInteger(shard.maxHeight)
+      || shard.maxHeight<1)
+    fail('HyperSnap shard-0 status is not verifiable');
+  return Object.freeze({
+    ready:shard.blockDelay<=120,
+    delaySeconds:shard.blockDelay,
+    blockHeight:shard.maxHeight
+  });
+}
 function nativeTypedData({address,challenge,nonce}) {
   return {
     domain:{name:'HypersnapNativeOnboard',version:'1',chainId:10},
@@ -416,11 +434,28 @@ export function createBrowserNativeRegistry({
       return result;
     }finally{custody.dispose();}
   };
+  const networkHealth=async(signal)=>{
+    const {status,body}=await getJson(origin+'/v1/info',signal);
+    return parseNativeNetworkHealth(status,body);
+  };
+  const requireHealthyBlockchain=async(signal)=>{
+    const health=await networkHealth(signal);
+    if(!health.ready){
+      const error=new Error('HyperSnap blockchain is catching up. Account creation is paused until shard-0 blocks are current. No registration was sent.');
+      error.code='native-network-syncing';
+      error.blockDelay=health.delaySeconds;
+      throw error;
+    }
+    return health;
+  };
   const register=async(phrase,{signal,confirmIrreversible=false,onProgress=()=>{}}={})=>{
     if(confirmIrreversible!==true)fail('explicit submission consent is required');
     const custody=await deriveFarcasterCustody(phrase);
     let submissionStarted=false;
     try{
+      // Keep recovery available even while this node is far behind.
+      // Never generate a new proof or POST when chain health is unknown.
+      await requireHealthyBlockchain(signal);
       const address=custody.address;
       let gate=await challenge(signal);
       const before=await lookup(address,signal);
@@ -445,6 +480,8 @@ export function createBrowserNativeRegistry({
         anchorHeight:gate.height,anchorHash:gate.hash,powNonce:nonce,bits:gate.bits});
       if(envelope.byteLength>8192)fail('oversized native registration message');
       if(signal?.aborted)throw new Error('Registration cancelled');
+      // Revalidate node synchronization after potentially long PoW.
+      await requireHealthyBlockchain(signal);
       // This is the irreversible network boundary. Tell the UI to disable
       // cancellation BEFORE starting the POST; a late timeout is ambiguous
       // and must never result in an automatic duplicate registration.
@@ -473,5 +510,5 @@ export function createBrowserNativeRegistry({
       throw error;
     }finally{custody.dispose();}
   };
-  return Object.freeze({lookup,challenge,recover,register});
+  return Object.freeze({lookup,challenge,networkHealth,recover,register});
 }
