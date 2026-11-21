@@ -2,12 +2,14 @@
 #include "hypersnap_registration_transport.hpp"
 
 #include <QDateTime>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 
 #include <cmath>
+#include <limits>
 
 NativeRegistrationStatusController::NativeRegistrationStatusController(
     QString baseUrl, QObject* parent)
@@ -16,6 +18,17 @@ NativeRegistrationStatusController::NativeRegistrationStatusController(
 {}
 
 NativeRegistrationStatusController::~NativeRegistrationStatusController() = default;
+
+// The upstream /v1/info contract reports blockDelay in seconds. A positive
+// nativeRegistration.active flag only tests protocol activation, NOT sync.
+bool NativeRegistrationStatusController::syncedForRegistration() const noexcept
+{
+    const auto ageMs = QDateTime::currentMSecsSinceEpoch() - m_healthCheckedAtMs;
+    constexpr int MaxAcceptableShardZeroLagSeconds = 120;
+    return m_active && m_shardZeroDelay >= 0
+        && m_shardZeroDelay <= MaxAcceptableShardZeroLagSeconds
+        && m_healthCheckedAtMs > 0 && ageMs >= 0 && ageMs <= 60'000;
+}
 
 bool NativeRegistrationStatusController::verifiedAbsentForCustody(
     const QString& address) const
@@ -88,6 +101,17 @@ void NativeRegistrationStatusController::refresh()
         if (previousReply)
             previousReply->deleteLater();
     }
+    // Separate read-only health probe. Detach before abort to avoid a
+    // synchronous QNetworkReply::finished callback corrupting newer state.
+    auto previousHealthReply = m_healthReply;
+    m_healthReply = nullptr;
+    if (previousHealthReply) {
+        previousHealthReply->abort();
+        if (previousHealthReply)
+            previousHealthReply->deleteLater();
+    }
+    m_shardZeroDelay = -1;
+    m_healthCheckedAtMs = 0;
     m_active = false;
     m_checking = false;
     m_error.clear();
@@ -174,6 +198,54 @@ void NativeRegistrationStatusController::refresh()
         m_active = fields.value(QStringLiteral("active")).toBool();
         m_error = m_active ? QString{} :
             QStringLiteral("The selected HyperSnap node has not enabled native registration.");
+        if (m_active) {
+            // HTTP 200 from /v1/nativeRegistration can coexist with 30+
+            // minutes of shard-0 lag. Never mine/sign/send a new irreversible
+            // NATIVE_ONBOARD against an unqualified chain head. Reads of an
+            // already pending custody registration remain permitted.
+            QNetworkRequest health{m_base.resolved(QUrl{QStringLiteral("/v1/info")})};
+            health.setTransferTimeout(10000);
+            health.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                                QNetworkRequest::ManualRedirectPolicy);
+            health.setRawHeader("Accept", "application/json");
+            m_healthReply = m_network.get(health);
+            const auto healthReply = m_healthReply;
+            QObject::connect(healthReply, &QNetworkReply::finished, this,
+                             [this, healthReply] {
+                if (healthReply != m_healthReply) return;
+                m_healthReply = nullptr;
+                const int http = healthReply->attribute(
+                    QNetworkRequest::HttpStatusCodeAttribute).toInt();
+                const auto error = healthReply->error();
+                const auto bytes = healthReply->bytesAvailable() <= 16'384
+                    ? healthReply->readAll() : QByteArray{};
+                healthReply->deleteLater();
+                const auto info = QJsonDocument::fromJson(bytes);
+                if (error == QNetworkReply::NoError && http == 200
+                    && info.isObject()) {
+                    const auto shards = info.object().value(
+                        QStringLiteral("shardInfos")).toArray();
+                    for (const auto& shard : shards) {
+                        if (!shard.isObject()) continue;
+                        const auto fields = shard.toObject();
+                        if (fields.value(QStringLiteral("shardId")).toInt(-1) != 0)
+                            continue;
+                        const auto seconds = fields.value(
+                            QStringLiteral("blockDelay")).toDouble(-1);
+                        if (std::isfinite(seconds) && seconds >= 0
+                            && seconds <= std::numeric_limits<int>::max()
+                            && std::floor(seconds) == seconds) {
+                            m_shardZeroDelay = static_cast<int>(seconds);
+                            m_healthCheckedAtMs = QDateTime::currentMSecsSinceEpoch();
+                        }
+                        break;
+                    }
+                }
+                // Unknown/invalid block delay fails CLOSED for new
+                // registration, but does not suppress custody/FID lookups.
+                emit changed();
+            });
+        }
         emit changed();
     });
     emit changed();
