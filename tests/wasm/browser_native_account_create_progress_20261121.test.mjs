@@ -33,6 +33,7 @@ function fakeBrowser() {
     return node;
   };
   const body=make('body');
+  body.style.overflow='';
   const document={
     body,documentElement:{dataset:{theme:'dark'}},activeElement:{focus(){}},
     createElement:make,
