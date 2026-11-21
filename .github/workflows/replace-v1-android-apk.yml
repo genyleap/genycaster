@@ -3,6 +3,10 @@ name: Replace Android APK in existing Genycaster v1.0.0 release
 # Manual, narrow, artifact-only repair. No tag creation and no native rebuild.
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - GenyCaster CI and Release
+    types: [completed]
 
 permissions:
   contents: write
@@ -14,7 +18,13 @@ concurrency:
 
 jobs:
   replace-android-only:
-    if: github.repository == 'genyleap/genycaster' && github.ref == 'refs/heads/main'
+    if: >-
+      github.repository == 'genyleap/genycaster' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.id == 44922640207 &&
+      github.event.workflow_run.conclusion == 'success'))
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
