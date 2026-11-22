@@ -110,6 +110,15 @@ test('sticker popup opens at real trigger with viewport clamping and mobile bott
  assert.doesNotMatch(picker,/assets\/stickers\/v1/);
 });
 
+test('mobile Flow sticker tray does not assign Qt read-only implicitHeight',()=>{
+ const drawer=read('ui/components/composer/ComposerDrawer.qml');
+ const tray=drawer.match(/Flow \{\s*objectName: "mobileInlineStickerDrafts"([\s\S]*?)\n\s*Repeater \{/);
+ assert.ok(tray, 'the compact sticker Flow must remain in the Composer');
+ assert.doesNotMatch(tray[1],/^\s*implicitHeight\s*:/m,
+   'Qt Quick Flow inherits a read-only implicitHeight from Positioner');
+ assert.match(tray[1],/Layout\.preferredHeight: visible \? childrenRect\.height : 0/);
+});
+
 test('inline Telegram-like sticker preview avoids duplicated opaque media upload cards',()=>{
  const drawer=read('ui/components/composer/ComposerDrawer.qml');
  const media=read('ui/components/composer/MediaUploadPanel.qml');

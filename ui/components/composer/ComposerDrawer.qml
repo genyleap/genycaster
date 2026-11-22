@@ -2147,8 +2147,10 @@ GenyDrawer {
                 visible: root.compact && root.editorMode === "visual"
                          && root.draftStickers.length > 0
                 Layout.fillWidth: true
-                Layout.preferredHeight: visible ? implicitHeight : 0
-                implicitHeight: childrenRect.height
+                // Flow's implicitHeight is computed by QQuickBasePositioner
+                // and is read-only. Let ColumnLayout reserve the actual
+                // laid-out children height without assigning that property.
+                Layout.preferredHeight: visible ? childrenRect.height : 0
                 spacing: Theme.space2
                 layoutDirection: Theme.uiDirection
 
