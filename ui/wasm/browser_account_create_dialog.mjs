@@ -18,7 +18,7 @@ const translations={
   submitting:'Sending your account request to HyperSnap…',
   checking:'Waiting for confirmation. Checking automatically.',
   working:'Creating your account',blockchainCaption:'HYPERSNAP BLOCKCHAIN',farcasterCaption:'FARCASTER NETWORK',
-  progressNote:'Proof search is running. This percentage is the hash-search budget, not network confirmation.',
+  progressNote:'Proof is computed locally. The counter shows hash attempts, not blockchain confirmation.',
   pending:'Request status unknown. Do not retry. Return with your 24 words.',
   stepOne:'Backup',stepTwo:'Request',stepThree:'Confirmation',
   paidStepTwo:'Sponsored registration authorized',paidStepThree:'Farcaster confirms your account',
@@ -41,7 +41,7 @@ const translations={
   submitting:'در حال ارسال درخواست ساخت حساب به هایپراسنپ…',
   checking:'در انتظار تأیید شبکه؛ بررسی خودکار ادامه دارد.',
   working:'در حال ایجاد حساب',blockchainCaption:'بلاک‌چین هایپراسنپ',farcasterCaption:'شبکه فارکستر',
-  progressNote:'درصد، میزان جستجوی اثبات را نشان می‌دهد، نه تأیید ثبت در شبکه.',
+  progressNote:'اثبات روی دستگاه محاسبه می‌شود. شمارنده، تعداد تلاش‌های محاسباتی است؛ نه تأیید بلاک‌چین.',
   pending:'وضعیت درخواست نامشخص است. دوباره ارسال نکنید؛ با همان ۲۴ واژه برگردید.',
   stepOne:'پشتیبان',stepTwo:'درخواست',stepThree:'تأیید شبکه',
   paidStepTwo:'ثبت‌نام حمایت‌شده تأیید شد',paidStepThree:'تأیید حساب در فارکستر',
@@ -73,7 +73,7 @@ const translations={
   working:"جارٍ إنشاء حسابك",
   blockchainCaption:"سلسلة كتل هايبرسناب",
   farcasterCaption:"شبكة فاركاستر",
-  progressNote:"البحث عن الإثبات مستمر. النسبة المئوية تمثل ميزانية البحث عن التجزئة، لا تأكيد الشبكة.",
+  progressNote:"يُحسب الإثبات محليًا. يعرض العداد محاولات التجزئة، وليس تأكيد التسجيل على الشبكة.",
   pending:"حالة الطلب غير معروفة. لا تُعد الإرسال. عُد بكلماتك الأربع والعشرين.",
   stepOne:"النسخ الاحتياطي",
   stepTwo:"الطلب",
@@ -111,7 +111,7 @@ const translations={
   working:"Konto wird erstellt",
   blockchainCaption:"HYPERSNAP-BLOCKCHAIN",
   farcasterCaption:"FARCASTER-NETZWERK",
-  progressNote:"Die Proof-Suche läuft. Der Prozentsatz bezeichnet das Hash-Suchbudget, nicht die Netzwerkbestätigung.",
+  progressNote:"Der Nachweis wird lokal berechnet. Der Zähler zeigt Hash-Versuche, keine Blockchain-Bestätigung.",
   pending:"Anfragestatus unbekannt. Nicht erneut senden. Kehren Sie mit Ihren 24 Wörtern zurück.",
   stepOne:"Sicherung",
   stepTwo:"Anfrage",
@@ -149,7 +149,7 @@ const translations={
   working:"Creando tu cuenta",
   blockchainCaption:"CADENA DE BLOQUES HYPERSNAP",
   farcasterCaption:"RED FARCASTER",
-  progressNote:"La búsqueda de prueba está en curso. El porcentaje representa el presupuesto de búsqueda de hashes, no la confirmación de la red.",
+  progressNote:"La prueba se calcula en el dispositivo. El contador muestra intentos de hash, no una confirmación de la red.",
   pending:"Se desconoce el estado de la solicitud. No la reenvíes. Vuelve con tus 24 palabras.",
   stepOne:"Copia de seguridad",
   stepTwo:"Solicitud",
@@ -187,7 +187,7 @@ const translations={
   working:"Création de votre compte",
   blockchainCaption:"BLOCKCHAIN HYPERSNAP",
   farcasterCaption:"RÉSEAU FARCASTER",
-  progressNote:"La recherche de preuve est en cours. Ce pourcentage indique le budget de recherche de hachage, pas la confirmation du réseau.",
+  progressNote:"La preuve est calculée localement. Le compteur montre les essais de hachage, pas une confirmation du réseau.",
   pending:"État de la demande inconnu. Ne réessayez pas. Revenez avec vos 24 mots.",
   stepOne:"Sauvegarde",
   stepTwo:"Demande",
@@ -225,7 +225,7 @@ const translations={
   working:"आपका खाता बनाया जा रहा है",
   blockchainCaption:"HYPERSNAP ब्लॉकचेन",
   farcasterCaption:"FARCASTER नेटवर्क",
-  progressNote:"प्रमाण की खोज जारी है। यह प्रतिशत हैश खोज की सीमा बताता है, नेटवर्क की पुष्टि नहीं।",
+  progressNote:"प्रमाण की गणना डिवाइस पर होती है। यह काउंटर हैश प्रयास दिखाता है, ब्लॉकचेन पुष्टि नहीं।",
   pending:"अनुरोध की स्थिति अज्ञात है। फिर से न भेजें। अपने 24 शब्दों के साथ वापस आएँ।",
   stepOne:"बैकअप",
   stepTwo:"अनुरोध",
@@ -263,7 +263,7 @@ const translations={
   working:"アカウントを作成中",
   blockchainCaption:"HYPERSNAPブロックチェーン",
   farcasterCaption:"FARCASTERネットワーク",
-  progressNote:"証明の探索中です。この割合はハッシュ探索の予算であり、ネットワーク確認ではありません。",
+  progressNote:"証明は端末内で計算されます。カウンターはハッシュ試行回数であり、ネットワークの承認ではありません。",
   pending:"リクエストの状態が不明です。再送しないでください。24個の単語を使って戻ってください。",
   stepOne:"バックアップ",
   stepTwo:"リクエスト",
@@ -301,7 +301,7 @@ const translations={
   working:"계정 생성 중",
   blockchainCaption:"HYPERSNAP 블록체인",
   farcasterCaption:"FARCASTER 네트워크",
-  progressNote:"증명 검색이 진행 중입니다. 이 비율은 해시 검색 예산이며 네트워크 확인이 아닙니다.",
+  progressNote:"증명은 기기에서 계산됩니다. 카운터는 해시 시도 횟수이며 블록체인 승인이 아닙니다.",
   pending:"요청 상태를 알 수 없습니다. 다시 보내지 마세요. 24개 단어로 돌아오세요.",
   stepOne:"백업",
   stepTwo:"요청",
@@ -339,7 +339,7 @@ const translations={
   working:"Criando sua conta",
   blockchainCaption:"BLOCKCHAIN HYPERSNAP",
   farcasterCaption:"REDE FARCASTER",
-  progressNote:"A busca de prova está em andamento. Essa porcentagem representa o limite da busca de hashes, não a confirmação da rede.",
+  progressNote:"A prova é calculada no dispositivo. O contador mostra tentativas de hash, não a confirmação da rede.",
   pending:"Status da solicitação desconhecido. Não reenvie. Volte com suas 24 palavras.",
   stepOne:"Cópia de segurança",
   stepTwo:"Solicitação",
@@ -377,7 +377,7 @@ const translations={
   working:"Создание аккаунта",
   blockchainCaption:"БЛОКЧЕЙН HYPERSNAP",
   farcasterCaption:"СЕТЬ FARCASTER",
-  progressNote:"Поиск доказательства продолжается. Процент отражает лимит поиска хешей, а не подтверждение сети.",
+  progressNote:"Доказательство вычисляется локально. Счётчик показывает попытки хеширования, а не подтверждение сети.",
   pending:"Статус запроса неизвестен. Не отправляйте повторно. Вернитесь с 24 словами.",
   stepOne:"Резервная копия",
   stepTwo:"Запрос",
@@ -415,7 +415,7 @@ const translations={
   working:"正在创建账户",
   blockchainCaption:"HYPERSNAP 区块链",
   farcasterCaption:"FARCASTER 网络",
-  progressNote:"正在搜索证明。此百分比代表哈希搜索预算，并非网络确认进度。",
+  progressNote:"注册证明在本地计算。计数器显示哈希尝试次数，而非区块链确认进度。",
   pending:"请求状态未知。请勿重试，请使用 24 个恢复词返回。",
   stepOne:"备份",
   stepTwo:"请求",
@@ -432,6 +432,58 @@ const translations={
   paidSubmit:"正在提交 Farcaster 注册…",
   paidVerify:"等待 Farcaster 区块链确认…"
  }
+};
+// Localized, real registration stages. These never reveal recovery words,
+// private keys, custody signatures, or proof material to the visible UI.
+const phases={
+ en:{network:'Checking shard-0 blockchain readiness…',challenge:'Getting the current registration challenge…',
+  lookup:'Checking whether this wallet already has an account…',proof:'Computing the registration proof locally…',
+  signing:'Authorizing the registration on this device…',retry:'Try again',
+  notSubmitted:'Registration was not submitted. Check the network and try again.'},
+ fa:{network:'در حال بررسی آماده‌بودن بلاک‌های شارد صفر…',challenge:'دریافت اطلاعات به‌روز ثبت‌نام از شبکه…',
+  lookup:'بررسی اینکه این کیف پول قبلاً ثبت شده است یا نه…',proof:'در حال محاسبهٔ اثبات ثبت‌نام روی دستگاه…',
+  signing:'در حال تأیید ثبت‌نام با کیف پول روی همین دستگاه…',retry:'تلاش دوباره',
+  notSubmitted:'ثبت‌نام به شبکه ارسال نشد. وضعیت شبکه را بررسی کنید و دوباره تلاش کنید.'},
+ ar:{network:'جارٍ فحص جاهزية الكتل في الشارد صفر…',challenge:'جارٍ جلب تحدي التسجيل الحالي…',
+  lookup:'جارٍ التحقق مما إذا كانت المحفظة مسجلة بالفعل…',proof:'جارٍ حساب إثبات التسجيل محليًا…',
+  signing:'جارٍ تفويض التسجيل على هذا الجهاز…',retry:'إعادة المحاولة',
+  notSubmitted:'لم يبدأ التسجيل ولم يُرسل أي طلب. تحقق من الشبكة وأعد المحاولة.'},
+ de:{network:'Blockbereitschaft von Shard 0 wird geprüft…',challenge:'Aktuelle Registrierungsaufgabe wird geladen…',
+  lookup:'Es wird geprüft, ob diese Wallet bereits registriert ist…',proof:'Registrierungsnachweis wird lokal berechnet…',
+  signing:'Registrierung wird auf diesem Gerät autorisiert…',retry:'Erneut versuchen',
+  notSubmitted:'Registrierung konnte nicht starten. Keine Anfrage wurde gesendet. Netzwerk prüfen und erneut versuchen.'},
+ es:{network:'Comprobando los bloques del fragmento 0…',challenge:'Obteniendo el desafío de registro actual…',
+  lookup:'Comprobando si esta cartera ya está registrada…',proof:'Calculando la prueba de registro en el dispositivo…',
+  signing:'Autorizando el registro en este dispositivo…',retry:'Reintentar',
+  notSubmitted:'No se pudo iniciar el registro. No se envió ninguna solicitud. Comprueba la red y vuelve a intentarlo.'},
+ fr:{network:'Vérification des blocs du shard 0…',challenge:'Récupération du défi d’inscription actuel…',
+  lookup:'Vérification de l’inscription éventuelle de ce portefeuille…',proof:'Calcul local de la preuve d’inscription…',
+  signing:'Autorisation de l’inscription sur cet appareil…',retry:'Réessayer',
+  notSubmitted:'L’inscription n’a pas démarré. Aucune demande envoyée. Vérifiez le réseau et réessayez.'},
+ hi:{network:'शार्ड 0 की ब्लॉक स्थिति जाँची जा रही है…',challenge:'वर्तमान पंजीकरण चुनौती प्राप्त की जा रही है…',
+  lookup:'जाँचा जा रहा है कि यह वॉलेट पहले से पंजीकृत है या नहीं…',proof:'डिवाइस पर पंजीकरण प्रमाण की गणना की जा रही है…',
+  signing:'इस डिवाइस पर पंजीकरण अधिकृत किया जा रहा है…',retry:'फिर से कोशिश करें',
+  notSubmitted:'पंजीकरण शुरू नहीं हुआ। कोई अनुरोध भेजा नहीं गया। नेटवर्क जाँचें और दोबारा कोशिश करें।'},
+ ja:{network:'シャード0のブロック状態を確認中…',challenge:'最新の登録チャレンジを取得中…',
+  lookup:'このウォレットが登録済みか確認中…',proof:'端末内で登録証明を計算中…',
+  signing:'この端末で登録を承認中…',retry:'再試行',
+  notSubmitted:'登録を開始できず、要求は送信されていません。ネットワークを確認して再試行してください。'},
+ ko:{network:'샤드 0 블록 준비 상태를 확인하는 중…',challenge:'최신 등록 챌린지를 가져오는 중…',
+  lookup:'이 지갑이 이미 등록되었는지 확인하는 중…',proof:'기기에서 등록 증명을 계산하는 중…',
+  signing:'이 기기에서 등록을 승인하는 중…',retry:'다시 시도',
+  notSubmitted:'등록이 시작되지 않았으며 요청을 전송하지 않았습니다. 네트워크를 확인한 후 다시 시도하세요.'},
+ pt:{network:'Verificando os blocos do shard 0…',challenge:'Obtendo o desafio atual de cadastro…',
+  lookup:'Verificando se esta carteira já está registrada…',proof:'Calculando a prova de cadastro neste dispositivo…',
+  signing:'Autorizando o cadastro neste dispositivo…',retry:'Tentar novamente',
+  notSubmitted:'O cadastro não começou. Nenhuma solicitação foi enviada. Verifique a rede e tente novamente.'},
+ ru:{network:'Проверка готовности блоков шарда 0…',challenge:'Получение актуального запроса регистрации…',
+  lookup:'Проверка того, зарегистрирован ли этот кошелёк…',proof:'Локальное вычисление доказательства регистрации…',
+  signing:'Авторизация регистрации на этом устройстве…',retry:'Повторить',
+  notSubmitted:'Регистрация не началась. Запрос не отправлен. Проверьте сеть и повторите попытку.'},
+ zh:{network:'正在检查分片 0 的区块状态…',challenge:'正在获取最新注册挑战…',
+  lookup:'正在检查此钱包是否已注册…',proof:'正在设备本地计算注册证明…',
+  signing:'正在此设备上授权注册…',retry:'重试',
+  notSubmitted:'注册未能启动，且没有发送请求。请检查网络后重试。'}
 };
 const titleFor=network=>network==='hypersnap-v2'?'HyperSnap':'Farcaster';
 const clearNode=node=>{if(node){node.textContent='';node.replaceChildren();}};
@@ -466,12 +518,53 @@ export async function promptCreateBrowserWallet({
  const layer=document.createElement('div'),form=document.createElement('section');
  layer.id='genycaster-browser-new-wallet';
  layer.style.cssText='position:fixed;inset:0;z-index:2147483647;background:'+colors.bg+';font:15px system-ui,sans-serif;color:'+colors.fg+';box-sizing:border-box;';
+ // This browser-only custody surface must have the same complete interaction
+ // states as Qt's product-owned controls. Scope everything to this overlay.
+ const skin=document.createElement('style');
+ skin.textContent=`
+ #genycaster-browser-new-wallet {--wallet-accent:${light?'#315cf5':'#829aff'};--wallet-ink:${colors.fg};--wallet-bg:${colors.bg};--wallet-cell:${colors.cell};--wallet-border:${colors.border};--wallet-muted:${colors.muted};--wallet-focus:${light?'#315cf5':'#a4b5ff'};--wallet-accent-ink:${light?'#fff':'#101116'};}
+ #genycaster-browser-new-wallet *,#genycaster-browser-new-wallet *::before,#genycaster-browser-new-wallet *::after {box-sizing:border-box;}
+ #genycaster-browser-new-wallet button,#genycaster-browser-new-wallet input {font-family:inherit;-webkit-tap-highlight-color:transparent;}
+ #genycaster-browser-new-wallet .wallet-verification-label {display:grid;grid-template-columns:auto minmax(0,1fr);min-width:0;align-items:center;gap:10px;}
+ #genycaster-browser-new-wallet .wallet-verification-label input {width:100%;min-width:0;max-width:100%;padding:14px 15px;border:1px solid var(--wallet-border);border-radius:14px;corner-shape:superellipse(4);background:var(--wallet-cell);color:var(--wallet-ink);font-size:16px;outline:none;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease;}
+ #genycaster-browser-new-wallet .wallet-verification-label input:hover {border-color:var(--wallet-muted);}
+ #genycaster-browser-new-wallet .wallet-verification-label input:focus-visible {border-color:var(--wallet-focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--wallet-focus) 22%,transparent);}
+ #genycaster-browser-new-wallet .wallet-action {display:inline-flex;align-items:center;justify-content:center;gap:10px;min-width:0;min-height:50px;padding:12px 16px;border:1px solid var(--wallet-border);border-radius:17px;corner-shape:superellipse(4);background:var(--wallet-cell);color:var(--wallet-ink);font-size:15px;font-weight:650;line-height:1.35;cursor:pointer;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .12s ease;}
+ #genycaster-browser-new-wallet .wallet-action:hover:not(:disabled){border-color:var(--wallet-accent);background:color-mix(in srgb,var(--wallet-accent) 10%,var(--wallet-cell));}
+ #genycaster-browser-new-wallet .wallet-action:active:not(:disabled){transform:scale(.985);}
+ #genycaster-browser-new-wallet .wallet-action:focus-visible{outline:3px solid var(--wallet-focus);outline-offset:3px;}
+ #genycaster-browser-new-wallet .wallet-action--primary{background:var(--wallet-accent);border-color:var(--wallet-accent);color:var(--wallet-accent-ink);}
+ #genycaster-browser-new-wallet .wallet-action--primary:hover:not(:disabled){background:color-mix(in srgb,var(--wallet-accent) 86%,var(--wallet-ink));border-color:var(--wallet-focus);}
+ #genycaster-browser-new-wallet .wallet-action:disabled{cursor:not-allowed;opacity:.52;box-shadow:none;}
+ #genycaster-browser-new-wallet .wallet-action[data-busy="true"]{opacity:1;cursor:progress;}
+ #genycaster-browser-new-wallet .wallet-action[data-busy="true"]::before{content:"";width:16px;height:16px;border:2px solid currentColor;border-inline-start-color:transparent;border-radius:50%;animation:walletSpin .75s linear infinite;}
+ #genycaster-browser-new-wallet .wallet-step[data-state="active"]{background:color-mix(in srgb,var(--wallet-accent) 15%,var(--wallet-cell));border-color:var(--wallet-accent);color:var(--wallet-ink);}
+ #genycaster-browser-new-wallet .wallet-step[data-state="done"]{background:color-mix(in srgb,#36ca91 12%,var(--wallet-cell));border-color:color-mix(in srgb,#36ca91 28%,var(--wallet-border));color:var(--wallet-ink);}
+ #genycaster-browser-new-wallet .wallet-step[data-state="waiting"]{color:var(--wallet-muted);}
+ #genycaster-browser-new-wallet .wallet-progress-spinner{width:18px;height:18px;flex:none;border-radius:50%;border:2px solid var(--wallet-border);border-top-color:var(--wallet-accent);animation:walletSpin .8s linear infinite;}
+ #genycaster-browser-new-wallet .wallet-progress-status{display:flex;gap:12px;align-items:flex-start;}
+ #genycaster-browser-new-wallet .wallet-progress-status p{flex:1;min-width:0;margin:0;}
+ #genycaster-browser-new-wallet .wallet-footer{flex:none;display:flex;gap:12px;padding:14px 0 max(12px,env(safe-area-inset-bottom));border-top:1px solid var(--wallet-border);background:var(--wallet-bg);}
+ #genycaster-browser-new-wallet .wallet-footer .wallet-action{flex:1;min-width:0;}
+ #genycaster-browser-new-wallet .wallet-consent{padding:8px 10px;border-radius:13px;cursor:pointer;transition:background .15s ease;}
+ #genycaster-browser-new-wallet .wallet-consent:hover{background:color-mix(in srgb,var(--wallet-accent) 8%,transparent);}
+ #genycaster-browser-new-wallet .wallet-consent:focus-within{background:color-mix(in srgb,var(--wallet-accent) 12%,transparent);}
+ #genycaster-browser-new-wallet input[type="checkbox"]{accent-color:var(--wallet-accent);cursor:pointer;}
+ #genycaster-browser-new-wallet input[type="checkbox"]:focus-visible{outline:2px solid var(--wallet-focus);outline-offset:4px;}
+ @media(max-width:560px){#genycaster-browser-new-wallet .wallet-challenge{grid-template-columns:minmax(0,1fr)!important;}#genycaster-browser-new-wallet .wallet-footer{gap:8px;}#genycaster-browser-new-wallet .wallet-action{padding:11px 12px;min-height:48px;font-size:14px;}}
+ @media(prefers-reduced-motion:reduce){#genycaster-browser-new-wallet .wallet-action,#genycaster-browser-new-wallet .wallet-verification-label input{transition:none;}#genycaster-browser-new-wallet .wallet-action:active{transform:none;}#genycaster-browser-new-wallet .wallet-progress-spinner,#genycaster-browser-new-wallet .wallet-action[data-busy="true"]::before{animation:none;}}
+ @keyframes walletSpin{to{transform:rotate(360deg);}}
+ `;
+ layer.appendChild(skin);
  form.dir=isRtl?'rtl':'ltr';form.setAttribute('role','dialog');form.setAttribute('aria-modal','true');
  form.setAttribute('aria-label',t.title);
- form.style.cssText='max-width:740px;margin:auto;box-sizing:border-box;height:100%;display:flex;flex-direction:column;padding:max(30px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom));gap:14px;';
+ form.style.cssText='width:100%;max-width:820px;margin:auto;box-sizing:border-box;height:100%;display:flex;flex-direction:column;padding:max(18px,env(safe-area-inset-top)) clamp(16px,3vw,24px) 0;gap:14px;';
  const content=document.createElement('div');
  content.style.cssText='overflow-y:auto;min-height:0;flex:1;padding:0 2px;overscroll-behavior:contain;';
  const heading=document.createElement('h1');heading.textContent=t.title;
+ heading.id='genycaster-wallet-dialog-title';
+ heading.tabIndex=-1;
+ form.setAttribute('aria-labelledby',heading.id);
  heading.style.cssText='font-size:clamp(22px,4vw,32px);margin:18px 0 10px;font-weight:700;';
  const subtitle=document.createElement('p');
  subtitle.textContent=t.subtitle+' '+titleFor(protocol);
@@ -488,12 +581,19 @@ export async function promptCreateBrowserWallet({
  progressHeading.style.cssText='font-size:12px;font-weight:700;letter-spacing:.09em;margin:0 0 12px;color:'+colors.muted;
  const progressCaption=document.createElement('p');progressCaption.textContent=t.busy;
  progressCaption.setAttribute('aria-live','polite');
- progressCaption.style.cssText='font-size:15px;line-height:1.6;color:'+colors.muted+';margin:0 0 12px;overflow-wrap:anywhere;';
- const progressTrack=document.createElement('div');progressTrack.style.cssText='height:6px;background:'+colors.border+';border-radius:9px;overflow:hidden;';
+ progressCaption.style.cssText='font-size:15px;line-height:1.6;color:'+colors.fg+';overflow-wrap:anywhere;';
+ const progressStatus=document.createElement('div');
+ progressStatus.className='wallet-progress-status';
+ progressStatus.style.cssText='margin:0 0 16px;';
+ const progressSpinner=document.createElement('span');
+ progressSpinner.className='wallet-progress-spinner';
+ progressSpinner.setAttribute('aria-hidden','true');
+ progressStatus.append(progressSpinner,progressCaption);
+ const progressTrack=document.createElement('div');progressTrack.style.cssText='display:none;height:6px;background:'+colors.border+';border-radius:9px;overflow:hidden;';
  const progressFill=document.createElement('div');progressFill.style.cssText='height:100%;width:0%;border-radius:9px;background:#008bff;transition:width 150ms linear;';
  progressTrack.appendChild(progressFill);
  const progressNote=document.createElement('p');progressNote.textContent=t.progressNote;
- progressNote.style.cssText='font-size:12px;line-height:1.6;color:'+colors.muted+';margin:10px 0 0';
+ progressNote.style.cssText='display:none;font-size:12px;line-height:1.6;color:'+colors.muted+';margin:10px 0 0';
  const stepList=document.createElement('ol');
  stepList.style.cssText='list-style:none;padding:0;margin:16px 0 0;display:grid;gap:11px;';
  const stepNames=[t.stepOne,protocol==='hypersnap-v2'?t.stepTwo:t.paidStepTwo,
@@ -501,19 +601,19 @@ export async function promptCreateBrowserWallet({
  const stepEntries=stepNames.map((name,index)=>{
    const item=document.createElement('li');
    item.textContent=(index+1)+'.  '+name;
-   item.style.cssText='padding:8px 12px;border-radius:11px;background:'+
-     (index===0?'rgba(12,194,129,.12)':'transparent')+
-     ';color:'+(index===0?colors.fg:colors.muted)+';font-size:14px;line-height:1.5;';
+   item.className='wallet-step';
+   item.style.cssText='padding:12px 14px;border:1px solid transparent;border-radius:14px;corner-shape:superellipse(4);font-size:14px;line-height:1.5;font-weight:600;';
    stepList.appendChild(item);return item;
  });
  const showProgressStep=step=>{
    stepEntries.forEach((item,index)=>{
-     item.style.background=index===step?'rgba(0,126,255,.13)':
-       index<step?'rgba(12,194,129,.10)':'transparent';
-     item.style.color=index<=step?colors.fg:colors.muted;
+     const state=index===step?'active':index<step?'done':'waiting';
+     item.dataset.state=state;
+     if(index===step)item.setAttribute('aria-current','step');
+     else item.removeAttribute?.('aria-current');
    });
  };
- progressPanel.append(progressHeading,progressCaption,progressTrack,progressNote,stepList);
+ progressPanel.append(progressHeading,progressStatus,progressTrack,progressNote,stepList);
  const cells=[];
  words.forEach((word,i)=>{
   const cell=document.createElement('div');
@@ -524,28 +624,32 @@ export async function promptCreateBrowserWallet({
   cell.append(index,value);grid.appendChild(cell);cells.push(cell);
  });
  const backupAction=document.createElement('button');backupAction.type='button';backupAction.textContent=t.copy;
- backupAction.style.cssText='margin:16px 0;padding:12px 16px;border:1px solid '+colors.border+';background:'+colors.cell+';color:'+colors.fg+';border-radius:12px;font-weight:600;';
+ backupAction.className='wallet-action';
+ backupAction.style.cssText='margin:16px 0;';
  const challengeHeading=document.createElement('h2');challengeHeading.textContent=t.challenge;
  challengeHeading.style.cssText='font-size:17px;margin:14px 0 12px;font-weight:600';
  const challenge=document.createElement('div');
+ challenge.className='wallet-challenge';
  challenge.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px';
  const checks=[];
  indices.forEach(index=>{
   const label=document.createElement('label');
   label.textContent='#'+String(index+1).padStart(2,'0');
-  label.style.cssText='display:flex;align-items:center;gap:10px;';
+  label.className='wallet-verification-label';
   const input=document.createElement('input');
   input.type='password';input.autocomplete='off';input.autocorrect='off';
   input.autocapitalize='off';input.spellcheck=false;
   input.setAttribute('aria-label',t.challenge+' '+(index+1));
-  input.style.cssText='width:100%;min-width:0;padding:14px;border:1px solid '+colors.border+';border-radius:12px;background:'+colors.cell+';color:'+colors.fg+';font:16px system-ui';
+  input.setAttribute('inputmode','text');
+  input.setAttribute('enterkeyhint','next');
   label.appendChild(input);challenge.appendChild(label);checks.push(input);
  });
  const confirmation=(message)=>{
   const label=document.createElement('label');
-  label.style.cssText='display:flex;align-items:flex-start;gap:12px;margin:16px 0;line-height:1.6';
+  label.className='wallet-consent';
+  label.style.cssText='display:flex;align-items:flex-start;gap:12px;margin:10px 0;line-height:1.6';
   const input=document.createElement('input');input.type='checkbox';
-  input.style.cssText='width:22px;height:22px;flex-shrink:0;accent-color:'+colors.fg;
+  input.style.cssText='width:22px;height:22px;flex-shrink:0;';
   const span=document.createElement('span');span.textContent=message;
   label.append(input,span);content.appendChild(label);
   return input;
@@ -554,12 +658,10 @@ export async function promptCreateBrowserWallet({
  result.setAttribute('aria-live','polite');
  result.style.cssText='min-height:25px;line-height:1.6;color:'+(light?'#a4530c':'#ffbd71')+';overflow-wrap:anywhere';
  const buttons=document.createElement('div');
- buttons.style.cssText='display:flex;gap:12px;padding-top:15px;border-top:1px solid '+colors.border;
+ buttons.className='wallet-footer';
  const button=(text,primary)=>{
   const b=document.createElement('button');b.type='button';b.textContent=text;
-  b.style.cssText='flex:1;min-height:50px;padding:12px;border-radius:14px;font:600 16px system-ui;background:'+
-    (primary?colors.fg:colors.bg)+';color:'+(primary?colors.bg:colors.fg)+
-    ';border:1px solid '+colors.border+';cursor:pointer;';
+  b.className='wallet-action'+(primary?' wallet-action--primary':'');
   buttons.appendChild(b);return b;
  };
  content.append(heading,subtitle,warning,grid,progressPanel,backupAction,challengeHeading,challenge);
@@ -592,13 +694,14 @@ export async function promptCreateBrowserWallet({
  }
  content.appendChild(result);
  const cancel=button(t.cancel,false),submit=button(t.create,true);
- // The action stays directly below its form, not detached at screen bottom.
- content.appendChild(buttons);
- form.append(content);layer.appendChild(form);
+ // The footer stays visible while users scroll through the 24-word form.
+ form.append(content,buttons);layer.appendChild(form);
  const oldFocus=document.activeElement;
  const oldOverflow=document.body.style.overflow;
  document.body.style.overflow='hidden';document.body.appendChild(layer);
- let attempts=0;
+ heading.focus?.();
+ let attempts=0,verifiedBackup=false;
+ const phaseText=phases[lang];
  const operationController=new AbortController();
  const cancelOperation=()=>operationController.abort(new Error('Account creation cancelled'));
  signal?.addEventListener('abort',cancelOperation,{once:true});
@@ -629,6 +732,26 @@ export async function promptCreateBrowserWallet({
   };
   signal?.addEventListener('abort',abort,{once:true});
   cancel.onclick=()=>abort();
+  layer.addEventListener?.('keydown',event=>{
+   if(event.key==='Escape' && !cancel.disabled){
+    event.preventDefault();
+    cancel.onclick();
+   }else if(event.key==='Tab'){
+    // Keep keyboard navigation inside the modal even if an unrelated Qt
+    // canvas element previously had focus.
+    const focusable=[...(form.querySelectorAll?.('button:not(:disabled),input:not(:disabled),a[href]')||[])]
+      .filter(node=>node.getClientRects?.().length>0);
+    if(!focusable.length)return;
+    const first=focusable[0],last=focusable[focusable.length-1];
+    if(event.shiftKey && (document.activeElement===first
+       ||!form.contains(document.activeElement))){
+      event.preventDefault();last.focus();
+    }else if(!event.shiftKey && (document.activeElement===last
+       ||!form.contains(document.activeElement))){
+      event.preventDefault();first.focus();
+    }
+   }
+  });
   backupAction.onclick=async()=>{
    try{
     await browser.navigator.clipboard.writeText(phrase);
@@ -637,12 +760,15 @@ export async function promptCreateBrowserWallet({
   };
   submit.onclick=async()=>{
    if(processing||settled)return;
-   const match=indices.every((index,i)=>checks[i].value.trim().toLowerCase()===words[index]);
-   if(!match||!saved.checked||!consent.checked){
-    attempts++;
-    result.textContent=t.failed;
-    if(attempts>=5)finish(new Error('Backup verification attempt limit reached'));
-    return;
+   if(!verifiedBackup){
+    const match=indices.every((index,i)=>checks[i].value.trim().toLowerCase()===words[index]);
+    if(!match||!saved.checked||!consent.checked){
+     attempts++;
+     result.textContent=t.failed;
+     if(attempts>=5)finish(new Error('Backup verification attempt limit reached'));
+     return;
+    }
+    verifiedBackup=true;
    }
    // Hide secret words and their now-empty 24 cards entirely. Replace the
    // backup form with a responsive progress panel; no mnemonic enters logs,
@@ -659,42 +785,60 @@ export async function promptCreateBrowserWallet({
    heading.textContent=t.working;
    subtitle.style.display='none';
    progressPanel.hidden=false;progressPanel.style.display='block';
-   showProgressStep(0);
+   progressPanel.setAttribute('aria-busy','true');
+   showProgressStep(1);
    content.scrollTop=0;
    processing=true;submit.disabled=true;cancel.disabled=false;
+   progressSpinner.style.display='';
+   submit.dataset.busy='true';
+   submit.textContent=t.busy;
+   progressCaption.textContent=t.busy;
    result.textContent='';
+   let shownPhase='';
    const update=(done,total,phase)=>{
     if(settled)return;
     if(phase==='submitting'||phase==='checking'||phase==='outcome-unknown'
        ||(protocol==='farcaster-snapchain'
           && ['reserve','submit','verify'].includes(phase))) {
-      // Neynar FID reservation can itself be paid/irrevocable. Disable
-      // cancellation BEFORE the reserve POST, not merely before submit.
+      // Paid reservation and HyperSnap submit can both be irreversible.
+      // Never enable cancellation/retry after crossing either boundary.
       submissionStarted=true;
-      showProgressStep(phase==='submitting'||phase==='reserve'?1:2);
+      if(phase!==shownPhase){
+       showProgressStep(phase==='submitting'||phase==='reserve'?1:2);
+       progressCaption.textContent=phase==='reserve'?t.paidReserve
+         :phase==='submitting'||phase==='submit'
+           ? (protocol==='hypersnap-v2'?t.submitting:t.paidSubmit)
+         :phase==='checking'||phase==='verify'
+           ? (protocol==='hypersnap-v2'?t.checking:t.paidVerify)
+           :t.pending;
+       progressNote.textContent=t.chainPending;
+       progressNote.style.display='block';
+      }
       phrase=''; // Only the registry's ephemeral in-flight custody owns it now.
       cancel.disabled=true;
-      progressCaption.textContent=phase==='reserve'?t.paidReserve
-        :phase==='submitting'||phase==='submit'
-          ? (protocol==='hypersnap-v2'?t.submitting:t.paidSubmit)
-        :phase==='checking'||phase==='verify'
-          ? (protocol==='hypersnap-v2'?t.checking:t.paidVerify)
-          :t.pending;
       progressTrack.style.display='none';
-      progressNote.style.display='none';
     }else if(protocol==='farcaster-snapchain'){
-      progressCaption.textContent=phase==='reserve'?t.paidReserve:
-        phase==='sign'?t.paidSign:
-        phase==='verify'?t.paidVerify:t.busy;
-      progressFill.style.width=Math.max(0,Math.min(100,Math.floor(done/Math.max(1,total)*100)))+'%';
-    }else{
-      // PoW is a random search, NOT a deterministic completion percentage.
-      // Keep the UI responsive and report the actual stage instead of a
-      // misleading percent-complete indicator.
-      progressCaption.textContent=t.progress;
+      if(phase!==shownPhase)progressCaption.textContent=phase==='sign'
+        ?t.paidSign:t.busy;
       progressTrack.style.display='none';
       progressNote.style.display='none';
+    }else if(phase!==shownPhase){
+      // PoW is a random search, NOT a deterministic percentage of eventual
+      // success. Stage labels are updated only when the actual operation
+      // changes, not once for every 256 hash attempts.
+      progressCaption.textContent=phaseText[phase]||t.progress;
+      progressTrack.style.display='none';
+      progressNote.textContent=t.progressNote;
+      progressNote.style.display=phase==='proof'?'block':'none';
     }
+    // Show verifiable activity without presenting a probability-based proof
+    // search as a falsely deterministic progress bar. Throttle DOM updates.
+    if(phase==='proof' && done>0 && done%131072===0){
+      const digits=new Intl.NumberFormat(lang);
+      progressNote.textContent=t.progressNote+' · '
+        +digits.format(done)+' / '+digits.format(total);
+    }
+    shownPhase=phase;
     onProgress(done,total,phase);
    };
    try{
@@ -705,15 +849,36 @@ export async function promptCreateBrowserWallet({
     credentialFields.voucher && (credentialFields.voucher.value='');
     finish(null,verified);
    }catch(error){
+    if(operationController.signal.aborted){
+      finish(error); // Explicit cancellation is only allowed before POST.
+      return;
+    }
+    processing=false;
+    submit.dataset.busy='false';
+    progressSpinner.style.display='none';
+    progressPanel.setAttribute('aria-busy','false');
+    progressTrack.style.display='none';
+    progressNote.style.display='none';
     if(error.outcomeUnknown){
       progressCaption.textContent=t.pending;
       result.textContent='';
-      progressTrack.style.display='none';progressNote.style.display='none';
       submit.disabled=true;cancel.disabled=false;
-      cancel.textContent=t.close; // The network write cannot be cancelled.
-      processing=false;cancel.onclick=()=>finish(error);
+      cancel.textContent=t.close;
+      cancel.onclick=()=>finish(error); // Never retry an ambiguous write.
+    }else if(submissionStarted){
+      // Even a known rejection has crossed the write boundary. Explain it
+      // before closing rather than recreating or silently resending a FID.
+      progressCaption.textContent=String(error?.message||t.pending).slice(0,180);
+      submit.disabled=true;cancel.disabled=false;
+      cancel.textContent=t.close;
+      cancel.onclick=()=>finish(error);
     }else{
-      finish(error);
+      // Before the first POST it is safe to retry the SAME backed-up wallet
+      // with a fresh network challenge, without asking for 24 words again.
+      progressCaption.textContent=phaseText.notSubmitted;
+      result.textContent=String(error?.message||'').slice(0,180);
+      submit.disabled=false;submit.textContent=phaseText.retry;
+      cancel.disabled=false;
     }
    }
   };

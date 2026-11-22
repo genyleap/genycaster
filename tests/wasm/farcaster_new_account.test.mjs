@@ -17,7 +17,7 @@ const a=async()=>{const value=await deriveFarcasterCustody(phrase);
 test('public Farcaster allocator is never assumed present; no phrase is collected when it is absent',async()=>{
   const client=createBrowserFarcasterRegistration({browser,
     fetchImpl:async()=>send(404,{error:'not_found'})});
-  await assert.rejects(client.preflight(),/not installed/);
+  await assert.rejects(client.preflight(),/official Farcaster signup.*Existing account/);
 });
 test('rejects cross-site origins, invalid vouchers and missing explicit consent without allocation',async()=>{
   assert.throws(()=>createBrowserFarcasterRegistration({

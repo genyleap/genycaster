@@ -5,10 +5,25 @@ import {runInNewContext} from 'node:vm';
 
 const source=readFileSync(new URL('../../ui/wasm/browser_account_create_dialog.mjs',import.meta.url),'utf8');
 const start=source.indexOf('const translations=')+'const translations='.length;
-const end=source.indexOf('\n};\nconst titleFor=',start);
+const end=source.indexOf('\n};\n// Localized, real registration stages.',start);
 if(start<18||end<0)throw Error('wallet dialog translations object missing');
 const literals=source.slice(start,end+2);
 const translations=runInNewContext('('+literals+')');
+const phaseStart=source.indexOf('const phases=')+'const phases='.length;
+const phaseEnd=source.indexOf('\n};\nconst titleFor=',phaseStart);
+assert.ok(phaseStart>12 && phaseEnd>phaseStart);
+const phases=runInNewContext('('+source.slice(phaseStart,phaseEnd+2)+')');
+
+test('every supported language describes actual blockchain stages and safe retry',()=>{
+ const locales=Object.keys(translations);
+ assert.deepEqual(Object.keys(phases).sort(),locales.sort());
+ const keys=Object.keys(phases.en).sort();
+ assert.deepEqual(keys,['challenge','lookup','network','notSubmitted','proof','retry','signing']);
+ for(const locale of locales){
+   assert.deepEqual(Object.keys(phases[locale]).sort(),keys,locale);
+   for(const key of keys)assert.ok(phases[locale][key].trim(),locale+': '+key);
+ }
+});
 
 test('browser custody wallet has complete labels for every supported language',()=>{
   const locales=['en','fa','ar','de','es','fr','hi','ja','ko','pt','ru','zh'];

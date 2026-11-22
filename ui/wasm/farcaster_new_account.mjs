@@ -102,7 +102,7 @@ export function createBrowserFarcasterRegistration({
     await response.body?.cancel?.();
     if(response.status!==401 && response.status!==400)
       error(response.status===404
-        ?'paid Farcaster registration is not installed on the public server'
+        ?'Sponsored Farcaster registration is unavailable here. Use the official Farcaster signup and then choose Existing account in Genycaster. No wallet was created.'
         :'paid Farcaster enrollment service is not available (HTTP '+response.status+')');
     return true;
   }

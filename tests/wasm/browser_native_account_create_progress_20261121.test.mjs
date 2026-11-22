@@ -86,7 +86,14 @@ test('backup cards disappear in favor of interactive progress; cancellation befo
   assert.equal(progress.style.display,'block');
   assert.equal(progress.hidden,false);
   assert.equal(cancel.disabled,false,'Cancel remains usable while only computing PoW');
-  assert.ok(ui.nodes.some(x=>/Preparing your registration/.test(x.textContent)));
+  assert.ok(ui.nodes.some(x=>/Computing the registration proof locally/.test(x.textContent)));
+  const selected=ui.nodes.find(x=>x.tagName==='LI' && x.dataset.state==='active');
+  assert.ok(selected);
+  assert.match(selected.textContent,/Request/);
+  assert.ok(ui.nodes.some(x=>x.tagName==='STYLE' && /:focus-visible/.test(x.textContent)
+    && /:active:not\(:disabled\)/.test(x.textContent) && /wallet-verification-label input/.test(x.textContent)));
+  assert.equal(create.disabled,true);
+  assert.equal(create.dataset.busy,'true');
   cancel.onclick();
   await assert.rejects(ui.dialog,/cancelled before submission/);
   assert.equal(abortObserved,true);
@@ -126,6 +133,25 @@ test('a network outcome that may have been accepted stays pending, never silentl
   assert.equal(ui.nodes.filter(n=>String(n.textContent).includes('Do not retry')).length,1);
   close.onclick();
   await assert.rejects(ui.dialog,/submission unconfirmed/);
+});
+
+test('pre-submission network failures stay visible and retry the same backed-up wallet safely',async()=>{
+ let calls=0;
+ const ui=await start((_phrase,{onProgress})=>{
+   calls++;
+   onProgress(0,1,'network');
+   return calls===1?Promise.reject(new Error('blockchain readiness could not be verified'))
+     :Promise.resolve({state:'confirmed',fid:'4294967333'});
+ });
+ const create=ui.one('Create account');
+ void create.onclick();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(create.disabled,false,'pre-write failure must remain recoverable');
+ assert.equal(create.textContent,'Try again');
+ assert.ok(ui.nodes.some(x=>/Registration was not submitted/.test(x.textContent)));
+ void create.onclick();
+ assert.deepEqual(await ui.dialog,{state:'confirmed',fid:'4294967333'});
+ assert.equal(calls,2,'only pre-submission retries are allowed');
 });
 
 test('Farcaster FID reservation is clearly irreversible and keeps cancellation disabled',async()=>{

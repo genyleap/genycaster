@@ -41,6 +41,32 @@ test('WASM blocks irreversible HyperSnap registration when shard-0 lags, not rea
  assert.match(pre,/await nativeRegistry\.networkHealth\(controller\.signal\)/);
 });
 
+test('browser onboarding exposes real progress and safe retries without duplicate registration',()=>{
+ const browser=file('ui/wasm/browser_account_create_dialog.mjs');
+ const registry=file('ui/wasm/hypersnap_native_account.mjs');
+ for(const stage of ['network','challenge','lookup','proof','signing']){
+   assert.ok(registry.includes("onProgress(0,1,'"+stage+"')"),stage);
+ }
+ assert.match(browser,/showProgressStep\(1\)/);
+ assert.match(browser,/progressCaption\.textContent=phaseText\[phase\]\|\|t\.progress/);
+ assert.match(browser,/wallet-verification-label input/);
+ assert.match(browser,/grid-template-columns:minmax\(0,1fr\)!important/);
+ assert.match(browser,/wallet-action:focus-visible/);
+ assert.match(browser,/wallet-action:disabled/);
+ assert.match(browser,/error\.outcomeUnknown/);
+ assert.match(browser,/else if\(submissionStarted\)/);
+ assert.match(browser,/progressCaption\.textContent=phaseText\.notSubmitted/);
+});
+
+test('WASM balance reads use a browser CORS endpoint and still verify Base chain ID',()=>{
+ const source=file('ui/app/data/insights.cpp');
+ const wasm=source.split('#elif defined(Q_OS_WASM)',2)[1];
+ assert.ok(wasm,'missing WASM-only balance implementation');
+ assert.match(wasm,/https:\/\/base-rpc\.publicnode\.com\//);
+ assert.doesNotMatch(wasm,/https:\/\/mainnet\.base\.org\//);
+ assert.match(wasm,/results\.value\(1\)\.toLower\(\)==QStringLiteral\("0x2105"\)/);
+});
+
 test('Farcaster signup defaults to official path, never hides paid enrollment behind a mystery code',()=>{
  const qml=file('ui/components/setup/InitialSetup.qml');
  const browser=file('ui/wasm/browser_account_create_dialog.mjs');

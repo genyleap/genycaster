@@ -453,26 +453,33 @@ export function createBrowserNativeRegistry({
     const custody=await deriveFarcasterCustody(phrase);
     let submissionStarted=false;
     try{
+      onProgress(0,1,'network');
       // Keep recovery available even while this node is far behind.
       // Never generate a new proof or POST when chain health is unknown.
       await requireHealthyBlockchain(signal);
       const address=custody.address;
+      onProgress(0,1,'challenge');
       let gate=await challenge(signal);
+      onProgress(0,1,'lookup');
       const before=await lookup(address,signal);
       if(before.state!=='not-found')fail(before.state==='confirmed'
         ?'this wallet already has a HyperSnap FID; use Existing account'
         :'cannot prove this wallet is unregistered');
+      onProgress(0,1,'proof');
       const nonce=await mineNativePowResponsive({browser,address,anchor:gate.hash,bits:gate.bits,
-        maxAttempts,signal,onProgress});
+        maxAttempts,signal,onProgress:(done,total)=>onProgress(done,total,'proof')});
       if(signal?.aborted)throw new Error('Registration cancelled');
+      onProgress(0,1,'challenge');
       const fresh=await challenge(signal);
       if(gate.hash!==fresh.hash||gate.height!==fresh.height||
           gate.bits!==fresh.bits||fresh.nextBlock-fresh.height>fresh.window)
         fail('node challenge changed while preparing PoW; retry from a fresh anchor');
       gate=fresh;
       // A fresh registry check is mandatory immediately before the write.
+      onProgress(0,1,'lookup');
       const prior=await lookup(address,signal);
       if(prior.state!=='not-found')fail('custody state changed before submission');
+      onProgress(0,1,'signing');
       const signature=await custody.signTypedData(
         nativeTypedData({address,challenge:gate,nonce}));
       if(!/^0x[0-9a-f]{130}$/i.test(signature))fail('invalid custody proof');

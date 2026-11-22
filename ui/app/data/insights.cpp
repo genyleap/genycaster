@@ -927,9 +927,11 @@ void LiveInsightsController::refreshGenyHolding()
         }, Qt::QueuedConnection);
     });
 #elif defined(Q_OS_WASM)
-    // QtNetwork uses fetch under Emscripten. Base's public RPC serves CORS
-    // requests from the official GenyCaster origin. Every response is checked
-    // for chain ID, ERC-20 decimals and account identity before display.
+    // QtNetwork uses fetch under Emscripten. The canonical Base RPC can
+    // reject Safari's CORS preflight even for a public eth_call. Use the
+    // read-only CORS-enabled Base RPC for this browser-only branch. Never
+    // trust a provider response until the chain ID, token decimals and
+    // wallet identity checks below pass.
     const QStringList allWallets = m_impl->walletAddresses;
     const QStringList wallets = allWallets.mid(0, 24);
     const QString contract = QStringLiteral("0x2a3d6f8c1fc4acdcf3a75d19b445bae02f03676b");
@@ -959,7 +961,7 @@ void LiveInsightsController::refreshGenyHolding()
                             {QStringLiteral("data"),data}},
                 QStringLiteral("latest")}}});
     }
-    QNetworkRequest request{QUrl{QStringLiteral("https://mainnet.base.org/")}};
+    QNetworkRequest request{QUrl{QStringLiteral("https://base-rpc.publicnode.com/")}};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(20000);
