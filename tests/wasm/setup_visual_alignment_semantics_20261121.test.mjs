@@ -42,7 +42,7 @@ test('primary CTA reserves equal icon and arrow slots and centers its label', ()
   assert.match(cta,/visible: root\.showArrow && !root\.busy/);
   assert.match(setup,/readonly property real welcomeRowWidth: root\.phone \? width/);
   assert.match(setup,/: 0\)\s+: Theme\.rtl \? 0 : setupFooterContent\.width - width/);
-  assert.match(setup,/anchors\.fill: parent[\s\S]*?anchors\.leftMargin: root\.phone \? 0 : root\.setupGutter/);
+  assert.match(setup,/anchors\.fill: parent[\s\S]*?anchors\.leftMargin: root\.phone \? Theme\.space4 : root\.setupGutter/);
   assert.match(setup,/id: setupActionFooter/);
   assert.match(setup,/anchors.bottom: setupActionFooter.top/);
   assert.match(setup,/readonly property bool showsPrimaryCta: true/);

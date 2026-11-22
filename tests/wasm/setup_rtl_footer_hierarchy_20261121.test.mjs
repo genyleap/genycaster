@@ -14,9 +14,9 @@ function sectionAfter(anchor, end, file=setup) {
   return file.slice(start,stop);
 }
 
-test('CTA uses the full mobile footer and logical trailing desktop corner',()=>{
+test('mobile CTAs use balanced 16dp safe gutters and desktop preserves form insets',()=>{
   const footer=sectionAfter('id: setupActionFooter','id: welcomeStage');
-  assert.match(footer,/anchors\.fill: parent[\s\S]*?anchors\.leftMargin: root\.phone \? 0 : root\.setupGutter\s+anchors\.rightMargin: root\.phone \? 0 : root\.setupGutter/);
+  assert.match(footer,/anchors\.fill: parent[\s\S]*?anchors\.leftMargin: root\.phone \? Theme\.space4 : root\.setupGutter\s+anchors\.rightMargin: root\.phone \? Theme\.space4 : root\.setupGutter/);
   assert.doesNotMatch(footer,/x: stagePanel\.x - setupActionFooter\.x/);
   for (const required of [
     'readonly property real welcomeRowWidth:',
@@ -33,6 +33,27 @@ test('CTA uses the full mobile footer and logical trailing desktop corner',()=>{
   assert.match(setup,/anchors.bottom: setupActionFooter.top/);
   assert.match(footer,/neutralPrimary: false/);
   assert.match(footer,/enabled: !root\.stageTransitioning && root\.actionEnabled\(\)/);
+});
+
+test('320–440dp mobile welcome buttons keep equal edge insets in both directions',()=>{
+  const theme=read('ui/theme/Theme.qml');
+  assert.match(theme,/readonly property int space4: scaleUi\(16\)/);
+  const gutter=16;
+  const gap=8; // Theme.space2, shared by widths and both x-position formulas
+  for (const viewport of [320, 375, 390, 440]) {
+    const usable=viewport-2*gutter;
+    const button=(usable-gap)/2;
+    assert.ok(button>=140, 'welcome button must remain tappable at '+viewport);
+    for (const rtl of [false,true]) {
+      const primaryX=rtl ? 0 : usable-button;
+      const secondaryX=rtl ? primaryX+button+gap : primaryX-gap-button;
+      const left=Math.min(primaryX,secondaryX)+gutter;
+      const right=viewport-gutter-Math.max(primaryX+button,secondaryX+button);
+      assert.equal(left,gutter);
+      assert.equal(right,gutter);
+      assert.equal(Math.abs(primaryX-secondaryX)-button,gap);
+    }
+  }
 });
 
 test('consent keeps label hierarchy and accessible tap target at narrow widths',()=>{

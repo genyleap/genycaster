@@ -1628,10 +1628,12 @@ Item {
                 // stagePanel.x from the scrolling Flickable shifted the CTA
                 // inward on desktop and misaligned it in right-to-left UI.
                 anchors.fill: parent
-                // Full-bleed mobile CTA rail: the footer is already the width
-                // of the usable viewport. Desktop retains the form gutters.
-                anchors.leftMargin: root.phone ? 0 : root.setupGutter
-                anchors.rightMargin: root.phone ? 0 : root.setupGutter
+                // A compact 16dp mobile safety gutter keeps rounded button
+                // corners away from both screen edges without the 24dp form
+                // gutter or the previous unused centered-row space.
+                // Desktop retains the original form gutters.
+                anchors.leftMargin: root.phone ? Theme.space4 : root.setupGutter
+                anchors.rightMargin: root.phone ? Theme.space4 : root.setupGutter
                 anchors.topMargin: Theme.space3
                 anchors.bottomMargin: Theme.space3
                 readonly property real welcomeRowWidth: root.phone ? width

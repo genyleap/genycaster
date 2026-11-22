@@ -39,8 +39,8 @@ test('welcome places a secondary download button beside Get Started in the same 
     assert.match(setup,/objectName: "setupStageAction"/);
     assert.match(setup,/objectName: "setupWelcomeNativeApps"/);
     assert.match(setup,/readonly property real welcomeRowWidth: root\.phone \? width/);
-    assert.match(setup,/anchors\.leftMargin: root\.phone \? 0 : root\.setupGutter/);
-    assert.match(setup,/anchors\.rightMargin: root\.phone \? 0 : root\.setupGutter/);
+    assert.match(setup,/anchors\.leftMargin: root\.phone \? Theme\.space4 : root\.setupGutter/);
+    assert.match(setup,/anchors\.rightMargin: root\.phone \? Theme\.space4 : root\.setupGutter/);
     assert.match(setup,/stageAction\.x - Theme\.space2 - width/);
     assert.match(setup,/height: stageAction\.height/);
     assert.match(setup,/wrapText: true/);
