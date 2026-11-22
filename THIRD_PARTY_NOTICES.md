@@ -29,18 +29,33 @@ URLs. A separate redistribution permission would be required before bundling or
 self-hosting those images. Historical first-party sticker URLs remain served to
 avoid breaking previously published content.
 
-## Twemoji reaction pack (server-hosted, CC BY 4.0)
+## Cream Cat sticker pack (linked, credit required)
 
-The eight graphics displayed in the `twemoji-pro` sticker pack derive from
+The **208 Cream Cat WebP posters** used in the current `cream-cat-pro`
+selection are published by [mssgs-stickers.com](https://mssgs-stickers.com/packs/cream-cat)
+under its [free-with-credit licence](https://mssgs-stickers.com/license).
+The licence permits use in commercial applications and hotlinking, but forbids
+claiming ownership or selling the stickers as if they were Genycaster artwork.
+The application links to the publisher's original hosted files and visibly
+credits **"Stickers by mssgs-stickers.com"** in the pack details; the source
+package and this notice also carry attribution. The poster WebP images are
+used for interoperability with normal cast embeds. Original APNG motion
+assets are not bundled.
+
+## Former Twemoji pack (historical Cast compatibility, CC BY 4.0)
+
+The eight graphics that *previously* appeared in the `twemoji-pro`
+pack derive from
 [Twemoji by Twitter, Inc. and contributors, now maintained by jdecked](https://github.com/jdecked/twemoji),
 source tag `v17.0.3` and
 [graphics license CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 They have been **rasterized from original SVG into transparent 512×512 PNG**
 without changing the geometry, then published under
 `https://genycaster.xyz/stickers/twemoji-pro-v1/`. The generated PNGs are
-not presented as Genycaster-original designs; the pack detail explicitly links
-to the original Twemoji project. This attribution and the CC BY 4.0 notice
-apply to any subsequent rehosting or redistribution.
+not presented as Genycaster-original designs. The pack is retired; these
+immutable URLs remain available solely so existing public Casts do not break.
+This attribution and the CC BY 4.0 notice apply to any subsequent rehosting
+or redistribution.
 
 ## Bundled WebAssembly JavaScript
 

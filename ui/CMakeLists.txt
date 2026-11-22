@@ -54,6 +54,7 @@ set(farcasterQmlFiles
     components/visual/DashedCapsuleOutline.qml
     components/composer/EmojiPicker.qml
     components/composer/StickerPicker.qml
+    components/composer/StickerTab.qml
     components/composer/StickerDraftTile.qml
     components/settings/FeedbackDialog.qml
     components/composer/ComposerInsertPanel.qml

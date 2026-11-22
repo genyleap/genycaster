@@ -34,7 +34,7 @@ test('Streak no longer occupies the full profile timeline',()=>{
  assert.match(profile,/id:\s*profileStatsFlow/);
  assert.match(badge,/ProgressRing\s*\{/);
  assert.match(badge,/Theme\.streak/);
- assert.match(profile,/Layout\.preferredHeight:\s*childrenRect\.height/);
+ assert.match(profile,/Layout\.preferredHeight: badgesNeedOwnLine[\s\S]*?rowHeight \* 2/);
  assert.match(profile,/streakDetails\.implicitHeight\s*\+\s*streakHeader\.implicitHeight/);
  assert.match(card,/layoutDirection:\s*Theme\.uiDirection/);
  assert.match(card,/objectName:\s*"streakWeeklyCalendar"/);
@@ -109,7 +109,7 @@ test('Desktop Streak drawer spans overlay height and social rows follow a shared
  const panel=source.slice(source.indexOf('id: streakDrawer'),source.indexOf('id: profileExtrasEditor'));
  assert.ok(panel.includes(': parent.height) : 600'));
  assert.ok(source.includes('Layout.topMargin: root.compact ? Theme.space1 : Theme.space3'));
- assert.ok(source.includes('profileStatsFlow.spacing * 3)'));
+ assert.ok(source.includes('readonly property bool badgesNeedOwnLine:'));
 });
 test('Leaderboard separates latin handles and Persian FIDs with direction-aware layout',()=>{
  const source=read('ui/components/profile/StreakCard.qml');
@@ -126,7 +126,7 @@ test('Streak mobile spacing, fire orb and expandable server-owned milestone grid
  const theme=read('ui/theme/Theme.qml');
  const backend=read('services/account-sync/streaks.mjs');
  assert.match(source,/objectName: "profileOwnerActions"[\s\S]*?Layout.topMargin: Theme.space3/);
- assert.match(source,/objectName: "profileStreakAlignmentSpacer"[\s\S]*?profileStatsFlow.spacing \* 3\)/);
+ assert.match(source,/id: profileBadgesRow[\s\S]*?anchors\.right: parent\.right/);
  assert.match(source,/text: Theme.iconStreakFlame/);
  assert.match(card,/objectName: "streakFlameOrb"/);
  assert.match(card,/SequentialAnimation on scale/);
@@ -234,8 +234,8 @@ test('named achievements are translated in all twelve locales, retaining duratio
  assert.match(card,/maximumLineCount: 2/);
  assert.match(card,/root.milestoneName\([\s\S]*?Number\(item.threshold_days\) === root.inspectedMilestone/);
  assert.match(catalog,/name_id:'genycaster.streak.badge_'/);
- assert.match(profile,/objectName: "profileStreakAlignmentSpacer"/);
- assert.match(profile,/profileBadgesRow.width - profileStatsFlow.spacing \* 3/);
+ assert.match(profile,/objectName: "profileSocialCounters"/);
+ assert.match(profile,/profileCountsRow\.implicitWidth[\s\S]*?profileBadgesRow\.implicitWidth/);
  assert.match(profile,/objectName: "profileUnverifiedStreak"[\s\S]*?ProgressRing\s*\{/);
  for(const lang of langCodes) {
    const translations=read('ui/i18n/qml_'+lang+'.ts');
@@ -325,7 +325,7 @@ test('verified Pro chip is beside Streak and has a themed accessible hint',()=>{
  assert.match(cluster,/id: profileProBadge[\s\S]*?id: profileStreakBadge/);
  assert.doesNotMatch(identity,/id: profileProBadge/);
  assert.match(cluster,/profileStreakBadge[\s\S]*?profileUnverifiedStreak/);
- assert.match(source,/profileBadgesRow.width - profileStatsFlow.spacing \* 3/);
+ assert.match(source,/profileBadgesRow\.implicitWidth \+ Theme\.space2 > width/);
  assert.match(pro,/visible: showUpgrade \|\| eligible/);
  assert.match(pro,/eligible: entitlement.status === "verified"[\s\S]*?entitlement.tier === "pro" && entitlement.eligible === true/);
  assert.match(pro,/objectName: "genyProThemedTooltip"/);

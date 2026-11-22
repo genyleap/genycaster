@@ -2679,22 +2679,31 @@ Item {
                         }
                     }
 
-                    Flow {
+                    Item {
                         id: profileStatsFlow
                         objectName: "profileStatsFlow"
-                        // Wrap on narrow phones rather than expanding the
-                        // heading or overflowing the horizontal profile gutter.
-                        Layout.preferredHeight: childrenRect.height
-                        // Give the social counters breathing room below the bio
-                        // while keeping the badge on exactly the same row.
-                        Layout.topMargin: root.compact ? Theme.space1 : Theme.space3
-                        flow: Flow.LeftToRight
-                        // Unknown profile metadata must never be presented as
-                        // verified zero followers/following on an empty header.
+                        // Independent groups: social counters are left-aligned
+                        // and both achievements share one baseline at the
+                        // trailing right edge. When they cannot fit, keep the
+                        // entire badge group intact on a short second row.
+                        readonly property real rowHeight: Theme.scaleUi(root.compact ? 28 : 32)
+                        readonly property bool badgesNeedOwnLine:
+                            profileCountsRow.implicitWidth
+                            + profileBadgesRow.implicitWidth + Theme.space2 > width
                         visible: Number(root.activeDetail.fid || 0) > 0
                         Layout.fillWidth: true
-                        spacing: root.compact ? Theme.scaleUi(3) : Theme.space1
-                        layoutDirection: Theme.uiDirection
+                        Layout.preferredHeight: badgesNeedOwnLine
+                            ? rowHeight * 2 + Theme.space1 : rowHeight
+                        Layout.topMargin: root.compact ? Theme.space1 : Theme.space3
+
+                        Row {
+                            id: profileCountsRow
+                            objectName: "profileSocialCounters"
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            height: profileStatsFlow.rowHeight
+                            spacing: root.compact ? Theme.scaleUi(3) : Theme.space1
+                            layoutDirection: Theme.uiDirection
 
                         Button {
                             id: followingCountButton
@@ -2750,34 +2759,23 @@ Item {
                             }
                         }
 
-                        // Keep both achievements at the far edge of the social
-                        // counters, sharing one measured footprint. Flow wraps
-                        // the cluster intact on compact screens.
-                        Item {
-                            objectName: "profileStreakAlignmentSpacer"
-                            // The desktop spacer forced a *second* row on
-                            // narrow mobile widths, leaving a large empty area
-                            // before Pro/Streak. Let the compact cluster follow
-                            // both counters directly.
-                            visible: !root.compact
-                            width: root.compact ? 0 : Math.max(0, profileStatsFlow.width -
-                                followingCountButton.width - followersCountButton.width -
-                                profileBadgesRow.width - profileStatsFlow.spacing * 3)
-                            height: root.compact ? 0 : Theme.scaleUi(32)
                         }
-
                         Row {
                             id: profileBadgesRow
                             objectName: "profileAchievementBadges"
+                            anchors.right: parent.right
+                            y: profileStatsFlow.badgesNeedOwnLine
+                                ? profileStatsFlow.rowHeight + Theme.space1 : 0
                             width: implicitWidth
-                            height: Theme.scaleUi(root.compact ? 28 : 32)
+                            height: profileStatsFlow.rowHeight
                             spacing: root.compact ? Theme.space1 : Theme.space2
-                            layoutDirection: Theme.uiDirection
+                            layoutDirection: Qt.LeftToRight
 
                             ProfileProBadge {
                                 id: profileProBadge
                                 objectName: "verifiedGenyProBadge"
                                 compact: root.compact
+                                height: profileStatsFlow.rowHeight
                                 entitlement: root.ownProEntitlement
                                 showUpgrade: true
                                 visible: root.isOwnProfile
@@ -2789,7 +2787,8 @@ Item {
                                 objectName: "profileStreakBadge"
                                 visible: root.isOwnProfile
                                 hoverEnabled: true
-                                implicitHeight: Theme.scaleUi(root.compact ? 28 : 32)
+                                implicitHeight: profileStatsFlow.rowHeight
+                                height: profileStatsFlow.rowHeight
                                 implicitWidth: streakBadgeContent.implicitWidth + Theme.space1 * 2
                                 padding: 0
                                 Accessible.name: qsTrId("genycaster.streak.open")
@@ -2894,7 +2893,7 @@ Item {
                                 id: profileUnverifiedStreak
                                 objectName: "profileUnverifiedStreak"
                                 visible: !root.isOwnProfile
-                                width: Theme.scaleUi(32)
+                                width: profileStatsFlow.rowHeight
                                 height: width
                                 ProgressRing {
                                     anchors.fill: parent

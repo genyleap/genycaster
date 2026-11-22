@@ -154,6 +154,7 @@
   "SourceClientBadge.qml": "feed/SourceClientBadge.qml",
   "SpriteEmoji.qml": "media/SpriteEmoji.qml",
   "StickerPicker.qml": "composer/StickerPicker.qml",
+  "StickerTab.qml": "composer/StickerTab.qml",
   "StickerDraftTile.qml": "composer/StickerDraftTile.qml",
   "StatsBreakdown.qml": "home/StatsBreakdown.qml",
   "StatsChart.qml": "home/StatsChart.qml",

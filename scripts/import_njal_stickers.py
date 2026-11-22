@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Pin Njal's full 68-sticker pack plus eight CC-BY Twemoji Pro reactions.
+"""Pin Njal's 68 WebP stickers and mssgs Cream Cat's 208 WebP posters.
 
-No third-party artwork is copied into Genycaster; only names, source URLs,
-content hashes and tags are referenced. Publishing and caching of third-party
-files require explicit permission from their respective rights holders.
+No third-party artwork is copied into Genycaster. Cream Cat has explicit
+commercial app/hotlink permissions with credit at mssgs-stickers.com/license.
 
 Run with --apply to update the reviewed, generated JS catalog. Without it,
 validate that the checked-in catalog matches the published manifest snapshot.
@@ -82,13 +81,20 @@ function embedUrl(id) {
     return value ? value.url : ""
 }
 
-function previewUrl(id) { return embedUrl(id) }
+function previewUrl(id) {
+    var value = itemForId(id)
+    return value ? (value.thumbnailUrl || value.url) : ""
+}
 
 function isStickerUrl(url) {
     var value = String(url || "").split("#")[0].split("?")[0]
     // Preserve already-published first-party stickers in historical casts;
     // they are intentionally no longer selectable in the new picker.
     if (/^https:\/\/genycaster\.xyz\/stickers\/v1\.0\.0\/[a-z0-9_-]+\.png$/.test(value))
+        return true
+    // Existing protocol casts remain readable even when a premium catalog
+    // is retired; never reuse the Twemoji pack identifier.
+    if (/^https:\/\/genycaster\.xyz\/stickers\/twemoji-pro-v1\/[a-f0-9]+\.png$/.test(value))
         return true
     for (var i = 0; i < stickers.length; ++i)
         if (stickers[i].url === value) return true
@@ -158,7 +164,7 @@ def render(stickers: list[dict]) -> str:
         f"var imageOrigin = {json.dumps(IMAGE_PREFIX)}",
         "var packs = [",
         '    {id:"njal",title:"Njal\\u0027s Sticker Pack",author:"Njal",count:68,tier:"free",credit:"https://github.com/cryptonjal/njals-sticker-pack"},',
-        '    {id:"twemoji-pro",title:"Pro Reactions",author:"Twemoji contributors",count:8,tier:"pro",credit:"https://github.com/jdecked/twemoji"},',
+        '    {id:"cream-cat-pro",title:"Cream Cat",author:"mssgs-stickers.com",count:208,tier:"pro",credit:"https://mssgs-stickers.com/license"},',
         "];",
         "var stickers = [",
     ]
@@ -174,23 +180,18 @@ def render(stickers: list[dict]) -> str:
             "mediaType": "image/webp",
         }
         lines.append("    " + json.dumps(metadata, ensure_ascii=False, separators=(",", ":")) + ",")
-    for code, title, digest in [
-        ("1f973","Party","9c25d18042e707930de1e0963a8de3e0e7a86af4e5c725798016773937586ee1"),
-        ("1f929","Starstruck","97a48d3f97dd04e9885338ea3d5385e891731da5ae9acec42a218ac9348c145d"),
-        ("1f680","Rocket","28a3baac8555651cc937ff638155dbe6da285dafbd37d2ecc20af52a3843cb2c"),
-        ("1f451","Crown","159d2d13ebb634b06d9ff84d73fa4a9af5d9d10a5846829e2eaad28c952e2516"),
-        ("1f3c6","Trophy","2dc45c8d6f623f55fdc0a8b8da7bb93b8f9595b680286f9601c0e4bf96a38036"),
-        ("1f496","Sparkling Heart","e935fa571e5bfff90a882867de0a201c747eaa9642576320c146e5e4a88592ef"),
-        ("1f525","Fire","68f3b36cdd92062c09e600f9f930d4cfceb59d1eaecd18169a5f0476cf33c71a"),
-        ("1f4af","100","b300720ed1d9262bbdc7d52d30368ac1127f8fc38d118a8eeb4aeb9566d5aef7")
-    ]:
-        metadata = {
-            "id": "twemoji-" + code, "pack": "twemoji-pro",
-            "title": title, "alt": title + " reaction sticker",
-            "keywords": title.lower() + " premium pro emoji",
-            "url": "https://genycaster.xyz/stickers/twemoji-pro-v1/" + code + ".png",
-            "sha256": digest, "mediaType": "image/png"
-        }
+    cream_cat = json.loads(
+        Path(__file__).resolve().with_name("cream_cat_pack_manifest.json").read_text(encoding="utf-8"))
+    if (cream_cat["source"] != "https://mssgs-stickers.com/packs/cream-cat"
+        or cream_cat["credit"] != "Stickers by mssgs-stickers.com"
+        or len(cream_cat["stickers"]) != 208):
+        raise RuntimeError("Invalid pinned Cream Cat manifest")
+    for metadata in cream_cat["stickers"]:
+        if metadata["pack"] != "cream-cat-pro" or not metadata["url"].startswith(
+            "https://mssgs-stickers.com/files/sticker-cream-cat-"):
+            raise RuntimeError("Untrusted Cream Cat media URL")
+        if not re.fullmatch(r"[a-f0-9]{64}", metadata["sha256"]):
+            raise RuntimeError("Invalid Cream Cat poster digest")
         lines.append("    " + json.dumps(metadata, ensure_ascii=False, separators=(",", ":")) + ",")
     lines.extend(["]", RUNTIME.strip(), ""])
     return "\n".join(lines)

@@ -12,15 +12,15 @@ const {stickers,packs,packForId,stickersForPack,decodeIds,toggleFavorite,recordR
        filtered,embedUrl,previewUrl,isStickerUrl,itemForId,publisherUrl,imageOrigin}=sandbox;
 
 test('full Njal pack and licensed Geny Pro reactions have stable canonical assets',()=>{
- assert.equal(stickers.length,76);
- assert.deepEqual(Array.from(packs,x=>x.id),['njal','twemoji-pro']);
+ assert.equal(stickers.length,276);
+ assert.deepEqual(Array.from(packs,x=>x.id),['njal','cream-cat-pro']);
  assert.equal(packForId('njal').count,68);
- assert.equal(packForId('twemoji-pro').count,8);
+ assert.equal(packForId('cream-cat-pro').count,208);
  assert.equal(packForId('njal').tier,'free');
- assert.equal(packForId('twemoji-pro').tier,'pro');
+ assert.equal(packForId('cream-cat-pro').tier,'pro');
  assert.equal(stickersForPack('njal').length,68);
- assert.equal(stickersForPack('twemoji-pro').length,8);
- assert.equal(new Set(Array.from(stickers,x=>x.id)).size,76);
+ assert.equal(stickersForPack('cream-cat-pro').length,208);
+ assert.equal(new Set(Array.from(stickers,x=>x.id)).size,276);
  assert.equal(publisherUrl,'https://github.com/cryptonjal/njals-sticker-pack');
  assert.match(imageOrigin,/^https:\/\/red-geographical-clownfish-714\.mypinata\.cloud\/ipfs\/bafy[a-z0-9]+\/$/);
  for(const item of stickers){
@@ -28,16 +28,17 @@ test('full Njal pack and licensed Geny Pro reactions have stable canonical asset
    assert.match(item.sha256,/^[a-f0-9]{64}$/);
    assert.ok(item.title && item.alt);
    assert.equal(embedUrl(item.id),item.url);
-   assert.equal(previewUrl(item.id),item.url);
+   assert.equal(previewUrl(item.id),item.thumbnailUrl || item.url);
    assert.equal(isStickerUrl(item.url),true);
    if(item.pack==='njal'){
      assert.equal(item.mediaType,'image/webp');
      assert.ok(item.url.startsWith(imageOrigin));
      assert.ok(item.url.endsWith('.webp'));
    }else{
-     assert.equal(item.pack,'twemoji-pro');
-     assert.equal(item.mediaType,'image/png');
-     assert.match(item.url,/^https:\/\/genycaster\.xyz\/stickers\/twemoji-pro-v1\/[a-f0-9]+\.png$/);
+     assert.equal(item.pack,'cream-cat-pro');
+     assert.equal(item.mediaType,'image/webp');
+     assert.match(item.url,/^https:\/\/mssgs-stickers\.com\/files\/sticker-cream-cat-[a-z0-9-]+\.webp$/);
+     assert.match(item.thumbnailUrl,/^https:\/\/mssgs-stickers\.com\/thumbs\/sticker-cream-cat-[a-z0-9-]+\.webp$/);
    }
  }
  assert.equal(itemForId('bloom'),null);
@@ -47,25 +48,29 @@ test('full Njal pack and licensed Geny Pro reactions have stable canonical asset
  assert.equal(isStickerUrl(imageOrigin+'unknown.webp'),false);
  assert.equal(isStickerUrl('https://genycaster.xyz/stickers/v1.0.0/bloom.png'),true,
               'preserve historical cast compatibility');
+ assert.equal(isStickerUrl('https://genycaster.xyz/stickers/twemoji-pro-v1/1f973.png'),true,
+              'retired Twemoji casts must still display');
+ assert.equal(packForId('twemoji-pro'),null,'retired Pro pack is no longer selectable');
+ assert.equal(itemForId('twemoji-1f973'),null);
  assert.ok(!fs.existsSync(path.join(root,'ui/assets/stickers/v1')));
 });
 
 test('favorites and recents remain bounded to catalog items, independent from account installs',()=>{
  assert.equal(filtered('njal','',[],[]).length,68);
- assert.equal(filtered('twemoji-pro','',[],[]).length,8);
+ assert.equal(filtered('cream-cat-pro','',[],[]).length,208);
  assert.deepEqual(Array.from(filtered('njal','gm',[],[]),x=>x.id),['21-gm']);
- assert.deepEqual(Array.from(filtered('twemoji-pro','rocket',[],[]),x=>x.id),['twemoji-1f680']);
- assert.deepEqual(Array.from(filtered('favorites','',['21-gm','twemoji-1f680'],[]),x=>x.id),
-                  ['21-gm','twemoji-1f680']);
- assert.deepEqual(Array.from(decodeIds(JSON.stringify(['21-gm','bloom','21-gm','twemoji-1f680']),32)),
-                  ['21-gm','twemoji-1f680']);
+ assert.deepEqual(Array.from(filtered('cream-cat-pro','soup',[],[]),x=>x.id),['cream-cat-soup-sip']);
+ assert.deepEqual(Array.from(filtered('favorites','',['21-gm','cream-cat-soup-sip'],[]),x=>x.id),
+                  ['21-gm','cream-cat-soup-sip']);
+ assert.deepEqual(Array.from(decodeIds(JSON.stringify(['21-gm','bloom','21-gm','cream-cat-soup-sip']),32)),
+                  ['21-gm','cream-cat-soup-sip']);
  assert.deepEqual(Array.from(decodeIds('not json',12)),[]);
  assert.deepEqual(Array.from(decodeIds('"broken"',12)),[]);
  assert.deepEqual(Array.from(toggleFavorite(['21-gm'],'21-gm')),[]);
- assert.deepEqual(Array.from(toggleFavorite(['21-gm'],'twemoji-1f680')),
-                  ['twemoji-1f680','21-gm']);
- assert.deepEqual(Array.from(recordRecent(['21-gm'],'twemoji-1f680')),
-                  ['twemoji-1f680','21-gm']);
+ assert.deepEqual(Array.from(toggleFavorite(['21-gm'],'cream-cat-soup-sip')),
+                  ['cream-cat-soup-sip','21-gm']);
+ assert.deepEqual(Array.from(recordRecent(['21-gm'],'cream-cat-soup-sip')),
+                  ['cream-cat-soup-sip','21-gm']);
  assert.equal(recordRecent(stickers.map(x=>x.id),'21-gm').length,12);
  assert.deepEqual(Array.from(toggleFavorite(['21-gm'],'../bad')),['21-gm']);
 });
@@ -77,7 +82,7 @@ test('Composer has server-confirmed pack and Pro guard, uses ordinary protocol e
  assert.match(drawer,/function insertSticker\(sticker\)/);
  assert.match(drawer,/StickerCatalog\.embedUrl\(id\)/);
  assert.match(drawer,/openProofConnections\.stickerPacksReady/);
- assert.match(drawer,/sticker\.pack === "twemoji-pro" && !root\.verifiedGenyPro/);
+ assert.match(drawer,/sticker\.pack === "cream-cat-pro" && !root\.verifiedGenyPro/);
  assert.match(drawer,/root\.canUploadMedia \|\| mediaUpload\.busy/);
  assert.match(drawer,/richComposer\.insertMedia\(canonical, mediaType/);
  assert.doesNotMatch(drawer,/insertManagedMedia\(canonical/);
@@ -178,5 +183,30 @@ test('Qt/QML registration and original messaging-app-style icon and translations
     assert.match(ts,new RegExp('<message id="genycaster\\.stickers\\.'+id+'">'),locale+': '+id);
  }
  assert.ok(fs.existsSync(path.join(root,'scripts/import_njal_stickers.py')));
- assert.ok(fs.existsSync(path.join(root,'scripts/publish_twemoji_pro_stickers.py')));
+ assert.ok(fs.existsSync(path.join(root,'scripts/import_cream_cat_stickers.py')));
+ assert.ok(fs.existsSync(path.join(root,'scripts/cream_cat_pack_manifest.json')));
+ const tabs=read('ui/components/composer/StickerTab.qml');
+ const picker=read('ui/components/composer/StickerPicker.qml');
+ assert.match(tabs,/Theme\.scaleUi\(32\)/);
+ assert.match(tabs,/root\.selected/);
+ assert.match(tabs,/color: Theme\.accent/);
+ assert.match(picker,/objectName: "stickerPrimaryTabs"/);
+ assert.match(picker,/StickerTab \{/);
+ assert.match(picker,/model: \["all", "favorites", "recent"\]/);
+ assert.doesNotMatch(picker,/model: \["all", "favorites", "recent"\][\s\S]*?delegate: ActionButton \{/);
+ const profile=read('ui/components/profile/ProfileSurface.qml');
+ assert.match(profile,/readonly property bool badgesNeedOwnLine:/);
+ assert.match(profile,/id: profileCountsRow/);
+ assert.match(profile,/id: profileBadgesRow[\s\S]*?anchors\.right: parent\.right/);
+ assert.match(profile,/height: profileStatsFlow\.rowHeight/);
+ assert.doesNotMatch(profile,/profileStreakAlignmentSpacer/);
+ const manifest=JSON.parse(read('scripts/cream_cat_pack_manifest.json'));
+ assert.equal(manifest.stickers.length,208);
+ assert.equal(manifest.credit,'Stickers by mssgs-stickers.com');
+ assert.equal(new Set(manifest.stickers.map(x=>x.id)).size,208);
+ for(const sticker of manifest.stickers){
+  assert.match(sticker.sha256,/^[a-f0-9]{64}$/);
+  assert.match(sticker.url,/^https:\/\/mssgs-stickers\.com\/files\//);
+ }
+
 });

@@ -43,14 +43,14 @@ Popup {
     readonly property var recents: StickerCatalog.decodeIds(stickerPrefs.recentsJson, 12)
     readonly property var detailStickers: StickerCatalog.stickersForPack(root.selectedPackId)
     readonly property var activeStickers: StickerCatalog.filtered(
-        root.selectedPackId === "njal" ? "njal" : "twemoji-pro",
+        root.selectedPackId === "njal" ? "njal" : "cream-cat-pro",
         root.searchQuery, root.favorites, root.recents)
     readonly property var visibleStickers: root.category === "favorites"
         || root.category === "recent"
         ? StickerCatalog.filtered(root.category, root.searchQuery, root.favorites, root.recents)
              .filter(function(item) {
                  return root.installedIds.indexOf(item.pack) >= 0
-                     && (item.pack !== "twemoji-pro" || root.verifiedPro)
+                     && (item.pack !== "cream-cat-pro" || root.verifiedPro)
              })
         : root.activeUsable ? root.activeStickers : []
 
@@ -166,7 +166,7 @@ Popup {
         const sticker = StickerCatalog.itemForId(id)
         if (!root.canAdd || !root.libraryReady || !sticker
             || root.installedIds.indexOf(sticker.pack) < 0
-            || (sticker.pack === "twemoji-pro" && !root.verifiedPro))
+            || (sticker.pack === "cream-cat-pro" && !root.verifiedPro))
             return
         root.stickerSelected(sticker)
     }
@@ -282,27 +282,25 @@ Popup {
         }
 
         RowLayout {
+            objectName: "stickerPrimaryTabs"
             visible: root.page !== "detail"
             Layout.fillWidth: true
-            Layout.preferredHeight: visible ? implicitHeight : 0
+            Layout.preferredHeight: visible ? Theme.scaleUi(32) : 0
             layoutDirection: Theme.uiDirection
-            spacing: Theme.space2
-            ActionButton {
-                Layout.fillWidth: true
-                compact: true
-                quiet: true
+            spacing: Theme.space1
+            StickerTab {
+                objectName: "stickerMyPacksTab"
                 selected: root.page === "library"
                 text: qsTrId("genycaster.stickers.my_packs")
                 onClicked: root.showLibrary()
             }
-            ActionButton {
-                Layout.fillWidth: true
-                compact: true
-                quiet: true
+            StickerTab {
+                objectName: "stickerDiscoverTab"
                 selected: root.page === "discover"
                 text: qsTrId("genycaster.stickers.discover")
                 onClicked: root.page = "discover"
             }
+            Item { Layout.fillWidth: true }
         }
 
         DirectionAwareLabel {
@@ -320,7 +318,7 @@ Popup {
             visible: root.page === "discover"
             Layout.fillWidth: true
             Layout.fillHeight: visible
-            spacing: Theme.space3
+            spacing: Theme.space2
 
             Repeater {
                 model: StickerCatalog.packs
@@ -410,7 +408,7 @@ Popup {
             Flickable {
                 visible: root.installedIds.length > 0
                 Layout.fillWidth: true
-                Layout.preferredHeight: visible ? Theme.compactControlHeight + Theme.space1 : 0
+                Layout.preferredHeight: visible ? Theme.scaleUi(32) : 0
                 contentWidth: Math.max(width, installedRow.implicitWidth)
                 contentHeight: height
                 flickableDirection: Flickable.HorizontalFlick
@@ -424,13 +422,10 @@ Popup {
                     spacing: Theme.space1
                     Repeater {
                         model: root.installedIds
-                        delegate: ActionButton {
+                        delegate: StickerTab {
                             required property string modelData
-                            compact: true
-                            quiet: true
                             selected: root.selectedPackId === modelData
-                            text: StickerCatalog.packForId(modelData)
-                                ? StickerCatalog.packForId(modelData).title : modelData
+                            text: modelData === "njal" ? "Njal" : "Cream Cat"
                             onClicked: {
                                 root.selectedPackId = modelData
                                 root.category = "all"
@@ -452,7 +447,7 @@ Popup {
             Flickable {
                 visible: root.installedIds.length > 0
                 Layout.fillWidth: true
-                Layout.preferredHeight: visible ? Theme.compactControlHeight + Theme.space1 : 0
+                Layout.preferredHeight: visible ? Theme.scaleUi(32) : 0
                 contentWidth: Math.max(width, filterRow.implicitWidth)
                 contentHeight: height
                 flickableDirection: Flickable.HorizontalFlick
@@ -467,10 +462,8 @@ Popup {
                     spacing: Theme.space1
                     Repeater {
                         model: ["all", "favorites", "recent"]
-                        delegate: ActionButton {
+                        delegate: StickerTab {
                             required property string modelData
-                            compact: true
-                            quiet: true
                             selected: root.category === modelData
                             text: root.categoryLabel(modelData)
                             onClicked: {

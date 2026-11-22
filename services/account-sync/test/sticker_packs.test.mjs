@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {createCloudHandler} from '../cloud_state.mjs';
 import {createPgStore} from '../pg_store.mjs';
-import {STICKER_PACKS,addedPremiumPack,canUseStickerPack,validStickerPackIds}
+import {STICKER_PACKS,addedPremiumPack,canUseStickerPack,validStickerPackIds,normalizeStickerLibrary}
   from '../sticker_packs.mjs';
 
 const issuer='https://identity.example.test';
@@ -28,17 +28,18 @@ async function withServer(store,resolvePro,action) {
  try {await action(call);} finally {server.close();}
 }
 test('pack IDs and premium metadata are strict server-owned constants',()=>{
- assert.deepEqual(Object.keys(STICKER_PACKS).sort(),['njal','twemoji-pro']);
+ assert.deepEqual(Object.keys(STICKER_PACKS).sort(),['cream-cat-pro','njal']);
  assert.equal(STICKER_PACKS.njal.sticker_count,68);
- assert.equal(STICKER_PACKS['twemoji-pro'].tier,'pro');
- assert.equal(validStickerPackIds(['njal','twemoji-pro']),true);
+ assert.equal(STICKER_PACKS['cream-cat-pro'].tier,'pro');
+ assert.equal(STICKER_PACKS['cream-cat-pro'].sticker_count,208);
+ assert.equal(validStickerPackIds(['njal','cream-cat-pro']),true);
  for(const ids of [['njal','njal'],['not-real'],['njal',55],[1],new Array(20).fill('njal')])
    assert.equal(validStickerPackIds(ids),false);
- assert.equal(addedPremiumPack(['twemoji-pro'],[]),true);
+ assert.equal(addedPremiumPack(['cream-cat-pro'],[]),true);
  assert.equal(addedPremiumPack(['njal'],[]),false);
- assert.equal(addedPremiumPack(['njal','twemoji-pro'],['twemoji-pro']),false);
- assert.equal(canUseStickerPack('twemoji-pro',['twemoji-pro'],false),false);
- assert.equal(canUseStickerPack('twemoji-pro',['twemoji-pro'],true),true);
+ assert.equal(addedPremiumPack(['njal','cream-cat-pro'],['cream-cat-pro']),false);
+ assert.equal(canUseStickerPack('cream-cat-pro',['cream-cat-pro'],false),false);
+ assert.equal(canUseStickerPack('cream-cat-pro',['cream-cat-pro'],true),true);
  assert.equal(canUseStickerPack('njal',['njal'],false),true);
  assert.equal(canUseStickerPack('njal',[],true),false);
 });
@@ -77,10 +78,10 @@ test('verified account owns its library; Pro is server-enforced; revision confli
   assert.equal(free.status,200);
   assert.deepEqual((await free.json()).library,{pack_ids:['njal'],revision:1});
   assert.equal(grants,0,'installing free art does not need Pro');
-  assert.equal((await call('PUT',{pack_ids:['twemoji-pro'],revision:1})).status,403);
+  assert.equal((await call('PUT',{pack_ids:['cream-cat-pro'],revision:1})).status,403);
   assert.deepEqual(saved,['njal'],'failed entitlement must not modify state');
   pro=true;
-  const premium=await call('PUT',{pack_ids:['njal','twemoji-pro'],revision:1});
+  const premium=await call('PUT',{pack_ids:['njal','cream-cat-pro'],revision:1});
   assert.equal(premium.status,200);
   assert.equal((await premium.json()).library.revision,2);
   pro=false;
@@ -89,6 +90,48 @@ test('verified account owns its library; Pro is server-enforced; revision confli
   const conflict=await call('PUT',{pack_ids:[],revision:2});
   assert.equal(conflict.status,409);
   assert.deepEqual((await conflict.json()).library.pack_ids,['njal']);
+ });
+});
+
+test('existing Twemoji Pro installs migrate to Cream Cat without repurchase or revision loss',async()=>{
+ const original={pack_ids:['njal','twemoji-pro'],revision:7};
+ assert.deepEqual(normalizeStickerLibrary(original),
+   {pack_ids:['njal','cream-cat-pro'],revision:7});
+ assert.deepEqual(original.pack_ids,['njal','twemoji-pro'],'normalization must be pure');
+ assert.deepEqual(normalizeStickerLibrary(
+   {pack_ids:['twemoji-pro','cream-cat-pro'],revision:9}),
+   {pack_ids:['cream-cat-pro'],revision:9});
+ let stored=['njal','twemoji-pro'];
+ let revision=7;
+ let proChecks=0;
+ const store={
+  stickerPacksReady:()=>true,
+  async getStickerPacks(){ return {pack_ids:[...stored],revision}; },
+  async putStickerPacks(_owner,change){
+   if(change.revision!==revision)return null;
+   stored=change.pack_ids.slice();
+   revision++;
+   return {pack_ids:[...stored],revision};
+  }
+ };
+ await withServer(store,async()=>{
+  proChecks++;
+  return {status:'verified',eligible:false};
+ },async call=>{
+  const read=await call('GET');
+  assert.equal(read.status,200);
+  assert.deepEqual((await read.json()).library.pack_ids,['njal','cream-cat-pro']);
+  assert.equal(revision,7);
+  assert.equal((await call('PUT',{pack_ids:['twemoji-pro'],revision:7})).status,400,
+    'retired ID cannot be reinstalled');
+  // Preserve the installed Pro membership while changing an unrelated free
+  // pack without forcing a paid user to re-verify an expired subscription.
+  const saved=await call('PUT',{pack_ids:['cream-cat-pro'],revision:7});
+  assert.equal(saved.status,200);
+  assert.deepEqual((await saved.json()).library,
+                   {pack_ids:['cream-cat-pro'],revision:8});
+  assert.equal(proChecks,0);
+  assert.deepEqual(stored,['cream-cat-pro']);
  });
 });
 

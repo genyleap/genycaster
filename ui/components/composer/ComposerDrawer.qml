@@ -304,7 +304,7 @@ GenyDrawer {
             ? (openProofConnections.stickerPackIds || []) : []
         if (!openProofConnections || !openProofConnections.stickerPacksReady
             || installed.indexOf(String(sticker.pack || "")) < 0
-            || (sticker.pack === "twemoji-pro" && !root.verifiedGenyPro)
+            || (sticker.pack === "cream-cat-pro" && !root.verifiedGenyPro)
             || !canonical || canonical !== String(sticker.url || canonical))
             return false
         root.synchronizeEditorState()

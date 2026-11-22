@@ -1777,7 +1777,7 @@ void OpenProofConnectionsController::fetchStickerPacks()
         for(const auto& value:ids) {
             const auto id=value.toString();
             if(!value.isString() || (id!=QStringLiteral("njal")
-                  && id!=QStringLiteral("twemoji-pro")) || next.contains(id)) {
+                  && id!=QStringLiteral("cream-cat-pro")) || next.contains(id)) {
                 valid=false;break;
             }
             next.push_back(id);
@@ -1800,14 +1800,14 @@ void OpenProofConnectionsController::fetchStickerPacks()
 void OpenProofConnectionsController::setStickerPackInstalled(
     const QString& id,const bool installed)
 {
-    if ((id!=QStringLiteral("njal") && id!=QStringLiteral("twemoji-pro"))
+    if ((id!=QStringLiteral("njal") && id!=QStringLiteral("cream-cat-pro"))
         || !m_viewerFid || !cloudAuthorizationReady()
         || !trustedHttpsEndpoint(m_cloudUrl) || !m_stickerPacksLoaded
         || m_stickerPacksRead || m_stickerPacksWrite) return;
     const bool already=m_stickerPackIds.contains(id);
     if(already==installed)return;
     // Also enforced by the server, using the current verified subscription.
-    if(installed && id==QStringLiteral("twemoji-pro")) {
+    if(installed && id==QStringLiteral("cream-cat-pro")) {
         const auto pro=proEntitlements();
         if(pro.value(QStringLiteral("status")).toString()!=QStringLiteral("verified")
            || pro.value(QStringLiteral("eligible")).toBool()!=true) {
@@ -1856,7 +1856,7 @@ void OpenProofConnectionsController::setStickerPackInstalled(
         for(const auto& value:ids) {
             const auto id=value.toString();
             if(!value.isString() || (id!=QStringLiteral("njal")
-                && id!=QStringLiteral("twemoji-pro")) || confirmed.contains(id)) {
+                && id!=QStringLiteral("cream-cat-pro")) || confirmed.contains(id)) {
                 valid=false;break;
             }
             confirmed.push_back(id);

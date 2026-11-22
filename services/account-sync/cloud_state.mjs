@@ -1,7 +1,7 @@
 // Genycaster-owned cloud state. OpenProof authorizes the principal, but never
 // stores these app-specific preferences, drafts, bookmarks or schedules.
 import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
-import {validStickerPackIds,addedPremiumPack} from './sticker_packs.mjs';
+import {validStickerPackIds,addedPremiumPack,normalizeStickerLibrary} from './sticker_packs.mjs';
 import {createSignerSessionProof,isCanonicalUint64Fid,
   FIRST_NATIVE_HYPERSNAP_FID} from './signer_session_proof.mjs';
 import {serverDeployment, trustedOrigin} from '../deployment_config.mjs';
@@ -1138,7 +1138,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           respond(response,503,{error:'sticker_library_unavailable'});return true;
         }
         if(request.method==='GET') {
-          respond(response,200,{library:await store.getStickerPacks(owner)});
+          respond(response,200,{library:normalizeStickerLibrary(await store.getStickerPacks(owner))});
           return true;
         }
         if(request.method!=='PUT') {
@@ -1155,7 +1155,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           || !validStickerPackIds(input.pack_ids)) {
           respond(response,400,{error:'invalid_sticker_library'});return true;
         }
-        const current=await store.getStickerPacks(owner);
+        const current=normalizeStickerLibrary(await store.getStickerPacks(owner));
         if(current.revision!==input.revision) {
           respond(response,409,{error:'revision_conflict',library:current});return true;
         }
@@ -1166,7 +1166,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           pack_ids:input.pack_ids,revision:input.revision
         });
         respond(response,saved?200:409,saved
-          ?{library:saved}:{error:'revision_conflict'});
+          ?{library:normalizeStickerLibrary(saved)}:{error:'revision_conflict'});
         return true;
       }
       if(entity==='muted_profiles') {

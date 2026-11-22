@@ -2,8 +2,21 @@
 // a caller-submitted "premium" or "owner" boolean as authority.
 export const STICKER_PACKS=Object.freeze({
   'njal':Object.freeze({id:'njal',tier:'free',sticker_count:68}),
-  'twemoji-pro':Object.freeze({id:'twemoji-pro',tier:'pro',sticker_count:8})
+  'cream-cat-pro':Object.freeze({id:'cream-cat-pro',tier:'pro',sticker_count:208})
 });
+// Accounts which already installed the previous Pro pack keep their verified
+// library membership when the displayed catalog switches to Cream Cat.
+// Migration is read-time only until the next atomic account update.
+export function normalizeStickerLibrary(library) {
+  if (!library || !Array.isArray(library.pack_ids)) return library;
+  const result=[];
+  for(const id of library.pack_ids) {
+    const canonical=id==='twemoji-pro'?'cream-cat-pro':id;
+    if(Object.hasOwn(STICKER_PACKS,canonical) && !result.includes(canonical))
+      result.push(canonical);
+  }
+  return {...library,pack_ids:result};
+}
 export function validStickerPackIds(ids) {
   return Array.isArray(ids) && ids.length<=12
     && ids.every(id=>typeof id==='string' && Object.hasOwn(STICKER_PACKS,id))

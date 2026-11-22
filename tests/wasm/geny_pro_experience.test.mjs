@@ -65,7 +65,7 @@ test('Pro badge shares the streak row, with themed popup and accessible inputs',
     assert.doesNotMatch(top,/genyProBadge|ProfileProBadge|verifiedGenyProBadge/);
     assert.match(bottom,/ProfileProBadge\s*\{[\s\S]*?id: profileProBadge[\s\S]*?id: profileStreakBadge/);
     assert.match(bottom,/profileStreakBadge[\s\S]*?profileUnverifiedStreak/);
-    assert.match(profile,/profileBadgesRow.width - profileStatsFlow.spacing \* 3/);
+    assert.match(profile,/id: profileBadgesRow[\s\S]*?anchors\.right: parent\.right/);
     assert.match(badge,/entitlement.status === "verified"[\s\S]*?entitlement.eligible === true/);
     assert.match(badge,/onHoveredChanged:/);
     assert.match(badge,/onClicked:/);

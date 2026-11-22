@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 
 const read = p => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 
-test('small profile typography and badges retain a single natural-width flow', () => {
+test('small profile typography and badges use independent right-aligned groups', () => {
   const profile = read('ui/components/profile/ProfileSurface.qml');
   const pro = read('ui/components/profile/ProfileProBadge.qml');
   const stats = profile.slice(profile.indexOf('id: profileStatsFlow'), profile.indexOf('objectName: "profileOwnerActions"'));
@@ -13,9 +13,11 @@ test('small profile typography and badges retain a single natural-width flow', (
   assert.match(bio, /textLineHeight: root\.compact \? Theme\.typeLabelLineHeight/);
   assert.match(stats, /id: followingCountButton[\s\S]*?font\.pixelSize: root\.compact \? Theme\.typeLabelSize/);
   assert.match(stats, /id: followersCountButton[\s\S]*?font\.pixelSize: root\.compact \? Theme\.typeLabelSize/);
-  assert.match(stats, /objectName: "profileStreakAlignmentSpacer"[\s\S]*?visible: !root\.compact/);
-  assert.match(stats, /width: root\.compact \? 0 : Math\.max\(0, profileStatsFlow\.width/);
-  assert.match(stats, /id: profileBadgesRow[\s\S]*?height: Theme\.scaleUi\(root\.compact \? 28 : 32\)/);
+  assert.match(stats, /objectName: "profileSocialCounters"/);
+  assert.match(stats, /readonly property bool badgesNeedOwnLine:/);
+  assert.match(stats, /id: profileBadgesRow[\s\S]*?anchors\.right: parent\.right/);
+  assert.match(stats, /height: profileStatsFlow\.rowHeight/);
+  assert.doesNotMatch(stats, /profileStreakAlignmentSpacer/);
   assert.match(stats, /id: profileStreakRing[\s\S]*?width: Theme\.scaleUi\(root\.compact \? 22 : 28\)/);
   assert.match(pro, /implicitHeight: Theme\.scaleUi\(compact \? 27 : 32\)/);
 });
