@@ -31,6 +31,11 @@ test('welcome places a secondary download button beside Get Started in the same 
     assert.match(setup,/readonly property bool welcomeNativeAppsVisible:/);
     assert.match(setup,/Qt\.platform\.os === "wasm"/);
     assert.match(setup,/currentStep === 0 && !reviewMode/);
+    const welcomeGuard = setup.slice(
+        setup.indexOf('readonly property bool welcomeNativeAppsVisible:'),
+        setup.indexOf('readonly property real welcomeActionsWidth:'));
+    assert.doesNotMatch(welcomeGuard,/!authenticated/,
+        'a restored but unfinished browser setup must still show native downloads');
     assert.match(setup,/objectName: "setupStageAction"/);
     assert.match(setup,/objectName: "setupWelcomeNativeApps"/);
     assert.match(setup,/x: root\.phone \? \(setupFooterContent\.width - width\) \/ 2/);
