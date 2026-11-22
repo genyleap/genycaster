@@ -63,6 +63,17 @@ GenyDrawer {
     property var pendingPublicationCasts: []
     property string publicationPlanError: ""
     readonly property int attachedMediaCount: mediaPanel.attachedMedia.length
+    readonly property var draftStickers: {
+        const source = richComposer.blocks || []
+        const result = []
+        for (let index = 0; index < source.length; ++index) {
+            const block = source[index] || ({})
+            const url = String(block.url || "")
+            if (String(block.kind || "") === "media" && StickerCatalog.isStickerUrl(url))
+                result.push({blockIndex: index, url: url, alt: String(block.altText || "")})
+        }
+        return result
+    }
     readonly property bool canUploadMedia:
         attachedMediaCount + root.pendingMediaFiles.length < maxMediaUploads
     property int initialFocusAttempts: 0
@@ -290,15 +301,15 @@ GenyDrawer {
         if (!canonical || canonical !== String(sticker.url || canonical))
             return false
         root.synchronizeEditorState()
-        if (!richComposer.insertMedia(canonical, "image/png",
-                                      "Genycaster sticker: " + String(sticker.title || id),
+        if (!richComposer.insertMedia(canonical, "image/webp",
+                                      String(sticker.alt || sticker.title || id),
                                       root.stickerAfterIndex))
             return false
         const metadata = Object.assign({}, root.mediaMetadata)
         metadata[canonical] = {
-            fileName: id + ".png",
+            fileName: String(sticker.title || id) + ".webp",
             localPreviewUrl: StickerCatalog.previewUrl(id),
-            mediaType: "image/png",
+            mediaType: "image/webp",
             sizeBytes: 0,
             stickerId: id
         }
@@ -1783,7 +1794,7 @@ GenyDrawer {
                     emojiPicker.anchorItem = formattingToolbar
                     emojiPicker.open()
                 }
-                onStickerRequested: root.openStickerPicker(formattingToolbar,
+                onStickerRequested: anchor => root.openStickerPicker(anchor,
                     visualEditor.activeBlockIndex)
             }
 
@@ -2128,8 +2139,35 @@ GenyDrawer {
                 }
             }
 
-            // Attachments belong after the cast text, as the Farcaster composer
-            // publishes text followed by embeds. Keep the same upload lifecycle.
+            // A transparent sticker is part of the authored message, not an
+            // image upload form. Phones use a compact, uncropped inline tray;
+            // desktop RichTextEditor already renders each sticker block.
+            Flow {
+                objectName: "mobileInlineStickerDrafts"
+                visible: root.compact && root.editorMode === "visual"
+                         && root.draftStickers.length > 0
+                Layout.fillWidth: true
+                Layout.preferredHeight: visible ? implicitHeight : 0
+                implicitHeight: childrenRect.height
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+
+                Repeater {
+                    model: root.draftStickers
+                    delegate: StickerDraftTile {
+                        required property var modelData
+                        tileSize: Math.min(148, Math.max(104,
+                            (parent ? parent.width : 320) / 2 - Theme.space2))
+                        imageUrl: String(modelData.url || "")
+                        altText: String(modelData.alt || "")
+                        onRemoveRequested: richComposer.removeBlock(Number(modelData.blockIndex))
+                    }
+                }
+            }
+
+            // Ordinary uploaded photos and videos still use the uploader.
+            // Sticker drafts remain part of the editor rather than appearing
+            // again inside oversized opaque media upload cards.
             MediaUploadPanel {
                 id: mediaPanel
                 visible: root.editorMode === "visual"
@@ -2573,7 +2611,7 @@ GenyDrawer {
                         iconGlyph: Theme.iconSticker
                         text: qsTrId("genycaster.stickers.title")
                         enabled: root.canUploadMedia && !mediaUpload.busy
-                        onClicked: root.openStickerPicker(mobilePlainEditor, 0)
+                        onClicked: root.openStickerPicker(this, 0)
                     }
                     ActionButton {
                         objectName: "mobileComposerGifAction"

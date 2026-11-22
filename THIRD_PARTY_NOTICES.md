@@ -11,9 +11,23 @@ This file acknowledges third-party assets and libraries committed to or used by 
 | Vazirmatn typography (fetched/embedded at build time when configured) | [Vazirmatn authors](https://github.com/rastikerdar/vazirmatn) | [SIL OFL 1.1](ui/assets/fonts/OFL-Vazirmatn.txt); follow license and attribution for distributed binaries |
 | Solar Icon Set subset | **480 Design** — [upstream](https://github.com/480-Design/Solar-Icon-Set) | Icon artwork is attributed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Adapted/tinted for the GenyCaster UI; see `ui/assets/icons/genyleap/SOLAR_ICON_SET.md` |
 | Font Awesome Free (when included) | Fonticons, Inc. | SVG/icons: CC BY 4.0; fonts: SIL OFL 1.1; [bundled notice](ui/assets/icons/LICENSE.Font-Awesome.txt) |
+| Sticker toolbar icon | [Lucide](https://github.com/lucide-icons/lucide), «sticker» SVG | [ISC license](https://github.com/lucide-icons/lucide/blob/main/LICENSE); source shape retained in `ui/assets/icons/genyleap/icons/media/sticker.svg` |
 | Third-party brand and network icon references | Respective brand owners | Usage is subject to trademark/brand rules, **not** a transfer of trademark ownership; see [brand notice](ui/assets/icons/genyleap/TRADEMARKS.md) |
 
 GenyCaster includes a bootstrap subset of animated Noto Emoji and may download additional validated assets into a bounded user cache. Unicode emoji characters, font glyphs and animated artwork have independent licensing/provenance. Project-generated logo artwork and the GenyCaster/Genyleap names are not granted as trademarks by GPLv3.
+
+## Linked, non-bundled sticker media
+
+The Njal sticker picker references images from
+[Njal's Sticker Pack](https://github.com/cryptonjal/njals-sticker-pack), credited
+to Njal. Its public
+[manifest](https://raw.githubusercontent.com/cryptonjal/njals-sticker-pack/refs/heads/main/njals-sticker-pack.json)
+defines the WebP URLs and hashes. As of 22 November 2026, that repository does **not**
+publish a license for the artwork. GenyCaster does not vendor, mirror, transform or
+claim ownership of the images; the catalog references the author-provided IPFS
+URLs. A separate redistribution permission would be required before bundling or
+self-hosting those images. Historical first-party sticker URLs remain served to
+avoid breaking previously published content.
 
 ## Bundled WebAssembly JavaScript
 

@@ -54,6 +54,7 @@ set(farcasterQmlFiles
     components/visual/DashedCapsuleOutline.qml
     components/composer/EmojiPicker.qml
     components/composer/StickerPicker.qml
+    components/composer/StickerDraftTile.qml
     components/settings/FeedbackDialog.qml
     components/composer/ComposerInsertPanel.qml
     components/composer/MediaUploadPanel.qml
@@ -1581,18 +1582,6 @@ qt_add_qml_module(genycaster
         shaders/genycaster_logo_normals.png
         wasm/genycaster-icon.svg
         wasm/setup-mist.svg
-        assets/stickers/v1/bloom.png
-        assets/stickers/v1/orbit.png
-        assets/stickers/v1/pulse.png
-        assets/stickers/v1/spark.png
-        assets/stickers/v1/love.png
-        assets/stickers/v1/laugh.png
-        assets/stickers/v1/wow.png
-        assets/stickers/v1/cheer.png
-        assets/stickers/v1/gm.png
-        assets/stickers/v1/rocket.png
-        assets/stickers/v1/onchain.png
-        assets/stickers/v1/verified.png
         wasm/genycaster-wordmark.svg
         wasm/genycaster-wordmark-dark.svg
 )

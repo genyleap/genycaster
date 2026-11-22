@@ -17,7 +17,7 @@ NeonSurface {
     signal embedRequested(int blockIndex)
     signal pollRequested()
     signal emojiRequested()
-    signal stickerRequested()
+    signal stickerRequested(var anchor)
     signal proFeatureRequested()
 
     fillColor: Theme.surfaceElevated
@@ -122,7 +122,7 @@ NeonSurface {
                 iconGlyph: Theme.iconSticker
                 iconSize: Theme.iconSizeSmall
                 text: qsTrId("genycaster.stickers.title")
-                onClicked: root.stickerRequested()
+                onClicked: root.stickerRequested(this)
             }
         }
     }

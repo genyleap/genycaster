@@ -2677,8 +2677,8 @@ Company | https://company.com</source>
             <translation>すべて</translation>
         </message>
         <message id="genycaster.stickers.originals">
-            <source>Originals</source>
-            <translation>オリジナル</translation>
+            <source>Njal's Pack</source>
+            <translation>Njal のパック</translation>
         </message>
         <message id="genycaster.stickers.reactions">
             <source>Reactions</source>

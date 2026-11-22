@@ -2678,8 +2678,8 @@ Company | https://company.com</source>
             <translation>همه</translation>
         </message>
         <message id="genycaster.stickers.originals">
-            <source>Originals</source>
-            <translation>اصلی</translation>
+            <source>Njal's Pack</source>
+            <translation>بستهٔ نایل</translation>
         </message>
         <message id="genycaster.stickers.reactions">
             <source>Reactions</source>

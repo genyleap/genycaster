@@ -2677,8 +2677,8 @@ Company | https://company.com</source>
             <translation>الكل</translation>
         </message>
         <message id="genycaster.stickers.originals">
-            <source>Originals</source>
-            <translation>الأصلية</translation>
+            <source>Njal's Pack</source>
+            <translation>حزمة نيال</translation>
         </message>
         <message id="genycaster.stickers.reactions">
             <source>Reactions</source>

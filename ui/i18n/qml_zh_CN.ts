@@ -2677,8 +2677,8 @@ Company | https://company.com</source>
             <translation>全部</translation>
         </message>
         <message id="genycaster.stickers.originals">
-            <source>Originals</source>
-            <translation>原创</translation>
+            <source>Njal's Pack</source>
+            <translation>Njal 贴纸包</translation>
         </message>
         <message id="genycaster.stickers.reactions">
             <source>Reactions</source>

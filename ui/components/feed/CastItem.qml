@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
+import "StickerCatalog.js" as StickerCatalog
 
 Item {
     id: root
@@ -144,10 +145,9 @@ Item {
     function isVisualImage(embed) {
         if (root.embedFamily(embed) === "image")
             return true
-        // A sticker is an ordinary protocol URL embed. Some upstream indexers
-        // do not attach image metadata, so recognize only our pinned PNG path.
-        if (/^https:\/\/genycaster\.xyz\/stickers\/v1\.0\.0\/[a-z0-9_-]+\.png$/.test(
-                root.normalizedEmbedUrl(embed)))
+        // Njal stickers are ordinary protocol image embeds. Some indexers
+        // omit MIME metadata; recognize only pinned, reviewed URLs.
+        if (StickerCatalog.isStickerUrl(root.normalizedEmbedUrl(embed)))
             return true
         if (!Boolean(root.modelData && root.modelData._artChannelSource))
             return false

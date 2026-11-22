@@ -1,15 +1,15 @@
 import QtQuick
 import QtQuick.Shapes
 import Farcaster.Client
+import "StickerCatalog.js" as StickerCatalog
 
 Item {
     id: root
     clip: true
 
     property var embed: ({})
-    readonly property bool officialSticker:
-        /^https:\/\/genycaster\.xyz\/stickers\/v1\.0\.0\/[a-z0-9_-]+\.png$/.test(
-            String(root.embed.url || root.embed.value || ""))
+    readonly property bool officialSticker: StickerCatalog.isStickerUrl(
+        String(root.embed.url || root.embed.value || ""))
     property string continuationText: ""
     property bool preserveAspect: false
     // A single editorial image whose height depends on decoded dimensions

@@ -2677,8 +2677,8 @@ Company | https://company.com</source>
             <translation>Todas</translation>
         </message>
         <message id="genycaster.stickers.originals">
-            <source>Originals</source>
-            <translation>Originais</translation>
+            <source>Njal's Pack</source>
+            <translation>Pacote do Njal</translation>
         </message>
         <message id="genycaster.stickers.reactions">
             <source>Reactions</source>

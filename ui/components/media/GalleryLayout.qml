@@ -1,5 +1,6 @@
 import QtQuick
 import Farcaster.Client
+import "StickerCatalog.js" as StickerCatalog
 
 Item {
     id: root
@@ -28,8 +29,7 @@ Item {
     readonly property int itemCount: root.embeds ? root.embeds.length : 0
     readonly property int visibleCount: Math.min(root.itemCount, 6)
     readonly property bool singleSticker: root.visibleCount === 1
-        && /^https:\/\/genycaster\.xyz\/stickers\/v1\.0\.0\/[a-z0-9_-]+\.png$/.test(
-            root.mediaKey(0))
+        && StickerCatalog.isStickerUrl(root.mediaKey(0))
     // Use the enclosing feed's reactive mobile classification, not the
     // narrow width of an ordinary desktop Magazine column. The parent
     // supplies AppShell's compact state; attached Window.width is not

@@ -2678,8 +2678,8 @@ Company | https://company.com</translation>
             <translation>All</translation>
         </message>
         <message id="genycaster.stickers.originals">
-            <source>Originals</source>
-            <translation>Originals</translation>
+            <source>Njal's Pack</source>
+            <translation>Njal's Pack</translation>
         </message>
         <message id="genycaster.stickers.reactions">
             <source>Reactions</source>

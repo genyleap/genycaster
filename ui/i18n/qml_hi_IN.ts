@@ -2677,8 +2677,8 @@ Company | https://company.com</source>
             <translation>सभी</translation>
         </message>
         <message id="genycaster.stickers.originals">
-            <source>Originals</source>
-            <translation>मूल</translation>
+            <source>Njal's Pack</source>
+            <translation>न्याल का पैक</translation>
         </message>
         <message id="genycaster.stickers.reactions">
             <source>Reactions</source>

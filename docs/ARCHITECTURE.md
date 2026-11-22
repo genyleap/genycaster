@@ -42,27 +42,34 @@ flowchart TB
 
 **Capability routing** means profile reads, feed reads and signed message submissions may use different supported adapters. HyperSnap is the default preference, not a dependency of the domain.
 
-### First-party sticker media (V1)
+### Curated third-party sticker links (V1)
 
-The sticker picker is one shared Qt/QML surface for desktop, Android and WebAssembly. Its bounded
-first-party catalog lives in `ui/components/composer/StickerCatalog.js`; transparent PNG
-preview assets are bundled into the application's QML resources. The twelve original
-illustrations and their editable SVG sources live under `ui/assets/stickers/v1/`.
+The sticker picker is one shared Qt/QML surface across desktop, Android and WebAssembly.
+Its auditable, pinned catalog in `ui/components/composer/StickerCatalog.js` references
+32 reviewed entries from [Njal's sticker pack](https://github.com/cryptonjal/njals-sticker-pack).
+The upstream [manifest](https://raw.githubusercontent.com/cryptonjal/njals-sticker-pack/refs/heads/main/njals-sticker-pack.json)
+describes 512×512 WebP images, source URLs, attribution and SHA-256 hashes. The
+`scripts/import_njal_stickers.py` command checks those fields and regenerates the catalog
+with `--apply`; it never downloads or embeds third-party artwork in this repository.
 
-Choosing a sticker calls `richComposer.insertMedia()` with a catalog-derived, immutable
-`https://genycaster.xyz/stickers/v1.0.0/<id>.png` URL, MIME type `image/png` and alt text.
-The existing media quota, document history, draft, and Farcaster-compatible protocol-embed
-publication route apply unchanged to **both Farcaster and HyperSnap**. No sticker-specific
-wire message, signer authority, custom media upload or protocol fork is introduced.
-Other clients see the normal PNG image; GenyCaster recognizes only the pinned first-party
-URL pattern to render an uncropped compact transparent sticker in the feed.
+**Licensing:** the upstream source does not currently declare a license for the artwork.
+GenyCaster credits Njal, hotlinks the original public IPFS image URLs without copying,
+editing, or hosting the third-party bytes, and makes no claim to license the artwork.
+Obtain explicit permission before bundling, mirroring, modifying or reselling these images.
+Remote image availability and external-network privacy follow the usual media policy.
 
-Sticker favorites and recent selections use bounded, local device settings and are not
-sent to either protocol or the account API. Public images are created by
-`python3 scripts/generate_stickers.py --render` (ImageMagick required only for regeneration)
-and served independently of the WASM application bundle by
-`python3 scripts/publish_stickers.py`. Once a sticker URL is published to a cast, keep its
-PNG bytes and URL stable: deleting or changing that URL would break historical casts.
+Choosing a sticker calls `richComposer.insertMedia()` with the reviewed remote URL,
+`image/webp` and the upstream alt text. The ordinary media quota, local draft history,
+and Farcaster-compatible protocol-embed publication route apply to both **Farcaster**
+and **HyperSnap**; no sticker-specific wire message or upload is introduced.
+Desktop visual editing, compact mobile editing and preview show transparent inline
+`StickerDraftTile` components, while the Feed recognizes pinned URLs and displays an
+uncropped, compact image. Photo uploads retain their existing preview and lifecycle.
+
+Local favorites and recent choices remain in bounded device settings. Previously published
+GenyCaster v1.0.0 sticker URLs remain recognized and the historic static files on
+`genycaster.xyz` remain available to avoid breaking existing Casts, but their low-quality
+artwork is no longer shipped or selectable.
 
 ## Contributor module view
 

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
+import "StickerCatalog.js" as StickerCatalog
 
 NeonCard {
     id: root
@@ -36,12 +37,14 @@ NeonCard {
                 altText: String(block.altText || ""),
                 fileName: String(metadata.fileName || root.fileNameFromUrl(url)),
                 previewUrl: String(metadata.localPreviewUrl || url),
-                sizeBytes: Number(metadata.sizeBytes || 0)
+                sizeBytes: Number(metadata.sizeBytes || 0),
+                sticker: StickerCatalog.isStickerUrl(url)
             })
         }
         return result
     }
-    readonly property bool hasAttachedMedia: attachedMedia.length > 0
+    readonly property var regularAttachedMedia: root.attachedMedia.filter(item => !item.sticker)
+    readonly property bool hasAttachedMedia: regularAttachedMedia.length > 0
     readonly property bool hasTransientUpload: mediaUpload.busy || mediaUpload.canRetry
                                                 || mediaUpload.errorText.length > 0
                                                 || root.insertFailed
@@ -366,7 +369,7 @@ NeonCard {
             spacing: Theme.space2
 
             Repeater {
-                model: root.attachedMedia
+                model: root.regularAttachedMedia
 
                 delegate: Superellipse {
                     required property var modelData
@@ -467,7 +470,7 @@ NeonCard {
                     spacing: Theme.space2
 
                     Repeater {
-                        model: root.attachedMedia
+                        model: root.regularAttachedMedia
 
                         delegate: Item {
                             required property var modelData

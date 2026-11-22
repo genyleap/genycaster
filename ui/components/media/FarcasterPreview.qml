@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
+import "StickerCatalog.js" as StickerCatalog
 
 Superellipse {
     id: root
@@ -34,11 +35,14 @@ Superellipse {
             const metadata = root.attachmentMetadata && root.attachmentMetadata[url]
                              ? root.attachmentMetadata[url] : ({})
             const localPreview = String(metadata.localPreviewUrl || "").trim()
+            const sticker = StickerCatalog.isStickerUrl(url)
             const presentationSource = localPreview.length > 0
                                      ? localPreview
-                                     : (url.startsWith("file:") || url.startsWith("qrc:") || url.startsWith("image:") ? url : "")
+                                     : (sticker || url.startsWith("file:")
+                                        || url.startsWith("qrc:") || url.startsWith("image:") ? url : "")
             result.push({
                 url: url,
+                sticker: sticker,
                 previewSource: presentationSource,
                 mediaType: String(block.mediaType || metadata.mediaType || ""),
                 altText: String(block.altText || "")
@@ -186,17 +190,31 @@ Superellipse {
 
                         Repeater {
                             model: root.previewMedia
-                            delegate: MediaPreview {
+                            delegate: Item {
                                 required property var modelData
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: root.previewMedia.length > 1
-                                                        ? (root.compact ? 132 : 178)
-                                                        : (root.compact ? 190 : 250)
-                                source: String(modelData.previewSource || "")
-                                mediaType: String(modelData.mediaType || "")
-                                curveDepth: Theme.curveControl
-                                interactive: String(modelData.mediaType || "").startsWith("video/")
-                                primeVideoFrame: false
+                                Layout.preferredHeight: modelData.sticker ? (root.compact ? 156 : 188)
+                                    : root.previewMedia.length > 1 ? (root.compact ? 132 : 178)
+                                    : (root.compact ? 190 : 250)
+
+                                StickerDraftTile {
+                                    visible: Boolean(parent.modelData.sticker)
+                                    anchors.centerIn: parent
+                                    tileSize: Math.min(parent.width, root.compact ? 148 : 176)
+                                    imageUrl: String(parent.modelData.previewSource || "")
+                                    altText: String(parent.modelData.altText || "")
+                                    removable: false
+                                }
+
+                                MediaPreview {
+                                    visible: !Boolean(parent.modelData.sticker)
+                                    anchors.fill: parent
+                                    source: String(parent.modelData.previewSource || "")
+                                    mediaType: String(parent.modelData.mediaType || "")
+                                    curveDepth: Theme.curveControl
+                                    interactive: String(parent.modelData.mediaType || "").startsWith("video/")
+                                    primeVideoFrame: false
+                                }
                             }
                         }
                     }

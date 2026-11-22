@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
+import "StickerCatalog.js" as StickerCatalog
 
 Item {
     id: root
@@ -324,14 +325,29 @@ Item {
             id: enhancementSurface
             readonly property bool mediaBlock: String(enhancementSurface.parent.blockData.kind || "") === "media"
             readonly property bool videoBlock: String(enhancementSurface.parent.blockData.mediaType || "").toLowerCase().indexOf("video") >= 0
-            implicitHeight: enhancementLayout.implicitHeight + Theme.space2 * 2
-            fillColor: Theme.surfaceMuted
-            borderWidth: 1
+            readonly property bool stickerBlock: mediaBlock && StickerCatalog.isStickerUrl(
+                String(enhancementSurface.parent.blockData.url || ""))
+            implicitHeight: stickerBlock ? (root.width < 700 ? 156 : 174)
+                           : enhancementLayout.implicitHeight + Theme.space2 * 2
+            fillColor: stickerBlock ? "transparent" : Theme.surfaceMuted
+            borderWidth: stickerBlock ? 0 : 1
             borderColor: Theme.borderMuted
             curveDepth: Theme.curveContainer
 
+            StickerDraftTile {
+                objectName: "visualEditorStickerPreview"
+                visible: enhancementSurface.stickerBlock
+                tileSize: root.width < 700 ? 148 : 164
+                x: Theme.rtl ? Math.max(0, parent.width - width) : 0
+                y: 0
+                imageUrl: String(enhancementSurface.parent.blockData.url || "")
+                altText: String(enhancementSurface.parent.blockData.altText || "")
+                onRemoveRequested: richComposer.removeBlock(enhancementSurface.parent.blockIndex)
+            }
+
             RowLayout {
                 id: enhancementLayout
+                visible: !enhancementSurface.stickerBlock
                 anchors.fill: parent
                 anchors.margins: Theme.space2
                 spacing: Theme.space2
