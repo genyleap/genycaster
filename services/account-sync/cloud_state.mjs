@@ -1,6 +1,7 @@
 // Genycaster-owned cloud state. OpenProof authorizes the principal, but never
 // stores these app-specific preferences, drafts, bookmarks or schedules.
 import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
+import {validStickerPackIds,addedPremiumPack} from './sticker_packs.mjs';
 import {createSignerSessionProof,isCanonicalUint64Fid,
   FIRST_NATIVE_HYPERSNAP_FID} from './signer_session_proof.mjs';
 import {serverDeployment, trustedOrigin} from '../deployment_config.mjs';
@@ -176,9 +177,11 @@ export function validateCloudItem(entity, item) {
   if (entity === 'notifications') {
     // Application-controlled singletons are reserved from the generic API.
     if (['00000000-0000-4000-8000-000000000001',
-         '00000000-0000-4000-8000-000000000003'].includes(String(item.id).toLowerCase())
+         '00000000-0000-4000-8000-000000000003',
+         '00000000-0000-4000-8000-000000000006'].includes(String(item.id).toLowerCase())
         || (item.source==='genycaster'
-            && ['seen_watermark','profile_status','streak_preferences'].includes(item.kind))) return null;
+            && ['seen_watermark','profile_status','streak_preferences',
+                'muted_profiles','sticker_packs'].includes(item.kind))) return null;
     if (!/^[a-z][a-z0-9_-]{0,39}$/.test(item.source || '') ||
         typeof item.kind !== 'string' || item.kind.length > 64 || !item.kind ||
         typeof item.occurred_at !== 'string' ||
@@ -609,7 +612,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
       'entitlements','geny/assets','pro/plan','pro/quote','pro/verify',
       'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
-      'muted_profiles','feedback','buzz','buzz/preferences','buzz/inbox','buzz/ack',
+      'muted_profiles','sticker_packs','feedback','buzz','buzz/preferences','buzz/inbox','buzz/ack',
       'pro/wallet/challenge','pro/wallet/verify','pro/wallets',
       'session','session/challenge','session/proof','swap/quote'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
@@ -1129,6 +1132,42 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           respond(response,200,{revoked:true});return true;
         }
         respond(response,405,{error:'method_not_allowed'});return true;
+      }
+      if(entity==='sticker_packs') {
+        if(!store.stickerPacksReady?.()) {
+          respond(response,503,{error:'sticker_library_unavailable'});return true;
+        }
+        if(request.method==='GET') {
+          respond(response,200,{library:await store.getStickerPacks(owner)});
+          return true;
+        }
+        if(request.method!=='PUT') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        if(!String(request.headers['content-type']||'').startsWith('application/json')) {
+          respond(response,415,{error:'unsupported_media_type'});return true;
+        }
+        const input=await readBody(request,2048);
+        if(!input || Array.isArray(input)
+          || Object.keys(input).sort().join(',')!=='pack_ids,revision'
+          || !Number.isSafeInteger(input.revision)
+          || input.revision<0 || input.revision>9007199254740990
+          || !validStickerPackIds(input.pack_ids)) {
+          respond(response,400,{error:'invalid_sticker_library'});return true;
+        }
+        const current=await store.getStickerPacks(owner);
+        if(current.revision!==input.revision) {
+          respond(response,409,{error:'revision_conflict',library:current});return true;
+        }
+        if(addedPremiumPack(input.pack_ids,current.pack_ids)) {
+          if(!(await allowProMutation(owner,response))) return true;
+        }
+        const saved=await store.putStickerPacks(owner,{
+          pack_ids:input.pack_ids,revision:input.revision
+        });
+        respond(response,saved?200:409,saved
+          ?{library:saved}:{error:'revision_conflict'});
+        return true;
       }
       if(entity==='muted_profiles') {
         // App-owned local moderation never broadcasts a protocol block or

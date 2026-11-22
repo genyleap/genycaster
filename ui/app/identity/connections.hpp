@@ -91,6 +91,10 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool streakBusy READ streakBusy NOTIFY streakChanged)
     Q_PROPERTY(QString streakError READ streakError NOTIFY streakChanged)
     Q_PROPERTY(QVariantMap streakPreferences READ streakPreferences NOTIFY streakChanged)
+    Q_PROPERTY(QStringList stickerPackIds READ stickerPackIds NOTIFY stickerPacksChanged)
+    Q_PROPERTY(bool stickerPacksReady READ stickerPacksReady NOTIFY stickerPacksChanged)
+    Q_PROPERTY(bool stickerPacksBusy READ stickerPacksBusy NOTIFY stickerPacksChanged)
+    Q_PROPERTY(QString stickerPacksError READ stickerPacksError NOTIFY stickerPacksChanged)
     Q_PROPERTY(QStringList mutedProfileFids READ mutedProfileFids NOTIFY mutedProfilesChanged)
     Q_PROPERTY(bool mutedProfilesReady READ mutedProfilesReady NOTIFY mutedProfilesChanged)
     Q_PROPERTY(bool mutedProfilesBusy READ mutedProfilesBusy NOTIFY mutedProfilesChanged)
@@ -265,6 +269,12 @@ public:
     Q_INVOKABLE void fetchGenyAssets(bool force = false);
     Q_INVOKABLE void recordStreakCast(const QString& hash);
     [[nodiscard]] QVariantMap streakPreferences() const { return m_streakPreferences; }
+    [[nodiscard]] QStringList stickerPackIds() const { return m_stickerPackIds; }
+    [[nodiscard]] bool stickerPacksReady() const noexcept { return m_stickerPacksLoaded; }
+    [[nodiscard]] bool stickerPacksBusy() const noexcept { return m_stickerPacksRead || m_stickerPacksWrite; }
+    [[nodiscard]] QString stickerPacksError() const { return m_stickerPacksError; }
+    Q_INVOKABLE void fetchStickerPacks();
+    Q_INVOKABLE void setStickerPackInstalled(const QString& id,bool installed);
     [[nodiscard]] QStringList mutedProfileFids() const { return m_mutedProfileFids; }
     [[nodiscard]] bool mutedProfilesReady() const noexcept { return m_mutedProfilesLoaded; }
     [[nodiscard]] bool mutedProfilesBusy() const noexcept { return m_mutedProfilesWrite != nullptr; }
@@ -430,6 +440,7 @@ signals:
     void swapAvailabilityChanged(bool available);
     void swapQuoteReceived(const QString& requestId, const QVariantMap& quote,
                            const QString& error);
+    void stickerPacksChanged();
     void mutedProfilesChanged();
     void genyBuzzChanged();
     void proPlanChanged();
@@ -542,6 +553,13 @@ private:
     QString m_publicActivitySource{QStringLiteral("casts")};
     QString m_publicActivityGithubLogin{};
     QPointer<QNetworkReply> m_streakPreferencesRead{};
+    QPointer<QNetworkReply> m_stickerPacksRead{};
+    QPointer<QNetworkReply> m_stickerPacksWrite{};
+    QStringList m_stickerPackIds{};
+    QString m_stickerPacksError{};
+    qlonglong m_stickerPacksRevision{};
+    qint64 m_stickerPacksFetchedAt{};
+    bool m_stickerPacksLoaded{};
     QPointer<QNetworkReply> m_mutedProfilesRead{};
     QPointer<QNetworkReply> m_mutedProfilesWrite{};
     QPointer<QNetworkReply> m_buzzPreferenceRead{};

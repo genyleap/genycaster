@@ -11,7 +11,7 @@ This file acknowledges third-party assets and libraries committed to or used by 
 | Vazirmatn typography (fetched/embedded at build time when configured) | [Vazirmatn authors](https://github.com/rastikerdar/vazirmatn) | [SIL OFL 1.1](ui/assets/fonts/OFL-Vazirmatn.txt); follow license and attribution for distributed binaries |
 | Solar Icon Set subset | **480 Design** — [upstream](https://github.com/480-Design/Solar-Icon-Set) | Icon artwork is attributed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Adapted/tinted for the GenyCaster UI; see `ui/assets/icons/genyleap/SOLAR_ICON_SET.md` |
 | Font Awesome Free (when included) | Fonticons, Inc. | SVG/icons: CC BY 4.0; fonts: SIL OFL 1.1; [bundled notice](ui/assets/icons/LICENSE.Font-Awesome.txt) |
-| Sticker toolbar icon | [Lucide](https://github.com/lucide-icons/lucide), «sticker» SVG | [ISC license](https://github.com/lucide-icons/lucide/blob/main/LICENSE); source shape retained in `ui/assets/icons/genyleap/icons/media/sticker.svg` |
+| Sticker toolbar icon | Genycaster project artwork | Original vector glyph with a folded corner and smile in the messaging-app design language; not a third-party brand logo |
 | Third-party brand and network icon references | Respective brand owners | Usage is subject to trademark/brand rules, **not** a transfer of trademark ownership; see [brand notice](ui/assets/icons/genyleap/TRADEMARKS.md) |
 
 GenyCaster includes a bootstrap subset of animated Noto Emoji and may download additional validated assets into a bounded user cache. Unicode emoji characters, font glyphs and animated artwork have independent licensing/provenance. Project-generated logo artwork and the GenyCaster/Genyleap names are not granted as trademarks by GPLv3.
@@ -28,6 +28,19 @@ claim ownership of the images; the catalog references the author-provided IPFS
 URLs. A separate redistribution permission would be required before bundling or
 self-hosting those images. Historical first-party sticker URLs remain served to
 avoid breaking previously published content.
+
+## Twemoji reaction pack (server-hosted, CC BY 4.0)
+
+The eight graphics displayed in the `twemoji-pro` sticker pack derive from
+[Twemoji by Twitter, Inc. and contributors, now maintained by jdecked](https://github.com/jdecked/twemoji),
+source tag `v17.0.3` and
+[graphics license CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+They have been **rasterized from original SVG into transparent 512×512 PNG**
+without changing the geometry, then published under
+`https://genycaster.xyz/stickers/twemoji-pro-v1/`. The generated PNGs are
+not presented as Genycaster-original designs; the pack detail explicitly links
+to the original Twemoji project. This attribution and the CC BY 4.0 notice
+apply to any subsequent rehosting or redistribution.
 
 ## Bundled WebAssembly JavaScript
 

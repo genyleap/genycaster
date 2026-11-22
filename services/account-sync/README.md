@@ -34,7 +34,7 @@ runtime role.
 | `bookmarks` | Current per-account cast hash reference and deletion state |
 | `bookmark_changes` | Monotonic, repeat-safe mutation history and incremental cursor |
 | `drafts` | Private application drafts; no protocol publishing |
-| `notifications` | Provider-event snapshots (future adapter) and the app-owned, monotonic read watermark |
+| `notifications` | Provider-event snapshots, owner-private app singleton states (mute, streak, sticker library), and the monotonic read watermark |
 | `genybuzz_preferences` | Private opt-in consent and revision for first-party attention nudges (schema v14) |
 | `genybuzz_events` | Short-lived sender/recipient-scoped attention signals and acknowledgements (schema v14) |
 | `tasks` | Future scheduled task definitions; no unattended signer or scheduler |
@@ -50,6 +50,18 @@ GenyBuzz is an optional app-owned extension (not a protocol message).
 Its schema v14 must be applied before it is usable, and reception is off by
 default. See [GenyBuzz](../../docs/GENYBUZZ.md) for security controls,
 future DM integration and rollout requirements.
+
+### Sticker pack library (no additional migration)
+
+`GET|PUT /api/v1/cloud/sticker_packs` stores a list of server-known package
+IDs and a compare-and-swap `revision` in the **existing per-account**
+`notifications` JSONB singleton (reserved UUID ending in `0006`, kind
+`sticker_packs`). This private record is excluded from ordinary notification
+read/write APIs. The server ignores caller-supplied identity and tier labels;
+it resolves the owner from a verified account session and checks current
+Geny Pro before newly installing a Pro pack. No on-chain message or signer
+operation takes place. Free packs install without Pro. Removing expired Pro
+packs remains possible. Clients never infer cloud success from a local toggle.
 
 The API runtime must connect with a restricted application role; no
 connection to or grants on OpenProof's PostgreSQL database are required.

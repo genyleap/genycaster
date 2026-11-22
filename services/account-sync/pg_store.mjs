@@ -10,6 +10,7 @@ const NOTIFICATION_SEEN_ROW='00000000-0000-4000-8000-000000000001';
 const PROFILE_STATUS_ROW='00000000-0000-4000-8000-000000000003';
 const STREAK_PREFERENCES_ROW='00000000-0000-4000-8000-000000000004';
 const MUTED_PROFILES_ROW='00000000-0000-4000-8000-000000000005';
+const STICKER_PACKS_ROW='00000000-0000-4000-8000-000000000006';
 
 const COLUMNS=Object.freeze({
   drafts:'id,kind,title,content,revision,deleted_at,updated_at',
@@ -56,6 +57,9 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const buzzReady=versions.has(14);
   const proWalletReady=versions.has(15);
   const proMultiProtocolQuoteReady=versions.has(16);
+  // Reserved singleton in the existing account-owned notifications table.
+  // Schema v3+ already supports private JSONB settings and atomic revisions.
+  const stickerPacksReady=versions.has(3);
   let buzzCleanupAt=0;
   async function pruneExpiredBuzz() {
     if(!buzzReady || Date.now()<buzzCleanupAt)return;
@@ -75,6 +79,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
     proWalletReady:()=>proWalletReady,
     neynarRegistrationReady:()=>neynarRegistrationReady,
     buzzReady:()=>buzzReady,
+    stickerPacksReady:()=>stickerPacksReady,
     neynarRegistrationLedger:neynarRegistrationReady
       ?createNeynarRegistrationLedger(pool):null,
     async getProWallets({issuer,subject}) {
@@ -652,6 +657,43 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         [issuer,subject,id]);
       return normalizeRow('drafts',result.rows[0]);
     },
+    // Canonical, revision-checked per-account Sticker library. The HTTP
+    // handler validates pack IDs and checks verified Pro before adding one.
+    async getStickerPacks({issuer,subject}) {
+      if(!stickerPacksReady)throw new Error('sticker_library_unavailable');
+      const result=await pool.query(`SELECT payload,revision::text
+        FROM notifications WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+          AND source='genycaster' AND kind='sticker_packs'
+          AND deleted_at IS NULL LIMIT 1`,
+        [issuer,subject,STICKER_PACKS_ROW]);
+      const row=result.rows[0];
+      return {pack_ids:Array.isArray(row?.payload?.pack_ids)?row.payload.pack_ids:[],
+        revision:Number(row?.revision||0)};
+    },
+    async putStickerPacks({issuer,subject},{pack_ids,revision}) {
+      if(!stickerPacksReady)throw new Error('sticker_library_unavailable');
+      const result=await pool.query(`INSERT INTO notifications
+          (issuer,subject,id,source,kind,payload,occurred_at,revision)
+          SELECT $1,$2,$3::uuid,'genycaster','sticker_packs',$4::jsonb,now(),1
+          WHERE $5::bigint=0 OR EXISTS (
+            SELECT 1 FROM notifications
+             WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+               AND source='genycaster' AND kind='sticker_packs'
+               AND deleted_at IS NULL)
+          ON CONFLICT(issuer,subject,id) DO UPDATE SET
+            payload=EXCLUDED.payload,revision=notifications.revision+1,
+            updated_at=now()
+          WHERE notifications.revision=$5::bigint
+            AND notifications.source='genycaster'
+            AND notifications.kind='sticker_packs'
+            AND notifications.deleted_at IS NULL
+          RETURNING payload,revision::text`,
+        [issuer,subject,STICKER_PACKS_ROW,
+         JSON.stringify({pack_ids}),revision]);
+      const row=result.rows[0];
+      return row?{pack_ids:row.payload.pack_ids,
+        revision:Number(row.revision)}:null;
+    },
     // GenyCaster-owned moderation preferences are private, owner-scoped,
     // revision-checked and independent from protocol Follow messages.
     async getMutedProfiles({issuer,subject}) {
@@ -946,7 +988,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         'SELECT '+columns+' FROM '+entity+' WHERE '+(
           entity==='bookmarks'?'openproof_issuer=$1 AND openproof_subject=$2':'issuer=$1 AND subject=$2'
         )+(entity==='notifications'
-          ? " AND NOT (source='genycaster' AND kind IN ('seen_watermark','profile_status','streak_preferences','muted_profiles'))" : '')
+          ? " AND NOT (source='genycaster' AND kind IN ('seen_watermark','profile_status','streak_preferences','muted_profiles','sticker_packs'))" : '')
           +' ORDER BY '+(entity==='bookmarks'?'changed_at DESC':'updated_at DESC')+' LIMIT 500',
         [issuer,subject]);
       return result.rows.map(row=>normalizeRow(entity,row));

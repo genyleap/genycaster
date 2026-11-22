@@ -1,8 +1,10 @@
-<!-- Lucide "sticker" icon, ISC license: https://github.com/lucide-icons/lucide -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#151519" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/>
-  <path d="M15 3v5a1 1 0 0 0 1 1h5"/>
-  <path d="M8 13h.01"/>
-  <path d="M16 13h.01"/>
-  <path d="M10 16s.8 1 2 1c1.3 0 2-1 2-1"/>
+<!-- Genycaster sticker glyph: original clean outline in the familiar
+     messaging-app folded-corner visual language (not a copied brand asset). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+     fill="none" stroke="#151519" stroke-width="1.9"
+     stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4 4.7A2.7 2.7 0 0 1 6.7 2h10.6A2.7 2.7 0 0 1 20 4.7v10.6c0 .7-.27 1.38-.77 1.9l-3.04 3.02c-.51.5-1.19.78-1.91.78H6.7A2.7 2.7 0 0 1 4 18.3V4.7Z"/>
+  <path d="M14.9 20.85V17.5a2.6 2.6 0 0 1 2.6-2.6h2.35"/>
+  <path d="M8.6 9.4h.05M15.35 9.4h.05" stroke-width="2.7"/>
+  <path d="M8.7 13.05c.7 1.2 1.79 1.8 3.3 1.8s2.6-.6 3.3-1.8"/>
 </svg>

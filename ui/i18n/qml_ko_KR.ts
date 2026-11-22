@@ -2660,6 +2660,106 @@ Company | https://company.com</source>
             <source>Embed</source>
             <translation>임베드</translation>
         </message>
+        <message id="genycaster.stickers.attribution">
+            <source>Credits</source>
+            <translation>저작자 정보</translation>
+        </message>
+        <message id="genycaster.stickers.back">
+            <source>Back</source>
+            <translation>뒤로</translation>
+        </message>
+        <message id="genycaster.stickers.by_author">
+            <source>by %1</source>
+            <translation>제작: %1</translation>
+        </message>
+        <message id="genycaster.stickers.conflict">
+            <source>Your sticker packs changed on another device. Refresh and try again.</source>
+            <translation>다른 기기에서 팩이 변경되었습니다. 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.stickers.count">
+            <source>%1 stickers</source>
+            <translation>스티커 %1개</translation>
+        </message>
+        <message id="genycaster.stickers.discover">
+            <source>Discover packs</source>
+            <translation>팩 탐색</translation>
+        </message>
+        <message id="genycaster.stickers.empty_library">
+            <source>Your sticker collection is empty. Add a pack to get started.</source>
+            <translation>스티커 모음이 비어 있습니다. 팩을 추가하세요.</translation>
+        </message>
+        <message id="genycaster.stickers.free">
+            <source>Free</source>
+            <translation>무료</translation>
+        </message>
+        <message id="genycaster.stickers.install_count">
+            <source>Add %1 Stickers</source>
+            <translation>스티커 %1개 추가</translation>
+        </message>
+        <message id="genycaster.stickers.loading">
+            <source>Loading your sticker library…</source>
+            <translation>스티커 불러오는 중…</translation>
+        </message>
+        <message id="genycaster.stickers.manage">
+            <source>Manage</source>
+            <translation>관리</translation>
+        </message>
+        <message id="genycaster.stickers.my_packs">
+            <source>My stickers</source>
+            <translation>내 스티커</translation>
+        </message>
+        <message id="genycaster.stickers.pack_description">
+            <source>A collection of expressive stickers, reactions and internet culture.</source>
+            <translation>다양한 표정과 반응 스티커 모음.</translation>
+        </message>
+        <message id="genycaster.stickers.pro">
+            <source>Geny Pro</source>
+            <translation>프로 회원</translation>
+        </message>
+        <message id="genycaster.stickers.pro_description">
+            <source>Premium reactions for Geny Pro members.</source>
+            <translation>Geny Pro 회원 전용 반응.</translation>
+        </message>
+        <message id="genycaster.stickers.pro_required">
+            <source>Geny Pro is required to add this pack.</source>
+            <translation>이 팩을 추가하려면 Geny Pro가 필요합니다.</translation>
+        </message>
+        <message id="genycaster.stickers.remove_pack">
+            <source>Remove Pack</source>
+            <translation>팩 제거</translation>
+        </message>
+        <message id="genycaster.stickers.save_failed">
+            <source>Could not save your sticker library.</source>
+            <translation>스티커를 저장하지 못했습니다.</translation>
+        </message>
+        <message id="genycaster.stickers.signin">
+            <source>Sign in to add and sync sticker packs across your devices.</source>
+            <translation>기기 간 동기화하려면 로그인하세요.</translation>
+        </message>
+        <message id="genycaster.stickers.unavailable">
+            <source>Sticker library is temporarily unavailable. Try again.</source>
+            <translation>스티커를 일시적으로 사용할 수 없습니다.</translation>
+        </message>
+        <message id="genycaster.stickers.unlock_pro">
+            <source>Unlock Geny Pro</source>
+            <translation>Geny Pro 잠금 해제</translation>
+        </message>
+        <message id="genycaster.stickers.view_pack">
+            <source>View pack</source>
+            <translation>팩 보기</translation>
+        </message>
+        <message id="genycaster.stickers.all">
+            <source>All</source>
+            <translation>전체</translation>
+        </message>
+        <message id="genycaster.stickers.favorites">
+            <source>Favorites</source>
+            <translation>즐겨찾기</translation>
+        </message>
+        <message id="genycaster.stickers.recent">
+            <source>Recent</source>
+            <translation>최근</translation>
+        </message>
         <message id="genycaster.stickers.title">
             <source>Stickers</source>
             <translation>스티커</translation>
@@ -2672,30 +2772,6 @@ Company | https://company.com</source>
             <source>Search stickers</source>
             <translation>스티커 검색</translation>
         </message>
-        <message id="genycaster.stickers.all">
-            <source>All</source>
-            <translation>전체</translation>
-        </message>
-        <message id="genycaster.stickers.originals">
-            <source>Njal's Pack</source>
-            <translation>Njal 스티커 팩</translation>
-        </message>
-        <message id="genycaster.stickers.reactions">
-            <source>Reactions</source>
-            <translation>반응</translation>
-        </message>
-        <message id="genycaster.stickers.web3">
-            <source>Web3</source>
-            <translation>웹3</translation>
-        </message>
-        <message id="genycaster.stickers.favorites">
-            <source>Favorites</source>
-            <translation>즐겨찾기</translation>
-        </message>
-        <message id="genycaster.stickers.recent">
-            <source>Recent</source>
-            <translation>최근</translation>
-        </message>
         <message id="genycaster.stickers.add">
             <source>Add sticker</source>
             <translation>스티커 추가</translation>
@@ -2707,10 +2783,6 @@ Company | https://company.com</source>
         <message id="genycaster.stickers.remove_favorite">
             <source>Remove from favorites</source>
             <translation>즐겨찾기에서 제거</translation>
-        </message>
-        <message id="genycaster.stickers.empty">
-            <source>No stickers found</source>
-            <translation>스티커를 찾을 수 없습니다</translation>
         </message>
         <message id="genycaster.stickers.media_slot">
             <source>Stickers use one media slot in your cast.</source>

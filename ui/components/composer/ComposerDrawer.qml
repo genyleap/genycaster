@@ -298,18 +298,28 @@ GenyDrawer {
         // reconstruct the public URL rather than trusting caller-owned input.
         const id = String(sticker.id || "")
         const canonical = StickerCatalog.embedUrl(id)
-        if (!canonical || canonical !== String(sticker.url || canonical))
+        // Installing a pack is an account-owned server-confirmed operation.
+        // A stale local favorite or catalog entry cannot bypass its state.
+        const installed = openProofConnections
+            ? (openProofConnections.stickerPackIds || []) : []
+        if (!openProofConnections || !openProofConnections.stickerPacksReady
+            || installed.indexOf(String(sticker.pack || "")) < 0
+            || (sticker.pack === "twemoji-pro" && !root.verifiedGenyPro)
+            || !canonical || canonical !== String(sticker.url || canonical))
             return false
         root.synchronizeEditorState()
-        if (!richComposer.insertMedia(canonical, "image/webp",
+        const mediaType = String(sticker.mediaType || "")
+        if (mediaType !== "image/webp" && mediaType !== "image/png")
+            return false
+        if (!richComposer.insertMedia(canonical, mediaType,
                                       String(sticker.alt || sticker.title || id),
                                       root.stickerAfterIndex))
             return false
         const metadata = Object.assign({}, root.mediaMetadata)
         metadata[canonical] = {
-            fileName: String(sticker.title || id) + ".webp",
+            fileName: id + (mediaType === "image/png" ? ".png" : ".webp"),
             localPreviewUrl: StickerCatalog.previewUrl(id),
-            mediaType: "image/webp",
+            mediaType: mediaType,
             sizeBytes: 0,
             stickerId: id
         }
@@ -781,6 +791,10 @@ GenyDrawer {
         parent: Overlay.overlay
         anchorItem: formattingToolbar
         canAdd: root.canUploadMedia && !mediaUpload.busy
+        onProRequested: {
+            stickerPicker.close()
+            root.proRequested()
+        }
         onStickerSelected: sticker => {
             if (!root.insertSticker(sticker))
                 return

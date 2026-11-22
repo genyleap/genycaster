@@ -2661,6 +2661,106 @@ Company | https://company.com</source>
             <source>Embed</source>
             <translation>جاسازی</translation>
         </message>
+        <message id="genycaster.stickers.attribution">
+            <source>Credits</source>
+            <translation>اعتبار و سازنده</translation>
+        </message>
+        <message id="genycaster.stickers.back">
+            <source>Back</source>
+            <translation>بازگشت</translation>
+        </message>
+        <message id="genycaster.stickers.by_author">
+            <source>by %1</source>
+            <translation>از %1</translation>
+        </message>
+        <message id="genycaster.stickers.conflict">
+            <source>Your sticker packs changed on another device. Refresh and try again.</source>
+            <translation>بسته‌ها در دستگاه دیگری تغییر کرده‌اند؛ دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.stickers.count">
+            <source>%1 stickers</source>
+            <translation>%1 استیکر</translation>
+        </message>
+        <message id="genycaster.stickers.discover">
+            <source>Discover packs</source>
+            <translation>کاوش بسته‌ها</translation>
+        </message>
+        <message id="genycaster.stickers.empty_library">
+            <source>Your sticker collection is empty. Add a pack to get started.</source>
+            <translation>هنوز بسته‌ای ندارید. برای شروع یک بسته اضافه کنید.</translation>
+        </message>
+        <message id="genycaster.stickers.free">
+            <source>Free</source>
+            <translation>رایگان</translation>
+        </message>
+        <message id="genycaster.stickers.install_count">
+            <source>Add %1 Stickers</source>
+            <translation>افزودن %1 استیکر</translation>
+        </message>
+        <message id="genycaster.stickers.loading">
+            <source>Loading your sticker library…</source>
+            <translation>در حال دریافت مجموعهٔ استیکر…</translation>
+        </message>
+        <message id="genycaster.stickers.manage">
+            <source>Manage</source>
+            <translation>مدیریت</translation>
+        </message>
+        <message id="genycaster.stickers.my_packs">
+            <source>My stickers</source>
+            <translation>استیکرهای من</translation>
+        </message>
+        <message id="genycaster.stickers.pack_description">
+            <source>A collection of expressive stickers, reactions and internet culture.</source>
+            <translation>مجموعه‌ای از استیکرهای واکنشی و فرهنگ اینترنت.</translation>
+        </message>
+        <message id="genycaster.stickers.pro">
+            <source>Geny Pro</source>
+            <translation>جنی پرو</translation>
+        </message>
+        <message id="genycaster.stickers.pro_description">
+            <source>Premium reactions for Geny Pro members.</source>
+            <translation>واکنش‌های ویژه برای اعضای جنی پرو.</translation>
+        </message>
+        <message id="genycaster.stickers.pro_required">
+            <source>Geny Pro is required to add this pack.</source>
+            <translation>برای افزودن این بسته به جنی پرو نیاز دارید.</translation>
+        </message>
+        <message id="genycaster.stickers.remove_pack">
+            <source>Remove Pack</source>
+            <translation>حذف بسته</translation>
+        </message>
+        <message id="genycaster.stickers.save_failed">
+            <source>Could not save your sticker library.</source>
+            <translation>ذخیرهٔ بستهٔ استیکر ناموفق بود.</translation>
+        </message>
+        <message id="genycaster.stickers.signin">
+            <source>Sign in to add and sync sticker packs across your devices.</source>
+            <translation>برای افزودن و همگام‌سازی بسته‌ها در دستگاه‌های مختلف وارد حساب شوید.</translation>
+        </message>
+        <message id="genycaster.stickers.unavailable">
+            <source>Sticker library is temporarily unavailable. Try again.</source>
+            <translation>مجموعهٔ استیکر موقتاً در دسترس نیست؛ دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.stickers.unlock_pro">
+            <source>Unlock Geny Pro</source>
+            <translation>فعال‌سازی جنی پرو</translation>
+        </message>
+        <message id="genycaster.stickers.view_pack">
+            <source>View pack</source>
+            <translation>مشاهدهٔ بسته</translation>
+        </message>
+        <message id="genycaster.stickers.all">
+            <source>All</source>
+            <translation>همه</translation>
+        </message>
+        <message id="genycaster.stickers.favorites">
+            <source>Favorites</source>
+            <translation>علاقه‌مندی‌ها</translation>
+        </message>
+        <message id="genycaster.stickers.recent">
+            <source>Recent</source>
+            <translation>اخیر</translation>
+        </message>
         <message id="genycaster.stickers.title">
             <source>Stickers</source>
             <translation>استیکرها</translation>
@@ -2673,30 +2773,6 @@ Company | https://company.com</source>
             <source>Search stickers</source>
             <translation>جست‌وجوی استیکر</translation>
         </message>
-        <message id="genycaster.stickers.all">
-            <source>All</source>
-            <translation>همه</translation>
-        </message>
-        <message id="genycaster.stickers.originals">
-            <source>Njal's Pack</source>
-            <translation>بستهٔ نایل</translation>
-        </message>
-        <message id="genycaster.stickers.reactions">
-            <source>Reactions</source>
-            <translation>واکنش‌ها</translation>
-        </message>
-        <message id="genycaster.stickers.web3">
-            <source>Web3</source>
-            <translation>وب۳</translation>
-        </message>
-        <message id="genycaster.stickers.favorites">
-            <source>Favorites</source>
-            <translation>علاقه‌مندی‌ها</translation>
-        </message>
-        <message id="genycaster.stickers.recent">
-            <source>Recent</source>
-            <translation>اخیر</translation>
-        </message>
         <message id="genycaster.stickers.add">
             <source>Add sticker</source>
             <translation>افزودن استیکر</translation>
@@ -2708,10 +2784,6 @@ Company | https://company.com</source>
         <message id="genycaster.stickers.remove_favorite">
             <source>Remove from favorites</source>
             <translation>حذف از علاقه‌مندی‌ها</translation>
-        </message>
-        <message id="genycaster.stickers.empty">
-            <source>No stickers found</source>
-            <translation>استیکری پیدا نشد</translation>
         </message>
         <message id="genycaster.stickers.media_slot">
             <source>Stickers use one media slot in your cast.</source>

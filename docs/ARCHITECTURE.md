@@ -45,31 +45,53 @@ flowchart TB
 ### Curated third-party sticker links (V1)
 
 The sticker picker is one shared Qt/QML surface across desktop, Android and WebAssembly.
-Its auditable, pinned catalog in `ui/components/composer/StickerCatalog.js` references
-32 reviewed entries from [Njal's sticker pack](https://github.com/cryptonjal/njals-sticker-pack).
-The upstream [manifest](https://raw.githubusercontent.com/cryptonjal/njals-sticker-pack/refs/heads/main/njals-sticker-pack.json)
-describes 512×512 WebP images, source URLs, attribution and SHA-256 hashes. The
-`scripts/import_njal_stickers.py` command checks those fields and regenerates the catalog
-with `--apply`; it never downloads or embeds third-party artwork in this repository.
+It now has **My stickers**, **Discover** and a full-screen-width **pack detail** preview
+with a sticky install/remove action on every platform. Desktop is anchored to the
+actual toolbar button and clamped to the visible overlay; phones use a bottom sheet.
 
-**Licensing:** the upstream source does not currently declare a license for the artwork.
-GenyCaster credits Njal, hotlinks the original public IPFS image URLs without copying,
-editing, or hosting the third-party bytes, and makes no claim to license the artwork.
-Obtain explicit permission before bundling, mirroring, modifying or reselling these images.
-Remote image availability and external-network privacy follow the usual media policy.
+The immutable, pinned catalog in `ui/components/composer/StickerCatalog.js` holds
+**all 68** entries in [Njal's sticker pack](https://github.com/cryptonjal/njals-sticker-pack)
+as a public/free pack plus **8** licensed Twemoji reactions in a **Geny Pro** pack.
+The upstream [Njal manifest](https://raw.githubusercontent.com/cryptonjal/njals-sticker-pack/refs/heads/main/njals-sticker-pack.json)
+provides 512×512 WebP URLs and SHA-256. `scripts/import_njal_stickers.py` validates
+and regenerates the catalog with `--apply`. Njal's source does **not** declare
+a redistribution license: original IPFS URLs are hotlinked and attributed, not
+bundled, mirrored or resold.
 
-Choosing a sticker calls `richComposer.insertMedia()` with the reviewed remote URL,
-`image/webp` and the upstream alt text. The ordinary media quota, local draft history,
-and Farcaster-compatible protocol-embed publication route apply to both **Farcaster**
-and **HyperSnap**; no sticker-specific wire message or upload is introduced.
-Desktop visual editing, compact mobile editing and preview show transparent inline
-`StickerDraftTile` components, while the Feed recognizes pinned URLs and displays an
-uncropped, compact image. Photo uploads retain their existing preview and lifecycle.
+The Pro pack uses the [Twemoji 17.0.3](https://github.com/jdecked/twemoji)
+CC BY 4.0 graphics, transparently rasterized into the stable public
+`/stickers/twemoji-pro-v1/` directory by `scripts/publish_twemoji_pro_stickers.py`.
+Attribution, links to original artwork and the transformation are documented
+in `THIRD_PARTY_NOTICES.md`. URL availability is not itself a Pro entitlement.
 
-Local favorites and recent choices remain in bounded device settings. Previously published
-GenyCaster v1.0.0 sticker URLs remain recognized and the historic static files on
-`genycaster.xyz` remain available to avoid breaking existing Casts, but their low-quality
-artwork is no longer shipped or selectable.
+### Server-authoritative sticker library
+
+`GET|PUT /api/v1/cloud/sticker_packs` uses the existing verified account
+session/bearer and CSRF binding, not a user-supplied FID. The user installs or
+removes pack **IDs**; the selected catalog, images and premium flags are never
+accepted from the client. The existing GenyCaster account database stores the
+private list and its atomic compare-and-swap revision in a reserved,
+owner-scoped `notifications` singleton (kind `sticker_packs`), excluded from
+the normal notifications API. No database migration is required beyond the
+already-deployed account-schema v3. All devices reload the same canonical list.
+
+Only a currently verified Geny Pro subscription can add a Pro pack, enforced
+by the **server**. Once membership expires, its pack may remain in the private
+library but its stickers can no longer be selected until membership resumes;
+removal always remains possible. The Composer independently requires a
+server-confirmed install and a current verified Pro snapshot before insertion.
+Protocol embeds themselves remain publicly readable media URLs, not a DRM
+boundary. This is a pack-install entitlement, not cryptographic control over
+arbitrary third-party protocol clients.
+
+Choosing an installed sticker calls `richComposer.insertMedia()` using the
+catalog-derived `image/webp` or `image/png` URL and alt text. The existing
+media limit, draft and Farcaster-compatible protocol embed workflow apply to
+both Farcaster and HyperSnap. `StickerDraftTile` supplies transparent,
+uncropped previews in the editor, while Feed recognizes pinned URLs.
+Favorites and recents remain bounded **device-local** preferences, distinct
+from the cloud-synced pack library. Old `/stickers/v1.0.0/` URLs stay live for
+existing casts, but are no longer selectable.
 
 ## Contributor module view
 

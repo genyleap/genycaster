@@ -1735,6 +1735,150 @@ void OpenProofConnectionsController::fetchPublicActivitySource(qulonglong fid)
     });
 }
 
+// Private sticker library is canonical in the Genycaster account database.
+// Never treat QSettings, a remembered FID, or a local Pro label as an install.
+void OpenProofConnectionsController::fetchStickerPacks()
+{
+    if (!m_viewerFid || !cloudAuthorizationReady()
+        || !trustedHttpsEndpoint(m_cloudUrl) || m_stickerPacksWrite
+        || m_stickerPacksRead) return;
+    const auto now=QDateTime::currentMSecsSinceEpoch();
+    if (m_stickerPacksFetchedAt > 0 && now-m_stickerPacksFetchedAt
+        < (m_stickerPacksLoaded ? 30'000 : 8'000)) return;
+    m_stickerPacksFetchedAt=now;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/sticker_packs"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* const reply=m_network.get(request);
+    m_stickerPacksRead=reply;
+    emit stickerPacksChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if (m_stickerPacksRead!=reply) {reply->deleteLater();return;}
+        m_stickerPacksRead.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=4096?readOpenReply(reply):QByteArray{};
+        reply->deleteLater();
+        if (viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        const auto library=doc.object().value(QStringLiteral("library")).toObject();
+        const auto ids=library.value(QStringLiteral("pack_ids")).toArray();
+        const auto revision=library.value(QStringLiteral("revision")).toInteger(-1);
+        QStringList next{};
+        bool valid=status==200 && doc.isObject()
+            && library.value(QStringLiteral("pack_ids")).isArray()
+            && revision>=0 && ids.size()<=12;
+        for(const auto& value:ids) {
+            const auto id=value.toString();
+            if(!value.isString() || (id!=QStringLiteral("njal")
+                  && id!=QStringLiteral("twemoji-pro")) || next.contains(id)) {
+                valid=false;break;
+            }
+            next.push_back(id);
+        }
+        if(valid) {
+            m_stickerPackIds=std::move(next);
+            m_stickerPacksRevision=revision;
+            m_stickerPacksLoaded=true;
+            m_stickerPacksError.clear();
+        } else {
+            m_stickerPacksLoaded=false;
+            m_stickerPacksError=status==503
+                ?QStringLiteral("sticker_library_unavailable")
+                :QStringLiteral("sticker_library_load_failed");
+        }
+        emit stickerPacksChanged();
+    });
+}
+
+void OpenProofConnectionsController::setStickerPackInstalled(
+    const QString& id,const bool installed)
+{
+    if ((id!=QStringLiteral("njal") && id!=QStringLiteral("twemoji-pro"))
+        || !m_viewerFid || !cloudAuthorizationReady()
+        || !trustedHttpsEndpoint(m_cloudUrl) || !m_stickerPacksLoaded
+        || m_stickerPacksRead || m_stickerPacksWrite) return;
+    const bool already=m_stickerPackIds.contains(id);
+    if(already==installed)return;
+    // Also enforced by the server, using the current verified subscription.
+    if(installed && id==QStringLiteral("twemoji-pro")) {
+        const auto pro=proEntitlements();
+        if(pro.value(QStringLiteral("status")).toString()!=QStringLiteral("verified")
+           || pro.value(QStringLiteral("eligible")).toBool()!=true) {
+            m_stickerPacksError=QStringLiteral("geny_pro_required");
+            emit stickerPacksChanged();
+            fetchProEntitlements(true);
+            return;
+        }
+    }
+    QStringList next=m_stickerPackIds;
+    if(installed)next.push_back(id);
+    else next.removeAll(id);
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/sticker_packs"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(10'000);
+    request.setRawHeader("Accept","application/json");
+    request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+    authorizeCloudRequest(request);
+    const auto payload=QJsonDocument{QJsonObject{
+        {QStringLiteral("pack_ids"),QJsonArray::fromStringList(next)},
+        {QStringLiteral("revision"),m_stickerPacksRevision}
+    }}.toJson(QJsonDocument::Compact);
+    auto* const reply=m_network.put(request,payload);
+    m_stickerPacksWrite=reply;
+    m_stickerPacksError.clear();
+    emit stickerPacksChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if(m_stickerPacksWrite!=reply){reply->deleteLater();return;}
+        m_stickerPacksWrite.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=4096?readOpenReply(reply):QByteArray{};
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        const auto library=doc.object().value(QStringLiteral("library")).toObject();
+        const auto ids=library.value(QStringLiteral("pack_ids")).toArray();
+        const auto revision=library.value(QStringLiteral("revision")).toInteger(-1);
+        bool valid=status==200 && library.value(QStringLiteral("pack_ids")).isArray()
+            && revision>=0 && ids.size()<=12;
+        QStringList confirmed{};
+        for(const auto& value:ids) {
+            const auto id=value.toString();
+            if(!value.isString() || (id!=QStringLiteral("njal")
+                && id!=QStringLiteral("twemoji-pro")) || confirmed.contains(id)) {
+                valid=false;break;
+            }
+            confirmed.push_back(id);
+        }
+        if(valid) {
+            m_stickerPackIds=std::move(confirmed);
+            m_stickerPacksRevision=revision;
+            m_stickerPacksLoaded=true;
+            m_stickerPacksFetchedAt=QDateTime::currentMSecsSinceEpoch();
+            m_stickerPacksError.clear();
+        } else {
+            m_stickerPacksError=status==403?QStringLiteral("geny_pro_required")
+                :status==409?QStringLiteral("sticker_library_conflict")
+                :QStringLiteral("sticker_library_save_failed");
+            m_stickerPacksLoaded=false;
+            m_stickerPacksFetchedAt=0;
+            fetchStickerPacks(); // Reconcile server revision; never claim success locally.
+        }
+        emit stickerPacksChanged();
+    });
+}
+
 // Account-owned mute policy: no Farcaster protocol messages or wallet
 // signatures are issued here. It is private to the verified OpenProof FID.
 void OpenProofConnectionsController::fetchMutedProfiles()
@@ -4294,6 +4438,14 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_publicActivityGithubLogin.clear();
     cancelNetworkReply(m_streakPreferencesRead, this);
     cancelNetworkReply(m_streakPreferencesWrite, this);
+    cancelNetworkReply(m_stickerPacksRead, this);
+    cancelNetworkReply(m_stickerPacksWrite, this);
+    m_stickerPackIds.clear();
+    m_stickerPacksRevision=0;
+    m_stickerPacksFetchedAt=0;
+    m_stickerPacksLoaded=false;
+    m_stickerPacksError.clear();
+    emit stickerPacksChanged();
     cancelNetworkReply(m_mutedProfilesRead, this);
     cancelNetworkReply(m_mutedProfilesWrite, this);
     cancelNetworkReply(m_buzzPreferenceRead, this);

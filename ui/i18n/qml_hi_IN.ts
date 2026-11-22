@@ -2660,6 +2660,106 @@ Company | https://company.com</source>
             <source>Embed</source>
             <translation>एम्बेड</translation>
         </message>
+        <message id="genycaster.stickers.attribution">
+            <source>Credits</source>
+            <translation>श्रेय</translation>
+        </message>
+        <message id="genycaster.stickers.back">
+            <source>Back</source>
+            <translation>वापस</translation>
+        </message>
+        <message id="genycaster.stickers.by_author">
+            <source>by %1</source>
+            <translation>%1 द्वारा</translation>
+        </message>
+        <message id="genycaster.stickers.conflict">
+            <source>Your sticker packs changed on another device. Refresh and try again.</source>
+            <translation>आपके पैक दूसरे डिवाइस पर बदले हैं। फिर कोशिश करें।</translation>
+        </message>
+        <message id="genycaster.stickers.count">
+            <source>%1 stickers</source>
+            <translation>%1 स्टिकर</translation>
+        </message>
+        <message id="genycaster.stickers.discover">
+            <source>Discover packs</source>
+            <translation>पैक खोजें</translation>
+        </message>
+        <message id="genycaster.stickers.empty_library">
+            <source>Your sticker collection is empty. Add a pack to get started.</source>
+            <translation>आपका संग्रह खाली है। कोई पैक जोड़ें।</translation>
+        </message>
+        <message id="genycaster.stickers.free">
+            <source>Free</source>
+            <translation>मुफ़्त</translation>
+        </message>
+        <message id="genycaster.stickers.install_count">
+            <source>Add %1 Stickers</source>
+            <translation>%1 स्टिकर जोड़ें</translation>
+        </message>
+        <message id="genycaster.stickers.loading">
+            <source>Loading your sticker library…</source>
+            <translation>स्टिकर लोड हो रहे हैं…</translation>
+        </message>
+        <message id="genycaster.stickers.manage">
+            <source>Manage</source>
+            <translation>प्रबंधित करें</translation>
+        </message>
+        <message id="genycaster.stickers.my_packs">
+            <source>My stickers</source>
+            <translation>मेरे स्टिकर</translation>
+        </message>
+        <message id="genycaster.stickers.pack_description">
+            <source>A collection of expressive stickers, reactions and internet culture.</source>
+            <translation>अभिव्यक्तियों और प्रतिक्रियाओं का संग्रह।</translation>
+        </message>
+        <message id="genycaster.stickers.pro">
+            <source>Geny Pro</source>
+            <translation>प्रो सदस्यता</translation>
+        </message>
+        <message id="genycaster.stickers.pro_description">
+            <source>Premium reactions for Geny Pro members.</source>
+            <translation>Geny Pro सदस्यों के लिए विशेष प्रतिक्रियाएँ।</translation>
+        </message>
+        <message id="genycaster.stickers.pro_required">
+            <source>Geny Pro is required to add this pack.</source>
+            <translation>यह पैक जोड़ने के लिए Geny Pro चाहिए।</translation>
+        </message>
+        <message id="genycaster.stickers.remove_pack">
+            <source>Remove Pack</source>
+            <translation>पैक हटाएँ</translation>
+        </message>
+        <message id="genycaster.stickers.save_failed">
+            <source>Could not save your sticker library.</source>
+            <translation>स्टिकर संग्रह सहेजा नहीं जा सका।</translation>
+        </message>
+        <message id="genycaster.stickers.signin">
+            <source>Sign in to add and sync sticker packs across your devices.</source>
+            <translation>सभी उपकरणों में सिंक करने के लिए साइन इन करें।</translation>
+        </message>
+        <message id="genycaster.stickers.unavailable">
+            <source>Sticker library is temporarily unavailable. Try again.</source>
+            <translation>स्टिकर संग्रह अस्थायी रूप से उपलब्ध नहीं है।</translation>
+        </message>
+        <message id="genycaster.stickers.unlock_pro">
+            <source>Unlock Geny Pro</source>
+            <translation>Geny Pro अनलॉक करें</translation>
+        </message>
+        <message id="genycaster.stickers.view_pack">
+            <source>View pack</source>
+            <translation>पैक देखें</translation>
+        </message>
+        <message id="genycaster.stickers.all">
+            <source>All</source>
+            <translation>सभी</translation>
+        </message>
+        <message id="genycaster.stickers.favorites">
+            <source>Favorites</source>
+            <translation>पसंदीदा</translation>
+        </message>
+        <message id="genycaster.stickers.recent">
+            <source>Recent</source>
+            <translation>हाल में</translation>
+        </message>
         <message id="genycaster.stickers.title">
             <source>Stickers</source>
             <translation>स्टिकर</translation>
@@ -2672,30 +2772,6 @@ Company | https://company.com</source>
             <source>Search stickers</source>
             <translation>स्टिकर खोजें</translation>
         </message>
-        <message id="genycaster.stickers.all">
-            <source>All</source>
-            <translation>सभी</translation>
-        </message>
-        <message id="genycaster.stickers.originals">
-            <source>Njal's Pack</source>
-            <translation>न्याल का पैक</translation>
-        </message>
-        <message id="genycaster.stickers.reactions">
-            <source>Reactions</source>
-            <translation>प्रतिक्रियाएँ</translation>
-        </message>
-        <message id="genycaster.stickers.web3">
-            <source>Web3</source>
-            <translation>वेब3</translation>
-        </message>
-        <message id="genycaster.stickers.favorites">
-            <source>Favorites</source>
-            <translation>पसंदीदा</translation>
-        </message>
-        <message id="genycaster.stickers.recent">
-            <source>Recent</source>
-            <translation>हाल में</translation>
-        </message>
         <message id="genycaster.stickers.add">
             <source>Add sticker</source>
             <translation>स्टिकर जोड़ें</translation>
@@ -2707,10 +2783,6 @@ Company | https://company.com</source>
         <message id="genycaster.stickers.remove_favorite">
             <source>Remove from favorites</source>
             <translation>पसंदीदा से हटाएँ</translation>
-        </message>
-        <message id="genycaster.stickers.empty">
-            <source>No stickers found</source>
-            <translation>कोई स्टिकर नहीं मिला</translation>
         </message>
         <message id="genycaster.stickers.media_slot">
             <source>Stickers use one media slot in your cast.</source>

@@ -2660,6 +2660,106 @@ Company | https://company.com</source>
             <source>Embed</source>
             <translation>Einbetten</translation>
         </message>
+        <message id="genycaster.stickers.attribution">
+            <source>Credits</source>
+            <translation>Quellen</translation>
+        </message>
+        <message id="genycaster.stickers.back">
+            <source>Back</source>
+            <translation>Zurück</translation>
+        </message>
+        <message id="genycaster.stickers.by_author">
+            <source>by %1</source>
+            <translation>von %1</translation>
+        </message>
+        <message id="genycaster.stickers.conflict">
+            <source>Your sticker packs changed on another device. Refresh and try again.</source>
+            <translation>Deine Stickerpakete wurden auf einem anderen Gerät geändert.</translation>
+        </message>
+        <message id="genycaster.stickers.count">
+            <source>%1 stickers</source>
+            <translation>%1 Sticker</translation>
+        </message>
+        <message id="genycaster.stickers.discover">
+            <source>Discover packs</source>
+            <translation>Pakete entdecken</translation>
+        </message>
+        <message id="genycaster.stickers.empty_library">
+            <source>Your sticker collection is empty. Add a pack to get started.</source>
+            <translation>Deine Sammlung ist leer. Füge ein Paket hinzu.</translation>
+        </message>
+        <message id="genycaster.stickers.free">
+            <source>Free</source>
+            <translation>Kostenlos</translation>
+        </message>
+        <message id="genycaster.stickers.install_count">
+            <source>Add %1 Stickers</source>
+            <translation>%1 Sticker hinzufügen</translation>
+        </message>
+        <message id="genycaster.stickers.loading">
+            <source>Loading your sticker library…</source>
+            <translation>Sticker werden geladen…</translation>
+        </message>
+        <message id="genycaster.stickers.manage">
+            <source>Manage</source>
+            <translation>Verwalten</translation>
+        </message>
+        <message id="genycaster.stickers.my_packs">
+            <source>My stickers</source>
+            <translation>Meine Sticker</translation>
+        </message>
+        <message id="genycaster.stickers.pack_description">
+            <source>A collection of expressive stickers, reactions and internet culture.</source>
+            <translation>Ausdrucksstarke Sticker, Reaktionen und Internetkultur.</translation>
+        </message>
+        <message id="genycaster.stickers.pro">
+            <source>Geny Pro</source>
+            <translation>Pro-Mitgliedschaft</translation>
+        </message>
+        <message id="genycaster.stickers.pro_description">
+            <source>Premium reactions for Geny Pro members.</source>
+            <translation>Exklusive Reaktionen für Geny Pro.</translation>
+        </message>
+        <message id="genycaster.stickers.pro_required">
+            <source>Geny Pro is required to add this pack.</source>
+            <translation>Für dieses Paket ist Geny Pro erforderlich.</translation>
+        </message>
+        <message id="genycaster.stickers.remove_pack">
+            <source>Remove Pack</source>
+            <translation>Paket entfernen</translation>
+        </message>
+        <message id="genycaster.stickers.save_failed">
+            <source>Could not save your sticker library.</source>
+            <translation>Sticker konnten nicht gespeichert werden.</translation>
+        </message>
+        <message id="genycaster.stickers.signin">
+            <source>Sign in to add and sync sticker packs across your devices.</source>
+            <translation>Melde dich an, um Pakete geräteübergreifend zu synchronisieren.</translation>
+        </message>
+        <message id="genycaster.stickers.unavailable">
+            <source>Sticker library is temporarily unavailable. Try again.</source>
+            <translation>Stickerpakete sind vorübergehend nicht verfügbar.</translation>
+        </message>
+        <message id="genycaster.stickers.unlock_pro">
+            <source>Unlock Geny Pro</source>
+            <translation>Geny Pro freischalten</translation>
+        </message>
+        <message id="genycaster.stickers.view_pack">
+            <source>View pack</source>
+            <translation>Paket ansehen</translation>
+        </message>
+        <message id="genycaster.stickers.all">
+            <source>All</source>
+            <translation>Alle</translation>
+        </message>
+        <message id="genycaster.stickers.favorites">
+            <source>Favorites</source>
+            <translation>Favoriten</translation>
+        </message>
+        <message id="genycaster.stickers.recent">
+            <source>Recent</source>
+            <translation>Zuletzt</translation>
+        </message>
         <message id="genycaster.stickers.title">
             <source>Stickers</source>
             <translation>Sticker</translation>
@@ -2672,30 +2772,6 @@ Company | https://company.com</source>
             <source>Search stickers</source>
             <translation>Sticker suchen</translation>
         </message>
-        <message id="genycaster.stickers.all">
-            <source>All</source>
-            <translation>Alle</translation>
-        </message>
-        <message id="genycaster.stickers.originals">
-            <source>Njal's Pack</source>
-            <translation>Njals Paket</translation>
-        </message>
-        <message id="genycaster.stickers.reactions">
-            <source>Reactions</source>
-            <translation>Reaktionen</translation>
-        </message>
-        <message id="genycaster.stickers.web3">
-            <source>Web3</source>
-            <translation>Web3-Kultur</translation>
-        </message>
-        <message id="genycaster.stickers.favorites">
-            <source>Favorites</source>
-            <translation>Favoriten</translation>
-        </message>
-        <message id="genycaster.stickers.recent">
-            <source>Recent</source>
-            <translation>Zuletzt</translation>
-        </message>
         <message id="genycaster.stickers.add">
             <source>Add sticker</source>
             <translation>Sticker hinzufügen</translation>
@@ -2707,10 +2783,6 @@ Company | https://company.com</source>
         <message id="genycaster.stickers.remove_favorite">
             <source>Remove from favorites</source>
             <translation>Aus Favoriten entfernen</translation>
-        </message>
-        <message id="genycaster.stickers.empty">
-            <source>No stickers found</source>
-            <translation>Keine Sticker gefunden</translation>
         </message>
         <message id="genycaster.stickers.media_slot">
             <source>Stickers use one media slot in your cast.</source>
