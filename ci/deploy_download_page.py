@@ -71,7 +71,7 @@ def check() -> str:
     html = (SOURCE / "index.html").read_text(encoding="utf-8")
     js = (SOURCE / "download.js").read_text(encoding="utf-8")
     if ('id="download-primary"' not in html or
-            "/download/download.css?v=3" not in html or
+            "/download/download.css?v=4" not in html or
             'fetch("/releases/native.json"' not in js or
             "verifiedRecord(" not in js):
         raise RuntimeError("Missing verified native installer UX")
@@ -104,8 +104,8 @@ def write_atomic(path: Path, payload: bytes) -> None:
 def verify_https() -> None:
     for filename, marker in (
         ("/download", 'id="download-primary"'),
-        ("/download/download.js?v=3", "verifiedRecord("),
-        ("/download/download.css?v=3", "corner-shape:superellipse(4)"),
+        ("/download/download.js?v=4", "verifiedRecord("),
+        ("/download/download.css?v=4", "corner-shape:superellipse(4)"),
     ):
         response = run(
             "curl", "--fail", "--silent", "--show-error", "--max-time", "14",
@@ -143,13 +143,14 @@ def deploy_legacy_route() -> None:
     if historic.is_symlink() or not historic.is_file():
         raise RuntimeError("Historic /about landing unavailable")
     before = historic.read_text(encoding="utf-8")
-    script_tag = '<script src="/download/about-forward.js?v=3"></script>'
+    script_tag = '<script src="/download/about-forward.js?v=4"></script>'
     legacy_tag = '<script src="/download/about-forward.js?v=1" defer></script>'
     prior_tag = '<script src="/download/about-forward.js?v=2"></script>'
+    recent_tag = '<script src="/download/about-forward.js?v=3"></script>'
     marker = '<meta charset="utf-8">'
     if before.count(marker) != 1 or before.count("</head>") != 1:
         raise RuntimeError("Historic landing HTML layout has changed")
-    after = before.replace(legacy_tag, "").replace(prior_tag, "")
+    after = before.replace(legacy_tag, "").replace(prior_tag, "").replace(recent_tag, "")
     if script_tag not in after:
         # This MUST block parsing in <head>, ahead of all visual resources.
         # Defer/async here reintroduces a visible flash of the About page.
@@ -174,9 +175,9 @@ def deploy_legacy_route() -> None:
             changed.append((historic, original))
         for route, marker in (
             ("/download/index.html", 'id="download-primary"'),
-            ("/download/download.js?v=3", "verifiedRecord("),
-            ("/download/download.css?v=3", "corner-shape:superellipse(4)"),
-            ("/download/about-forward.js?v=3", "mountDownload"),
+            ("/download/download.js?v=4", "verifiedRecord("),
+            ("/download/download.css?v=4", "corner-shape:superellipse(4)"),
+            ("/download/about-forward.js?v=4", "mountDownload"),
             ("/about/", script_tag),
         ):
             response = run("curl", "--fail", "--silent", "--show-error",

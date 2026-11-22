@@ -30,11 +30,11 @@ test('guest Explore retains its account header without recurring native app prom
 test('welcome places a secondary download button beside Get Started in the same action row', () => {
     assert.match(setup,/readonly property bool welcomeNativeAppsVisible:/);
     assert.match(setup,/Qt\.platform\.os === "wasm"/);
-    assert.match(setup,/currentStep === 0 && !authenticated && !reviewMode/);
+    assert.match(setup,/currentStep === 0 && !reviewMode/);
     assert.match(setup,/objectName: "setupStageAction"/);
     assert.match(setup,/objectName: "setupWelcomeNativeApps"/);
-    assert.match(setup,/anchors\.bottom: stageAction\.bottom/);
-    assert.match(setup,/x: Theme\.rtl \? stageAction\.x - Theme\.space2 - width/);
+    assert.match(setup,/x: root\.phone \? \(setupFooterContent\.width - width\) \/ 2/);
+    assert.match(setup,/stageAction\.x - Theme\.space2 - width/);
     assert.match(setup,/height: stageAction\.height/);
     assert.match(setup,/wrapText: true/);
     assert.match(setup,/iconGlyph: Theme\.iconDownload/);

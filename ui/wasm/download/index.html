@@ -30,8 +30,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="robots" content="index,follow">
   <link rel="icon" href="/genycaster-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/download/download.css?v=3">
-  <script src="/download/download.js?v=3" defer></script>
+  <link rel="stylesheet" href="/download/download.css?v=4">
+  <script src="/download/download.js?v=4" defer></script>
   <title>Download GenyCaster — Windows, macOS, Linux &amp; Android</title>
 </head>
 <body>
@@ -64,18 +64,18 @@
           <div class="detected" id="detected" hidden><span class="detected-icon">✓</span><span id="detected-text"></span></div>
         </div>
         <div class="platform-list" role="group" aria-label="Choose operating system" id="platform-list">
-          <button class="platform" type="button" data-platform="windows" aria-pressed="false"><img src="/assets/platforms/windows.svg?v=1" alt=""><span class="platform-copy">Windows<small class="platform-version" data-version>Checking…</small></span></button>
-          <button class="platform" type="button" data-platform="macos" aria-pressed="false"><img src="/assets/platforms/macos.svg?v=1" alt=""><span class="platform-copy">macOS<small class="platform-version" data-version>Checking…</small></span></button>
-          <button class="platform" type="button" data-platform="linux" aria-pressed="false"><img src="/assets/platforms/linux.svg?v=1" alt=""><span class="platform-copy">Linux<small class="platform-version" data-version>Checking…</small></span></button>
-          <button class="platform" type="button" data-platform="android" aria-pressed="false"><img src="/assets/platforms/android.svg?v=1" alt=""><span class="platform-copy">Android<small class="platform-version" data-version>Checking…</small></span></button>
-          <button class="platform" type="button" data-platform="ios" aria-pressed="false"><img src="/assets/platforms/ios.svg?v=1" alt=""><span class="platform-copy">iOS<small class="platform-version">Not released</small></span></button>
+          <button class="platform" type="button" data-platform="windows" aria-pressed="false"><span class="platform-symbol" aria-hidden="true"></span><span class="platform-copy">Windows<small class="platform-version" data-version>Checking…</small></span></button>
+          <button class="platform" type="button" data-platform="macos" aria-pressed="false"><span class="platform-symbol" aria-hidden="true"></span><span class="platform-copy">macOS<small class="platform-version" data-version>Checking…</small></span></button>
+          <button class="platform" type="button" data-platform="linux" aria-pressed="false"><span class="platform-symbol" aria-hidden="true"></span><span class="platform-copy">Linux<small class="platform-version" data-version>Checking…</small></span></button>
+          <button class="platform" type="button" data-platform="android" aria-pressed="false"><span class="platform-symbol" aria-hidden="true"></span><span class="platform-copy">Android<small class="platform-version" data-version>Checking…</small></span></button>
+          <button class="platform" type="button" data-platform="ios" aria-pressed="false"><span class="platform-symbol" aria-hidden="true"></span><span class="platform-copy">iOS<small class="platform-version">Not released</small></span></button>
         </div>
 
         <div class="download-panel">
           <div class="selection">
             <div class="release-overline"><span class="release-bullet" id="release-bullet"></span><span id="release-label">Checking release</span><span class="release-number" id="release-number">v1.0.0 · Beta</span></div>
             <div class="selected-platform">
-              <div class="selected-logo"><img src="/assets/platforms/windows.svg?v=1" alt="" id="selected-icon"></div>
+              <div class="selected-logo"><span class="platform-symbol" aria-hidden="true" id="selected-icon" data-platform="windows"></span></div>
               <div><p class="subtle">SELECTED PLATFORM</p><div class="selected-heading"><h3 id="selected-name">Windows</h3><span id="selected-version" class="selected-version">v1.0.0</span></div></div>
             </div>
             <p class="selection-description" id="selected-description"></p>

@@ -99,7 +99,17 @@ test('dedicated canonical page is compact, English-only, and uses native geometr
   assert.doesNotMatch(html,/hero-orbit|hero-art|orbit-pip/);
   assert.match(html,/class="platform-version" data-version/);
   assert.match(html,/id="selected-version"/);
-  assert.match(html,/src="\/download\/download\.js\?v=3"/);
+  for (const os of ['windows','macos','linux','android','ios']) {
+    assert.ok(html.includes('data-platform="'+os+'"'),os+' selector');
+    assert.ok(css.includes('data-platform="'+os+'"'),os+' mask');
+  }
+  assert.ok(css.includes('background-color:var(--ink)'));
+  assert.ok(css.includes('mask:var(--platform-icon)'));
+  assert.ok(css.includes('-webkit-mask:var(--platform-icon)'));
+  assert.ok(css.includes('.platform[aria-pressed="true"] .platform-symbol {background-color:var(--accent)'));
+  assert.ok(!html.includes('<img src="/assets/platforms/'));
+  assert.ok(script.includes('$("selected-icon").dataset.platform = platform'));
+  assert.match(html,/src="\/download\/download\.js\?v=4"/);
   assert.match(script,/history\.replaceState\(history\.state/);
   assert.match(html,/https:\/\/github.com\/genyleap\/genycaster\/releases\/download\/v1.0.0\/SHA256SUMS/);
   assert.match(css,/@media\(max-width:690px\)/);
@@ -205,7 +215,7 @@ test('download palette matches Theme.qml built-in Geny day and night colors',()=
     assert.ok(theme.includes(token+': "'+value+'"'),token+' changed upstream');
     assert.ok(css.includes(variable+':'+value+';'),variable+' does not match '+token);
   }
-  assert.match(html,/download\.css\?v=3/);
+  assert.match(html,/download\.css\?v=4/);
 });
 
 test('download page always presents the canonical clean URL without index.html', async()=>{
@@ -258,8 +268,8 @@ test('legacy redirect mounts download without painting About or navigating again
     documentElement:{lang:'en'},
     getElementById(id){return ['download-primary','platform-list'].includes(id)?{}:null;},
     querySelector(selector){
-      if(selector==='link[rel="stylesheet"]')return {getAttribute:()=>'/download/download.css?v=3'};
-      if(selector.startsWith('script['))return {getAttribute:()=>'/download/download.js?v=3'};
+      if(selector==='link[rel="stylesheet"]')return {getAttribute:()=>'/download/download.css?v=4'};
+      if(selector.startsWith('script['))return {getAttribute:()=>'/download/download.js?v=4'};
       return null;
     }
   };
@@ -297,7 +307,7 @@ test('legacy redirect mounts download without painting About or navigating again
 
 test('legacy bootstrap loads in head before About scripts and never defers',()=>{
   const deploy=read('ci/deploy_download_page.py');
-  assert.match(deploy,/script_tag = '<script src="\/download\/about-forward\.js\?v=3"><\/script>'/);
+  assert.match(deploy,/script_tag = '<script src="\/download\/about-forward\.js\?v=4"><\/script>'/);
   assert.match(deploy,/after = after\.replace\(marker, marker \+ chr\(10\)/);
   assert.match(deploy,/before\.replace\(legacy_tag, ""\)\.replace\(prior_tag, ""\)/);
 });

@@ -66,7 +66,7 @@ class SocialPreviewTests(unittest.TestCase):
                          ["https://genycaster.xyz/download"])
         self.assertEqual(parsed.metatags.get("og:image"),
                          [META["downloads"]["image"]])
-        self.assertIn('/download/about-forward.js?v=3', html)
+        self.assertIn('/download/about-forward.js?v=4', html)
 
     def test_fallback_index_has_current_home_preview(self):
         # A second public HTML document previously retained the 2025-style

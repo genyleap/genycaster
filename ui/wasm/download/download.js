@@ -104,7 +104,8 @@
         available ? "v" + available.version : "Not available";
     });
     $("selected-name").textContent = info.name;
-    $("selected-icon").src = "/assets/platforms/" + platform + ".svg?v=1";
+    // CSS SVG mask picks the platform silhouette while theme tokens own its color.
+    $("selected-icon").dataset.platform = platform;
     $("selected-description").textContent = dict(info.desc);
     const auto = Boolean(detected);
     $("detected").hidden = !auto;

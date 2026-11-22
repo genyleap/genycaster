@@ -300,8 +300,12 @@ Item {
     readonly property int setupGutter: phone ? 24 : Theme.scaleUi(32)
     // A compact secondary choice accompanies Get Started in the Web welcome
     // step. Do not repeat download promotions during custody or recovery.
+    // Offer the native edition selector on the actual welcome stage even
+    // when an account has been restored but setup remains unfinished.
+    // Requiring !authenticated hid this action for partially-onboarded
+    // browser sessions, leaving only Get Started in the fixed footer.
     readonly property bool welcomeNativeAppsVisible: Qt.platform.os === "wasm"
-        && currentStep === 0 && !authenticated && !reviewMode
+        && currentStep === 0 && !reviewMode
     readonly property real welcomeActionsWidth: Math.max(0, Math.min(
         root.phone ? root.width - root.setupGutter * 2 : stagePanel.width,
         root.phone ? 440 : 560))
