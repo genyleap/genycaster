@@ -2660,6 +2660,66 @@ Company | https://company.com</source>
             <source>Embed</source>
             <translation>एम्बेड</translation>
         </message>
+        <message id="genycaster.stickers.title">
+            <source>Stickers</source>
+            <translation>स्टिकर</translation>
+        </message>
+        <message id="genycaster.stickers.subtitle">
+            <source>Add a sticker to your cast</source>
+            <translation>अपनी पोस्ट में स्टिकर जोड़ें</translation>
+        </message>
+        <message id="genycaster.stickers.search">
+            <source>Search stickers</source>
+            <translation>स्टिकर खोजें</translation>
+        </message>
+        <message id="genycaster.stickers.all">
+            <source>All</source>
+            <translation>सभी</translation>
+        </message>
+        <message id="genycaster.stickers.originals">
+            <source>Originals</source>
+            <translation>मूल</translation>
+        </message>
+        <message id="genycaster.stickers.reactions">
+            <source>Reactions</source>
+            <translation>प्रतिक्रियाएँ</translation>
+        </message>
+        <message id="genycaster.stickers.web3">
+            <source>Web3</source>
+            <translation>वेब3</translation>
+        </message>
+        <message id="genycaster.stickers.favorites">
+            <source>Favorites</source>
+            <translation>पसंदीदा</translation>
+        </message>
+        <message id="genycaster.stickers.recent">
+            <source>Recent</source>
+            <translation>हाल में</translation>
+        </message>
+        <message id="genycaster.stickers.add">
+            <source>Add sticker</source>
+            <translation>स्टिकर जोड़ें</translation>
+        </message>
+        <message id="genycaster.stickers.add_favorite">
+            <source>Add to favorites</source>
+            <translation>पसंदीदा में जोड़ें</translation>
+        </message>
+        <message id="genycaster.stickers.remove_favorite">
+            <source>Remove from favorites</source>
+            <translation>पसंदीदा से हटाएँ</translation>
+        </message>
+        <message id="genycaster.stickers.empty">
+            <source>No stickers found</source>
+            <translation>कोई स्टिकर नहीं मिला</translation>
+        </message>
+        <message id="genycaster.stickers.media_slot">
+            <source>Stickers use one media slot in your cast.</source>
+            <translation>हर स्टिकर पोस्ट में एक मीडिया स्थान लेता है।</translation>
+        </message>
+        <message id="genycaster.stickers.limit">
+            <source>Media limit reached. Remove an attachment to add a sticker.</source>
+            <translation>मीडिया सीमा पूरी हो गई है। स्टिकर जोड़ने के लिए एक अटैचमेंट हटाएँ।</translation>
+        </message>
         <message id="genycaster.composer.emoji">
             <source>Emoji</source>
             <translation>इमोजी</translation>

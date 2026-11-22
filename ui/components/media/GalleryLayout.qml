@@ -27,6 +27,9 @@ Item {
                                          && Boolean(root.scrollHost.moving)
     readonly property int itemCount: root.embeds ? root.embeds.length : 0
     readonly property int visibleCount: Math.min(root.itemCount, 6)
+    readonly property bool singleSticker: root.visibleCount === 1
+        && /^https:\/\/genycaster\.xyz\/stickers\/v1\.0\.0\/[a-z0-9_-]+\.png$/.test(
+            root.mediaKey(0))
     // Use the enclosing feed's reactive mobile classification, not the
     // narrow width of an ordinary desktop Magazine column. The parent
     // supplies AppShell's compact state; attached Window.width is not
@@ -40,7 +43,7 @@ Item {
     readonly property real gap: Theme.space2
     readonly property var layoutPlan: root.buildLayout(Math.max(1, root.width))
     readonly property real planHeight: root.layoutHeight(root.layoutPlan)
-    readonly property real shadowTail: root.visibleCount > 0
+    readonly property real shadowTail: root.singleSticker ? 0 : root.visibleCount > 0
                                        ? (root.visibleCount === 1
                                           ? (root.compact ? Theme.space2 : Theme.space5)
                                           : Theme.space2) : 0
@@ -203,6 +206,15 @@ Item {
         const minimumTileHeight = root.compact ? 118 : 138
         const maximumTileHeight = root.compact ? 350 : 470
 
+        if (root.singleSticker) {
+            // Transparent sticker, not an editorial photo card: preserve its
+            // natural square silhouette and bound feed height across layouts.
+            const stickerWidth = Math.min(availableWidth, root.compact ? 192 : 224)
+            plan.push({x: Math.round((availableWidth-stickerWidth)/2),
+                       y: 0, width: stickerWidth, height: stickerWidth})
+            return plan
+        }
+
         if (root.visibleCount === 1) {
             const outerWidth = availableWidth
             const contentWidth = Math.min(outerWidth, root.compact ? outerWidth : 860)
@@ -333,7 +345,7 @@ Item {
             // subtree is incubated across frames instead.
             Rectangle {
                 anchors.fill: parent
-                color: Theme.surface
+                color: root.singleSticker ? "transparent" : Theme.surface
                 visible: tileLoader.status !== Loader.Ready
             }
 
@@ -362,7 +374,8 @@ Item {
                         cornerCoverColor: root.cornerCoverColor
                         // A full-width, aspect-correct Magazine photo does not
                         // need an additional blurred GPU render pass.
-                        ambientEnabled: root.visibleCount === 1 && !root.dynamicAspectDiscovery
+                        ambientEnabled: !root.singleSticker
+                                        && root.visibleCount === 1 && !root.dynamicAspectDiscovery
                         loadDelayMs: tileSlot.index * 48
                         continuationText: tileSlot.index === root.visibleCount - 1
                                           && root.itemCount > root.visibleCount

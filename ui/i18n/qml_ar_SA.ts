@@ -2660,6 +2660,66 @@ Company | https://company.com</source>
             <source>Embed</source>
             <translation>تضمين</translation>
         </message>
+        <message id="genycaster.stickers.title">
+            <source>Stickers</source>
+            <translation>ملصقات</translation>
+        </message>
+        <message id="genycaster.stickers.subtitle">
+            <source>Add a sticker to your cast</source>
+            <translation>أضف ملصقًا إلى منشورك</translation>
+        </message>
+        <message id="genycaster.stickers.search">
+            <source>Search stickers</source>
+            <translation>بحث عن ملصقات</translation>
+        </message>
+        <message id="genycaster.stickers.all">
+            <source>All</source>
+            <translation>الكل</translation>
+        </message>
+        <message id="genycaster.stickers.originals">
+            <source>Originals</source>
+            <translation>الأصلية</translation>
+        </message>
+        <message id="genycaster.stickers.reactions">
+            <source>Reactions</source>
+            <translation>التفاعلات</translation>
+        </message>
+        <message id="genycaster.stickers.web3">
+            <source>Web3</source>
+            <translation>ويب 3</translation>
+        </message>
+        <message id="genycaster.stickers.favorites">
+            <source>Favorites</source>
+            <translation>المفضلة</translation>
+        </message>
+        <message id="genycaster.stickers.recent">
+            <source>Recent</source>
+            <translation>الأخيرة</translation>
+        </message>
+        <message id="genycaster.stickers.add">
+            <source>Add sticker</source>
+            <translation>إضافة ملصق</translation>
+        </message>
+        <message id="genycaster.stickers.add_favorite">
+            <source>Add to favorites</source>
+            <translation>إضافة إلى المفضلة</translation>
+        </message>
+        <message id="genycaster.stickers.remove_favorite">
+            <source>Remove from favorites</source>
+            <translation>إزالة من المفضلة</translation>
+        </message>
+        <message id="genycaster.stickers.empty">
+            <source>No stickers found</source>
+            <translation>لم يُعثر على ملصقات</translation>
+        </message>
+        <message id="genycaster.stickers.media_slot">
+            <source>Stickers use one media slot in your cast.</source>
+            <translation>يستخدم كل ملصق مكان مرفق وسائط واحد في المنشور.</translation>
+        </message>
+        <message id="genycaster.stickers.limit">
+            <source>Media limit reached. Remove an attachment to add a sticker.</source>
+            <translation>وصلت إلى حد الوسائط؛ احذف مرفقًا لإضافة ملصق.</translation>
+        </message>
         <message id="genycaster.composer.emoji">
             <source>Emoji</source>
             <translation>رمز تعبيري</translation>

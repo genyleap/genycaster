@@ -2660,6 +2660,66 @@ Company | https://company.com</source>
             <source>Embed</source>
             <translation>嵌入</translation>
         </message>
+        <message id="genycaster.stickers.title">
+            <source>Stickers</source>
+            <translation>贴纸</translation>
+        </message>
+        <message id="genycaster.stickers.subtitle">
+            <source>Add a sticker to your cast</source>
+            <translation>为动态添加贴纸</translation>
+        </message>
+        <message id="genycaster.stickers.search">
+            <source>Search stickers</source>
+            <translation>搜索贴纸</translation>
+        </message>
+        <message id="genycaster.stickers.all">
+            <source>All</source>
+            <translation>全部</translation>
+        </message>
+        <message id="genycaster.stickers.originals">
+            <source>Originals</source>
+            <translation>原创</translation>
+        </message>
+        <message id="genycaster.stickers.reactions">
+            <source>Reactions</source>
+            <translation>反应</translation>
+        </message>
+        <message id="genycaster.stickers.web3">
+            <source>Web3</source>
+            <translation>Web3文化</translation>
+        </message>
+        <message id="genycaster.stickers.favorites">
+            <source>Favorites</source>
+            <translation>收藏</translation>
+        </message>
+        <message id="genycaster.stickers.recent">
+            <source>Recent</source>
+            <translation>最近</translation>
+        </message>
+        <message id="genycaster.stickers.add">
+            <source>Add sticker</source>
+            <translation>添加贴纸</translation>
+        </message>
+        <message id="genycaster.stickers.add_favorite">
+            <source>Add to favorites</source>
+            <translation>加入收藏</translation>
+        </message>
+        <message id="genycaster.stickers.remove_favorite">
+            <source>Remove from favorites</source>
+            <translation>移除收藏</translation>
+        </message>
+        <message id="genycaster.stickers.empty">
+            <source>No stickers found</source>
+            <translation>未找到贴纸</translation>
+        </message>
+        <message id="genycaster.stickers.media_slot">
+            <source>Stickers use one media slot in your cast.</source>
+            <translation>贴纸将占用动态中的一个媒体名额。</translation>
+        </message>
+        <message id="genycaster.stickers.limit">
+            <source>Media limit reached. Remove an attachment to add a sticker.</source>
+            <translation>已达到媒体数量上限，请先移除一个附件。</translation>
+        </message>
         <message id="genycaster.composer.emoji">
             <source>Emoji</source>
             <translation>表情符号</translation>

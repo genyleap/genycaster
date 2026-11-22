@@ -2660,6 +2660,66 @@ Company | https://company.com</source>
             <source>Embed</source>
             <translation>Вставка</translation>
         </message>
+        <message id="genycaster.stickers.title">
+            <source>Stickers</source>
+            <translation>Стикеры</translation>
+        </message>
+        <message id="genycaster.stickers.subtitle">
+            <source>Add a sticker to your cast</source>
+            <translation>Добавить стикер к касту</translation>
+        </message>
+        <message id="genycaster.stickers.search">
+            <source>Search stickers</source>
+            <translation>Поиск стикеров</translation>
+        </message>
+        <message id="genycaster.stickers.all">
+            <source>All</source>
+            <translation>Все</translation>
+        </message>
+        <message id="genycaster.stickers.originals">
+            <source>Originals</source>
+            <translation>Оригинальные</translation>
+        </message>
+        <message id="genycaster.stickers.reactions">
+            <source>Reactions</source>
+            <translation>Реакции</translation>
+        </message>
+        <message id="genycaster.stickers.web3">
+            <source>Web3</source>
+            <translation>Культура Web3</translation>
+        </message>
+        <message id="genycaster.stickers.favorites">
+            <source>Favorites</source>
+            <translation>Избранное</translation>
+        </message>
+        <message id="genycaster.stickers.recent">
+            <source>Recent</source>
+            <translation>Недавние</translation>
+        </message>
+        <message id="genycaster.stickers.add">
+            <source>Add sticker</source>
+            <translation>Добавить стикер</translation>
+        </message>
+        <message id="genycaster.stickers.add_favorite">
+            <source>Add to favorites</source>
+            <translation>В избранное</translation>
+        </message>
+        <message id="genycaster.stickers.remove_favorite">
+            <source>Remove from favorites</source>
+            <translation>Убрать из избранного</translation>
+        </message>
+        <message id="genycaster.stickers.empty">
+            <source>No stickers found</source>
+            <translation>Стикеры не найдены</translation>
+        </message>
+        <message id="genycaster.stickers.media_slot">
+            <source>Stickers use one media slot in your cast.</source>
+            <translation>Стикер занимает один медиа-слот в касте.</translation>
+        </message>
+        <message id="genycaster.stickers.limit">
+            <source>Media limit reached. Remove an attachment to add a sticker.</source>
+            <translation>Достигнут лимит медиа. Удалите вложение, чтобы добавить стикер.</translation>
+        </message>
         <message id="genycaster.composer.emoji">
             <source>Emoji</source>
             <translation>Эмодзи</translation>

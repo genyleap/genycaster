@@ -42,6 +42,28 @@ flowchart TB
 
 **Capability routing** means profile reads, feed reads and signed message submissions may use different supported adapters. HyperSnap is the default preference, not a dependency of the domain.
 
+### First-party sticker media (V1)
+
+The sticker picker is one shared Qt/QML surface for desktop, Android and WebAssembly. Its bounded
+first-party catalog lives in `ui/components/composer/StickerCatalog.js`; transparent PNG
+preview assets are bundled into the application's QML resources. The twelve original
+illustrations and their editable SVG sources live under `ui/assets/stickers/v1/`.
+
+Choosing a sticker calls `richComposer.insertMedia()` with a catalog-derived, immutable
+`https://genycaster.xyz/stickers/v1.0.0/<id>.png` URL, MIME type `image/png` and alt text.
+The existing media quota, document history, draft, and Farcaster-compatible protocol-embed
+publication route apply unchanged to **both Farcaster and HyperSnap**. No sticker-specific
+wire message, signer authority, custom media upload or protocol fork is introduced.
+Other clients see the normal PNG image; GenyCaster recognizes only the pinned first-party
+URL pattern to render an uncropped compact transparent sticker in the feed.
+
+Sticker favorites and recent selections use bounded, local device settings and are not
+sent to either protocol or the account API. Public images are created by
+`python3 scripts/generate_stickers.py --render` (ImageMagick required only for regeneration)
+and served independently of the WASM application bundle by
+`python3 scripts/publish_stickers.py`. Once a sticker URL is published to a cast, keep its
+PNG bytes and URL stable: deleting or changing that URL would break historical casts.
+
 ## Contributor module view
 
 ```mermaid

@@ -7,6 +7,9 @@ Item {
     clip: true
 
     property var embed: ({})
+    readonly property bool officialSticker:
+        /^https:\/\/genycaster\.xyz\/stickers\/v1\.0\.0\/[a-z0-9_-]+\.png$/.test(
+            String(root.embed.url || root.embed.value || ""))
     property string continuationText: ""
     property bool preserveAspect: false
     // A single editorial image whose height depends on decoded dimensions
@@ -97,6 +100,8 @@ Item {
         }
     }
     function resolvedSource() {
+        if (root.officialSticker)
+            return String(root.embed.url || root.embed.value || "")
         if (root.originFallbackAttempted && root.ownMediaUrl.length > 0)
             return root.ownMediaUrl
         const direct = String(root.embed.imageSource || "")
@@ -112,7 +117,7 @@ Item {
         id: ambientLoader
         objectName: "galleryAmbientLoader"
         anchors.fill: parent
-        active: root.ambientEnabled
+        active: root.ambientEnabled && !root.officialSticker
         asynchronous: true
 
         sourceComponent: Component {
@@ -137,10 +142,12 @@ Item {
         source: root.resolvedSource()
         loadDelayMs: root.loadDelayMs
         mediaCategory: "photos"
-        fillMode: root.preserveAspect ? Image.PreserveAspectFit : Image.PreserveAspectCrop
+        fillMode: root.officialSticker || root.preserveAspect
+                  ? Image.PreserveAspectFit : Image.PreserveAspectCrop
         curveDepth: Theme.shapeMedia
-        clipToSuperellipse: root.useLayeredMask
-        fillColor: !preview.ready ? Theme.surfaceMuted
+        clipToSuperellipse: root.useLayeredMask && !root.officialSticker
+        fillColor: root.officialSticker ? "transparent"
+                   : !preview.ready ? Theme.surfaceMuted
                    : root.preserveAspect ? "transparent" : Theme.surface
         smoothReveal: true
         presentationEnabled: root.finalAspectReady
@@ -173,6 +180,7 @@ Item {
         // than the reserved tile. Round that painted rectangle itself; masking
         // only the outer tile leaves the visible image with square corners.
         visible: !root.useLayeredMask && preview.ready && width > 0 && height > 0
+                 && !root.officialSticker
         preferredRendererType: Shape.CurveRenderer
         asynchronous: false
 

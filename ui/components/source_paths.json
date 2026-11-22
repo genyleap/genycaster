@@ -153,6 +153,7 @@
   "SocialSidebar.qml": "navigation/SocialSidebar.qml",
   "SourceClientBadge.qml": "feed/SourceClientBadge.qml",
   "SpriteEmoji.qml": "media/SpriteEmoji.qml",
+  "StickerPicker.qml": "composer/StickerPicker.qml",
   "StatsBreakdown.qml": "home/StatsBreakdown.qml",
   "StatsChart.qml": "home/StatsChart.qml",
   "StatsDistributionRings.qml": "home/StatsDistributionRings.qml",

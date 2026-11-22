@@ -625,6 +625,7 @@ QtObject {
     readonly property string iconCopy: "copy"
     readonly property string iconUser: "user"
     readonly property string iconImage: "image"
+    readonly property string iconSticker: "media/sticker"
     readonly property string iconSearch: "search"
     readonly property string iconArrowUpRight: "external-link"
     readonly property string iconLink: "link"

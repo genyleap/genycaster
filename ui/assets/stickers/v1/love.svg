@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="enamel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFBAD8"/>
+      <stop offset=".65" stop-color="#FA4F96"/>
+      <stop offset="1" stop-color="#FA4F96"/>
+    </linearGradient>
+  </defs>
+  <path d="M256 41c124 0 215 91 215 215S380 471 256 471 41 380 41 256 132 41 256 41z"
+    fill="#13172b" fill-opacity=".11" transform="translate(0 7)"/>
+  <circle cx="256" cy="256" r="210" fill="url(#enamel)" stroke="#fff" stroke-width="18"/>
+  <ellipse cx="201" cy="131" rx="105" ry="45" fill="#fff" opacity=".26" transform="rotate(-18 201 131)"/>
+  <circle cx="414" cy="121" r="13" fill="#fff" opacity=".84"/>
+  <circle cx="110" cy="370" r="9" fill="#fff" opacity=".75"/>
+
+      <path d="M257 408l-27-20C122 305 87 260 95 194c8-65 82-109 142-62l20 19 20-19c61-47 135-3 143 62 8 66-27 111-135 194z"
+       fill="#FF7CA4" stroke="#fff" stroke-width="21" stroke-linejoin="round"/>
+      <path d="M163 169c29-25 55-7 68 8" fill="none" stroke="#FFE8EF" stroke-width="21" stroke-linecap="round"/>
+      <path d="M239 278q18 16 36 0" fill="none" stroke="#9D3658" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="216" cy="258" r="7" fill="#9D3658"/><circle cx="298" cy="258" r="7" fill="#9D3658"/>
+
+</svg>

@@ -53,6 +53,7 @@ set(farcasterQmlFiles
     components/composer/ComposerDrawer.qml
     components/visual/DashedCapsuleOutline.qml
     components/composer/EmojiPicker.qml
+    components/composer/StickerPicker.qml
     components/settings/FeedbackDialog.qml
     components/composer/ComposerInsertPanel.qml
     components/composer/MediaUploadPanel.qml
@@ -1548,6 +1549,7 @@ if(ANDROID)
 endif()
 
 set_source_files_properties("components/composer/ProCastPolicy.js" PROPERTIES QT_RESOURCE_ALIAS "components/ProCastPolicy.js")
+set_source_files_properties("components/composer/StickerCatalog.js" PROPERTIES QT_RESOURCE_ALIAS "components/StickerCatalog.js")
 # NeonHalo and its geometry library share the flattened QML resource folder.
 # This preserves the relative JS import after qmlcachegen and on WASM.
 set_source_files_properties("components/visual/NeonGeometry.js" PROPERTIES QT_RESOURCE_ALIAS "components/NeonGeometry.js")
@@ -1562,6 +1564,7 @@ qt_add_qml_module(genycaster
     QML_FILES
         ${farcasterQmlFiles}
         components/composer/ProCastPolicy.js
+        components/composer/StickerCatalog.js
         components/visual/NeonGeometry.js
     SOURCES
         render/stroke.cpp
@@ -1578,6 +1581,18 @@ qt_add_qml_module(genycaster
         shaders/genycaster_logo_normals.png
         wasm/genycaster-icon.svg
         wasm/setup-mist.svg
+        assets/stickers/v1/bloom.png
+        assets/stickers/v1/orbit.png
+        assets/stickers/v1/pulse.png
+        assets/stickers/v1/spark.png
+        assets/stickers/v1/love.png
+        assets/stickers/v1/laugh.png
+        assets/stickers/v1/wow.png
+        assets/stickers/v1/cheer.png
+        assets/stickers/v1/gm.png
+        assets/stickers/v1/rocket.png
+        assets/stickers/v1/onchain.png
+        assets/stickers/v1/verified.png
         wasm/genycaster-wordmark.svg
         wasm/genycaster-wordmark-dark.svg
 )

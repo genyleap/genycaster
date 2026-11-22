@@ -17,6 +17,7 @@ NeonSurface {
     signal embedRequested(int blockIndex)
     signal pollRequested()
     signal emojiRequested()
+    signal stickerRequested()
     signal proFeatureRequested()
 
     fillColor: Theme.surfaceElevated
@@ -111,6 +112,17 @@ NeonSurface {
                 iconSize: Theme.iconSizeSmall
                 text: qsTrId("genycaster.composer.emoji")
                 onClicked: root.emojiRequested()
+            }
+            ActionButton {
+                objectName: "desktopComposerStickerAction"
+                quiet: true
+                compact: true
+                focusPolicy: Qt.NoFocus
+                iconOnly: true
+                iconGlyph: Theme.iconSticker
+                iconSize: Theme.iconSizeSmall
+                text: qsTrId("genycaster.stickers.title")
+                onClicked: root.stickerRequested()
             }
         }
     }

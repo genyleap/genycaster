@@ -4,6 +4,7 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick.Window
 import "ProCastPolicy.js" as ProCastPolicy
+import "StickerCatalog.js" as StickerCatalog
 import Farcaster.Client
 
 GenyDrawer {
@@ -26,6 +27,7 @@ GenyDrawer {
         if (channelPicker.opened) { channelPicker.close(); return }
         if (topicPicker.opened) { topicPicker.close(); return }
         if (emojiPicker.opened) { emojiPicker.close(); return }
+        if (stickerPicker.opened) { stickerPicker.close(); return }
         root.close()
     }
     readonly property bool replyMode: composeIntent === "reply"
@@ -98,6 +100,7 @@ GenyDrawer {
     property bool mediaInsertFailed: false
     property int emojiThreadIndex: -1
     property int emojiThreadCursorPosition: -1
+    property int stickerAfterIndex: -1
     readonly property int maximumThreadCasts: 24
     readonly property bool threadMode: threadTailModel.count > 0
     // Dropdowns in the phone composer occupy real layout space, never cover
@@ -270,6 +273,40 @@ GenyDrawer {
     }
 
 
+    function openStickerPicker(anchor, afterIndex) {
+        if (emojiPicker.opened) emojiPicker.close()
+        root.stickerAfterIndex = Number.isInteger(afterIndex) ? afterIndex : -1
+        stickerPicker.anchorItem = anchor || formattingToolbar
+        stickerPicker.open()
+    }
+
+    function insertSticker(sticker) {
+        if (!sticker || !root.canUploadMedia || mediaUpload.busy)
+            return false
+        // The picker only returns the immutable bundled catalog. Independently
+        // reconstruct the public URL rather than trusting caller-owned input.
+        const id = String(sticker.id || "")
+        const canonical = StickerCatalog.embedUrl(id)
+        if (!canonical || canonical !== String(sticker.url || canonical))
+            return false
+        root.synchronizeEditorState()
+        if (!richComposer.insertMedia(canonical, "image/png",
+                                      "Genycaster sticker: " + String(sticker.title || id),
+                                      root.stickerAfterIndex))
+            return false
+        const metadata = Object.assign({}, root.mediaMetadata)
+        metadata[canonical] = {
+            fileName: id + ".png",
+            localPreviewUrl: StickerCatalog.previewUrl(id),
+            mediaType: "image/png",
+            sizeBytes: 0,
+            stickerId: id
+        }
+        root.mediaMetadata = metadata
+        root.insertKind = ""
+        return true
+    }
+
     function openMediaPicker() {
         if (Qt.platform.os === "wasm") {
             mediaUpload.browseBrowserImage(root.pendingMediaBlockIndex)
@@ -414,6 +451,8 @@ GenyDrawer {
     function closeComposerPopups() {
         if (emojiPicker.opened)
             emojiPicker.close()
+        if (stickerPicker.opened)
+            stickerPicker.close()
         if (channelPicker.opened)
             channelPicker.close()
         if (topicPicker.opened)
@@ -724,6 +763,19 @@ GenyDrawer {
         parent: Overlay.overlay
         anchorItem: formattingToolbar
         onEmojiSelected: emoji => root.insertEmoji(emoji)
+    }
+
+    StickerPicker {
+        id: stickerPicker
+        parent: Overlay.overlay
+        anchorItem: formattingToolbar
+        canAdd: root.canUploadMedia && !mediaUpload.busy
+        onStickerSelected: sticker => {
+            if (!root.insertSticker(sticker))
+                return
+            stickerPicker.recordUsage(sticker.id)
+            stickerPicker.close()
+        }
     }
 
     Connections {
@@ -1501,17 +1553,17 @@ GenyDrawer {
     Shortcut {
         sequence: "Escape"
         context: Qt.ApplicationShortcut
-        enabled: root.opened && !emojiPicker.opened
+        enabled: root.opened && !emojiPicker.opened && !stickerPicker.opened
                  && !channelPicker.opened && !topicPicker.opened
                  && !clearContentConfirmation.opened
         onActivated: root.close()
     }
-    Shortcut { sequence: "Ctrl+Return"; enabled: root.opened && !emojiPicker.opened; onActivated: root.publishCurrent() }
-    Shortcut { sequence: "Meta+Return"; enabled: root.opened && !emojiPicker.opened; onActivated: root.publishCurrent() }
-    Shortcut { sequences: [StandardKey.Undo]; enabled: root.opened && !emojiPicker.opened && richComposer.canUndo; onActivated: richComposer.undo() }
-    Shortcut { sequences: [StandardKey.Redo]; enabled: root.opened && !emojiPicker.opened && richComposer.canRedo; onActivated: richComposer.redo() }
-    Shortcut { sequence: "Ctrl+K"; enabled: root.opened && !emojiPicker.opened; onActivated: root.openLinkFromSelection() }
-    Shortcut { sequence: "Meta+K"; enabled: root.opened && !emojiPicker.opened; onActivated: root.openLinkFromSelection() }
+    Shortcut { sequence: "Ctrl+Return"; enabled: root.opened && !emojiPicker.opened && !stickerPicker.opened; onActivated: root.publishCurrent() }
+    Shortcut { sequence: "Meta+Return"; enabled: root.opened && !emojiPicker.opened && !stickerPicker.opened; onActivated: root.publishCurrent() }
+    Shortcut { sequences: [StandardKey.Undo]; enabled: root.opened && !emojiPicker.opened && !stickerPicker.opened && richComposer.canUndo; onActivated: richComposer.undo() }
+    Shortcut { sequences: [StandardKey.Redo]; enabled: root.opened && !emojiPicker.opened && !stickerPicker.opened && richComposer.canRedo; onActivated: richComposer.redo() }
+    Shortcut { sequence: "Ctrl+K"; enabled: root.opened && !emojiPicker.opened && !stickerPicker.opened; onActivated: root.openLinkFromSelection() }
+    Shortcut { sequence: "Meta+K"; enabled: root.opened && !emojiPicker.opened && !stickerPicker.opened; onActivated: root.openLinkFromSelection() }
     Shortcut { sequence: "Ctrl+Shift+C"; enabled: root.opened && !emojiPicker.opened; onActivated: root.insertCodeBlockFromKeyboard() }
     Shortcut { sequence: "Meta+Shift+C"; enabled: root.opened && !emojiPicker.opened; onActivated: root.insertCodeBlockFromKeyboard() }
 
@@ -1731,6 +1783,8 @@ GenyDrawer {
                     emojiPicker.anchorItem = formattingToolbar
                     emojiPicker.open()
                 }
+                onStickerRequested: root.openStickerPicker(formattingToolbar,
+                    visualEditor.activeBlockIndex)
             }
 
         }
@@ -2510,6 +2564,16 @@ GenyDrawer {
                             emojiPicker.anchorItem = root.compact ? mobilePlainEditor : visualEditor
                             emojiPicker.open()
                         }
+                    }
+                    ActionButton {
+                        objectName: "mobileComposerStickerAction"
+                        compact: true
+                        quiet: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconSticker
+                        text: qsTrId("genycaster.stickers.title")
+                        enabled: root.canUploadMedia && !mediaUpload.busy
+                        onClicked: root.openStickerPicker(mobilePlainEditor, 0)
                     }
                     ActionButton {
                         objectName: "mobileComposerGifAction"
