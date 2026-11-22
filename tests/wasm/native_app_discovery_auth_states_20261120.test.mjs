@@ -38,7 +38,7 @@ test('welcome places a secondary download button beside Get Started in the same 
         'a restored but unfinished browser setup must still show native downloads');
     assert.match(setup,/objectName: "setupStageAction"/);
     assert.match(setup,/objectName: "setupWelcomeNativeApps"/);
-    assert.match(setup,/x: root\.phone \? \(setupFooterContent\.width - width\) \/ 2/);
+    assert.match(setup,/readonly property real welcomeRowWidth:/);
     assert.match(setup,/stageAction\.x - Theme\.space2 - width/);
     assert.match(setup,/height: stageAction\.height/);
     assert.match(setup,/wrapText: true/);
@@ -46,6 +46,22 @@ test('welcome places a secondary download button beside Get Started in the same 
     assert.match(setup,/onClicked: root\.nativeAppDownloadsRequested\(\)/);
     assert.match(shell,/onNativeAppDownloadsRequested: presentationBridge\.openBrowserNativeDownloads\(\)/);
     assert.doesNotMatch(setup,/NativeAppDiscoveryCTA|setupNativeAppEntry/);
+});
+
+test('native release install CTA retains the Superellipse while changing releases', () => {
+    assert.match(html,/id="native-downloads-action-label"/);
+    assert.match(html,/class="native-download-glyph"/);
+    assert.match(js,/const downloadLabel = byId\("native-downloads-action-label"\)/);
+    assert.match(js,/downloadLabel\.textContent = "Download "/);
+    assert.doesNotMatch(js,/download\.textContent\s*=/,
+        'textContent on the anchor destroys its mounted SVG and leaves plain text');
+    assert.match(css,/#native-downloads-action\.nd-squircle\s*\{[^}]*--nd-shape-fill:var\(--nd-download\)/);
+    assert.match(css,/#native-downloads-action\[hidden\]\s*\{display:none!important\}/);
+    assert.match(css,/#native-downloads-action svg\.native-download-glyph/);
+    assert.match(css,/#native-downloads-action\.nd-squircle:hover/);
+    assert.match(css,/#native-downloads-action\.nd-squircle:active/);
+    assert.match(css,/--nd-download:#177A50/);
+    assert.match(css,/--nd-download:#36CA91/);
 });
 
 test('authenticated users find desktop/mobile apps in settings, not permanent overlays', () => {

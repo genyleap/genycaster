@@ -18,11 +18,17 @@ test('CTA is centered on mobile and fixed to the logical trailing footer corner 
   const footer=sectionAfter('id: setupActionFooter','id: welcomeStage');
   assert.match(footer,/anchors\.fill: parent\s+anchors\.leftMargin: root\.setupGutter\s+anchors\.rightMargin: root\.setupGutter/);
   assert.doesNotMatch(footer,/x: stagePanel\.x - setupActionFooter\.x/);
-  assert.match(footer,/width: root\.phone\s+\? Math\.min\(Theme\.scaleUi\(264\), setupFooterContent\.width\)/);
-  assert.match(footer,/x: root\.phone \? \(setupFooterContent\.width - width\) \/ 2\s+: Theme\.rtl \? 0 : setupFooterContent\.width - width/);
-  assert.match(footer,/x: root\.phone \? \(setupFooterContent\.width - width\) \/ 2\s+: Theme\.rtl\s+\? stageAction\.x \+ stageAction\.width \+ Theme\.space2/);
-  assert.match(footer,/y: root\.phone \? stageAction\.y \+ stageAction\.height \+ Theme\.space2/);
-  assert.match(footer,/root\.phone && root\.welcomeNativeAppsVisible\s+\? stageAction\.implicitHeight \+ setupWelcomeNativeApps\.implicitHeight/);
+  for (const required of [
+    'readonly property real welcomeRowWidth:',
+    'setupFooterContent.welcomeRowWidth - Theme.space2',
+    'setupFooterContent.welcomeRowWidth - width',
+    'stageAction.x + stageAction.width + Theme.space2',
+    'stageAction.x - Theme.space2 - width',
+    'y: stageAction.y',
+    'Math.max(stageAction.height, setupWelcomeNativeApps.implicitHeight)'
+  ]) assert.ok(footer.includes(required),required);
+  assert.ok(!footer.includes('stageAction.y + stageAction.height + Theme.space2'),
+    'mobile welcome must stay in one horizontal row');
   assert.match(footer,/anchors.bottom: parent.bottom/);
   assert.match(setup,/anchors.bottom: setupActionFooter.top/);
   assert.match(footer,/neutralPrimary: false/);

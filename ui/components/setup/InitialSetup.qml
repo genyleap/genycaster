@@ -1605,11 +1605,11 @@ Item {
             x: setupCanvas.formStart
             width: setupCanvas.formWidth
             anchors.bottom: parent.bottom
-            height: (root.phone && root.welcomeNativeAppsVisible
-                     ? stageAction.implicitHeight + setupWelcomeNativeApps.implicitHeight
-                       + Theme.space2
-                     : Math.max(stageAction.implicitHeight,
-                                setupWelcomeNativeApps.implicitHeight)) + Theme.space3 * 2
+            // A single horizontal action rail on phones and desktops. The
+            // row must reserve its tallest (potentially wrapped) button.
+            height: (root.welcomeNativeAppsVisible
+                     ? Math.max(stageAction.height, setupWelcomeNativeApps.implicitHeight)
+                     : stageAction.height) + Theme.space3 * 2
             Rectangle {
                 anchors.fill: parent
                 color: Theme.background
@@ -1631,6 +1631,8 @@ Item {
                 anchors.rightMargin: root.setupGutter
                 anchors.topMargin: Theme.space3
                 anchors.bottomMargin: Theme.space3
+                readonly property real welcomeRowWidth: Math.min(
+                    root.welcomeActionsWidth, width)
 
                 SetupPrimaryButton {
                     id: stageAction
@@ -1640,16 +1642,26 @@ Item {
                     // Desktop: it occupies the logical trailing corner,
                     // with equal insets in LTR and RTL.
                     width: root.phone
-                           ? Math.min(Theme.scaleUi(264), setupFooterContent.width)
+                           ? (root.welcomeNativeAppsVisible
+                              ? Math.max(0, (setupFooterContent.welcomeRowWidth
+                                             - Theme.space2) / 2)
+                              : Math.min(Theme.scaleUi(264), setupFooterContent.width))
                            : root.welcomeNativeAppsVisible
                              ? Math.min(Theme.scaleUi(264),
-                                        (Math.min(root.welcomeActionsWidth,
-                                                  setupFooterContent.width) - Theme.space2) * 0.48)
+                                        (setupFooterContent.welcomeRowWidth - Theme.space2) * 0.48)
                              : Math.min(Theme.scaleUi(340), setupFooterContent.width)
-                    x: root.phone ? (setupFooterContent.width - width) / 2
-                                  : Theme.rtl ? 0 : setupFooterContent.width - width
-                    y: root.phone && root.welcomeNativeAppsVisible
-                       ? 0 : (setupFooterContent.height - height) / 2
+                    // Keep the main action at the trailing edge of the shared
+                    // centered mobile pair; preserve the desktop trailing rail.
+                    x: root.phone
+                       ? (root.welcomeNativeAppsVisible
+                          ? (setupFooterContent.width - setupFooterContent.welcomeRowWidth) / 2
+                            + (Theme.rtl ? 0 : setupFooterContent.welcomeRowWidth - width)
+                          : (setupFooterContent.width - width) / 2)
+                       : Theme.rtl ? 0 : setupFooterContent.width - width
+                    height: root.welcomeNativeAppsVisible
+                            ? Math.max(implicitHeight, setupWelcomeNativeApps.implicitHeight)
+                            : implicitHeight
+                    y: (setupFooterContent.height - height) / 2
                     text: root.actionText()
                     neutralPrimary: false
                     enabled: !root.stageTransitioning && root.actionEnabled()
@@ -1663,20 +1675,17 @@ Item {
                     id: setupWelcomeNativeApps
                     objectName: "setupWelcomeNativeApps"
                     visible: root.welcomeNativeAppsVisible
-                    // Welcome on mobile: a centered secondary row below the
-                    // primary button. Desktop: inward from the trailing CTA.
+                    // Always adjacent to Get Started. On narrow screens the
+                    // localized label may wrap, but must never form a new row.
                     width: root.phone
                            ? stageAction.width
-                           : Math.max(0, Math.min(root.welcomeActionsWidth,
-                                                  setupFooterContent.width)
+                           : Math.max(0, setupFooterContent.welcomeRowWidth
                                        - Theme.space2 - stageAction.width)
                     height: stageAction.height
-                    x: root.phone ? (setupFooterContent.width - width) / 2
-                                  : Theme.rtl
-                                    ? stageAction.x + stageAction.width + Theme.space2
-                                    : stageAction.x - Theme.space2 - width
-                    y: root.phone ? stageAction.y + stageAction.height + Theme.space2
-                                  : stageAction.y
+                    x: Theme.rtl
+                       ? stageAction.x + stageAction.width + Theme.space2
+                       : stageAction.x - Theme.space2 - width
+                    y: stageAction.y
                     text: qsTrId("genycaster.apps.download_cta_button")
                     iconGlyph: Theme.iconDownload
                     wrapText: true

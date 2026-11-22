@@ -17,6 +17,9 @@
     const selection = Object.create(null);
     const status = byId("native-downloads-status");
     const download = byId("native-downloads-action");
+    // Only replace the label. Replacing the anchor's textContent removes
+    // the mounted Superellipse SVG background and makes the CTA invisible.
+    const downloadLabel = byId("native-downloads-action-label");
     const prompt = byId("native-downloads-nudge");
     const promptOpen = byId("native-downloads-nudge-open");
     const promptClose = byId("native-downloads-nudge-close");
@@ -424,7 +427,7 @@
             const adHocMac = platform === "macos" &&
                 entry.distribution === "ad-hoc-unnotarized";
             download.href = entry.url;
-            download.textContent = "Download " + info.label + " · " +
+            downloadLabel.textContent = "Download " + info.label + " · " +
                 entry.version + (adHocMac ? " · Ad-hoc" : "");
             download.setAttribute("aria-label",
                 (adHocMac ? "Download ad-hoc signed, not notarized " :

@@ -20,6 +20,10 @@
     --nd-shadow:rgba(18,25,48,.20);
     --nd-glow:color-mix(in srgb,var(--nd-accent) 18%,transparent);
     --nd-scroll:rgba(95,100,112,.35);
+    --nd-download:#177A50;
+    --nd-download-hover:#116341;
+    --nd-download-pressed:#0D5135;
+    --nd-download-ink:#FFFFFF;
 }
 :root[data-chrome-theme="dark"] {
     --nd-canvas:#0b0c0f;
@@ -39,6 +43,10 @@
     --nd-shadow:rgba(0,0,0,.72);
     --nd-glow:color-mix(in srgb,var(--nd-accent) 24%,transparent);
     --nd-scroll:rgba(180,187,202,.4);
+    --nd-download:#36CA91;
+    --nd-download-hover:#4DE0A5;
+    --nd-download-pressed:#2BAF7C;
+    --nd-download-ink:#072B1C;
 }
 #native-downloads-trigger, #native-downloads-dialog,
 #native-downloads-nudge, #native-downloads-backdrop {
@@ -267,20 +275,42 @@
     overflow-wrap:anywhere;
 }
 .native-downloads-actions {
-    display:flex;align-items:center;flex-wrap:wrap;gap:10px;
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    align-items:stretch;gap:10px;
 }
 #native-downloads-action,.native-downloads-secondary {
     display:inline-flex;align-items:center;justify-content:center;
-    text-align:center;min-height:44px;padding:10px 17px;
-    border-radius:13px;corner-shape:superellipse(4);
+    text-align:center;min-height:48px;padding:11px 17px;
+    border-radius:16px;corner-shape:superellipse(4);
     text-decoration:none;font-size:12px;font-weight:750;
-    transition:background 110ms ease,border-color 110ms ease;
+    transition:background-color 110ms ease,color 110ms ease,border-color 110ms ease;
 }
 #native-downloads-action {
-    background:var(--nd-accent);color:var(--nd-on-accent);
-    border:1px solid var(--nd-accent);
+    display:flex;gap:10px;min-width:0;min-height:54px;
+    padding:13px 18px;justify-content:center;
+    background:var(--nd-download);color:var(--nd-download-ink);
+    border:1px solid var(--nd-download);
+    font-size:13px;font-weight:780;line-height:1.35;
+    cursor:pointer;touch-action:manipulation;
 }
-#native-downloads-action:hover {filter:brightness(1.06)}
+#native-downloads-action[hidden] {display:none!important}
+.native-downloads-actions:has(#native-downloads-action[hidden]) {grid-template-columns:auto}
+#native-downloads-action svg.native-download-glyph {
+    width:20px;height:20px;flex:none;stroke:currentColor;
+    stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;
+}
+#native-downloads-action-label {min-width:0;overflow-wrap:anywhere}
+.native-download-arrow {font-size:17px;line-height:1;flex:none;margin-inline-start:auto}
+#native-downloads-action:not(.nd-squircle):hover {
+    background:var(--nd-download-hover);border-color:var(--nd-download-hover);
+}
+#native-downloads-action:not(.nd-squircle):active {
+    background:var(--nd-download-pressed);border-color:var(--nd-download-pressed);
+}
+@media(max-width:430px) {
+    .native-downloads-actions {grid-template-columns:minmax(0,1fr)}
+    .native-downloads-secondary {justify-self:start}
+}
 .native-downloads-secondary {
     background:var(--nd-raised);color:var(--nd-ink);
     border:1px solid var(--nd-border);
@@ -475,7 +505,19 @@
 }
 .native-downloads-result.nd-squircle {--nd-shape-fill:var(--nd-muted)}
 #native-downloads-action.nd-squircle {
-    --nd-shape-fill:var(--nd-accent);--nd-shape-stroke:var(--nd-accent);
+    --nd-shape-fill:var(--nd-download);--nd-shape-stroke:var(--nd-download);
+}
+#native-downloads-action.nd-squircle:hover {
+    --nd-shape-fill:var(--nd-download-hover);
+    --nd-shape-stroke:var(--nd-download-hover);
+}
+#native-downloads-action.nd-squircle:active {
+    --nd-shape-fill:var(--nd-download-pressed);
+    --nd-shape-stroke:var(--nd-download-pressed);
+}
+.nd-keyboard-input #native-downloads-action.nd-squircle:focus-visible {
+    --nd-shape-stroke:var(--nd-download-ink);
+    --nd-shape-width:2px;
 }
 .native-downloads-secondary.nd-squircle {--nd-shape-fill:var(--nd-raised)}
 .native-downloads-secondary.nd-squircle:hover {
