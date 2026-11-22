@@ -20,13 +20,14 @@
     // Only replace the label. Replacing the anchor's textContent removes
     // the mounted Superellipse SVG background and makes the CTA invisible.
     const downloadLabel = byId("native-downloads-action-label");
+    const downloadArchitecture = byId("native-downloads-action-architecture");
     const prompt = byId("native-downloads-nudge");
     const promptOpen = byId("native-downloads-nudge-open");
     const promptClose = byId("native-downloads-nudge-close");
     const tabs = [...dialog.querySelectorAll("[data-native-platform]")];
     const supported = Object.freeze({
         windows: { label: "Windows", arches: {x64: "x86_64", arm64: "ARM64"} },
-        macos:   { label: "macOS", arches: {arm64: "Apple Silicon", x64: "Intel"} },
+        macos:   { label: "macOS", arches: {arm64: "Apple Silicon (ARM64)", x64: "Intel (x86_64)"} },
         linux:   { label: "Linux", arches: {x64: "x86_64", arm64: "ARM64"} },
         android: { label: "Android", arches: {arm64: "ARM64-v8a"} }
     });
@@ -429,6 +430,9 @@
             download.href = entry.url;
             downloadLabel.textContent = "Download " + info.label + " · " +
                 entry.version + (adHocMac ? " · Ad-hoc" : "");
+            // Keep the actual artifact architecture visible inside the green
+            // button, not only in a dropdown or screen-reader description.
+            downloadArchitecture.textContent = info.arches[arch];
             download.setAttribute("aria-label",
                 (adHocMac ? "Download ad-hoc signed, not notarized " :
                     "Download checksum-verified ") + info.label + " " +

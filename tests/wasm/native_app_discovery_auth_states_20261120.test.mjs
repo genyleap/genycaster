@@ -38,7 +38,9 @@ test('welcome places a secondary download button beside Get Started in the same 
         'a restored but unfinished browser setup must still show native downloads');
     assert.match(setup,/objectName: "setupStageAction"/);
     assert.match(setup,/objectName: "setupWelcomeNativeApps"/);
-    assert.match(setup,/readonly property real welcomeRowWidth:/);
+    assert.match(setup,/readonly property real welcomeRowWidth: root\.phone \? width/);
+    assert.match(setup,/anchors\.leftMargin: root\.phone \? 0 : root\.setupGutter/);
+    assert.match(setup,/anchors\.rightMargin: root\.phone \? 0 : root\.setupGutter/);
     assert.match(setup,/stageAction\.x - Theme\.space2 - width/);
     assert.match(setup,/height: stageAction\.height/);
     assert.match(setup,/wrapText: true/);
@@ -60,6 +62,15 @@ test('native release install CTA retains the Superellipse while changing release
     assert.match(css,/#native-downloads-action svg\.native-download-glyph/);
     assert.match(css,/#native-downloads-action\.nd-squircle:hover/);
     assert.match(css,/#native-downloads-action\.nd-squircle:active/);
+    assert.match(html,/id="native-downloads-action-architecture"/);
+    assert.match(js,/downloadArchitecture\.textContent = info\.arches\[arch\]/);
+    assert.match(js,/Apple Silicon \(ARM64\)/);
+    assert.match(js,/Intel \(x86_64\)/);
+    assert.match(css,/--nd-tab-selected:#315CF5/);
+    assert.match(css,/--nd-tab-selected-ink:#FFFFFF/);
+    assert.match(css,/\.native-downloads-tabs button\.selected \{\s+color:var\(--nd-tab-selected-ink\)/);
+    assert.match(css,/\.native-downloads-tabs button\.selected\.nd-squircle \{\s+--nd-shape-fill:var\(--nd-tab-selected\)/);
+    assert.match(css,/\.native-downloads-secondary \{justify-self:stretch;width:100%\}/);
     assert.match(css,/--nd-download:#177A50/);
     assert.match(css,/--nd-download:#36CA91/);
 });

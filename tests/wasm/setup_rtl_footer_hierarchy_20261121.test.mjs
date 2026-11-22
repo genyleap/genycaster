@@ -14,9 +14,9 @@ function sectionAfter(anchor, end, file=setup) {
   return file.slice(start,stop);
 }
 
-test('CTA is centered on mobile and fixed to the logical trailing footer corner on desktop',()=>{
+test('CTA uses the full mobile footer and logical trailing desktop corner',()=>{
   const footer=sectionAfter('id: setupActionFooter','id: welcomeStage');
-  assert.match(footer,/anchors\.fill: parent\s+anchors\.leftMargin: root\.setupGutter\s+anchors\.rightMargin: root\.setupGutter/);
+  assert.match(footer,/anchors\.fill: parent[\s\S]*?anchors\.leftMargin: root\.phone \? 0 : root\.setupGutter\s+anchors\.rightMargin: root\.phone \? 0 : root\.setupGutter/);
   assert.doesNotMatch(footer,/x: stagePanel\.x - setupActionFooter\.x/);
   for (const required of [
     'readonly property real welcomeRowWidth:',

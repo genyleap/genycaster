@@ -306,9 +306,10 @@ Item {
     // browser sessions, leaving only Get Started in the fixed footer.
     readonly property bool welcomeNativeAppsVisible: Qt.platform.os === "wasm"
         && currentStep === 0 && !reviewMode
+    // Desktop keeps its measured form width; mobile consumes the entire
+    // footer instead of subtracting the form gutter a second time.
     readonly property real welcomeActionsWidth: Math.max(0, Math.min(
-        root.phone ? root.width - root.setupGutter * 2 : stagePanel.width,
-        root.phone ? 440 : 560))
+        stagePanel.width, 560))
     // The action rail is fixed below the scrolling form on every platform.
     readonly property bool desktopStageFooter: true
     readonly property bool wideStage: !phone && stagePanel.width >=
@@ -1627,12 +1628,14 @@ Item {
                 // stagePanel.x from the scrolling Flickable shifted the CTA
                 // inward on desktop and misaligned it in right-to-left UI.
                 anchors.fill: parent
-                anchors.leftMargin: root.setupGutter
-                anchors.rightMargin: root.setupGutter
+                // Full-bleed mobile CTA rail: the footer is already the width
+                // of the usable viewport. Desktop retains the form gutters.
+                anchors.leftMargin: root.phone ? 0 : root.setupGutter
+                anchors.rightMargin: root.phone ? 0 : root.setupGutter
                 anchors.topMargin: Theme.space3
                 anchors.bottomMargin: Theme.space3
-                readonly property real welcomeRowWidth: Math.min(
-                    root.welcomeActionsWidth, width)
+                readonly property real welcomeRowWidth: root.phone ? width
+                    : Math.min(root.welcomeActionsWidth, width)
 
                 SetupPrimaryButton {
                     id: stageAction
@@ -1645,7 +1648,7 @@ Item {
                            ? (root.welcomeNativeAppsVisible
                               ? Math.max(0, (setupFooterContent.welcomeRowWidth
                                              - Theme.space2) / 2)
-                              : Math.min(Theme.scaleUi(264), setupFooterContent.width))
+                              : setupFooterContent.width)
                            : root.welcomeNativeAppsVisible
                              ? Math.min(Theme.scaleUi(264),
                                         (setupFooterContent.welcomeRowWidth - Theme.space2) * 0.48)
@@ -1656,7 +1659,7 @@ Item {
                        ? (root.welcomeNativeAppsVisible
                           ? (setupFooterContent.width - setupFooterContent.welcomeRowWidth) / 2
                             + (Theme.rtl ? 0 : setupFooterContent.welcomeRowWidth - width)
-                          : (setupFooterContent.width - width) / 2)
+                          : 0)
                        : Theme.rtl ? 0 : setupFooterContent.width - width
                     height: root.welcomeNativeAppsVisible
                             ? Math.max(implicitHeight, setupWelcomeNativeApps.implicitHeight)
