@@ -7844,6 +7844,18 @@ Genycaster 处理账户 ID/FID、协议、验证状态以及 Farcaster 与 Genyl
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>恢复助记词保留在本设备上。仅发送公开托管地址和一次性签名证明。请使用可信的键盘与剪贴板。</translation>
         </message>
+        <message id="genycaster.setup.recovery_notice_title">
+            <source>Recovery phrase — keep it private</source>
+            <translation>请妥善保管恢复助记词</translation>
+        </message>
+        <message id="genycaster.setup.signer_verification_title">
+            <source>Confirming device authorization</source>
+            <translation>正在确认设备授权</translation>
+        </message>
+        <message id="genycaster.setup.signer_verified_title">
+            <source>Device signer enabled</source>
+            <translation>设备签名者已启用</translation>
+        </message>
         <message id="genycaster.setup.recovery_automatic_signer_notice">
             <source>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</source>
             <translation>使用恢复助记词继续操作时，也会请求授权此设备的签名者用于发布和互动。即使网络授权尚未完成，账户恢复仍可完成。</translation>

@@ -7844,6 +7844,18 @@ This notice describes the product's current intended data flows, not a guarantee
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>تبقى كلمات الاسترداد على هذا الجهاز. لا يُرسل سوى عنوان الحفظ العام وإثبات موقّع يُستخدم مرة واحدة. استخدم لوحة مفاتيح وحافظة موثوقتين.</translation>
         </message>
+        <message id="genycaster.setup.recovery_notice_title">
+            <source>Recovery phrase — keep it private</source>
+            <translation>عبارة الاسترداد — احتفظ بها سرية</translation>
+        </message>
+        <message id="genycaster.setup.signer_verification_title">
+            <source>Confirming device authorization</source>
+            <translation>جارٍ تأكيد تفويض الجهاز</translation>
+        </message>
+        <message id="genycaster.setup.signer_verified_title">
+            <source>Device signer enabled</source>
+            <translation>تم تفعيل مُوقّع الجهاز</translation>
+        </message>
         <message id="genycaster.setup.recovery_automatic_signer_notice">
             <source>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</source>
             <translation>المتابعة بكلمات الاسترداد تطلب أيضاً تفويض مُوقّع لهذا الجهاز للنشر والتفاعل. يمكن إكمال استرداد الحساب حتى أثناء انتظار تأكيد الشبكة.</translation>

@@ -7844,6 +7844,18 @@ Die Erklärung beschreibt vorgesehene Abläufe, nicht das Verhalten unabhängige
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>Die Wiederherstellungswörter bleiben auf diesem Gerät. Nur die öffentliche Custody-Adresse und ein einmalig signierter Nachweis werden gesendet. Nutze eine vertrauenswürdige Tastatur und Zwischenablage.</translation>
         </message>
+        <message id="genycaster.setup.recovery_notice_title">
+            <source>Recovery phrase — keep it private</source>
+            <translation>Wiederherstellungsphrase vertraulich behandeln</translation>
+        </message>
+        <message id="genycaster.setup.signer_verification_title">
+            <source>Confirming device authorization</source>
+            <translation>Geräteautorisierung wird bestätigt</translation>
+        </message>
+        <message id="genycaster.setup.signer_verified_title">
+            <source>Device signer enabled</source>
+            <translation>Geräte-Signierer aktiviert</translation>
+        </message>
         <message id="genycaster.setup.recovery_automatic_signer_notice">
             <source>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</source>
             <translation>Beim Fortfahren mit Wiederherstellungswörtern wird auch ein Geräte-Signierer für Beiträge und Interaktionen angefordert. Die Kontowiederherstellung kann abgeschlossen werden, während die Netzwerkfreigabe noch aussteht.</translation>

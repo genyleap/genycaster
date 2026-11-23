@@ -246,22 +246,81 @@ Item {
                 wrapMode: Text.Wrap
             }
             DirectionAwareLabel {
+                visible: !interactionAuthorizationDialog.enteringNativeWords
                 Layout.fillWidth: true
                 text: interactionAuthorizationDialog.nativeAccount
                     ? qsTrId("genycaster.shell.native_signer_description")
-                    : interactionAuthorizationDialog.enteringNativeWords
-                      ? qsTrId("genycaster.setup.recovery_privacy")
                     : qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeBodySize
-                wrapMode: Text.Wrap
+                wrapMode: Text.WordWrap
             }
-            DirectionAwareLabel {
+            // The phrase is a high-trust action, not another neutral form hint.
+            // Use the same Neon material as App Center; warning is semantic,
+            // not an always-running animation.
+            NeonSurface {
+                objectName: "signerRecoverySecurityNotice"
+                visible: interactionAuthorizationDialog.enteringNativeWords
+                         && !interactionAuthorizationDialog.authorizationSubmitted
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.setup.recovery_signer_consent")
-                color: Theme.textSecondary
-                font.pixelSize: Theme.typeCaptionSize
-                wrapMode: Text.Wrap
+                Layout.preferredHeight: signerSecurityContent.implicitHeight + Theme.space3 * 2
+                fillColor: Theme.warningSurface
+                borderColor: Qt.rgba(Theme.warning.r, Theme.warning.g,
+                                     Theme.warning.b, 0.42)
+                borderWidth: Theme.strokeStandard
+                curveDepth: Theme.curveContainer
+                ColumnLayout {
+                    id: signerSecurityContent
+                    anchors.fill: parent
+                    anchors.margins: Theme.space3
+                    spacing: Theme.space2
+                    RowLayout {
+                        Layout.fillWidth: true
+                        layoutDirection: Theme.uiDirection
+                        spacing: Theme.space2
+                        Icon {
+                            text: Theme.iconWarning
+                            color: Theme.warning
+                            preferredSize: Theme.iconSize
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.recovery_notice_title")
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        selectableText: false
+                        text: interactionAuthorizationDialog.nativeAccount
+                            ? qsTrId("genycaster.setup.native_recovery_privacy")
+                            : qsTrId("genycaster.setup.recovery_privacy")
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                }
+            }
+            RowLayout {
+                visible: !interactionAuthorizationDialog.authorizationSubmitted
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                Icon {
+                    text: Theme.iconCheck
+                    color: Theme.accent
+                    preferredSize: Theme.iconSize
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.recovery_signer_consent")
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.typeLabelSize
+                    wrapMode: Text.WordWrap
+                }
             }
             ActionButton {
                 objectName: "nativeSignerUseRecoveryWords"
@@ -290,6 +349,7 @@ Item {
             DirectionAwareLabel {
                 visible: Qt.platform.os !== "wasm"
                          && interactionAuthorizationDialog.enteringNativeWords
+                         && !interactionAuthorizationDialog.authorizationSubmitted
                          && interactionAuthorizationDialog.nativeAccount
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.shell.native_signer_words_note")
@@ -413,25 +473,76 @@ Item {
                 onClicked: interactionAuthorizationDialog.showRecoveryWords =
                     !interactionAuthorizationDialog.showRecoveryWords
             }
-            DirectionAwareLabel {
-                visible: (nativeRecoveryScroll && nativeRecoveryScroll.visible)
-                         || nativeSignerPhraseInput.visible
-                Layout.fillWidth: true
-                text: qsTrId("genycaster.setup.native_recovery_privacy")
-                color: Theme.inkMuted
-                font.pixelSize: Theme.typeCaptionSize
-                wrapMode: Text.WordWrap
-            }
                     }
                 }
-            DirectionAwareLabel {
-                Layout.fillWidth: true
+            NeonSurface {
+                id: signerApprovalStatus
+                objectName: "signerAuthorizationNeonProgress"
                 visible: interactionAuthorizationDialog.authorizationSubmitted
-                         && interactionAuthorizationDialog.enteringNativeWords && text.length > 0
-                text: presentationBridge.signerBusy ? presentationBridge.signerStatusText
-                                                   : presentationBridge.signerErrorText
-                color: presentationBridge.signerBusy ? Theme.textSecondary : Theme.warning
-                wrapMode: Text.WordWrap
+                         && interactionAuthorizationDialog.enteringNativeWords
+                Layout.fillWidth: true
+                Layout.preferredHeight: signerProgressRow.implicitHeight + Theme.space3 * 2
+                interactive: false
+                neonBusy: presentationBridge.signerBusy
+                ambientNeon: presentationBridge.signerBusy
+                neonColor: presentationBridge.signerBusy ? Theme.accent
+                           : presentationBridge.writeReady ? Theme.success : Theme.warning
+                neonStrength: Theme.neonCardStrength
+                fillColor: presentationBridge.writeReady ? Theme.successSurface
+                           : presentationBridge.signerBusy ? Theme.primarySurface
+                           : Theme.warningSurface
+                borderWidth: Theme.strokeStandard
+                borderColor: presentationBridge.writeReady ? Theme.success
+                             : presentationBridge.signerBusy ? Theme.accent : Theme.warning
+                curveDepth: Theme.curveContainer
+                RowLayout {
+                    id: signerProgressRow
+                    anchors.fill: parent
+                    anchors.margins: Theme.space3
+                    spacing: Theme.space3
+                    layoutDirection: Theme.uiDirection
+                    GenySpinner {
+                        visible: presentationBridge.signerBusy
+                        running: visible
+                        color: Theme.accent
+                        Layout.preferredWidth: Theme.iconSize
+                        Layout.preferredHeight: Theme.iconSize
+                    }
+                    Icon {
+                        visible: !presentationBridge.signerBusy
+                        text: presentationBridge.writeReady ? Theme.iconCheck : Theme.iconWarning
+                        color: presentationBridge.writeReady ? Theme.success : Theme.warning
+                        preferredSize: Theme.iconSize
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: presentationBridge.writeReady
+                                  ? qsTrId("genycaster.setup.signer_verified_title")
+                                  : presentationBridge.signerBusy
+                                    ? qsTrId("genycaster.setup.signer_verification_title")
+                                    : qsTrId("genycaster.setup.check_signer_status")
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: !presentationBridge.writeReady && text.length > 0
+                            text: presentationBridge.signerBusy
+                                  ? String(presentationBridge.signerStatusText || "")
+                                  : String(presentationBridge.signerErrorText
+                                           || qsTrId("genycaster.setup.signed_in_signer_separate"))
+                            color: presentationBridge.signerBusy
+                                   ? Theme.textSecondary : Theme.warning
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                }
             }
             // Account/FID recovery has already completed. If the separate
             // KEY_ADD signer operation stalls, inspect its CURRENT network
@@ -471,7 +582,9 @@ Item {
                     Layout.fillWidth: true
                     quiet: true
                     compact: true
-                    text: qsTrId("genycaster.shell.cancel")
+                    text: presentationBridge.signerBusy
+                          ? qsTrId("genycaster.shell.close")
+                          : qsTrId("genycaster.shell.cancel")
                     onClicked: interactionAuthorizationDialog.close()
                 }
                 ActionButton {
@@ -479,15 +592,31 @@ Item {
                     prominent: true
                     compact: true
                     objectName: "authorizeSelectedProtocolSigner"
-                    iconGlyph: interactionAuthorizationDialog.nativeAccount || interactionAuthorizationDialog.enteringNativeWords
-                        ? "" : Theme.iconArrowUpRight
-                    text: interactionAuthorizationDialog.nativeAccount || interactionAuthorizationDialog.enteringNativeWords
-                        ? qsTrId("genycaster.shell.native_signer_authorize")
-                        : qsTrId("genycaster.shell.open_farcaster")
+                    // ActionButton already implements the App Center Neon rim
+                    // and an accessible spinner. Only animate while a real
+                    // network/custody operation is in flight.
+                    busy: interactionAuthorizationDialog.authorizationSubmitted
+                          && presentationBridge.signerBusy
+                    iconGlyph: presentationBridge.writeReady ? Theme.iconCheck
+                        : interactionAuthorizationDialog.nativeAccount || interactionAuthorizationDialog.enteringNativeWords
+                          ? "" : Theme.iconArrowUpRight
+                    text: presentationBridge.writeReady
+                          ? qsTrId("genycaster.setup.signer_verified_title")
+                          : busy
+                            ? qsTrId("genycaster.setup.signer_verification_title")
+                            : interactionAuthorizationDialog.nativeAccount
+                                || interactionAuthorizationDialog.enteringNativeWords
+                              ? qsTrId("genycaster.shell.native_signer_authorize")
+                              : qsTrId("genycaster.shell.open_farcaster")
                     enabled: !presentationBridge.signerBusy
-                             && (!interactionAuthorizationDialog.enteringNativeWords
+                             && (presentationBridge.writeReady
+                                 || !interactionAuthorizationDialog.enteringNativeWords
                                  || interactionAuthorizationDialog.recoveryReady())
                     onClicked: {
+                        if (presentationBridge.writeReady) {
+                            interactionAuthorizationDialog.close()
+                            return
+                        }
                         interactionAuthorizationDialog.authorizationSubmitted = true
                         if (interactionAuthorizationDialog.enteringNativeWords) {
                             // One-shot secret: forward directly to native C++,

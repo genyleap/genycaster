@@ -522,6 +522,31 @@ void testProfileNavigationKeepsIndependentMetadataAndCachedCounts()
     }, {}, {}, {}, false, false, false);
     assert(bridge.detail().value(QStringLiteral("fid")).toUInt() == 202U);
     assert(bridge.detail().value(QStringLiteral("followerCount")).toUInt() == 0U);
+
+    // Notifications -> Cast -> mentioned profile -> Back must remain on
+    // the Cast even if a previously requested profile arrives afterward.
+    bridge.openCast(QStringLiteral("0xmentioned-cast"));
+    bridge.openProfileFid(303);
+    assert(bridge.activeView() == QStringLiteral("profile"));
+    bridge.returnFromDetail();
+    assert(bridge.activeView() == QStringLiteral("cast"));
+    bridge.applyDetail(QStringLiteral("profile"), QVariantMap{
+        {QStringLiteral("fid"), 303U},
+        {QStringLiteral("displayName"), QStringLiteral("Delayed profile")}
+    }, {}, {}, {}, false, false, false);
+    assert(bridge.activeView() == QStringLiteral("cast"));
+    assert(bridge.detail().value(QStringLiteral("fid")).toUInt() != 303U);
+    bridge.applyList(QStringLiteral("profile"), QStringLiteral("user-replies"),
+        QVariantList{}, {}, {}, {}, {}, false, false, false, false);
+    assert(bridge.activeView() == QStringLiteral("cast"));
+
+    bridge.openProfileFid(404);
+    assert(bridge.activeView() == QStringLiteral("profile"));
+    bridge.applyDetail(QStringLiteral("cast"), QVariantMap{
+        {QStringLiteral("castId"), QStringLiteral("0xmentioned-cast")}
+    }, {}, {}, {}, false, false, false);
+    assert(bridge.activeView() == QStringLiteral("profile"));
+    assert(bridge.activeProfileFidText() == QStringLiteral("404"));
 }
 
 void testAuthenticatedProfilePresentationIsCached()

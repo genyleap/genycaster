@@ -110,7 +110,10 @@ QtObject {
             QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xother")}},
             {}, {}, {}, false, false, false);
     }
-    assert(stateSignals >= 96);
+    // A late Cast detail from a hidden view is discarded instead of
+    // switching navigation away from the active feed.
+    assert(stateSignals >= 64);
+    assert(bridge.activeView() == QStringLiteral("feed"));
     assert(rowSignals == 1);
     assert(binding->property("rowBindingUpdates").toInt() == afterInitial);
 

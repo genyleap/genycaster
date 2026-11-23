@@ -1263,6 +1263,12 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_button");
     //% "Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending."
     (void)qtTrId("genycaster.setup.recovery_automatic_signer_notice");
+    //% "Recovery phrase — keep it private"
+    (void)qtTrId("genycaster.setup.recovery_notice_title");
+    //% "Confirming device authorization"
+    (void)qtTrId("genycaster.setup.signer_verification_title");
+    //% "Device signer enabled"
+    (void)qtTrId("genycaster.setup.signer_verified_title");
     //% "Verify your account and enable publishing in Setup. No separate Sign In."
     (void)qtTrId("genycaster.setup.recovery_button_body");
     //% "Other sign-in methods"

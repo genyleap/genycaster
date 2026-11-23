@@ -3412,14 +3412,49 @@ Item {
                 Layout.fillWidth: true
                 Layout.topMargin: Theme.space2
                 spacing: Theme.space3
-                DirectionAwareLabel {
+                NeonSurface {
+                    objectName: "setupRecoverySecurityNotice"
                     Layout.fillWidth: true
-                    text: root.recoveryProtocol === "hypersnap-v2"
-                        ? qsTrId("genycaster.setup.native_recovery_privacy")
-                        : qsTrId("genycaster.setup.recovery_privacy")
-                    color: Theme.inkMuted
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.WordWrap
+                    Layout.preferredHeight: recoverySecurityContent.implicitHeight + Theme.space3 * 2
+                    fillColor: Theme.warningSurface
+                    borderColor: Qt.rgba(Theme.warning.r, Theme.warning.g,
+                                         Theme.warning.b, 0.42)
+                    borderWidth: Theme.strokeStandard
+                    curveDepth: Theme.curveContainer
+                    ColumnLayout {
+                        id: recoverySecurityContent
+                        anchors.fill: parent
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space2
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+                            Icon {
+                                text: Theme.iconWarning
+                                color: Theme.warning
+                                preferredSize: Theme.iconSize
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.setup.recovery_notice_title")
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightDemiBold
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            selectableText: false
+                            text: root.recoveryProtocol === "hypersnap-v2"
+                                ? qsTrId("genycaster.setup.native_recovery_privacy")
+                                : qsTrId("genycaster.setup.recovery_privacy")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                    }
                 }
                 RowLayout {
                     Layout.fillWidth: true
@@ -3600,15 +3635,49 @@ Item {
                         label: qsTrId("genycaster.setup.show_recovery_words")
                         onVisibleChanged: if (!visible) checked = false
                     }
-                    DirectionAwareLabel {
+                    NeonSurface {
                         objectName: "nativeRecoveryAutomaticSignerNotice"
                         Layout.fillWidth: true
                         Layout.topMargin: Theme.space2
-                        selectableText: false
-                        text: qsTrId("genycaster.setup.recovery_automatic_signer_notice")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
+                        Layout.preferredHeight: signerNoticeRow.implicitHeight + Theme.space3 * 2
+                        fillColor: Theme.primarySurface
+                        borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                             Theme.accent.b, 0.35)
+                        borderWidth: Theme.strokeStandard
+                        curveDepth: Theme.curveContainer
+                        RowLayout {
+                            id: signerNoticeRow
+                            anchors.fill: parent
+                            anchors.margins: Theme.space3
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+                            Icon {
+                                text: Theme.iconCheck
+                                color: Theme.accent
+                                preferredSize: Theme.iconSize
+                                Layout.alignment: Qt.AlignTop
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space1
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.shell.native_signer_authorize")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeLabelSize
+                                    font.weight: Theme.weightDemiBold
+                                    wrapMode: Text.WordWrap
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    selectableText: false
+                                    text: qsTrId("genycaster.setup.recovery_automatic_signer_notice")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+                        }
                     }
                 }
                 SetupPrimaryButton {

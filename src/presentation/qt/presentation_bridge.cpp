@@ -2174,6 +2174,25 @@ void PresentationBridge::returnFromDetail()
     while (!m_detailHistory.empty()) {
         DetailLocation previous = std::move(m_detailHistory.back());
         m_detailHistory.pop_back();
+        // Ignore stale or duplicate breadcrumb frames. Reopening the same
+        // profile/FID or Cast is intentionally idempotent, so returning such
+        // a frame would consume Back without changing the visible screen.
+        const bool identicalCast = previous.view == QStringLiteral("cast")
+            && m_activeView == QStringLiteral("cast")
+            && !previous.castId.isEmpty()
+            && previous.castId.compare(m_currentCastId, Qt::CaseInsensitive) == 0;
+        const bool identicalProfileFid = previous.view == QStringLiteral("profile")
+            && m_activeView == QStringLiteral("profile")
+            && previous.profileFid != 0 && previous.profileFid == m_profileFid
+            && previous.ownProfile == ownProfileNavigation();
+        const bool identicalProfileUsername = previous.view == QStringLiteral("profile")
+            && m_activeView == QStringLiteral("profile")
+            && previous.profileFid == 0 && m_profileFid == 0
+            && !previous.profileUsername.isEmpty()
+            && previous.profileUsername.compare(m_currentProfileUsername,
+                Qt::CaseInsensitive) == 0;
+        if (identicalCast || identicalProfileFid || identicalProfileUsername)
+            continue;
         m_restoringDetailHistory = true;
         if (previous.view == QStringLiteral("cast") && !previous.castId.isEmpty()) {
             openCast(previous.castId);
@@ -4563,6 +4582,18 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     const bool stale, const bool sourceUnavailable, const bool paginationRequest,
     const bool boundedLocalSnapshot)
 {
+    // Read callbacks must not navigate. A profile timeline can complete after
+    // Back has returned to its parent Cast/Notifications and otherwise reopen
+    // the departed profile even if applyDetail() rejects its metadata.
+    if (view == QStringLiteral("profile")
+        && (m_activeView != QStringLiteral("profile") || selector != m_profileFeed))
+        return;
+    // Likewise, a late feed page must not replace an open Cast or profile.
+    // selectFeed() establishes the new view before requesting its first page.
+    if (view == QStringLiteral("feed")
+        && (m_activeView == QStringLiteral("cast")
+            || m_activeView == QStringLiteral("profile")))
+        return;
     const QString currentSelector = m_activeView == QStringLiteral("feed") ? m_activeFeed
         : m_activeView == QStringLiteral("profile") ? m_profileFeed : m_activeView;
     const bool sameSurface = view == m_activeView && selector == currentSelector;
@@ -4882,6 +4913,21 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
 void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString status,
     QString error, QString diagnostic, const bool busy, const bool stale, const bool sourceUnavailable)
 {
+    // Network/cache results are snapshots, not navigation commands. A delayed
+    // Profile request MUST NOT reopen a profile after Back has returned to a
+    // Cast, and a delayed Cast response must not replace a newly opened profile.
+    if ((view == QStringLiteral("profile") || view == QStringLiteral("cast"))
+        && m_activeView != view)
+        return;
+    // Likewise, a late result from a previous Cast must not overwrite the
+    // currently requested Cast during nested quote/mention navigation.
+    if (view == QStringLiteral("cast") && !m_currentCastId.isEmpty()) {
+        const QString receivedCastId = detail.value(QStringLiteral("castId")).toString();
+        if (!receivedCastId.isEmpty()
+            && receivedCastId.compare(m_currentCastId, Qt::CaseInsensitive) != 0)
+            return;
+    }
+
     // An older asynchronous profile result must never replace the requested
     // FID after Back/forward navigation. The view's identity is established
     // by openProfileFid/openMyProfile, not by whichever network replies last.

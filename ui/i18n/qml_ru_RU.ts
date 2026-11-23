@@ -7844,6 +7844,18 @@ Genycaster обрабатывает ID/FID, протокол, статус пр�
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>Слова восстановления остаются на этом устройстве. Отправляются только публичный адрес хранения и одноразовое подписанное подтверждение. Используйте доверенные клавиатуру и буфер обмена.</translation>
         </message>
+        <message id="genycaster.setup.recovery_notice_title">
+            <source>Recovery phrase — keep it private</source>
+            <translation>Храните фразу восстановления в тайне</translation>
+        </message>
+        <message id="genycaster.setup.signer_verification_title">
+            <source>Confirming device authorization</source>
+            <translation>Подтверждение разрешения устройства</translation>
+        </message>
+        <message id="genycaster.setup.signer_verified_title">
+            <source>Device signer enabled</source>
+            <translation>Подписант устройства активирован</translation>
+        </message>
         <message id="genycaster.setup.recovery_automatic_signer_notice">
             <source>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</source>
             <translation>Продолжение с фразой восстановления также запрашивает разрешение подписанта для публикаций и взаимодействий на этом устройстве. Восстановление аккаунта может завершиться, даже если подтверждение сети ещё ожидается.</translation>
