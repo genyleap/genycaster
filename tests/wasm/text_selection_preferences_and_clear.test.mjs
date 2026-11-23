@@ -65,7 +65,7 @@ test('Clear content destroys unsent content and media safely after confirmation'
   const engine=read('src/presentation/qt/rich_composer_controller.cpp');
   assert.match(composer,/function clearAllComposerContent\(\)/);
   assert.match(composer,/if \(presentationBridge.writeBusy \|\| presentationBridge.writePhase === "queued"\)/);
-  assert.match(composer,/richComposer.newDocument\(\)/);
+  assert.match(composer,/richComposer.clearCurrentContent\(/);
   assert.match(composer,/threadTailModel\.clear\(\)/);
   assert.match(composer,/mediaUpload.cancel\(\)/);
   assert.match(composer,/objectName: "composerClearContentMobile"/);

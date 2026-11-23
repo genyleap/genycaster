@@ -26,10 +26,15 @@ test('preview scales actual image without cropping or nested fixed-height clippi
     const preview = read('ui/components/media/FarcasterPreview.qml');
     const media = read('ui/components/composer/MediaUploadPanel.qml');
     assert.match(preview, /fitImage: true/);
-    assert.match(preview, /implicitHeight: Math\.min\(root\.compact \? 580 : 720,/);
+    assert.match(preview, /implicitHeight: Math\.max\(root\.compact \? 190 : 245,/);
     assert.match(preview, /previewColumn\.implicitHeight \+ Theme\.space4/);
+    assert.doesNotMatch(preview, /ScrollView \{/);
+    assert.match(preview, /id: previewViewport/);
+    assert.match(preview, /mediaTile\.imageAspectRatio/);
+    assert.match(preview, /const presentationSource = localPreview\.length > 0 \? localPreview : url/);
+    assert.match(read('ui/components/media/MediaPreview.qml'), /imageAspectRatio:/);
     assert.match(media, /objectName: "composerOriginalImageStrip"/);
-    assert.match(media, /Layout\.minimumWidth: Theme\.compactControlHeight/);
+    assert.match(media, /Layout\.preferredHeight: root\.width < 620 \? 122 : 140/);
     assert.match(media, /onClicked: richComposer\.removeBlock\(Number\(modelData\.blockIndex\)\)/);
     assert.match(media, /width: visible \? Theme\.compactControlHeight \+ Theme\.space2 : 0/);
 });

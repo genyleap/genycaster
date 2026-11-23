@@ -512,9 +512,8 @@ NeonCard {
             Flickable {
                 objectName: "composerOriginalImageStrip"
                 Layout.fillWidth: true
-                // Compact source-quality tray: the file is an attachment,
-                // not a second full-height editor. The inspector opens on tap.
-                Layout.preferredHeight: root.width < 620 ? 216 : 248
+                // Actual inline upload cards rather than a full-width gallery.
+                Layout.preferredHeight: root.width < 620 ? 122 : 140
                 clip: true
                 contentWidth: attachmentStrip.width
                 contentHeight: height
@@ -524,26 +523,23 @@ NeonCard {
                 Row {
                     id: attachmentStrip
                     height: parent.height
-                    spacing: Theme.space3
+                    spacing: Theme.space2
 
                     Repeater {
                         model: root.regularAttachedMedia
 
                         delegate: Item {
                             required property var modelData
-                            width: Math.max(180, Math.min(root.width - 8,
-                                root.width < 620 ? 410 : 500))
+                            width: Math.max(180, Math.min(root.width - Theme.space2 * 2,
+                                root.width < 620 ? 295 : 355))
                             height: attachmentStrip.height
 
                             MediaPreview {
                                 id: attachedPreview
                                 anchors.left: parent.left
-                                anchors.right: parent.right
                                 anchors.top: parent.top
-                                height: parent.height - 48
-                                // The attached URL is already the canonical
-                                // published image. Decode original pixels,
-                                // never the transient 96px selection JPEG.
+                                anchors.bottom: parent.bottom
+                                width: height
                                 source: modelData.previewUrl
                                 mediaType: modelData.mediaType
                                 fitImage: true
@@ -562,24 +558,29 @@ NeonCard {
                                 onClicked: root.inspectImage(modelData)
                             }
 
-                            RowLayout {
-                                anchors.left: parent.left
+                            ColumnLayout {
+                                anchors.left: attachedPreview.right
                                 anchors.right: parent.right
+                                anchors.top: parent.top
                                 anchors.bottom: parent.bottom
-                                height: 42
+                                anchors.leftMargin: Theme.space2
                                 spacing: Theme.space1
 
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
-                                    Layout.minimumWidth: 0
+                                    Layout.topMargin: Theme.space1
                                     text: String(modelData.fileName || "")
                                     font.pixelSize: Theme.typeCaptionSize
                                     color: Theme.ink
+                                    font.weight: Theme.weightDemiBold
                                     elide: Text.ElideMiddle
+                                    maximumLineCount: 2
+                                    wrapMode: Text.WrapAnywhere
                                     forceLeftToRight: true
                                 }
 
                                 DirectionAwareLabel {
+                                    Layout.fillWidth: true
                                     visible: Number(modelData.sizeBytes || 0) > 0
                                     text: root.savingsText(modelData.originalSizeBytes,
                                                           modelData.sizeBytes).length > 0
@@ -590,22 +591,22 @@ NeonCard {
                                         : root.formatBytes(modelData.sizeBytes)
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
-                                    Layout.maximumWidth: Math.max(0, Math.min(138, parent.width * 0.34))
-                                    elide: Text.ElideRight
+                                    wrapMode: Text.Wrap
+                                    maximumLineCount: 2
                                     forceLeftToRight: true
                                 }
 
+                                Item { Layout.fillHeight: true }
+
                                 ActionButton {
-                                    // Reserve real layout width for Remove: the
-                                    // control must never get clipped by filename.
-                                    Layout.preferredWidth: Theme.compactControlHeight
-                                    Layout.minimumWidth: Theme.compactControlHeight
-                                    Layout.preferredHeight: Theme.compactControlHeight
+                                    Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                                    Layout.bottomMargin: Theme.space1
                                     quiet: true
                                     compact: true
                                     iconOnly: true
                                     iconGlyph: Theme.iconClose
                                     text: qsTrId("genycaster.composer.remove_block")
+                                    Accessible.name: qsTrId("genycaster.composer.remove_block")
                                     onClicked: richComposer.removeBlock(Number(modelData.blockIndex))
                                 }
                             }
@@ -619,14 +620,13 @@ NeonCard {
                         height: parent.height
 
                         ActionButton {
-                            anchors.top: parent.top
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.topMargin: Theme.space2
+                            anchors.centerIn: parent
                             quiet: true
                             compact: true
                             iconOnly: true
                             iconGlyph: Theme.iconPlus
                             text: qsTrId("genycaster.media.choose_file")
+                            Accessible.name: qsTrId("genycaster.media.choose_file")
                             onClicked: root.browseRequested(root.blockIndex)
                         }
                     }

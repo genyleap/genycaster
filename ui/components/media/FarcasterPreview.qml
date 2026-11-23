@@ -11,14 +11,11 @@ Superellipse {
     property bool compact: false
     property var attachmentMetadata: ({})
 
-    // Keep preview geometry deterministic. Long text/media scrolls inside the
-    // preview instead of resizing the composer after asynchronous media work.
-    // Size the preview from its real rendered Cast, rather than clipping a
-    // 500px card into a hard-coded 400px viewport. The outer Composer scrolls;
-    // only exceptionally long Casts use this preview's own scroll bar.
-    implicitHeight: Math.min(root.compact ? 580 : 720,
-                             Math.max(root.compact ? 190 : 245,
-                                      previewColumn.implicitHeight + Theme.space4))
+    // A single scroll owner: the Composer's outer ScrollView. Nested
+    // ScrollViews consumed wheel/touch gestures and cut the media in half.
+    // Reserve the complete intrinsic Cast, including its fitted image.
+    implicitHeight: Math.max(root.compact ? 190 : 245,
+                             previewColumn.implicitHeight + Theme.space4)
 
     readonly property string authorName: String(presentationBridge.accountName || presentationBridge.identityName || qsTrId("genycaster.app.genycaster"))
     readonly property string authorUsername: String(presentationBridge.accountUsername || "")
@@ -39,10 +36,10 @@ Superellipse {
                              ? root.attachmentMetadata[url] : ({})
             const localPreview = String(metadata.localPreviewUrl || "").trim()
             const sticker = StickerCatalog.isStickerUrl(url)
-            const presentationSource = localPreview.length > 0
-                                     ? localPreview
-                                     : (sticker || url.startsWith("file:")
-                                        || url.startsWith("qrc:") || url.startsWith("image:") ? url : "")
+            // This is media the author deliberately attached. A canonical
+            // remote URL must also render in the preview (the media gateway
+            // handles network policy), not a blank square.
+            const presentationSource = localPreview.length > 0 ? localPreview : url
             result.push({
                 url: url,
                 sticker: sticker,
@@ -74,18 +71,14 @@ Superellipse {
     borderColor: Theme.borderMuted
     curveDepth: Theme.curveContainer
 
-    ScrollView {
+    Item {
         id: previewViewport
         anchors.fill: parent
         anchors.margins: Theme.space2
-        clip: true
-        contentWidth: availableWidth
-        ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
-        ScrollBar.vertical: GenyScrollBar { policy: ScrollBar.AsNeeded }
 
         ColumnLayout {
             id: previewColumn
-            width: Math.max(0, previewViewport.availableWidth)
+            width: Math.max(0, previewViewport.width)
             spacing: Theme.space3
 
             RowLayout {
@@ -196,9 +189,13 @@ Superellipse {
                             delegate: Item {
                                 required property var modelData
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: modelData.sticker ? (root.compact ? 156 : 188)
-                                    : root.previewMedia.length > 1 ? (root.compact ? 132 : 178)
-                                    : (root.compact ? 190 : 250)
+                                Layout.preferredHeight: modelData.sticker
+                                    ? (root.compact ? 156 : 188)
+                                    : root.previewMedia.length > 1
+                                        ? Math.max(110, Math.min(680,
+                                            width / Math.max(0.3, mediaTile.imageAspectRatio)))
+                                        : Math.max(160, Math.min(1800,
+                                            width / Math.max(0.3, mediaTile.imageAspectRatio)))
 
                                 StickerDraftTile {
                                     visible: Boolean(parent.modelData.sticker)
@@ -210,6 +207,7 @@ Superellipse {
                                 }
 
                                 MediaPreview {
+                                    id: mediaTile
                                     visible: !Boolean(parent.modelData.sticker)
                                     anchors.fill: parent
                                     source: String(parent.modelData.previewSource || "")

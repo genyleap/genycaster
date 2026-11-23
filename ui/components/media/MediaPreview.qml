@@ -32,6 +32,13 @@ Item {
     property bool userPlayback: false
     property bool primedVideoFrame: false
 
+    // Intrinsic raster ratio for Composer layouts. The preview must reserve
+    // the image's actual height instead of masking a square into a short tile.
+    readonly property real imageAspectRatio: imagePreview.sourceImplicitHeight > 1
+        && imagePreview.sourceImplicitWidth > 1
+        ? imagePreview.sourceImplicitWidth / imagePreview.sourceImplicitHeight
+        : (fullImage.implicitHeight > 1 && fullImage.implicitWidth > 1
+            ? fullImage.implicitWidth / fullImage.implicitHeight : 1)
     readonly property bool isImage: String(root.mediaType || "").startsWith("image/")
     readonly property bool isVideo: String(root.mediaType || "").startsWith("video/")
     readonly property bool hasSource: root.source.toString().length > 0

@@ -362,19 +362,19 @@ GenyDrawer {
     function clearAllComposerContent() {
         // Clear the complete unpublished document, attachments and thread,
         // never the reply target; losing that would silently change where the
-        // new cast is published. Managed media cleanup is queued by newDocument.
+        // new cast is published. Owned uploads are queued for signed deletion
+        // before the composer drops its management capabilities.
         if (presentationBridge.writeBusy || presentationBridge.writePhase === "queued")
             return
         root.closeComposerPopups()
         root.clearPendingMediaQueue()
         if (mediaUpload.busy)
             mediaUpload.cancel()
-        else
-            mediaUpload.clear()
-        if (root.replyMode || root.quoteMode || root.transientDraft)
-            richComposer.beginContextDocument()
-        else
-            richComposer.newDocument()
+        mediaUpload.clear()
+        root.statsImageFileUrl = ""
+        root.statsImageUploadAttempted = false
+        richComposer.clearCurrentContent(
+            root.replyMode || root.quoteMode || root.transientDraft)
         threadTailModel.clear()
         root.mediaMetadata = ({})
         root.mediaInsertFailed = false

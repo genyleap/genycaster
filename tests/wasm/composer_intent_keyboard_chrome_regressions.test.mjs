@@ -45,7 +45,7 @@ test("clearing a quote draft retains its referenced Cast",()=>{
     const composer=read("ui/components/composer/ComposerDrawer.qml");
     const clear=composer.slice(composer.indexOf("function clearAllComposerContent()"),
                                composer.indexOf("function startNextMediaUpload()"));
-    assert.match(clear,/richComposer\.newDocument\(\)/);
+    assert.match(clear,/richComposer\.clearCurrentContent\(/);
     assert.match(clear,/if \(root\.quoteMode && root\.quotedCast\)\s+richComposer\.insertCastReference/);
     assert.doesNotMatch(clear,/root\.quotedCast = null/);
     assert.match(composer,/if \(root\.initialAction === "quote" && root\.quotedCast\)/);

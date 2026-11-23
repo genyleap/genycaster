@@ -914,6 +914,11 @@ void RichComposerController::newDocument()
 
 void RichComposerController::beginContextDocument()
 {
+    if (m_impl->contextDocument) {
+        // Abandoning a previous unsaved reply must not orphan owned uploads.
+        clearCurrentContent(true);
+        return;
+    }
     m_impl->autosave.stop();
     m_impl->contextDocument = true;
     // Never touch DraftKey or DraftManagedAssetsKey. This is an isolated
@@ -1022,9 +1027,11 @@ bool RichComposerController::applyAccountDraft(
 void RichComposerController::saveDraft() { m_impl->saveDraft(true); }
 void RichComposerController::clearDraft()
 {
+    bool cleanupQueued = false;
     for (auto iterator = m_impl->managedAssets.constBegin(); iterator != m_impl->managedAssets.constEnd(); ++iterator) {
         if (!tokenReferencedByPublishedCast(m_impl->settings, iterator.value())) {
             queueCleanupToken(m_impl->settings, iterator.value());
+            cleanupQueued = true;
         }
     }
     const bool hadDraft=m_impl->settings.contains(m_impl->draftKey());
@@ -1037,7 +1044,37 @@ void RichComposerController::clearDraft()
     m_impl->dirty = false;
     m_impl->saveStatusText.clear();
     emit saveStateChanged();
+    if (cleanupQueued)
+        emit managedAssetCleanupRequested();
 }
+
+void RichComposerController::clearCurrentContent(const bool preserveContext)
+{
+    m_impl->autosave.stop();
+    if (!preserveContext && !m_impl->contextDocument) {
+        // clearDraft persists owned deletion tokens and emits cleanup after
+        // releasing the ordinary account draft. Published sidecars are kept.
+        newDocument();
+        return;
+    }
+
+    // Replies, quotes and Mini App handoffs are isolated from the ordinary
+    // saved draft. Persist their tokens before clearing the in-memory AST.
+    bool cleanupQueued = false;
+    for (auto iterator = m_impl->managedAssets.constBegin();
+         iterator != m_impl->managedAssets.constEnd(); ++iterator) {
+        if (!tokenReferencedByPublishedCast(m_impl->settings, iterator.value())) {
+            queueCleanupToken(m_impl->settings, iterator.value());
+            cleanupQueued = true;
+        }
+    }
+    m_impl->settings.sync();
+    m_impl->contextDocument = true;
+    m_impl->newEmpty(false);
+    if (cleanupQueued)
+        emit managedAssetCleanupRequested();
+}
+
 void RichComposerController::undo()
 {
     if (m_impl->undoStack.empty()) return;
@@ -1292,6 +1329,9 @@ bool RichComposerController::removeBlock(const int index)
         // Persist the updated draft and cleanup intent before the asynchronous
         // gateway delete can run, so a crash cannot restore a now-deleted URL.
         m_impl->saveDraft(false);
+        // Context documents skip draft persistence, but their deletion queue
+        // must survive process termination just like an ordinary draft.
+        m_impl->settings.sync();
     }
     if (cleanupQueued) {
         emit managedAssetCleanupRequested();

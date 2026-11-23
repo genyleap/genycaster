@@ -120,6 +120,10 @@ public:
 
     /** @brief Deletes the current local draft. */
     Q_INVOKABLE void clearDraft();
+
+    /** @brief Discards only the active composer, queuing unpublished owned
+     * assets for durable signed deletion while preserving unrelated drafts. */
+    Q_INVOKABLE void clearCurrentContent(bool preserveContext);
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
 
