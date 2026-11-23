@@ -1736,6 +1736,10 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     // continue through verifyProof and the replay cache.
     const browserUploadPath = requestUrl.pathname === '/v1/uploads'
       || requestUrl.pathname === '/v1/uploads/complete'
+      // Browser media cleanup uses this same signed, owner-scoped route.
+      // Without it, OPTIONS /v1/assets falls through to a 404 before
+      // WebCrypto's DELETE request can even be sent.
+      || requestUrl.pathname === '/v1/assets'
       || /^\/v1\/uploads\/[^/]+\/parts\/[1-9][0-9]{0,4}$/.test(requestUrl.pathname);
     if (browserUploadPath && request.headers.origin === config.publicOrigin.origin) {
       response.setHeader('access-control-allow-origin', config.publicOrigin.origin);

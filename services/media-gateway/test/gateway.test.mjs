@@ -279,6 +279,36 @@ test('authorized Farcaster signer uploads a gateway-relayed multipart object and
   });
 });
 
+test('first-party managed-asset cleanup preflight succeeds, foreign origins are denied', async () => {
+  await withGateway(async ({ origin }) => {
+    const path = '/v1/assets';
+    const headers = {
+      origin: 'https://genycaster.xyz',
+      'access-control-request-method': 'DELETE',
+      'access-control-request-headers':
+        'content-type,x-genycaster-fid,x-genycaster-signer-key,x-genycaster-timestamp,x-genycaster-nonce,x-genycaster-signature',
+    };
+    const allowed = await fetch(origin + path, { method: 'OPTIONS', headers });
+    assert.equal(allowed.status, 204);
+    assert.equal(allowed.headers.get('access-control-allow-origin'), headers.origin);
+    assert.match(allowed.headers.get('access-control-allow-methods') || '', /DELETE/);
+    assert.match(allowed.headers.get('access-control-allow-headers') || '',
+      /x-genycaster-signature/);
+    assert.equal(allowed.headers.get('access-control-allow-credentials'), null);
+    const rejected = await fetch(origin + path, { method: 'OPTIONS',
+      headers: {...headers, origin:'https://evil.test'} });
+    assert.equal(rejected.status, 403);
+    assert.equal(rejected.headers.get('access-control-allow-origin'), null);
+    const unsigned = await fetch(origin + path, {
+      method: 'DELETE',
+      headers: {origin: 'https://genycaster.xyz', 'content-type':'application/json'},
+      body: JSON.stringify({managementToken:'invalid'}),
+    });
+    assert.equal(unsigned.status, 401, 'preflight must not bypass signed delete authorization');
+    assert.equal(unsigned.headers.get('access-control-allow-origin'), headers.origin);
+  });
+});
+
 test('tampered managed-asset token cannot delete storage objects', async () => {
   await withGateway(async ({ origin, stored }) => {
     const payload = Buffer.from('managed-media');

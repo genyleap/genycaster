@@ -462,9 +462,13 @@ Item {
                                 objectName: "nativeSignerRecoveryWord" + (index + 1)
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: root.compact ? Theme.scaleUi(38) : Theme.scaleUi(44)
-                                enabled: index < interactionAuthorizationDialog.activeWordCount
+                                // Popup parent reassignment can briefly destroy the
+                                // dialog while repeater delegates still evaluate bindings.
+                                enabled: !!interactionAuthorizationDialog
+                                    && index < interactionAuthorizationDialog.activeWordCount
                                     && !interactionAuthorizationDialog.authorizationSubmitted
-                                opacity: index < interactionAuthorizationDialog.activeWordCount ? 1 : 0.38
+                                opacity: interactionAuthorizationDialog
+                                    && index < interactionAuthorizationDialog.activeWordCount ? 1 : 0.38
                                 forceLeftToRight: true
                                 placeholderText: interactionAuthorizationDialog
                                                  && interactionAuthorizationDialog.authorizationSubmitted
@@ -495,6 +499,7 @@ Item {
                                     })
                                 }
                                 Keys.onPressed: function(event) {
+                                    if (!interactionAuthorizationDialog) return
                                     // Space/Return explicitly advances one word. Paste
                                     // must never advance focus to another numbered slot.
                                     if ((event.key === Qt.Key_Space || event.key === Qt.Key_Return)
