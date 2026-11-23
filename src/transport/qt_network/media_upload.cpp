@@ -567,7 +567,7 @@ public:
             }
             if (!optimizedBytes.isEmpty()
                 && optimizedBytes.size() <= targetBytes
-                && (originalSourceBytes > targetBytes
+                && (originalSourceBytes > static_cast<std::uint64_t>(targetBytes)
                     || static_cast<std::uint64_t>(optimizedBytes.size()) * 100
                         < originalSourceBytes * 92)) {
                 sizeBytes = static_cast<std::uint64_t>(optimizedBytes.size());

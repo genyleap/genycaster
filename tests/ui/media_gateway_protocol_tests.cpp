@@ -107,7 +107,9 @@ upload(FakeAuthority& authority, FakeTransport& transport, const std::filesystem
     config.baseUrl = "https://media.example";
     auto gateway = media::makeGateway(authority, transport, config);
     require(gateway.has_value(), "cannot construct real media gateway");
-    return (*gateway)->upload(domain::identity::Fid{42U}, path, {}, {});
+    constexpr std::uint64_t BasicImageLimit = 2U * 1024U * 1024U;
+    return (*gateway)->upload(domain::identity::Fid{42U}, path,
+                              BasicImageLimit, {}, {});
 }
 }
 

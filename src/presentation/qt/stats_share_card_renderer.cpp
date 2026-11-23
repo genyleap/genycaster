@@ -63,7 +63,7 @@ void label(QPainter& painter, const QString& value, const QRectF& rect,
     font.setWeight(weight);
     painter.setFont(font);
     painter.setPen(color);
-    painter.drawText(rect, alignment, QFontMetrics{font}.elidedText(
+    painter.drawText(rect, static_cast<int>(alignment), QFontMetrics{font}.elidedText(
         value, Qt::ElideRight, std::max(0, static_cast<int>(rect.width()))));
 }
 
