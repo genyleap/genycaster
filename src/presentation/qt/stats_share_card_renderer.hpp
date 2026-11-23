@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/qt/stats_share_card_renderer.hpp
+ * @brief       QtGui raster share-card rendering compatibility boundary.
+ *
+ * @details
+ * Textual QtGui boundary between the media-upload QObject adapter and
+ * its CPU-raster implementation; Qt QImage/QString/QVariantMap are Qt SDK
+ * types and never enter the provider-neutral C++ application modules.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       23 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
 #pragma once
 
 #include <QString>

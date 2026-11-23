@@ -151,6 +151,9 @@ ALLOWED_HPP = {
     pathlib.Path("src/presentation/qt/rendering_controller.hpp"),
     pathlib.Path("src/presentation/qt/rich_composer_controller.hpp"),
     pathlib.Path("src/presentation/qt/media_upload_controller.hpp"),
+    # QtGui raster boundary: the renderer shares QImage and QtCore value types
+    # between two non-module Qt implementation units; it is not a core API.
+    pathlib.Path("src/presentation/qt/stats_share_card_renderer.hpp"),
     pathlib.Path("src/presentation/qt/media_classifier_controller.hpp"),
     pathlib.Path("src/presentation/qt/media_playback_coordinator.hpp"),
     pathlib.Path("src/presentation/qt/emoji_controller.hpp"),

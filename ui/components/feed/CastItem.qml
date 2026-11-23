@@ -1032,7 +1032,7 @@ Item {
                         preferredSize: Theme.iconSizeSmall
                     }
                     Label {
-                        text: "Genycaster Stats"
+                        text: qsTrId("genycaster.stats.card_title")
                         color: Theme.accent
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold
