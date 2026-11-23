@@ -7852,6 +7852,10 @@ Die Erklärung beschreibt vorgesehene Abläufe, nicht das Verhalten unabhängige
             <source>Recovery phrase — keep it private</source>
             <translation>Wiederherstellungsphrase vertraulich behandeln</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>Gib alle 24 Wiederherstellungswörter ein, bevor du dieses Gerät autorisierst.</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>Geräteautorisierung wird bestätigt</translation>

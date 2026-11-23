@@ -7852,6 +7852,10 @@ Genycaster는 계정 ID/FID, 프로토콜, 확인 상태, Farcaster 및 Genyleap
             <source>Recovery phrase — keep it private</source>
             <translation>복구 문구를 비밀로 유지하세요</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>이 기기를 승인하기 전에 복구 단어 24개를 모두 입력하세요.</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>기기 승인 확인 중</translation>

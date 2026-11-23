@@ -7852,6 +7852,10 @@ Esta política descreve os fluxos pretendidos atualmente, não o comportamento d
             <source>Recovery phrase — keep it private</source>
             <translation>Mantenha sua frase de recuperação privada</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>Digite as 24 palavras de recuperação antes de autorizar este dispositivo.</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>Confirmando autorização do dispositivo</translation>

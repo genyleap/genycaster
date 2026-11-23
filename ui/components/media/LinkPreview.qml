@@ -784,10 +784,10 @@ Superellipse {
             id: webPreviewLoader
             visible: !root.layoutMiniApp
             Layout.fillWidth: true
-            // Magazine's outer view already admits cards near the viewport.
-            // A second asynchronous boundary gets canceled during reverse
-            // scrolling and presents a flash/empty card on readmission.
-            asynchronous: !root.magazineCard
+            // A second asynchronous incubation in each recycled link card
+            // can outlive the parent delegate during rapid Back/scroll.
+            // Rich artwork remains asynchronously loaded by its Image.
+            asynchronous: false
             sourceComponent: root.preferPosterLayout ? richMediaLinkCard : genericLinkCard
         }
     }

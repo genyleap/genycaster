@@ -7857,6 +7857,10 @@ FID، نام کاربری و پروفایل عمومی، کست‌ها، پاس�
             <source>Recovery phrase — keep it private</source>
             <translation>عبارت بازیابی؛ محرمانه نگه دارید</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>برای مجاز کردن این دستگاه، ابتدا هر ۲۴ واژهٔ بازیابی را وارد کنید.</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>در حال تأیید مجوز دستگاه</translation>

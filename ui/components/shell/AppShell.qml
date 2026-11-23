@@ -122,11 +122,15 @@ Item {
         parent: Overlay.overlay
         blurSourceItem: Qt.platform.os === "android" || Qt.platform.os === "ios"
             ? null : shellContent
-        fullScreen: Qt.platform.os === "android" || Qt.platform.os === "ios"
+        // Narrow native desktop windows are mobile layouts too. Present
+        // this recovery editor edge-to-edge instead of a centered popup.
+        fullScreen: root.compact
+        slideFromBottom: fullScreen
         readonly property bool nativeAccount:
             presentationBridge.nativeCustodyAccount
         property bool enteringNativeWords: false
         property bool authorizationSubmitted: false
+        property bool recoveryValidationVisible: false
         readonly property bool mobileRecoveryInput: Qt.platform.os === "android"
                                                    || Qt.platform.os === "ios"
         property bool showRecoveryWords: false
@@ -197,11 +201,13 @@ Item {
         }
         onOpened: {
             authorizationSubmitted = false
+            recoveryValidationVisible = false
             // Settings can open the recovery editor directly. Give the
             // newly mounted mobile input the focus after Popup relocation.
             if (enteringNativeWords && mobileRecoveryInput)
                 Qt.callLater(function() {
-                    if (!interactionAuthorizationDialog.opened) return
+                    if (!interactionAuthorizationDialog
+                            || !interactionAuthorizationDialog.opened) return
                     nativeSignerPhraseInput.forceActiveFocus()
                     Qt.inputMethod.show()
                 })
@@ -212,14 +218,15 @@ Item {
             if (!authorizationSubmitted)
                 root.pendingComposerIntent = null
             clearRecoveryWords()
+            recoveryValidationVisible = false
             enteringNativeWords = false
         }
         width: fullScreen ? (parent ? parent.width : root.width)
-              : (parent ? Math.min(470, parent.width - Theme.space4 * 2) : 450)
+              : (parent ? Math.min(760, parent.width - Theme.space4 * 2) : 720)
         height: fullScreen ? (parent ? parent.height : root.height)
                : (parent ? Math.min(parent.height - Theme.space4 * 2,
-                                   confirmationContent.implicitHeight + Theme.scaleUi(120))
-                         : confirmationContent.implicitHeight + Theme.scaleUi(120))
+                                   confirmationContent.implicitHeight + Theme.scaleUi(94))
+                         : confirmationContent.implicitHeight + Theme.scaleUi(94))
         padding: fullScreen ? Theme.mobileGutter : Theme.space4
         Item {
             anchors.fill: parent
@@ -372,28 +379,26 @@ Item {
                 maximumLength: 512
                 inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
                                   | Qt.ImhNoAutoUppercase
-                onTextChanged: ++interactionAuthorizationDialog.recoveryRevision
+                onTextChanged: {
+                    if (interactionAuthorizationDialog)
+                        ++interactionAuthorizationDialog.recoveryRevision
+                }
             }
-            ScrollView {
+            Item {
                 id: nativeRecoveryScroll
                 objectName: "nativeSignerRecoveryGrid"
                 visible: Qt.platform.os !== "wasm"
                          && !interactionAuthorizationDialog.mobileRecoveryInput
                          && interactionAuthorizationDialog.enteringNativeWords
                 Layout.fillWidth: true
-                // Let the outer inspector scroll all 24 words on narrow screens.
-                Layout.preferredHeight: interactionAuthorizationDialog.fullScreen
-                    ? nativeSignerWordColumns.implicitHeight + Theme.space2 : Theme.scaleUi(304)
-                Layout.maximumHeight: interactionAuthorizationDialog.fullScreen
-                    ? 3000 : Theme.scaleUi(360)
-                clip: true
-                contentWidth: availableWidth
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                Layout.preferredHeight: nativeSignerWordColumns.implicitHeight
+                // One scrolling owner: the outer form. Never clip or scroll
+                // the 24-word grid independently; all cells remain laid out.
                 GridLayout {
                     id: nativeSignerWordColumns
                     layoutDirection: Theme.uiDirection
-                    width: nativeRecoveryScroll ? nativeRecoveryScroll.availableWidth : 0
-                    columns: !nativeRecoveryScroll || nativeRecoveryScroll.width < Theme.scaleUi(420) ? 3 : 4
+                    width: nativeRecoveryScroll ? nativeRecoveryScroll.width : 0
+                    columns: !nativeRecoveryScroll || nativeRecoveryScroll.width < Theme.scaleUi(340) ? 3 : 4
                     columnSpacing: Theme.space2
                     rowSpacing: Theme.space2
                     Repeater {
@@ -405,7 +410,7 @@ Item {
                             function focusWord() { recoveryWordInput.forceActiveFocus() }
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            spacing: 2
+                            spacing: Theme.space1
                             DirectionAwareLabel {
                                 text: String(index + 1).padStart(2, "0")
                                 color: Theme.inkMuted
@@ -415,9 +420,12 @@ Item {
                                 id: recoveryWordInput
                                 objectName: "nativeSignerRecoveryWord" + (index + 1)
                                 Layout.fillWidth: true
-                                enabled: !interactionAuthorizationDialog.authorizationSubmitted
+                                Layout.preferredHeight: root.compact ? Theme.scaleUi(38) : Theme.scaleUi(44)
+                                enabled: !interactionAuthorizationDialog
+                                         || !interactionAuthorizationDialog.authorizationSubmitted
                                 forceLeftToRight: true
-                                placeholderText: interactionAuthorizationDialog.authorizationSubmitted
+                                placeholderText: interactionAuthorizationDialog
+                                                 && interactionAuthorizationDialog.authorizationSubmitted
                                     ? "•••••" : ""
                                 echoMode: interactionAuthorizationDialog && interactionAuthorizationDialog.showRecoveryWords
                                           ? TextInput.Normal : TextInput.Password
@@ -428,6 +436,7 @@ Item {
                                 Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
                                                  + " " + (index + 1)
                                 onTextChanged: {
+                                    if (!interactionAuthorizationDialog) return
                                     ++interactionAuthorizationDialog.recoveryRevision
                                     if (interactionAuthorizationDialog.distributingRecoveryWords
                                         || !/[\s,;|]/.test(text)) return
@@ -435,7 +444,8 @@ Item {
                                     // Running synchronously could redistribute a partial
                                     // paste and steal the focus from field 01.
                                     Qt.callLater(function() {
-                                        if (!interactionAuthorizationDialog.opened
+                                        if (!interactionAuthorizationDialog
+                                            || !interactionAuthorizationDialog.opened
                                             || interactionAuthorizationDialog.distributingRecoveryWords
                                             || !/[\s,;|]/.test(recoveryWordInput.text)) return
                                         interactionAuthorizationDialog.distributeRecoveryWords(
@@ -514,20 +524,44 @@ Item {
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap
             }
+            DirectionAwareLabel {
+                objectName: "signerRecoveryValidationHint"
+                visible: interactionAuthorizationDialog.recoveryValidationVisible
+                         && !interactionAuthorizationDialog.authorizationSubmitted
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.setup.signer_enter_all_words")
+                color: Theme.warning
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+            }
             ActionButton {
-                objectName: "checkDeviceSignerAfterTimeout"
+                objectName: "signerReenterRecoveryWords"
                 Layout.fillWidth: true
                 compact: true
                 quiet: true
+                // An unsuccessful network operation must not strand the user
+                // behind 24 disabled placeholders. Reentry is explicit, never
+                // an automatic KEY_ADD replay (especially on rate limits).
                 visible: interactionAuthorizationDialog.authorizationSubmitted
-                         && presentationBridge.isAuthenticated
                          && !presentationBridge.signerBusy
                          && !presentationBridge.writeReady
                          && presentationBridge.signerErrorText.length > 0
-                text: qsTrId("genycaster.setup.check_signer_status")
-                Accessible.description: qsTrId("genycaster.setup.signer_read_only_check")
-                enabled: !presentationBridge.signerBusy
-                onClicked: presentationBridge.refreshSigner()
+                text: qsTrId("genycaster.shell.native_signer_use_words")
+                onClicked: {
+                    interactionAuthorizationDialog.authorizationSubmitted = false
+                    interactionAuthorizationDialog.recoveryValidationVisible = false
+                    interactionAuthorizationDialog.clearRecoveryWords()
+                    Qt.callLater(function() {
+                        if (!interactionAuthorizationDialog || !interactionAuthorizationDialog.opened)
+                            return
+                        if (interactionAuthorizationDialog.mobileRecoveryInput)
+                            nativeSignerPhraseInput.forceActiveFocus()
+                        else {
+                            const first = nativeSignerWordGrid.itemAt(0)
+                            if (first) first.focusWord()
+                        }
+                    })
+                }
             }
             RowLayout {
                 Layout.fillWidth: true
@@ -555,26 +589,41 @@ Item {
                           && presentationBridge.signerBusy
                     Accessible.description: busy
                         ? qsTrId("genycaster.setup.signer_verification_title")
-                        : ""
+                        : interactionAuthorizationDialog.authorizationSubmitted
+                          && !presentationBridge.writeReady
+                          ? qsTrId("genycaster.setup.signer_read_only_check")
+                          : ""
                     iconGlyph: presentationBridge.writeReady ? Theme.iconCheck
                         : interactionAuthorizationDialog.nativeAccount || interactionAuthorizationDialog.enteringNativeWords
                           ? "" : Theme.iconArrowUpRight
                     text: presentationBridge.writeReady
                           ? qsTrId("genycaster.setup.signer_verified_title")
-                          : interactionAuthorizationDialog.nativeAccount
-                                || interactionAuthorizationDialog.enteringNativeWords
-                            ? qsTrId("genycaster.shell.native_signer_authorize")
-                            : qsTrId("genycaster.shell.open_farcaster")
+                          : interactionAuthorizationDialog.authorizationSubmitted
+                            && !presentationBridge.signerBusy
+                            ? qsTrId("genycaster.setup.check_signer_status")
+                            : interactionAuthorizationDialog.nativeAccount
+                                  || interactionAuthorizationDialog.enteringNativeWords
+                              ? qsTrId("genycaster.shell.native_signer_authorize")
+                              : qsTrId("genycaster.shell.open_farcaster")
+                    // Always keep an actionable CTA: incomplete words reveal
+                    // a validation hint; failed submissions inspect signer
+                    // state instead of silently replaying a rate-limited write.
                     enabled: !presentationBridge.signerBusy
-                             && (presentationBridge.writeReady
-                                 || (!interactionAuthorizationDialog.authorizationSubmitted
-                                     && (!interactionAuthorizationDialog.enteringNativeWords
-                                         || interactionAuthorizationDialog.recoveryReady())))
                     onClicked: {
                         if (presentationBridge.writeReady) {
                             interactionAuthorizationDialog.close()
                             return
                         }
+                        if (interactionAuthorizationDialog.authorizationSubmitted) {
+                            presentationBridge.refreshSigner()
+                            return
+                        }
+                        if (interactionAuthorizationDialog.enteringNativeWords
+                                && !interactionAuthorizationDialog.recoveryReady()) {
+                            interactionAuthorizationDialog.recoveryValidationVisible = true
+                            return
+                        }
+                        interactionAuthorizationDialog.recoveryValidationVisible = false
                         interactionAuthorizationDialog.authorizationSubmitted = true
                         if (interactionAuthorizationDialog.enteringNativeWords) {
                             // One-shot secret: forward directly to native C++,

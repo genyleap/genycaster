@@ -7852,6 +7852,10 @@ Genycaster खाता ID/FID, प्रोटोकॉल, सत्याप�
             <source>Recovery phrase — keep it private</source>
             <translation>रिकवरी वाक्यांश गोपनीय रखें</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>इस डिवाइस को अनुमति देने से पहले सभी 24 रिकवरी शब्द दर्ज करें।</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>डिवाइस अनुमति की पुष्टि जारी है</translation>

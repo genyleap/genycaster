@@ -7857,6 +7857,10 @@ This notice describes the product's current intended data flows, not a guarantee
             <source>Recovery phrase — keep it private</source>
             <translation>Recovery phrase — keep it private</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>Enter all 24 recovery words before authorizing this device.</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>Confirming device authorization</translation>

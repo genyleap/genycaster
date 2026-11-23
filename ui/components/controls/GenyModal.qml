@@ -12,6 +12,9 @@ Popup {
     // Full-viewport inspectors use a flat, edge-to-edge modal surface.
     // Ordinary confirmation dialogs retain their inset rounded geometry.
     property bool fullScreen: false
+    // Opt-in full-viewport sheet motion for narrow layouts. Ordinary
+    // desktop dialogs retain their centered fade transition.
+    property bool slideFromBottom: false
 
     modal: true
     focus: true
@@ -52,22 +55,47 @@ Popup {
     }
 
     enter: Transition {
-        NumberAnimation {
-            property: "opacity"
-            from: 0.0
-            to: 1.0
-            duration: control.fullScreen ? 0 : Theme.motionStandard
-            easing.type: Easing.OutCubic
+        ParallelAnimation {
+            NumberAnimation {
+                property: "opacity"
+                from: control.slideFromBottom ? 1.0 : 0.0
+                to: 1.0
+                duration: control.slideFromBottom ? 0
+                          : control.fullScreen ? 0 : Theme.motionStandard
+                easing.type: Easing.OutCubic
+            }
+            NumberAnimation {
+                property: "y"
+                from: control.slideFromBottom && control.fullScreen
+                      ? control.height : control.y
+                to: control.slideFromBottom && control.fullScreen
+                    ? 0 : control.y
+                duration: control.slideFromBottom && control.fullScreen
+                          ? Theme.motionStandard : 0
+                easing.type: Easing.OutCubic
+            }
         }
     }
 
     exit: Transition {
-        NumberAnimation {
-            property: "opacity"
-            from: 1.0
-            to: 0.0
-            duration: control.fullScreen ? 0 : Theme.motionFast
-            easing.type: Easing.InCubic
+        ParallelAnimation {
+            NumberAnimation {
+                property: "opacity"
+                from: 1.0
+                to: control.slideFromBottom ? 1.0 : 0.0
+                duration: control.slideFromBottom ? 0
+                          : control.fullScreen ? 0 : Theme.motionFast
+                easing.type: Easing.InCubic
+            }
+            NumberAnimation {
+                property: "y"
+                from: control.y
+                to: control.slideFromBottom && control.fullScreen
+                    ? control.height : control.y
+                duration: control.slideFromBottom && control.fullScreen
+                          ? Theme.motionStandard : 0
+                easing.type: Easing.InCubic
+            }
         }
     }
 }

@@ -7852,6 +7852,10 @@ Genycaster обрабатывает ID/FID, протокол, статус пр�
             <source>Recovery phrase — keep it private</source>
             <translation>Храните фразу восстановления в тайне</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>Введите все 24 слова восстановления перед авторизацией этого устройства.</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>Подтверждение разрешения устройства</translation>

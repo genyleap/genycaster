@@ -1269,6 +1269,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_notice_title");
     //% "Confirming device authorization"
     (void)qtTrId("genycaster.setup.signer_verification_title");
+    //% "Enter all 24 recovery words before authorizing this device."
+    (void)qtTrId("genycaster.setup.signer_enter_all_words");
     //% "Device signer enabled"
     (void)qtTrId("genycaster.setup.signer_verified_title");
     //% "Verify your account and enable publishing in Setup. No separate Sign In."

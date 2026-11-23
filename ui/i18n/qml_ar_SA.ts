@@ -7852,6 +7852,10 @@ This notice describes the product's current intended data flows, not a guarantee
             <source>Recovery phrase — keep it private</source>
             <translation>عبارة الاسترداد — احتفظ بها سرية</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>أدخل كلمات الاسترداد الأربع والعشرين قبل تفويض هذا الجهاز.</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>جارٍ تأكيد تفويض الجهاز</translation>

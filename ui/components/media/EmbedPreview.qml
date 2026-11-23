@@ -348,9 +348,11 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         active: root.classificationReady
-        // Preserve asynchronous previews in Timeline/detail, but construct
-        // nested Magazine previews synchronously inside admitted cards.
-        asynchronous: !root.magazineCard
+        // Rapid navigation can recycle a link delegate while an outer
+        // asynchronous incubation is still creating LinkPreview. Construct
+        // the lightweight link shell synchronously; heavier media stays
+        // asynchronously incubated outside the admitted Magazine view.
+        asynchronous: !root.magazineCard && root.resolvedKind !== "link"
         sourceComponent: root.resolvedKind === "cast-reference" ? castReferenceComponent
                        : root.resolvedKind === "token-address" ? tokenAddressComponent
                        : root.resolvedKind === "collectible" ? collectibleComponent

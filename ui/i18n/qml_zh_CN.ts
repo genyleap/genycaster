@@ -7852,6 +7852,10 @@ Genycaster 处理账户 ID/FID、协议、验证状态以及 Farcaster 与 Genyl
             <source>Recovery phrase — keep it private</source>
             <translation>请妥善保管恢复助记词</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>授权此设备之前，请先输入全部 24 个恢复助记词。</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>正在确认设备授权</translation>

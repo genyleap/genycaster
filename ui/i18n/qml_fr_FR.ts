@@ -7853,6 +7853,10 @@ Cette politique décrit le fonctionnement prévu, sans promettre les pratiques d
             <source>Recovery phrase — keep it private</source>
             <translation>Gardez votre phrase de récupération privée</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>Saisissez les 24 mots de récupération avant d’autoriser cet appareil.</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>Vérification de l’autorisation de l’appareil</translation>

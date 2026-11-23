@@ -228,6 +228,15 @@ Item {
     signal recastRequested(bool active)
     signal likeRequested(bool active)
     signal authenticationRequested()
+    onReactionCastIdChanged: {
+        // A recycled feed delegate may be assigned a different Cast while an
+        // icon is mid-bounce. Never let that animation leak into another post.
+        if (likeButton) likeButton.resetReactionMotion()
+        if (recastButton) recastButton.resetReactionMotion()
+        if (replyButton) replyButton.resetReactionMotion()
+        if (quoteButton) quoteButton.resetReactionMotion()
+        if (bookmarkButton) bookmarkButton.resetReactionMotion()
+    }
 
     // Preserve every touch target and action count. Compact cast footers
     // stay on ONE horizontal baseline; if their intrinsic width exceeds a
@@ -280,7 +289,10 @@ Item {
         // Reply always enters the central composer action. It owns the
         // authentication/signer gate and provides a visible reason when the
         // canonical target is unavailable; the old fallback swallowed intent.
-        onClicked: root.replyRequested()
+        onClicked: {
+            replyButton.playReactionMotion("reply", true)
+            root.replyRequested()
+        }
     }
 
     EngagementButton {
@@ -290,7 +302,10 @@ Item {
         iconGlyph: Theme.iconQuote
         enabled: true
         Accessible.name: qsTrId("genycaster.composer.quote")
-        onClicked: root.quoteRequested()
+        onClicked: {
+            quoteButton.playReactionMotion("quote", true)
+            root.quoteRequested()
+        }
     }
 
     EngagementButton {
@@ -316,6 +331,7 @@ Item {
                 return
             }
             const next = !root.effectiveRecastedByMe
+            recastButton.playReactionMotion("recast", next)
             if (Qt.platform.os === "wasm" && root.viewerFid > 0)
                 CastReactions.setLocal(root.reactionCastId, root.viewerFid, "recast", next)
             root.recastRequested(next)
@@ -344,6 +360,7 @@ Item {
                 return
             }
             const next = !root.effectiveLikedByMe
+            likeButton.playReactionMotion("like", next)
             if (Qt.platform.os === "wasm" && root.viewerFid > 0)
                 CastReactions.setLocal(root.reactionCastId, root.viewerFid, "like", next)
             root.likeRequested(next)
@@ -412,6 +429,7 @@ Item {
         Accessible.name: root.isBookmarked ? "Remove bookmark" : "Bookmark cast"
         onClicked: {
             const adding = !root.isBookmarked
+            bookmarkButton.playReactionMotion("bookmark", adding)
             presentationBridge.toggleBookmark(root.castData)
             if (adding)
                 openProofConnections.requestBookmarkCollectionChoice(root.normalizedCastId)
@@ -429,6 +447,7 @@ Item {
         Accessible.name: qsTrId("genycaster.share.cast")
         onClicked: {
             const overlay = Overlay.overlay
+            castShareButton.playReactionMotion("share", true)
             // Recycled cast delegates can outlive their window overlay during
             // teardown; never dereference a destroyed overlay.
             if (!overlay) return

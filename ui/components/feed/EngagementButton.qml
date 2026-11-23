@@ -13,6 +13,28 @@ Button {
     property color activeColor: Theme.accent
     property bool iconFilled: false
     property real iconSize: Theme.iconSizeSmall
+    // A local, one-shot micro-interaction belongs to the individual action,
+    // never to the shared/recycled reaction data. Network hydration and
+    // delegate reuse must not replay or inherit animations.
+    property bool heartFillHeld: false
+    function resetReactionMotion() {
+        heartHop.stop()
+        subtlePulse.stop()
+        heartFillHeld = false
+        reactionGlyph.scale = 1
+        reactionGlyph.rotation = 0
+        iconLift.y = 0
+    }
+    function playReactionMotion(kind, activating) {
+        resetReactionMotion()
+        if (Theme.reduceMotion || !control.visible) return
+        if (kind === "like" && activating) {
+            heartFillHeld = true
+            heartHop.start()
+        } else {
+            subtlePulse.start()
+        }
+    }
 
     implicitWidth: Math.max(Theme.touchTarget, content.implicitWidth + Theme.space2 * 2)
     implicitHeight: Theme.touchTarget
@@ -48,14 +70,20 @@ Button {
             // have non-square intrinsic viewBoxes; never stretch the image to fill
             // the metric row or allow its geometry to alter the action height.
             Icon {
+                id: reactionGlyph
                 Layout.preferredWidth: Math.max(22, control.iconSize + 4)
                 Layout.preferredHeight: Math.max(22, control.iconSize + 4)
                 Layout.alignment: Qt.AlignVCenter
-                clip: true
+                // The jump must not be cropped by the icon viewport.
+                clip: false
                 text: control.iconGlyph
-                filled: control.iconFilled
+                filled: control.iconFilled && !control.heartFillHeld
                 color: control.active ? control.activeColor : (control.enabled ? Theme.inkMuted : Theme.inkDisabled)
                 preferredSize: control.iconSize
+                transform: Translate {
+                    id: iconLift
+                    y: 0
+                }
             }
 
             Label {
@@ -67,6 +95,60 @@ Button {
                 font.weight: control.active ? Theme.weightDemiBold : Theme.weightMedium
             }
 
+        }
+    }
+
+    // The heart makes a quick upward leap, fills at its apex, then settles
+    // with a gentle spring. Deliberately animate the icon only: no changes
+    // to row metrics, scroll geometry, or pointer hit targets.
+    SequentialAnimation {
+        id: heartHop
+        ParallelAnimation {
+            NumberAnimation { target: reactionGlyph; property: "scale"; from: 1; to: 1.32
+                              duration: 145; easing.type: Easing.OutCubic }
+            NumberAnimation { target: iconLift; property: "y"; from: 0; to: -7
+                              duration: 145; easing.type: Easing.OutCubic }
+        }
+        ScriptAction { script: control.heartFillHeld = false }
+        ParallelAnimation {
+            NumberAnimation { target: reactionGlyph; property: "scale"; to: 0.90
+                              duration: 115; easing.type: Easing.InOutCubic }
+            NumberAnimation { target: iconLift; property: "y"; to: 1
+                              duration: 115; easing.type: Easing.InOutCubic }
+        }
+        ParallelAnimation {
+            NumberAnimation { target: reactionGlyph; property: "scale"; to: 1.09
+                              duration: 90; easing.type: Easing.OutCubic }
+            NumberAnimation { target: iconLift; property: "y"; to: 0
+                              duration: 90; easing.type: Easing.OutCubic }
+        }
+        NumberAnimation { target: reactionGlyph; property: "scale"; to: 1
+                          duration: 75; easing.type: Easing.OutCubic }
+        onStopped: {
+            control.heartFillHeld = false
+            reactionGlyph.scale = 1
+            iconLift.y = 0
+        }
+    }
+
+    // Recast, reply, quote, bookmark and Unlike get one much softer pulse.
+    SequentialAnimation {
+        id: subtlePulse
+        ParallelAnimation {
+            NumberAnimation { target: reactionGlyph; property: "scale"; from: 1; to: 1.12
+                              duration: 100; easing.type: Easing.OutCubic }
+            NumberAnimation { target: reactionGlyph; property: "rotation"; from: 0; to: 7
+                              duration: 100; easing.type: Easing.OutCubic }
+        }
+        ParallelAnimation {
+            NumberAnimation { target: reactionGlyph; property: "scale"; to: 1
+                              duration: 150; easing.type: Easing.OutCubic }
+            NumberAnimation { target: reactionGlyph; property: "rotation"; to: 0
+                              duration: 150; easing.type: Easing.OutCubic }
+        }
+        onStopped: {
+            reactionGlyph.scale = 1
+            reactionGlyph.rotation = 0
         }
     }
 

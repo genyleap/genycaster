@@ -19,12 +19,12 @@ test('signer authorization keeps the form stable with exactly one button spinner
   assert.match(dialog,/objectName: "signerAuthorizationInlineError"/);
   assert.match(dialog,/visible: interactionAuthorizationDialog\.enteringNativeWords\s*Layout\.fillWidth/);
   assert.match(dialog,/enabled: !interactionAuthorizationDialog\.authorizationSubmitted\s*forceLeftToRight: true/);
-  assert.match(dialog,/placeholderText: interactionAuthorizationDialog\.authorizationSubmitted\s*\? "•••••"/);
+  assert.match(dialog,/placeholderText: interactionAuthorizationDialog\s*&& interactionAuthorizationDialog\.authorizationSubmitted\s*\? "•••••"/);
   assert.doesNotMatch(dialog,/enteringNativeWords\s*&& !presentationBridge\.signerBusy/);
   const action=dialog.slice(dialog.indexOf('objectName: "authorizeSelectedProtocolSigner"'));
   assert.match(action,/busy: interactionAuthorizationDialog\.authorizationSubmitted\s*&& presentationBridge\.signerBusy/);
   assert.match(action,/genycaster\.setup\.signer_verified_title/);
-  assert.match(action,/!interactionAuthorizationDialog\.authorizationSubmitted/);
+  assert.match(action,/if \(interactionAuthorizationDialog\.authorizationSubmitted\) \{\s*presentationBridge\.refreshSigner\(\)/);
   assert.match(action,/enabled: !presentationBridge\.signerBusy/);
   assert.match(action,/interactionAuthorizationDialog\.clearRecoveryWords\(\)/);
   assert.match(action,/if \(presentationBridge\.writeReady\) \{\s*interactionAuthorizationDialog\.close\(\)/);
@@ -110,7 +110,7 @@ test('Snapchain HTTP 400 with per-FID rate limit is reported as throttling, not 
     shell.indexOf('GenyProDetailsDrawer {',shell.indexOf('id: interactionAuthorizationDialog')));
   assert.match(dialog,/objectName: "signerAuthorizationInlineError"/);
   assert.match(dialog,/text: String\(presentationBridge\.signerErrorText \|\| ""\)/);
-  assert.match(dialog,/objectName: "checkDeviceSignerAfterTimeout"/);
+  assert.match(dialog,/objectName: "signerReenterRecoveryWords"/);
   assert.match(dialog,/presentationBridge\.refreshSigner\(\)/);
   const key='genycaster.runtime.signer_rate_limited';
   const catalog=source('ui/i18n/catalog.cpp');

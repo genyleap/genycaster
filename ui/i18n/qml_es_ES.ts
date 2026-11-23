@@ -7853,6 +7853,10 @@ Se describen los flujos previstos, no las prácticas de terceros. Los cambios im
             <source>Recovery phrase — keep it private</source>
             <translation>Mantén privada tu frase de recuperación</translation>
         </message>
+        <message id="genycaster.setup.signer_enter_all_words">
+            <source>Enter all 24 recovery words before authorizing this device.</source>
+            <translation>Introduce las 24 palabras de recuperación antes de autorizar este dispositivo.</translation>
+        </message>
         <message id="genycaster.setup.signer_verification_title">
             <source>Confirming device authorization</source>
             <translation>Confirmando la autorización del dispositivo</translation>

@@ -9,7 +9,7 @@ test('EmbedPreview preserves scroll metadata and differentiates async Timeline v
   assert.match(qml,/property bool metadataUpdatePending: false/);
   assert.match(qml,/if \(root\.scrollMoving\)[\s\S]*?root\.metadataUpdatePending = true/);
   assert.match(qml,/if \(root\.metadataUpdatePending\)\s*root\.acceptLinkMetadata\(root\.pendingLinkMetadata\)/);
-  assert.match(qml,/asynchronous: !root\.magazineCard/);
+  assert.match(qml,/asynchronous: !root\.magazineCard && root\.resolvedKind !== "link"/);
 });
 
 test('LinkPreview defers resolved metadata while moving and avoids pending Magazine incubators',()=>{
@@ -17,7 +17,7 @@ test('LinkPreview defers resolved metadata while moving and avoids pending Magaz
   assert.match(qml,/property bool resolvedPreviewPending: false/);
   assert.match(qml,/root\.pendingResolvedPreview = preview/);
   assert.match(qml,/if \(root\.resolvedPreviewPending\)/);
-  assert.match(qml,/asynchronous: !root\.magazineCard/);
+  assert.match(qml,/asynchronous: false/);
   assert.match(qml,/enabled: !root\.scrollMoving/);
 });
 
