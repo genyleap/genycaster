@@ -365,10 +365,16 @@ test('terms and privacy open internal scrollable reader with reliable whole-row 
   assert.match(setup,/genycaster\.setup\.terms_body/);
   assert.match(setup,/genycaster\.setup\.privacy_body/);
   assert.match(setup,/onClicked: root\.consentChecked = !root\.consentChecked/);
-  // Legal content stays in-app; the independent company copyright link is external.
+  // Read the published terms in-app, with an explicit link to the
+  // authoritative company documents rather than an empty "read below" area.
   const legal = setup.slice(setup.indexOf('id: legalReader'), setup.indexOf('id: setupCanvas'))
     + setup.slice(setup.indexOf('id: termsStage'), setup.indexOf('id: accountStage'));
-  assert.doesNotMatch(legal,/Qt\.openUrlExternally/);
+  assert.match(legal,/objectName: "setupPublishedLegalDocument"/);
+  assert.match(legal,/contentHeight: legalDocumentContent\.implicitHeight/);
+  assert.match(legal,/objectName: "setupOpenPublishedLegalDocument"/);
+  assert.match(legal,/onClicked: Qt\.openUrlExternally/);
+  assert.match(legal,/https:\/\/genyleap\.com\/terms-of-use/);
+  assert.match(legal,/https:\/\/genyleap\.com\/privacy/);
 });
 
 test('full-window setup removes shell chrome and keeps the setup action footer inside its canvas', () => {

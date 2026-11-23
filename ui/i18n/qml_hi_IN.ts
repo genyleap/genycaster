@@ -6433,16 +6433,58 @@ Company | https://company.com</source>
             <translation>उपयोग की शर्तें</translation>
         </message>
         <message id="genycaster.setup.terms_body">
-            <source>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</source>
-            <translation>Genyleap की प्रकाशित उपयोग की शर्तें वेबसाइट जानकारी और उत्पाद संसाधनों पर लागू होती हैं। वेबसाइट की जानकारी सामान्य है और उत्पाद का दायरा बदल सकता है। डाउनलोड और रिपॉज़िटरी की अपनी लाइसेंस, रिलीज़ नोट्स और संगतता आवश्यकताएँ हो सकती हैं। प्रोजेक्ट पूछताछ भेजने से अपने-आप कोई अनुबंध नहीं बनता और स्वीकृति की गारंटी नहीं मिलती। आगे बढ़ने से पहले पूरी शर्तें पढ़ें।</translation>
+            <source>These general terms apply to use of the Genyleap website preview. Product repositories, downloads and third-party services may have their own licenses or terms.
+
+Website content
+Website information is provided for general product, engineering and company communication. Availability, roadmap details and technical scope may change as products evolve.
+
+Downloads and repositories
+Review the applicable repository license, release notes and compatibility information before installing or redistributing software.
+
+Project enquiries
+Submitting a project enquiry does not by itself create a contract or guarantee acceptance. Scope, commercial terms and delivery commitments require separate agreement.</source>
+            <translation>ये सामान्य शर्तें Genyleap वेबसाइट के प्रीव्यू पर लागू होती हैं। रिपॉज़िटरी, डाउनलोड और बाहरी सेवाओं की अलग लाइसेंस या शर्तें हो सकती हैं।
+
+वेबसाइट की सामग्री
+जानकारी उत्पादों, इंजीनियरिंग और कंपनी के सामान्य परिचय के लिए है। उपलब्धता, रोडमैप और तकनीकी दायरा बदल सकते हैं।
+
+डाउनलोड और रिपॉज़िटरी
+सॉफ़्टवेयर स्थापित या पुनर्वितरित करने से पहले संबंधित लाइसेंस, रिलीज़ नोट और अनुकूलता की जानकारी देखें।
+
+प्रोजेक्ट अनुरोध
+अनुरोध भेजने से अनुबंध नहीं बनता और स्वीकृति की गारंटी नहीं मिलती। दायरे और व्यावसायिक प्रतिबद्धताओं के लिए अलग समझौता आवश्यक है।</translation>
         </message>
         <message id="genycaster.setup.privacy_title">
             <source>Privacy Policy</source>
             <translation>गोपनीयता नीति</translation>
         </message>
         <message id="genycaster.setup.privacy_body">
-            <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
-            <translation>Genyleap की प्रकाशित गोपनीयता सूचना उस जानकारी को कवर करती है जिसे आप संपर्क और प्रोजेक्ट फ़ॉर्म के माध्यम से भेजते हैं, साथ ही बुनियादी दुरुपयोग-रोकथाम डेटा को भी। Genycaster सेटअप में चुने गए Genyleap/OpenProof खाते और लिंक की गई Farcaster पहचान का उपयोग प्रमाणीकरण और प्रोटोकॉल कार्रवाइयों के लिए भी करता है। रूप और क्षेत्रीय प्राथमिकताएँ ऐप में स्थानीय रूप से संग्रहीत रहती हैं, जब तक कोई सुविधा स्पष्ट रूप से अन्यथा न बताए। आगे बढ़ने से पहले पूरी गोपनीयता सूचना पढ़ें।</translation>
+            <source>Genyleap stores information you submit through forms and limited technical telemetry needed for security, service operation and download analytics.
+
+What we collect
+Contact submissions include your name, email, subject and message. Project submissions may also include company, phone, selected service, budget range, timeline and project description. For downloads, we may record the requested product and file, timestamp, IP address, User-Agent, browser/device and operating-system details, network-provided country code, referrer, and automated-crawler indicators.
+
+Why we use it
+Submitted information is used to review and respond to requests. Download telemetry helps operate delivery, distinguish human and automated traffic, understand usage, and prevent abuse.
+
+Genycaster-specific notice
+Genycaster uses your Genyleap/OpenProof identity and linked Farcaster FID for account verification. A recovery phrase entered in the browser is processed on your device, not uploaded or stored by Genycaster. A separately authorized device signer can be retained in local protected storage for future interactions. Public posts and media are submitted to the selected protocol and media services when you choose to publish. Appearance and language preferences are stored locally unless a feature says otherwise.
+
+Contact
+For privacy questions, use Genyleap's published Contact page or contact email.</source>
+            <translation>Genyleap फ़ॉर्म में दी गई जानकारी और सुरक्षा, सेवा संचालन तथा डाउनलोड आँकड़ों के लिए आवश्यक सीमित तकनीकी डेटा रखता है।
+
+एकत्रित जानकारी
+संपर्क फ़ॉर्म में नाम, ईमेल, विषय और संदेश हो सकते हैं। प्रोजेक्ट अनुरोध में कंपनी, फ़ोन, सेवा, बजट, समयसीमा और विवरण भी शामिल हो सकते हैं। डाउनलोड के दौरान उत्पाद, फ़ाइल, समय, IP पता, ब्राउज़र, डिवाइस, ऑपरेटिंग सिस्टम, देश, रेफ़रर और बॉट-संकेत दर्ज हो सकते हैं।
+
+उपयोग
+डेटा अनुरोधों का जवाब देने, डाउनलोड सेवाओं को चलाने, उपयोग समझने और दुरुपयोग रोकने के लिए है।
+
+Genycaster विशेष सूचना
+ऐप Genyleap/OpenProof पहचान और जुड़े हुए Farcaster FID से खाते की पुष्टि करता है। ब्राउज़र में दिया गया रिकवरी वाक्यांश डिवाइस पर ही संसाधित होता है; Genycaster उसे अपलोड या संग्रहीत नहीं करता। अलग अधिकृत हस्ताक्षरकर्ता स्थानीय सुरक्षित स्टोरेज में रह सकता है। प्रकाशित करते समय सार्वजनिक पोस्ट और मीडिया चुनी हुई सेवाओं को भेजे जाते हैं। भाषा और स्वरूप सेटिंग स्थानीय रहती हैं जब तक अन्यथा न बताया जाए।
+
+संपर्क
+निजता संबंधी सवालों के लिए Genyleap का प्रकाशित संपर्क पृष्ठ या ईमेल देखें।</translation>
         </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>

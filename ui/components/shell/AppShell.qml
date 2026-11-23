@@ -166,16 +166,34 @@ Item {
             showRecoveryWords = false
             ++recoveryRevision
         }
+        property bool distributingRecoveryWords: false
         function distributeRecoveryWords(start, pasted) {
-            const words = String(pasted).trim().toLowerCase().split(/\s+/)
-            if (words.length < 2 || words.length > 24 - start) return
-            for (let i = 0; i < words.length; ++i) {
-                const field = nativeSignerWordGrid.itemAt(start + i)
-                if (field) field.word = words[i]
+            if (distributingRecoveryWords || start < 0 || start >= 24) return
+            // Qt TextField may emit textChanged several times during a paste.
+            // Parse only the settled value; never change focus while distributing.
+            const incoming = String(pasted)
+            const normalized = (typeof incoming.normalize === "function"
+                ? incoming.normalize("NFKC") : incoming).toLowerCase()
+                .replace(/[\u200b-\u200d\u2060\ufeff]/g, " ")
+                .replace(/\b\d{1,2}\s*[.):\-]\s*(?=[a-z])/g, " ")
+                .replace(/[^a-z]+/g, " ").trim()
+            if (!normalized) return
+            const words = normalized.split(/\s+/)
+            if (words.length < 2 || words.length > 24) return
+            // A complete phrase always starts at 01, regardless of which
+            // numbered field received the clipboard event.
+            const offset = words.length === 24 ? 0 : start
+            if (offset + words.length > 24) return
+            distributingRecoveryWords = true
+            try {
+                for (let i = 0; i < words.length; ++i) {
+                    const field = nativeSignerWordGrid.itemAt(offset + i)
+                    if (field) field.word = words[i]
+                }
+            } finally {
+                distributingRecoveryWords = false
             }
             ++recoveryRevision
-            const next = nativeSignerWordGrid.itemAt(start + words.length)
-            if (next) next.focusWord()
         }
         onOpened: {
             authorizationSubmitted = false
@@ -350,13 +368,33 @@ Item {
                                 Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
                                                  + " " + (index + 1)
                                 onTextChanged: {
-                                    if (/\s/.test(text.trim()))
-                                        interactionAuthorizationDialog.distributeRecoveryWords(index, text)
                                     ++interactionAuthorizationDialog.recoveryRevision
+                                    if (interactionAuthorizationDialog.distributingRecoveryWords
+                                        || !/[\s,;|]/.test(text)) return
+                                    // Defer until Qt finishes the clipboard/IME insertion.
+                                    // Running synchronously could redistribute a partial
+                                    // paste and steal the focus from field 01.
+                                    Qt.callLater(function() {
+                                        if (!interactionAuthorizationDialog.opened
+                                            || interactionAuthorizationDialog.distributingRecoveryWords
+                                            || !/[\s,;|]/.test(recoveryWordInput.text)) return
+                                        interactionAuthorizationDialog.distributeRecoveryWords(
+                                            index, recoveryWordInput.text)
+                                    })
                                 }
-                                onEditingFinished: {
-                                    const next = nativeSignerWordGrid.itemAt(index + 1)
-                                    if (next) next.focusWord()
+                                Keys.onPressed: function(event) {
+                                    // Space/Return explicitly advances one word. Paste
+                                    // must never advance focus to another numbered slot.
+                                    if ((event.key === Qt.Key_Space || event.key === Qt.Key_Return)
+                                        && index < 23 && !/[\s,;|]/.test(recoveryWordInput.text)) {
+                                        event.accepted = true
+                                        const next = nativeSignerWordGrid.itemAt(index + 1)
+                                        if (next) next.focusWord()
+                                    } else if (event.key === Qt.Key_Backspace
+                                               && !recoveryWordInput.text && index > 0) {
+                                        const previous = nativeSignerWordGrid.itemAt(index - 1)
+                                        if (previous) previous.focusWord()
+                                    }
                                 }
                             }
                         }

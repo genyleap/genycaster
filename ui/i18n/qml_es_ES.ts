@@ -6434,16 +6434,58 @@ Empresa | https://company.com</translation>
             <translation>Términos de uso</translation>
         </message>
         <message id="genycaster.setup.terms_body">
-            <source>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</source>
-            <translation>Los Términos de uso publicados de Genyleap cubren la información del sitio web y los recursos de producto. La información del sitio es general y el alcance de los productos puede cambiar. Las descargas y repositorios pueden tener licencias, notas de versión y requisitos de compatibilidad propios. Enviar una consulta de proyecto no crea un contrato ni garantiza su aceptación. Revisa los Términos completos antes de continuar.</translation>
+            <source>These general terms apply to use of the Genyleap website preview. Product repositories, downloads and third-party services may have their own licenses or terms.
+
+Website content
+Website information is provided for general product, engineering and company communication. Availability, roadmap details and technical scope may change as products evolve.
+
+Downloads and repositories
+Review the applicable repository license, release notes and compatibility information before installing or redistributing software.
+
+Project enquiries
+Submitting a project enquiry does not by itself create a contract or guarantee acceptance. Scope, commercial terms and delivery commitments require separate agreement.</source>
+            <translation>Estos términos generales se aplican a la vista preliminar del sitio de Genyleap. Los repositorios, las descargas y los servicios de terceros pueden tener licencias o condiciones propias.
+
+Contenido del sitio
+La información sirve para presentar productos, ingeniería y la empresa. La disponibilidad, las hojas de ruta y el alcance técnico pueden cambiar.
+
+Descargas y repositorios
+Revisa la licencia correspondiente, las notas de versión y la compatibilidad antes de instalar o redistribuir software.
+
+Consultas de proyectos
+Enviar una consulta no crea un contrato ni garantiza su aceptación. El alcance, las condiciones comerciales y los compromisos requieren otro acuerdo.</translation>
         </message>
         <message id="genycaster.setup.privacy_title">
             <source>Privacy Policy</source>
             <translation>Política de privacidad</translation>
         </message>
         <message id="genycaster.setup.privacy_body">
-            <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
-            <translation>El aviso de privacidad publicado por Genyleap cubre la información que eliges enviar mediante formularios de contacto y proyectos, además de datos básicos para prevenir abusos. Genycaster también usa la cuenta Genyleap/OpenProof y la identidad Farcaster vinculada que eliges durante la configuración para autenticarte y habilitar acciones de protocolo. Las preferencias de apariencia y región se guardan localmente en la aplicación salvo que una función indique lo contrario. Revisa el aviso de privacidad completo antes de continuar.</translation>
+            <source>Genyleap stores information you submit through forms and limited technical telemetry needed for security, service operation and download analytics.
+
+What we collect
+Contact submissions include your name, email, subject and message. Project submissions may also include company, phone, selected service, budget range, timeline and project description. For downloads, we may record the requested product and file, timestamp, IP address, User-Agent, browser/device and operating-system details, network-provided country code, referrer, and automated-crawler indicators.
+
+Why we use it
+Submitted information is used to review and respond to requests. Download telemetry helps operate delivery, distinguish human and automated traffic, understand usage, and prevent abuse.
+
+Genycaster-specific notice
+Genycaster uses your Genyleap/OpenProof identity and linked Farcaster FID for account verification. A recovery phrase entered in the browser is processed on your device, not uploaded or stored by Genycaster. A separately authorized device signer can be retained in local protected storage for future interactions. Public posts and media are submitted to the selected protocol and media services when you choose to publish. Appearance and language preferences are stored locally unless a feature says otherwise.
+
+Contact
+For privacy questions, use Genyleap's published Contact page or contact email.</source>
+            <translation>Genyleap conserva la información enviada por formularios y datos técnicos limitados necesarios para la seguridad, el funcionamiento y las estadísticas de descargas.
+
+Datos recopilados
+Los formularios de contacto pueden incluir nombre, correo, asunto y mensaje. Las solicitudes de proyectos pueden incluir empresa, teléfono, servicio, presupuesto, plazo y descripción. Las descargas pueden registrar producto, archivo, fecha, IP, navegador, dispositivo, sistema operativo, país, referencia e indicadores de tráfico automatizado.
+
+Finalidad
+Se usan para responder solicitudes, mantener las descargas, analizar el uso y prevenir abusos.
+
+Aviso sobre Genycaster
+La aplicación verifica tu identidad Genyleap/OpenProof y el FID de Farcaster asociado. La frase de recuperación introducida en el navegador se procesa en tu dispositivo; Genycaster no la envía ni almacena. Un firmante autorizado puede conservarse localmente de forma protegida. Al publicar, los mensajes y archivos públicos se envían a los servicios de protocolo y multimedia elegidos. Las preferencias de idioma y apariencia permanecen locales salvo indicación contraria.
+
+Contacto
+Para dudas de privacidad utiliza la página de contacto o el correo publicado de Genyleap.</translation>
         </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>

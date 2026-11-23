@@ -160,17 +160,27 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             cell.appendChild(number);cell.appendChild(word);
             inputs.push(word);cellList.push(cell);
             const pasteWords=(raw)=>{
-                const words=raw.trim().toLowerCase().split(/\s+/u).filter(Boolean);
+                // Accept plain, newline-separated, numbered and comma-separated
+                // 24-word exports without ever rebuilding focused secret inputs.
+                const normalized=String(raw).normalize('NFKC').toLowerCase()
+                    .replace(/[\u200b-\u200d\u2060\ufeff]/gu,' ')
+                    .replace(/\b\d{1,2}\s*[.):\-]\s*(?=[a-z])/gu,' ')
+                    .replace(/[^a-z]+/gu,' ').trim();
+                if(!normalized)return;
+                const words=normalized.split(/\s+/u);
                 const entirePhrase=words.length===24;
-                if(entirePhrase)renderWords(words.length);
-                const offset=entirePhrase ? 0 : index;
-                for(let i=0;i<words.length&&offset+i<count;i++)
-                    inputs[offset+i].value=words[i].replace(/[^a-z]/gu,'');
-                // Pasting a complete phrase should dismiss the software keyboard,
-                // not jump focus through narrow fields (or trigger mobile auto-zoom).
-                if(entirePhrase)submit.focus();
-                else inputs[Math.min(count-1,offset+words.length)]?.focus();
+                const offset=entirePhrase?0:index;
+                if(words.length>24||offset+words.length>count){
+                    showError(s.invalid);
+                    return;
+                }
                 clearErrors();
+                for(let i=0;i<words.length;i++)
+                    inputs[offset+i].value=words[i];
+                // Full phrase: only focus Submit after assigning all 24.
+                // Partial paste: keep the user's chosen field focused; never
+                // unexpectedly jump from 01 to 04 during incremental paste.
+                if(entirePhrase)submit.focus();
             };
             word.addEventListener('paste',event=>{
                 const pasted=event.clipboardData?.getData('text');
@@ -180,7 +190,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             });
             word.addEventListener('input',()=>{
                 const value=word.value.toLowerCase();
-                if(/\s/u.test(value)){pasteWords(value);return;}
+                if(/[\s,;|]/u.test(value)){pasteWords(value);return;}
                 word.value=value.replace(/[^a-z]/gu,'');
                 mark(index,false);
                 clearFeedback();

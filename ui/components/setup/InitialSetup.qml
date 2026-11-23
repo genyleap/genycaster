@@ -919,26 +919,60 @@ Item {
                         onClicked: legalReader.close()
                     }
                 }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.legalDocument === "terms"
+                        ? qsTrId("genycaster.setup.terms_updated")
+                        : qsTrId("genycaster.setup.privacy_updated")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
                 Flickable {
                     id: legalBodyScroll
+                    objectName: "setupPublishedLegalDocument"
                     Layout.fillHeight: true
                     Layout.fillWidth: true
                     clip: true
                     contentWidth: width
-                    contentHeight: legalBody.implicitHeight
+                    contentHeight: legalDocumentContent.implicitHeight
                     boundsBehavior: Flickable.StopAtBounds
                     flickableDirection: Flickable.VerticalFlick
-                    DirectionAwareLabel {
-                        id: legalBody
+                    Column {
+                        id: legalDocumentContent
                         width: legalBodyScroll.width
-                        text: root.legalDocument === "terms"
-                              ? qsTrId("genycaster.setup.terms_body")
-                              : qsTrId("genycaster.setup.privacy_body")
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeLabelSize
-                        wrapMode: Text.WordWrap
-                        lineHeight: 1.55
+                        spacing: Theme.space4
+                        DirectionAwareLabel {
+                            id: legalBody
+                            width: parent.width
+                            text: root.legalDocument === "terms"
+                                  ? qsTrId("genycaster.setup.terms_body")
+                                  : qsTrId("genycaster.setup.privacy_body")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            wrapMode: Text.WordWrap
+                            lineHeight: 1.55
+                        }
+                        DirectionAwareLabel {
+                            width: parent.width
+                            visible: root.legalDocument === "terms"
+                            text: qsTrId("genycaster.setup.legal_governing_note")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
                     }
+                }
+                ActionButton {
+                    objectName: "setupOpenPublishedLegalDocument"
+                    Layout.fillWidth: true
+                    compact: true
+                    text: root.legalDocument === "terms"
+                        ? qsTrId("genycaster.setup.open_terms")
+                        : qsTrId("genycaster.setup.open_privacy")
+                    onClicked: Qt.openUrlExternally(root.legalDocument === "terms"
+                        ? "https://genyleap.com/terms-of-use"
+                        : "https://genyleap.com/privacy")
                 }
                 SetupPrimaryButton {
                     Layout.fillWidth: true

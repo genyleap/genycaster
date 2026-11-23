@@ -256,3 +256,35 @@ test('recovery drawer distinguishes custody ownership and signer failures withou
         assert.equal(words.every(word=>word.value===''),true,'wipe fields after success');
     }
 });
+
+test('clipboard paste keeps 24 existing browser fields stable and handles numbered exports',async()=>{
+    const b=browser(),pending=promptForFarcasterRecovery(b);
+    const grid=b.document.getElementById('genycaster-recovery-words');
+    const original=grid.children.map(cell=>cell.children[1]);
+    const vector=[...Array(23).fill('abandon'),'art'];
+    const numbered=vector.map((word,i)=>String(i+1).padStart(2,'0')+'. '+word).join('\n');
+    original[3].focus();
+    original[3].dispatch('paste',{clipboardData:{getData:()=>numbered}});
+    assert.deepEqual(grid.children.map(cell=>cell.children[1].value),vector);
+    assert.equal(grid.children[0].children[1],original[0],
+        'full paste must not reconstruct and drop the original input');
+    const submit=b.document.getElementById('genycaster-farcaster-recovery').children[0]
+        .children.at(-1).children.at(-1);
+    assert.equal(b.document.activeElement,submit);
+    submit.click();
+    assert.equal(await pending,vector.join(' '));
+});
+
+test('partial browser paste into 01 does not steal focus and jump to 04',async()=>{
+    const b=browser(),pending=promptForFarcasterRecovery(b);
+    const grid=b.document.getElementById('genycaster-recovery-words');
+    const inputs=grid.children.map(cell=>cell.children[1]);
+    assert.equal(b.document.activeElement,inputs[0]);
+    inputs[0].dispatch('paste',{clipboardData:{getData:()=> 'abandon, ability; able'}});
+    assert.deepEqual(inputs.slice(0,3).map(x=>x.value),['abandon','ability','able']);
+    assert.equal(inputs[3].value,'');
+    assert.equal(b.document.activeElement,inputs[0]);
+    b.document.getElementById('genycaster-farcaster-recovery').children[0]
+      .children.at(-1).children[0].click();
+    await assert.rejects(pending,/cancelled/);
+});

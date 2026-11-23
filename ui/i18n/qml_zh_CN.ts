@@ -6433,16 +6433,58 @@ Company | https://company.com</source>
             <translation>使用条款</translation>
         </message>
         <message id="genycaster.setup.terms_body">
-            <source>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</source>
-            <translation>Genyleap 已发布的使用条款适用于网站信息和产品资源。网站信息属于一般性说明，产品范围可能变化。下载内容和代码仓库可能有各自的许可证、发行说明和兼容性要求。提交项目咨询本身不会形成合同，也不保证被接受。继续之前请查看完整条款。</translation>
+            <source>These general terms apply to use of the Genyleap website preview. Product repositories, downloads and third-party services may have their own licenses or terms.
+
+Website content
+Website information is provided for general product, engineering and company communication. Availability, roadmap details and technical scope may change as products evolve.
+
+Downloads and repositories
+Review the applicable repository license, release notes and compatibility information before installing or redistributing software.
+
+Project enquiries
+Submitting a project enquiry does not by itself create a contract or guarantee acceptance. Scope, commercial terms and delivery commitments require separate agreement.</source>
+            <translation>本一般条款适用于 Genyleap 网站预览。软件仓库、下载和第三方服务可能有各自的许可或使用条款。
+
+网站内容
+网站信息用于一般产品、工程与公司介绍。服务可用性、路线图和技术范围可能随产品发展而变化。
+
+下载与仓库
+安装或再分发软件前，请阅读适用的仓库许可、发行说明及兼容性要求。
+
+项目咨询
+提交项目咨询不会自动形成合同，也不保证接受。工作范围、商业条件及交付承诺须另行约定。</translation>
         </message>
         <message id="genycaster.setup.privacy_title">
             <source>Privacy Policy</source>
             <translation>隐私政策</translation>
         </message>
         <message id="genycaster.setup.privacy_body">
-            <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
-            <translation>Genyleap 已发布的隐私说明涵盖你主动通过联系和项目表单提交的信息，以及用于基本滥用防护的数据。Genycaster 还会使用你在设置中选择的 Genyleap/OpenProof 账户和已关联 Farcaster 身份进行认证并启用协议操作。外观和区域偏好会保存在应用本地，除非某项功能明确说明会以其他方式处理。继续之前请查看完整隐私说明。</translation>
+            <source>Genyleap stores information you submit through forms and limited technical telemetry needed for security, service operation and download analytics.
+
+What we collect
+Contact submissions include your name, email, subject and message. Project submissions may also include company, phone, selected service, budget range, timeline and project description. For downloads, we may record the requested product and file, timestamp, IP address, User-Agent, browser/device and operating-system details, network-provided country code, referrer, and automated-crawler indicators.
+
+Why we use it
+Submitted information is used to review and respond to requests. Download telemetry helps operate delivery, distinguish human and automated traffic, understand usage, and prevent abuse.
+
+Genycaster-specific notice
+Genycaster uses your Genyleap/OpenProof identity and linked Farcaster FID for account verification. A recovery phrase entered in the browser is processed on your device, not uploaded or stored by Genycaster. A separately authorized device signer can be retained in local protected storage for future interactions. Public posts and media are submitted to the selected protocol and media services when you choose to publish. Appearance and language preferences are stored locally unless a feature says otherwise.
+
+Contact
+For privacy questions, use Genyleap's published Contact page or contact email.</source>
+            <translation>Genyleap 保存您通过表单提交的信息，以及用于安全、服务运行和下载分析的有限技术数据。
+
+收集的信息
+联系表单可能包括姓名、电子邮件、主题和消息。项目申请还可能包括公司、电话、服务、预算、时间表和说明。下载时可能记录产品、文件、时间、IP 地址、浏览器、设备、操作系统、国家、来源页面和自动化访问指标。
+
+使用目的
+用于回复请求、保障下载服务、了解使用情况并防止滥用。
+
+Genycaster 特别说明
+应用使用 Genyleap/OpenProof 身份和关联的 Farcaster FID 验证账户。您在浏览器输入的恢复助记词仅在本设备处理，Genycaster 不会上传或存储。单独授权的签名者可能保留在本地受保护存储中。您选择发布时，公开内容与媒体会发送给选定的协议和媒体服务。除非另有明确说明，外观与语言设置保存在本地。
+
+联系方式
+有关隐私的问题，请使用 Genyleap 公布的联系页面或电子邮件。</translation>
         </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>
