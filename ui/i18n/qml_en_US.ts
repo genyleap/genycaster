@@ -7849,6 +7849,10 @@ This notice describes the product's current intended data flows, not a guarantee
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</translation>
         </message>
+        <message id="genycaster.setup.recovery_automatic_signer_notice">
+            <source>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</source>
+            <translation>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</translation>
+        </message>
         <message id="genycaster.setup.recovery_signer_consent">
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>Authorize a signer for this device to publish and interact after network verification.</translation>

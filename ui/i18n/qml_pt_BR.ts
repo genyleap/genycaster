@@ -7844,6 +7844,10 @@ Esta política descreve os fluxos pretendidos atualmente, não o comportamento d
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>As palavras de recuperação permanecem neste dispositivo. Apenas o endereço público de custódia e uma prova assinada de uso único são enviados. Use teclado e área de transferência confiáveis.</translation>
         </message>
+        <message id="genycaster.setup.recovery_automatic_signer_notice">
+            <source>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</source>
+            <translation>Ao continuar com as palavras de recuperação, também será solicitado um assinante para publicar e interagir neste dispositivo. A recuperação da conta pode terminar mesmo com a autorização da rede pendente.</translation>
+        </message>
         <message id="genycaster.setup.recovery_signer_consent">
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>Autorizo uma chave de assinatura neste dispositivo para publicar e interagir após a verificação da rede.</translation>

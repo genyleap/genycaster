@@ -298,9 +298,11 @@ public:
      *  FIDs are scoped to a read protocol: equal numbers across Farcaster and
      *  HyperSnap must not grant account-ownership UI or signer privileges.
      */
-    Q_INVOKABLE void openContentProfileFid(qulonglong fid, const QString& readContract);
+    Q_INVOKABLE void openContentProfileFid(qulonglong fid, const QString& readContract,
+                                           bool fromOwnNotifications = false);
     Q_INVOKABLE void openContentProfileUsername(const QString& username,
-                                               const QString& readContract);
+                                               const QString& readContract,
+                                               bool fromOwnNotifications = false);
     Q_INVOKABLE void selectProfileFeed(const QString& feed);
     Q_INVOKABLE void openFollowers();
     Q_INVOKABLE void openFollowing();

@@ -3,16 +3,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
-test('Farcaster custody recovery completes independently of optional signer KEY_ADD',()=>{
+test('Farcaster custody recovery also requests a signer without a separate checkbox',()=>{
  const setup=read('ui/components/setup/InitialSetup.qml');
  const runtime=read('ui/app/runtime/bindings.cpp');
- const begin=setup.indexOf('objectName: "nativeRecoveryDeviceSignerConsent"');
- assert.ok(begin>0);
- const consent=setup.slice(begin,begin+680);
- assert.match(consent,/checked: false/,'New/Farcaster recovery must not trigger a signer write by default');
- const clear=setup.slice(setup.indexOf('function clearAll()'),setup.indexOf('function countWords()'));
- assert.match(clear,/deviceSignerConsent\.checked = false/,'Clearing recovery words must restore safe opt-in');
- assert.match(setup,/const authorizeDeviceSigner = deviceSignerConsent\.checked/);
+ assert.match(setup,/objectName: "nativeRecoveryAutomaticSignerNotice"/);
+ assert.doesNotMatch(setup,/objectName: "nativeRecoveryDeviceSignerConsent"/);
+ assert.match(setup,/const authorizeDeviceSigner = true/);
  assert.match(runtime,/\/\/ Registry-confirmed custody authorizes sign-in independently/);
  assert.match(runtime,/commitVerifiedIdentity\(fid, address, std::move\(permit\), true, secret\)/);
  assert.match(runtime,/if \(authorizeSigner\) \{/);

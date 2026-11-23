@@ -4,13 +4,13 @@ import {readFileSync} from 'node:fs';
 
 const source = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
-test('native recovery snapshots signer consent before clearing sensitive fields', () => {
+test('native recovery requests signer on explicit submit before clearing sensitive fields', () => {
   const setup = source('ui/components/setup/InitialSetup.qml');
   const submit = setup.slice(setup.indexOf('let words = nativeRecoveryGrid.phrase()'),
                              setup.indexOf('root.switchStep(5)', setup.indexOf('let words = nativeRecoveryGrid.phrase()')));
-  assert.ok(submit.includes('const authorizeDeviceSigner = deviceSignerConsent.checked'));
-  assert.match(setup,/id: deviceSignerConsent[\s\S]*?checked: false/);
-  assert.match(setup,/deviceSignerConsent\.checked = false/);
+  assert.ok(submit.includes('const authorizeDeviceSigner = true'));
+  assert.doesNotMatch(setup,/id: deviceSignerConsent/);
+  assert.match(setup,/objectName: "nativeRecoveryAutomaticSignerNotice"/);
   assert.ok(submit.indexOf('const authorizeDeviceSigner') < submit.indexOf('nativeRecoveryGrid.clearAll()'));
   assert.match(submit, /nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
   assert.match(submit, /nativeRecoverHyperSnapAccount\(words, authorizeDeviceSigner\)/);

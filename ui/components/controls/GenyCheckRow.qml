@@ -74,6 +74,7 @@ Button {
             Layout.minimumWidth: 0
             Layout.alignment: Qt.AlignVCenter
             text: control.label
+            selectableText: false
             color: control.enabled ? Theme.ink : Theme.inkDisabled
             // A consent checkbox is a setting label, not a section heading.
             font.pixelSize: Theme.typeLabelSize

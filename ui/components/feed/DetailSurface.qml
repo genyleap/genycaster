@@ -912,6 +912,7 @@ ListView {
                     visualEmbeds: root.visualEmbeds
                     supportingEmbeds: root.supportingEmbeds
                     compact: root.compact
+                    asynchronousTiles: false
                     onExternalRequested: url => root.externalRequested(url)
                     onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
                     onCastRequested: castId => root.castRequested(castId)

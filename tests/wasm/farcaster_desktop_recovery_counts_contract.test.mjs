@@ -11,11 +11,11 @@ const runtime=read('ui/app/runtime/bindings.cpp');
 const endpoints=read('ui/app/bootstrap/providers.cpp');
 const composition=read('ui/app/runtime/composition.cpp');
 
-test('desktop Farcaster recovery does not require device signer consent to sign in',()=>{
-  const section=setup.split('objectName: "nativeRecoveryDeviceSignerConsent"')[1]
+test('desktop Farcaster recovery requests a signer without a separate checkbox',()=>{
+  const section=setup.split('objectName: "nativeRecoveryAutomaticSignerNotice"')[1]
     ?.split('root.switchStep(5)')[0];
   assert.ok(section);
-  assert.match(setup,/const authorizeDeviceSigner = deviceSignerConsent\.checked/);
+  assert.match(setup,/const authorizeDeviceSigner = true/);
   assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
   assert.match(section,/if \(root\.recoveryProtocol === "hypersnap-v2"\)\s+root\.nativeRecoverHyperSnapAccount\([^\n]+\)\s+else\s+root\.nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
   assert.match(shell,/beginNativeFarcasterRecoverySetup\(recoveryWords, authorizeSigner\)/);
@@ -45,7 +45,7 @@ test('desktop Farcaster recovery preserves distinct invalid phrase, unregistered
 
 test('Farcaster has a separate public indexed profile source by default with exact social counts',()=>{
   assert.match(endpoints,/readBaseUrl = readApiKey\.isEmpty\(\)/);
-  assert.match(endpoints,/https:\/\/haatz\.quilibrium\.com/);
+  assert.match(endpoints,/genycaster::deployment::hypersnapOrigin/);
   assert.match(endpoints,/https:\/\/api\.neynar\.com/);
   assert.match(composition,/\.providerId = farcaster::provider::model::ProviderId\{"farcaster-snapchain"\}/);
   assert.match(composition,/\.providesProfileCounts = true/);

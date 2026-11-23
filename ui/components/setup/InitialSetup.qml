@@ -605,7 +605,7 @@ Item {
     }
     function switchStep(step) {
         let target = Math.max(0, Math.min(7, step))
-        if (!reviewMode && !legalConsentAccepted && !consentChecked && target > 2)
+        if (!reviewMode && !consentChecked && target > 2)
             target = 2
         if (!reviewMode && !authenticated && target > 5)
             target = 5
@@ -741,6 +741,8 @@ Item {
         return true
     }
     onVisibleChanged: {
+        if (visible)
+            consentChecked = false
         if (!visible) {
             // Closing onboarding stops polling; it cannot cancel a blockchain write.
             root.nativeCreationRequested = false
@@ -779,7 +781,9 @@ Item {
             existingProtocolSelected = false
             recoveryProtocol = ""
             showRecovery = false
-            consentChecked = legalConsentAccepted
+            // Consent is never visually pre-selected from persisted account state.
+            // The user must explicitly check it in this Setup presentation.
+            consentChecked = false
         }
         forceActiveFocus()
         Qt.callLater(root.resumeNativePendingChecks)
@@ -1904,6 +1908,7 @@ Item {
                 bottomPadding: Theme.space2
                 enabled: true
                 focusPolicy: Qt.StrongFocus
+                Accessible.role: Accessible.CheckBox
                 Accessible.name: qsTrId("genycaster.setup.single_legal_consent")
                 Accessible.checked: root.consentChecked
                 onClicked: root.consentChecked = !root.consentChecked
@@ -1945,6 +1950,7 @@ Item {
                         id: consentLabel
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.setup.single_legal_consent")
+                        selectableText: false
                         color: Theme.ink
                         font.pixelSize: Theme.typeLabelSize
                         font.weight: Theme.weightRegular
@@ -3352,6 +3358,7 @@ Item {
                 }
                 SetupActionCard {
                     objectName: "setupExistingRecoveryPhrase"
+                    visible: !root.showRecovery
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     wrapTitle: true
@@ -3447,7 +3454,6 @@ Item {
                         }
                         completeWordCount = 0
                         revealWords.checked = false
-                        deviceSignerConsent.checked = false
                     }
                     function countWords() {
                         let result = 0
@@ -3587,15 +3593,15 @@ Item {
                         label: qsTrId("genycaster.setup.show_recovery_words")
                         onVisibleChanged: if (!visible) checked = false
                     }
-                    GenyCheckRow {
-                        id: deviceSignerConsent
-                        objectName: "nativeRecoveryDeviceSignerConsent"
+                    DirectionAwareLabel {
+                        objectName: "nativeRecoveryAutomaticSignerNotice"
                         Layout.fillWidth: true
-                        label: qsTrId("genycaster.setup.recovery_signer_consent")
-                        // Recovering an existing FID is independent of publishing authority.
-                        // Device signer authorization is a separate, explicit
-                        // opt-in, never a prerequisite for successful recovery.
-                        checked: false
+                        Layout.topMargin: Theme.space2
+                        selectableText: false
+                        text: qsTrId("genycaster.setup.recovery_automatic_signer_notice")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
                     }
                 }
                 SetupPrimaryButton {
@@ -3607,10 +3613,11 @@ Item {
                           && nativeRecoveryGrid.completeWordCount === 24
                     onClicked: {
                         let words = nativeRecoveryGrid.phrase()
-                        // Snapshot explicit device-signer consent BEFORE
-                        // clearing the sensitive form: clearAll() resets its
-                        // checkbox, and previously always sent false.
-                        const authorizeDeviceSigner = deviceSignerConsent.checked
+                        // Submitting the recovery phrase is the deliberate
+                        // account recovery + device signer authorization action.
+                        // Custody verification still succeeds independently if
+                        // signer authorization must be retried after network checks.
+                        const authorizeDeviceSigner = true
                         nativeRecoveryGrid.clearAll()
                         if (root.resumingRegistration) {
                             const restored =

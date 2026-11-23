@@ -247,16 +247,16 @@ test('wallet recovery phrase copy is explicit, guarded and never exported throug
   }
 });
 
-test('native recovery authorizes a device signer only with explicit user consent', () => {
+test('recovery submission intentionally requests a device signer without an extra checkbox', () => {
   const qml=source('ui/components/setup/InitialSetup.qml');
   const runtime=source('ui/app/runtime/bindings.cpp');
   const platform=source('src/platform/custody_recovery.cpp');
   const app=source('src/application/signer.cpp');
-  assert.match(qml,/objectName: "nativeRecoveryDeviceSignerConsent"/);
-  assert.match(qml,/deviceSignerConsent\.checked/);
-  assert.match(qml,/GenyCheckRow \{[\s\S]*?id: deviceSignerConsent/);
+  assert.doesNotMatch(qml,/objectName: "nativeRecoveryDeviceSignerConsent"/);
+  assert.match(qml,/objectName: "nativeRecoveryAutomaticSignerNotice"/);
+  assert.match(qml,/const authorizeDeviceSigner = true/);
   assert.match(source('ui/components/controls/GenyCheckRow.qml'),/Accessible\.role: Accessible\.CheckBox/);
-  assert.match(qml,/genycaster.setup.recovery_signer_consent/);
+  assert.match(qml,/genycaster.setup.recovery_automatic_signer_notice/);
   assert.match(runtime,/makeOneShotRecoveryAuthorizer\(mnemonic,/);
   assert.match(platform,/wordCount != 24/);
   assert.match(platform,/request.fid.value != m_verifiedFid/);
@@ -270,7 +270,7 @@ test('native recovery authorizes a device signer only with explicit user consent
   for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
                         'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
     const translations=source('ui/i18n/qml_'+locale+'.ts');
-    assert.match(translations,/<message id="genycaster.setup.recovery_signer_consent">/);
+    assert.match(translations,/<message id="genycaster.setup.recovery_automatic_signer_notice">/);
     assert.match(translations,/<translation>[^<]+<\/translation>/);
   }
 });
@@ -446,7 +446,8 @@ test('signout returns immediately to Welcome and legal consent accepts a deliber
   assert.match(s,/Sign-out always restores Welcome immediately/);
   assert.match(s,/currentStep = 0/);
   assert.match(s,/accountIntent = ""/);
-  assert.match(s,/consentChecked = legalConsentAccepted/);
+  assert.match(s,/consentChecked = false/);
+  assert.doesNotMatch(s,/consentChecked = legalConsentAccepted/);
   assert.match(s,/enabled: true\s+focusPolicy: Qt.StrongFocus/);
   assert.match(s,/Accessible.checked: root.consentChecked/);
   assert.match(s,/if \(!consentChecked\) return/);

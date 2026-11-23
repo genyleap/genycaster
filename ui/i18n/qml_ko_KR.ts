@@ -7844,6 +7844,10 @@ Genycaster는 계정 ID/FID, 프로토콜, 확인 상태, Farcaster 및 Genyleap
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>복구 구문은 이 기기에만 보관됩니다. 공개 커스터디 주소와 일회성 서명 증명만 전송됩니다. 신뢰할 수 있는 키보드와 클립보드를 사용하세요.</translation>
         </message>
+        <message id="genycaster.setup.recovery_automatic_signer_notice">
+            <source>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</source>
+            <translation>복구 단어로 계속하면 이 기기에서 게시하거나 상호작용할 서명자의 승인도 요청합니다. 네트워크 승인이 대기 중이어도 계정 복구는 완료할 수 있습니다.</translation>
+        </message>
         <message id="genycaster.setup.recovery_signer_consent">
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>네트워크 확인 후 이 기기에서 게시 및 상호작용할 서명 키 생성을 허용합니다.</translation>

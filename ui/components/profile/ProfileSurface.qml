@@ -2046,8 +2046,10 @@ Item {
                         y: -Math.round(root.profileAvatarSize * 0.50)
                         avatarSize: root.profileAvatarSize
                         sourceUrl: root.activeDetail.avatarUrl || ""
-                        displayName: root.activeDetail.displayName
-                            || (root.showUsername ? root.activeDetail.username : "")
+                        // Profile hydration may omit both displayName and username.
+                        // QString-bound Avatar.displayName must never receive undefined.
+                        displayName: String(root.activeDetail.displayName
+                            || (root.showUsername ? root.activeDetail.username : "") || "")
                     }
 
                     TapHandler {

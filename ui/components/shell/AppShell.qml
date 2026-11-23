@@ -1117,7 +1117,8 @@ Item {
         }
         // Protocol and custody ownership are verified in C++, never QML.
         presentationBridge.openContentProfileFid(
-            target, String(providerProfiles.activeReadContract || ""))
+            target, String(providerProfiles.activeReadContract || ""),
+            root.pendingReturnShellRoute === "notifications")
     }
 
     property bool profileEditorRequestedFromSettings: false
@@ -1322,7 +1323,8 @@ Item {
                 root.clearPendingShellReturn()
             root.shellRoute = ""
             presentationBridge.openContentProfileUsername(
-                target.substring(1), String(providerProfiles.activeReadContract || ""))
+                target.substring(1), String(providerProfiles.activeReadContract || ""),
+                root.pendingReturnShellRoute === "notifications")
             return
         }
         presentationBridge.openExternalUrl(target)

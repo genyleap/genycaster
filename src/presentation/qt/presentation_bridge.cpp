@@ -2025,15 +2025,20 @@ void PresentationBridge::openProfileFid(const qulonglong fid)
 }
 
 void PresentationBridge::openContentProfileFid(
-    const qulonglong fid, const QString& readContract)
+    const qulonglong fid, const QString& readContract,
+    const bool fromOwnNotifications)
 {
-    // The destination FID is protocol-scoped. An identical numeric FID on
-    // the other network is a foreign profile, never our account.
+    // Reader selection does not determine the source protocol of a mention
+    // opened from authenticated notifications. A user can be signed in to
+    // Farcaster while their preferred general reader is HyperSnap. The
+    // notifications scope itself is bound to the authenticated account.
+    // Outside that scope, never equate numeric FIDs from distinct networks.
     const bool sameProtocol = nativeCustodyAccount()
         ? readContract == QStringLiteral("hypersnap-v2")
-        : readContract == QStringLiteral("snapchain-v1");
+        : (readContract == QStringLiteral("snapchain-v1")
+           || readContract == QStringLiteral("neynar-v2"));
     if (m_isAuthenticated && m_accountFid != 0 && fid == m_accountFid
-        && sameProtocol) {
+        && (sameProtocol || fromOwnNotifications)) {
         // openMyProfile records the current Cast before switching to the
         // authenticated profile and restores owner-only UI atomically.
         openMyProfile();
@@ -2043,13 +2048,15 @@ void PresentationBridge::openContentProfileFid(
 }
 
 void PresentationBridge::openContentProfileUsername(
-    const QString& username, const QString& readContract)
+    const QString& username, const QString& readContract,
+    const bool fromOwnNotifications)
 {
     const QString target = username.trimmed();
     // HyperSnap does not have a Farcaster username namespace. Compare
     // handles only for an authenticated Farcaster session and read source.
     if (m_isAuthenticated && !nativeCustodyAccount()
-        && readContract == QStringLiteral("snapchain-v1")
+        && (fromOwnNotifications || readContract == QStringLiteral("snapchain-v1")
+            || readContract == QStringLiteral("neynar-v2"))
         && !m_accountUsername.isEmpty()
         && target.compare(m_accountUsername, Qt::CaseInsensitive) == 0) {
         openMyProfile();

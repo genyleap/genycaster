@@ -7849,6 +7849,10 @@ FID، نام کاربری و پروفایل عمومی، کست‌ها، پاس�
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>واژه‌های بازیابی روی همین دستگاه می‌مانند. فقط آدرس عمومی مالکیت و گواه امضاشدهٔ یک‌بارمصرف ارسال می‌شوند. از صفحه‌کلید و کلیپ‌بورد مطمئن استفاده کنید.</translation>
         </message>
+        <message id="genycaster.setup.recovery_automatic_signer_notice">
+            <source>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</source>
+            <translation>با ادامه‌دادن با واژه‌های بازیابی، مجوز امضاکنندهٔ این دستگاه برای انتشار و تعامل هم درخواست می‌شود. بازیابی حساب می‌تواند حتی در زمان انتظار برای تأیید شبکه تکمیل شود.</translation>
+        </message>
         <message id="genycaster.setup.recovery_signer_consent">
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>اجازه می‌دهم برای این دستگاه کلید امضای مستقل ساخته شود تا پس از تأیید شبکه، انتشار و تعاملات بدون تأیید تکراری انجام شوند.</translation>

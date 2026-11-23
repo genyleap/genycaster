@@ -24,7 +24,7 @@ function harness({readContract='snapchain-v1',route=''}={}){
   };
   const bridge={
     clearDetailHistory(){calls.push('clear-history');},
-    openContentProfileFid(fid,contract){calls.push(['context',fid,contract]);}
+    openContentProfileFid(fid,contract,fromNotifications){calls.push(['context',fid,contract,fromNotifications]);}
   };
   return {calls,root,open:fid=>invoke(fid,root,{activeReadContract:readContract},bridge)};
 }
@@ -32,17 +32,19 @@ function harness({readContract='snapchain-v1',route=''}={}){
 test('QML uses the C++ protocol/custody routing API for all content profile links',()=>{
   const a=harness();
   a.open(42);
-  assert.deepEqual(a.calls,[['context',42,'snapchain-v1']]);
+  assert.deepEqual(a.calls,[['context',42,'snapchain-v1',false]]);
   const b=harness({readContract:'hypersnap-v2'});
   b.open(42);
-  assert.deepEqual(b.calls,[['context',42,'hypersnap-v2']]);
+  assert.deepEqual(b.calls,[['context',42,'hypersnap-v2',false]]);
   const invalid=harness();
   invalid.open(Number.NaN);
   assert.equal(invalid.calls.length,0);
-  assert.match(header,/Q_INVOKABLE void openContentProfileFid\(qulonglong fid, const QString& readContract\)/);
+  assert.match(header,/Q_INVOKABLE void openContentProfileFid\(qulonglong fid, const QString& readContract,/);
   assert.match(cpp,/void PresentationBridge::openContentProfileFid\(/);
   assert.match(cpp,/const bool sameProtocol = nativeCustodyAccount\(\)/);
-  assert.match(cpp,/fid == m_accountFid[\s\S]*?sameProtocol\)/);
+  assert.match(cpp,/readContract == QStringLiteral\("neynar-v2"\)/);
+  assert.match(cpp,/sameProtocol \|\| fromOwnNotifications/);
+  assert.match(cpp,/fid == m_accountFid[\s\S]*?sameProtocol \|\| fromOwnNotifications\)/);
   assert.match(cpp,/openMyProfile\(\);[\s\S]*?return;[\s\S]*?openProfileFid\(fid\)/);
   assert.match(profile,/root\.ownProfileNavigation\s*\|\| root\.activeReadNetwork === root\.accountNetwork/);
   assert.match(profile,/visible: Number\(root\.activeDetail\.fid \|\| 0\) > 0 && !root\.isOwnProfile/);
@@ -53,7 +55,7 @@ test('a Notification -> Cast -> own Profile navigation preserves the origin rout
   a.open(42);
   assert.equal(a.root.pendingReturnShellRoute,'notifications');
   assert.equal(a.root.shellRoute,'');
-  assert.deepEqual(a.calls,['remember-route','clear-history',['context',42,'snapchain-v1']]);
+  assert.deepEqual(a.calls,['remember-route','clear-history',['context',42,'snapchain-v1',true]]);
   const detailStart=shell.indexOf('id: castSurfaceLoader');
   const detail=shell.slice(detailStart,detailStart+9000);
   assert.match(detail,/onProfileRequested: fid => \{[\s\S]*?root\.openProfileFromContent\(fid\)/);

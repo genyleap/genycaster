@@ -1261,6 +1261,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_privacy");
     //% "Continue with recovery words"
     (void)qtTrId("genycaster.setup.recovery_button");
+    //% "Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending."
+    (void)qtTrId("genycaster.setup.recovery_automatic_signer_notice");
     //% "Verify your account and enable publishing in Setup. No separate Sign In."
     (void)qtTrId("genycaster.setup.recovery_button_body");
     //% "Other sign-in methods"

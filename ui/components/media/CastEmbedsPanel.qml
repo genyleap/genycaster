@@ -11,6 +11,10 @@ ColumnLayout {
     property string castCaption: ""
     property bool compact: false
     property bool magazineCard: false
+    // Detail views are short-lived during Cast -> Profile navigation.
+    // Keep their tile incubation synchronous so Back cannot destroy an
+    // incomplete GalleryTile context. Scrolling feed cards stay asynchronous.
+    property bool asynchronousTiles: true
     property var sharedMediaGeometry: null
     property var scrollHost: null
     readonly property bool mobileViewport: root.compact && !root.magazineCard
@@ -260,7 +264,7 @@ ColumnLayout {
         compact: root.compact
         mobilePresentation: root.mobileViewport
         cornerCoverColor: root.magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
-        asynchronousTiles: !root.magazineCard
+        asynchronousTiles: root.asynchronousTiles && !root.magazineCard
         sharedMediaGeometry: root.sharedMediaGeometry
         // Desktop Timeline keeps its fixed media reservation. On phones a
         // portrait screenshot must instead adopt the decoded natural ratio,

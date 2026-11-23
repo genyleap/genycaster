@@ -56,18 +56,16 @@ test('native HyperSnap lookup retries read-only on canonical node without signer
 });
 
 
-test('both desktop protocol imports permit read-only recovery without consenting to a signer',()=>{
+test('both desktop imports authorize signer on explicit recovery while account recovery stays independent',()=>{
   const setup=read('ui/components/setup/InitialSetup.qml');
   const shell=read('ui/components/shell/AppShell.qml');
   const bridge=read('src/presentation/qt/presentation_bridge.cpp');
   const header=read('src/presentation/qt/presentation_bridge.hpp');
-  assert.match(setup,/const authorizeDeviceSigner = deviceSignerConsent\.checked/);
+  assert.match(setup,/const authorizeDeviceSigner = true/);
   assert.match(setup,/root\.nativeRecoverHyperSnapAccount\(words, authorizeDeviceSigner\)/);
   assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words, authorizeDeviceSigner\)/);
-  assert.match(setup,/id: deviceSignerConsent[\s\S]*?checked: false/);
-  const action=setup.slice(setup.indexOf('objectName: "nativeRecoveryDeviceSignerConsent"'),
-    setup.indexOf('root.recoverySubmitPending = true'));
-  assert.doesNotMatch(action,/&& deviceSignerConsent\.checked/);
+  assert.match(setup,/objectName: "nativeRecoveryAutomaticSignerNotice"/);
+  assert.doesNotMatch(setup,/objectName: "nativeRecoveryDeviceSignerConsent"/);
   assert.match(shell,/beginNativeHyperSnapRecoverySetup\(recoveryWords, authorizeSigner\)/);
   assert.match(header,/nativeHyperSnapRecoveryRequested\(QString recoveryWords, bool authorizeSigner\)/);
   assert.match(bridge,/m_hyperSnapRecoverySignerConsent = authorizeSigner/);

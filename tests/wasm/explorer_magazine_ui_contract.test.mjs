@@ -203,7 +203,8 @@ test("Magazine nested EmbedPreview and GalleryLayout never abandon incubation", 
     const preview = read("ui/components/media/EmbedPreview.qml");
     const gallery = read("ui/components/media/GalleryLayout.qml");
     assert.match(cast, /magazineCard: root\.magazineCard\s+sharedMediaGeometry: root\.sharedMediaGeometry\s+suppressedEmbedUrls:/);
-    assert.match(panel, /asynchronousTiles: !root\.magazineCard/);
+    assert.match(panel, /asynchronousTiles: root\.asynchronousTiles && !root\.magazineCard/);
+    assert.match(panel, /property bool asynchronousTiles: true/);
     assert.match(panel, /magazineCard: root\.magazineCard\s+sharedMediaGeometry: root\.sharedMediaGeometry\s+flatLinkCard:/);
     assert.match(rich, /magazineCard: root\.magazineCard/);
     assert.match(preview, /asynchronous: !root\.magazineCard/);

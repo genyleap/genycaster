@@ -40,6 +40,7 @@ Item {
     // before GalleryLayout applies its multi-image bindings. Single-image slots
     // opt into both features explicitly.
     property bool ambientEnabled: false
+    property bool asynchronousAmbient: true
     property bool useLayeredMask: false
     property int loadDelayMs: 0
     property color cornerCoverColor: Theme.background
@@ -118,7 +119,7 @@ Item {
         objectName: "galleryAmbientLoader"
         anchors.fill: parent
         active: root.ambientEnabled && !root.officialSticker
-        asynchronous: true
+        asynchronous: root.asynchronousAmbient
 
         sourceComponent: Component {
             AmbientMediaBackdrop {

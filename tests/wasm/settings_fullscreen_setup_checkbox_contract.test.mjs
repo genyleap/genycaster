@@ -93,7 +93,7 @@ test('Settings fills the desktop viewport and the mobile inspector remains full-
     assert.match(settings, /onTapped: themePreset\.selectPreset\(\)/);
 });
 
-test('All recovery checkboxes share a stable Light/Dark background and explicit checked appearance', () => {
+test('remaining recovery checkboxes share stable Light/Dark appearance', () => {
     const control = read('ui/components/controls/GenyCheckRow.qml');
     const setup = read('ui/components/setup/InitialSetup.qml');
     assert.match(control, /Button \{/);
@@ -109,7 +109,7 @@ test('All recovery checkboxes share a stable Light/Dark background and explicit 
     assert.match(control, /wrapMode: Text\.WordWrap/);
     for (const id of [
         'walletBackupAcknowledgment', 'neynarTransferConsent',
-        'nativeRegistrationConsent', 'revealWords', 'deviceSignerConsent'
+        'revealWords'
     ]) {
         assert.match(setup, new RegExp('GenyCheckRow \\{\\s*id: '+id+'\\b'));
     }
@@ -118,7 +118,8 @@ test('All recovery checkboxes share a stable Light/Dark background and explicit 
     const recovery = setup.slice(setup.indexOf('id: revealWords'), setup.indexOf('SetupPrimaryButton {', setup.indexOf('id: revealWords')));
     assert.doesNotMatch(recovery, /checked:\s*false/);
     assert.match(recovery, /onVisibleChanged: if \(!visible\) checked = false/);
-    assert.match(setup, /deviceSignerConsent\.checked/);
+    assert.match(setup, /objectName: "nativeRecoveryAutomaticSignerNotice"/);
+    assert.doesNotMatch(setup,/objectName: "nativeRecoveryDeviceSignerConsent"/);
     assert.match(setup, /nativeRecoveryGrid\.clearAll\(\)/);
 });
 
@@ -129,6 +130,6 @@ test('Legal consent uses the same control palette while preserving its persisted
     assert.match(legal, /Accessible\.checked: root\.consentChecked/);
     assert.match(legal, /fillColor: root\.consentChecked \? Theme\.accent : Theme\.surface/);
     assert.match(legal, /borderColor: root\.consentChecked \? Theme\.accent : Theme\.borderStrong/);
-    assert.match(legal, /root\.consentChecked \? Theme\.surfaceSelected/);
+    assert.match(legal, /root\.consentChecked \? Theme\.accent : Theme\.surface/);
     assert.match(legal, /fillColor: consentCheck\.down \? Theme\.surfacePressed/);
 });

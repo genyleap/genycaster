@@ -207,6 +207,7 @@ Button {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: root.title
+                selectableText: false
                 color: root.foreground
                 font.pixelSize: root.compactCard || root.onboardingStyle ? Theme.typeLabelSize : Math.max(Theme.typeLabelSize, 17)
                 font.weight: Theme.weightDemiBold
@@ -219,6 +220,7 @@ Button {
                 visible: root.subtitle.length > 0
                 Layout.fillWidth: true
                 text: root.subtitle
+                selectableText: false
                 color: root.secondaryForeground
                 font.pixelSize: Theme.typeCaptionSize
                 font.weight: Theme.weightMedium
@@ -308,6 +310,7 @@ Button {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: root.title
+                selectableText: false
                 color: root.foreground
                 font.pixelSize: Math.max(Theme.typeLabelSize, 18)
                 font.weight: Theme.weightBold
@@ -318,6 +321,7 @@ Button {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: root.subtitle
+                selectableText: false
                 color: root.secondaryForeground
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap

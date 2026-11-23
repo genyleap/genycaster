@@ -7845,6 +7845,10 @@ Cette politique décrit le fonctionnement prévu, sans promettre les pratiques d
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>Les mots de récupération restent sur cet appareil. Seuls l’adresse publique de garde et une preuve signée à usage unique sont envoyés. Utilisez un clavier et un presse-papiers fiables.</translation>
         </message>
+        <message id="genycaster.setup.recovery_automatic_signer_notice">
+            <source>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</source>
+            <translation>Continuer avec les mots de récupération demande aussi l'autorisation d'un signataire pour publier et interagir depuis cet appareil. La récupération peut aboutir même si la validation réseau reste en attente.</translation>
+        </message>
         <message id="genycaster.setup.recovery_signer_consent">
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>J’autorise une clé de signature pour cet appareil afin de publier et interagir après vérification réseau.</translation>

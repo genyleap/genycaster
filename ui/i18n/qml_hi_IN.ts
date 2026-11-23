@@ -7844,6 +7844,10 @@ Genycaster खाता ID/FID, प्रोटोकॉल, सत्याप�
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>रिकवरी शब्द इस डिवाइस पर ही रहते हैं। केवल सार्वजनिक कस्टडी पता और एक बार इस्तेमाल होने वाला हस्ताक्षरित प्रमाण भेजा जाता है। भरोसेमंद कीबोर्ड और क्लिपबोर्ड इस्तेमाल करें।</translation>
         </message>
+        <message id="genycaster.setup.recovery_automatic_signer_notice">
+            <source>Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending.</source>
+            <translation>रिकवरी शब्दों के साथ आगे बढ़ने पर इस डिवाइस से पोस्ट करने और इंटरैक्ट करने के लिए हस्ताक्षरकर्ता की अनुमति भी मांगी जाती है। नेटवर्क मंज़ूरी लंबित होने पर भी खाता रिकवरी पूरी हो सकती है।</translation>
+        </message>
         <message id="genycaster.setup.recovery_signer_consent">
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>नेटवर्क सत्यापन के बाद इस डिवाइस से पोस्ट और प्रतिक्रियाएँ करने के लिए साइनर कुंजी बनाने की अनुमति देता/देती हूँ।</translation>

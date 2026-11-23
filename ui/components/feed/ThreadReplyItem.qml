@@ -226,6 +226,7 @@ ColumnLayout {
                 compact: true
                 visualEmbeds: root.visualEmbeds
                 supportingEmbeds: root.supportingEmbeds
+                asynchronousTiles: false
                 onExternalRequested: url => root.externalRequested(url)
                 onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
                 onCastRequested: castId => root.castRequested(castId)

@@ -359,6 +359,7 @@ Item {
                 sourceComponent: Component {
                     GalleryTile {
                         embed: root.embedAt(tileSlot.index)
+                        asynchronousAmbient: root.asynchronousTiles
                         // Single-media casts must show the complete image at every
                         // breakpoint. Multi-image galleries intentionally crop tiles.
                         preserveAspect: root.visibleCount === 1
