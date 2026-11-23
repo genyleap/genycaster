@@ -6941,6 +6941,18 @@ Company | https://company.com</source>
             <source>Verify your account and enable publishing in Setup. No separate Sign In.</source>
             <translation>تأیید حساب و فعال‌سازی انتشار در همین راه‌اندازی.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_signin_browse">
+            <source>Approve sign-in in Farcaster. No recovery phrase is needed to browse; publishing requires a separate authorized signer.</source>
+            <translation>ورود را در فارکستر تأیید کنید. برای مشاهدهٔ محتوا نیازی به عبارت بازیابی نیست؛ انتشار به امضاکنندهٔ مجاز جداگانه نیاز دارد.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_sensitive">
+            <source>Use only to restore custody or authorize publishing. Your recovery phrase is sensitive.</source>
+            <translation>فقط برای بازیابی مالکیت حساب یا صدور مجوز انتشار استفاده کنید. عبارت بازیابی شما محرمانه است.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_browse_verified">
+            <source>Farcaster identity verified. You can browse now; enable a signer separately when you want to publish or interact.</source>
+            <translation>هویت فارکستر تأیید شد. اکنون می‌توانید محتوا را ببینید؛ برای انتشار یا تعامل، امضاکننده را جداگانه فعال کنید.</translation>
+        </message>
         <message id="genycaster.setup.other_sign_in_methods">
             <source>Other sign-in methods</source>
             <translation>روش‌های ورود دیگر</translation>

@@ -22,9 +22,12 @@ permissions. Importing a mnemonic does not allow writing as a different FID.
 
 ## Genycaster WASM flow
 
-1. In first-run **Setup**, "Continue with recovery words" is the primary
-   browser account path; OpenProof and Farcaster SIWF remain optional under
-   "Other sign-in methods". Direct recovery does not start an SIWF challenge.
+1. In first-run **Setup**, existing Farcaster accounts are offered **Sign in
+   with Farcaster** first. A verified SIWF/OpenProof approval establishes a
+   read-capable identity session without a recovery phrase; it does not create
+   protocol-write authority. Recovery words remain an explicitly selected
+   secondary path when custody restoration or signer authorization is needed.
+   HyperSnap retains its own protocol-specific recovery path.
 2. The recovery dialog accepts a **Farcaster-specific** 12/24-word phrase.
    Check BIP39 checksum and derive its custody address in browser JavaScript;
    neither the words nor custody private key cross the Qt/WASM bridge.

@@ -1261,6 +1261,12 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_button_body");
     //% "Other sign-in methods"
     (void)qtTrId("genycaster.setup.other_sign_in_methods");
+    //% "Approve sign-in in Farcaster. No recovery phrase is needed to browse; publishing requires a separate authorized signer."
+    (void)qtTrId("genycaster.setup.farcaster_signin_browse");
+    //% "Use only to restore custody or authorize publishing. Your recovery phrase is sensitive."
+    (void)qtTrId("genycaster.setup.recovery_phrase_sensitive");
+    //% "Farcaster identity verified. You can browse now; enable a signer separately when you want to publish or interact."
+    (void)qtTrId("genycaster.setup.farcaster_browse_verified");
     //% "Preparing your Farcaster account"
     (void)qtTrId("genycaster.setup.recovery_working");
     //% "Validating account ownership and signer registration. Wait for network confirmation."

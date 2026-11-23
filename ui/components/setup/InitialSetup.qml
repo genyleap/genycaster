@@ -2366,6 +2366,7 @@ Item {
                         onboardingStyle: true
                         iconGlyph: "brands/farcaster"
                         title: qsTrId("genycaster.shell.sign_in_with_farcaster")
+                        subtitle: qsTrId("genycaster.setup.farcaster_signin_browse")
                         enabled: root.runtimeReady && root.authenticationAvailable
                                  && !root.authenticationInProgress
                         onClicked: {
@@ -3294,30 +3295,50 @@ Item {
                     }
                 }
             }
-            // Local custody recovery is the preferred existing-account route.
-            // Keep it first, with clear visual emphasis; the two external
-            // identity methods are secondary alternatives.
+            // Verified Farcaster sign-in is the first existing-account choice.
+            // Recovery grants custody authority and must remain an explicit alternative.
+            // HyperSnap retains its own recovery-first route.
             GridLayout {
                 visible: !root.authenticated && root.existingProtocolSelected
                 Layout.fillWidth: true
                 columns: root.wideStage ? 2 : 1
                 uniformCellWidths: columns > 1
+                uniformCellHeights: columns > 1
                 layoutDirection: Theme.uiDirection
                 rowSpacing: Theme.space3
                 columnSpacing: Theme.space3
                 SetupActionCard {
+                    objectName: "setupExistingFarcasterSignIn"
+                    visible: root.recoveryProtocol === "farcaster-snapchain" && !root.showRecovery
                     Layout.fillWidth: true
-                    compactCard: true
+                    Layout.fillHeight: true
                     wrapTitle: true
                     onboardingStyle: true
                     setupEmphasis: true
+                    iconGlyph: "brands/farcaster"
+                    title: qsTrId("genycaster.shell.sign_in_with_farcaster")
+                    subtitle: qsTrId("genycaster.setup.farcaster_signin_browse")
+                    busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
+                    enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
+                    onClicked: {
+                        root.continueWithFarcaster()
+                        root.switchStep(5)
+                    }
+                }
+                SetupActionCard {
+                    objectName: "setupExistingRecoveryPhrase"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    wrapTitle: true
+                    onboardingStyle: true
+                    setupEmphasis: root.recoveryProtocol !== "farcaster-snapchain"
                     iconGlyph: "system/lock"
                     title: qsTrId("genycaster.setup.design_recovery_title")
+                    subtitle: qsTrId("genycaster.setup.recovery_phrase_sensitive")
                     enabled: !root.authenticationInProgress && !root.recoverySubmitPending
                     onClicked: {
                         if (root.browserReadOnly) {
-                            // The DOM recovery dialog is presented only on an
-                            // explicit click. No phrase enters QML or C++.
+                            // Browser recovery is opt-in: never open a phrase field from sign-in.
                             root.recoverAccount(root.recoveryProtocol)
                         } else {
                             root.showRecovery = !root.showRecovery
@@ -3327,7 +3348,7 @@ Item {
                 SetupActionCard {
                     visible: root.recoveryProtocol === "hypersnap-v2" && !root.showRecovery
                     Layout.fillWidth: true
-                    compactCard: true
+                    Layout.fillHeight: true
                     wrapTitle: true
                     onboardingStyle: true
                     brandImageSource: (Qt.platform.os === "android" ? "image://genycaster-brand/mark" : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg")
@@ -3336,21 +3357,6 @@ Item {
                     enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
                     onClicked: {
                         root.continueWithGenyleap()
-                        root.switchStep(5)
-                    }
-                }
-                SetupActionCard {
-                    Layout.fillWidth: true
-                    compactCard: true
-                    wrapTitle: true
-                    onboardingStyle: true
-                    visible: root.recoveryProtocol === "farcaster-snapchain" && !root.showRecovery
-                    iconGlyph: "brands/farcaster"
-                    title: qsTrId("genycaster.shell.sign_in_with_farcaster")
-                    busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
-                    enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
-                    onClicked: {
-                        root.continueWithFarcaster()
                         root.switchStep(5)
                     }
                 }
@@ -3693,6 +3699,17 @@ Item {
                 text: root.authenticated
                     ? qsTrId("genycaster.setup.account_verified_body")
                     : qsTrId("genycaster.setup.design_verifying_description")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+            DirectionAwareLabel {
+                objectName: "setupFarcasterBrowseVerified"
+                visible: root.authenticated && root.recoveryProtocol === "farcaster-snapchain"
+                         && !root.signerReady
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.setup.farcaster_browse_verified")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap

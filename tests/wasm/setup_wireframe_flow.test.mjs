@@ -324,9 +324,11 @@ test('every stage uses a fixed bottom CTA footer and the desktop retains two-pan
   assert.match(setup, /id: setupActionFooter/);
   assert.match(setup, /anchors.bottom: setupActionFooter.top/);
   assert.match(setup, /anchors.verticalCenter: parent.verticalCenter/);
-  assert.match(setup, /x: root\.phone \? \(setupFooterContent\.width - width\) \/ 2/);
+  assert.match(setup, /x: root\.phone\s*\?\s*\(root\.welcomeNativeAppsVisible/);
+  assert.match(setup, /setupFooterContent\.welcomeRowWidth - width/);
   assert.match(setup, /: Theme\.rtl \? 0 : setupFooterContent\.width - width/);
-  assert.match(setup, /anchors\.fill: parent\s+anchors\.leftMargin: root\.setupGutter/);
+  assert.match(setup, /anchors\.leftMargin: root\.phone \? Theme\.space4 : root\.setupGutter/);
+  assert.match(setup, /anchors\.rightMargin: root\.phone \? Theme\.space4 : root\.setupGutter/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
 });
 
@@ -565,20 +567,21 @@ test('completion badge is a flat accent check without glow or shadow', () => {
   assert.doesNotMatch(studio,/blurEnabled: true|shadowEnabled: true/);
 });
 
-test('recovery appears before Genyleap and Farcaster, stays usable in review mode', () => {
+test('Farcaster SIWF precedes sensitive recovery; native HyperSnap recovery remains available', () => {
   const s=source('ui/components/setup/InitialSetup.qml');
   const stage=s.slice(s.indexOf('id: signInStage'),s.indexOf('id: verifyingStage'));
-  const recovery=stage.indexOf('genycaster.setup.design_recovery_title');
+  const farcaster=stage.indexOf('objectName: "setupExistingFarcasterSignIn"');
+  const recovery=stage.indexOf('objectName: "setupExistingRecoveryPhrase"');
   const genyleap=stage.indexOf('genycaster.shell.continue_with_genyleap');
-  const farcaster=stage.indexOf('genycaster.shell.sign_in_with_farcaster');
-  assert.ok(recovery>=0 && recovery<genyleap && genyleap<farcaster);
+  assert.ok(farcaster>=0 && farcaster<recovery && recovery<genyleap);
   assert.match(stage,/setupEmphasis: true/);
   assert.match(stage,/root\.recoverAccount\(root\.recoveryProtocol\)/);
   assert.match(stage,/root\.showRecovery = !root\.showRecovery/);
   const chooser=stage.indexOf('objectName: "setupExistingProtocolChoice"');
   const nativeRecovery=stage.indexOf('visible: root.showRecovery && (root.existingProtocolSelected');
-  assert.ok(chooser>=0 && chooser<recovery && recovery<nativeRecovery
-    && farcaster<nativeRecovery, 'Protocol selection precedes the action group and inline recovery form');
+  assert.ok(chooser>=0 && chooser<farcaster && farcaster<recovery
+    && recovery<genyleap && genyleap<nativeRecovery,
+    'Protocol selection precedes Farcaster sign-in, optional recovery, and the inline form');
   assert.doesNotMatch(stage,/objectName: "setupBrowserRecoveryProtocolChoice"/);
   const bridge=source('src/presentation/qt/presentation_bridge.cpp');
   const handler=bridge.slice(bridge.indexOf('void PresentationBridge::beginRecoverySetup()'),
@@ -957,4 +960,34 @@ test('HyperSnap interrupted native registration restores the same custody withou
   assert.match(transport,/\/v1\/nativeAccount/);
   assert.match(transport,/!data\.value\(QStringLiteral\("message"\)\)\.isObject\(\)/);
   assert.match(runtime,/acceptVerifiedNativeCustody/);
+});
+
+test('existing Farcaster account prioritizes safe SIWF browsing over custody recovery', () => {
+  const flow = setup.slice(setup.indexOf('objectName: "setupExistingProtocolChoice"'),
+                           setup.indexOf('objectName: "setupExistingConnections"'));
+  const siwf = flow.indexOf('objectName: "setupExistingFarcasterSignIn"');
+  const recovery = flow.indexOf('objectName: "setupExistingRecoveryPhrase"');
+  assert.ok(siwf >= 0 && recovery > siwf, 'Farcaster sign-in must appear before recovery');
+  const primary = flow.slice(siwf, recovery);
+  assert.match(primary, /setupEmphasis: true/);
+  assert.match(primary, /visible: root\.recoveryProtocol === "farcaster-snapchain"/);
+  assert.match(primary, /genycaster\.setup\.farcaster_signin_browse/);
+  assert.match(primary, /root\.continueWithFarcaster\(\)/);
+  assert.doesNotMatch(primary, /root\.recoverAccount\(/);
+  const secondary = flow.slice(recovery);
+  assert.match(secondary, /setupEmphasis: root\.recoveryProtocol !== "farcaster-snapchain"/);
+  assert.match(secondary, /genycaster\.setup\.recovery_phrase_sensitive/);
+  assert.match(secondary, /root\.recoverAccount\(root\.recoveryProtocol\)/);
+  assert.match(setup, /objectName: "setupFarcasterBrowseVerified"[\s\S]*?!root\.signerReady[\s\S]*?genycaster\.setup\.farcaster_browse_verified/);
+  assert.match(setup, /if \(currentStep === 4\) return authenticated/);
+  const ids=['farcaster_signin_browse','recovery_phrase_sensitive','farcaster_browse_verified'];
+  for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                         'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const ts=source('ui/i18n/qml_'+locale+'.ts');
+    for (const id of ids) {
+      const match=ts.match(new RegExp('<message id="genycaster\\.setup\\.'+id+'">([\\s\\S]*?)<\\/message>'));
+      assert.ok(match, locale+' missing '+id);
+      assert.match(match[1], /<translation>[^<]+<\/translation>/, locale+' untranslated '+id);
+    }
+  }
 });

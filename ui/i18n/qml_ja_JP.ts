@@ -6916,6 +6916,18 @@ Company | https://company.com</source>
             <source>Verify your account and enable publishing in Setup. No separate Sign In.</source>
             <translation>別途サインインせずに、セットアップ中にアカウントを確認して投稿を有効にします。</translation>
         </message>
+        <message id="genycaster.setup.farcaster_signin_browse">
+            <source>Approve sign-in in Farcaster. No recovery phrase is needed to browse; publishing requires a separate authorized signer.</source>
+            <translation>Farcaster でサインインを承認します。閲覧にリカバリーフレーズは不要です。投稿には別途承認された署名者が必要です。</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_sensitive">
+            <source>Use only to restore custody or authorize publishing. Your recovery phrase is sensitive.</source>
+            <translation>アカウントの管理権限の復元、または投稿の承認が必要な場合にのみ使用してください。リカバリーフレーズは機密情報です。</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_browse_verified">
+            <source>Farcaster identity verified. You can browse now; enable a signer separately when you want to publish or interact.</source>
+            <translation>Farcaster の本人確認が完了しました。閲覧できます。投稿や操作を行う際は、別途署名者を有効にしてください。</translation>
+        </message>
         <message id="genycaster.setup.other_sign_in_methods">
             <source>Other sign-in methods</source>
             <translation>その他のサインイン方法</translation>

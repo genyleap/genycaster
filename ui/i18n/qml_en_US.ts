@@ -6941,6 +6941,18 @@ Company | https://company.com</translation>
             <source>Verify your account and enable publishing in Setup. No separate Sign In.</source>
             <translation>Verify your account and enable publishing in Setup. No separate Sign In.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_signin_browse">
+            <source>Approve sign-in in Farcaster. No recovery phrase is needed to browse; publishing requires a separate authorized signer.</source>
+            <translation>Approve sign-in in Farcaster. No recovery phrase is needed to browse; publishing requires a separate authorized signer.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_sensitive">
+            <source>Use only to restore custody or authorize publishing. Your recovery phrase is sensitive.</source>
+            <translation>Use only to restore custody or authorize publishing. Your recovery phrase is sensitive.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_browse_verified">
+            <source>Farcaster identity verified. You can browse now; enable a signer separately when you want to publish or interact.</source>
+            <translation>Farcaster identity verified. You can browse now; enable a signer separately when you want to publish or interact.</translation>
+        </message>
         <message id="genycaster.setup.other_sign_in_methods">
             <source>Other sign-in methods</source>
             <translation>Other sign-in methods</translation>
