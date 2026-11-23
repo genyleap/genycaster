@@ -54,3 +54,17 @@ test('shared official reading surfaces render markdown with secure HTTPS links a
     assert.match(settings,/markdownSource: LocaleFormat\.localizeDigits\(/);
     assert.doesNotMatch(notes,/releaseNotesText.*Text\.PlainText/);
 });
+
+test('HTML fallback update dialog uses semantic list elements and safe text-only rendering',()=>{
+    const html=read('ui/wasm/genycaster-shell.html');
+    const loader=read('ui/wasm/genycaster-loader.js');
+    assert.match(html,/<div id="genycaster-update-details"><p>/);
+    assert.match(html,/\.update-details ul\{[^}]*display:grid;gap:11px/);
+    assert.match(html,/\.update-details li\{[^}]*line-height:1\.6/);
+    assert.match(loader,/document\.createElement\("ul"\)/);
+    assert.match(loader,/document\.createElement\("li"\)/);
+    assert.match(loader,/entry\.textContent=localizedUpdateDigits/);
+    assert.match(loader,/details\.replaceChildren\(\)/);
+    assert.doesNotMatch(loader,/details\.innerHTML\s*=/);
+    assert.match(loader,/updateBanner\.dir=.*"rtl"/);
+});

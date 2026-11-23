@@ -645,9 +645,8 @@ function fillReleaseDetails(fresh){
         .map(change=>localized.items[change.id])
         .filter(item=>typeof item==="string" && item.length>0)
         .slice(0,12):[];
-    const notes=localized
-        ? [localized.summary,...bullets.map(item=>"• "+item)].filter(Boolean).join("\n\n").slice(0,3600)
-        : "";
+    const summary=typeof localized?.summary==="string"
+        ? localized.summary.slice(0,500) : "";
     const translatedTitle=$("genycaster-update-details-title");
     if(translatedTitle && localized?.title)translatedTitle.textContent=localized.title;
     const bytes=Number(fresh.wasmBytes);
@@ -660,7 +659,23 @@ function fillReleaseDetails(fresh){
     const size=Number.isSafeInteger(downloadBytes)&&downloadBytes>0
         ? " (Download: ~"+(downloadBytes/1048576).toFixed(1)+" MiB)" : "";
     const details=$("genycaster-update-details");
-    if(details)details.textContent=localizedUpdateDigits(notes||(activeUpdateText()[5]+size));
+    if(details){
+        // Structured, readable release content; no remote HTML is evaluated.
+        // The scrolling region and fixed footer remain separate.
+        details.replaceChildren();
+        const paragraph=document.createElement("p");
+        paragraph.textContent=localizedUpdateDigits(summary||activeUpdateText()[5]+size);
+        details.append(paragraph);
+        if(bullets.length){
+            const list=document.createElement("ul");
+            for(const item of bullets){
+                const entry=document.createElement("li");
+                entry.textContent=localizedUpdateDigits(item.slice(0,600));
+                list.append(entry);
+            }
+            details.append(list);
+        }
+    }
 }
 function hideReleaseDrawer(){
     if(updateBanner)updateBanner.hidden=true;

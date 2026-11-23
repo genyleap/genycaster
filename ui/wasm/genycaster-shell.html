@@ -95,7 +95,12 @@
 .update-version-arrow{font-size:20px;opacity:.65}
 .update-details{padding:14px 16px;background:var(--update-success-tint);border:1px solid var(--update-success-border);border-radius:14px}
 .update-details strong{display:block;font-size:13px}
-.update-details p{margin:6px 0 0;font-size:13px;opacity:.78;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}
+.update-details p{margin:10px 0 0;font-size:13px;opacity:.86;line-height:1.65;overflow-wrap:anywhere}
+.update-details ul{margin:14px 0 0;padding-inline-start:21px;display:grid;gap:11px;list-style:disc}
+.update-details li{font-size:13px;opacity:.88;line-height:1.6;overflow-wrap:anywhere}
+.update-details li::marker{color:var(--update-success)}
+.update-details a{color:var(--update-success);text-underline-offset:3px}
+.update-details a:focus-visible{outline:2px solid var(--update-success);outline-offset:2px}
 .update-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:0}
 #genycaster-update-banner button{font:600 14px system-ui,-apple-system,sans-serif;min-height:44px;padding:9px 18px;border-radius:12px;border:1px solid #8796b966;background:transparent;color:inherit;cursor:pointer}
 #genycaster-update-now{background:var(--update-success)!important;border-color:var(--update-success)!important;color:var(--update-success-ink)!important}
@@ -186,7 +191,7 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
   </div>
   </div>
   <div class="update-scroll-body" role="region" aria-label="Release notes" tabindex="0">
-    <div class="update-details"><strong id="genycaster-update-details-title">Release details</strong><p id="genycaster-update-details">Review the new version before updating.</p></div>
+    <div class="update-details"><strong id="genycaster-update-details-title">Release details</strong><div id="genycaster-update-details"><p>Review the new version before updating.</p></div></div>
   </div>
   <div class="update-actions"><button id="genycaster-update-later" type="button">Later</button><button id="genycaster-update-now" type="button">Update now</button></div>
 </section>
