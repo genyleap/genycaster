@@ -33,10 +33,10 @@ test('preview scales actual image without cropping or nested fixed-height clippi
     assert.match(preview, /mediaTile\.imageAspectRatio/);
     assert.match(preview, /const presentationSource = localPreview\.length > 0 \? localPreview : url/);
     assert.match(read('ui/components/media/MediaPreview.qml'), /imageAspectRatio:/);
-    assert.match(media, /objectName: "composerOriginalImageStrip"/);
-    assert.match(media, /Layout\.preferredHeight: root\.width < 620 \? 122 : 140/);
+    assert.match(media, /objectName: "composerAttachmentGrid"/);
+    assert.match(media, /columns: root\.width >= 535 \? 2 : 1/);
     assert.match(media, /onClicked: richComposer\.removeBlock\(Number\(modelData\.blockIndex\)\)/);
-    assert.match(media, /width: visible \? Theme\.compactControlHeight \+ Theme\.space2 : 0/);
+    assert.match(media, /Layout\.preferredHeight: root\.width >= 535 \? 225 : 200/);
 });
 
 test('Neon and Minimal use different raster layouts and are not palette variants', () => {

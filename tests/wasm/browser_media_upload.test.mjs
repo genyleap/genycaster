@@ -119,7 +119,7 @@ test('image upload stages and actual cloud sizes are exposed to Composer, withou
     assert.match(panel,/root\.savingsText\(modelData\.originalSizeBytes,\s*modelData\.sizeBytes\)/);
     assert.match(panel,/objectName: "composerFullResolutionMediaInspector"/);
     assert.match(panel,/fullQualityImage: true/);
-    assert.match(panel,/objectName: "composerOriginalImageStrip"/);
+    assert.match(panel,/objectName: "composerAttachmentGrid"/);
     assert.match(preview,/requestedSourceWidth: root\.imageDecodeEdge/);
     assert.match(header,/Q_PROPERTY\(qulonglong sourceBytes READ sourceBytes NOTIFY stateChanged\)/);
     assert.match(controller,/m_sourceBytes = m_totalBytes/);
@@ -142,11 +142,11 @@ test('composer renders only one source-quality attachment, never the 96px select
     assert.match(composer,/localPreviewUrl: canonicalUrl/);
     assert.doesNotMatch(composer,/localPreviewUrl:.*mediaUpload\.localPreviewUrl/);
     assert.match(panel,/previewUrl: url,/);
-    assert.match(panel,/objectName: "composerOriginalImageStrip"/);
+    assert.match(panel,/objectName: "composerAttachmentGrid"/);
     assert.match(panel,/fullQualityImage: String\(modelData\.mediaType/);
     assert.match(panel,/minimalChrome: true/);
     assert.match(panel,/fillColor: "transparent"/);
-    assert.match(panel,/borderWidth: 0/);
+    assert.match(panel,/borderWidth: 1/);
     assert.doesNotMatch(panel,/objectName: "visualEditorMediaPlaceholder"/);
     assert.match(editor,/if \(kind === "media" && !StickerCatalog\.isStickerUrl/);
     assert.match(editor,/return null/);
@@ -415,7 +415,7 @@ test('WASM cleanup is durable, signer-gated, and only triggered by confirmed del
     assert.match(pre,/kind:'cleanup-completed'/);
     assert.match(pre,/preview\.length<=6200/);
     // One full-resolution attachment surface across desktop and mobile.
-    assert.match(panel,/objectName: "composerOriginalImageStrip"/);
+    assert.match(panel,/objectName: "composerAttachmentGrid"/);
     assert.doesNotMatch(panel,/visible: root\.width >= 620/);
     assert.match(shell,/"embeds": root\.submittedReplyEmbeds/);
     assert.match(reply,/objectName: "replyMoreButton"/);

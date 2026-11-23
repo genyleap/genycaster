@@ -6,8 +6,9 @@ Item {
     id: root
     objectName: "genycasterRichStatsCard"
     width: 960
-    height: 960
+    height: variantStyle === "minimal" ? 480 : 960
 
+    property string variantStyle: "neon"
     property url sourceUrl: ""
     readonly property bool ready: previewImage.status === Image.Ready
     readonly property bool failed: previewImage.status === Image.Error
@@ -16,9 +17,9 @@ Item {
         id: previewImage
         anchors.fill: parent
         source: root.sourceUrl
-        // Decode the entire 2x CPU-rendered PNG; never ask Qt to downsample
-        // to the logical card size before the device composites the preview.
-        sourceSize: Qt.size(1920, 1920)
+        // Decode the source at its native export resolution; the style owns
+        // its aspect ratio and neither QML nor the operating system crops it.
+        sourceSize: Qt.size(1920, root.variantStyle === "minimal" ? 960 : 1920)
         fillMode: Image.PreserveAspectFit
         asynchronous: false
         cache: false

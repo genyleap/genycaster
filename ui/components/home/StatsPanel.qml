@@ -330,12 +330,13 @@ ColumnLayout {
             root.shareCardHandedOff = false
             root.shareCaptureBusy = false
         }
-        // Square 1:1 preview for stable cross-platform social feed crops.
-        // The 1920x1920 source is independent of the compact modal geometry.
+        // Neon is a square recap; Minimal is a rounded 2:1 cover. Both
+        // previews use the actual aspect of the exported raster.
         padding: Theme.space3
         width: parent ? Math.min(460, parent.width - Theme.space3 * 2) : 460
         height: parent ? Math.min(parent.height - Theme.space3 * 2,
-            Math.max(360, (width - Theme.space3 * 2) + 178)) : 600
+            Math.max(310, (width - Theme.space3 * 2)
+                * (root.shareCardStyle === "minimal" ? 0.5 : 1) + 178)) : 600
         contentItem: Flickable {
             id: shareModalScroll
             clip: true
@@ -386,15 +387,16 @@ ColumnLayout {
             Item {
                 id: statsSharePreviewViewport
                 Layout.fillWidth: true
-                Layout.preferredHeight: width // 1:1 square
-                clip: true
+                Layout.preferredHeight: width * (root.shareCardStyle === "minimal" ? 0.5 : 1)
+                clip: false
                 StatsShareCard {
                     id: shareCardPreview
+                    variantStyle: root.shareCardStyle
                     sourceUrl: root.shareGeneratedCardUrl
                     width: statsSharePreviewViewport.width
                     height: statsSharePreviewViewport.height
-                    // One image scaling pass, directly from the 1920×1920
-                    // raster. Avoid scaling a pre-composited 960px QML item.
+                    // The actual source is 1920×1920 (Neon) or 1920×960
+                    // (Minimal); no forced cropping or stretched preview.
                     onFailedChanged: {
                         if (failed && root.shareGeneratedCardUrl.length > 0)
                             root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")

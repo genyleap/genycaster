@@ -113,9 +113,9 @@ void statistic(QPainter& painter, const Palette& palette,
           21, palette.secondary, QFont::Normal, Qt::AlignCenter);
 }
 
-// Minimal is a separate editorial composition, not a recolored Neon card.
-// Its information hierarchy (single hero + two publishing figures + three
-// reaction figures) is intentionally different from Neon's stacked dashboard.
+// A 2:1 rounded editorial cover, distinct from the 1:1 Neon dashboard.
+// Transparent pixels outside the card are intentional: screenshots and
+// shared PNGs must not expose square white corners against dark surfaces.
 void paintMinimalCard(QImage& output, const QVariantMap& stats,
                       const QString& displayName, const QString& username,
                       const QImage& portrait, const int periodDays,
@@ -126,90 +126,91 @@ void paintMinimalCard(QImage& output, const QVariantMap& stats,
     painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing |
                            QPainter::SmoothPixmapTransform);
     painter.scale(RasterScale, RasterScale);
-    const QRectF canvas{0, 0, LayoutWidth, LayoutHeight};
-    painter.fillRect(canvas, QColor{"#FFFFFF"});
+    const QRectF canvas{0, 0, LayoutWidth, LayoutHeight / 2};
+    QPainterPath cover;
+    cover.addRoundedRect(canvas.adjusted(2, 2, -2, -2), 32, 32);
+    painter.setClipPath(cover);
+
+    QLinearGradient background{QPointF{0, 0}, QPointF{960, 480}};
+    background.setColorAt(0.0, QColor{"#FFFFFF"});
+    background.setColorAt(1.0, QColor{"#F5F7FC"});
+    painter.fillRect(canvas, background);
+    painter.fillRect(QRectF{37, 31, 5, 74}, palette.accent);
+
+    painter.save();
+    painter.translate(8, 0);
+    painter.scale(0.80, 0.80);
+    avatar(painter, portrait, displayName, palette, true);
+    painter.restore();
+    label(painter, displayName.isEmpty() ? QStringLiteral("Member") : displayName,
+          QRectF{136, 41, 474, 35}, 29, palette.primary, QFont::DemiBold);
+    label(painter, username.startsWith(u'@') ? username : QStringLiteral("@") + username,
+          QRectF{136, 76, 470, 28}, 19, palette.secondary);
+    label(painter, QStringLiteral("GENYCASTER / STATS"),
+          QRectF{695, 52, 219, 30}, 16, palette.accent,
+          QFont::DemiBold, Qt::AlignRight);
+    painter.fillRect(QRectF{38, 122, 884, 1}, palette.rule);
+
+    const QString period = QString::number(periodDays);
+    label(painter, period + QStringLiteral("-DAY ACTIVITY"),
+          QRectF{42, 138, 475, 42}, 21, palette.accent, QFont::DemiBold);
 
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor{"#F7F8FB"});
-    painter.drawRoundedRect(QRectF{56, 301, 848, 252}, 24, 24);
-    painter.fillRect(QRectF{915, 58, 7, 75}, palette.accent);
-
-    avatar(painter, portrait, displayName, palette, true);
-    label(painter, displayName.isEmpty() ? QStringLiteral("Member") : displayName,
-          QRectF{161, 62, 498, 40}, 31, palette.primary, QFont::DemiBold);
-    label(painter, username.startsWith(u'@') ? username : QStringLiteral("@") + username,
-          QRectF{161, 103, 485, 27}, 21, palette.secondary);
-    label(painter, QStringLiteral("GENYCASTER  /  STATS"),
-          QRectF{665, 74, 225, 32}, 16, palette.accent,
-          QFont::DemiBold, Qt::AlignRight);
-    rule(painter, palette, 161);
-
-    const QString period = periodDays == 7 ? QStringLiteral("7")
-        : periodDays == 30 ? QStringLiteral("30")
-        : periodDays == 90 ? QStringLiteral("90") : QStringLiteral("365");
-    label(painter, QStringLiteral("ACTIVITY REPORT"),
-          QRectF{58, 187, 500, 32}, 18, palette.accent, QFont::DemiBold);
-    label(painter, period + QStringLiteral("-day overview"),
-          QRectF{56, 224, 720, 63}, 45, palette.primary, QFont::DemiBold);
-
+    painter.setBrush(QColor{"#F0F2F9"});
+    painter.drawRoundedRect(QRectF{40, 190, 480, 222}, 25, 25);
     const bool hasEngagement = stats.value(QStringLiteral("hasEngagement")).toBool();
     const QString interactions = hasEngagement
         ? formattedCount(stats, "engagement") : QStringLiteral("—");
-    label(painter, interactions, QRectF{87, 327, 538, 144},
-          interactions.size() > 7 ? 88 : 132, palette.primary, QFont::Bold);
+    label(painter, interactions, QRectF{65, 214, 420, 114},
+          interactions.size() > 7 ? 79 : 111, palette.primary, QFont::Bold);
     label(painter, QStringLiteral("Interactions received"),
-          QRectF{92, 472, 530, 45}, 27, palette.secondary);
-    painter.setPen(QPen{palette.rule, 1.5});
-    painter.drawLine(QPointF{632, 352}, QPointF{632, 500});
-    label(painter, period, QRectF{656, 367, 211, 81},
-          58, palette.accent, QFont::DemiBold, Qt::AlignCenter);
-    label(painter, QStringLiteral("DAYS"), QRectF{657, 439, 210, 32},
-          17, palette.secondary, QFont::DemiBold, Qt::AlignCenter);
-
-    label(painter, QStringLiteral("PUBLISHING"),
-          QRectF{58, 574, 400, 32}, 17, palette.accent, QFont::DemiBold);
-    label(painter, formattedCount(stats, "casts"),
-          QRectF{61, 616, 382, 79}, 57, palette.primary, QFont::DemiBold);
-    label(painter, QStringLiteral("Casts"),
-          QRectF{61, 688, 382, 35}, 21, palette.secondary);
-    painter.setPen(QPen{palette.rule, 1.4});
-    painter.drawLine(QPointF{473, 622}, QPointF{473, 720});
-    label(painter, formattedCount(stats, "replies"),
-          QRectF{516, 616, 369, 79}, 57, palette.primary, QFont::DemiBold);
-    label(painter, QStringLiteral("Replies written"),
-          QRectF{516, 688, 360, 35}, 21, palette.secondary);
-    rule(painter, palette, 749);
+          QRectF{68, 331, 413, 45}, 25, palette.secondary);
 
     label(painter, QStringLiteral("AUDIENCE RESPONSE"),
-          QRectF{58, 762, 610, 31}, 17, palette.accent, QFont::DemiBold);
-    const QString values[]{
+          QRectF{552, 156, 350, 34}, 18, palette.accent, QFont::DemiBold);
+    const QString reactions[]{
         hasEngagement ? formattedCount(stats, "likes") : QStringLiteral("—"),
         hasEngagement ? formattedCount(stats, "recasts") : QStringLiteral("—"),
         hasEngagement ? formattedCount(stats, "receivedReplies") : QStringLiteral("—")
     };
-    const QString captions[]{
+    const QString reactionNames[]{
         QStringLiteral("Likes"), QStringLiteral("Recasts"),
-        QStringLiteral("Replies received")
+        QStringLiteral("Replies")
     };
-    constexpr qreal column = 848.0 / 3.0;
+    constexpr qreal metricWidth = 120.0;
     for (int i = 0; i < 3; ++i) {
-        const QRectF area{56 + column * i, 798, column, 94};
-        label(painter, values[i], QRectF{area.left(), area.top(), column - 12, 57},
-              42, palette.primary, QFont::DemiBold);
-        label(painter, captions[i],
-              QRectF{area.left(), area.top() + 52, column - 12, 31},
-              19, palette.secondary);
+        const qreal x = 550 + i * 122.0;
+        label(painter, reactions[i], QRectF{x, 205, metricWidth, 71},
+              reactions[i].size() > 6 ? 29 : 42, palette.primary, QFont::DemiBold);
+        label(painter, reactionNames[i], QRectF{x + 1, 272, metricWidth, 32},
+              18, palette.secondary);
     }
-    rule(painter, palette, 900);
+    painter.fillRect(QRectF{552, 320, 360, 1}, palette.rule);
+    label(painter, QStringLiteral("PUBLISHING"), QRectF{552, 329, 340, 28},
+          17, palette.accent, QFont::DemiBold);
+    label(painter, formattedCount(stats, "casts"), QRectF{552, 355, 128, 50},
+          36, palette.primary, QFont::DemiBold);
+    label(painter, QStringLiteral("Casts"), QRectF{553, 400, 128, 29},
+          17, palette.secondary);
+    label(painter, formattedCount(stats, "replies"), QRectF{730, 355, 180, 50},
+          36, palette.primary, QFont::DemiBold);
+    label(painter, QStringLiteral("Replies written"),
+          QRectF{732, 400, 180, 29}, 17, palette.secondary);
+
+    painter.fillRect(QRectF{39, 448, 880, 1}, palette.rule);
     label(painter, QStringLiteral("Posts in period · engagement counted to date"),
-          QRectF{57, 908, 660, 31}, 16, palette.subtle);
+          QRectF{42, 450, 634, 27}, 14, palette.subtle);
     if (capturedAt > 0) {
         const auto date = QDateTime::fromMSecsSinceEpoch(capturedAt).date();
         label(painter, QLocale{QLocale::English}.toString(
                   date, QStringLiteral("MMM d, yyyy")),
-              QRectF{725, 908, 178, 31}, 16, palette.subtle,
+              QRectF{715, 450, 201, 27}, 14, palette.subtle,
               QFont::Normal, Qt::AlignRight);
     }
+    painter.setClipping(false);
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen{palette.rule, 1.5});
+    painter.drawRoundedRect(canvas.adjusted(2, 2, -2, -2), 32, 32);
 }
 
 void paintCard(QImage& output, const QVariantMap& stats,
@@ -243,18 +244,8 @@ void paintCard(QImage& output, const QVariantMap& stats,
         ambient.setColorAt(1.0, Qt::transparent);
         painter.fillRect(canvas, ambient);
 
-        // Quiet concentric light rings occupy the spare hero space, never
-        // representing invented chart data or a fabricated engagement trend.
-        painter.save();
-        painter.setBrush(Qt::NoBrush);
-        for (int ringIndex = 0; ringIndex < 3; ++ringIndex) {
-            QColor halo{"#A68DFF"};
-            halo.setAlpha(67 - ringIndex * 19);
-            painter.setPen(QPen{halo, 2.0});
-            const qreal radius = 82.0 + 23.0 * ringIndex;
-            painter.drawEllipse(QPointF{779, 397}, radius, radius);
-        }
-        painter.restore();
+        // The right-hand hero belongs to a real reaction breakdown below,
+        // not decorative concentric circles without data semantics.
     }
     painter.setClipping(false);
     painter.setPen(QPen{minimal ? QColor{"#DDE3EF"} : QColor{"#564B90"}, 1.4});
@@ -282,11 +273,56 @@ void paintCard(QImage& output, const QVariantMap& stats,
     const bool hasEngagement = stats.value(QStringLiteral("hasEngagement")).toBool();
     const QString interactions = hasEngagement
         ? formattedCount(stats, "engagement") : QStringLiteral("—");
-    label(painter, interactions, QRectF{56, 300, 830, 145},
-          interactions.size() > 7 ? 91 : 126,
+    label(painter, interactions, QRectF{56, 301, 520, 145},
+          interactions.size() > 7 ? 82 : 121,
           palette.primary, QFont::Bold);
     label(painter, QStringLiteral("Interactions received"),
-          QRectF{61, 453, 820, 55}, 30, palette.secondary);
+          QRectF{61, 453, 510, 55}, 29, palette.secondary);
+
+    // Real reaction mix; the bar lengths derive only from recorded counts.
+    // Values remain visible as text even at zero, and never imply a trend.
+    const QString mixKeys[]{
+        QStringLiteral("likes"), QStringLiteral("recasts"),
+        QStringLiteral("receivedReplies")
+    };
+    const QString mixLabels[]{
+        QStringLiteral("Likes"), QStringLiteral("Recasts"),
+        QStringLiteral("Replies received")
+    };
+    const QColor mixColors[]{
+        QColor{"#C9AAFF"}, QColor{"#8FA0FC"}, QColor{"#79D3E9"}
+    };
+    double mixCounts[3]{};
+    double mixSum = 0.0;
+    for (int i = 0; i < 3; ++i) {
+        bool ok = false;
+        const double n = stats.value(mixKeys[i]).toDouble(&ok);
+        mixCounts[i] = hasEngagement && ok && std::isfinite(n) && n >= 0.0
+            ? n : 0.0;
+        mixSum += mixCounts[i];
+    }
+    label(painter, QStringLiteral("REACTION MIX"),
+          QRectF{606, 285, 290, 30}, 17, palette.accent,
+          QFont::DemiBold);
+    for (int i = 0; i < 3; ++i) {
+        const qreal y = 324 + i * 66.0;
+        label(painter, mixLabels[i], QRectF{607, y, 183, 30}, 17, palette.secondary);
+        label(painter, hasEngagement ? formattedCount(stats,
+                  i == 0 ? "likes" : i == 1 ? "recasts" : "receivedReplies")
+                  : QStringLiteral("—"),
+              QRectF{783, y, 111, 30}, 18, palette.primary,
+              QFont::DemiBold, Qt::AlignRight);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor{"#333653"});
+        painter.drawRoundedRect(QRectF{608, y + 35, 284, 8}, 4, 4);
+        if (mixSum > 0.0) {
+            const qreal barWidth = 284 * std::clamp(mixCounts[i] / mixSum, 0.0, 1.0);
+            if (barWidth > 0.0) {
+                painter.setBrush(mixColors[i]);
+                painter.drawRoundedRect(QRectF{608, y + 35, barWidth, 8}, 4, 4);
+            }
+        }
+    }
     rule(painter, palette, 544);
 
     const QString values[]{
@@ -335,11 +371,15 @@ StatsShareImage renderStatsShareCard(
         || !std::isfinite(capturedAtMs) || capturedAtMs <= 0.0)
         return {.error = QStringLiteral("invalid_share_card_parameters")};
 
-    QImage output{CanvasWidth, CanvasHeight, QImage::Format_ARGB32_Premultiplied};
+    const bool minimal = style == QStringLiteral("minimal");
+    // A cover is half the height of the square Neon recap. Both use 2x
+    // raster resolution, but their actual source dimensions differ.
+    QImage output{CanvasWidth, minimal ? CanvasHeight / 2 : CanvasHeight,
+                  QImage::Format_ARGB32_Premultiplied};
     if (output.isNull()) return {.error = QStringLiteral("share_card_image_unavailable")};
     output.fill(Qt::transparent);
     paintCard(output, snapshot, displayName.left(120), username.left(120),
-              avatarImage, periodDays, style == QStringLiteral("minimal"),
+              avatarImage, periodDays, minimal,
               static_cast<qint64>(capturedAtMs));
     const QString tempDir = QDir::tempPath();
     if (tempDir.isEmpty() || !QDir{}.mkpath(tempDir))

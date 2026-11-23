@@ -24,7 +24,7 @@ test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image',
     assert.match(panel,/if \(!root\.shareGeneratedCardUrl\.length \|\| !shareCardPreview\.ready\)/);
     assert.doesNotMatch(panel,/\.grabToImage\s*\(|result\.saveToFile\s*\(|StandardPaths\.TempLocation/);
     assert.match(card,/objectName: "genycasterRichStatsCard"/);
-    assert.match(card,/width: 960\s*height: 960/);
+    assert.match(card,/width: 960\s*height: variantStyle === "minimal" \? 480 : 960/);
     assert.match(card,/source: root\.sourceUrl/);
     assert.match(card,/cache: false/);
     assert.match(card,/readonly property bool ready: previewImage\.status === Image\.Ready/);
@@ -32,7 +32,16 @@ test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image',
     assert.match(renderer,/LayoutHeight = 960/);
     assert.match(renderer,/RasterScale = 2/);
     assert.match(renderer,/painter.scale\(RasterScale, RasterScale\)/);
-    assert.match(card,/sourceSize: Qt.size\(1920, 1920\)/);
+    assert.match(card,/sourceSize: Qt.size\(1920, root\.variantStyle === "minimal" \? 960 : 1920\)/);
+    // One renderer, two purposeful aspect ratios. The cover is half the
+    // square's height and both have transparent rounded PNG corners.
+    assert.match(renderer,/minimal \? CanvasHeight \/ 2 : CanvasHeight/);
+    assert.match(renderer,/cover\.addRoundedRect\(canvas\.adjusted/);
+    assert.match(renderer,/painter\.setClipPath\(cover\)/);
+    assert.match(panel,/variantStyle: root\.shareCardStyle/);
+    assert.match(renderer,/QStringLiteral\("REACTION MIX"\)/);
+    assert.match(renderer,/mixCounts\[i\] \/ mixSum/);
+    assert.doesNotMatch(renderer,/painter\.drawEllipse\(QPointF\{779, 397\}/);
     assert.match(renderer,/QImage::Format_ARGB32_Premultiplied/);
     assert.match(renderer,/QPainter painter\{&output\}/);
     assert.match(renderer,/QTemporaryFile temp/);
@@ -43,7 +52,7 @@ test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image',
     assert.match(renderer,/for \(int i = 0; i < 3; \+\+i\)/);
     assert.match(renderer,/for \(int i = 0; i < 2; \+\+i\)/);
     assert.match(panel,/Math\.min\(460, parent\.width/);
-    assert.match(panel,/Layout\.preferredHeight: width \/\/ 1:1 square/);
+    assert.match(panel,/Layout\.preferredHeight: width \* \(root\.shareCardStyle === "minimal" \? 0\.5 : 1\)/);
     assert.match(panel,/shareAccountAvatarUrl/);
     assert.match(panel,/mediaUpload\.prepareStatsAvatar\(root\.shareAccountAvatarUrl\)/);
     assert.match(panel,/function onStatsAvatarChanged\(\)/);

@@ -39,12 +39,12 @@ test('qStorage deletion requires a signed owner-scoped management token', () => 
     assert.match(runtime,/richComposer\.markManagedAssetCleanupCompleted\(token\)/);
 });
 
-test('compact attachment row keeps file details and actions beside the actual thumbnail', () => {
+test('responsive attachment Grid keeps each upload in a rounded, self-contained card', () => {
     const panel=read('ui/components/composer/MediaUploadPanel.qml');
-    assert.match(panel,/objectName: "composerOriginalImageStrip"/);
-    assert.match(panel,/Layout\.preferredHeight: root\.width < 620 \? 122 : 140/);
-    assert.match(panel,/width: Math\.max\(180, Math\.min\(root\.width/);
-    assert.match(panel,/anchors\.left: attachedPreview\.right/);
+    assert.match(panel,/objectName: "composerAttachmentGrid"/);
+    assert.match(panel,/columns: root\.width >= 535 \? 2 : 1/);
+    assert.match(panel,/fillColor: Theme\.surfaceMuted/);
+    assert.match(panel,/anchors\.fill: parent/);
     assert.match(panel,/text: String\(modelData\.fileName \|\| ""\)/);
     assert.match(panel,/onClicked: richComposer\.removeBlock\(Number\(modelData\.blockIndex\)\)/);
     assert.match(panel,/onClicked: root\.browseRequested\(root\.blockIndex\)/);

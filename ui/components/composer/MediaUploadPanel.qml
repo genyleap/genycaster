@@ -506,103 +506,71 @@ NeonCard {
             Layout.fillWidth: true
             spacing: Theme.space1
 
-            // One media strip is the canonical attachment presentation.
-            // No duplicate "Image / Media" document card, framed metadata
-            // row, thumbnail-only preview or on-image size badge.
-            Flickable {
-                objectName: "composerOriginalImageStrip"
+            // Each upload has its own bounded card: filename, size, remove
+            // action and fitted media. Grid cells share dimensions regardless
+            // of photo aspect ratio or a long filename.
+            GridLayout {
+                id: attachmentGrid
+                objectName: "composerAttachmentGrid"
                 Layout.fillWidth: true
-                // Actual inline upload cards rather than a full-width gallery.
-                Layout.preferredHeight: root.width < 620 ? 122 : 140
-                clip: true
-                contentWidth: attachmentStrip.width
-                contentHeight: height
-                boundsBehavior: Flickable.StopAtBounds
-                flickableDirection: Flickable.HorizontalFlick
+                columns: root.width >= 535 ? 2 : 1
+                columnSpacing: Theme.space2
+                rowSpacing: Theme.space2
 
-                Row {
-                    id: attachmentStrip
-                    height: parent.height
-                    spacing: Theme.space2
+                Repeater {
+                    model: root.regularAttachedMedia
 
-                    Repeater {
-                        model: root.regularAttachedMedia
+                    delegate: Superellipse {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        Layout.preferredHeight: root.width >= 535 ? 225 : 200
+                        fillColor: Theme.surfaceMuted
+                        borderWidth: 1
+                        borderColor: Theme.borderMuted
+                        curveDepth: Theme.curveControl
 
-                        delegate: Item {
-                            required property var modelData
-                            width: Math.max(180, Math.min(root.width - Theme.space2 * 2,
-                                root.width < 620 ? 295 : 355))
-                            height: attachmentStrip.height
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: Theme.space2
+                            spacing: Theme.space1
 
-                            MediaPreview {
-                                id: attachedPreview
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                width: height
-                                source: modelData.previewUrl
-                                mediaType: modelData.mediaType
-                                fitImage: true
-                                fullQualityImage: String(modelData.mediaType || "").startsWith("image/")
-                                minimalChrome: true
-                                showBorder: false
-                                fillColor: "transparent"
-                                interactive: String(modelData.mediaType || "").startsWith("video/")
-                                primeVideoFrame: false
-                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space2
 
-                            MouseArea {
-                                anchors.fill: attachedPreview
-                                enabled: String(modelData.mediaType || "").startsWith("image/")
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.inspectImage(modelData)
-                            }
-
-                            ColumnLayout {
-                                anchors.left: attachedPreview.right
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                anchors.leftMargin: Theme.space2
-                                spacing: Theme.space1
-
-                                DirectionAwareLabel {
+                                ColumnLayout {
                                     Layout.fillWidth: true
-                                    Layout.topMargin: Theme.space1
-                                    text: String(modelData.fileName || "")
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    color: Theme.ink
-                                    font.weight: Theme.weightDemiBold
-                                    elide: Text.ElideMiddle
-                                    maximumLineCount: 2
-                                    wrapMode: Text.WrapAnywhere
-                                    forceLeftToRight: true
-                                }
+                                    Layout.minimumWidth: 0
+                                    spacing: 0
 
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    visible: Number(modelData.sizeBytes || 0) > 0
-                                    text: root.savingsText(modelData.originalSizeBytes,
-                                                          modelData.sizeBytes).length > 0
-                                        ? root.formatBytes(modelData.originalSizeBytes)
-                                          + " → " + root.formatBytes(modelData.sizeBytes)
-                                          + " · " + root.savingsText(
-                                                modelData.originalSizeBytes, modelData.sizeBytes)
-                                        : root.formatBytes(modelData.sizeBytes)
-                                    color: Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    wrapMode: Text.Wrap
-                                    maximumLineCount: 2
-                                    forceLeftToRight: true
+                                    DirectionAwareLabel {
+                                        Layout.fillWidth: true
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        font.weight: Theme.weightDemiBold
+                                        color: Theme.ink
+                                        elide: Text.ElideMiddle
+                                        forceLeftToRight: true
+                                        text: String(modelData.fileName || "")
+                                    }
+                                    DirectionAwareLabel {
+                                        Layout.fillWidth: true
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        color: Theme.inkMuted
+                                        elide: Text.ElideRight
+                                        forceLeftToRight: true
+                                        text: root.savingsText(modelData.originalSizeBytes,
+                                                              modelData.sizeBytes).length > 0
+                                            ? root.formatBytes(modelData.sizeBytes) + " · "
+                                              + root.savingsText(modelData.originalSizeBytes,
+                                                                 modelData.sizeBytes)
+                                            : root.formatBytes(modelData.sizeBytes)
+                                    }
                                 }
-
-                                Item { Layout.fillHeight: true }
 
                                 ActionButton {
-                                    Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
-                                    Layout.bottomMargin: Theme.space1
-                                    quiet: true
                                     compact: true
+                                    quiet: true
                                     iconOnly: true
                                     iconGlyph: Theme.iconClose
                                     text: qsTrId("genycaster.composer.remove_block")
@@ -610,25 +578,56 @@ NeonCard {
                                     onClicked: richComposer.removeBlock(Number(modelData.blockIndex))
                                 }
                             }
+
+                            Item {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                clip: true
+
+                                MediaPreview {
+                                    id: attachedPreview
+                                    anchors.fill: parent
+                                    source: modelData.previewUrl
+                                    mediaType: modelData.mediaType
+                                    fitImage: true
+                                    fullQualityImage: String(modelData.mediaType || "").startsWith("image/")
+                                    minimalChrome: true
+                                    showBorder: false
+                                    fillColor: "transparent"
+                                    interactive: String(modelData.mediaType || "").startsWith("video/")
+                                    primeVideoFrame: false
+                                }
+
+                                MouseArea {
+                                    anchors.fill: attachedPreview
+                                    enabled: String(modelData.mediaType || "").startsWith("image/")
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.inspectImage(modelData)
+                                }
+                            }
                         }
                     }
+                }
 
-                    Item {
-                        visible: mediaUpload.available && !mediaUpload.busy
-                            && root.attachedMedia.length + root.queuedFiles.length < root.maxAttachments
-                        width: visible ? Theme.compactControlHeight + Theme.space2 : 0
-                        height: parent.height
+                Superellipse {
+                    visible: mediaUpload.available && !mediaUpload.busy
+                        && root.attachedMedia.length + root.queuedFiles.length < root.maxAttachments
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.preferredHeight: root.width >= 535 ? 225 : 200
+                    fillColor: Theme.surfaceMuted
+                    borderWidth: 1
+                    borderColor: Theme.borderMuted
+                    curveDepth: Theme.curveControl
 
-                        ActionButton {
-                            anchors.centerIn: parent
-                            quiet: true
-                            compact: true
-                            iconOnly: true
-                            iconGlyph: Theme.iconPlus
-                            text: qsTrId("genycaster.media.choose_file")
-                            Accessible.name: qsTrId("genycaster.media.choose_file")
-                            onClicked: root.browseRequested(root.blockIndex)
-                        }
+                    ActionButton {
+                        anchors.centerIn: parent
+                        compact: true
+                        quiet: true
+                        iconGlyph: Theme.iconPlus
+                        text: qsTrId("genycaster.media.choose_file")
+                        Accessible.name: qsTrId("genycaster.media.choose_file")
+                        onClicked: root.browseRequested(root.blockIndex)
                     }
                 }
             }
