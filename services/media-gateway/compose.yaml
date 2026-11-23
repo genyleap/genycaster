@@ -5,5 +5,9 @@ services:
       dockerfile: media-gateway/Dockerfile
     restart: unless-stopped
     env_file: .env
+    # Keep HMAC-protected account entitlement reads on the same VPS.
+    # Preserve TLS/Host verification without a Cloudflare roundtrip.
+    extra_hosts:
+      - "genycaster.xyz:host-gateway"
     ports:
       - "127.0.0.1:8790:8790"
