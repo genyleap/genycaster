@@ -6326,6 +6326,7 @@ void connectRuntime(
     case UploadPhase::Preparing: return QStringLiteral("preparing");
     case UploadPhase::Authorizing: return QStringLiteral("authorizing");
     case UploadPhase::Uploading: return QStringLiteral("uploading");
+    case UploadPhase::Compressing: return QStringLiteral("compressing");
     case UploadPhase::Optimizing: return QStringLiteral("optimizing");
     case UploadPhase::Finalizing: return QStringLiteral("finalizing");
     case UploadPhase::Verifying: return QStringLiteral("verifying");
@@ -6455,7 +6456,7 @@ void connectMediaUpload(
                             },
                             Qt::QueuedConnection);
                     }
-                });
+                }, controllerGuard->maxImageBytes());
             if (!started) {
 #ifndef NDEBUG
                 qInfo().noquote() << "Genycaster media upload could not start:"
@@ -6547,6 +6548,23 @@ void connectBrowserMediaUpload(
                      &controller, [&controller] {
         EM_ASM({window.__genycasterBrowserMedia?.cancel();});
         controller.applyCancelled();
+    });
+    QObject::connect(&controller, &MediaUploadController::statsImageShareRequested,
+                     &controller, [](const QString& path, const QString& caption) {
+        const QByteArray filename = path.toUtf8();
+        const QByteArray text = caption.toUtf8();
+        // This synchronous JS call stays inside the original tap event,
+        // preserving the transient user activation needed by Web Share.
+        EM_ASM({
+            try {
+                const image = FS.readFile(UTF8ToString($0,$1));
+                window.__genycasterBrowserMedia?.sharePreparedStatsImage(
+                    image, UTF8ToString($2,$3));
+            } catch(error) {
+                console.warn('Stats export unavailable:', String(error?.message||error));
+            }
+        }, filename.constData(), filename.size(),
+           text.constData(), text.size());
     });
 
     auto* const polling = new QTimer(&controller);

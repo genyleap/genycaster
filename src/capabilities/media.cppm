@@ -33,6 +33,7 @@ enum class UploadStage : std::uint8_t {
     Preparing,
     Authorizing,
     Uploading,
+    Compressing, // On-device image optimization before any network request.
     Optimizing, // Gateway is optimizing and persisting the canonical image.
     Finalizing, // Server acknowledged; client is validating the media receipt.
     Verifying,  // Kept for compatibility with older gateway implementations.
@@ -79,6 +80,7 @@ public:
     [[nodiscard]] virtual foundation::result::Result<ManagedAsset> upload(
         domain::identity::Fid fid,
         const std::filesystem::path& localPath,
+        std::uint64_t maxImageBytes,
         ProgressObserver progress,
         CancellationProbe cancelled) = 0;
 };

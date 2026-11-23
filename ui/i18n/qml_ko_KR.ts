@@ -4108,6 +4108,34 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>업로드</translation>
         </message>
+        <message id="genycaster.stats.share_x_text">
+            <source>X · text</source>
+            <translation>X · 텍스트</translation>
+        </message>
+        <message id="genycaster.stats.share_telegram_text">
+            <source>Telegram · text</source>
+            <translation>Telegram · 텍스트</translation>
+        </message>
+        <message id="genycaster.stats.share_image">
+            <source>Share image</source>
+            <translation>이미지 공유</translation>
+        </message>
+        <message id="genycaster.stats.share_image_hint">
+            <source>Instagram and other apps are available in your device’s share sheet.</source>
+            <translation>Instagram 등은 기기의 공유 메뉴에서 선택하세요.</translation>
+        </message>
+        <message id="genycaster.stats.avatar_unavailable">
+            <source>Profile photo could not be loaded. Retry before sharing the card.</source>
+            <translation>프로필 사진을 불러올 수 없습니다. 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.stats.avatar_retry">
+            <source>Retry photo</source>
+            <translation>사진 다시 시도</translation>
+        </message>
+        <message id="genycaster.media.compressing_local">
+            <source>Compressing on your device…</source>
+            <translation>기기에서 이미지 압축 중…</translation>
+        </message>
         <message id="genycaster.media.step_compressing">
             <source>Compressing</source>
             <translation>압축</translation>

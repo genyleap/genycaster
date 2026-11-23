@@ -39,6 +39,7 @@ if(FARCASTER_ENABLE_MEDIA_UPLOAD)
         PRIVATE
             Qt6::Core
             Qt6::Network
+            Qt6::Gui
     )
     target_compile_features(farcaster_transport_qt_media PUBLIC cxx_std_26)
     set_property(TARGET farcaster_transport_qt_media PROPERTY CXX_SCAN_FOR_MODULES ON)

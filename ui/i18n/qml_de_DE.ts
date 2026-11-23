@@ -4108,6 +4108,34 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>Hochladen</translation>
         </message>
+        <message id="genycaster.stats.share_x_text">
+            <source>X · text</source>
+            <translation>X · Text</translation>
+        </message>
+        <message id="genycaster.stats.share_telegram_text">
+            <source>Telegram · text</source>
+            <translation>Telegram · Text</translation>
+        </message>
+        <message id="genycaster.stats.share_image">
+            <source>Share image</source>
+            <translation>Bild teilen</translation>
+        </message>
+        <message id="genycaster.stats.share_image_hint">
+            <source>Instagram and other apps are available in your device’s share sheet.</source>
+            <translation>Instagram und andere Apps sind über das Teilen-Menü des Geräts verfügbar.</translation>
+        </message>
+        <message id="genycaster.stats.avatar_unavailable">
+            <source>Profile photo could not be loaded. Retry before sharing the card.</source>
+            <translation>Profilfoto konnte nicht geladen werden. Bitte erneut versuchen.</translation>
+        </message>
+        <message id="genycaster.stats.avatar_retry">
+            <source>Retry photo</source>
+            <translation>Foto erneut laden</translation>
+        </message>
+        <message id="genycaster.media.compressing_local">
+            <source>Compressing on your device…</source>
+            <translation>Bild wird auf deinem Gerät komprimiert…</translation>
+        </message>
         <message id="genycaster.media.step_compressing">
             <source>Compressing</source>
             <translation>Komprimieren</translation>
@@ -7934,11 +7962,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.stats.card_theme_neon">
             <source>Neon</source>
-            <translation>Neon</translation>
+            <translation>Neon-Stil</translation>
         </message>
         <message id="genycaster.stats.card_theme_minimal">
             <source>Minimal</source>
-            <translation>Minimal</translation>
+            <translation>Schlicht</translation>
         </message>
         <message id="genycaster.stats.card_text_only">
             <source>Text only</source>

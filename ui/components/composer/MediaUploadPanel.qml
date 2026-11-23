@@ -136,9 +136,11 @@ NeonCard {
 
     readonly property int processingStep: {
         const phase = mediaUpload.phase
-        if (phase === "optimizing") return 1
-        if (phase === "finalizing" || phase === "verifying") return 2
-        return 0
+        if (phase === "uploading" || phase === "authorizing"
+                || phase === "queued") return 1
+        if (phase === "optimizing" || phase === "finalizing"
+                || phase === "verifying") return 2
+        return 0 // Preparing/Compressing happens locally, before network.
     }
 
     function fileNameFromUrl(rawUrl) {
@@ -157,6 +159,7 @@ NeonCard {
     }
 
     function mediaPhaseText(phase) {
+        if (phase === "compressing") return qsTrId("genycaster.media.compressing_local")
         if (phase === "optimizing") return qsTrId("genycaster.media.optimizing")
         if (phase === "finalizing") return qsTrId("genycaster.media.finalizing")
         if (phase === "queued") return qsTrId("genycaster.media.queued")
@@ -413,8 +416,8 @@ NeonCard {
                             // Concise stage titles fit narrow mobile composers;
                             // the full, localized description is above.
                             model: [
-                                qsTrId("genycaster.media.step_uploading"),
                                 qsTrId("genycaster.media.step_compressing"),
+                                qsTrId("genycaster.media.step_uploading"),
                                 qsTrId("genycaster.media.step_finalizing")
                             ]
                             delegate: RowLayout {
@@ -427,11 +430,7 @@ NeonCard {
                                     Layout.preferredWidth: 8
                                     Layout.preferredHeight: 8
                                     radius: 4
-                                    // A legacy v2 gateway skips image
-                                    // optimization. Don't mark the second
-                                    // stage as completed if it never ran.
                                     color: index <= root.processingStep
-                                        && (index !== 1 || mediaUpload.optimizationSeen)
                                         ? Theme.accent : Theme.borderStrong
                                 }
                                 DirectionAwareLabel {
@@ -448,7 +447,9 @@ NeonCard {
                         }
 
                         GenySpinner {
-                            visible: mediaUpload.phase === "optimizing"
+                            visible: mediaUpload.phase === "compressing"
+                                || mediaUpload.phase === "preparing"
+                                || mediaUpload.phase === "optimizing"
                                 || mediaUpload.phase === "finalizing"
                             running: visible && mediaUpload.busy
                             Layout.preferredWidth: visible ? 18 : 0
@@ -461,7 +462,7 @@ NeonCard {
                         // Network bytes are measurable; backend conversion
                         // and storage are not. Never show a fake 100% upload
                         // bar while waiting on QStorage finalization.
-                        visible: mediaUpload.busy && root.processingStep === 0
+                        visible: mediaUpload.busy && mediaUpload.phase === "uploading"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 4
                         fillColor: Theme.borderMuted

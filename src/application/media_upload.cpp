@@ -29,6 +29,8 @@ namespace {
         return UploadPhase::Authorizing;
     case capability::media::UploadStage::Uploading:
         return UploadPhase::Uploading;
+    case capability::media::UploadStage::Compressing:
+        return UploadPhase::Compressing;
     case capability::media::UploadStage::Optimizing:
         return UploadPhase::Optimizing;
     case capability::media::UploadStage::Finalizing:
@@ -76,7 +78,8 @@ MediaUploadService::MediaUploadService(
 foundation::result::Result<UploadHandle> MediaUploadService::start(
     std::optional<domain::session::ClientSession> session,
     std::filesystem::path localPath,
-    Observer observer)
+    Observer observer,
+    const std::uint64_t maxImageBytes)
 {
     if (!session || session->fid.value == 0U || domain::session::isExpired(*session, foundation::time::now())) {
         return std::unexpected(invalidSessionError());
@@ -92,10 +95,17 @@ foundation::result::Result<UploadHandle> MediaUploadService::start(
             "Media upload requires a lifecycle observer."));
     }
 
+    if (maxImageBytes != 2U * 1024U * 1024U
+        && maxImageBytes != 5U * 1024U * 1024U) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Invalid account image upload limit."));
+    }
     auto cancelled = std::make_shared<std::atomic_bool>(false);
     const auto fid = session->fid;
     auto status = m_executor.post(
-        [this, fid, localPath = std::move(localPath), observer = std::move(observer), cancelled]() mutable {
+        [this, fid, localPath = std::move(localPath), observer = std::move(observer),
+         cancelled, maxImageBytes]() mutable {
             observer(UploadState{.phase = UploadPhase::Queued});
             if (cancelled->load(std::memory_order_relaxed)) {
                 observer(UploadState{.phase = UploadPhase::Cancelled});
@@ -105,6 +115,7 @@ foundation::result::Result<UploadHandle> MediaUploadService::start(
             auto result = m_gateway.upload(
                 fid,
                 localPath,
+                maxImageBytes,
                 [observer](const capability::media::UploadStage stage,
                            const std::uint64_t transferred,
                            const std::uint64_t total) mutable {

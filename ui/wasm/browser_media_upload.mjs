@@ -2,6 +2,7 @@
 // No custody phrase, Ed25519 private CryptoKey, or image bytes enter Qt/QML.
 import { createBrowserSignerVault } from './secure_signer_vault.mjs';
 import { deployment } from './deployment_config.mjs';
+import { optimizeBrowserImage,MAX_SOURCE_IMAGE_BYTES } from './client_image_optimizer.mjs';
 
 const gateway=deployment.browserGateway;
 const encoder=new TextEncoder();
@@ -19,8 +20,8 @@ function ensureImage(file,maxImageBytes=2*1024*1024) {
         throw new Error('Unsupported image format. Choose JPG, PNG, WebP, GIF, or AVIF.');
     if(![2*1024*1024,5*1024*1024].includes(maxImageBytes))
         throw new Error('Invalid media upload limit.');
-    if(!Number.isSafeInteger(file.size)||file.size<=0||file.size>maxImageBytes)
-        throw new Error('Image exceeds the '+(maxImageBytes/1048576)+' MiB upload limit.');
+    if(!Number.isSafeInteger(file.size)||file.size<=0||file.size>MAX_SOURCE_IMAGE_BYTES)
+        throw new Error('Source image exceeds the 25 MiB preparation safety limit.');
     return mime;
 }
 async function responseJson(response) {
@@ -35,8 +36,20 @@ export async function uploadBrowserImage({
     file,fid,signal,onProgress=()=>{},fetchImpl=globalThis.fetch,
     crypto=globalThis.crypto,vault=createBrowserSignerVault(globalThis),
     optimizationMode='auto',maxImageBytes=2*1024*1024,
+    optimizeImage=optimizeBrowserImage,
 }={}) {
+    ensureImage(file,maxImageBytes);
+    const originalSourceBytes=file.size;
+    let optimized=false;
+    if(optimizationMode!=='original'){
+        const prepared=await optimizeImage(file,{maxBytes:maxImageBytes,signal,onProgress});
+        file=prepared.file;
+        optimized=prepared.optimized===true;
+    }
     const mime=ensureImage(file,maxImageBytes);
+    if(file.size>maxImageBytes)
+        throw new Error('Image exceeds the '+(maxImageBytes/1048576)+' MiB upload limit after compression.');
+    if(optimized)optimizationMode='original';
     if(!['auto','high','original'].includes(optimizationMode))
         throw new Error('Unsupported image optimization mode.');
     if(!/^[1-9][0-9]{0,19}$/.test(fid))throw new Error('Sign in to your Farcaster account first.');
@@ -114,7 +127,8 @@ export async function uploadBrowserImage({
             throw new Error('Media Gateway returned an invalid optimized size.');
         if(serverOptimizes) onProgress('finalizing',file.size,file.size);
         return {...completed,sizeBytes:storedSize??completed.sizeBytes,
-                sourceSizeBytes:file.size};
+                sourceSizeBytes:originalSourceBytes,uploadSizeBytes:file.size,
+                optimizedLocally:optimized};
     }catch(error){
         // Abort is best-effort. A managed upload ticket is never logged.
         if(ticket?.uploadId) {

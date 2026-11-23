@@ -4,7 +4,7 @@ A reusable, product-grade SVG icon set for web and native UI.
 
 ## Version
 
-- Current version: `0.2.0`
+- Current version: `0.2.1`
 - Total icons: **163**
 
 ## Design rules
@@ -81,7 +81,7 @@ Icon-only controls must always expose an accessible label. Do not rely on icon s
 
 ## License
 
-This starter set is original and can be used and modified inside Genyleap products.
+Most starter icons are original. The `media/sticker.svg` glyph is adapted from **Solar Icons – Sticker Smile Square**, sourced from https://www.svgrepo.com/svg/527550/sticker-smile-square and credited under SVG Repo's **CC Attribution** license; retain its source and attribution in redistributed builds. Other assets retain their respective individual licenses.
 
 
 ## v0.2 — Contextual reactions

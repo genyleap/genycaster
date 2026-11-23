@@ -298,9 +298,30 @@ ColumnLayout {
         return lines.join("\n")
     }
 
+    function shareSummaryExternally(network) {
+        // X/TG web intents cannot attach an unposted local PNG. Offer a short
+        // readable summary; the separate Share image action uses the OS file
+        // share sheet (Instagram included when available).
+        const summary = "My Genycaster " + root.rangeLabel(root.sharePeriodDays)
+            + ": " + LocaleFormat.formatInteger(Number(root.shareSnapshot.engagement || 0))
+            + " interactions · "
+            + LocaleFormat.formatInteger(Number(root.shareSnapshot.casts || 0))
+            + " casts"
+        const link = "https://genycaster.xyz"
+        if (network === "x") {
+            Qt.openUrlExternally("https://twitter.com/intent/tweet?text="
+                + encodeURIComponent(summary + " · " + link))
+        } else if (network === "telegram") {
+            Qt.openUrlExternally("https://t.me/share/url?url="
+                + encodeURIComponent(link) + "&text=" + encodeURIComponent(summary))
+        }
+    }
+
     function captureStatsCard() {
         if (root.shareCaptureBusy || !statsShareModal.opened
                 || !root.proUnlocked || !root.loaded || mediaUpload.busy
+                || mediaUpload.statsAvatarLoading
+                || (root.shareAccountAvatarUrl.length > 0 && !mediaUpload.statsAvatarReady)
                 || root.shareAccountFid !== root.accountFid)
             return
         if (!root.shareGeneratedCardUrl.length || !shareCardPreview.ready) {
@@ -329,12 +350,12 @@ ColumnLayout {
             root.shareCardHandedOff = false
             root.shareCaptureBusy = false
         }
-        // A small, centered preview—not a nearly fullscreen image viewer.
-        // Published PNG size stays independent at 1920×1080.
+        // Square 1:1 preview for stable cross-platform social feed crops.
+        // The 1920x1920 source is independent of the compact modal geometry.
         padding: Theme.space3
-        width: parent ? Math.min(620, parent.width - Theme.space3 * 2) : 620
+        width: parent ? Math.min(460, parent.width - Theme.space3 * 2) : 460
         height: parent ? Math.min(parent.height - Theme.space3 * 2,
-            Math.max(350, (width - Theme.space3 * 2) * 540 / 960 + 166)) : 515
+            Math.max(360, (width - Theme.space3 * 2) + 252)) : 680
         contentItem: Flickable {
             id: shareModalScroll
             clip: true
@@ -385,14 +406,14 @@ ColumnLayout {
             Item {
                 id: statsSharePreviewViewport
                 Layout.fillWidth: true
-                Layout.preferredHeight: width * 540 / 960
+                Layout.preferredHeight: width // 1:1 square
                 clip: true
                 StatsShareCard {
                     id: shareCardPreview
                     sourceUrl: root.shareGeneratedCardUrl
                     width: statsSharePreviewViewport.width
                     height: statsSharePreviewViewport.height
-                    // One image scaling pass, directly from the 1920×1080
+                    // One image scaling pass, directly from the 1920×1920
                     // raster. Avoid scaling a pre-composited 960px QML item.
                     onFailedChanged: {
                         if (failed && root.shareGeneratedCardUrl.length > 0)
@@ -406,6 +427,25 @@ ColumnLayout {
                 text: root.shareCaptureError
                 color: Theme.danger
                 wrapMode: Text.Wrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                visible: root.shareAccountAvatarUrl.length > 0
+                    && !mediaUpload.statsAvatarLoading && !mediaUpload.statsAvatarReady
+                spacing: Theme.space1
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.stats.avatar_unavailable")
+                    color: Theme.warning
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.stats.avatar_retry")
+                    onClicked: mediaUpload.prepareStatsAvatar(root.shareAccountAvatarUrl)
+                }
             }
             RowLayout {
                 Layout.fillWidth: true
@@ -429,14 +469,59 @@ ColumnLayout {
                     Layout.fillWidth: true
                     compact: true
                     prominent: true
+                    Accessible.description: qsTrId("genycaster.stats.card_compat_note")
                     text: root.shareCaptureBusy || mediaUpload.statsAvatarLoading
                         ? qsTrId("genycaster.stats.card_preparing")
                         : qsTrId("genycaster.stats.card_publish")
                     enabled: !root.shareCaptureBusy && !mediaUpload.statsAvatarLoading
+                             && (!root.shareAccountAvatarUrl.length || mediaUpload.statsAvatarReady)
                              && !mediaUpload.busy
                              && shareCardPreview.ready && root.shareGeneratedCardUrl.length > 0
                     onClicked: root.captureStatsCard()
                 }
+            }
+            GridLayout {
+                id: externalShareOptions
+                Layout.fillWidth: true
+                columns: statsShareModal.width < 440 ? 2 : 3
+                columnSpacing: Theme.space2
+                rowSpacing: Theme.space2
+                ActionButton {
+                    Layout.fillWidth: true
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.stats.share_x_text")
+                    onClicked: root.shareSummaryExternally("x")
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.stats.share_telegram_text")
+                    onClicked: root.shareSummaryExternally("telegram")
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    compact: true
+                    prominent: true
+                    text: qsTrId("genycaster.stats.share_image")
+                    Layout.columnSpan: externalShareOptions.columns === 2 ? 2 : 1
+                    enabled: shareCardPreview.ready && !mediaUpload.statsAvatarLoading
+                        && (!root.shareAccountAvatarUrl.length || mediaUpload.statsAvatarReady)
+                    onClicked: {
+                        const success = mediaUpload.shareStatsImage(
+                            root.shareGeneratedCardUrl, root.compactShareText())
+                        if (!success)
+                            root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
+                    }
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.stats.share_image_hint")
+                font.pixelSize: Theme.typeCaptionSize
+                color: Theme.textSecondary
+                wrapMode: Text.Wrap
             }
             }
         }

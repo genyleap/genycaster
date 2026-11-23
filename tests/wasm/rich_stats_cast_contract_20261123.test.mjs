@@ -12,6 +12,7 @@ test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image',
     const controller=read('src/presentation/qt/media_upload_controller.cpp');
     const header=read('src/presentation/qt/media_upload_controller.hpp');
     const cmake=read('src/presentation/CMakeLists.txt');
+    const bridge=read('ui/app/runtime/bindings.cpp');
     assert.match(panel,/root\.shareSnapshot = Object\.assign\(\{\}, root\.metrics\)/);
     assert.match(panel,/root\.shareCapturedAt = Date\.now\(\)/);
     assert.match(panel,/root\.sharePeriodDays = root\.periodDays/);
@@ -23,25 +24,26 @@ test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image',
     assert.match(panel,/if \(!root\.shareGeneratedCardUrl\.length \|\| !shareCardPreview\.ready\)/);
     assert.doesNotMatch(panel,/\.grabToImage\s*\(|result\.saveToFile\s*\(|StandardPaths\.TempLocation/);
     assert.match(card,/objectName: "genycasterRichStatsCard"/);
-    assert.match(card,/width: 960\s*height: 540/);
+    assert.match(card,/width: 960\s*height: 960/);
     assert.match(card,/source: root\.sourceUrl/);
     assert.match(card,/cache: false/);
     assert.match(card,/readonly property bool ready: previewImage\.status === Image\.Ready/);
     assert.match(renderer,/LayoutWidth = 960/);
-    assert.match(renderer,/LayoutHeight = 540/);
+    assert.match(renderer,/LayoutHeight = 960/);
     assert.match(renderer,/RasterScale = 2/);
     assert.match(renderer,/painter.scale\(RasterScale, RasterScale\)/);
-    assert.match(card,/sourceSize: Qt.size\(1920, 1080\)/);
+    assert.match(card,/sourceSize: Qt.size\(1920, 1920\)/);
     assert.match(renderer,/QImage::Format_ARGB32_Premultiplied/);
-    assert.match(renderer,/QPainter painter\{&image\}/);
-    assert.match(renderer,/QTemporaryFile temporary/);
-    assert.match(renderer,/output\.save\(&temporary, "PNG"\)/);
-    assert.match(renderer,/drawAvatar\(painter, avatar, displayName/);
+    assert.match(renderer,/QPainter painter\{&output\}/);
+    assert.match(renderer,/QTemporaryFile temp/);
+    assert.match(renderer,/output\.save\(&temp, "PNG"\)/);
+    assert.match(renderer,/avatar\(painter, portrait, displayName/);
     assert.doesNotMatch(renderer,/brandMark\(/);
-    assert.match(renderer,/metric\(painter, palette/);
-    assert.match(renderer,/for \(int index = 0; index < 5; \+\+index\)/);
-    assert.match(panel,/Math\.min\(620, parent\.width/);
-    assert.match(panel,/Layout\.preferredHeight: width \* 540 \/ 960/);
+    assert.match(renderer,/statistic\(painter, palette/);
+    assert.match(renderer,/for \(int i = 0; i < 3; \+\+i\)/);
+    assert.match(renderer,/for \(int i = 0; i < 2; \+\+i\)/);
+    assert.match(panel,/Math\.min\(460, parent\.width/);
+    assert.match(panel,/Layout\.preferredHeight: width \/\/ 1:1 square/);
     assert.match(panel,/shareAccountAvatarUrl/);
     assert.match(panel,/mediaUpload\.prepareStatsAvatar\(root\.shareAccountAvatarUrl\)/);
     assert.match(panel,/function onStatsAvatarChanged\(\)/);
@@ -54,6 +56,12 @@ test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image',
     assert.match(header,/Q_INVOKABLE void prepareStatsAvatar/);
     assert.match(header,/void statsAvatarChanged\(\)/);
     assert.match(header,/Q_PROPERTY\(bool statsAvatarLoading/);
+    assert.match(header,/Q_PROPERTY\(bool statsAvatarReady/);
+    assert.match(panel,/statsAvatarReady/);
+    assert.match(panel,/shareSummaryExternally\("telegram"\)/);
+    assert.match(panel,/shareSummaryExternally\("x"\)/);
+    assert.match(panel,/mediaUpload\.shareStatsImage\(/);
+    assert.match(bridge,/sharePreparedStatsImage/);
     // C++ unit targets only link QtCore/Qml/Network. Never force QtGui's
     // QImage header into this public presentation adapter's include graph.
     assert.doesNotMatch(header,/#include\s*[<"]QImage[>"]/);

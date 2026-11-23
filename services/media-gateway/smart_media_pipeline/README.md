@@ -1,9 +1,9 @@
 # Smart Media Pipeline
 
-Smart Media Pipeline is the backend image-ingress and image-delivery engine in
-`services/media-gateway`. It is not a protocol fork, browser plugin, or QML
-feature. The authority boundary remains the existing signer-verified Media
-Gateway and QStorage adapter.
+Smart Media Pipeline covers both first-party client-side image preparation
+and the verified backend image-ingress/delivery engine in `services/media-gateway`.
+The transport remains protocol-neutral. Neither browser signing secrets nor
+QStorage provider credentials enter the image optimizer.
 
 ## Primary goal: lower durable QStorage storage cost
 
@@ -22,6 +22,27 @@ The original source leaves the gateway's memory after success, abort or
 expiry. No original copy, sidecar, extra thumbnail or variant is stored
 durably in QStorage. This is also true for small source files whose final
 output is unchanged because recompression would make them larger.
+
+### Local-first ingress (web, desktop, mobile)
+
+Client input is bounded to 25 MiB / 32 megapixels for local preparation.
+Normal still images are decoded, oriented, resized as needed, stripped of
+metadata, and encoded as WebP **before the first signed network request**.
+The client compares original vs optimized bytes and only uploads the smaller
+acceptable result. The authenticated media API still independently validates
+the **network** upload bytes against the verified account tier (2 MiB Basic,
+5 MiB Pro); the 25 MiB source cap is not a remote upload allowance.
+
+Browser entrypoint: `ui/wasm/client_image_optimizer.mjs`.
+Native entrypoint: `src/transport/qt_network/media_upload.cpp` on the media
+executor. Both paths retain animated GIF, animated WebP and APNG frames
+without lossy flattening. Special first-party 1920×1920 square Stats PNGs
+are preserved in Original mode to protect small type.
+
+User-visible stages are Preparing → Compressing (on device) → Uploading
+(measured network bytes) → Finalizing. If the browser cannot encode locally,
+an oversized file is rejected before network; smaller unchanged files may
+still be optimized by the server before permanent QStorage storage.
 
 ### Account-verified source-size limits
 
@@ -49,7 +70,7 @@ credentials. No user subscription is inferred from historical wallet holdings.
 | `high` | max long edge 1600 px, higher quality | optimized |
 | `original` | preserve source bytes, existing QStorage multipart path | original |
 
-CPU-rasterized 1920 × 1200 Stats share cards deliberately request Original
+CPU-rasterized 1920 × 1920 Stats share cards deliberately request Original
 so fine-print readability is preserved; arbitrary user uploads default to Auto.
 The Original option is *supported by the backend but not yet surfaced in the
 UI*. Video upload uses the unchanged direct-storage path. Animated GIF,
@@ -96,6 +117,8 @@ their existing meaning.
 
 ### Upload progress shown by the clients
 
+- **Compressing on your device:** before authorization, without network I/O,
+  progress is an indeterminate stage while the encoder is running.
 - **Uploading:** measured multipart transfer bytes. A determinate progress bar
   is shown only while those bytes are actually being transferred.
 - **Compressing and saving:** begins when the final signed request is sent

@@ -6,7 +6,7 @@ Item {
     id: root
     objectName: "genycasterRichStatsCard"
     width: 960
-    height: 540
+    height: 960
 
     property url sourceUrl: ""
     readonly property bool ready: previewImage.status === Image.Ready
@@ -18,7 +18,7 @@ Item {
         source: root.sourceUrl
         // Decode the entire 2x CPU-rendered PNG; never ask Qt to downsample
         // to the logical card size before the device composites the preview.
-        sourceSize: Qt.size(1920, 1080)
+        sourceSize: Qt.size(1920, 1920)
         fillMode: Image.PreserveAspectFit
         asynchronous: false
         cache: false

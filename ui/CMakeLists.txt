@@ -859,6 +859,9 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_media_upload.mjs"
             "$<TARGET_FILE_DIR:genycaster>/browser_media_upload.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/client_image_optimizer.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/client_image_optimizer.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_BINARY_DIR}/generated/deployment_config.mjs"
             "$<TARGET_FILE_DIR:genycaster>/deployment_config.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

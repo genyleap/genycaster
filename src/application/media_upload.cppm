@@ -39,6 +39,7 @@ enum class UploadPhase : std::uint8_t {
     Preparing,
     Authorizing,
     Uploading,
+    Compressing,
     Optimizing,
     Finalizing,
     Verifying,
@@ -95,7 +96,8 @@ public:
     [[nodiscard]] foundation::result::Result<UploadHandle> start(
         std::optional<domain::session::ClientSession> session,
         std::filesystem::path localPath,
-        Observer observer);
+        Observer observer,
+        std::uint64_t maxImageBytes = 2U * 1024U * 1024U);
 
 private:
     executor::IExecutor& m_executor;

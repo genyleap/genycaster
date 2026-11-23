@@ -54,6 +54,7 @@ class MediaUploadController final : public QObject {
     Q_PROPERTY(bool optimizationSeen READ optimizationSeen NOTIFY stateChanged)
     Q_PROPERTY(qulonglong maxImageBytes READ maxImageBytes WRITE setMaxImageBytes NOTIFY stateChanged)
     Q_PROPERTY(bool statsAvatarLoading READ statsAvatarLoading NOTIFY statsAvatarChanged)
+    Q_PROPERTY(bool statsAvatarReady READ statsAvatarReady NOTIFY statsAvatarChanged)
 
 public:
     /** @brief Creates an idle media-upload presentation adapter. */
@@ -76,14 +77,17 @@ public:
     [[nodiscard]] QString selectedContentType() const;
     [[nodiscard]] qulonglong transferredBytes() const noexcept;
     [[nodiscard]] qulonglong totalBytes() const noexcept;
+
     /** Number of bytes submitted before server-side optimization. */
     [[nodiscard]] qulonglong sourceBytes() const noexcept;
+
     /** Whether this upload actually reached a v3 image-optimization stage. */
     [[nodiscard]] bool optimizationSeen() const noexcept;
     [[nodiscard]] qulonglong maxImageBytes() const noexcept;
     void setMaxImageBytes(qulonglong limit);
     [[nodiscard]] quint64 uploadGeneration() const noexcept;
     [[nodiscard]] bool statsAvatarLoading() const noexcept;
+    [[nodiscard]] bool statsAvatarReady() const noexcept;
 
     /**
      * @brief Starts uploading one local file selected by the user.
@@ -114,6 +118,9 @@ public:
      * Completes asynchronously, without blocking the UI or reading private profile data.
      */
     Q_INVOKABLE void prepareStatsAvatar(const QString& avatarUrl);
+
+    /** Native exports to Pictures; Web uses the OS file share sheet. */
+    Q_INVOKABLE bool shareStatsImage(const QUrl& localFile, const QString& caption);
 
     /** @brief Drops an unposted, generated Stats image; never user media. */
     Q_INVOKABLE bool discardStatsCardImage(const QUrl& localFile);
@@ -151,6 +158,7 @@ public:
 signals:
     void stateChanged();
     void statsAvatarChanged();
+    void statsImageShareRequested(QString localPath, QString caption);
 
     /** @brief Requests native upload orchestration for the local filesystem path. */
     void uploadRequested(QString localPath, int afterIndex);

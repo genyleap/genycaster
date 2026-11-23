@@ -1,6 +1,10 @@
 module;
 
 #include <QByteArray>
+#include <QBuffer>
+#include <QImage>
+#include <QImageReader>
+#include <QImageWriter>
 #include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QFile>
@@ -389,9 +393,16 @@ public:
     [[nodiscard]] foundation::result::Result<capability::media::ManagedAsset> upload(
         const domain::identity::Fid fid,
         const std::filesystem::path& localPath,
+        const std::uint64_t maxImageBytes,
         capability::media::ProgressObserver progress,
         capability::media::CancellationProbe cancelled) override
     {
+        if (maxImageBytes != 2U * 1024U * 1024U
+            && maxImageBytes != 5U * 1024U * 1024U) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Invalid image account upload limit."));
+        }
         if (QCoreApplication::instance() == nullptr) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::TransportFailure,
@@ -414,7 +425,8 @@ public:
                 foundation::error::ErrorCode::InvalidArgument,
                 "Selected media file is empty."));
         }
-        const auto sizeBytes = static_cast<std::uint64_t>(signedSize);
+        auto sizeBytes = static_cast<std::uint64_t>(signedSize);
+        const std::uint64_t originalSourceBytes = sizeBytes;
         QMimeDatabase mimeDatabase{};
         // MatchDefault intentionally considers the filename before falling back to content
         // sniffing. MatchContent alone misclassifies valid ISO-BMFF/QuickTime media as
@@ -463,19 +475,128 @@ public:
                 "Media upload was cancelled."));
         }
 
+        // QtGui compression runs in the existing media executor, not the UI
+        // thread. Nothing is uploaded until a valid, size-bounded result is
+        // available. Animated GIF and the text-heavy Stats PNG retain their
+        // original bytes to preserve motion and fine typography.
+        const bool exactStatsPng = image
+            && contentType == QStringLiteral("image/png")
+            && info.fileName().startsWith(QStringLiteral("genycaster-stats-"));
+        QString uploadName = info.fileName();
+        QByteArray optimizedBytes{};
+        // QImageReader decodes a frame, not the full animated raster. Never
+        // flatten WebP/APNG stickers into a still image during optimization.
+        bool animatedRaster = contentType == QStringLiteral("image/gif");
+        if (contentType == QStringLiteral("image/webp")
+            || contentType == QStringLiteral("image/png")) {
+            QFile headerFile{info.absoluteFilePath()};
+            if (headerFile.open(QIODevice::ReadOnly)) {
+                const QByteArray header = headerFile.read(64 * 1024);
+                if (contentType == QStringLiteral("image/webp") && header.size() >= 21
+                    && header.startsWith("RIFF") && header.mid(8, 4) == "WEBP"
+                    && header.mid(12, 4) == "VP8X") {
+                    animatedRaster = (static_cast<unsigned char>(header[20]) & 0x02U) != 0U;
+                } else if (contentType == QStringLiteral("image/png")
+                           && header.size() >= 33 && header.startsWith("\x89PNG\r\n\x1a\n")) {
+                    qsizetype offset = 8;
+                    while (offset + 12 <= header.size()) {
+                        const auto* bytes = reinterpret_cast<const unsigned char*>(
+                            header.constData() + offset);
+                        const std::uint32_t chunkLength =
+                            (static_cast<std::uint32_t>(bytes[0]) << 24)
+                            | (static_cast<std::uint32_t>(bytes[1]) << 16)
+                            | (static_cast<std::uint32_t>(bytes[2]) << 8)
+                            | static_cast<std::uint32_t>(bytes[3]);
+                        if (chunkLength > 16U * 1024U * 1024U
+                            || chunkLength + 12U
+                               > static_cast<std::uint64_t>(header.size() - offset)) break;
+                        const QByteArray chunkType = header.mid(offset + 4, 4);
+                        if (chunkType == "acTL") { animatedRaster = true; break; }
+                        if (chunkType == "IDAT") break;
+                        offset += static_cast<qsizetype>(chunkLength) + 12;
+                    }
+                }
+            }
+        }
+        if (image && !exactStatsPng && !animatedRaster
+            && sizeBytes > 256U * 1024U) {
+            if (progress) progress(capability::media::UploadStage::Compressing,
+                                   0U, originalSourceBytes);
+            QImageReader reader{info.absoluteFilePath()};
+            reader.setAutoTransform(true);
+            const QSize dimensions = reader.size();
+            if (!dimensions.isValid() || dimensions.width() > 8192
+                || dimensions.height() > 8192
+                || static_cast<qint64>(dimensions.width()) * dimensions.height() > 32'000'000) {
+                return std::unexpected(makeError(
+                    foundation::error::ErrorCode::InvalidArgument,
+                    "Source image dimensions exceed the safe local preparation limit."));
+            }
+            QImage decoded = reader.read();
+            if (decoded.isNull()) {
+                return std::unexpected(makeError(
+                    foundation::error::ErrorCode::InvalidArgument,
+                    "Selected image cannot be decoded for local compression."));
+            }
+            const auto targetBytes = static_cast<qsizetype>(maxImageBytes);
+            for (const int edge : {2560, 2140, 1720, 1360, 1024}) {
+                if (cancelled && cancelled()) {
+                    return std::unexpected(makeError(
+                        foundation::error::ErrorCode::Unavailable,
+                        "Media upload was cancelled."));
+                }
+                const QSize target = decoded.size().scaled(QSize{edge, edge},
+                                                           Qt::KeepAspectRatio);
+                const QImage scaled = target == decoded.size() ? decoded
+                    : decoded.scaled(target, Qt::KeepAspectRatio,
+                                     Qt::SmoothTransformation);
+                for (const int quality : {84, 74, 63, 52, 43}) {
+                    optimizedBytes.clear();
+                    QBuffer sink{&optimizedBytes};
+                    sink.open(QIODevice::WriteOnly);
+                    QImageWriter writer{&sink, QByteArrayLiteral("webp")};
+                    writer.setQuality(quality);
+                    if (!writer.write(scaled)) {
+                        optimizedBytes.clear();
+                        break;
+                    }
+                    if (optimizedBytes.size() <= targetBytes) break;
+                }
+                if (!optimizedBytes.isEmpty()
+                    && optimizedBytes.size() <= targetBytes) break;
+            }
+            if (!optimizedBytes.isEmpty()
+                && optimizedBytes.size() <= targetBytes
+                && (originalSourceBytes > targetBytes
+                    || static_cast<std::uint64_t>(optimizedBytes.size()) * 100
+                        < originalSourceBytes * 92)) {
+                sizeBytes = static_cast<std::uint64_t>(optimizedBytes.size());
+                contentType = QStringLiteral("image/webp");
+                uploadName = info.completeBaseName() + QStringLiteral(".webp");
+            } else {
+                optimizedBytes.clear();
+            }
+            if (progress) progress(capability::media::UploadStage::Compressing,
+                                   sizeBytes, originalSourceBytes);
+        }
+        if (image && sizeBytes > maxImageBytes) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Image exceeds the account upload limit after local compression."));
+        }
+
         const QJsonObject createObject{
-            {QStringLiteral("fileName"), info.fileName()},
+            {QStringLiteral("fileName"), uploadName},
             {QStringLiteral("contentType"), contentType},
             {QStringLiteral("sizeBytes"), static_cast<double>(sizeBytes)},
             // Optimize before persisting images in QStorage. Videos remain
             // on the existing provider multipart path. Future UI may expose
             // a user-selected "original" policy; it is not required here.
             // CPU-painted Stats share cards are already optimized, contain
-            // fine text and must retain their exact 1920x1200 pixels. Normal
+            // fine text and must retain their exact 1920x1920 pixels. Normal
             // user images still go through Smart Media Pipeline Auto.
             {QStringLiteral("optimizationMode"),
-                !image || (contentType == QStringLiteral("image/png")
-                    && info.fileName().startsWith(QStringLiteral("genycaster-stats-")))
+                !image || exactStatsPng || !optimizedBytes.isEmpty()
                     ? QStringLiteral("original") : QStringLiteral("auto")},
         };
         const QByteArray createBody = jsonBody(createObject);
@@ -543,7 +664,10 @@ public:
         }
 
         QFile file{info.absoluteFilePath()};
-        if (!file.open(QIODevice::ReadOnly)) {
+        QBuffer compressedInput{&optimizedBytes};
+        QIODevice* const sourceDevice = optimizedBytes.isEmpty()
+            ? static_cast<QIODevice*>(&file) : static_cast<QIODevice*>(&compressedInput);
+        if (!sourceDevice->open(QIODevice::ReadOnly)) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::InvalidArgument,
                 "Selected media file could not be opened for upload."));
@@ -585,7 +709,7 @@ public:
             }
             const std::uint64_t remaining = sizeBytes - transferred;
             const std::uint64_t expectedBytes = std::min(partSizeBytes, remaining);
-            const QByteArray partBody = file.read(static_cast<qint64>(expectedBytes));
+            const QByteArray partBody = sourceDevice->read(static_cast<qint64>(expectedBytes));
             if (partBody.size() != static_cast<qsizetype>(expectedBytes)) {
                 abortMultipart();
                 return std::unexpected(makeError(
@@ -650,7 +774,7 @@ public:
                 progress(capability::media::UploadStage::Uploading, transferred, sizeBytes);
             }
         }
-        if (transferred != sizeBytes || !file.atEnd()) {
+        if (transferred != sizeBytes || !sourceDevice->atEnd()) {
             abortMultipart();
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::ProtocolFailure,

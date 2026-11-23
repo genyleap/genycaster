@@ -10,6 +10,10 @@
 #include <QImageReader>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QDesktopServices>
+#include <QDateTime>
+#include <QStandardPaths>
+#include <QDir>
 #include <QUrlQuery>
 #include <QStringView>
 #include <utility>
@@ -103,14 +107,43 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
         emit statsAvatarChanged();
         return;
     }
-    QUrl proxy{QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/images")};
+    // Desktop/mobile can fetch the same source URL already displayed by
+    // the account avatar widget. The website uses the first-party image
+    // proxy instead so WebAssembly obeys browser cross-origin restrictions.
+    // Both paths reject arbitrary untrusted hosts before making a request.
+    static const QStringList allowedHosts{
+        QStringLiteral("imagedelivery.net"), QStringLiteral("cdn.warpcast.com"),
+        QStringLiteral("wrpcd.net"), QStringLiteral("cdn.farcaster.xyz"),
+        QStringLiteral("media-farcaster.genyleap.com"),
+        QStringLiteral("i.imgur.com"), QStringLiteral("pbs.twimg.com"),
+        QStringLiteral("res.cloudinary.com"), QStringLiteral("ipfs.io"),
+        QStringLiteral("gateway.pinata.cloud"), QStringLiteral("imagekit.io"),
+        QStringLiteral("lh3.googleusercontent.com")
+    };
+    const QString hostname = source.host().toLower();
+    bool allowed = false;
+    for (const QString& domain : allowedHosts) {
+        if (hostname == domain || hostname.endsWith(QLatin1Char('.') + domain)) {
+            allowed = true;
+            break;
+        }
+    }
+    if (!allowed) {
+        emit statsAvatarChanged();
+        return;
+    }
+#if defined(Q_OS_WASM)
+    QUrl fetchUrl{QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/images")};
     QUrlQuery query;
-    query.addQueryItem(QStringLiteral("url"), source.toString(QUrl::FullyEncoded));
-    proxy.setQuery(query);
-    QNetworkRequest request{proxy};
+    query.addQueryItem(QStringLiteral("url"), avatarUrl);
+    fetchUrl.setQuery(query);
+#else
+    const QUrl fetchUrl = source;
+#endif
+    QNetworkRequest request{fetchUrl};
     request.setRawHeader("Accept", "image/jpeg,image/png,image/webp");
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
-                         QNetworkRequest::ManualRedirectPolicy);
+                         QNetworkRequest::SameOriginRedirectPolicy);
     request.setTransferTimeout(6500);
     const quint64 generation = m_statsAvatarGeneration;
     QNetworkReply* const reply = m_statsAvatarNetwork.get(request);
@@ -159,6 +192,33 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
 bool MediaUploadController::statsAvatarLoading() const noexcept
 {
     return !m_statsAvatarReply.isNull();
+}
+
+bool MediaUploadController::statsAvatarReady() const noexcept
+{
+    return m_statsAvatar && !m_statsAvatar->isNull();
+}
+
+bool MediaUploadController::shareStatsImage(const QUrl& localFile,
+                                            const QString& caption)
+{
+    if (!localFile.isLocalFile() || !m_generatedStatsImages.contains(localFile.toLocalFile()))
+        return false;
+#if defined(Q_OS_WASM)
+    emit statsImageShareRequested(localFile.toLocalFile(), caption.left(1800));
+    return true;
+#else
+    Q_UNUSED(caption);
+    // Desktop OS share sheets vary; export to Pictures then open the exact
+    // raster so it can be shared to X, Telegram or Instagram by the user.
+    const QString folder = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    if (folder.isEmpty() || !QDir{}.mkpath(folder)) return false;
+    const QString name = QStringLiteral("Genycaster-Stats-")
+        + QString::number(QDateTime::currentMSecsSinceEpoch()) + QStringLiteral(".png");
+    const QString dest = QDir{folder}.filePath(name);
+    if (!QFile::copy(localFile.toLocalFile(), dest)) return false;
+    return QDesktopServices::openUrl(QUrl::fromLocalFile(dest));
+#endif
 }
 
 bool MediaUploadController::discardStatsCardImage(const QUrl& localFile)
@@ -301,8 +361,11 @@ bool MediaUploadController::beginUpload(const QUrl& localFile, const int afterIn
     }
 
     const qint64 size = fileInfo.size();
+    // Source bytes may exceed the upload tier: transcode on-device first.
+    // A bounded 25 MiB ingress cap protects RAM; 2/5 MiB applies to the
+    // optimized file before a signed upload ticket is issued.
     if (size <= 0 || (media->previewKind == QStringView{u"image"}
-            && static_cast<qulonglong>(size) > m_maxImageBytes)) {
+            && static_cast<qulonglong>(size) > 25U * 1024U * 1024U)) {
         m_busy = false;
         m_canRetry = false;
         m_phase = QStringLiteral("failed");
@@ -348,7 +411,7 @@ void MediaUploadController::applyBrowserSelection(
     QString fileName, QString contentType, const qulonglong sizeBytes, const int afterIndex)
 {
     if (!m_available || m_busy) return;
-    if (sizeBytes == 0 || sizeBytes > m_maxImageBytes) {
+    if (sizeBytes == 0 || sizeBytes > 25U * 1024U * 1024U) {
         m_busy = false;
         m_canRetry = false;
         m_phase = QStringLiteral("failed");

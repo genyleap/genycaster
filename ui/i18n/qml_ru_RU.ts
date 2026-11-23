@@ -4108,6 +4108,34 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>Загрузка</translation>
         </message>
+        <message id="genycaster.stats.share_x_text">
+            <source>X · text</source>
+            <translation>X · текст</translation>
+        </message>
+        <message id="genycaster.stats.share_telegram_text">
+            <source>Telegram · text</source>
+            <translation>Telegram · текст</translation>
+        </message>
+        <message id="genycaster.stats.share_image">
+            <source>Share image</source>
+            <translation>Поделиться изображением</translation>
+        </message>
+        <message id="genycaster.stats.share_image_hint">
+            <source>Instagram and other apps are available in your device’s share sheet.</source>
+            <translation>Instagram и другие приложения доступны в системном меню «Поделиться».</translation>
+        </message>
+        <message id="genycaster.stats.avatar_unavailable">
+            <source>Profile photo could not be loaded. Retry before sharing the card.</source>
+            <translation>Не удалось загрузить аватар. Повторите попытку.</translation>
+        </message>
+        <message id="genycaster.stats.avatar_retry">
+            <source>Retry photo</source>
+            <translation>Повторить</translation>
+        </message>
+        <message id="genycaster.media.compressing_local">
+            <source>Compressing on your device…</source>
+            <translation>Сжатие изображения на устройстве…</translation>
+        </message>
         <message id="genycaster.media.step_compressing">
             <source>Compressing</source>
             <translation>Сжатие</translation>

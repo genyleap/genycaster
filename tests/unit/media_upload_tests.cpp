@@ -57,12 +57,14 @@ public:
     [[nodiscard]] foundation::result::Result<capability::media::ManagedAsset> upload(
         const domain::identity::Fid fid,
         const std::filesystem::path& localPath,
+        std::uint64_t maxImageBytes,
         capability::media::ProgressObserver progress,
         capability::media::CancellationProbe cancelled) override
     {
         ++calls;
         observedFid = fid.value;
         observedPath = localPath;
+        observedImageLimit = maxImageBytes;
 
         if (cancelled()) {
             return std::unexpected(foundation::error::Error::make(
@@ -95,6 +97,7 @@ public:
     std::size_t calls{};
     std::uint64_t observedFid{};
     std::filesystem::path observedPath{};
+    std::uint64_t observedImageLimit{};
     std::optional<foundation::error::Error> failure{};
 };
 
@@ -153,6 +156,7 @@ void testSuccessfulUploadEmitsProviderNeutralLifecycle()
 
     assert(gateway.calls == 1U);
     assert(gateway.observedFid == 4242U);
+    assert(gateway.observedImageLimit == 2U * 1024U * 1024U);
     assert(gateway.observedPath == std::filesystem::path{"/tmp/test.jpg"});
     assert(states.size() == 7U);
     assert(states[0].phase == application::media::upload::UploadPhase::Queued);
@@ -168,6 +172,29 @@ void testSuccessfulUploadEmitsProviderNeutralLifecycle()
     assert(states[6].asset->url == "https://media-farcaster.genyleap.com/m/v1/test.jpg");
     assert(states[6].asset->sizeBytes == 4096U);
     assert(states[6].managementToken == "opaque-management-token");
+}
+
+void testVerifiedProLimitPropagatesToNativeGateway()
+{
+    DeferredExecutor executor{};
+    FakeMediaGateway gateway{};
+    application::media::upload::MediaUploadService service{executor, gateway};
+    const auto observe = [](application::media::upload::UploadState) {};
+
+    const auto invalid = service.start(
+        activeSession(), std::filesystem::path{"/tmp/image.jpg"},
+        observe, 6U * 1024U * 1024U);
+    assert(!invalid);
+    assert(invalid.error().code == foundation::error::ErrorCode::InvalidArgument);
+    assert(gateway.calls == 0U);
+
+    const auto pro = service.start(
+        activeSession(), std::filesystem::path{"/tmp/image.jpg"},
+        observe, 5U * 1024U * 1024U);
+    assert(pro);
+    executor.drain();
+    assert(gateway.calls == 1U);
+    assert(gateway.observedImageLimit == 5U * 1024U * 1024U);
 }
 
 void testCancellationBeforeExecutionDoesNotTouchGateway()
@@ -335,6 +362,7 @@ void testManagedAssetCleanupRejectsExpiredSessionAndEmptyToken()
 int main()
 {
     testSuccessfulUploadEmitsProviderNeutralLifecycle();
+    testVerifiedProLimitPropagatesToNativeGateway();
     testCancellationBeforeExecutionDoesNotTouchGateway();
     testExpiredSessionFailsBeforeScheduling();
     testGatewayFailureBecomesFailedState();

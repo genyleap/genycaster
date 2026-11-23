@@ -15,7 +15,8 @@ const PUBLIC_FILES=new Set([
     "genycaster-boot-icon.svg","intro-base.svg","intro-farcaster.svg","intro-hypersnap.svg","intro-openproof.svg","genycaster-update-icon.svg","apple-touch-icon.png",
     "apple-touch-icon-precomposed.png",
     "secure_signer_vault.mjs","farcaster_protocol.mjs",
-    "browser_protocol_signer.mjs","browser_device_session.mjs","browser_account_session.mjs","browser_media_upload.mjs",
+    "browser_protocol_signer.mjs","browser_device_session.mjs","browser_account_session.mjs",
+    "browser_media_upload.mjs","client_image_optimizer.mjs",
     // Deployment authority is never stored in offline caches.
     "farcaster_recovery.mjs","recovery-phrase-dialog.mjs",
     "vendor/noble-secp256k1.mjs","vendor/bip39-english.mjs",

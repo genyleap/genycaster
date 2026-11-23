@@ -65,7 +65,7 @@ test('browser upload signs canonical media proof, transfers parts and inserts on
     assert.equal(requests.length,3);
     assert.equal(challenges.length,3);
     assert.deepEqual(phases.map(x=>x[0]),
-        ['authorizing','uploading','uploading','optimizing','finalizing']);
+        ['preparing','authorizing','uploading','uploading','optimizing','finalizing']);
     assert.equal(phases.find(x=>x[0]==='uploading')[2],128);
     assert.equal(result.sourceSizeBytes,128);
 });
@@ -96,7 +96,7 @@ test('legacy gateway finalizes without falsely claiming compression',async()=>{
     assert.equal(result.sizeBytes,128);
     assert.equal(result.sourceSizeBytes,128);
     assert.deepEqual(phases,
-        ['authorizing','uploading','uploading','finalizing']);
+        ['preparing','authorizing','uploading','uploading','finalizing']);
     assert.ok(!phases.includes('optimizing'));
 });
 
@@ -111,10 +111,11 @@ test('image upload stages and actual cloud sizes are exposed to Composer, withou
     const bridge=read('ui/app/runtime/bindings.cpp');
     const composer=read('ui/components/composer/ComposerDrawer.qml');
     assert.match(panel,/objectName: "smartMediaPipelineProgressSteps"/);
-    assert.match(panel,/mediaUpload\.optimizationSeen/);
+    assert.match(panel,/qsTrId\("genycaster\.media\.compressing_local"\)/);
+    assert.match(panel,/phase === "compressing"/);
     assert.match(panel,/qsTrId\("genycaster\.media\.optimizing"\)/);
     assert.match(panel,/qsTrId\("genycaster\.media\.finalizing"\)/);
-    assert.match(panel,/root\.processingStep === 0/);
+    assert.match(panel,/phase === "compressing"/);
     assert.match(panel,/root\.savingsText\(modelData\.originalSizeBytes,\s*modelData\.sizeBytes\)/);
     assert.match(panel,/objectName: "composerFullResolutionMediaInspector"/);
     assert.match(panel,/fullQualityImage: true/);
@@ -166,12 +167,12 @@ test('2 MiB basic cap rejects before any request; verified Pro client may select
     const file=photo(2*1024*1024+1);
     await assert.rejects(uploadBrowserImage({file,fid,vault,crypto:webcrypto,
         fetchImpl:async()=>{attempts++;throw Error('must not request');}}),
-        /2 MiB upload limit/);
+        /compression|2 MiB upload limit/);
     assert.equal(attempts,0);
     await assert.rejects(uploadBrowserImage({file:photo(5*1024*1024+1),
         fid,vault,crypto:webcrypto,maxImageBytes:5*1024*1024,
         fetchImpl:async()=>{attempts++;throw Error('must not request');}}),
-        /5 MiB upload limit/);
+        /compression|5 MiB upload limit/);
     assert.equal(attempts,0);
 });
 test('cancel aborts the active fetch and separately releases the signed server ticket',async()=>{
@@ -200,6 +201,132 @@ test('cancel aborts the active fetch and separately releases the signed server t
     await assert.rejects(uploadBrowserImage({file:photo(),fid,vault,
         signal:controller.signal,crypto:webcrypto,fetchImpl}),/cancel/i);
     assert.equal(requests.filter(r=>r.opts.method==='DELETE').length,1);
+});
+
+test('local compression sends only optimized bytes across signed network transport',async()=>{
+    const phases=[],requests=[];
+    const source=photo(3*1024*1024);
+    const compressed=new File([new Uint8Array(512)],'photo.webp',{type:'image/webp'});
+    const vault={load:async()=>({fid,publicKeyHex:key}),
+        signMediaChallenge:async()=>({publicKeyHex:key,signature:'ab'.repeat(64)})};
+    const optimizeImage=async(file,{maxBytes,onProgress})=>{
+        assert.equal(file.size,source.size);
+        assert.equal(maxBytes,2*1024*1024);
+        onProgress('preparing',0,file.size);
+        onProgress('compressing',compressed.size,file.size);
+        return {file:compressed,optimized:true,sourceBytes:file.size};
+    };
+    const fetchImpl=async(url,opts)=>{
+        requests.push({url,opts});
+        if(url.endsWith('/v1/uploads')&&opts.method==='POST')
+            return Response.json({uploadId:'compressed_ticket',mode:'gateway-multipart',
+                assetUrl,optimizationMode:'original',partCount:1,
+                partSizeBytes:5*1024*1024},{status:201});
+        if(url.includes('/parts/1')){
+            assert.equal(opts.body.byteLength,512);
+            return Response.json({partNumber:1,etag:'"compressed-part"'});
+        }
+        if(url.endsWith('/v1/uploads/complete'))return Response.json({
+            assetUrl,contentType:'image/webp',fileName:'photo.webp',
+            sizeBytes:512,storedSizeBytes:400,managementToken:'token',
+        });
+        throw Error('Unexpected network call');
+    };
+    const result=await uploadBrowserImage({
+        file:source,fid,vault,crypto:webcrypto,fetchImpl,optimizeImage,
+        onProgress:(phase)=>phases.push(phase),
+    });
+    const uploadTicket=JSON.parse(new TextDecoder().decode(requests[0].opts.body));
+    assert.equal(uploadTicket.sizeBytes,512);
+    assert.equal(uploadTicket.contentType,'image/webp');
+    assert.equal(uploadTicket.optimizationMode,'original');
+    assert.equal(result.uploadSizeBytes,512);
+    assert.equal(result.sourceSizeBytes,source.size);
+    assert.equal(result.sizeBytes,400);
+    assert.equal(result.optimizedLocally,true);
+    assert.equal(requests.length,3);
+    assert.deepEqual(phases,['preparing','compressing','authorizing',
+        'uploading','uploading','finalizing']);
+});
+test('local compression respects a byte cap, metadata stripping, dimensions and cancellation',async()=>{
+    const {optimizeBrowserImage}=await import('../../ui/wasm/client_image_optimizer.mjs');
+    let closed=false;
+    const original=photo(3*1024*1024);
+    const bitmap={width:4000,height:3000,close:()=>{closed=true;}};
+    const canvas={
+        width:0,height:0,
+        getContext:()=>({clearRect:()=>{},drawImage:()=>{}}),
+        toBlob:(callback,type)=>callback(new Blob([new Uint8Array(1000)],{type})),
+    };
+    const phases=[];
+    const result=await optimizeBrowserImage(original,{
+        createBitmap:async()=>bitmap,createCanvas:()=>canvas,
+        onProgress:(phase)=>phases.push(phase),
+    });
+    assert.equal(result.optimized,true);
+    assert.equal(result.file.size,1000);
+    assert.equal(result.file.type,'image/webp');
+    assert.equal(result.file.name,'photo.webp');
+    assert.equal(result.sourceBytes,original.size);
+    assert.equal(closed,true);
+    assert.deepEqual(phases,['preparing','compressing','compressing']);
+    assert.ok(canvas.width<=2560);
+    const cancelled=new AbortController();
+    cancelled.abort();
+    await assert.rejects(optimizeBrowserImage(original,{
+        signal:cancelled.signal,createBitmap:async()=>{throw Error('must not decode');},
+    }),/cancel/i);
+    await assert.rejects(optimizeBrowserImage(original,{
+        createBitmap:async()=>({width:9000,height:9000,close:()=>{}}),
+    }),/32 MP/);
+});
+
+test('animated WebP and APNG never silently flatten to a still frame',async()=>{
+    const {optimizeBrowserImage}=await import('../../ui/wasm/client_image_optimizer.mjs');
+    const webp=new Uint8Array(40);
+    webp.set(new TextEncoder().encode('RIFF'),0);
+    webp.set(new TextEncoder().encode('WEBP'),8);
+    webp.set(new TextEncoder().encode('VP8X'),12);
+    webp[20]=2; // WebP extended header animated bit
+    const animatedWebp=new File([webp],'animated.webp',{type:'image/webp'});
+    const result=await optimizeBrowserImage(animatedWebp,{
+        createBitmap:async()=>{throw Error('animation must not be decoded');},
+    });
+    assert.equal(result.optimized,false);
+    assert.strictEqual(result.file,animatedWebp);
+    const png=new Uint8Array(48);
+    png.set([137,80,78,71,13,10,26,10]);
+    png[11]=13;
+    png.set(new TextEncoder().encode('IHDR'),12);
+    png.set(new TextEncoder().encode('acTL'),37);
+    const animatedPng=new File([png],'animated.png',{type:'image/png'});
+    const apng=await optimizeBrowserImage(animatedPng,{
+        createBitmap:async()=>{throw Error('APNG must not be flattened');},
+    });
+    assert.equal(apng.optimized,false);
+    assert.strictEqual(apng.file,animatedPng);
+});
+test('native media adapter optimizes before signing upload ticket, honors verified tier and animation',()=>{
+    const native=readFileSync(new URL('../../src/transport/qt_network/media_upload.cpp',import.meta.url),'utf8');
+    const application=readFileSync(new URL('../../src/application/media_upload.cpp',import.meta.url),'utf8');
+    const bridge=readFileSync(new URL('../../ui/app/runtime/bindings.cpp',import.meta.url),'utf8');
+    const cmake=readFileSync(new URL('../../src/transport/qt_network/CMakeLists.txt',import.meta.url),'utf8');
+    const source=readFileSync(new URL('../../src/capabilities/media.cppm',import.meta.url),'utf8');
+    assert.match(native,/QImageWriter writer/);
+    assert.match(native,/QImageReader reader/);
+    assert.match(native,/QBuffer compressedInput/);
+    assert.match(native,/const QJsonObject createObject\{/);
+    assert.ok(native.indexOf('QImageWriter writer')<native.indexOf('const QJsonObject createObject'));
+    assert.match(native,/maxImageBytes/);
+    assert.match(native,/const bool exactStatsPng/);
+    assert.match(native,/animatedRaster/);
+    assert.match(native,/chunkType == "acTL"/);
+    assert.match(native,/header\.mid\(12, 4\) == "VP8X"/);
+    assert.match(native,/UploadStage::Compressing/);
+    assert.match(source,/std::uint64_t maxImageBytes/);
+    assert.match(application,/maxImageBytes,/);
+    assert.match(bridge,/controllerGuard->maxImageBytes\(\)/);
+    assert.match(cmake,/Qt6::Gui/);
 });
 
 test('unsupported formats and missing signer do not reach media gateway',async()=>{
@@ -231,6 +358,12 @@ test('verified public release includes browser uploader in both copy and manifes
     const {readFileSync}=await import('node:fs');
     const packageScript=readFileSync(new URL('../../ci/package_wasm_assets.py',import.meta.url),'utf8');
     assert.equal(packageScript.split('"browser_media_upload.mjs"').length-1,2);
+    assert.equal(packageScript.split('"client_image_optimizer.mjs"').length-1,2);
+    const cmake=readFileSync(new URL('../../ui/CMakeLists.txt',import.meta.url),'utf8');
+    assert.match(cmake,/wasm\/client_image_optimizer\.mjs/);
+    assert.match(cmake,/genycaster>\/client_image_optimizer\.mjs/);
+    const sw=readFileSync(new URL('../../ui/wasm/genycaster-sw.js',import.meta.url),'utf8');
+    assert.match(sw,/"client_image_optimizer\.mjs"/);
 });
 
 test('managed media deletion is signed, owner-scoped and never accepts raw asset URLs',async()=>{

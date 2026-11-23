@@ -1,10 +1,10 @@
-<!-- Genycaster sticker glyph: original clean outline in the familiar
-     messaging-app folded-corner visual language (not a copied brand asset). -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-     fill="none" stroke="#151519" stroke-width="1.9"
-     stroke-linecap="round" stroke-linejoin="round">
-  <path d="M4 4.7A2.7 2.7 0 0 1 6.7 2h10.6A2.7 2.7 0 0 1 20 4.7v10.6c0 .7-.27 1.38-.77 1.9l-3.04 3.02c-.51.5-1.19.78-1.91.78H6.7A2.7 2.7 0 0 1 4 18.3V4.7Z"/>
-  <path d="M14.9 20.85V17.5a2.6 2.6 0 0 1 2.6-2.6h2.35"/>
-  <path d="M8.6 9.4h.05M15.35 9.4h.05" stroke-width="2.7"/>
-  <path d="M8.7 13.05c.7 1.2 1.79 1.8 3.3 1.8s2.6-.6 3.3-1.8"/>
+<!-- Solar Icons "Sticker Smile Square" design; SVG Repo
+     https://www.svgrepo.com/svg/527550/sticker-smile-square
+     CC Attribution License: https://www.svgrepo.com/page/licensing/
+     Adapted to Genycaster's 24px monochrome/duotone icon palette. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <path d="M9 16c.85.63 1.88 1 3 1s2.15-.37 3-1" stroke="#151519" stroke-width="1.6" stroke-linecap="round"/>
+  <ellipse cx="15" cy="10.5" rx="1" ry="1.45" fill="#151519"/>
+  <ellipse cx="9" cy="10.5" rx="1" ry="1.45" fill="#151519"/>
+  <path d="M15 22h-3c-4.71 0-7.07 0-8.54-1.46C2 19.07 2 16.71 2 12s0-7.07 1.46-8.54C4.93 2 7.29 2 12 2s7.07 0 8.54 1.46C22 4.93 22 7.29 22 12v3m-7 7c3.87 0 7-3.13 7-7m-7 7c0-1.86 0-2.79.24-3.55a4.7 4.7 0 0 1 3.21-3.21c.75-.24 1.69-.24 3.55-.24" stroke="#151519" stroke-width="1.55" stroke-linejoin="round" stroke-linecap="round" opacity=".72"/>
 </svg>

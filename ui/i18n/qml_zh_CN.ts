@@ -4108,6 +4108,34 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>上传</translation>
         </message>
+        <message id="genycaster.stats.share_x_text">
+            <source>X · text</source>
+            <translation>X · 文本</translation>
+        </message>
+        <message id="genycaster.stats.share_telegram_text">
+            <source>Telegram · text</source>
+            <translation>Telegram · 文本</translation>
+        </message>
+        <message id="genycaster.stats.share_image">
+            <source>Share image</source>
+            <translation>分享图片</translation>
+        </message>
+        <message id="genycaster.stats.share_image_hint">
+            <source>Instagram and other apps are available in your device’s share sheet.</source>
+            <translation>Instagram 等应用可从设备分享菜单中选择。</translation>
+        </message>
+        <message id="genycaster.stats.avatar_unavailable">
+            <source>Profile photo could not be loaded. Retry before sharing the card.</source>
+            <translation>无法加载头像，请重试后再分享。</translation>
+        </message>
+        <message id="genycaster.stats.avatar_retry">
+            <source>Retry photo</source>
+            <translation>重试头像</translation>
+        </message>
+        <message id="genycaster.media.compressing_local">
+            <source>Compressing on your device…</source>
+            <translation>正在设备上压缩图片…</translation>
+        </message>
         <message id="genycaster.media.step_compressing">
             <source>Compressing</source>
             <translation>压缩</translation>

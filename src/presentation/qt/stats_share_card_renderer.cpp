@@ -22,195 +22,185 @@ namespace genycaster::presentation {
 namespace {
 
 constexpr int LayoutWidth = 960;
-constexpr int LayoutHeight = 540;
-// The preview is small, but the published PNG has 2x raster resolution.
+constexpr int LayoutHeight = 960;
 constexpr int RasterScale = 2;
 constexpr int CanvasWidth = LayoutWidth * RasterScale;
 constexpr int CanvasHeight = LayoutHeight * RasterScale;
 
 struct Palette final {
-    QColor text;
+    QColor primary;
     QColor secondary;
     QColor subtle;
     QColor accent;
     QColor rule;
 };
 
-[[nodiscard]] Palette colorsFor(bool minimal)
+[[nodiscard]] Palette colorsFor(const bool minimal)
 {
     return minimal
-        ? Palette{QColor{"#182134"}, QColor{"#58647B"}, QColor{"#8490A5"},
-                  QColor{"#6151D4"}, QColor{"#DDE2EC"}}
-        : Palette{QColor{"#F8FAFF"}, QColor{"#B1BCDB"}, QColor{"#8A9BBC"},
-                  QColor{"#C1ADFF"}, QColor{"#333B61"}};
+        ? Palette{QColor{"#182236"}, QColor{"#53627A"}, QColor{"#8690A1"},
+                  QColor{"#6552D7"}, QColor{"#DBE2ED"}}
+        : Palette{QColor{"#F8F9FF"}, QColor{"#B8C3E4"}, QColor{"#8895B7"},
+                  QColor{"#C6B3FF"}, QColor{"#394163"}};
 }
 
-[[nodiscard]] QString formattedCount(const QVariantMap& snapshot, const char* key)
+[[nodiscard]] QString formattedCount(const QVariantMap& stats, const char* key)
 {
     bool valid = false;
-    const double value = snapshot.value(QString::fromLatin1(key)).toDouble(&valid);
+    const double value = stats.value(QString::fromLatin1(key)).toDouble(&valid);
     if (!valid || !std::isfinite(value) || value < 0.0) return QStringLiteral("—");
-    constexpr double Maximum = 999'999'999'999.0;
     return QLocale{QLocale::English}.toString(
-        static_cast<qulonglong>(std::floor(std::min(value, Maximum))));
+        static_cast<qulonglong>(std::floor(std::min(value, 999'999'999'999.0))));
 }
 
-void label(QPainter& painter, const QString& text, const QRectF& rect,
-           int pixelSize, const QColor& color,
-           QFont::Weight weight = QFont::Normal,
-           Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter)
+void label(QPainter& painter, const QString& value, const QRectF& rect,
+           const int pixelSize, const QColor& color,
+           const QFont::Weight weight = QFont::Normal,
+           const Qt::Alignment alignment = Qt::AlignLeft | Qt::AlignVCenter)
 {
     QFont font = painter.font();
     font.setPixelSize(pixelSize);
     font.setWeight(weight);
     painter.setFont(font);
     painter.setPen(color);
-    const QString safe = QFontMetrics{font}.elidedText(
-        text, Qt::ElideRight, std::max(0, static_cast<int>(rect.width())));
-    painter.drawText(rect, alignment, safe);
+    painter.drawText(rect, alignment, QFontMetrics{font}.elidedText(
+        value, Qt::ElideRight, std::max(0, static_cast<int>(rect.width()))));
 }
 
-void horizontalRule(QPainter& painter, const Palette& ink, qreal y)
+void rule(QPainter& painter, const Palette& palette, const qreal y)
 {
-    painter.fillRect(QRectF{44, y, 872, 1}, ink.rule);
+    painter.fillRect(QRectF{56, y, 848, 1}, palette.rule);
 }
 
-void drawAvatar(QPainter& painter, const QImage& avatar, const QString& displayName,
-                const Palette& colors, bool minimal)
+void avatar(QPainter& painter, const QImage& source,
+            const QString& displayName, const Palette& palette,
+            const bool minimal)
 {
-    constexpr QRectF avatarRect{45, 36, 66, 66};
-    QPainterPath silhouette;
-    silhouette.addEllipse(avatarRect);
+    const QRectF destination{57, 49, 83, 83};
+    QPainterPath circle;
+    circle.addEllipse(destination);
     painter.save();
-    painter.setClipPath(silhouette);
-    painter.fillPath(silhouette, minimal ? QColor{"#E5E6F6"} : QColor{"#302950"});
-    if (!avatar.isNull() && avatar.width() > 0 && avatar.height() > 0) {
-        // Centre-crop the actual account portrait. Never draw a generic logo
-        // in an identity slot; if unavailable use the owner's monogram.
-        const qreal ratio = std::max(avatarRect.width() / avatar.width(),
-                                     avatarRect.height() / avatar.height());
-        const qreal sourceWidth = avatarRect.width() / ratio;
-        const qreal sourceHeight = avatarRect.height() / ratio;
-        const QRectF source{(avatar.width() - sourceWidth) / 2,
-                            (avatar.height() - sourceHeight) / 2,
-                            sourceWidth, sourceHeight};
-        painter.drawImage(avatarRect, avatar, source);
+    painter.setClipPath(circle);
+    painter.fillPath(circle, minimal ? QColor{"#E8E8F5"} : QColor{"#2B2B50"});
+    if (!source.isNull() && source.width() > 0 && source.height() > 0) {
+        const qreal zoom = std::max(destination.width() / source.width(),
+                                    destination.height() / source.height());
+        const qreal sw = destination.width() / zoom;
+        const qreal sh = destination.height() / zoom;
+        painter.drawImage(destination, source,
+                          QRectF{(source.width() - sw) / 2,
+                                 (source.height() - sh) / 2, sw, sh});
     } else {
-        const QString initial = displayName.trimmed().isEmpty()
-            ? QStringLiteral("·") : displayName.trimmed().left(1).toUpper();
-        label(painter, initial, avatarRect, 32, colors.text,
-              QFont::DemiBold, Qt::AlignCenter);
+        label(painter, displayName.trimmed().left(1).toUpper(), destination,
+              42, palette.primary, QFont::DemiBold, Qt::AlignCenter);
     }
     painter.restore();
     painter.setBrush(Qt::NoBrush);
-    painter.setPen(QPen{colors.rule, 1.5});
-    painter.drawEllipse(avatarRect);
+    painter.setPen(QPen{palette.rule, 1.3});
+    painter.drawEllipse(destination);
 }
 
-void metric(QPainter& painter, const Palette& palette,
-            qreal left, qreal width, const QString& value, const QString& title)
+void statistic(QPainter& painter, const Palette& palette,
+               const QRectF& area, const QString& value,
+               const QString& title)
 {
-    const int valueSize = value.size() >= 9 ? 26 : value.size() >= 7 ? 30 : 39;
-    label(painter, value, QRectF{left + 4, 355, width - 8, 53},
-          valueSize, palette.text, QFont::DemiBold, Qt::AlignCenter);
-    label(painter, title, QRectF{left + 3, 410, width - 6, 30},
-          18, palette.secondary, QFont::Normal, Qt::AlignCenter);
+    const int size = value.size() > 8 ? 34 : value.size() > 5 ? 41 : 53;
+    label(painter, value,
+          QRectF{area.left() + 6, area.top() + 10, area.width() - 12, 70},
+          size, palette.primary, QFont::DemiBold, Qt::AlignCenter);
+    label(painter, title,
+          QRectF{area.left() + 6, area.top() + 78, area.width() - 12, 38},
+          21, palette.secondary, QFont::Normal, Qt::AlignCenter);
 }
 
-void drawImage(QImage& image, const QVariantMap& stats, const QString& displayName,
-               const QString& username, const QImage& avatar, int periodDays,
-               bool minimal, qint64 capturedAtMs)
+void paintCard(QImage& output, const QVariantMap& stats,
+               const QString& displayName, const QString& username,
+               const QImage& portrait, const int periodDays,
+               const bool minimal, const qint64 capturedAt)
 {
     const Palette palette = colorsFor(minimal);
-    QPainter painter{&image};
+    QPainter painter{&output};
     painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing |
                            QPainter::SmoothPixmapTransform);
     painter.scale(RasterScale, RasterScale);
     painter.setPen(Qt::NoPen);
 
-    const QRectF card{0, 0, LayoutWidth, LayoutHeight};
+    const QRectF canvas{0, 0, LayoutWidth, LayoutHeight};
     QPainterPath clip;
-    clip.addRoundedRect(card.adjusted(2, 2, -2, -2), 32, 32);
+    clip.addRoundedRect(canvas.adjusted(2, 2, -2, -2), 36, 36);
     painter.setClipPath(clip);
-
-    // Two quiet, coordinated surfaces; Neon has ambience, not separate
-    // glowing boxes around every number.
-    QLinearGradient backdrop{QPointF{0, 0}, QPointF{960, 540}};
-    backdrop.setColorAt(0, minimal ? QColor{"#FDFDFF"} : QColor{"#10172E"});
-    backdrop.setColorAt(1, minimal ? QColor{"#F2F4F9"} : QColor{"#171730"});
-    painter.fillRect(card, backdrop);
+    QLinearGradient background{QPointF{0, 0}, QPointF{960, 960}};
+    background.setColorAt(0.0, minimal ? QColor{"#FFFFFF"} : QColor{"#101831"});
+    background.setColorAt(1.0, minimal ? QColor{"#F0F3FA"} : QColor{"#18162D"});
+    painter.fillRect(canvas, background);
     if (!minimal) {
-        QRadialGradient ambient{QPointF{907, 65}, 440};
-        ambient.setColorAt(0, QColor{132, 85, 212, 37});
-        ambient.setColorAt(1, Qt::transparent);
-        painter.fillRect(card, ambient);
+        QRadialGradient ambient{QPointF{880, 180}, 560};
+        ambient.setColorAt(0.0, QColor{139, 91, 204, 49});
+        ambient.setColorAt(1.0, Qt::transparent);
+        painter.fillRect(canvas, ambient);
     }
     painter.setClipping(false);
-    painter.setPen(QPen{minimal ? QColor{"#DBE0EC"} : QColor{"#554B90"}, 1.5});
+    painter.setPen(QPen{minimal ? QColor{"#DDE3EF"} : QColor{"#564B90"}, 1.4});
     painter.setBrush(Qt::NoBrush);
-    painter.drawRoundedRect(card.adjusted(2, 2, -2, -2), 32, 32);
+    painter.drawRoundedRect(canvas.adjusted(2, 2, -2, -2), 36, 36);
 
-    drawAvatar(painter, avatar, displayName, palette, minimal);
-    label(painter, displayName.trimmed().isEmpty() ? QStringLiteral("Member") : displayName,
-          QRectF{129, 39, 565, 35}, 27, palette.text, QFont::DemiBold);
-    label(painter, username.isEmpty() ? QStringLiteral("Genycaster") :
-          (username.startsWith(u'@') ? username : QStringLiteral("@") + username),
-          QRectF{129, 76, 490, 25}, 18, palette.secondary);
-    label(painter, QStringLiteral("GENYCASTER  /  STATS"),
-          QRectF{702, 55, 212, 25}, 15, palette.accent,
+    avatar(painter, portrait, displayName, palette, minimal);
+    label(painter, displayName.isEmpty() ? QStringLiteral("Member") : displayName,
+          QRectF{161, 62, 518, 38}, 31, palette.primary, QFont::DemiBold);
+    label(painter, username.startsWith(u'@') ? username : QStringLiteral("@") + username,
+          QRectF{161, 103, 485, 27}, 21, palette.secondary);
+    label(painter, QStringLiteral("GENYCASTER / STATS"),
+          QRectF{674, 74, 230, 30}, 17, palette.accent,
           QFont::DemiBold, Qt::AlignRight);
-    horizontalRule(painter, palette, 125);
+    rule(painter, palette, 165);
 
     const QString period = periodDays == 7 ? QStringLiteral("7 days")
         : periodDays == 30 ? QStringLiteral("30 days")
         : periodDays == 90 ? QStringLiteral("90 days") : QStringLiteral("365 days");
-    label(painter, period + QStringLiteral(" recap"), QRectF{45, 146, 660, 47},
-          38, palette.text, QFont::DemiBold);
-    label(painter, QStringLiteral("ACTIVITY"), QRectF{781, 155, 133, 31},
-          15, palette.accent, QFont::DemiBold, Qt::AlignRight);
+    label(painter, period + QStringLiteral(" recap"),
+          QRectF{57, 197, 620, 65}, 44, palette.primary, QFont::DemiBold);
+    label(painter, QStringLiteral("ACTIVITY"), QRectF{750, 214, 154, 31},
+          17, palette.accent, QFont::DemiBold, Qt::AlignRight);
 
     const bool hasEngagement = stats.value(QStringLiteral("hasEngagement")).toBool();
     const QString interactions = hasEngagement
         ? formattedCount(stats, "engagement") : QStringLiteral("—");
-    const int heroSize = interactions.size() >= 10 ? 58 :
-                         interactions.size() >= 8 ? 70 : 87;
-    label(painter, interactions, QRectF{46, 213, 460, 98}, heroSize,
-          palette.text, QFont::Bold);
+    label(painter, interactions, QRectF{56, 300, 830, 145},
+          interactions.size() > 7 ? 91 : 126,
+          palette.primary, QFont::Bold);
     label(painter, QStringLiteral("Interactions received"),
-          QRectF{505, 240, 408, 49}, 29, palette.secondary);
-    horizontalRule(painter, palette, 331);
+          QRectF{61, 453, 820, 55}, 30, palette.secondary);
+    rule(painter, palette, 544);
 
-    // A single typographic metric strip replaces five heavy nested tiles.
-    // Consistent columns create rhythm at thumbnail and native PNG sizes.
     const QString values[]{
-        formattedCount(stats, "casts"),
-        formattedCount(stats, "replies"),
+        formattedCount(stats, "casts"), formattedCount(stats, "replies"),
         hasEngagement ? formattedCount(stats, "likes") : QStringLiteral("—"),
         hasEngagement ? formattedCount(stats, "recasts") : QStringLiteral("—"),
         hasEngagement ? formattedCount(stats, "receivedReplies") : QStringLiteral("—")
     };
-    const QString titles[]{
+    const QString captions[]{
         QStringLiteral("Casts"), QStringLiteral("Replies written"),
         QStringLiteral("Likes"), QStringLiteral("Recasts"),
         QStringLiteral("Replies received")
     };
-    constexpr qreal left = 44;
-    constexpr qreal width = 872.0 / 5.0;
-    for (int index = 0; index < 5; ++index) {
-        metric(painter, palette, left + width * index, width, values[index], titles[index]);
-        if (index > 0) {
-            painter.fillRect(QRectF{left + width * index, 368, 1, 56}, palette.rule);
-        }
-    }
-    horizontalRule(painter, palette, 468);
+    // First row 3 metrics, second row 2. No five independent floating boxes.
+    constexpr qreal column = 848.0 / 3.0;
+    for (int i = 0; i < 3; ++i)
+        statistic(painter, palette, QRectF{56 + column * i, 565, column, 125},
+                  values[i], captions[i]);
+    rule(painter, palette, 715);
+    for (int i = 0; i < 2; ++i)
+        statistic(painter, palette, QRectF{56 + 424.0 * i, 731, 424, 121},
+                  values[i + 3], captions[i + 3]);
+    rule(painter, palette, 864);
 
     label(painter, QStringLiteral("Posts in period · engagement counted to date"),
-          QRectF{45, 485, 690, 29}, 16, palette.subtle);
-    if (capturedAtMs > 0) {
-        const auto date = QDateTime::fromMSecsSinceEpoch(capturedAtMs).date();
+          QRectF{57, 880, 670, 38}, 17, palette.subtle);
+    if (capturedAt > 0) {
+        const auto date = QDateTime::fromMSecsSinceEpoch(capturedAt).date();
         label(painter, QLocale{QLocale::English}.toString(
                   date, QStringLiteral("MMM d, yyyy")),
-              QRectF{737, 485, 177, 29}, 16, palette.subtle,
+              QRectF{724, 880, 180, 38}, 17, palette.subtle,
               QFont::Normal, Qt::AlignRight);
     }
 }
@@ -219,38 +209,32 @@ void drawImage(QImage& image, const QVariantMap& stats, const QString& displayNa
 
 StatsShareImage renderStatsShareCard(
     const QVariantMap& snapshot, const QString& displayName,
-    const QString& username, const QImage& avatar, int periodDays,
-    const QString& style, double capturedAtMs)
+    const QString& username, const QImage& avatarImage, const int periodDays,
+    const QString& style, const double capturedAtMs)
 {
     if ((style != QStringLiteral("neon") && style != QStringLiteral("minimal"))
         || (periodDays != 7 && periodDays != 30 && periodDays != 90
             && periodDays != 365)
-        || !std::isfinite(capturedAtMs) || capturedAtMs <= 0.0) {
+        || !std::isfinite(capturedAtMs) || capturedAtMs <= 0.0)
         return {.error = QStringLiteral("invalid_share_card_parameters")};
-    }
+
     QImage output{CanvasWidth, CanvasHeight, QImage::Format_ARGB32_Premultiplied};
-    if (output.isNull())
-        return {.error = QStringLiteral("share_card_image_unavailable")};
+    if (output.isNull()) return {.error = QStringLiteral("share_card_image_unavailable")};
     output.fill(Qt::transparent);
-    drawImage(output, snapshot, displayName.left(120), username.left(120),
-              avatar, periodDays, style == QStringLiteral("minimal"),
+    paintCard(output, snapshot, displayName.left(120), username.left(120),
+              avatarImage, periodDays, style == QStringLiteral("minimal"),
               static_cast<qint64>(capturedAtMs));
-
-    const QString directory = QDir::tempPath();
-    if (directory.isEmpty() || !QDir{}.mkpath(directory))
+    const QString tempDir = QDir::tempPath();
+    if (tempDir.isEmpty() || !QDir{}.mkpath(tempDir))
         return {.error = QStringLiteral("share_card_temp_unavailable")};
-
-    QTemporaryFile temporary{directory + QStringLiteral("/genycaster-stats-XXXXXX.png")};
-    if (!temporary.open())
-        return {.error = QStringLiteral("share_card_temp_unavailable")};
-    if (!output.save(&temporary, "PNG") || temporary.size() <= 0
-        || !temporary.flush())
+    QTemporaryFile temp{tempDir + QStringLiteral("/genycaster-stats-XXXXXX.png")};
+    if (!temp.open()) return {.error = QStringLiteral("share_card_temp_unavailable")};
+    if (!output.save(&temp, "PNG") || temp.size() <= 0 || !temp.flush())
         return {.error = QStringLiteral("share_card_png_failed")};
-
-    const QUrl path = QUrl::fromLocalFile(temporary.fileName());
-    temporary.setAutoRemove(false);
-    temporary.close();
-    return {.fileUrl = path};
+    const QUrl localUrl = QUrl::fromLocalFile(temp.fileName());
+    temp.setAutoRemove(false);
+    temp.close();
+    return {.fileUrl = localUrl};
 }
 
 } // namespace genycaster::presentation

@@ -17,12 +17,30 @@ bytes**, not merely lighter previews.
 - Public delivery can optionally resize an already-optimized canonical image,
   with on-demand bounded cache instead of permanent extra cloud variants.
 - Videos use the existing direct multipart path.
-- Source image limits are Basic 2 MiB and Pro 5 MiB. Only verified Pro
+- On-device source preparation accepts up to 25 MiB / 32 MP; only the
+  compressed network bytes count against the Basic 2 MiB and Pro 5 MiB
+  gateway limits. Only verified Pro
   subscriptions from the first-party account database permit the larger
   size. A dedicated timestamped HMAC backend-to-backend request enforces
   this independently of the client. Unavailable verification fails closed.
-- CPU-rendered Stats cards remain original PNG at 1920×1200 to preserve
+- CPU-rendered square Stats cards remain original PNG at 1920×1920 to preserve
   legibility; ordinary images remain automatically optimized.
+
+## Social sharing of stats
+
+The stats card has a square 1:1 composition and a high-fidelity 1920×1920
+original PNG, rendered once with the account avatar and reused for both
+preview and Cast embed. If a configured avatar cannot be loaded, image
+sharing is blocked with a retry instead of publishing an ambiguous placeholder.
+
+The stats dialog offers a native Genycaster Cast with image and readable
+fallback text, X/Telegram **text** share intents, and **Share image**.
+On WebAssembly Share image uses Web Share with the real PNG when the browser
+supports file sharing, otherwise offers a local PNG download. On desktop it
+exports the PNG to Pictures and opens it with the system image viewer; there
+is no claim of automatic cross-app publishing. Instagram is available only
+where the operating system's installed-app Share Sheet offers it. No user's
+social account credentials are collected by Genycaster.
 
 ## Rationale
 
@@ -69,8 +87,9 @@ contains exactly one final image per managed asset.
 
 ## Performance and privacy
 
-- Bounded source memory: 64 MiB total / 3 sessions; source image upper
-  bound 2 MiB (Basic), 5 MiB (Pro); pixel decode cap 32 million.
+- Bounded gateway staging memory: 64 MiB total / 3 sessions; source
+  preparation on the client is bounded to 25 MiB, and the network image
+  upload is capped at 2 MiB (Basic) or 5 MiB (Pro); pixel decode cap 32 MP.
 - Serialized transformations, bounded queue, validation of MIME signatures.
 - Raw media and EXIF are not logged. Re-encoded images omit EXIF/GPS by
   default; Original mode preserves original metadata intentionally.

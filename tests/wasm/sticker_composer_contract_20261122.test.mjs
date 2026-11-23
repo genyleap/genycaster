@@ -161,7 +161,7 @@ test('transparent sticker draft and feed remain uncropped without upload duplica
  assert.match(layout,/StickerCatalog\.isStickerUrl\(root\.mediaKey\(0\)\)/);
 });
 
-test('Qt/QML registration and original messaging-app-style icon and translations exist',()=>{
+test('Qt/QML registration and attributed Solar sticker icon and translations exist',()=>{
  const cmake=read('ui/CMakeLists.txt');
  const theme=read('ui/theme/Theme.qml');
  const map=JSON.parse(read('ui/components/source_paths.json'));
@@ -172,9 +172,11 @@ test('Qt/QML registration and original messaging-app-style icon and translations
  assert.equal(map['StickerDraftTile.qml'],'composer/StickerDraftTile.qml');
  assert.match(theme,/iconSticker: "media\/sticker"/);
  const svg=read('ui/assets/icons/genyleap/icons/media/sticker.svg');
- assert.match(svg,/folded-corner visual language/);
- assert.match(svg,/stroke-width="1\.9"/);
- assert.match(svg,/M14\.9 20\.85/);
+ assert.match(svg,/Solar Icons/);
+ assert.match(svg,/527550\/sticker-smile-square/);
+ assert.match(svg,/CC Attribution License/);
+ assert.match(svg,/opacity="\.72"/);
+ assert.match(read('ui/assets/icons/genyleap/README.md'),/Solar Icons/);
  for(const locale of ['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR',
                       'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']){
   const ts=read('ui/i18n/qml_'+locale+'.ts');

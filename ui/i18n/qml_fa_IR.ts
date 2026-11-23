@@ -4109,6 +4109,34 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>آپلود</translation>
         </message>
+        <message id="genycaster.stats.share_x_text">
+            <source>X · text</source>
+            <translation>X · متن</translation>
+        </message>
+        <message id="genycaster.stats.share_telegram_text">
+            <source>Telegram · text</source>
+            <translation>تلگرام · متن</translation>
+        </message>
+        <message id="genycaster.stats.share_image">
+            <source>Share image</source>
+            <translation>اشتراک تصویر</translation>
+        </message>
+        <message id="genycaster.stats.share_image_hint">
+            <source>Instagram and other apps are available in your device’s share sheet.</source>
+            <translation>اینستاگرام و سایر برنامه‌ها از بخش اشتراک‌گذاری دستگاه در دسترس‌اند.</translation>
+        </message>
+        <message id="genycaster.stats.avatar_unavailable">
+            <source>Profile photo could not be loaded. Retry before sharing the card.</source>
+            <translation>تصویر پروفایل دریافت نشد. پیش از اشتراک کارت دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.stats.avatar_retry">
+            <source>Retry photo</source>
+            <translation>تلاش مجدد</translation>
+        </message>
+        <message id="genycaster.media.compressing_local">
+            <source>Compressing on your device…</source>
+            <translation>در حال فشرده‌سازی روی دستگاه…</translation>
+        </message>
         <message id="genycaster.media.step_compressing">
             <source>Compressing</source>
             <translation>فشرده‌سازی</translation>

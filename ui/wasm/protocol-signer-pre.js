@@ -682,8 +682,10 @@
             mediaReport({kind:'selected',fid,afterIndex,
                 fileName:String(file.name).slice(0,160),
                 contentType:String(file.type).slice(0,60),sizeBytes:file.size});
-            if(file.size>(maxImageBytes===5*1024*1024
-                    ? 5*1024*1024 : 2*1024*1024))return;
+            // Local compression runs before any network request. Bound the
+            // *source* at 25 MiB, then validate the optimized output against
+            // the account's 2/5 MiB upload tier in browser_media_upload.mjs.
+            if(file.size>25*1024*1024)return;
             cancelMedia();
             const current=mediaEpoch;
             const controller=new AbortController();
@@ -808,8 +810,36 @@
             pendingRemovals.delete(managementToken);
         }
     }
+    function sharePreparedStatsImage(bytes,caption) {
+        // Must call navigator.share() synchronously from the Qt button
+        // gesture. The file remains on the device; it is never uploaded to
+        // a third-party social service by Genycaster.
+        if(!(bytes instanceof Uint8Array)||bytes.length<64
+           ||bytes.length>5*1024*1024
+           ||[137,80,78,71,13,10,26,10].some((byte,i)=>bytes[i]!==byte))
+            return false;
+        const file=new File([bytes],'genycaster-stats.png',{type:'image/png'});
+        const safeCaption=String(caption||'').slice(0,1800);
+        if(typeof navigator.share==='function'
+           && typeof navigator.canShare==='function'
+           && navigator.canShare({files:[file]})) {
+            // Instagram appears here only when installed as a share target;
+            // it has no public arbitrary-file upload intent for websites.
+            navigator.share({files:[file],title:'Genycaster Stats',
+                             text:safeCaption}).catch(()=>{});
+            return true;
+        }
+        const link=document.createElement('a');
+        const objectUrl=URL.createObjectURL(file);
+        link.href=objectUrl;
+        link.download=file.name;
+        link.click();
+        setTimeout(()=>URL.revokeObjectURL(objectUrl),2000);
+        return true;
+    }
     window.__genycasterBrowserMedia=Object.freeze({
         pick:pickMedia,uploadGenerated:uploadGeneratedMedia,
+        sharePreparedStatsImage,
         cancel:cancelMedia,remove:removeManagedMedia,
         events:mediaEvents
     });
