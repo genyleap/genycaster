@@ -71,7 +71,9 @@ Item {
             spacing: 18
             Image {
                 width: 60; height: 60
-                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                source: Qt.platform.os === "android"
+                    ? "image://genycaster-brand/mark"
+                    : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
                 sourceSize: Qt.size(180, 180)
                 fillMode: Image.PreserveAspectFit
             }
