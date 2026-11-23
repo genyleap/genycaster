@@ -1,5 +1,6 @@
 #include "media_upload_controller.hpp"
 #include "stats_share_card_renderer.hpp"
+#include "genycaster_deployment.hpp"
 
 #include <algorithm>
 #include <array>
@@ -212,10 +213,12 @@ void MediaUploadController::startStatsAvatarFallback(
     const QUrl source = statsAvatarSource(m_statsAvatarUrl);
     // These are public raster CDNs, not an arbitrary fetch/SSRF primitive.
     // The gateway additionally enforces public DNS and decoded raster limits.
-    static const QStringList allowedHosts{
+    const QString configuredMediaHost = QUrl{
+        QString::fromUtf8(genycaster::deployment::mediaPublicOrigin.data())}.host().toLower();
+    const QStringList allowedHosts{
         QStringLiteral("imagedelivery.net"), QStringLiteral("cdn.warpcast.com"),
         QStringLiteral("wrpcd.net"), QStringLiteral("cdn.farcaster.xyz"),
-        QStringLiteral("media-farcaster.genyleap.com"),
+        configuredMediaHost,
         QStringLiteral("i.imgur.com"), QStringLiteral("pbs.twimg.com"),
         QStringLiteral("res.cloudinary.com"), QStringLiteral("ipfs.io"),
         QStringLiteral("gateway.pinata.cloud"), QStringLiteral("imagekit.io"),
@@ -227,7 +230,7 @@ void MediaUploadController::startStatsAvatarFallback(
     bool allowed = false;
     for (const QString& domain : allowedHosts) {
         if (host == domain
-            || (domain != QStringLiteral("media-farcaster.genyleap.com")
+            || (domain != configuredMediaHost
                 && host.endsWith(QLatin1Char('.') + domain))) {
             allowed = true;
             break;
@@ -240,8 +243,9 @@ void MediaUploadController::startStatsAvatarFallback(
     }
     QUrl fetchUrl = source;
     if (viaGateway) {
-        fetchUrl = QUrl{QStringLiteral(
-            "https://storage-farcaster.genyleap.com/v1/browser/images")};
+        fetchUrl = QUrl{QString::fromUtf8(
+            genycaster::deployment::browserGateway.data())
+            + QStringLiteral("/v1/browser/images")};
         QUrlQuery query;
         query.addQueryItem(QStringLiteral("url"), source.toString(QUrl::FullyEncoded));
         fetchUrl.setQuery(query);
