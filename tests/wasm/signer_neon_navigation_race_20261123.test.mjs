@@ -8,22 +8,25 @@ const setup=source('ui/components/setup/InitialSetup.qml');
 const bridge=source('src/presentation/qt/presentation_bridge.cpp');
 const iconTest=source('tests/unit/presentation_icon_tests.cpp');
 
-test('signer authorization uses App Center Neon material and a real busy spinner',()=>{
+test('signer authorization keeps the form stable with exactly one button spinner',()=>{
   const dialog=shell.slice(shell.indexOf('id: interactionAuthorizationDialog'),
     shell.indexOf('GenyProDetailsDrawer {',shell.indexOf('id: interactionAuthorizationDialog')));
   assert.match(dialog,/objectName: "signerRecoverySecurityNotice"/);
   assert.match(dialog,/fillColor: Theme\.warningSurface/);
   assert.match(dialog,/text: Theme\.iconWarning/);
-  assert.match(dialog,/objectName: "signerAuthorizationNeonProgress"/);
-  assert.match(dialog,/neonBusy: presentationBridge\.signerBusy/);
-  assert.match(dialog,/ambientNeon: presentationBridge\.signerBusy/);
-  assert.match(dialog,/GenySpinner \{\s*visible: presentationBridge\.signerBusy\s*running: visible/);
-  assert.match(dialog,/Theme\.successSurface/);
+  assert.doesNotMatch(dialog,/signerAuthorizationNeonProgress/);
+  assert.doesNotMatch(dialog,/GenySpinner \{/);
+  assert.match(dialog,/objectName: "signerAuthorizationInlineError"/);
+  assert.match(dialog,/visible: interactionAuthorizationDialog\.enteringNativeWords\s*Layout\.fillWidth/);
+  assert.match(dialog,/enabled: !interactionAuthorizationDialog\.authorizationSubmitted\s*forceLeftToRight: true/);
+  assert.match(dialog,/placeholderText: interactionAuthorizationDialog\.authorizationSubmitted\s*\? "•••••"/);
+  assert.doesNotMatch(dialog,/enteringNativeWords\s*&& !presentationBridge\.signerBusy/);
   const action=dialog.slice(dialog.indexOf('objectName: "authorizeSelectedProtocolSigner"'));
   assert.match(action,/busy: interactionAuthorizationDialog\.authorizationSubmitted\s*&& presentationBridge\.signerBusy/);
-  assert.match(action,/genycaster\.setup\.signer_verification_title/);
   assert.match(action,/genycaster\.setup\.signer_verified_title/);
+  assert.match(action,/!interactionAuthorizationDialog\.authorizationSubmitted/);
   assert.match(action,/enabled: !presentationBridge\.signerBusy/);
+  assert.match(action,/interactionAuthorizationDialog\.clearRecoveryWords\(\)/);
   assert.match(action,/if \(presentationBridge\.writeReady\) \{\s*interactionAuthorizationDialog\.close\(\)/);
   assert.doesNotMatch(dialog,/progress\s*:\s*0\.\d+/, 'Never invent network verification percentages');
 });
@@ -90,4 +93,34 @@ test('Back skips self-referential profile frames, then restores a real prior des
   assert.match(method,/if \(identicalCast \|\| identicalProfileFid \|\| identicalProfileUsername\)\s*continue/);
   assert.match(method,/openCast\(previous\.castId\)/);
   assert.match(method,/showFeed\(\)/);
+});
+
+
+test('Snapchain HTTP 400 with per-FID rate limit is reported as throttling, not invalid custody',()=>{
+  const runtime=source('ui/app/runtime/bindings.cpp');
+  const fn=runtime.slice(runtime.indexOf('[[nodiscard]] QString signerErrorText('),
+      runtime.indexOf('void applySignerState(',runtime.indexOf('[[nodiscard]] QString signerErrorText(')));
+  assert.match(fn,/state\.error->code == foundation::error::ErrorCode::RateLimited/);
+  assert.match(fn,/rawMessage\.find\("bad_request\.rate_limited"\)/);
+  assert.match(fn,/rawMessage\.find\("rate limit exceeded for FID"\)/);
+  assert.match(fn,/genycaster\.runtime\.signer_rate_limited/);
+  assert.ok(fn.indexOf('genycaster.runtime.signer_rate_limited')<
+    fn.indexOf('genycaster.runtime.the_signer_authorization_configuration_is_invalid'));
+  const dialog=shell.slice(shell.indexOf('id: interactionAuthorizationDialog'),
+    shell.indexOf('GenyProDetailsDrawer {',shell.indexOf('id: interactionAuthorizationDialog')));
+  assert.match(dialog,/objectName: "signerAuthorizationInlineError"/);
+  assert.match(dialog,/text: String\(presentationBridge\.signerErrorText \|\| ""\)/);
+  assert.match(dialog,/objectName: "checkDeviceSignerAfterTimeout"/);
+  assert.match(dialog,/presentationBridge\.refreshSigner\(\)/);
+  const key='genycaster.runtime.signer_rate_limited';
+  const catalog=source('ui/i18n/catalog.cpp');
+  assert.ok(catalog.includes('qtTrId("'+key+'")'));
+  for(const locale of ['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR',
+      'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']){
+    const xml=source('ui/i18n/qml_'+locale+'.ts');
+    const match=xml.match(new RegExp('<message id="'+key.replace(/\./g,'\\.')+'">([\\s\\S]*?)<\\/message>'));
+    assert.ok(match,locale+' missing rate limit translation');
+    const translation=match[1].match(/<translation>([\s\S]*?)<\/translation>/)?.[1] || '';
+    assert.ok([...translation].length>=24,locale+' incomplete rate limit translation');
+  }
 });

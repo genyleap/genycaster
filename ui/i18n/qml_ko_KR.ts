@@ -4916,6 +4916,10 @@ Company | https://company.com</source>
             <source>The signer authorization configuration is invalid.</source>
             <translation>서명자 승인 구성이 올바르지 않습니다.</translation>
         </message>
+        <message id="genycaster.runtime.signer_rate_limited">
+            <source>Snapchain is temporarily limiting signer requests for this account. Authorization has not been confirmed. Check signer status before trying again later; avoid repeated submissions.</source>
+            <translation>Snapchain이 이 계정의 서명자 요청을 일시적으로 제한했습니다. 승인이 아직 확인되지 않았습니다. 나중에 다시 시도하기 전에 서명자 상태를 확인하고 반복 제출을 피하세요.</translation>
+        </message>
         <message id="genycaster.runtime.the_signer_operation_could_not_be_completed_safely">
             <source>The signer operation could not be completed safely.</source>
             <translation>서명자 작업을 안전하게 완료할 수 없습니다.</translation>

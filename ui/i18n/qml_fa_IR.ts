@@ -4921,6 +4921,10 @@ Company | https://company.com</source>
             <source>The signer authorization configuration is invalid.</source>
             <translation>پیکربندی مجوز امضاکننده نامعتبر است.</translation>
         </message>
+        <message id="genycaster.runtime.signer_rate_limited">
+            <source>Snapchain is temporarily limiting signer requests for this account. Authorization has not been confirmed. Check signer status before trying again later; avoid repeated submissions.</source>
+            <translation>اسنپ‌چین فعلاً تعداد درخواست‌های امضاکنندهٔ این حساب را محدود کرده است. تأیید مجوز هنوز قطعی نیست. قبل از تلاش مجدد در زمان دیگری، وضعیت امضاکننده را بررسی کنید و از ارسال پیاپی درخواست خودداری کنید.</translation>
+        </message>
         <message id="genycaster.runtime.the_signer_operation_could_not_be_completed_safely">
             <source>The signer operation could not be completed safely.</source>
             <translation>عملیات امضاکننده به‌صورت امن قابل تکمیل نبود.</translation>

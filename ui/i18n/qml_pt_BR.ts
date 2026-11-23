@@ -4916,6 +4916,10 @@ Company | https://company.com</source>
             <source>The signer authorization configuration is invalid.</source>
             <translation>A configuração de autorização do assinante é inválida.</translation>
         </message>
+        <message id="genycaster.runtime.signer_rate_limited">
+            <source>Snapchain is temporarily limiting signer requests for this account. Authorization has not been confirmed. Check signer status before trying again later; avoid repeated submissions.</source>
+            <translation>O Snapchain está limitando temporariamente as solicitações de assinante desta conta. A autorização ainda não foi confirmada. Confira o status do assinante antes de tentar novamente mais tarde; evite envios repetidos.</translation>
+        </message>
         <message id="genycaster.runtime.the_signer_operation_could_not_be_completed_safely">
             <source>The signer operation could not be completed safely.</source>
             <translation>Não foi possível concluir com segurança a operação do assinante.</translation>

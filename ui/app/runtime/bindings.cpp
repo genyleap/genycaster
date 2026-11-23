@@ -1314,6 +1314,15 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
 {
     if (!state.error) return {};
     const std::string_view rawMessage{state.error->message};
+    // Snapchain may return HTTP 400 / InvalidArgument for a real  per-FID
+    // throttle (bad_request.rate_limited). This is NOT a malformed recovery
+    // phrase or bad signer configuration, and retrying the KEY_ADD immediately
+    // would only generate duplicate traffic.
+    if (state.error->code == foundation::error::ErrorCode::RateLimited
+        || rawMessage.find("bad_request.rate_limited") != std::string_view::npos
+        || rawMessage.find("rate limit exceeded for FID") != std::string_view::npos) {
+        return qtTrId("genycaster.runtime.signer_rate_limited");
+    }
     if (rawMessage.find("client attribution is not configured") != std::string_view::npos) {
         return qtTrId("genycaster.runtime.client_attribution_not_configured");
     }

@@ -916,6 +916,8 @@ void registerTranslationSourceMetadata()
     //% "The signer authorization configuration is invalid."
     (void)qtTrId("genycaster.runtime.the_signer_authorization_configuration_is_invalid");
     //% "The signer operation could not be completed safely."
+    //% "Snapchain is temporarily limiting signer requests for this account. Authorization has not been confirmed. Check signer status before trying again later; avoid repeated submissions."
+    (void)qtTrId("genycaster.runtime.signer_rate_limited");
     (void)qtTrId("genycaster.runtime.the_signer_operation_could_not_be_completed_safely");
     //% "The write could not be saved safely to the durable outbox."
     (void)qtTrId("genycaster.runtime.the_write_could_not_be_saved_safely_to_the_durable_outbox");

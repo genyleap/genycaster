@@ -261,7 +261,6 @@ Item {
             NeonSurface {
                 objectName: "signerRecoverySecurityNotice"
                 visible: interactionAuthorizationDialog.enteringNativeWords
-                         && !interactionAuthorizationDialog.authorizationSubmitted
                 Layout.fillWidth: true
                 Layout.preferredHeight: signerSecurityContent.implicitHeight + Theme.space3 * 2
                 fillColor: Theme.warningSurface
@@ -305,7 +304,6 @@ Item {
                 }
             }
             RowLayout {
-                visible: !interactionAuthorizationDialog.authorizationSubmitted
                 Layout.fillWidth: true
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
@@ -349,7 +347,6 @@ Item {
             DirectionAwareLabel {
                 visible: Qt.platform.os !== "wasm"
                          && interactionAuthorizationDialog.enteringNativeWords
-                         && !interactionAuthorizationDialog.authorizationSubmitted
                          && interactionAuthorizationDialog.nativeAccount
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.shell.native_signer_words_note")
@@ -365,10 +362,11 @@ Item {
                 objectName: "nativeSignerRecoveryPhraseInput"
                 visible: interactionAuthorizationDialog.mobileRecoveryInput
                          && interactionAuthorizationDialog.enteringNativeWords
-                         && !presentationBridge.signerBusy
                 Layout.fillWidth: true
+                enabled: !interactionAuthorizationDialog.authorizationSubmitted
                 forceLeftToRight: true
-                placeholderText: qsTrId("genycaster.setup.native_recovery_placeholder")
+                placeholderText: interactionAuthorizationDialog.authorizationSubmitted
+                    ? "••••• ••••• •••••" : qsTrId("genycaster.setup.native_recovery_placeholder")
                 echoMode: interactionAuthorizationDialog.showRecoveryWords
                     ? TextInput.Normal : TextInput.Password
                 maximumLength: 512
@@ -382,7 +380,6 @@ Item {
                 visible: Qt.platform.os !== "wasm"
                          && !interactionAuthorizationDialog.mobileRecoveryInput
                          && interactionAuthorizationDialog.enteringNativeWords
-                         && !presentationBridge.signerBusy
                 Layout.fillWidth: true
                 // Let the outer inspector scroll all 24 words on narrow screens.
                 Layout.preferredHeight: interactionAuthorizationDialog.fullScreen
@@ -418,7 +415,10 @@ Item {
                                 id: recoveryWordInput
                                 objectName: "nativeSignerRecoveryWord" + (index + 1)
                                 Layout.fillWidth: true
+                                enabled: !interactionAuthorizationDialog.authorizationSubmitted
                                 forceLeftToRight: true
+                                placeholderText: interactionAuthorizationDialog.authorizationSubmitted
+                                    ? "•••••" : ""
                                 echoMode: interactionAuthorizationDialog && interactionAuthorizationDialog.showRecoveryWords
                                           ? TextInput.Normal : TextInput.Password
                                 maximumLength: 4095
@@ -464,6 +464,7 @@ Item {
             ActionButton {
                 visible: (nativeRecoveryScroll && nativeRecoveryScroll.visible)
                          || nativeSignerPhraseInput.visible
+                enabled: !interactionAuthorizationDialog.authorizationSubmitted
                 Layout.alignment: Qt.AlignRight
                 compact: true
                 quiet: true
@@ -475,73 +476,27 @@ Item {
             }
                     }
                 }
-            NeonSurface {
-                id: signerApprovalStatus
-                objectName: "signerAuthorizationNeonProgress"
+            RowLayout {
+                objectName: "signerAuthorizationInlineError"
                 visible: interactionAuthorizationDialog.authorizationSubmitted
-                         && interactionAuthorizationDialog.enteringNativeWords
+                         && !presentationBridge.signerBusy
+                         && !presentationBridge.writeReady
+                         && presentationBridge.signerErrorText.length > 0
                 Layout.fillWidth: true
-                Layout.preferredHeight: signerProgressRow.implicitHeight + Theme.space3 * 2
-                interactive: false
-                neonBusy: presentationBridge.signerBusy
-                ambientNeon: presentationBridge.signerBusy
-                neonColor: presentationBridge.signerBusy ? Theme.accent
-                           : presentationBridge.writeReady ? Theme.success : Theme.warning
-                neonStrength: Theme.neonCardStrength
-                fillColor: presentationBridge.writeReady ? Theme.successSurface
-                           : presentationBridge.signerBusy ? Theme.primarySurface
-                           : Theme.warningSurface
-                borderWidth: Theme.strokeStandard
-                borderColor: presentationBridge.writeReady ? Theme.success
-                             : presentationBridge.signerBusy ? Theme.accent : Theme.warning
-                curveDepth: Theme.curveContainer
-                RowLayout {
-                    id: signerProgressRow
-                    anchors.fill: parent
-                    anchors.margins: Theme.space3
-                    spacing: Theme.space3
-                    layoutDirection: Theme.uiDirection
-                    GenySpinner {
-                        visible: presentationBridge.signerBusy
-                        running: visible
-                        color: Theme.accent
-                        Layout.preferredWidth: Theme.iconSize
-                        Layout.preferredHeight: Theme.iconSize
-                    }
-                    Icon {
-                        visible: !presentationBridge.signerBusy
-                        text: presentationBridge.writeReady ? Theme.iconCheck : Theme.iconWarning
-                        color: presentationBridge.writeReady ? Theme.success : Theme.warning
-                        preferredSize: Theme.iconSize
-                    }
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space1
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: presentationBridge.writeReady
-                                  ? qsTrId("genycaster.setup.signer_verified_title")
-                                  : presentationBridge.signerBusy
-                                    ? qsTrId("genycaster.setup.signer_verification_title")
-                                    : qsTrId("genycaster.setup.check_signer_status")
-                            color: Theme.textPrimary
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: !presentationBridge.writeReady && text.length > 0
-                            text: presentationBridge.signerBusy
-                                  ? String(presentationBridge.signerStatusText || "")
-                                  : String(presentationBridge.signerErrorText
-                                           || qsTrId("genycaster.setup.signed_in_signer_separate"))
-                            color: presentationBridge.signerBusy
-                                   ? Theme.textSecondary : Theme.warning
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                    }
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                Icon {
+                    text: Theme.iconWarning
+                    color: Theme.warning
+                    preferredSize: Theme.iconSize
+                    Layout.alignment: Qt.AlignTop
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: String(presentationBridge.signerErrorText || "")
+                    color: Theme.warning
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
                 }
             }
             // Account/FID recovery has already completed. If the separate
@@ -589,7 +544,8 @@ Item {
                 }
                 ActionButton {
                     Layout.fillWidth: true
-                    prominent: true
+                    prominent: !presentationBridge.writeReady
+                    positive: presentationBridge.writeReady
                     compact: true
                     objectName: "authorizeSelectedProtocolSigner"
                     // ActionButton already implements the App Center Neon rim
@@ -597,21 +553,23 @@ Item {
                     // network/custody operation is in flight.
                     busy: interactionAuthorizationDialog.authorizationSubmitted
                           && presentationBridge.signerBusy
+                    Accessible.description: busy
+                        ? qsTrId("genycaster.setup.signer_verification_title")
+                        : ""
                     iconGlyph: presentationBridge.writeReady ? Theme.iconCheck
                         : interactionAuthorizationDialog.nativeAccount || interactionAuthorizationDialog.enteringNativeWords
                           ? "" : Theme.iconArrowUpRight
                     text: presentationBridge.writeReady
                           ? qsTrId("genycaster.setup.signer_verified_title")
-                          : busy
-                            ? qsTrId("genycaster.setup.signer_verification_title")
-                            : interactionAuthorizationDialog.nativeAccount
+                          : interactionAuthorizationDialog.nativeAccount
                                 || interactionAuthorizationDialog.enteringNativeWords
-                              ? qsTrId("genycaster.shell.native_signer_authorize")
-                              : qsTrId("genycaster.shell.open_farcaster")
+                            ? qsTrId("genycaster.shell.native_signer_authorize")
+                            : qsTrId("genycaster.shell.open_farcaster")
                     enabled: !presentationBridge.signerBusy
                              && (presentationBridge.writeReady
-                                 || !interactionAuthorizationDialog.enteringNativeWords
-                                 || interactionAuthorizationDialog.recoveryReady())
+                                 || (!interactionAuthorizationDialog.authorizationSubmitted
+                                     && (!interactionAuthorizationDialog.enteringNativeWords
+                                         || interactionAuthorizationDialog.recoveryReady())))
                     onClicked: {
                         if (presentationBridge.writeReady) {
                             interactionAuthorizationDialog.close()
