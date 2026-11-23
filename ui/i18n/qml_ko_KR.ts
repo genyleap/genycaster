@@ -7032,6 +7032,10 @@ Genycaster는 계정 ID/FID, 프로토콜, 확인 상태, Farcaster 및 Genyleap
             <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
             <translation>신뢰할 수 있는 기기와 HTTPS 사이트에서 Farcaster 24단어 복구 구문만 사용하세요. 구문은 업로드하거나 저장하지 않습니다.</translation>
         </message>
+        <message id="genycaster.setup.recovery_use_24_words">
+            <source>Enter 24-word phrase</source>
+            <translation>24단어 복구 구문 입력</translation>
+        </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
             <translation>복구 단어로 계속하기</translation>

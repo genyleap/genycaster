@@ -7057,6 +7057,10 @@ FID، نام کاربری و پروفایل عمومی، کست‌ها، پاس�
             <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
             <translation>فقط عبارت بازیابی ۲۴ واژه‌ای فارکستر را در دستگاه مطمئن و سایت HTTPS وارد کنید. این عبارت هرگز ارسال یا ذخیره نمی‌شود.</translation>
         </message>
+        <message id="genycaster.setup.recovery_use_24_words">
+            <source>Enter 24-word phrase</source>
+            <translation>ورود عبارت ۲۴ واژه‌ای</translation>
+        </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
             <translation>ادامه با واژه‌های بازیابی</translation>

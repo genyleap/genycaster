@@ -7032,6 +7032,10 @@ Genycaster обрабатывает ID/FID, протокол, статус пр�
             <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
             <translation>Используйте только 24-словную фразу восстановления Farcaster на доверенном устройстве и сайте HTTPS. Фраза не отправляется и не сохраняется.</translation>
         </message>
+        <message id="genycaster.setup.recovery_use_24_words">
+            <source>Enter 24-word phrase</source>
+            <translation>Ввести фразу из 24 слов</translation>
+        </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
             <translation>Продолжить со словами восстановления</translation>

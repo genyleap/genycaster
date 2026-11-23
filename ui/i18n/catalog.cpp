@@ -1263,6 +1263,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_privacy");
     //% "Continue with recovery words"
     (void)qtTrId("genycaster.setup.recovery_button");
+    //% "Enter 24-word phrase"
+    (void)qtTrId("genycaster.setup.recovery_use_24_words");
     //% "Continuing with recovery words also requests a device signer for publishing and interactions. Account recovery can finish even while network authorization is pending."
     (void)qtTrId("genycaster.setup.recovery_automatic_signer_notice");
     //% "Recovery phrase — keep it private"

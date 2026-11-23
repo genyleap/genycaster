@@ -7032,6 +7032,10 @@ Genycaster は ID/FID、プロトコル、検証状態、Farcaster と Genyleap/
             <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
             <translation>信頼できる端末と HTTPS サイトで Farcaster の24語のリカバリーフレーズのみを使用してください。送信や保存はされません。</translation>
         </message>
+        <message id="genycaster.setup.recovery_use_24_words">
+            <source>Enter 24-word phrase</source>
+            <translation>24 語のフレーズを入力</translation>
+        </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
             <translation>リカバリーワードで続行</translation>

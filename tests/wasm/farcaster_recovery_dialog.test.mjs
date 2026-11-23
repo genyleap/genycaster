@@ -99,6 +99,49 @@ test('paste a complete 24-word phrase in numbered order',async()=>{
     assert.equal((await result).split(' ').length,24);
     assert.equal(pasted.every(word=>word.value===''),true);
 });
+test('Farcaster 12-word legacy paste disables slots 13–24 and securely recovers',async()=>{
+    const b=browser(),result=promptForFarcasterRecovery(b);
+    const grid=b.document.getElementById('genycaster-recovery-words');
+    const words=grid.children.map(cell=>cell.children[1]);
+    const vector=[...Array(11).fill('test'),'junk'];
+    words[4].dispatch('paste',{clipboardData:{getData:()=>vector.join(' ')}});
+    assert.deepEqual(words.slice(0,12).map(x=>x.value),vector);
+    assert.ok(words.slice(12).every(x=>x.disabled),'legacy phrase must disable slots 13–24');
+    const expand=b.document.getElementById('genycaster-recovery-expand-24');
+    assert.equal(expand.style.display,'inline-block');
+    const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
+    sheet.children.at(-1).children.at(-1).click();
+    assert.equal(await result,vector.join(' '));
+    assert.ok(words.every(x=>x.value===''),'all 24 sensitive inputs are wiped');
+});
+test('explicit 24-word override retains previous 12 words without accepting a truncated phrase',async()=>{
+    const b=browser(),result=promptForFarcasterRecovery(b);
+    const grid=b.document.getElementById('genycaster-recovery-words');
+    const words=grid.children.map(cell=>cell.children[1]);
+    const vector=[...Array(23).fill('abandon'),'art'];
+    words[0].dispatch('paste',{clipboardData:{getData:()=>vector.slice(0,12).join(' ')}});
+    const expand=b.document.getElementById('genycaster-recovery-expand-24');
+    expand.click();
+    assert.ok(words.slice(12).every(x=>!x.disabled),'24-word override re-enables all fields');
+    assert.deepEqual(words.slice(0,12).map(x=>x.value),vector.slice(0,12));
+    for(let i=12;i<24;i++)words[i].value=vector[i];
+    const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
+    sheet.children.at(-1).children.at(-1).click();
+    assert.equal(await result,vector.join(' '));
+});
+test('HyperSnap recovery does not auto-accept 12-word Farcaster phrases',async()=>{
+    const b=browser(),result=promptForFarcasterRecovery(b,null,null,{protocol:'hypersnap-v2'});
+    const grid=b.document.getElementById('genycaster-recovery-words');
+    const words=grid.children.map(cell=>cell.children[1]);
+    const phrase=[...Array(11).fill('test'),'junk'];
+    words[0].dispatch('paste',{clipboardData:{getData:()=>phrase.join(' ')}});
+    assert.ok(words.slice(12).every(x=>!x.disabled));
+    assert.equal(b.document.getElementById('genycaster-recovery-expand-24'),undefined);
+    const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
+    const cancel=sheet.children.at(-1).children[0];
+    cancel.click();
+    await assert.rejects(result,/cancelled/);
+});
 test('cancel clears every numbered input',async()=>{
     const b=browser(),result=promptForFarcasterRecovery(b);
     const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];

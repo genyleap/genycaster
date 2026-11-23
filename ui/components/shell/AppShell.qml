@@ -135,6 +135,28 @@ Item {
                                                    || Qt.platform.os === "ios"
         property bool showRecoveryWords: false
         property int recoveryRevision: 0
+        readonly property bool acceptsLegacy12: !nativeAccount && enteringNativeWords
+        property bool force24Words: false
+        property int activeWordCount: 24
+        function refreshRecoveryWordMode() {
+            if (distributingRecoveryWords) return
+            if (mobileRecoveryInput) {
+                const raw = String(nativeSignerPhraseInput.text || "").trim()
+                const words = raw ? raw.split(/\s+/) : []
+                activeWordCount = acceptsLegacy12 && words.length === 12 ? 12 : 24
+            } else {
+                let first12 = true
+                let trailing = false
+                for (let i = 0; i < 24; ++i) {
+                    const filled = recoveryWord(i).length > 0
+                    if (i < 12 && !filled) first12 = false
+                    if (i >= 12 && filled) trailing = true
+                }
+                activeWordCount = acceptsLegacy12 && !force24Words
+                    && first12 && !trailing ? 12 : 24
+            }
+            ++recoveryRevision
+        }
         function recoveryWord(index) {
             const input = nativeSignerWordGrid.itemAt(index)
             return input ? String(input.word || "").trim().toLowerCase() : ""
@@ -144,7 +166,7 @@ Item {
                 return String(nativeSignerPhraseInput.text || "")
                     .trim().toLowerCase().replace(/\s+/g, " ")
             const words = []
-            for (let i = 0; i < 24; ++i) words.push(recoveryWord(i))
+            for (let i = 0; i < activeWordCount; ++i) words.push(recoveryWord(i))
             return words.join(" ")
         }
         function recoveryReady() {
@@ -154,19 +176,26 @@ Item {
             if (mobileRecoveryInput) {
                 const phrase = recoveryPhrase()
                 const words = phrase.length > 0 ? phrase.split(" ") : []
-                return words.length === 24
+                return (words.length === 24
+                        || (acceptsLegacy12 && words.length === 12))
                     && words.every(word => /^[a-z]+$/.test(word))
             }
-            for (let i = 0; i < 24; ++i)
+            for (let i = 0; i < activeWordCount; ++i)
                 if (!/^[a-z]+$/.test(recoveryWord(i))) return false
+            for (let i = activeWordCount; i < 24; ++i)
+                if (recoveryWord(i).length > 0) return false
             return true
         }
         function clearRecoveryWords() {
+            distributingRecoveryWords = true
             nativeSignerPhraseInput.text = ""
             for (let i = 0; i < 24; ++i) {
                 const input = nativeSignerWordGrid.itemAt(i)
                 if (input) input.word = ""
             }
+            distributingRecoveryWords = false
+            force24Words = false
+            activeWordCount = 24
             showRecoveryWords = false
             ++recoveryRevision
         }
@@ -186,10 +215,22 @@ Item {
             if (words.length < 2 || words.length > 24) return
             // A complete phrase always starts at 01, regardless of which
             // numbered field received the clipboard event.
-            const offset = words.length === 24 ? 0 : start
+            const complete = words.length === 24
+                || (acceptsLegacy12 && words.length === 12)
+            const offset = complete ? 0 : start
             if (offset + words.length > 24) return
             distributingRecoveryWords = true
             try {
+                if (complete) {
+                    // Replace, never merge, a complete pasted phrase. This
+                    // removes stale word slots from prior recovery attempts.
+                    for (let i = 0; i < 24; ++i) {
+                        const field = nativeSignerWordGrid.itemAt(i)
+                        if (field) field.word = ""
+                    }
+                    force24Words = words.length === 24
+                    activeWordCount = words.length
+                }
                 for (let i = 0; i < words.length; ++i) {
                     const field = nativeSignerWordGrid.itemAt(offset + i)
                     if (field) field.word = words[i]
@@ -197,7 +238,7 @@ Item {
             } finally {
                 distributingRecoveryWords = false
             }
-            ++recoveryRevision
+            refreshRecoveryWordMode()
         }
         onOpened: {
             authorizationSubmitted = false
@@ -381,7 +422,7 @@ Item {
                                   | Qt.ImhNoAutoUppercase
                 onTextChanged: {
                     if (interactionAuthorizationDialog)
-                        ++interactionAuthorizationDialog.recoveryRevision
+                        interactionAuthorizationDialog.refreshRecoveryWordMode()
                 }
             }
             Item {
@@ -421,8 +462,9 @@ Item {
                                 objectName: "nativeSignerRecoveryWord" + (index + 1)
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: root.compact ? Theme.scaleUi(38) : Theme.scaleUi(44)
-                                enabled: !interactionAuthorizationDialog
-                                         || !interactionAuthorizationDialog.authorizationSubmitted
+                                enabled: index < interactionAuthorizationDialog.activeWordCount
+                                    && !interactionAuthorizationDialog.authorizationSubmitted
+                                opacity: index < interactionAuthorizationDialog.activeWordCount ? 1 : 0.38
                                 forceLeftToRight: true
                                 placeholderText: interactionAuthorizationDialog
                                                  && interactionAuthorizationDialog.authorizationSubmitted
@@ -437,7 +479,7 @@ Item {
                                                  + " " + (index + 1)
                                 onTextChanged: {
                                     if (!interactionAuthorizationDialog) return
-                                    ++interactionAuthorizationDialog.recoveryRevision
+                                    interactionAuthorizationDialog.refreshRecoveryWordMode()
                                     if (interactionAuthorizationDialog.distributingRecoveryWords
                                         || !/[\s,;|]/.test(text)) return
                                     // Defer until Qt finishes the clipboard/IME insertion.
@@ -456,7 +498,8 @@ Item {
                                     // Space/Return explicitly advances one word. Paste
                                     // must never advance focus to another numbered slot.
                                     if ((event.key === Qt.Key_Space || event.key === Qt.Key_Return)
-                                        && index < 23 && !/[\s,;|]/.test(recoveryWordInput.text)) {
+                                        && index < interactionAuthorizationDialog.activeWordCount - 1
+                                        && !/[\s,;|]/.test(recoveryWordInput.text)) {
                                         event.accepted = true
                                         const next = nativeSignerWordGrid.itemAt(index + 1)
                                         if (next) next.focusWord()
@@ -469,6 +512,22 @@ Item {
                             }
                         }
                     }
+                }
+            }
+            ActionButton {
+                objectName: "farcasterSignerRecoveryExpand24"
+                visible: interactionAuthorizationDialog.acceptsLegacy12
+                    && !interactionAuthorizationDialog.mobileRecoveryInput
+                    && interactionAuthorizationDialog.activeWordCount === 12
+                    && !interactionAuthorizationDialog.authorizationSubmitted
+                Layout.alignment: Qt.AlignRight
+                compact: true
+                quiet: true
+                text: qsTrId("genycaster.setup.recovery_use_24_words")
+                onClicked: {
+                    interactionAuthorizationDialog.force24Words = true
+                    interactionAuthorizationDialog.refreshRecoveryWordMode()
+                    nativeSignerWordGrid.itemAt(12)?.focusWord()
                 }
             }
             ActionButton {

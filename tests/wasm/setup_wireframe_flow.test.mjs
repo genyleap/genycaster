@@ -281,7 +281,9 @@ test('native desktop and mobile recovery use 24 styled secret word slots', () =>
   assert.match(setup,/objectName: "nativeRecoveryWordGrid"/);
   assert.match(setup,/id: recoveryWordRepeater\s+model: 24/);
   assert.match(setup,/columns: root.phone \? 2 : 4/);
-  assert.match(setup,/nativeRecoveryGrid\.completeWordCount === 24/);
+  assert.match(setup,/nativeRecoveryGrid\.completeWordCount === nativeRecoveryGrid\.activeWordCount/);
+  assert.match(setup,/nativeRecoveryGrid\.allowLegacy12/);
+  assert.match(setup,/objectName: "farcasterRecoveryExpand24"/);
   assert.match(setup,/property int completeWordCount: 0/);
   assert.match(setup,/onTextChanged: nativeRecoveryGrid\.refreshCompletion\(\)/);
   assert.match(setup,/function refreshCompletion\(\)/);
@@ -291,8 +293,8 @@ test('native desktop and mobile recovery use 24 styled secret word slots', () =>
   assert.match(source('ui/components/controls/GenyCheckRow.qml'),/Accessible\.role: Accessible\.CheckBox/);
   assert.match(source('ui/components/controls/GenyCheckRow.qml'),/fillColor: control\.checked \? Theme\.accent : Theme\.surface/);
   assert.doesNotMatch(setup,/id: recoveryField|CheckBox \{/);
-  assert.match(bridge,/bool exactly24Words\(const QString& phrase\)/);
-  assert.match(bridge,/!exactly24Words\(recoveryWords\)/);
+  assert.match(bridge,/bool validRecoveryWordCount\(const QString& phrase, const bool allowTwelve\)/);
+  assert.match(bridge,/!validRecoveryWordCount\(recoveryWords, m_farcasterRecoveryRequest\)/);
   for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
                          'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
     const translation=source('ui/i18n/qml_'+locale+'.ts');

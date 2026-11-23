@@ -38,14 +38,15 @@ export async function validateRecoveryWords(phrase){
     invariant(typeof phrase==='string' && phrase.length>0 && phrase.length<4096,'invalid input size');
     const normalized=phrase.normalize('NFKD').toLowerCase().trim();
     const words=normalized.split(/\s+/u);
-    invariant(words.length===24,'enter a 24-word Farcaster recovery phrase');
+    invariant(words.length===12||words.length===24,
+        'enter a 12- or 24-word Farcaster recovery phrase');
     let bits='';
     for(const word of words){
         const index=wordToIndex.get(word);
         invariant(index!==undefined,'unrecognized BIP39 recovery word');
         bits+=index.toString(2).padStart(11,'0');
     }
-    const entropySize=words.length/3*4; // 256 bits
+    const entropySize=words.length/3*4; // 128 or 256 bits
     const entropyBits=bits.slice(0,entropySize*8);
     const checkBits=bits.slice(entropySize*8);
     const entropy=Uint8Array.from({length:entropySize},(_,i)=>parseInt(entropyBits.slice(i*8,i*8+8),2));

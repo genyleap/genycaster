@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 import {createStickerPreviews,previewEntry} from '../sticker_previews.mjs';
 
 test('only pinned public catalogue IDs may request a preview',()=>{
@@ -53,9 +53,14 @@ test('the gateway exposes a strict ID-only, public raster preview route',()=>{
   assert.match(source,/requestUrl\.searchParams\.size!==1 \|\| !previewEntry\(id\)/);
   assert.match(source,/const result=await stickerPreviews\.get\(id\)/);
   assert.match(source,/'content-type':'image\/png'/);
-  const cpp=readFileSync(new URL('../../../ui/app/identity/connections.cpp',import.meta.url),'utf8');
-  assert.match(cpp,/stickerPreviewBaseUrl\(\) const/);
-  const picker=readFileSync(new URL('../../../ui/components/composer/StickerPicker.qml',import.meta.url),'utf8');
-  assert.match(picker,/root\.stickerDisplayUrl\(modelData\.id\)/);
-  assert.match(picker,/needsPreviewCompatibility: Qt\.platform\.os === "wasm"/);
+  // Client UI is checked by the root repository contract tests. A gateway
+  // Docker build deliberately contains only server files and cannot read UI.
+  const uiRoot=new URL('../../../ui/app/identity/connections.cpp',import.meta.url);
+  if (existsSync(uiRoot)) {
+    const cpp=readFileSync(uiRoot,'utf8');
+    assert.match(cpp,/stickerPreviewBaseUrl\(\) const/);
+    const picker=readFileSync(new URL('../../../ui/components/composer/StickerPicker.qml',import.meta.url),'utf8');
+    assert.match(picker,/root\.stickerDisplayUrl\(modelData\.id\)/);
+    assert.match(picker,/needsPreviewCompatibility: Qt\.platform\.os === "wasm"/);
+  }
 });

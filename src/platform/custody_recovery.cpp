@@ -1099,7 +1099,8 @@ makeOneShotRecoveryAuthorizer(const std::string_view phrase,
             inWord = true;
         }
     }
-    if (wordCount != 24) return std::unexpected(Error::InvalidWordCount);
+    if (wordCount != 12 && wordCount != 24)
+        return std::unexpected(Error::InvalidWordCount);
     auto custody = deriveMaterial(phrase);
     if (!custody) return std::unexpected(custody.error());
     const auto expected = parseHex(verifiedCustodyAddress, 20);

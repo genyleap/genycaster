@@ -7032,6 +7032,10 @@ Genycaster 处理账户 ID/FID、协议、验证状态以及 Farcaster 与 Genyl
             <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
             <translation>请仅在可信设备及 HTTPS 网站上使用您的 24 词 Farcaster 恢复短语。短语不会上传或保存。</translation>
         </message>
+        <message id="genycaster.setup.recovery_use_24_words">
+            <source>Enter 24-word phrase</source>
+            <translation>输入 24 个单词的短语</translation>
+        </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
             <translation>使用恢复词继续</translation>

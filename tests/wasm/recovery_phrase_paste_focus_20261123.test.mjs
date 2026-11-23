@@ -30,7 +30,17 @@ function createHarness(){
     const context={
         distributingRecoveryWords:false,
         recoveryRevision:0,
-        nativeSignerWordGrid:{itemAt:i=>fields[i]||null}
+        acceptsLegacy12:false,
+        force24Words:false,
+        activeWordCount:24,
+        nativeSignerWordGrid:{itemAt:i=>fields[i]||null},
+        refreshRecoveryWordMode(){
+            const first12=fields.slice(0,12).every(x=>x.word.length>0);
+            const trailing=fields.slice(12).some(x=>x.word.length>0);
+            context.activeWordCount=context.acceptsLegacy12 && !context.force24Words
+                && first12 && !trailing ? 12 : 24;
+            ++context.recoveryRevision;
+        }
     };
     distribute=vm.runInNewContext('('+implementation+')',context);
     return {fields,context,distribute,get focusCalls(){return focusCalls;}};
@@ -61,6 +71,23 @@ test('partial native clipboard entry stays in the chosen field instead of jumpin
     overflow.distribute(23,'abandon ability able');
     assert.equal(overflow.fields[23].word,'');
     assert.equal(overflow.focusCalls,0);
+});
+
+test('legacy Farcaster clipboard with exactly 12 words disables 13–24 while 24 remains available',()=>{
+    const h=createHarness();
+    h.context.acceptsLegacy12=true;
+    const phrase=[...Array(11).fill('test'),'junk'];
+    h.distribute(4,phrase.map((word,i)=>String(i+1).padStart(2,'0')+'. '+word).join('\n'));
+    assert.deepEqual(h.fields.slice(0,12).map(f=>f.word),phrase);
+    assert.deepEqual(h.fields.slice(12).map(f=>f.word),Array(12).fill(''));
+    assert.equal(h.context.activeWordCount,12);
+    assert.equal(h.focusCalls,0);
+    h.context.force24Words=true;
+    h.context.refreshRecoveryWordMode();
+    assert.equal(h.context.activeWordCount,24);
+    h.distribute(0,[...Array(23).fill('abandon'),'art'].join(' '));
+    assert.equal(h.context.activeWordCount,24);
+    assert.equal(h.fields[23].word,'art');
 });
 
 test('native secret editor defers paste processing until Qt settles the edit',()=>{

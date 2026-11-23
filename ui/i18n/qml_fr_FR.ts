@@ -7033,6 +7033,10 @@ Cette politique décrit le fonctionnement prévu, sans promettre les pratiques d
             <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
             <translation>Utilisez uniquement votre phrase de récupération Farcaster de 24 mots sur un appareil fiable et un site HTTPS. Elle n’est jamais envoyée ni stockée.</translation>
         </message>
+        <message id="genycaster.setup.recovery_use_24_words">
+            <source>Enter 24-word phrase</source>
+            <translation>Saisir une phrase de 24 mots</translation>
+        </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
             <translation>Continuer avec les mots de récupération</translation>

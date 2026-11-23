@@ -60,7 +60,7 @@ EM_JS(void, closeGenycasterSetupApproval, (), {
 import farcaster.application.configuration;
 
 namespace {
-bool exactly24Words(const QString& phrase)
+bool validRecoveryWordCount(const QString& phrase, const bool allowTwelve)
 {
     int count{0};
     bool inWord{false};
@@ -72,7 +72,7 @@ bool exactly24Words(const QString& phrase)
             inWord = true;
         }
     }
-    return count == 24;
+    return count == 24 || (allowTwelve && count == 12);
 }
 
 constexpr int kInitialSetupVersion = 4;
@@ -3251,10 +3251,10 @@ void PresentationBridge::beginNativeFarcasterRecoverySetup(
 void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
 {
     // Count without allocating another copy of sensitive recovery material.
-    // Recovery input must contain exactly 24 words on every supported target.
+    // Farcaster legacy custody may use 12 BIP39 words; HyperSnap remains 24.
     if (!m_legalConsentAccepted || !m_runtimeReady || m_isAuthenticated
         || authenticationBusy() || recoveryWords.size() > 4095
-        || !exactly24Words(recoveryWords)) {
+        || !validRecoveryWordCount(recoveryWords, m_farcasterRecoveryRequest)) {
         recoveryWords.fill(QChar{char16_t{0}});
         if (!m_legalConsentAccepted)
             applyAuthenticationError(qtTrId("genycaster.setup.legal_required_before_sign_in"));
@@ -3350,7 +3350,9 @@ void PresentationBridge::authorizeNativeFarcasterSigner(QString recoveryWords)
 bool PresentationBridge::beginSignerRecovery(QString& recoveryWords)
 {
     if (!m_runtimeReady || !m_isAuthenticated || m_signerBusy || m_writeReady
-        || recoveryWords.size() > 4095 || !exactly24Words(recoveryWords)) {
+        || recoveryWords.size() > 4095
+        || !validRecoveryWordCount(recoveryWords,
+            !nativeCustodyAccount() && m_accountFid < (1ULL << 32))) {
         recoveryWords.fill(QChar{});
         if (m_isAuthenticated && !m_signerBusy && !m_writeReady) {
             m_signerErrorText = qtTrId("genycaster.setup.recovery_failed_retry");

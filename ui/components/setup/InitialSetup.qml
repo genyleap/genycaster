@@ -3471,7 +3471,7 @@ Item {
                     }
                     DirectionAwareLabel {
                         text: LocaleFormat.localizeDigits(nativeRecoveryGrid.completeWordCount
-                                                          + " / 24")
+                                                          + " / " + nativeRecoveryGrid.activeWordCount)
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightMedium
@@ -3483,17 +3483,39 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: recoveryWordLayout.implicitHeight
                     property bool distributing: false
-                    // Qt cannot track dynamically indexed Repeater children inside
-                    // a function binding. Publish the count on every field change.
+                    // Farcaster legacy custody can be 12-word BIP39. HyperSnap
+                    // recovery and interrupted native registration stay 24.
+                    readonly property bool allowLegacy12:
+                        root.recoveryProtocol === "farcaster-snapchain"
+                        && !root.resumingRegistration
+                    property bool userRequested24: false
+                    property int activeWordCount: 24
+                    // Explicit revision avoids dynamic Repeater binding loops.
                     property int completeWordCount: 0
                     function refreshCompletion() {
-                        completeWordCount = countWords()
+                        if (distributing) return
+                        const count = countWords()
+                        let first12 = true
+                        let trailing = false
+                        for (let i = 0; i < 24; ++i) {
+                            const field = recoveryWordRepeater.itemAt(i)
+                            const filled = field && field.text.trim().length > 0
+                            if (i < 12 && !filled) first12 = false
+                            if (i >= 12 && filled) trailing = true
+                        }
+                        activeWordCount = allowLegacy12 && !userRequested24
+                            && first12 && !trailing ? 12 : 24
+                        completeWordCount = count
                     }
                     function clearAll() {
+                        distributing = true
                         for (let i = 0; i < 24; ++i) {
                             const field = recoveryWordRepeater.itemAt(i)
                             if (field) field.clear()
                         }
+                        distributing = false
+                        userRequested24 = false
+                        activeWordCount = 24
                         completeWordCount = 0
                         revealWords.checked = false
                     }
@@ -3506,8 +3528,8 @@ Item {
                         return result
                     }
                     function phrase() {
-                        let result = []
-                        for (let i = 0; i < 24; ++i) {
+                        const result = []
+                        for (let i = 0; i < activeWordCount; ++i) {
                             const field = recoveryWordRepeater.itemAt(i)
                             if (field) result.push(field.text.trim().toLowerCase())
                         }
@@ -3516,11 +3538,25 @@ Item {
                         return text
                     }
                     function distribute(raw, offset) {
-                        const words = String(raw).trim().toLowerCase().split(/\s+/).filter(Boolean)
+                        const words = String(raw).trim().toLowerCase()
+                            .split(/\s+/).filter(Boolean)
                         if (words.length === 0) return
+                        const complete = words.length === 24
+                            || (allowLegacy12 && words.length === 12)
+                        const start = complete ? 0 : offset
+                        if (start < 0 || start + words.length > 24) return
                         distributing = true
-                        const start = words.length === 24 ? 0 : offset
-                        for (let i = 0; i < words.length && start + i < 24; ++i) {
+                        if (complete) {
+                            // A new complete 12-word paste must not inherit
+                            // stale words 13-24 from a prior attempt.
+                            for (let i = 0; i < 24; ++i) {
+                                const field = recoveryWordRepeater.itemAt(i)
+                                if (field) field.text = ""
+                            }
+                            userRequested24 = words.length === 24
+                            activeWordCount = words.length
+                        }
+                        for (let i = 0; i < words.length; ++i) {
                             const field = recoveryWordRepeater.itemAt(start + i)
                             if (field) field.text = words[i].replace(/[^a-z]/g, "")
                         }
@@ -3528,8 +3564,10 @@ Item {
                         words.fill("")
                         distributing = false
                         refreshCompletion()
-                        if (start === 0 && completeWordCount === 24) revealWords.forceActiveFocus()
-                        else recoveryWordRepeater.itemAt(Math.min(23, start + pastedCount))?.forceActiveFocus()
+                        if (complete && completeWordCount === activeWordCount)
+                            revealWords.forceActiveFocus()
+                        else recoveryWordRepeater.itemAt(
+                            Math.min(activeWordCount - 1, start + pastedCount))?.forceActiveFocus()
                     }
                     onVisibleChanged: if (!visible) clearAll()
                     GridLayout {
@@ -3553,7 +3591,9 @@ Item {
                                 maximumLength: 4095
                                 echoMode: revealWords.checked ? TextInput.Normal : TextInput.Password
                                 inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
-                                enabled: !root.authenticationInProgress && !root.recoverySubmitPending
+                                enabled: index < nativeRecoveryGrid.activeWordCount
+                                    && !root.authenticationInProgress && !root.recoverySubmitPending
+                                opacity: index < nativeRecoveryGrid.activeWordCount ? 1 : 0.38
                                 horizontalAlignment: TextInput.AlignLeft
                                 color: Theme.ink
                                 font.pixelSize: Theme.typeBodySize
@@ -3605,7 +3645,7 @@ Item {
                                 }
                                 Keys.onPressed: function(event) {
                                     if ((event.key === Qt.Key_Space || event.key === Qt.Key_Return)
-                                        && index < 23) {
+                                        && index < nativeRecoveryGrid.activeWordCount - 1) {
                                         recoveryWordRepeater.itemAt(index + 1)?.forceActiveFocus()
                                         event.accepted = true
                                     } else if (event.key === Qt.Key_Backspace && !text && index > 0) {
@@ -3614,6 +3654,20 @@ Item {
                                 }
                             }
                         }
+                    }
+                }
+                ActionButton {
+                    objectName: "farcasterRecoveryExpand24"
+                    visible: nativeRecoveryGrid.allowLegacy12
+                        && nativeRecoveryGrid.activeWordCount === 12
+                    Layout.alignment: Qt.AlignRight
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.setup.recovery_use_24_words")
+                    onClicked: {
+                        nativeRecoveryGrid.userRequested24 = true
+                        nativeRecoveryGrid.refreshCompletion()
+                        recoveryWordRepeater.itemAt(12)?.forceActiveFocus()
                     }
                 }
                 // Recovery choices form one aligned vertical control group.
@@ -3686,7 +3740,7 @@ Item {
                     text: qsTrId("genycaster.setup.recovery_button")
                     enabled: root.runtimeReady && !root.authenticationInProgress
                           && !root.recoverySubmitPending
-                          && nativeRecoveryGrid.completeWordCount === 24
+                          && nativeRecoveryGrid.completeWordCount === nativeRecoveryGrid.activeWordCount
                     onClicked: {
                         let words = nativeRecoveryGrid.phrase()
                         // Submitting the recovery phrase is the deliberate

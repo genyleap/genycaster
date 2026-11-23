@@ -10,7 +10,9 @@ test('BIP39 checksum rejects invalid or malformed recovery phrases',async()=>{
     await assert.rejects(validateRecoveryWords('abandon '.repeat(23)+'abandon'),/checksum/);
     await assert.rejects(validateRecoveryWords('valid valid valid'),/24-word/);
     await assert.rejects(validateRecoveryWords('abandon '.repeat(23)+'notaword'),/unrecognized/);
-    await assert.rejects(validateRecoveryWords('test '.repeat(11)+'junk'),/24-word/);
+    assert.equal(await validateRecoveryWords('test '.repeat(11)+'junk'),'test '.repeat(11)+'junk');
+    await assert.rejects(validateRecoveryWords('abandon '.repeat(11)+'abandon'),/checksum/);
+    await assert.rejects(validateRecoveryWords('abandon '.repeat(10)+'about'),/12- or 24-word/);
 });
 test('BIP44 Ethereum custody derivation supports the 24-word BIP39 vector',async()=>{
     const wallet=await deriveFarcasterCustody(phrase);
@@ -41,6 +43,19 @@ test('24-word BIP39 recovery supports official zero-entropy vector',async()=>{
     assert.match(wallet.address,/^0x[0-9a-f]{40}$/);
     wallet.dispose();
 });
+test('legacy 12-word BIP39 recovery preserves the canonical Farcaster custody address',async()=>{
+    const legacy='test '.repeat(11)+'junk';
+    const zero='abandon '.repeat(11)+'about';
+    assert.equal(await validateRecoveryWords(legacy),legacy);
+    assert.equal(await validateRecoveryWords(zero),zero);
+    const signer=await deriveFarcasterCustody(legacy);
+    try {
+        assert.equal(signer.address,'0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266');
+    } finally { signer.dispose(); }
+    await assert.rejects(validateRecoveryWords('abandon '.repeat(11)+'abandon'),/checksum/);
+    await assert.rejects(validateRecoveryWords('test '.repeat(10)+'junk'),/12- or 24-word/);
+});
+
 test('disposed ephemeral custody key can no longer authorize new messages',async()=>{
     const wallet=await deriveFarcasterCustody(phrase);
     const document=keyAddTypedData({fid:'42',publicKeyHex:'fe'.repeat(32),

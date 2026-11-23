@@ -7032,6 +7032,10 @@ This notice describes the product's current intended data flows, not a guarantee
             <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
             <translation>استخدم فقط عبارة استرداد Farcaster المكوّنة من 24 كلمة على جهاز موثوق وموقع HTTPS. لا تُرفع العبارة ولا تُخزّن.</translation>
         </message>
+        <message id="genycaster.setup.recovery_use_24_words">
+            <source>Enter 24-word phrase</source>
+            <translation>إدخال عبارة من 24 كلمة</translation>
+        </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
             <translation>المتابعة باستخدام كلمات الاسترداد</translation>

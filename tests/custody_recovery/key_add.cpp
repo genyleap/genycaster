@@ -57,7 +57,15 @@ int main()
     const auto shortPhrase = makeOneShotRecoveryAuthorizer(
         "test test test test test test test test test test test junk",
         "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266", 42);
-    assert(!shortPhrase);
+    assert(shortPhrase && *shortPhrase);
+    const auto elevenWords = makeOneShotRecoveryAuthorizer(
+        "test test test test test test test test test test junk",
+        "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266", 42);
+    assert(!elevenWords);
+    const auto wrongTwelveAddress = makeOneShotRecoveryAuthorizer(
+        "test test test test test test test test test test test junk",
+        ValidAddress, 42);
+    assert(!wrongTwelveAddress);
     const auto wrongFid = makeOneShotRecoveryAuthorizer(KnownMnemonic, ValidAddress, 43);
     assert(wrongFid);
     assert(!(*wrongFid)->authorize(request()));
