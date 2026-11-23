@@ -6,9 +6,10 @@ import "StickerCatalog.js" as StickerCatalog
 
 NeonCard {
     id: root
-    interactive: true
-    ambientNeon: true
-    neonStrength: Theme.neonPanelStrength
+    // Attachments are content, not a stack of framed cards.
+    interactive: false
+    ambientNeon: false
+    neonStrength: 0
 
     property int blockIndex: -1
     property int maxAttachments: 1
@@ -68,7 +69,8 @@ NeonCard {
                 source: root.inspectedImageUrl
                 mediaType: root.inspectedMediaType
                 fitImage: true
-                imageDecodeEdge: 2048
+                fullQualityImage: true
+                minimalChrome: true
                 interactive: false
                 showBorder: false
                 curveDepth: Theme.curveContainer
@@ -91,7 +93,9 @@ NeonCard {
                 mediaType: String(block.mediaType || metadata.mediaType || ""),
                 altText: String(block.altText || ""),
                 fileName: String(metadata.fileName || root.fileNameFromUrl(url)),
-                previewUrl: String(metadata.localPreviewUrl || url),
+                // The selected-file JPEG thumbnail (96px) is used only while
+                // transferring. After upload, decode the canonical image.
+                previewUrl: url,
                 sizeBytes: Number(metadata.sizeBytes || 0),
                 originalSizeBytes: Number(metadata.originalSizeBytes || metadata.sizeBytes || 0),
                 sticker: StickerCatalog.isStickerUrl(url)
@@ -166,19 +170,20 @@ NeonCard {
         return qsTrId("genycaster.media.upload_failed")
     }
 
-    fillColor: Theme.surface
-    borderWidth: 1
-    borderColor: Theme.borderMuted
+    fillColor: "transparent"
+    borderWidth: 0
+    borderColor: "transparent"
     curveDepth: Theme.curveLarge
-    implicitHeight: contentColumn.implicitHeight + Theme.space4 * 2
+    implicitHeight: contentColumn.implicitHeight
 
     ColumnLayout {
         id: contentColumn
         anchors.fill: parent
-        anchors.margins: Theme.space4
+        anchors.margins: 0
         spacing: Theme.space2
 
         RowLayout {
+            visible: !root.hasAttachedMedia || root.hasTransientUpload || root.hasQueue
             Layout.fillWidth: true
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
@@ -498,218 +503,119 @@ NeonCard {
         ColumnLayout {
             visible: root.hasAttachedMedia
             Layout.fillWidth: true
-            spacing: Theme.space2
+            spacing: Theme.space1
 
-            Repeater {
-                model: root.regularAttachedMedia
-
-                delegate: Superellipse {
-                    required property var modelData
-
-                    // On phones the thumbnail gallery below is the primary
-                    // attachment UI. Avoid showing every image twice.
-                    visible: root.width >= 620
-                    Layout.fillWidth: true
-                    implicitHeight: visible ? 52 : 0
-                    fillColor: rowHover.hovered ? Theme.surfaceHover : Theme.surfaceMuted
-                    borderWidth: 1
-                    borderColor: Theme.borderMuted
-                    curveDepth: Theme.curveControl
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: Theme.space2
-                        layoutDirection: Theme.uiDirection
-                        spacing: Theme.space2
-
-                        Superellipse {
-                            Layout.preferredWidth: 34
-                            Layout.preferredHeight: 34
-                            fillColor: Theme.surface
-                            borderWidth: 1
-                            borderColor: Theme.borderMuted
-                            curveDepth: Theme.curveCompact
-
-                            Icon {
-                                anchors.centerIn: parent
-                                text: String(modelData.mediaType || "").startsWith("video/")
-                                      ? Theme.iconPlay : Theme.iconImage
-                                color: Theme.inkMuted
-                                preferredSize: Theme.typeCaptionSize
-                            }
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: modelData.fileName
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeLabelSize
-                                elide: Text.ElideMiddle
-                                forceLeftToRight: true
-                            }
-
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                // Show *actual* bytes persisted in QStorage,
-                                // with savings only when the signed gateway
-                                // reported a smaller canonical object.
-                                text: root.savingsText(modelData.originalSizeBytes, modelData.sizeBytes).length > 0
-                                    ? root.formatBytes(modelData.originalSizeBytes)
-                                      + " → " + root.formatBytes(modelData.sizeBytes)
-                                      + " · " + root.savingsText(modelData.originalSizeBytes, modelData.sizeBytes)
-                                    : root.formatBytes(modelData.sizeBytes)
-                                      + (modelData.sizeBytes > 0 ? " · " : "")
-                                      + (String(modelData.mediaType || "").startsWith("image/")
-                                         ? qsTrId("genycaster.embed.image") : qsTrId("genycaster.embed.video"))
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                            }
-                        }
-
-                        ActionButton {
-                            quiet: true
-                            compact: true
-                            iconOnly: true
-                            iconGlyph: Theme.iconArrowUpRight
-                            Accessible.name: qsTrId("genycaster.embed.open_link")
-                            onClicked: presentationBridge.openExternalUrl(String(modelData.url || ""))
-                        }
-
-                        ActionButton {
-                            quiet: true
-                            compact: true
-                            destructive: true
-                            iconOnly: true
-                            iconGlyph: Theme.iconClose
-                            Accessible.name: qsTrId("genycaster.shell.close")
-                            onClicked: richComposer.removeBlock(Number(modelData.blockIndex))
-                        }
-                    }
-
-                    HoverHandler { id: rowHover }
-                }
-            }
-
+            // One media strip is the canonical attachment presentation.
+            // No duplicate "Image / Media" document card, framed metadata
+            // row, thumbnail-only preview or on-image size badge.
             Flickable {
+                objectName: "composerOriginalImageStrip"
                 Layout.fillWidth: true
-                // A 244px-wide card makes small Stats text unreadable. Show a
-                // real, aspect-preserving image preview with a 1024px decode
-                // budget, rather than treating authored artwork as a thumbnail.
-                Layout.preferredHeight: root.width < 620 ? 276 : 326
+                Layout.preferredHeight: root.width < 620 ? 294 : 360
                 clip: true
-                contentWidth: thumbnailRow.width
+                contentWidth: attachmentStrip.width
                 contentHeight: height
                 boundsBehavior: Flickable.StopAtBounds
                 flickableDirection: Flickable.HorizontalFlick
 
                 Row {
-                    id: thumbnailRow
+                    id: attachmentStrip
                     height: parent.height
-                    spacing: Theme.space2
+                    spacing: Theme.space3
 
                     Repeater {
                         model: root.regularAttachedMedia
 
                         delegate: Item {
                             required property var modelData
-                            width: root.width < 620
-                                ? Math.max(210, Math.min(root.width - 42, 460))
-                                : Math.min(Math.max(350, root.width - 40), 490)
-                            height: root.width < 620 ? 264 : 316
+                            width: Math.max(210, Math.min(root.width - 4,
+                                root.width < 620 ? 455 : 540))
+                            height: attachmentStrip.height
 
                             MediaPreview {
-                                anchors.fill: parent
-                                anchors.topMargin: Theme.space1
+                                id: attachedPreview
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                height: parent.height - 42
+                                // The attached URL is already the canonical
+                                // published image. Decode original pixels,
+                                // never the transient 96px selection JPEG.
                                 source: modelData.previewUrl
                                 mediaType: modelData.mediaType
                                 fitImage: true
-                                imageDecodeEdge: 1024
-                                curveDepth: Theme.curveControl
+                                fullQualityImage: String(modelData.mediaType || "").startsWith("image/")
+                                minimalChrome: true
+                                showBorder: false
+                                fillColor: "transparent"
                                 interactive: String(modelData.mediaType || "").startsWith("video/")
                                 primeVideoFrame: false
                             }
 
-                            // The inline editor preview stays large and sharp.
-                            // A direct tap opens the complete image for
-                            // inspecting fine print before posting.
-                            TapHandler {
+                            MouseArea {
+                                anchors.fill: attachedPreview
                                 enabled: String(modelData.mediaType || "").startsWith("image/")
-                                gesturePolicy: TapHandler.ReleaseWithinBounds
-                                onTapped: root.inspectImage(modelData)
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.inspectImage(modelData)
                             }
 
-                            Superellipse {
-                                anchors.top: parent.top
-                                anchors.right: parent.right
-                                width: 26
-                                height: 26
-                                fillColor: Theme.surface
-                                borderWidth: 1
-                                borderColor: Theme.borderMuted
-                                curveDepth: 13
-                                exponent: 2.01
-
-                                Icon {
-                                    anchors.centerIn: parent
-                                    text: Theme.iconClose
-                                    color: Theme.inkMuted
-                                    preferredSize: Theme.typeCaptionSize
-                                }
-
-                                TapHandler {
-                                    gesturePolicy: TapHandler.ReleaseWithinBounds
-                                    onTapped: richComposer.removeBlock(Number(modelData.blockIndex))
-                                }
-                            }
-
-                            Superellipse {
+                            RowLayout {
                                 anchors.left: parent.left
+                                anchors.right: parent.right
                                 anchors.bottom: parent.bottom
-                                anchors.leftMargin: Theme.space1
-                                anchors.bottomMargin: Theme.space1
-                                visible: modelData.sizeBytes > 0
-                                implicitWidth: sizeLabel.implicitWidth + Theme.space2
-                                implicitHeight: sizeLabel.implicitHeight + Theme.space1
-                                fillColor: Theme.mediaOverlay
-                                curveDepth: Theme.curveCompact
+                                height: 34
+                                spacing: Theme.space2
 
-                                Label {
-                                    id: sizeLabel
-                                    anchors.centerIn: parent
-                                    text: root.formatBytes(modelData.sizeBytes)
-                                    color: Theme.ink
-                                    font.family: Theme.latinFontFamily
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: String(modelData.fileName || "")
                                     font.pixelSize: Theme.typeCaptionSize
+                                    color: Theme.ink
+                                    elide: Text.ElideMiddle
+                                    forceLeftToRight: true
+                                }
+
+                                DirectionAwareLabel {
+                                    visible: Number(modelData.sizeBytes || 0) > 0
+                                    text: root.savingsText(modelData.originalSizeBytes,
+                                                          modelData.sizeBytes).length > 0
+                                        ? root.formatBytes(modelData.originalSizeBytes)
+                                          + " → " + root.formatBytes(modelData.sizeBytes)
+                                          + " · " + root.savingsText(
+                                                modelData.originalSizeBytes, modelData.sizeBytes)
+                                        : root.formatBytes(modelData.sizeBytes)
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    forceLeftToRight: true
+                                }
+
+                                ActionButton {
+                                    quiet: true
+                                    compact: true
+                                    iconOnly: true
+                                    iconGlyph: Theme.iconClose
+                                    Accessible.name: qsTrId("genycaster.composer.remove_block")
+                                    onClicked: richComposer.removeBlock(Number(modelData.blockIndex))
                                 }
                             }
                         }
                     }
 
-                    Superellipse {
-                        width: 88
-                        height: 88
-                        fillColor: plusHover.hovered ? Theme.surfaceHover : Theme.surfaceMuted
-                        borderWidth: 1
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveControl
+                    Item {
+                        visible: mediaUpload.available && !mediaUpload.busy
+                            && root.attachedMedia.length + root.queuedFiles.length < root.maxAttachments
+                        width: visible ? 42 : 0
+                        height: parent.height
 
-                        Icon {
-                            anchors.centerIn: parent
-                            text: Theme.iconPlus
-                            color: Theme.ink
-                            preferredSize: Theme.typeBodySize
-                        }
-
-                        HoverHandler { id: plusHover }
-                        TapHandler {
-                            enabled: mediaUpload.available && !mediaUpload.busy
-                    && root.attachedMedia.length + root.queuedFiles.length < root.maxAttachments
-                            gesturePolicy: TapHandler.ReleaseWithinBounds
-                            onTapped: root.browseRequested(root.blockIndex)
+                        ActionButton {
+                            anchors.top: parent.top
+                            anchors.topMargin: Theme.space2
+                            quiet: true
+                            compact: true
+                            iconOnly: true
+                            iconGlyph: Theme.iconPlus
+                            Accessible.name: qsTrId("genycaster.media.choose_file")
+                            onClicked: root.browseRequested(root.blockIndex)
                         }
                     }
                 }

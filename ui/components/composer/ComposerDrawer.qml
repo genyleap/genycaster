@@ -1575,11 +1575,11 @@ GenyDrawer {
             const nextMetadata = Object.assign({}, root.mediaMetadata)
             nextMetadata[canonicalUrl] = {
                 fileName: mediaUpload.fileName,
-                // Generated Stats thumbnails are temporary local PNGs.
-                // Their source file is released after successful attachment;
-                // preview the durable asset instead of a dead file:// URL.
-                localPreviewUrl: root.statsImageFileUrl.length > 0
-                      ? canonicalUrl : mediaUpload.localPreviewUrl.toString(),
+                // Use the actual canonical image at its full fidelity, not
+                // the browser's transient 96px JPEG selection thumbnail.
+                // Generated Stats file:// URLs are intentionally transient;
+                // uploaded media always displays its published original.
+                localPreviewUrl: canonicalUrl,
                 mediaType: String(mediaType || mediaUpload.selectedContentType || ""),
                 sizeBytes: Number(mediaUpload.totalBytes || 0),
                 originalSizeBytes: Number(mediaUpload.sourceBytes || mediaUpload.totalBytes || 0)
@@ -2101,7 +2101,11 @@ GenyDrawer {
                                                    // Use the wrapped text's actual height. Content
                                                    // exceeding the viewport scrolls in composerScroll.
                                                    ? Math.max(255, visualEditor.naturalSingleParagraphHeight)
-                                                   : Math.max(128, Math.min(255, root.height * 0.4)))
+                                                   : root.editorMode === "visual"
+                                                     && root.attachedMediaCount > 0
+                                                     && !root.hasMeaningfulText(richComposer.safeText)
+                                                     ? 132
+                                                     : Math.max(128, Math.min(255, root.height * 0.4)))
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
                                       : root.threadMode

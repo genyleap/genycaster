@@ -22,6 +22,10 @@ Item {
     // Explicit full-fidelity decode budget for authored media inspection.
     // Feed tiles keep their adaptive (often smaller) decode policy.
     property int imageDecodeEdge: 0
+    // Composer-only: show the uploaded canonical image at intrinsic quality,
+    // not the 96px JPEG emitted for the in-flight selection indicator.
+    property bool fullQualityImage: false
+    property bool minimalChrome: false
     property color fillColor: Theme.surfaceMuted
     property bool primeVideoFrame: false
     property bool showFailureText: width >= 180
@@ -33,7 +37,10 @@ Item {
     readonly property bool hasSource: root.source.toString().length > 0
     readonly property bool videoPlaying: videoCore.playing
     readonly property bool failed: root.hasSource
-                                   && (root.isImage ? imagePreview.loadFailed
+                                   && (root.isImage
+                                       ? (root.fullQualityImage
+                                           ? fullImage.status === Image.Error && imagePreview.loadFailed
+                                           : imagePreview.loadFailed)
                                        : root.isVideo ? videoCore.failed : true)
 
     clip: false
@@ -46,7 +53,8 @@ Item {
     AmbientMediaBackdrop {
         anchors.fill: parent
         sourceItem: imagePreview.renderItem
-        active: root.isImage && imagePreview.ready && !root.failed
+        active: !root.minimalChrome && !root.fullQualityImage
+                && root.isImage && imagePreview.ready && !root.failed
         spread: 11
         strength: Theme.dark ? 0.82 : 0.70
         blurStrength: 0.86
@@ -56,8 +64,8 @@ Item {
 
     Superellipse {
         anchors.fill: parent
-        fillColor: root.fillColor
-        borderWidth: root.showBorder ? 1 : 0
+        fillColor: root.minimalChrome ? "transparent" : root.fillColor
+        borderWidth: root.minimalChrome ? 0 : root.showBorder ? 1 : 0
         borderColor: Theme.borderMuted
         curveDepth: root.curveDepth
     }
@@ -65,14 +73,34 @@ Item {
     SuperellipseImage {
         id: imagePreview
         anchors.fill: parent
+        // If a Qt/platform backend cannot fetch the full image directly,
+        // retain the shared image-provider route as a safe fallback.
         visible: root.isImage && root.hasSource
-        source: root.isImage ? root.source : ""
+                 && (!root.fullQualityImage || fullImage.status === Image.Error)
+        source: visible ? root.source : ""
         mediaCategory: "photos"
         requestedSourceWidth: root.imageDecodeEdge
         requestedSourceHeight: root.imageDecodeEdge
         fillMode: root.fitImage ? Image.PreserveAspectFit : Image.PreserveAspectCrop
         curveDepth: root.curveDepth
         borderWidth: 0
+    }
+
+    // Full-fidelity image for authored attachments. Deliberately omit
+    // sourceSize so Qt decodes the canonical image at its intrinsic pixels.
+    // No JPEG thumbnail, extra image recompression, blur or second texture
+    // masking pass. The shared bounded path above remains the default for
+    // feed cards, videos and other non-authoring surfaces.
+    Image {
+        id: fullImage
+        anchors.fill: parent
+        visible: root.fullQualityImage && root.isImage && root.hasSource
+        source: visible ? root.source : ""
+        fillMode: Image.PreserveAspectFit
+        asynchronous: true
+        cache: true
+        smooth: true
+        mipmap: false
     }
 
     GenyVideoPlayer {
@@ -168,7 +196,7 @@ Item {
 
     Superellipse {
         anchors.fill: parent
-        visible: hover.hovered && root.interactive
+        visible: hover.hovered && root.interactive && !root.minimalChrome
         fillColor: "transparent"
         borderWidth: 1
         borderColor: Theme.accent

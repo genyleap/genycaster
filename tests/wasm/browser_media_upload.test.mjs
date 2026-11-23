@@ -115,9 +115,10 @@ test('image upload stages and actual cloud sizes are exposed to Composer, withou
     assert.match(panel,/qsTrId\("genycaster\.media\.optimizing"\)/);
     assert.match(panel,/qsTrId\("genycaster\.media\.finalizing"\)/);
     assert.match(panel,/root\.processingStep === 0/);
-    assert.match(panel,/root\.savingsText\(modelData\.originalSizeBytes, modelData\.sizeBytes\)/);
+    assert.match(panel,/root\.savingsText\(modelData\.originalSizeBytes,\s*modelData\.sizeBytes\)/);
     assert.match(panel,/objectName: "composerFullResolutionMediaInspector"/);
-    assert.match(panel,/imageDecodeEdge: 2048/);
+    assert.match(panel,/fullQualityImage: true/);
+    assert.match(panel,/objectName: "composerOriginalImageStrip"/);
     assert.match(preview,/requestedSourceWidth: root\.imageDecodeEdge/);
     assert.match(header,/Q_PROPERTY\(qulonglong sourceBytes READ sourceBytes NOTIFY stateChanged\)/);
     assert.match(controller,/m_sourceBytes = m_totalBytes/);
@@ -129,6 +130,33 @@ test('image upload stages and actual cloud sizes are exposed to Composer, withou
     assert.match(bridge,/UploadPhase::Optimizing/);
     assert.match(bridge,/UploadPhase::Finalizing/);
     assert.match(composer,/originalSizeBytes: Number\(mediaUpload\.sourceBytes/);
+});
+
+test('composer renders only one source-quality attachment, never the 96px selection JPEG',()=>{
+    const read=name=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
+    const composer=read('ui/components/composer/ComposerDrawer.qml');
+    const panel=read('ui/components/composer/MediaUploadPanel.qml');
+    const editor=read('ui/components/composer/RichTextEditor.qml');
+    const preview=read('ui/components/media/MediaPreview.qml');
+    assert.match(composer,/localPreviewUrl: canonicalUrl/);
+    assert.doesNotMatch(composer,/localPreviewUrl:.*mediaUpload\.localPreviewUrl/);
+    assert.match(panel,/previewUrl: url,/);
+    assert.match(panel,/objectName: "composerOriginalImageStrip"/);
+    assert.match(panel,/fullQualityImage: String\(modelData\.mediaType/);
+    assert.match(panel,/minimalChrome: true/);
+    assert.match(panel,/fillColor: "transparent"/);
+    assert.match(panel,/borderWidth: 0/);
+    assert.doesNotMatch(panel,/objectName: "visualEditorMediaPlaceholder"/);
+    assert.match(editor,/if \(kind === "media" && !StickerCatalog\.isStickerUrl/);
+    assert.match(editor,/return null/);
+    assert.match(preview,/property bool fullQualityImage: false/);
+    assert.match(preview,/source: visible \? root\.source : ""/);
+    assert.match(preview,/Full-fidelity image for authored attachments/);
+    assert.match(composer,/root\.attachedMediaCount > 0/);
+    // In-flight tiny thumbnails can still be used *only* for the progress
+    // indicator, but never as the persisted asset's authoring preview.
+    const bridge=read('ui/wasm/protocol-signer-pre.js');
+    assert.match(bridge,/Math\.min\(1,96\/Math\.max\(bitmap\.width,bitmap\.height\)\)/);
 });
 
 test('unsupported formats and missing signer do not reach media gateway',async()=>{
@@ -210,7 +238,9 @@ test('WASM cleanup is durable, signer-gated, and only triggered by confirmed del
     assert.match(pre,/targetCastId: action==='remove'/);
     assert.match(pre,/kind:'cleanup-completed'/);
     assert.match(pre,/preview\.length<=6200/);
-    assert.match(panel,/visible: root\.width >= 620/);
+    // One full-resolution attachment surface across desktop and mobile.
+    assert.match(panel,/objectName: "composerOriginalImageStrip"/);
+    assert.doesNotMatch(panel,/visible: root\.width >= 620/);
     assert.match(shell,/"embeds": root\.submittedReplyEmbeds/);
     assert.match(reply,/objectName: "replyMoreButton"/);
     assert.match(reply,/replyMenuLoader/);

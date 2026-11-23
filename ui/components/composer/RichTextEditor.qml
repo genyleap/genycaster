@@ -187,6 +187,12 @@ Item {
                 if (kind === "code") return codeEditorComponent
                 if (kind === "separator") return separatorComponent
                 if (kind === "bullet-list" || kind === "ordered-list") return listEditorComponent
+                // Ordinary uploaded images/videos are rendered once by the
+                // shared MediaUploadPanel below the editor. Do not add a
+                // duplicate "Image / Media" card inside the text document.
+                // Sticker media stays inline at its authored block position.
+                if (kind === "media" && !StickerCatalog.isStickerUrl(String(modelData.url || "")))
+                    return null
                 if (kind === "embed" || kind === "media" || kind === "cast-reference") return enhancementEditorComponent
                 return textEditorComponent
             }
