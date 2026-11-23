@@ -37,6 +37,9 @@ class QSettings;
 class RichComposerController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString markdownSource READ markdownSource WRITE setMarkdownSource NOTIFY documentChanged)
+    // Editable Markdown excludes media/embed/reference blocks; those remain
+    // structured attachments across Visual / Markdown / Preview switches.
+    Q_PROPERTY(QString markdownBodySource READ markdownBodySource WRITE setMarkdownBodySource NOTIFY documentChanged)
     Q_PROPERTY(QString safeText READ safeText NOTIFY documentChanged)
     Q_PROPERTY(int editorCharacters READ editorCharacters NOTIFY documentChanged)
     Q_PROPERTY(int publishedBytes READ publishedBytes NOTIFY documentChanged)
@@ -67,6 +70,8 @@ public:
 
     [[nodiscard]] QString markdownSource() const;
     void setMarkdownSource(const QString& source);
+    [[nodiscard]] QString markdownBodySource() const;
+    void setMarkdownBodySource(const QString& source);
     [[nodiscard]] QString safeText() const;
     [[nodiscard]] int editorCharacters() const;
     [[nodiscard]] int publishedBytes() const noexcept;

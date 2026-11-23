@@ -861,6 +861,49 @@ void RichComposerController::setMarkdownSource(const QString& source)
     m_impl->setDocument(std::move(*parsed), source, true);
 }
 
+QString RichComposerController::markdownBodySource() const
+{
+    // The rich Markdown exporter represents media with a bare URL. Parsing
+    // that URL again produces a paragraph, irreversibly losing the media block
+    // and its managed upload token. Markdown editing therefore owns text only.
+    RichCastDocument editable = m_impl->document;
+    std::erase_if(editable.blocks, [](const RichBlock& block) {
+        return block.kind == BlockKind::Media
+            || block.kind == BlockKind::Embed
+            || block.kind == BlockKind::CastReference;
+    });
+    return QString::fromUtf8(m_impl->exporter.serialize(editable));
+}
+
+void RichComposerController::setMarkdownBodySource(const QString& source)
+{
+    if (source == markdownBodySource()) return;
+    auto parsed = m_impl->importer.parse(source.toUtf8().toStdString());
+    if (!parsed) return;
+
+    // Retain actual attachment blocks (including managed media and references)
+    // when a user changes Markdown. Their ordering relative to surrounding
+    // text is maintained where representable in the edited document.
+    std::size_t textBefore{};
+    std::size_t inserted{};
+    for (const RichBlock& block : m_impl->document.blocks) {
+        if (block.kind != BlockKind::Media && block.kind != BlockKind::Embed
+            && block.kind != BlockKind::CastReference) {
+            ++textBefore;
+            continue;
+        }
+        if (parsed->blocks.size() >= farcaster::domain::rich::MaxDocumentBlocks)
+            return;
+        const std::size_t position = std::min(textBefore + inserted, parsed->blocks.size());
+        parsed->blocks.insert(parsed->blocks.begin()
+            + static_cast<std::ptrdiff_t>(position), block);
+        ++inserted;
+    }
+    if (!farcaster::domain::rich::structurallyValid(*parsed)) return;
+    m_impl->setDocument(std::move(*parsed), source, true);
+    m_impl->syncMarkdownFromDocument();
+}
+
 void RichComposerController::newDocument()
 {
     m_impl->contextDocument = false;

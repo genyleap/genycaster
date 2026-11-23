@@ -189,7 +189,7 @@ export async function retrieveBrowserImage(rawUrl, {
       // compatibility retry sets JPEG first; preserve that preference so a
       // CDN can serve an image that the linked Qt raster readers can decode.
       headers: { accept: preferJpeg
-        ? 'image/jpeg,image/png;q=0.95,image/webp;q=0.85,image/gif;q=0.8'
+        ? 'image/jpeg,image/png;q=0.95'
         : 'image/webp,image/png,image/jpeg,image/gif' },
       // Never use a fresh DNS lookup after validation. Race only the
       // validated public answers to survive intermittent CDN edge failures.

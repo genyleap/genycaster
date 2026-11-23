@@ -13,9 +13,12 @@ Superellipse {
 
     // Keep preview geometry deterministic. Long text/media scrolls inside the
     // preview instead of resizing the composer after asynchronous media work.
-    implicitHeight: root.previewMedia.length > 0
-                    ? (root.compact ? 350 : 420)
-                    : (root.compact ? 220 : 250)
+    // Size the preview from its real rendered Cast, rather than clipping a
+    // 500px card into a hard-coded 400px viewport. The outer Composer scrolls;
+    // only exceptionally long Casts use this preview's own scroll bar.
+    implicitHeight: Math.min(root.compact ? 580 : 720,
+                             Math.max(root.compact ? 190 : 245,
+                                      previewColumn.implicitHeight + Theme.space4))
 
     readonly property string authorName: String(presentationBridge.accountName || presentationBridge.identityName || qsTrId("genycaster.app.genycaster"))
     readonly property string authorUsername: String(presentationBridge.accountUsername || "")
@@ -74,7 +77,7 @@ Superellipse {
     ScrollView {
         id: previewViewport
         anchors.fill: parent
-        anchors.margins: Theme.space3
+        anchors.margins: Theme.space2
         clip: true
         contentWidth: availableWidth
         ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
@@ -211,6 +214,12 @@ Superellipse {
                                     anchors.fill: parent
                                     source: String(parent.modelData.previewSource || "")
                                     mediaType: String(parent.modelData.mediaType || "")
+                                    // Social previews must show the full authored
+                                    // image: no square crop hiding the content.
+                                    fitImage: true
+                                    minimalChrome: true
+                                    showBorder: false
+                                    fillColor: "transparent"
                                     curveDepth: Theme.curveControl
                                     interactive: String(parent.modelData.mediaType || "").startsWith("video/")
                                     primeVideoFrame: false

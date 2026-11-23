@@ -17,6 +17,7 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QUrlQuery>
+#include <QTimer>
 #include <QStringView>
 #include <utility>
 
@@ -52,6 +53,27 @@ constexpr std::array SupportedMediaTypes{
 [[nodiscard]] QString unsupportedMediaMessage()
 {
     return qtTrId("genycaster.media.unsupported_file_type");
+}
+
+// Account projections may already contain the app's image://remote/ URL,
+// rather than an original CDN URL. Resolve only this existing internal
+// provider scheme and still apply the strict public HTTPS/host policy below.
+[[nodiscard]] QUrl statsAvatarSource(const QString& value)
+{
+    constexpr QStringView prefix = u"image://remote/";
+    if (!QStringView{value}.startsWith(prefix))
+        return QUrl{value};
+    QString payload = value.mid(prefix.size());
+    if (payload.startsWith(QStringLiteral("v22/"))) {
+        const QStringList parts = payload.split(QLatin1Char('/'));
+        if (parts.size() < 4) return {};
+        payload = parts.mid(3).join(QLatin1Char('/'));
+    }
+    if (payload.size() > 4096) return {};
+    const QByteArray encoded = payload.toLatin1();
+    const QByteArray decoded = QByteArray::fromBase64(
+        encoded, QByteArray::Base64UrlEncoding | QByteArray::AbortOnBase64DecodingErrors);
+    return decoded.size() > 2048 ? QUrl{} : QUrl{QString::fromUtf8(decoded)};
 }
 
 } // namespace
@@ -110,8 +132,9 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
     }
     // The proxy enforces an explicit CDN allowlist, pinned public DNS, raster
     // MIME and a small body cap. Never fetch an arbitrary URL from Qt directly.
-    const QUrl source{avatarUrl};
-    if (avatarUrl.size() > 2048 || source.scheme() != QStringLiteral("https")
+    const QUrl source = statsAvatarSource(avatarUrl);
+    if (avatarUrl.size() > 4096 || source.toString().size() > 2048
+        || source.scheme() != QStringLiteral("https")
         || source.host().isEmpty() || !source.userInfo().isEmpty()
         || source.hasFragment() || source.port(-1) != -1) {
         emit statsAvatarChanged();
@@ -156,6 +179,17 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
             };
             connect(response, &QQuickImageResponse::finished,
                     this, completed, Qt::QueuedConnection);
+            // A failed/cancelled provider must not leave Stats forever
+            // "Preparing". The direct JPEG/proxy path owns its own timeout.
+            QTimer::singleShot(10000, this, [this, response, generation] {
+                if (generation != m_statsAvatarGeneration
+                    || m_statsAvatarImageResponse != response) return;
+                QObject::disconnect(response, nullptr, this, nullptr);
+                m_statsAvatarImageResponse = nullptr;
+                response->cancel();
+                response->deleteLater();
+                startStatsAvatarFallback(generation, false);
+            });
             emit statsAvatarChanged();
             // A warm image or a cached failure may complete synchronously
             // before the signal connection above has been installed.
@@ -175,7 +209,7 @@ void MediaUploadController::startStatsAvatarFallback(
     const quint64 generation, const bool viaGateway)
 {
     if (generation != m_statsAvatarGeneration) return;
-    const QUrl source{m_statsAvatarUrl};
+    const QUrl source = statsAvatarSource(m_statsAvatarUrl);
     // These are public raster CDNs, not an arbitrary fetch/SSRF primitive.
     // The gateway additionally enforces public DNS and decoded raster limits.
     static const QStringList allowedHosts{
@@ -209,7 +243,7 @@ void MediaUploadController::startStatsAvatarFallback(
         fetchUrl = QUrl{QStringLiteral(
             "https://storage-farcaster.genyleap.com/v1/browser/images")};
         QUrlQuery query;
-        query.addQueryItem(QStringLiteral("url"), m_statsAvatarUrl);
+        query.addQueryItem(QStringLiteral("url"), source.toString(QUrl::FullyEncoded));
         fetchUrl.setQuery(query);
     }
     QNetworkRequest request{fetchUrl};

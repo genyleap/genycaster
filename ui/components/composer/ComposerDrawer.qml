@@ -479,7 +479,7 @@ GenyDrawer {
             markdownEditor.cursorPosition = position + emoji.length
             return
         }
-        richComposer.markdownSource = richComposer.markdownSource + emoji
+        richComposer.markdownBodySource = richComposer.markdownBodySource + emoji
     }
 
     function closeComposerPopups() {
@@ -502,8 +502,8 @@ GenyDrawer {
             visualEditor.commitActiveEditor()
             return
         }
-        if (root.editorMode === "markdown" && markdownEditor.text !== richComposer.markdownSource)
-            richComposer.markdownSource = markdownEditor.text
+        if (root.editorMode === "markdown" && markdownEditor.text !== richComposer.markdownBodySource)
+            richComposer.markdownBodySource = markdownEditor.text
     }
 
     function setEditorMode(mode) {
@@ -2208,13 +2208,13 @@ GenyDrawer {
                             id: markdownSync
                             interval: 90
                             repeat: false
-                            onTriggered: if (markdownEditor.text !== richComposer.markdownSource) richComposer.markdownSource = markdownEditor.text
+                            onTriggered: if (markdownEditor.text !== richComposer.markdownBodySource) richComposer.markdownBodySource = markdownEditor.text
                         }
                         DirectionAwareTextArea {
                             id: markdownEditor
                         selectAllOnDoubleTap: true
                             anchors.fill: parent
-                            text: richComposer.markdownSource
+                            text: richComposer.markdownBodySource
                             placeholderText: qsTrId("genycaster.composer.markdown_placeholder")
                             background: null
                             selectByMouse: true
@@ -2225,8 +2225,8 @@ GenyDrawer {
                             onActiveFocusChanged: {
                                 if (activeFocus)
                                     root.ensureEditorVisible(markdownEditor)
-                                else if (text !== richComposer.markdownSource)
-                                    richComposer.markdownSource = text
+                                else if (text !== richComposer.markdownBodySource)
+                                    richComposer.markdownBodySource = text
                             }
                         }
                     }

@@ -102,7 +102,8 @@ test('Qt WASM compatibility retry reaches CDN with bounded JPEG-first negotiatio
   assert.equal((await retrieveBrowserImage(source, {...options,preferJpeg:true})).status, 200);
   assert.equal(accepts.length, 2);
   assert.match(accepts[0], /^image\/webp,/);
-  assert.match(accepts[1], /^image\/jpeg,/);
+  assert.equal(accepts[1], 'image/jpeg,image/png;q=0.95');
+  assert.ok(!accepts[1].includes('image/webp'));
   assert.ok(!accepts[0].includes('image\/avif'));
   assert.ok(!accepts[1].includes('image\/avif'));
 });

@@ -237,7 +237,7 @@ NeonCard {
             id: dropTarget
             visible: !root.hasAttachedMedia && !root.hasTransientUpload
             Layout.fillWidth: true
-            Layout.preferredHeight: visible ? (root.width < 620 ? 100 : 136) : 0
+            Layout.preferredHeight: visible ? (root.width < 620 ? 100 : 112) : 0
 
             Superellipse {
                 anchors.fill: parent
@@ -512,7 +512,9 @@ NeonCard {
             Flickable {
                 objectName: "composerOriginalImageStrip"
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.width < 620 ? 294 : 360
+                // Compact source-quality tray: the file is an attachment,
+                // not a second full-height editor. The inspector opens on tap.
+                Layout.preferredHeight: root.width < 620 ? 216 : 248
                 clip: true
                 contentWidth: attachmentStrip.width
                 contentHeight: height
@@ -529,8 +531,8 @@ NeonCard {
 
                         delegate: Item {
                             required property var modelData
-                            width: Math.max(210, Math.min(root.width - 4,
-                                root.width < 620 ? 455 : 540))
+                            width: Math.max(180, Math.min(root.width - 8,
+                                root.width < 620 ? 410 : 500))
                             height: attachmentStrip.height
 
                             MediaPreview {
@@ -538,7 +540,7 @@ NeonCard {
                                 anchors.left: parent.left
                                 anchors.right: parent.right
                                 anchors.top: parent.top
-                                height: parent.height - 42
+                                height: parent.height - 48
                                 // The attached URL is already the canonical
                                 // published image. Decode original pixels,
                                 // never the transient 96px selection JPEG.
@@ -564,11 +566,12 @@ NeonCard {
                                 anchors.left: parent.left
                                 anchors.right: parent.right
                                 anchors.bottom: parent.bottom
-                                height: 34
-                                spacing: Theme.space2
+                                height: 42
+                                spacing: Theme.space1
 
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
                                     text: String(modelData.fileName || "")
                                     font.pixelSize: Theme.typeCaptionSize
                                     color: Theme.ink
@@ -587,15 +590,22 @@ NeonCard {
                                         : root.formatBytes(modelData.sizeBytes)
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
+                                    Layout.maximumWidth: Math.max(0, Math.min(138, parent.width * 0.34))
+                                    elide: Text.ElideRight
                                     forceLeftToRight: true
                                 }
 
                                 ActionButton {
+                                    // Reserve real layout width for Remove: the
+                                    // control must never get clipped by filename.
+                                    Layout.preferredWidth: Theme.compactControlHeight
+                                    Layout.minimumWidth: Theme.compactControlHeight
+                                    Layout.preferredHeight: Theme.compactControlHeight
                                     quiet: true
                                     compact: true
                                     iconOnly: true
                                     iconGlyph: Theme.iconClose
-                                    Accessible.name: qsTrId("genycaster.composer.remove_block")
+                                    text: qsTrId("genycaster.composer.remove_block")
                                     onClicked: richComposer.removeBlock(Number(modelData.blockIndex))
                                 }
                             }
@@ -605,17 +615,18 @@ NeonCard {
                     Item {
                         visible: mediaUpload.available && !mediaUpload.busy
                             && root.attachedMedia.length + root.queuedFiles.length < root.maxAttachments
-                        width: visible ? 42 : 0
+                        width: visible ? Theme.compactControlHeight + Theme.space2 : 0
                         height: parent.height
 
                         ActionButton {
                             anchors.top: parent.top
+                            anchors.horizontalCenter: parent.horizontalCenter
                             anchors.topMargin: Theme.space2
                             quiet: true
                             compact: true
                             iconOnly: true
                             iconGlyph: Theme.iconPlus
-                            Accessible.name: qsTrId("genycaster.media.choose_file")
+                            text: qsTrId("genycaster.media.choose_file")
                             onClicked: root.browseRequested(root.blockIndex)
                         }
                     }

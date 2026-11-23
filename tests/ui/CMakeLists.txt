@@ -265,6 +265,21 @@ set_tests_properties(ui.stats_controller_contract PROPERTIES
     LABELS "ui;analytics;provider;qt"
     TIMEOUT 15)
 
+if(NOT EMSCRIPTEN AND NOT ANDROID)
+    # Reproduce the Visual -> Markdown -> Preview -> Visual attachment loss.
+    # The same typed MediaBlock must survive Markdown edits until Remove.
+    qt_add_executable(farcaster_rich_composer_modes_tests
+        rich_composer_modes_tests.cpp)
+    target_link_libraries(farcaster_rich_composer_modes_tests PRIVATE
+        farcaster::presentation Qt6::Core)
+    target_compile_features(farcaster_rich_composer_modes_tests PRIVATE cxx_std_26)
+    set_property(TARGET farcaster_rich_composer_modes_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+    farcaster_enable_warnings(farcaster_rich_composer_modes_tests)
+    add_test(NAME ui.rich_composer_modes COMMAND farcaster_rich_composer_modes_tests)
+    set_tests_properties(ui.rich_composer_modes PROPERTIES
+        TIMEOUT 20 LABELS "ui;composer;media;regression")
+endif()
+
 # Actual Qt HTTP/lifecycle fixture for the browser reaction adapter.
 # QML no longer owns or parses network replies.
 qt_add_executable(farcaster_browser_reactions_tests
