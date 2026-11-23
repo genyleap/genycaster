@@ -4110,24 +4110,24 @@ Entreprise | https://company.com</translation>
             <translation>Envoi</translation>
         </message>
         <message id="genycaster.stats.share_x_text">
-            <source>X · text</source>
-            <translation>X · texte</translation>
+            <source>X · image</source>
+            <translation>X · image à partager</translation>
         </message>
         <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · text</source>
-            <translation>Telegram · texte</translation>
+            <source>Telegram · image</source>
+            <translation>Telegram · image à partager</translation>
         </message>
         <message id="genycaster.stats.share_image">
             <source>Share image</source>
             <translation>Partager l’image</translation>
         </message>
         <message id="genycaster.stats.share_image_hint">
-            <source>Instagram and other apps are available in your device’s share sheet.</source>
-            <translation>Instagram et les autres applications sont accessibles via le partage de votre appareil.</translation>
+            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
+            <translation>Choisissez X, Telegram ou Instagram dans le menu de partage. Sinon, enregistrez et joignez le PNG.</translation>
         </message>
         <message id="genycaster.stats.avatar_unavailable">
-            <source>Profile photo could not be loaded. Retry before sharing the card.</source>
-            <translation>Impossible de charger la photo de profil. Réessayez.</translation>
+            <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
+            <translation>Photo indisponible. La carte affiche votre initiale ; réessayez pour ajouter la photo.</translation>
         </message>
         <message id="genycaster.stats.avatar_retry">
             <source>Retry photo</source>

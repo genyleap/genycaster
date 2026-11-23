@@ -8,6 +8,8 @@
 #include <QFile>
 #include <QBuffer>
 #include <QImageReader>
+#include <QQuickImageProvider>
+#include <QQuickTextureFactory>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QDesktopServices>
@@ -93,6 +95,14 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
     ++m_statsAvatarGeneration;
     m_statsAvatarUrl = avatarUrl;
     m_statsAvatar.reset();
+    if (m_statsAvatarImageResponse) {
+        auto* const previous = static_cast<QQuickImageResponse*>(
+            m_statsAvatarImageResponse.data());
+        QObject::disconnect(previous, nullptr, this, nullptr);
+        previous->cancel();
+        previous->deleteLater();
+        m_statsAvatarImageResponse = nullptr;
+    }
     if (m_statsAvatarReply) {
         m_statsAvatarReply->abort();
         m_statsAvatarReply->deleteLater();
@@ -107,10 +117,49 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
         emit statsAvatarChanged();
         return;
     }
-    // Desktop/mobile can fetch the same source URL already displayed by
-    // the account avatar widget. The website uses the first-party image
-    // proxy instead so WebAssembly obeys browser cross-origin restrictions.
-    // Both paths reject arbitrary untrusted hosts before making a request.
+    // Reuse the very same asynchronous image provider as Avatar.qml. It
+    // shares its bounded CDN routing, decode, disk/memory cache and retry
+    // policy. A separate fixed-host filter wrongly discarded valid account
+    // photos that the profile itself could already display.
+    if (m_statsAvatarImageProvider) {
+        const QByteArray encoded = source.toString(QUrl::FullyEncoded).toUtf8().toBase64(
+            QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
+        QQuickImageResponse* const response =
+            m_statsAvatarImageProvider->requestImageResponse(
+                QStringLiteral("v22/avatars/manual/") + QString::fromLatin1(encoded),
+                QSize{256, 256});
+        if (response) {
+            const quint64 generation = m_statsAvatarGeneration;
+            m_statsAvatarImageResponse = response;
+            const auto completed = [this, response, generation] {
+                if (generation != m_statsAvatarGeneration
+                    || m_statsAvatarImageResponse != response) return;
+                m_statsAvatarImageResponse = nullptr;
+                std::unique_ptr<QQuickTextureFactory> factory{response->textureFactory()};
+                if (factory) {
+                    QImage decoded = factory->image();
+                    if (!decoded.isNull() && decoded.width() > 1 && decoded.height() > 1
+                        && static_cast<qint64>(decoded.width()) * decoded.height()
+                            <= 8'000'000)
+                        m_statsAvatar = std::make_unique<QImage>(std::move(decoded));
+                }
+                response->deleteLater();
+                emit statsAvatarChanged();
+            };
+            connect(response, &QQuickImageResponse::finished,
+                    this, completed, Qt::QueuedConnection);
+            emit statsAvatarChanged();
+            // A warm image or a cached failure may complete synchronously
+            // before the signal connection above has been installed.
+            std::unique_ptr<QQuickTextureFactory> cached{response->textureFactory()};
+            if (cached && !cached->image().isNull())
+                QMetaObject::invokeMethod(this, completed, Qt::QueuedConnection);
+            return;
+        }
+    }
+
+    // Standalone controller tests without the application's image provider
+    // retain the bounded direct/proxied network path below.
     static const QStringList allowedHosts{
         QStringLiteral("imagedelivery.net"), QStringLiteral("cdn.warpcast.com"),
         QStringLiteral("wrpcd.net"), QStringLiteral("cdn.farcaster.xyz"),
@@ -191,7 +240,13 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
 
 bool MediaUploadController::statsAvatarLoading() const noexcept
 {
-    return !m_statsAvatarReply.isNull();
+    return !m_statsAvatarReply.isNull() || !m_statsAvatarImageResponse.isNull();
+}
+
+void MediaUploadController::setStatsAvatarImageProvider(
+    QQuickAsyncImageProvider* const provider) noexcept
+{
+    m_statsAvatarImageProvider = provider;
 }
 
 bool MediaUploadController::statsAvatarReady() const noexcept

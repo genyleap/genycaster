@@ -4109,24 +4109,24 @@ Company | https://company.com</source>
             <translation>الرفع</translation>
         </message>
         <message id="genycaster.stats.share_x_text">
-            <source>X · text</source>
-            <translation>X · نص</translation>
+            <source>X · image</source>
+            <translation>X · صورة</translation>
         </message>
         <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · text</source>
-            <translation>تيليجرام · نص</translation>
+            <source>Telegram · image</source>
+            <translation>تيليجرام · صورة</translation>
         </message>
         <message id="genycaster.stats.share_image">
             <source>Share image</source>
             <translation>مشاركة الصورة</translation>
         </message>
         <message id="genycaster.stats.share_image_hint">
-            <source>Instagram and other apps are available in your device’s share sheet.</source>
-            <translation>يتوفر إنستغرام والتطبيقات الأخرى عبر قائمة مشاركة الجهاز.</translation>
+            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
+            <translation>اختر X أو تيليجرام أو إنستغرام من قائمة المشاركة، أو احفظ صورة PNG وأرفقها.</translation>
         </message>
         <message id="genycaster.stats.avatar_unavailable">
-            <source>Profile photo could not be loaded. Retry before sharing the card.</source>
-            <translation>تعذر تحميل صورة الملف الشخصي. حاول مرة أخرى.</translation>
+            <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
+            <translation>الصورة غير متاحة. ستظهر أحرف اسمك؛ أعد المحاولة لإضافة صورتك.</translation>
         </message>
         <message id="genycaster.stats.avatar_retry">
             <source>Retry photo</source>

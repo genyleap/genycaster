@@ -1192,11 +1192,13 @@ int main(int argc, char* argv[])
     engine.addImageProvider(QStringLiteral("genycaster-brand"),
                             new AndroidBrandImageProvider{});
 #endif
-    engine.addImageProvider(
-        QStringLiteral("remote"),
-        new RemoteImageProvider{
-            networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
-            dataStorageController.runtimeStateHandle()});
+    auto* const remoteAvatarImageProvider = new RemoteImageProvider{
+        networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
+        dataStorageController.runtimeStateHandle()};
+    engine.addImageProvider(QStringLiteral("remote"), remoteAvatarImageProvider);
+    // Stats must reuse the same bounded and cached avatar source as the UI;
+    // a separate CDN allowlist rejects otherwise visible profile portraits.
+    mediaUploadController.setStatsAvatarImageProvider(remoteAvatarImageProvider);
     genycaster::ui::bootstrap::exposeFontFamilies(engine, fontFamilies);
     GenyPulseActivityController genyPulseActivity;
     OpenProofConnectionsController openProofConnections{nullptr, &settings};

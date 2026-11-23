@@ -4109,24 +4109,24 @@ Company | https://company.com</source>
             <translation>Загрузка</translation>
         </message>
         <message id="genycaster.stats.share_x_text">
-            <source>X · text</source>
-            <translation>X · текст</translation>
+            <source>X · image</source>
+            <translation>X · изображение</translation>
         </message>
         <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · text</source>
-            <translation>Telegram · текст</translation>
+            <source>Telegram · image</source>
+            <translation>Telegram · изображение</translation>
         </message>
         <message id="genycaster.stats.share_image">
             <source>Share image</source>
             <translation>Поделиться изображением</translation>
         </message>
         <message id="genycaster.stats.share_image_hint">
-            <source>Instagram and other apps are available in your device’s share sheet.</source>
-            <translation>Instagram и другие приложения доступны в системном меню «Поделиться».</translation>
+            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
+            <translation>Выберите X, Telegram или Instagram в меню «Поделиться». Иначе сохраните и прикрепите PNG.</translation>
         </message>
         <message id="genycaster.stats.avatar_unavailable">
-            <source>Profile photo could not be loaded. Retry before sharing the card.</source>
-            <translation>Не удалось загрузить аватар. Повторите попытку.</translation>
+            <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
+            <translation>Фото недоступно. В карточке показана первая буква имени. Повторите попытку, чтобы добавить фото.</translation>
         </message>
         <message id="genycaster.stats.avatar_retry">
             <source>Retry photo</source>

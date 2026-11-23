@@ -4110,24 +4110,24 @@ Empresa | https://company.com</translation>
             <translation>Subiendo</translation>
         </message>
         <message id="genycaster.stats.share_x_text">
-            <source>X · text</source>
-            <translation>X · texto</translation>
+            <source>X · image</source>
+            <translation>X · imagen</translation>
         </message>
         <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · text</source>
-            <translation>Telegram · texto</translation>
+            <source>Telegram · image</source>
+            <translation>Telegram · imagen</translation>
         </message>
         <message id="genycaster.stats.share_image">
             <source>Share image</source>
             <translation>Compartir imagen</translation>
         </message>
         <message id="genycaster.stats.share_image_hint">
-            <source>Instagram and other apps are available in your device’s share sheet.</source>
-            <translation>Instagram y otras aplicaciones están disponibles en el menú Compartir del dispositivo.</translation>
+            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
+            <translation>Elige X, Telegram o Instagram en el menú Compartir. Si no están disponibles, guarda y adjunta el PNG.</translation>
         </message>
         <message id="genycaster.stats.avatar_unavailable">
-            <source>Profile photo could not be loaded. Retry before sharing the card.</source>
-            <translation>No se pudo cargar el avatar. Vuelve a intentarlo.</translation>
+            <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
+            <translation>Foto no disponible. La tarjeta muestra tu inicial; vuelve a intentarlo para incluir tu foto.</translation>
         </message>
         <message id="genycaster.stats.avatar_retry">
             <source>Retry photo</source>

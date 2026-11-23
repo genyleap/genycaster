@@ -4110,24 +4110,24 @@ Company | https://company.com</source>
             <translation>آپلود</translation>
         </message>
         <message id="genycaster.stats.share_x_text">
-            <source>X · text</source>
-            <translation>X · متن</translation>
+            <source>X · image</source>
+            <translation>X · تصویر</translation>
         </message>
         <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · text</source>
-            <translation>تلگرام · متن</translation>
+            <source>Telegram · image</source>
+            <translation>تلگرام · تصویر</translation>
         </message>
         <message id="genycaster.stats.share_image">
             <source>Share image</source>
             <translation>اشتراک تصویر</translation>
         </message>
         <message id="genycaster.stats.share_image_hint">
-            <source>Instagram and other apps are available in your device’s share sheet.</source>
-            <translation>اینستاگرام و سایر برنامه‌ها از بخش اشتراک‌گذاری دستگاه در دسترس‌اند.</translation>
+            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
+            <translation>در پنجرهٔ اشتراک‌گذاری، X، تلگرام یا اینستاگرام را انتخاب کنید. در غیر این صورت، PNG را ذخیره و پیوست کنید.</translation>
         </message>
         <message id="genycaster.stats.avatar_unavailable">
-            <source>Profile photo could not be loaded. Retry before sharing the card.</source>
-            <translation>تصویر پروفایل دریافت نشد. پیش از اشتراک کارت دوباره تلاش کنید.</translation>
+            <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
+            <translation>تصویر پروفایل در دسترس نیست؛ فعلاً حرف نخست نام نمایش داده می‌شود. برای افزودن عکس دوباره تلاش کنید.</translation>
         </message>
         <message id="genycaster.stats.avatar_retry">
             <source>Retry photo</source>

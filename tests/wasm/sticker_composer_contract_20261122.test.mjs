@@ -126,6 +126,8 @@ test('mobile bottom sheet and desktop popup anchor accurately, without read-only
  const picker=read('ui/components/composer/StickerPicker.qml');
  const drawer=read('ui/components/composer/ComposerDrawer.qml');
  assert.match(picker,/modal: root\.compact/);
+ assert.match(drawer,/parent: root\.contentItem\s*popupType: Popup\.Item/);
+ assert.doesNotMatch(drawer,/StickerPicker \{\s*id: stickerPicker\s*parent: Overlay\.overlay/);
  assert.match(picker,/dim: root\.compact/);
  assert.match(picker,/root\.anchorItem\.mapToItem\(root\.parent/);
  assert.match(picker,/const maxX = Math\.max/);

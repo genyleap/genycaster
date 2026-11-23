@@ -298,30 +298,22 @@ ColumnLayout {
         return lines.join("\n")
     }
 
-    function shareSummaryExternally(network) {
-        // X/TG web intents cannot attach an unposted local PNG. Offer a short
-        // readable summary; the separate Share image action uses the OS file
-        // share sheet (Instagram included when available).
-        const summary = "My Genycaster " + root.rangeLabel(root.sharePeriodDays)
-            + ": " + LocaleFormat.formatInteger(Number(root.shareSnapshot.engagement || 0))
-            + " interactions · "
-            + LocaleFormat.formatInteger(Number(root.shareSnapshot.casts || 0))
-            + " casts"
-        const link = "https://genycaster.xyz"
-        if (network === "x") {
-            Qt.openUrlExternally("https://twitter.com/intent/tweet?text="
-                + encodeURIComponent(summary + " · " + link))
-        } else if (network === "telegram") {
-            Qt.openUrlExternally("https://t.me/share/url?url="
-                + encodeURIComponent(link) + "&text=" + encodeURIComponent(summary))
-        }
+    function shareImageExternally() {
+        // Web intents accept text/URLs, not a private local image. Always
+        // hand off the actual 1920px PNG to the platform file share flow;
+        // users can select X, Telegram or Instagram when installed.
+        if (!root.shareGeneratedCardUrl.length || !shareCardPreview.ready
+                || root.shareCaptureBusy || mediaUpload.statsAvatarLoading)
+            return
+        if (!mediaUpload.shareStatsImage(root.shareGeneratedCardUrl,
+                                          root.compactShareText()))
+            root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
     }
 
     function captureStatsCard() {
         if (root.shareCaptureBusy || !statsShareModal.opened
                 || !root.proUnlocked || !root.loaded || mediaUpload.busy
                 || mediaUpload.statsAvatarLoading
-                || (root.shareAccountAvatarUrl.length > 0 && !mediaUpload.statsAvatarReady)
                 || root.shareAccountFid !== root.accountFid)
             return
         if (!root.shareGeneratedCardUrl.length || !shareCardPreview.ready) {
@@ -474,7 +466,6 @@ ColumnLayout {
                         ? qsTrId("genycaster.stats.card_preparing")
                         : qsTrId("genycaster.stats.card_publish")
                     enabled: !root.shareCaptureBusy && !mediaUpload.statsAvatarLoading
-                             && (!root.shareAccountAvatarUrl.length || mediaUpload.statsAvatarReady)
                              && !mediaUpload.busy
                              && shareCardPreview.ready && root.shareGeneratedCardUrl.length > 0
                     onClicked: root.captureStatsCard()
@@ -491,14 +482,16 @@ ColumnLayout {
                     compact: true
                     quiet: true
                     text: qsTrId("genycaster.stats.share_x_text")
-                    onClicked: root.shareSummaryExternally("x")
+                    enabled: shareCardPreview.ready && !mediaUpload.statsAvatarLoading
+                    onClicked: root.shareImageExternally()
                 }
                 ActionButton {
                     Layout.fillWidth: true
                     compact: true
                     quiet: true
                     text: qsTrId("genycaster.stats.share_telegram_text")
-                    onClicked: root.shareSummaryExternally("telegram")
+                    enabled: shareCardPreview.ready && !mediaUpload.statsAvatarLoading
+                    onClicked: root.shareImageExternally()
                 }
                 ActionButton {
                     Layout.fillWidth: true
@@ -507,13 +500,7 @@ ColumnLayout {
                     text: qsTrId("genycaster.stats.share_image")
                     Layout.columnSpan: externalShareOptions.columns === 2 ? 2 : 1
                     enabled: shareCardPreview.ready && !mediaUpload.statsAvatarLoading
-                        && (!root.shareAccountAvatarUrl.length || mediaUpload.statsAvatarReady)
-                    onClicked: {
-                        const success = mediaUpload.shareStatsImage(
-                            root.shareGeneratedCardUrl, root.compactShareText())
-                        if (!success)
-                            root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
-                    }
+                    onClicked: root.shareImageExternally()
                 }
             }
             DirectionAwareLabel {

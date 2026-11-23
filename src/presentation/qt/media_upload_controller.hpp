@@ -28,6 +28,7 @@
 #include <memory>
 
 class QImage;
+class QQuickAsyncImageProvider;
 
 /**
  * @brief QML-facing state adapter for one media upload.
@@ -88,6 +89,9 @@ public:
     [[nodiscard]] quint64 uploadGeneration() const noexcept;
     [[nodiscard]] bool statsAvatarLoading() const noexcept;
     [[nodiscard]] bool statsAvatarReady() const noexcept;
+
+    /** @brief Reuses the application's bounded, cached Qt Quick avatar loader. */
+    void setStatsAvatarImageProvider(QQuickAsyncImageProvider* provider) noexcept;
 
     /**
      * @brief Starts uploading one local file selected by the user.
@@ -189,6 +193,8 @@ private:
     QSet<QString> m_generatedStatsImages{};
     QNetworkAccessManager m_statsAvatarNetwork{this};
     QPointer<QNetworkReply> m_statsAvatarReply{};
+    QPointer<QObject> m_statsAvatarImageResponse{};
+    QQuickAsyncImageProvider* m_statsAvatarImageProvider{};
     QString m_statsAvatarUrl{};
     // Keep the QtGui image type out of this QtCore/QtNetwork-facing header:
     // presentation unit tests should not require QtGui just to include it.

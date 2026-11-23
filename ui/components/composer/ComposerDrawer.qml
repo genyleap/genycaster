@@ -818,7 +818,10 @@ GenyDrawer {
 
     StickerPicker {
         id: stickerPicker
-        parent: Overlay.overlay
+        // Position and size relative to the active composer, never the app
+        // viewport. Desktop keeps the entire library inside this editor.
+        parent: root.contentItem
+        popupType: Popup.Item
         anchorItem: formattingToolbar
         canAdd: root.canUploadMedia && !mediaUpload.busy
         onProRequested: {
