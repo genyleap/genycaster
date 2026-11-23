@@ -163,41 +163,82 @@ Item {
             }
         }
 
-        Row {
+        // Two broad tiles followed by three equal tiles. On a narrow phone
+        // preview this preserves readable labels rather than five tiny columns.
+        Column {
             width: parent.width
-            height: 115
-            spacing: 13
-            Repeater {
-                model: [
-                    {label:"Casts", value:root.fmt(root.snapshot.casts)},
-                    {label:"Replies written", value:root.fmt(root.snapshot.replies)},
-                    {label:"Likes", value:root.amount(root.snapshot.likes)},
-                    {label:"Recasts", value:root.amount(root.snapshot.recasts)},
-                    {label:"Replies received", value:root.amount(root.snapshot.receivedReplies)}
-                ]
-                delegate: Rectangle {
-                    required property var modelData
-                    width: (parent.width - 52) / 5
-                    height: 115
-                    radius: 21
-                    color: root.tileFill
-                    border.color: root.lightStyle ? "#DDE3F3" : "#344065"
-                    border.width: 1
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 7
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: modelData.value
-                            color: root.mainInk
-                            font.pixelSize: 38
-                            font.weight: Font.Bold
+            height: 152
+            spacing: 12
+            Row {
+                width: parent.width
+                height: 70
+                spacing: 13
+                Repeater {
+                    model: [
+                        {label:"Casts", value:root.fmt(root.snapshot.casts)},
+                        {label:"Replies written", value:root.fmt(root.snapshot.replies)}
+                    ]
+                    delegate: Rectangle {
+                        required property var modelData
+                        width: (parent.width - 13) / 2
+                        height: 70
+                        radius: 19
+                        color: root.tileFill
+                        border.color: root.lightStyle ? "#DDE3F3" : "#344065"
+                        border.width: 1
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 16
+                            Text {
+                                text: modelData.value
+                                color: root.mainInk
+                                font.pixelSize: 38
+                                font.weight: Font.Bold
+                            }
+                            Text {
+                                y: (parent.height - height) / 2
+                                text: modelData.label
+                                color: root.secondaryInk
+                                font.pixelSize: 26
+                            }
                         }
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: modelData.label
-                            color: root.secondaryInk
-                            font.pixelSize: 17
+                    }
+                }
+            }
+            Row {
+                width: parent.width
+                height: 70
+                spacing: 13
+                Repeater {
+                    model: [
+                        {label:"Likes", value:root.amount(root.snapshot.likes)},
+                        {label:"Recasts", value:root.amount(root.snapshot.recasts)},
+                        {label:"Replies received", value:root.amount(root.snapshot.receivedReplies)}
+                    ]
+                    delegate: Rectangle {
+                        required property var modelData
+                        width: (parent.width - 26) / 3
+                        height: 70
+                        radius: 19
+                        color: root.tileFill
+                        border.color: root.lightStyle ? "#DDE3F3" : "#344065"
+                        border.width: 1
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 12
+                            Text {
+                                text: modelData.value
+                                color: root.mainInk
+                                font.pixelSize: modelData.value.length > 6 ? 23
+                                    : modelData.value.length > 4 ? 29 : 37
+                                font.weight: Font.Bold
+                            }
+                            Text {
+                                y: (parent.height - height) / 2
+                                text: modelData.label
+                                color: root.secondaryInk
+                                font.pixelSize: modelData.value.length > 6 ? 21 : 24
+                            }
                         }
                     }
                 }

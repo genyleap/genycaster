@@ -22,6 +22,9 @@ test('Rich Cast v1 snapshots real stats and renders one 960 x 600 branded PNG', 
     assert.match(card,/engagementAvailable \? fmt\(value\) : "—"/);
     for(const metric of ['engagement','casts','replies','likes','recasts','receivedReplies'])
         assert.match(card,new RegExp('root\\.snapshot\\.'+metric));
+    assert.match(card,/width: \(parent\.width - 13\) \/ 2/);
+    assert.match(card,/width: \(parent\.width - 26\) \/ 3/);
+    assert.match(card,/modelData\.value\.length > 6 \? 23/);
     assert.match(card,/cardStyle: "neon"/);
     assert.match(card,/lightStyle: cardStyle === "minimal"/);
 });
