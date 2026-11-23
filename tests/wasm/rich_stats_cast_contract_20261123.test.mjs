@@ -89,6 +89,21 @@ test('WebAssembly generated PNG upload reuses the signer proof, bounded media an
     assert.match(browser,/remove:removeManagedMedia/);
 });
 
+test('Native uploads distinguish local session rejection from remote gateway unavailability', () => {
+    const bridge = read('ui/app/runtime/bindings.cpp');
+    const upload = read('src/application/media_upload.cpp');
+    const gateway = read('src/transport/qt_network/media_upload.cpp');
+    assert.match(bridge,/QString mediaUploadFailureText\(const foundation::error::ErrorCode code\)/);
+    assert.match(bridge,/case ErrorCode::Unauthorized:\s*return qtTrId\("genycaster\.media\.upload_authorization_failed"\)/);
+    assert.match(bridge,/case ErrorCode::TransportFailure:/);
+    assert.match(bridge,/mediaUploadFailureText\(started\.error\(\)\.code\)/);
+    assert.match(bridge,/mediaUploadFailureText\(state\.error->code\)/);
+    assert.doesNotMatch(bridge,/controllerGuard->applyFailed\(qtTrId\("genycaster\.media\.upload_network_failed"\)\)/);
+    assert.match(upload,/if \(!session \|\| session->fid\.value == 0U \|\| domain::session::isExpired/);
+    assert.match(gateway,/authorizationHeaders\(/);
+    assert.match(gateway,/performRequest\(/);
+});
+
 test('Native feed identifies recap as presentation only, never verification', () => {
     const feed=read('ui/components/feed/CastItem.qml');
     assert.match(feed,/readonly property bool genycasterStatsCast/);

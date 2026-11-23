@@ -6334,6 +6334,32 @@ void connectRuntime(
     return QStringLiteral("preparing");
 }
 
+// A locally invalid session, a missing signer and a failed network request
+// must not all appear to the user as "Media gateway is unavailable". Apply
+// exactly the same mapping to synchronous start() failures and to asynchronous
+// media gateway completion failures. Never put raw signer/provider responses
+// or an opaque upload ticket into the UI.
+[[nodiscard]] QString mediaUploadFailureText(const foundation::error::ErrorCode code)
+{
+    using foundation::error::ErrorCode;
+    switch (code) {
+    case ErrorCode::Unauthorized:
+        return qtTrId("genycaster.media.upload_authorization_failed");
+    case ErrorCode::InvalidArgument:
+        return qtTrId("genycaster.media.upload_invalid_file");
+    case ErrorCode::Unavailable:
+    case ErrorCode::Timeout:
+    case ErrorCode::TransportFailure:
+    case ErrorCode::RateLimited:
+        return qtTrId("genycaster.media.upload_network_failed");
+    case ErrorCode::ProtocolFailure:
+    case ErrorCode::Unsupported:
+        return qtTrId("genycaster.media.upload_protocol_failed");
+    default:
+        return qtTrId("genycaster.media.upload_failed");
+    }
+}
+
 void connectMediaUpload(
     MediaUploadController& controller,
     const std::shared_ptr<Runtime>& runtime)
@@ -6357,29 +6383,9 @@ void connectMediaUpload(
                     if (state.phase == application::media::upload::UploadPhase::Failed) {
                         // Preserve error provenance without leaking provider response
                         // bodies, bearer credentials, or signed upload challenges.
-                        QString publicFailure = qtTrId("genycaster.media.upload_failed");
-                        if (state.error) {
-                            using foundation::error::ErrorCode;
-                            switch (state.error->code) {
-                            case ErrorCode::Unauthorized:
-                                publicFailure = qtTrId("genycaster.media.upload_authorization_failed");
-                                break;
-                            case ErrorCode::InvalidArgument:
-                                publicFailure = qtTrId("genycaster.media.upload_invalid_file");
-                                break;
-                            case ErrorCode::Timeout:
-                            case ErrorCode::Unavailable:
-                            case ErrorCode::RateLimited:
-                            case ErrorCode::TransportFailure:
-                                publicFailure = qtTrId("genycaster.media.upload_network_failed");
-                                break;
-                            case ErrorCode::ProtocolFailure:
-                            case ErrorCode::Unsupported:
-                                publicFailure = qtTrId("genycaster.media.upload_protocol_failed");
-                                break;
-                            default: break;
-                            }
-                        }
+                        const QString publicFailure = state.error
+                            ? mediaUploadFailureText(state.error->code)
+                            : qtTrId("genycaster.media.upload_failed");
 #ifndef NDEBUG
                         if (state.error) {
                             qInfo().noquote() << "Genycaster media upload failure:"
@@ -6450,7 +6456,13 @@ void connectMediaUpload(
                 qInfo().noquote() << "Genycaster media upload could not start:"
                                   << QString::fromStdString(started.error().message);
 #endif
-                controllerGuard->applyFailed(qtTrId("genycaster.media.upload_network_failed"));
+                // A synchronous queue/session rejection never reached the
+                // media gateway. Do not suggest that a remote server is down.
+                const QString failure = started.error().code
+                        == foundation::error::ErrorCode::Unavailable
+                    ? qtTrId("genycaster.media.upload_failed")
+                    : mediaUploadFailureText(started.error().code);
+                controllerGuard->applyFailed(failure);
                 return;
             }
             std::scoped_lock lock{runtime->mediaUploadMutex};
