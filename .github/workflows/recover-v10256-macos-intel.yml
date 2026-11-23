@@ -106,7 +106,21 @@ jobs:
           python3 ci/recover_intel_smoke.py "$MOUNT/Genycaster.app" \
             --stage mounted --diagnostics "$RUNNER_TEMP/intel-smoke-diagnostics" \
             --selection-file "$RUNNER_TEMP/intel-selected-backend.txt"
-          hdiutil detach "$MOUNT"
+          # macOS may hold the mounted image briefly after Qt Quick exits.
+          # Retrying detach is safe because the DMG is mounted read-only and
+          # both signature verification and mounted startup smoke already passed.
+          detached=0
+          for attempt in 1 2 3 4 5 6; do
+            if hdiutil detach "$MOUNT" -quiet; then detached=1; break; fi
+            echo "::warning::Read-only Intel DMG temporarily busy during detach ($attempt/6)"
+            sleep $((attempt * 2))
+          done
+          if [[ "$detached" -eq 0 ]]; then
+            echo "::warning::Attempting one final forced detach of verified read-only DMG"
+            hdiutil detach -force "$MOUNT" -quiet
+            detached=1
+          fi
+          [[ "$detached" -eq 1 ]]
           trap - EXIT
           cp "$DMG" dist/GenyCaster-v1.0.256-macos-x86_64-adhoc-UNNOTARIZED.dmg
           python3 ci/verify_platform_package.py macos \
