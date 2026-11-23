@@ -4104,6 +4104,30 @@ Company | https://company.com</source>
             <source>Uploading…</source>
             <translation>アップロード中…</translation>
         </message>
+        <message id="genycaster.media.step_uploading">
+            <source>Uploading</source>
+            <translation>アップロード</translation>
+        </message>
+        <message id="genycaster.media.step_compressing">
+            <source>Compressing</source>
+            <translation>圧縮</translation>
+        </message>
+        <message id="genycaster.media.step_finalizing">
+            <source>Finalizing</source>
+            <translation>最終処理</translation>
+        </message>
+        <message id="genycaster.media.optimizing">
+            <source>Compressing and saving image…</source>
+            <translation>画像を圧縮して保存中…</translation>
+        </message>
+        <message id="genycaster.media.finalizing">
+            <source>Finalizing…</source>
+            <translation>最終処理中…</translation>
+        </message>
+        <message id="genycaster.media.saved">
+            <source>Saved %1%</source>
+            <translation>%1% 節約</translation>
+        </message>
         <message id="genycaster.media.verifying">
             <source>Verifying upload…</source>
             <translation>アップロードを確認中…</translation>

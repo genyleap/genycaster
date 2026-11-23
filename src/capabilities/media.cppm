@@ -33,7 +33,9 @@ enum class UploadStage : std::uint8_t {
     Preparing,
     Authorizing,
     Uploading,
-    Verifying,
+    Optimizing, // Gateway is optimizing and persisting the canonical image.
+    Finalizing, // Server acknowledged; client is validating the media receipt.
+    Verifying,  // Kept for compatibility with older gateway implementations.
 };
 
 /** @brief Progress callback invoked on the media I/O executor thread. */

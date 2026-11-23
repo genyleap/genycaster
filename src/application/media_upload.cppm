@@ -39,6 +39,8 @@ enum class UploadPhase : std::uint8_t {
     Preparing,
     Authorizing,
     Uploading,
+    Optimizing,
+    Finalizing,
     Verifying,
     Completed,
     Cancelled,

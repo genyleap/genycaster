@@ -43,6 +43,8 @@ class MediaUploadController final : public QObject {
     Q_PROPERTY(QString selectedContentType READ selectedContentType NOTIFY stateChanged)
     Q_PROPERTY(qulonglong transferredBytes READ transferredBytes NOTIFY stateChanged)
     Q_PROPERTY(qulonglong totalBytes READ totalBytes NOTIFY stateChanged)
+    Q_PROPERTY(qulonglong sourceBytes READ sourceBytes NOTIFY stateChanged)
+    Q_PROPERTY(bool optimizationSeen READ optimizationSeen NOTIFY stateChanged)
 
 public:
     /** @brief Creates an idle media-upload presentation adapter. */
@@ -65,6 +67,10 @@ public:
     [[nodiscard]] QString selectedContentType() const;
     [[nodiscard]] qulonglong transferredBytes() const noexcept;
     [[nodiscard]] qulonglong totalBytes() const noexcept;
+    /** Number of bytes submitted before server-side optimization. */
+    [[nodiscard]] qulonglong sourceBytes() const noexcept;
+    /** Whether this upload actually reached a v3 image-optimization stage. */
+    [[nodiscard]] bool optimizationSeen() const noexcept;
 
     /**
      * @brief Starts uploading one local file selected by the user.
@@ -156,4 +162,6 @@ private:
     int m_afterIndex{-1};
     qulonglong m_transferredBytes{};
     qulonglong m_totalBytes{};
+    qulonglong m_sourceBytes{};
+    bool m_optimizationSeen{false};
 };

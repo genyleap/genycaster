@@ -75,6 +75,25 @@ Updated clients use `storedSizeBytes` for display/accounting. Other
 response fields (`assetUrl`, `contentType`, `managementToken`) retain
 their existing meaning.
 
+### Upload progress shown by the clients
+
+- **Uploading:** measured multipart transfer bytes. A determinate progress bar
+  is shown only while those bytes are actually being transferred.
+- **Compressing and saving:** begins when the final signed request is sent
+  *and* the server's upload ticket explicitly advertises `optimizationMode:
+  auto|high`. The backend may be decoding, compressing or writing to QStorage;
+  without a server progress endpoint the client displays an indeterminate
+  indicator, **never a fabricated percentage**.
+- **Finalizing:** the gateway response has been received and the client
+  validates the canonical asset URL, stored object size and management token.
+- **Complete:** the attached image shows the actual stored size. If the
+  gateway reports `storedSizeBytes < sourceSizeBytes`, Composer also shows
+  the percentage of bytes saved.
+
+A deployed legacy/v2 gateway does not advertise optimization and therefore
+skips the Compressing stage rather than claiming a compression occurred. The
+future Original quality setting uses the same bypass.
+
 ### On-demand delivery
 
 An optional variant request uses the same stable asset identifier:

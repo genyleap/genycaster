@@ -4104,6 +4104,30 @@ Company | https://company.com</source>
             <source>Uploading…</source>
             <translation>正在上传…</translation>
         </message>
+        <message id="genycaster.media.step_uploading">
+            <source>Uploading</source>
+            <translation>上传</translation>
+        </message>
+        <message id="genycaster.media.step_compressing">
+            <source>Compressing</source>
+            <translation>压缩</translation>
+        </message>
+        <message id="genycaster.media.step_finalizing">
+            <source>Finalizing</source>
+            <translation>完成</translation>
+        </message>
+        <message id="genycaster.media.optimizing">
+            <source>Compressing and saving image…</source>
+            <translation>正在压缩并保存图片…</translation>
+        </message>
+        <message id="genycaster.media.finalizing">
+            <source>Finalizing…</source>
+            <translation>正在完成…</translation>
+        </message>
+        <message id="genycaster.media.saved">
+            <source>Saved %1%</source>
+            <translation>节省 %1%</translation>
+        </message>
         <message id="genycaster.media.verifying">
             <source>Verifying upload…</source>
             <translation>正在验证上传…</translation>

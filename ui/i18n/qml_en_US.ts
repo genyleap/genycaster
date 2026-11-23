@@ -4105,6 +4105,30 @@ Company | https://company.com</translation>
             <source>Uploading…</source>
             <translation>Uploading…</translation>
         </message>
+        <message id="genycaster.media.step_uploading">
+            <source>Uploading</source>
+            <translation>Uploading</translation>
+        </message>
+        <message id="genycaster.media.step_compressing">
+            <source>Compressing</source>
+            <translation>Compressing</translation>
+        </message>
+        <message id="genycaster.media.step_finalizing">
+            <source>Finalizing</source>
+            <translation>Finalizing</translation>
+        </message>
+        <message id="genycaster.media.optimizing">
+            <source>Compressing and saving image…</source>
+            <translation>Compressing and saving image…</translation>
+        </message>
+        <message id="genycaster.media.finalizing">
+            <source>Finalizing…</source>
+            <translation>Finalizing…</translation>
+        </message>
+        <message id="genycaster.media.saved">
+            <source>Saved %1%</source>
+            <translation>Saved %1%</translation>
+        </message>
         <message id="genycaster.media.verifying">
             <source>Verifying upload…</source>
             <translation>Verifying upload…</translation>

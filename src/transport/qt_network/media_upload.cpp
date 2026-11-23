@@ -512,6 +512,14 @@ public:
                 foundation::error::ErrorCode::ProtocolFailure,
                 "Media gateway returned an invalid multipart upload ticket."));
         }
+        // Only the v3 gateway confirms that optimization is supported.
+        // Older deployed gateways silently ignore optimizationMode and
+        // write originals; never claim to be compressing against v2.
+        const QString serverOptimization = ticket->value(
+            QStringLiteral("optimizationMode")).toString();
+        const bool serverOptimizesImage = image
+            && (serverOptimization == QStringLiteral("auto")
+                || serverOptimization == QStringLiteral("high"));
         const std::uint64_t partSizeBytes = *parsedPartSize;
         const std::uint64_t partCount = *parsedPartCount;
         // Quotient + remainder avoids overflow from (size + partSize - 1).
@@ -639,7 +647,11 @@ public:
         }
 
         if (progress) {
-            progress(capability::media::UploadStage::Verifying, sizeBytes, sizeBytes);
+            // The complete endpoint first optimizes/stores a staged image.
+            // Direct video/original uploads only need provider finalization.
+            progress(serverOptimizesImage ? capability::media::UploadStage::Optimizing
+                                          : capability::media::UploadStage::Finalizing,
+                     sizeBytes, sizeBytes);
         }
         const QJsonObject completeObject{
             {QStringLiteral("uploadId"), uploadId},
@@ -690,6 +702,9 @@ public:
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::ProtocolFailure,
                 "Media gateway completion response did not match the uploaded file."));
+        }
+        if (serverOptimizesImage && progress) {
+            progress(capability::media::UploadStage::Finalizing, sizeBytes, sizeBytes);
         }
 
         return capability::media::ManagedAsset{

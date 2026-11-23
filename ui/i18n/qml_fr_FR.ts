@@ -4105,6 +4105,30 @@ Entreprise | https://company.com</translation>
             <source>Uploading…</source>
             <translation>Téléversement…</translation>
         </message>
+        <message id="genycaster.media.step_uploading">
+            <source>Uploading</source>
+            <translation>Envoi</translation>
+        </message>
+        <message id="genycaster.media.step_compressing">
+            <source>Compressing</source>
+            <translation>Compression</translation>
+        </message>
+        <message id="genycaster.media.step_finalizing">
+            <source>Finalizing</source>
+            <translation>Finalisation</translation>
+        </message>
+        <message id="genycaster.media.optimizing">
+            <source>Compressing and saving image…</source>
+            <translation>Compression et enregistrement de l’image…</translation>
+        </message>
+        <message id="genycaster.media.finalizing">
+            <source>Finalizing…</source>
+            <translation>Finalisation…</translation>
+        </message>
+        <message id="genycaster.media.saved">
+            <source>Saved %1%</source>
+            <translation>%1 % économisés</translation>
+        </message>
         <message id="genycaster.media.verifying">
             <source>Verifying upload…</source>
             <translation>Vérification du téléversement…</translation>

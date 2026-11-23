@@ -15,11 +15,66 @@ NeonCard {
     property bool insertFailed: false
     property var queuedFiles: []
     property var attachmentMetadata: ({})
+    property string inspectedImageUrl: ""
+    property string inspectedFileName: ""
+    property string inspectedMediaType: ""
+
+    function inspectImage(item) {
+        if (!String(item.mediaType || "").startsWith("image/")) return
+        root.inspectedImageUrl = String(item.previewUrl || item.url || "")
+        root.inspectedFileName = String(item.fileName || "")
+        root.inspectedMediaType = String(item.mediaType || "")
+        if (root.inspectedImageUrl.length > 0) mediaInspector.open()
+    }
 
     signal browseRequested(int blockIndex)
     signal filesDropped(var urls, int blockIndex)
     signal resetFailureRequested()
     signal finished()
+
+    GenyModal {
+        id: mediaInspector
+        objectName: "composerFullResolutionMediaInspector"
+        parent: Overlay.overlay
+        width: parent ? Math.min(1080, Math.max(280, parent.width - 28)) : 900
+        height: parent ? Math.min(820, Math.max(300, parent.height - 28)) : 710
+        onClosed: root.inspectedImageUrl = ""
+
+        contentItem: ColumnLayout {
+            spacing: Theme.space2
+            RowLayout {
+                Layout.fillWidth: true
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.inspectedFileName
+                    elide: Text.ElideMiddle
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightDemiBold
+                    forceLeftToRight: true
+                }
+                ActionButton {
+                    iconOnly: true
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconClose
+                    Accessible.name: qsTrId("genycaster.shell.close")
+                    onClicked: mediaInspector.close()
+                }
+            }
+            MediaPreview {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                source: root.inspectedImageUrl
+                mediaType: root.inspectedMediaType
+                fitImage: true
+                imageDecodeEdge: 2048
+                interactive: false
+                showBorder: false
+                curveDepth: Theme.curveContainer
+            }
+        }
+    }
 
     readonly property var attachedMedia: {
         const source = richComposer.blocks || []
@@ -38,6 +93,7 @@ NeonCard {
                 fileName: String(metadata.fileName || root.fileNameFromUrl(url)),
                 previewUrl: String(metadata.localPreviewUrl || url),
                 sizeBytes: Number(metadata.sizeBytes || 0),
+                originalSizeBytes: Number(metadata.originalSizeBytes || metadata.sizeBytes || 0),
                 sticker: StickerCatalog.isStickerUrl(url)
             })
         }
@@ -65,6 +121,22 @@ NeonCard {
         return LocaleFormat.formatNumber(amount, digits) + " " + units[unit]
     }
 
+    function savingsText(sourceBytes, storedBytes) {
+        const source = Number(sourceBytes || 0)
+        const stored = Number(storedBytes || 0)
+        if (!Number.isFinite(source) || !Number.isFinite(stored)
+                || source <= 0 || stored <= 0 || stored >= source) return ""
+        return qsTrId("genycaster.media.saved").arg(
+            LocaleFormat.formatInteger(Math.round(100 * (source - stored) / source)))
+    }
+
+    readonly property int processingStep: {
+        const phase = mediaUpload.phase
+        if (phase === "optimizing") return 1
+        if (phase === "finalizing" || phase === "verifying") return 2
+        return 0
+    }
+
     function fileNameFromUrl(rawUrl) {
         const value = String(rawUrl || "")
         if (value.length === 0)
@@ -81,6 +153,8 @@ NeonCard {
     }
 
     function mediaPhaseText(phase) {
+        if (phase === "optimizing") return qsTrId("genycaster.media.optimizing")
+        if (phase === "finalizing") return qsTrId("genycaster.media.finalizing")
         if (phase === "queued") return qsTrId("genycaster.media.queued")
         if (phase === "preparing") return qsTrId("genycaster.media.preparing")
         if (phase === "authorizing") return qsTrId("genycaster.media.authorizing")
@@ -323,8 +397,66 @@ NeonCard {
                         wrapMode: Text.Wrap
                     }
 
-                    Superellipse {
+                    RowLayout {
+                        objectName: "smartMediaPipelineProgressSteps"
                         visible: mediaUpload.busy
+                            && String(mediaUpload.selectedContentType || "").startsWith("image/")
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+
+                        Repeater {
+                            // Concise stage titles fit narrow mobile composers;
+                            // the full, localized description is above.
+                            model: [
+                                qsTrId("genycaster.media.step_uploading"),
+                                qsTrId("genycaster.media.step_compressing"),
+                                qsTrId("genycaster.media.step_finalizing")
+                            ]
+                            delegate: RowLayout {
+                                required property int index
+                                required property string modelData
+                                Layout.fillWidth: true
+                                spacing: Theme.space1
+
+                                Rectangle {
+                                    Layout.preferredWidth: 8
+                                    Layout.preferredHeight: 8
+                                    radius: 4
+                                    // A legacy v2 gateway skips image
+                                    // optimization. Don't mark the second
+                                    // stage as completed if it never ran.
+                                    color: index <= root.processingStep
+                                        && (index !== 1 || mediaUpload.optimizationSeen)
+                                        ? Theme.accent : Theme.borderStrong
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: modelData
+                                    color: index === root.processingStep
+                                        ? Theme.ink : Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: index === root.processingStep
+                                        ? Theme.weightDemiBold : Theme.weightRegular
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+
+                        GenySpinner {
+                            visible: mediaUpload.phase === "optimizing"
+                                || mediaUpload.phase === "finalizing"
+                            running: visible && mediaUpload.busy
+                            Layout.preferredWidth: visible ? 18 : 0
+                            Layout.preferredHeight: visible ? 18 : 0
+                            Accessible.ignored: true
+                        }
+                    }
+
+                    Superellipse {
+                        // Network bytes are measurable; backend conversion
+                        // and storage are not. Never show a fake 100% upload
+                        // bar while waiting on QStorage finalization.
+                        visible: mediaUpload.busy && root.processingStep === 0
                         Layout.fillWidth: true
                         Layout.preferredHeight: 4
                         fillColor: Theme.borderMuted
@@ -422,7 +554,14 @@ NeonCard {
 
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: root.formatBytes(modelData.sizeBytes)
+                                // Show *actual* bytes persisted in QStorage,
+                                // with savings only when the signed gateway
+                                // reported a smaller canonical object.
+                                text: root.savingsText(modelData.originalSizeBytes, modelData.sizeBytes).length > 0
+                                    ? root.formatBytes(modelData.originalSizeBytes)
+                                      + " → " + root.formatBytes(modelData.sizeBytes)
+                                      + " · " + root.savingsText(modelData.originalSizeBytes, modelData.sizeBytes)
+                                    : root.formatBytes(modelData.sizeBytes)
                                       + (modelData.sizeBytes > 0 ? " · " : "")
                                       + (String(modelData.mediaType || "").startsWith("image/")
                                          ? qsTrId("genycaster.embed.image") : qsTrId("genycaster.embed.video"))
@@ -457,7 +596,10 @@ NeonCard {
 
             Flickable {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.width < 620 ? 238 : 174
+                // A 244px-wide card makes small Stats text unreadable. Show a
+                // real, aspect-preserving image preview with a 1024px decode
+                // budget, rather than treating authored artwork as a thumbnail.
+                Layout.preferredHeight: root.width < 620 ? 276 : 326
                 clip: true
                 contentWidth: thumbnailRow.width
                 contentHeight: height
@@ -474,8 +616,10 @@ NeonCard {
 
                         delegate: Item {
                             required property var modelData
-                            width: root.width < 620 ? Math.max(205, Math.min(root.width - 42, 410)) : 244
-                            height: root.width < 620 ? 224 : 162
+                            width: root.width < 620
+                                ? Math.max(210, Math.min(root.width - 42, 460))
+                                : Math.min(Math.max(350, root.width - 40), 490)
+                            height: root.width < 620 ? 264 : 316
 
                             MediaPreview {
                                 anchors.fill: parent
@@ -483,9 +627,19 @@ NeonCard {
                                 source: modelData.previewUrl
                                 mediaType: modelData.mediaType
                                 fitImage: true
+                                imageDecodeEdge: 1024
                                 curveDepth: Theme.curveControl
                                 interactive: String(modelData.mediaType || "").startsWith("video/")
                                 primeVideoFrame: false
+                            }
+
+                            // The inline editor preview stays large and sharp.
+                            // A direct tap opens the complete image for
+                            // inspecting fine print before posting.
+                            TapHandler {
+                                enabled: String(modelData.mediaType || "").startsWith("image/")
+                                gesturePolicy: TapHandler.ReleaseWithinBounds
+                                onTapped: root.inspectImage(modelData)
                             }
 
                             Superellipse {

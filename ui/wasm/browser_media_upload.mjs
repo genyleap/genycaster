@@ -90,7 +90,13 @@ export async function uploadBrowserImage({
             parts.push({partNumber:n,etag:part.etag});
             onProgress('uploading',to,file.size);
         }
-        onProgress('verifying',file.size,file.size);
+        // The image is now fully transferred. The server owns decode,
+        // optimization and the final QStorage write. Do not display a made-up
+        // compression percentage while the signed complete call is pending.
+        const serverOptimizes=(
+            ticket.optimizationMode==='auto' || ticket.optimizationMode==='high');
+        onProgress(serverOptimizes ? 'optimizing' : 'finalizing',
+                   file.size,file.size);
         const completed=await signAndFetch('POST','/v1/uploads/complete',
             json({uploadId:ticket.uploadId,parts}),'application/json');
         if(completed.assetUrl!==ticket.assetUrl
@@ -103,7 +109,9 @@ export async function uploadBrowserImage({
         if(storedSize!==undefined && (!Number.isSafeInteger(storedSize)
            ||storedSize<=0||storedSize>file.size))
             throw new Error('Media Gateway returned an invalid optimized size.');
-        return {...completed,sizeBytes:storedSize??completed.sizeBytes};
+        if(serverOptimizes) onProgress('finalizing',file.size,file.size);
+        return {...completed,sizeBytes:storedSize??completed.sizeBytes,
+                sourceSizeBytes:file.size};
     }catch(error){
         // Abort is best-effort. A managed upload ticket is never logged.
         if(ticket?.uploadId && !signal?.aborted) {

@@ -73,7 +73,8 @@ public:
         progress(capability::media::UploadStage::Preparing, 0U, 4096U);
         progress(capability::media::UploadStage::Authorizing, 0U, 4096U);
         progress(capability::media::UploadStage::Uploading, 2048U, 4096U);
-        progress(capability::media::UploadStage::Verifying, 4096U, 4096U);
+        progress(capability::media::UploadStage::Optimizing, 4096U, 4096U);
+        progress(capability::media::UploadStage::Finalizing, 4096U, 4096U);
 
         if (failure) {
             return std::unexpected(*failure);
@@ -153,19 +154,20 @@ void testSuccessfulUploadEmitsProviderNeutralLifecycle()
     assert(gateway.calls == 1U);
     assert(gateway.observedFid == 4242U);
     assert(gateway.observedPath == std::filesystem::path{"/tmp/test.jpg"});
-    assert(states.size() == 6U);
+    assert(states.size() == 7U);
     assert(states[0].phase == application::media::upload::UploadPhase::Queued);
     assert(states[1].phase == application::media::upload::UploadPhase::Preparing);
     assert(states[2].phase == application::media::upload::UploadPhase::Authorizing);
     assert(states[3].phase == application::media::upload::UploadPhase::Uploading);
     assert(states[3].transferred == 2048U);
     assert(states[3].total == 4096U);
-    assert(states[4].phase == application::media::upload::UploadPhase::Verifying);
-    assert(states[5].phase == application::media::upload::UploadPhase::Completed);
-    assert(states[5].asset.has_value());
-    assert(states[5].asset->url == "https://media-farcaster.genyleap.com/m/v1/test.jpg");
-    assert(states[5].asset->sizeBytes == 4096U);
-    assert(states[5].managementToken == "opaque-management-token");
+    assert(states[4].phase == application::media::upload::UploadPhase::Optimizing);
+    assert(states[5].phase == application::media::upload::UploadPhase::Finalizing);
+    assert(states[6].phase == application::media::upload::UploadPhase::Completed);
+    assert(states[6].asset.has_value());
+    assert(states[6].asset->url == "https://media-farcaster.genyleap.com/m/v1/test.jpg");
+    assert(states[6].asset->sizeBytes == 4096U);
+    assert(states[6].managementToken == "opaque-management-token");
 }
 
 void testCancellationBeforeExecutionDoesNotTouchGateway()

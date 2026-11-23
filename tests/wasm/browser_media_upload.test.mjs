@@ -41,6 +41,7 @@ test('browser upload signs canonical media proof, transfers parts and inserts on
             return new Response(JSON.stringify({
                 uploadId:'ticket_123',mode:'gateway-multipart',
                 partCount:1,partSizeBytes:5*1024*1024,assetUrl,
+                optimizationMode:'auto',
             }),{status:201});
         if(url.endsWith('/parts/1'))
             return new Response(JSON.stringify({partNumber:1,etag:'"part-1"'}));
@@ -63,9 +64,73 @@ test('browser upload signs canonical media proof, transfers parts and inserts on
     assert.equal(create.optimizationMode,'auto');
     assert.equal(requests.length,3);
     assert.equal(challenges.length,3);
-    assert.equal(phases.at(-1)[0],'verifying');
+    assert.deepEqual(phases.map(x=>x[0]),
+        ['authorizing','uploading','uploading','optimizing','finalizing']);
     assert.equal(phases.find(x=>x[0]==='uploading')[2],128);
+    assert.equal(result.sourceSizeBytes,128);
 });
+test('legacy gateway finalizes without falsely claiming compression',async()=>{
+    const phases=[];
+    const vault={
+        load:async()=>({fid,publicKeyHex:key}),
+        signMediaChallenge:async()=>({publicKeyHex:key,signature:'de'.repeat(64)}),
+    };
+    const fetchImpl=async(url)=>{
+        if(url.endsWith('/v1/uploads'))return new Response(JSON.stringify({
+            uploadId:'legacy_ticket',mode:'gateway-multipart',
+            partCount:1,partSizeBytes:5*1024*1024,assetUrl,
+        }),{status:201});
+        if(url.endsWith('/parts/1'))return new Response(JSON.stringify({
+            partNumber:1,etag:'"legacy-part"',
+        }));
+        if(url.endsWith('/v1/uploads/complete'))return new Response(JSON.stringify({
+            assetUrl,contentType:'image/png',fileName:'photo.png',
+            sizeBytes:128,managementToken:'legacy-opaque-token',
+        }));
+        throw new Error('unexpected request '+url);
+    };
+    const result=await uploadBrowserImage({
+        file:photo(),fid,vault,crypto:webcrypto,fetchImpl,
+        onProgress:(phase)=>phases.push(phase),
+    });
+    assert.equal(result.sizeBytes,128);
+    assert.equal(result.sourceSizeBytes,128);
+    assert.deepEqual(phases,
+        ['authorizing','uploading','uploading','finalizing']);
+    assert.ok(!phases.includes('optimizing'));
+});
+
+test('image upload stages and actual cloud sizes are exposed to Composer, without fake compression progress',()=>{
+    const read=name=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
+    const panel=read('ui/components/composer/MediaUploadPanel.qml');
+    const preview=read('ui/components/media/MediaPreview.qml');
+    const controller=read('src/presentation/qt/media_upload_controller.cpp');
+    const header=read('src/presentation/qt/media_upload_controller.hpp');
+    const native=read('src/transport/qt_network/media_upload.cpp');
+    const wasm=read('ui/wasm/browser_media_upload.mjs');
+    const bridge=read('ui/app/runtime/bindings.cpp');
+    const composer=read('ui/components/composer/ComposerDrawer.qml');
+    assert.match(panel,/objectName: "smartMediaPipelineProgressSteps"/);
+    assert.match(panel,/mediaUpload\.optimizationSeen/);
+    assert.match(panel,/qsTrId\("genycaster\.media\.optimizing"\)/);
+    assert.match(panel,/qsTrId\("genycaster\.media\.finalizing"\)/);
+    assert.match(panel,/root\.processingStep === 0/);
+    assert.match(panel,/root\.savingsText\(modelData\.originalSizeBytes, modelData\.sizeBytes\)/);
+    assert.match(panel,/objectName: "composerFullResolutionMediaInspector"/);
+    assert.match(panel,/imageDecodeEdge: 2048/);
+    assert.match(preview,/requestedSourceWidth: root\.imageDecodeEdge/);
+    assert.match(header,/Q_PROPERTY\(qulonglong sourceBytes READ sourceBytes NOTIFY stateChanged\)/);
+    assert.match(controller,/m_sourceBytes = m_totalBytes/);
+    assert.match(controller,/m_optimizationSeen = true/);
+    assert.match(native,/serverOptimizesImage/);
+    assert.match(native,/UploadStage::Optimizing/);
+    assert.match(native,/UploadStage::Finalizing/);
+    assert.match(wasm,/ticket\.optimizationMode==='auto'/);
+    assert.match(bridge,/UploadPhase::Optimizing/);
+    assert.match(bridge,/UploadPhase::Finalizing/);
+    assert.match(composer,/originalSizeBytes: Number\(mediaUpload\.sourceBytes/);
+});
+
 test('unsupported formats and missing signer do not reach media gateway',async()=>{
     let calls=0;
     const fetchImpl=async()=>{calls++;throw new Error('no');};

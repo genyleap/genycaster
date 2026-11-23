@@ -140,6 +140,16 @@ qulonglong MediaUploadController::totalBytes() const noexcept
     return m_totalBytes;
 }
 
+qulonglong MediaUploadController::sourceBytes() const noexcept
+{
+    return m_sourceBytes;
+}
+
+bool MediaUploadController::optimizationSeen() const noexcept
+{
+    return m_optimizationSeen;
+}
+
 bool MediaUploadController::beginUpload(const QUrl& localFile, const int afterIndex)
 {
     if (!m_available || m_busy || !localFile.isValid() || !localFile.isLocalFile()) {
@@ -193,6 +203,7 @@ bool MediaUploadController::beginUpload(const QUrl& localFile, const int afterIn
     resetProgress();
     const qint64 localSize = fileInfo.size();
     m_totalBytes = localSize > 0 ? static_cast<qulonglong>(localSize) : 0U;
+    m_sourceBytes = m_totalBytes;
     emit stateChanged();
     emit uploadRequested(m_localPath, m_afterIndex);
     return true;
@@ -221,6 +232,7 @@ void MediaUploadController::applyBrowserSelection(
     m_afterIndex = afterIndex;
     resetProgress();
     m_totalBytes = sizeBytes;
+    m_sourceBytes = sizeBytes;
     emit stateChanged();
 }
 
@@ -291,6 +303,8 @@ void MediaUploadController::applyProgress(QString phase, const qulonglong transf
     if (!m_busy) {
         return;
     }
+    if (phase == QStringLiteral("optimizing"))
+        m_optimizationSeen = true;
     m_phase = std::move(phase);
     m_transferredBytes = transferred;
     m_totalBytes = total > 0U ? total : m_totalBytes;
@@ -353,6 +367,8 @@ void MediaUploadController::resetProgress()
     m_progress = 0.0;
     m_transferredBytes = 0U;
     m_totalBytes = 0U;
+    m_sourceBytes = 0U;
+    m_optimizationSeen = false;
 }
 
 void MediaUploadController::clearSelection()
@@ -362,5 +378,7 @@ void MediaUploadController::clearSelection()
     m_previewKind.clear();
     m_selectedContentType.clear();
     m_localPath.clear();
+    m_sourceBytes = 0U;
+    m_optimizationSeen = false;
     m_afterIndex = -1;
 }

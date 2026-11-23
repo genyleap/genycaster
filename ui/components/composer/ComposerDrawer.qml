@@ -1581,7 +1581,8 @@ GenyDrawer {
                 localPreviewUrl: root.statsImageFileUrl.length > 0
                       ? canonicalUrl : mediaUpload.localPreviewUrl.toString(),
                 mediaType: String(mediaType || mediaUpload.selectedContentType || ""),
-                sizeBytes: Number(mediaUpload.totalBytes || 0)
+                sizeBytes: Number(mediaUpload.totalBytes || 0),
+                originalSizeBytes: Number(mediaUpload.sourceBytes || mediaUpload.totalBytes || 0)
             }
             root.mediaMetadata = nextMetadata
 

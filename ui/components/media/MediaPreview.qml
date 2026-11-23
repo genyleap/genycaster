@@ -19,6 +19,9 @@ Item {
     // Composing a post must show the entire submitted image, not a cropped
     // square that conceals the actual content.
     property bool fitImage: false
+    // Explicit full-fidelity decode budget for authored media inspection.
+    // Feed tiles keep their adaptive (often smaller) decode policy.
+    property int imageDecodeEdge: 0
     property color fillColor: Theme.surfaceMuted
     property bool primeVideoFrame: false
     property bool showFailureText: width >= 180
@@ -65,6 +68,8 @@ Item {
         visible: root.isImage && root.hasSource
         source: root.isImage ? root.source : ""
         mediaCategory: "photos"
+        requestedSourceWidth: root.imageDecodeEdge
+        requestedSourceHeight: root.imageDecodeEdge
         fillMode: root.fitImage ? Image.PreserveAspectFit : Image.PreserveAspectCrop
         curveDepth: root.curveDepth
         borderWidth: 0

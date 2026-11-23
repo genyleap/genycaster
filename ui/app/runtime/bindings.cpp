@@ -6326,6 +6326,8 @@ void connectRuntime(
     case UploadPhase::Preparing: return QStringLiteral("preparing");
     case UploadPhase::Authorizing: return QStringLiteral("authorizing");
     case UploadPhase::Uploading: return QStringLiteral("uploading");
+    case UploadPhase::Optimizing: return QStringLiteral("optimizing");
+    case UploadPhase::Finalizing: return QStringLiteral("finalizing");
     case UploadPhase::Verifying: return QStringLiteral("verifying");
     case UploadPhase::Completed: return QStringLiteral("completed");
     case UploadPhase::Cancelled: return QStringLiteral("cancelled");

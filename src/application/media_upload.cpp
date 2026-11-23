@@ -29,6 +29,10 @@ namespace {
         return UploadPhase::Authorizing;
     case capability::media::UploadStage::Uploading:
         return UploadPhase::Uploading;
+    case capability::media::UploadStage::Optimizing:
+        return UploadPhase::Optimizing;
+    case capability::media::UploadStage::Finalizing:
+        return UploadPhase::Finalizing;
     case capability::media::UploadStage::Verifying:
         return UploadPhase::Verifying;
     }
