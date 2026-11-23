@@ -45,6 +45,7 @@ COPY --from=builder /deployment_config.mjs /deployment_config.mjs
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/gateway.mjs ./gateway.mjs
+COPY --from=builder /app/media_entitlements.mjs ./media_entitlements.mjs
 COPY --from=builder /app/smart_media_pipeline ./smart_media_pipeline
 COPY --from=builder /app/browser_image_proxy.mjs ./browser_image_proxy.mjs
 COPY --from=builder /app/browser_farcaster_auth.mjs ./browser_farcaster_auth.mjs
@@ -61,6 +62,7 @@ COPY --from=builder /app/storage ./storage
 RUN chmod 0644 /deployment_config.mjs \
     && chmod 0755 /app/storage/native \
     && find /app/smart_media_pipeline -type f -name "*.mjs" -exec chmod 0644 {} + \
+    && chmod 0644 /app/media_entitlements.mjs \
     && chmod 0644 /app/browser_image_proxy.mjs /app/browser_farcaster_auth.mjs /app/browser_token_insights.mjs /app/browser_miniapp_preview.mjs /app/browser_link_preview.mjs /app/browser_cast_views.mjs /app/browser_cast_reactions.mjs /app/gateway.mjs /app/server.mjs
 
 USER node

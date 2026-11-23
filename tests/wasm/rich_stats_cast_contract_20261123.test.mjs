@@ -27,8 +27,11 @@ test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image',
     assert.match(card,/source: root\.sourceUrl/);
     assert.match(card,/cache: false/);
     assert.match(card,/readonly property bool ready: previewImage\.status === Image\.Ready/);
-    assert.match(renderer,/CanvasWidth = 960/);
-    assert.match(renderer,/CanvasHeight = 600/);
+    assert.match(renderer,/LayoutWidth = 960/);
+    assert.match(renderer,/LayoutHeight = 600/);
+    assert.match(renderer,/RasterScale = 2/);
+    assert.match(renderer,/painter.scale\(RasterScale, RasterScale\)/);
+    assert.match(card,/sourceSize: Qt.size\(1920, 1200\)/);
     assert.match(renderer,/QImage::Format_ARGB32_Premultiplied/);
     assert.match(renderer,/QPainter painter\{&image\}/);
     assert.match(renderer,/QTemporaryFile temporary/);
@@ -78,9 +81,9 @@ test('WebAssembly generated PNG upload reuses the signer proof, bounded media an
     const sender=read('ui/wasm/browser_media_upload.mjs');
     assert.match(bridge,/MediaUploadController::uploadRequested/);
     assert.match(bridge,/const bytes=FS\.readFile\(path\)/);
-    assert.match(bridge,/__genycasterBrowserMedia\.uploadGenerated\(fid,\$4,bytes\)/);
-    assert.match(browser,/function uploadGeneratedMedia\(fid,afterIndex,bytes\)/);
-    assert.match(browser,/8\*1024\*1024/);
+    assert.match(bridge,/__genycasterBrowserMedia\.uploadGenerated\(fid,\$4,bytes,\$5\)/);
+    assert.match(browser,/function uploadGeneratedMedia\(fid,afterIndex,bytes,maxImageBytes/);
+    assert.match(browser,/maxImageBytes===5\*1024\*1024\?5\*1024\*1024:2\*1024\*1024/);
     assert.match(browser,/new File\(\[bytes\],'genycaster-stats-card\.png'/);
     assert.match(browser,/uploadBrowserImage\(\{/);
     assert.match(browser,/kind:'completed'/);

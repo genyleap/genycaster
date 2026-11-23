@@ -6378,10 +6378,11 @@ void connectMediaUpload(
             if (!controllerGuard || !runtime->mediaUploadService) {
                 return;
             }
+            const quint64 generation = controllerGuard->uploadGeneration();
             auto started = runtime->mediaUploadService->start(
                 runtime->currentSessionSnapshot(),
                 nativeMediaPath(localPath),
-                [runtime, controllerGuard](application::media::upload::UploadState state) mutable {
+                [runtime, controllerGuard, generation](application::media::upload::UploadState state) mutable {
                     if (state.phase == application::media::upload::UploadPhase::Failed) {
                         // Preserve error provenance without leaking provider response
                         // bodies, bearer credentials, or signed upload challenges.
@@ -6397,8 +6398,8 @@ void connectMediaUpload(
                         if (controllerGuard) {
                             QMetaObject::invokeMethod(
                                 controllerGuard.data(),
-                                [controllerGuard, publicFailure] {
-                                    if (controllerGuard) {
+                                [controllerGuard, publicFailure, generation] {
+                                    if (controllerGuard && controllerGuard->uploadGeneration() == generation) {
                                         controllerGuard->applyFailed(publicFailure);
                                     }
                                 },
@@ -6410,8 +6411,10 @@ void connectMediaUpload(
                         if (controllerGuard) {
                             QMetaObject::invokeMethod(
                                 controllerGuard.data(),
-                                [controllerGuard] {
-                                    if (controllerGuard) { controllerGuard->applyCancelled(); }
+                                [controllerGuard, generation] {
+                                    if (controllerGuard && controllerGuard->uploadGeneration() == generation) {
+                                        controllerGuard->applyCancelled();
+                                    }
                                 },
                                 Qt::QueuedConnection);
                         }
@@ -6429,8 +6432,8 @@ void connectMediaUpload(
                         if (controllerGuard) {
                             QMetaObject::invokeMethod(
                                 controllerGuard.data(),
-                                [controllerGuard, assetUrl, contentType, fileName, managementToken, sizeBytes] {
-                                    if (controllerGuard) {
+                                [controllerGuard, assetUrl, contentType, fileName, managementToken, sizeBytes, generation] {
+                                    if (controllerGuard && controllerGuard->uploadGeneration() == generation) {
                                         controllerGuard->applyCompleted(
                                             assetUrl, contentType, fileName, managementToken, sizeBytes);
                                     }
@@ -6445,8 +6448,8 @@ void connectMediaUpload(
                     if (controllerGuard) {
                         QMetaObject::invokeMethod(
                             controllerGuard.data(),
-                            [controllerGuard, phase, transferred, total] {
-                                if (controllerGuard) {
+                            [controllerGuard, phase, transferred, total, generation] {
+                                if (controllerGuard && controllerGuard->uploadGeneration() == generation) {
                                     controllerGuard->applyProgress(phase, transferred, total);
                                 }
                             },
@@ -6499,13 +6502,13 @@ void connectBrowserMediaUpload(
     QObject::connect(&bridge, &PresentationBridge::stateChanged,
                      &controller, refreshAvailability);
     QObject::connect(&controller, &MediaUploadController::browserImagePickRequested,
-                     &controller, [&bridge](const int afterIndex) {
+                     &controller, [&bridge, &controller](const int afterIndex) {
         if (!bridge.isAuthenticated() || !bridge.writeReady()) return;
         const QByteArray fid = QByteArray::number(bridge.accountFid());
         EM_ASM({
             window.__genycasterBrowserMedia?.pick(
-                UTF8ToString($0,$1),$2);
-        },fid.constData(),fid.size(),afterIndex);
+                UTF8ToString($0,$1),$2,$3);
+        },fid.constData(),fid.size(),afterIndex,controller.maxImageBytes());
     });
     QObject::connect(&controller, &MediaUploadController::uploadRequested,
                      &controller, [&controller, &bridge](const QString& localPath,
@@ -6529,7 +6532,7 @@ void connectBrowserMediaUpload(
                 const bytes=FS.readFile(path);
                 if(!window.__genycasterBrowserMedia?.uploadGenerated)
                     throw new Error('Browser media upload is unavailable');
-                window.__genycasterBrowserMedia.uploadGenerated(fid,$4,bytes);
+                window.__genycasterBrowserMedia.uploadGenerated(fid,$4,bytes,$5);
             } catch(error) {
                 window.__genycasterBrowserMedia?.events?.push({
                     kind:'failed',fid,
@@ -6537,7 +6540,8 @@ void connectBrowserMediaUpload(
                 });
             }
         }, fidUtf8.constData(), fidUtf8.size(),
-           pathUtf8.constData(), pathUtf8.size(), afterIndex);
+           pathUtf8.constData(), pathUtf8.size(), afterIndex,
+           controller.maxImageBytes());
     });
     QObject::connect(&controller, &MediaUploadController::cancelRequested,
                      &controller, [&controller] {

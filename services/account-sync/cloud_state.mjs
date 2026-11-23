@@ -6,6 +6,7 @@ import {createSignerSessionProof,isCanonicalUint64Fid,
   FIRST_NATIVE_HYPERSNAP_FID} from './signer_session_proof.mjs';
 import {serverDeployment, trustedOrigin} from '../deployment_config.mjs';
 import {validateFeedback} from './feedback.mjs';
+import {authorizeMediaEntitlement,verifiedMediaPro} from './media_entitlements.mjs';
 import {handleGenyBuzz} from './genybuzz.mjs';
 import {handleProWalletProof} from './pro_wallet_proof.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
@@ -442,6 +443,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
                                     checkProToken=createProTokenVerifier({fetchImpl}),
                                     resolveProPaymentWallets=(owner)=>verifiedAccountWallets(owner,{policy:proPolicy,fetchImpl}),
                                     verifyBillingTransfer=verifyProTransfer,
+                                    mediaEntitlementSecret=process.env.GENYCASTER_MEDIA_ENTITLEMENT_SECRET,
                                     resolvePro=async(fid,owner)=>{
                                       if(!owner || !store.proBillingReady?.())
                                         return {...subscriptionEntitlements(null,billingPolicy),status:'unavailable',eligible:false};
@@ -610,13 +612,38 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
       'connections/portable','topics','topic_casts','cast_topics',
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
-      'entitlements','geny/assets','pro/plan','pro/quote','pro/verify',
+      'entitlements','geny/assets','pro/plan','pro/quote','pro/verify','media/pro',
       'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
       'muted_profiles','sticker_packs','feedback','buzz','buzz/preferences','buzz/inbox','buzz/ack',
       'pro/wallet/challenge','pro/wallet/verify','pro/wallets',
       'session','session/challenge','session/proof','swap/quote'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
+    // Internal signed, read-only entitlement check for the separate Media
+    // Gateway. The verified FID comes from that gateway's Farcaster signer
+    // proof; never accept a user-supplied tier or a forwarded browser cookie.
+    // The shared secret is scoped only to this endpoint (not OpenProof).
+    if(entity==='media/pro') {
+      const fid=authorizeMediaEntitlement(request,{
+        secret:mediaEntitlementSecret,
+      });
+      if(!fid || request.method!=='GET') {
+        respond(response,403,{error:'media_entitlement_forbidden'});
+        return true;
+      }
+      try {
+        const eligible=await verifiedMediaPro(store,upstream,fid);
+        if(eligible===null) {
+          respond(response,503,{error:'media_entitlement_unavailable'});
+          return true;
+        }
+        respond(response,200,{eligible});
+      }catch {
+        respond(response,503,{error:'media_entitlement_unavailable'});
+      }
+      return true;
+    }
+
     // Public price discovery is not an entitlement. Users can see the
     // operator-controlled price before establishing a private cloud session.
     // Checkout and subscription activation remain strictly authenticated.

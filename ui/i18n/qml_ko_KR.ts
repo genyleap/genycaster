@@ -4116,6 +4116,10 @@ Company | https://company.com</source>
             <source>Finalizing</source>
             <translation>마무리</translation>
         </message>
+        <message id="genycaster.media.image_size_limit">
+            <source>Images are limited to %1 MiB for this account.</source>
+            <translation>이 계정의 이미지 크기 제한은 %1 MiB입니다.</translation>
+        </message>
         <message id="genycaster.media.optimizing">
             <source>Compressing and saving image…</source>
             <translation>이미지 압축 및 저장 중…</translation>

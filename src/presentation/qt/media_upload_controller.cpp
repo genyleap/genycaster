@@ -150,6 +150,26 @@ bool MediaUploadController::optimizationSeen() const noexcept
     return m_optimizationSeen;
 }
 
+qulonglong MediaUploadController::maxImageBytes() const noexcept
+{
+    return m_maxImageBytes;
+}
+
+void MediaUploadController::setMaxImageBytes(const qulonglong limit)
+{
+    // A UI property cannot grant an arbitrary unbounded media upload.
+    const qulonglong bounded = limit > 2U * 1024U * 1024U
+        ? 5U * 1024U * 1024U : 2U * 1024U * 1024U;
+    if (m_maxImageBytes == bounded) return;
+    m_maxImageBytes = bounded;
+    emit stateChanged();
+}
+
+quint64 MediaUploadController::uploadGeneration() const noexcept
+{
+    return m_uploadGeneration;
+}
+
 bool MediaUploadController::beginUpload(const QUrl& localFile, const int afterIndex)
 {
     if (!m_available || m_busy || !localFile.isValid() || !localFile.isLocalFile()) {
@@ -190,6 +210,24 @@ bool MediaUploadController::beginUpload(const QUrl& localFile, const int afterIn
         return false;
     }
 
+    const qint64 size = fileInfo.size();
+    if (size <= 0 || (media->previewKind == QStringView{u"image"}
+            && static_cast<qulonglong>(size) > m_maxImageBytes)) {
+        m_busy = false;
+        m_canRetry = false;
+        m_phase = QStringLiteral("failed");
+        m_errorText = qtTrId("genycaster.media.image_size_limit")
+                          .arg(m_maxImageBytes / (1024U * 1024U));
+        m_fileName = fileInfo.fileName();
+        m_localPreviewUrl.clear();
+        m_localPath.clear();
+        m_previewKind.clear();
+        m_selectedContentType.clear();
+        resetProgress();
+        emit stateChanged();
+        return false;
+    }
+    ++m_uploadGeneration;
     m_busy = true;
     m_canRetry = false;
     m_errorText.clear();
@@ -220,6 +258,17 @@ void MediaUploadController::applyBrowserSelection(
     QString fileName, QString contentType, const qulonglong sizeBytes, const int afterIndex)
 {
     if (!m_available || m_busy) return;
+    if (sizeBytes == 0 || sizeBytes > m_maxImageBytes) {
+        m_busy = false;
+        m_canRetry = false;
+        m_phase = QStringLiteral("failed");
+        m_errorText = qtTrId("genycaster.media.image_size_limit")
+                          .arg(m_maxImageBytes / (1024U * 1024U));
+        m_fileName = std::move(fileName);
+        emit stateChanged();
+        return;
+    }
+    ++m_uploadGeneration;
     m_busy = true;
     m_canRetry = false;
     m_errorText.clear();
@@ -254,9 +303,11 @@ void MediaUploadController::cancel()
     if (!m_busy) {
         return;
     }
-    m_phase = QStringLiteral("cancelling");
-    emit stateChanged();
+    // User cancellation is immediate even if a Qt network reply takes a
+    // while to acknowledge the abort or the provider cleanup times out.
+    ++m_uploadGeneration;
     emit cancelRequested();
+    applyCancelled();
 }
 
 bool MediaUploadController::retry()
@@ -346,6 +397,7 @@ void MediaUploadController::applyCompleted(
 
 void MediaUploadController::applyFailed(QString message)
 {
+    if (!m_busy) return;
     m_busy = false;
     m_canRetry = !m_localPath.isEmpty();
     m_phase = QStringLiteral("failed");
@@ -355,6 +407,7 @@ void MediaUploadController::applyFailed(QString message)
 
 void MediaUploadController::applyCancelled()
 {
+    if (!m_busy) return;
     m_busy = false;
     m_canRetry = !m_localPath.isEmpty();
     m_phase = QStringLiteral("cancelled");

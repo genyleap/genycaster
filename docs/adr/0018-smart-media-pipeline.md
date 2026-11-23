@@ -1,6 +1,6 @@
 # ADR-0018: Smart Media Pipeline — optimized image storage
 
-**Status:** Implemented in source, deployment pending; 2026-11-23
+**Status:** Smart Media Pipeline deployed; 2/5 MiB entitlement limits and cancellation updates require the subsequent backend rollout; 2026-11-23
 
 ## Decision
 
@@ -17,6 +17,12 @@ bytes**, not merely lighter previews.
 - Public delivery can optionally resize an already-optimized canonical image,
   with on-demand bounded cache instead of permanent extra cloud variants.
 - Videos use the existing direct multipart path.
+- Source image limits are Basic 2 MiB and Pro 5 MiB. Only verified Pro
+  subscriptions from the first-party account database permit the larger
+  size. A dedicated timestamped HMAC backend-to-backend request enforces
+  this independently of the client. Unavailable verification fails closed.
+- CPU-rendered Stats cards remain original PNG at 1920×1200 to preserve
+  legibility; ordinary images remain automatically optimized.
 
 ## Rationale
 
@@ -63,8 +69,8 @@ contains exactly one final image per managed asset.
 
 ## Performance and privacy
 
-- Bounded source memory: 64 MiB total / 3 sessions; source upper bound
-  25 MiB; pixel decode cap 32 million.
+- Bounded source memory: 64 MiB total / 3 sessions; source image upper
+  bound 2 MiB (Basic), 5 MiB (Pro); pixel decode cap 32 million.
 - Serialized transformations, bounded queue, validation of MIME signatures.
 - Raw media and EXIF are not logged. Re-encoded images omit EXIF/GPS by
   default; Original mode preserves original metadata intentionally.

@@ -667,7 +667,7 @@
         mediaAbort?.abort();
         mediaAbort=null;
     }
-    function pickMedia(fid,afterIndex) {
+    function pickMedia(fid,afterIndex,maxImageBytes=2*1024*1024) {
         if(typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid))return;
         const picker=document.createElement('input');
         picker.type='file';picker.accept='image/jpeg,image/png,image/webp,image/gif,image/avif';
@@ -676,13 +676,18 @@
             const file=picker.files?.[0];
             picker.remove();
             if(!file)return;
+            // Always report selection first so the Qt controller can show its
+            // localized 2/5 MiB error. Never start a network request for a
+            // rejected selection.
+            mediaReport({kind:'selected',fid,afterIndex,
+                fileName:String(file.name).slice(0,160),
+                contentType:String(file.type).slice(0,60),sizeBytes:file.size});
+            if(file.size>(maxImageBytes===5*1024*1024
+                    ? 5*1024*1024 : 2*1024*1024))return;
             cancelMedia();
             const current=mediaEpoch;
             const controller=new AbortController();
             mediaAbort=controller;
-            mediaReport({kind:'selected',fid,afterIndex,
-                fileName:String(file.name).slice(0,160),
-                contentType:String(file.type).slice(0,60),sizeBytes:file.size});
             // Use a bounded, low-resolution, sanitized JPEG thumbnail.
             // Never pass original File/blob: URLs or full media bytes to QML.
             (async()=>{
@@ -715,7 +720,7 @@
                 try {
                     const {uploadBrowserImage}=await import('./browser_media_upload.mjs');
                     const result=await uploadBrowserImage({
-                        file,fid,signal:controller.signal,
+                        file,fid,signal:controller.signal,maxImageBytes,
                         onProgress:(phase,transferred,total)=>{
                             if(current===mediaEpoch)
                                 mediaReport({kind:'progress',fid,phase,transferred,total});
@@ -746,9 +751,10 @@
     // The browser receives only the generated PNG (never a user-selected
     // File, custody secret or signer key). Reuse the identical signed gateway
     // upload and lifecycle path as the manual image picker.
-    function uploadGeneratedMedia(fid,afterIndex,bytes){
+    function uploadGeneratedMedia(fid,afterIndex,bytes,maxImageBytes=2*1024*1024){
         if(typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid))return;
-        if(!(bytes instanceof Uint8Array)||bytes.length<64||bytes.length>8*1024*1024
+        if(!(bytes instanceof Uint8Array)||bytes.length<64
+           ||bytes.length>(maxImageBytes===5*1024*1024?5*1024*1024:2*1024*1024)
            ||[137,80,78,71,13,10,26,10].some((byte,index)=>bytes[index]!==byte)){
             mediaReport({kind:'failed',fid,error:'Invalid generated Stats PNG.'});
             return;
@@ -762,7 +768,8 @@
             try{
                 const {uploadBrowserImage}=await import('./browser_media_upload.mjs');
                 const result=await uploadBrowserImage({
-                    file,fid,signal:controller.signal,
+                    file,fid,signal:controller.signal,maxImageBytes,
+                    optimizationMode:'original',
                     onProgress:(phase,transferred,total)=>{
                         if(current===mediaEpoch)
                             mediaReport({kind:'progress',fid,phase,transferred,total});

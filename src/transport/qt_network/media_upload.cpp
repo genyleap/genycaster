@@ -271,7 +271,13 @@ struct AsyncWaitState final {
         lock.unlock();
 
         if (cancelled && cancelled()) {
+            // Do not wait for QtNetwork to deliver a cancellation callback.
+            // The operation owns its async cancellation; the shared wait
+            // state remains alive until its eventual callback.
             operation->cancel();
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Unavailable,
+                "Media upload was cancelled."));
         }
         if (progress && method == QByteArrayLiteral("PUT")) {
             const auto sent = state->sentBytes.load(std::memory_order_relaxed);
@@ -464,8 +470,13 @@ public:
             // Optimize before persisting images in QStorage. Videos remain
             // on the existing provider multipart path. Future UI may expose
             // a user-selected "original" policy; it is not required here.
+            // CPU-painted Stats share cards are already optimized, contain
+            // fine text and must retain their exact 1920x1200 pixels. Normal
+            // user images still go through Smart Media Pipeline Auto.
             {QStringLiteral("optimizationMode"),
-                image ? QStringLiteral("auto") : QStringLiteral("original")},
+                !image || (contentType == QStringLiteral("image/png")
+                    && info.fileName().startsWith(QStringLiteral("genycaster-stats-")))
+                    ? QStringLiteral("original") : QStringLiteral("auto")},
         };
         const QByteArray createBody = jsonBody(createObject);
         const QString createPath = QStringLiteral("/v1/uploads");

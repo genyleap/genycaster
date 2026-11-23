@@ -4117,6 +4117,10 @@ Company | https://company.com</source>
             <source>Finalizing</source>
             <translation>نهایی‌سازی</translation>
         </message>
+        <message id="genycaster.media.image_size_limit">
+            <source>Images are limited to %1 MiB for this account.</source>
+            <translation>سقف حجم تصویر برای این حساب %1 مگابایت است.</translation>
+        </message>
         <message id="genycaster.media.optimizing">
             <source>Compressing and saving image…</source>
             <translation>در حال فشرده‌سازی و ذخیرهٔ تصویر…</translation>

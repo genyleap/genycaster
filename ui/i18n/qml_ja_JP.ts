@@ -4116,6 +4116,10 @@ Company | https://company.com</source>
             <source>Finalizing</source>
             <translation>最終処理</translation>
         </message>
+        <message id="genycaster.media.image_size_limit">
+            <source>Images are limited to %1 MiB for this account.</source>
+            <translation>このアカウントの画像は %1 MiB までです。</translation>
+        </message>
         <message id="genycaster.media.optimizing">
             <source>Compressing and saving image…</source>
             <translation>画像を圧縮して保存中…</translation>

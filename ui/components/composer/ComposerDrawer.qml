@@ -49,7 +49,18 @@ GenyDrawer {
         ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property bool verifiedGenyPro:
         proEntitlements.status === "verified"
+        && proEntitlements.tier === "pro"
         && proEntitlements.eligible === true
+        && presentationBridge.isAuthenticated
+        && Number(openProofConnections.activeAccountFid)
+           === Number(presentationBridge.accountFid)
+    // Synchronized with the signed Media Gateway policy. Native file picks,
+    // generated PNGs and browser selections all use this upper bound.
+    Binding {
+        target: mediaUpload
+        property: "maxImageBytes"
+        value: root.verifiedGenyPro ? 5 * 1024 * 1024 : 2 * 1024 * 1024
+    }
     readonly property int maxComposerCharacters: verifiedGenyPro
         ? Math.min(4096, Math.max(1024, Number(
             root.proEntitlements.limits?.cast_characters || 4096)))

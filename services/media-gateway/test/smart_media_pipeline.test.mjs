@@ -75,7 +75,7 @@ function makeStorage() {
     },
   };
 }
-async function withGateway(action) {
+async function withGateway(action,{isPro=false}={}) {
   const storage=makeStorage();
   const signerFetch=async target=>{
     const parsed=new URL(target);
@@ -88,6 +88,7 @@ async function withGateway(action) {
   };
   const server=createMediaGateway(config,storage,{
     now:()=>nowMs,fetchImpl:signerFetch,fetchNativeRegistry:signerFetch,
+    isVerifiedMediaPro:async()=>isPro,
   });
   await new Promise((resolve,reject)=>{
     server.once('error',reject);
@@ -249,7 +250,7 @@ test('legacy client omitting policy still uses Auto before any QStorage write',a
 });
 
 test('PNG transparency and pixel dimensions are retained in optimized canonical object',async()=>{
-  const source=await sharp({create:{width:1700,height:1100,channels:4,
+  const source=await sharp({create:{width:1250,height:950,channels:4,
     background:'#e71e4090'}}).png({compressionLevel:0}).toBuffer();
   await withGateway(async({storage,createUpload,send})=>{
     const {ticket,parts}=await createUpload({
@@ -268,23 +269,23 @@ test('PNG transparency and pixel dimensions are retained in optimized canonical 
     assert.ok(Math.max(metadata.width,metadata.height)<=1600);
     assert.ok(bytes.length<source.length);
     assert.equal(completed.body.storedSizeBytes,bytes.length);
-  });
+  },{isPro:true});
 });
 
 test('input memory budget rejects too many partially uploaded images without cloud writes',async()=>{
   await withGateway(async({send,storage})=>{
     const tickets=[];
-    for(let n=0;n<2;n++){
+    for(let n=0;n<3;n++){
       const attempt=await send('POST','/v1/uploads',{
         fileName:'budget'+n+'.jpg',contentType:'image/jpeg',
-        sizeBytes:25*1024*1024,optimizationMode:'auto',
+        sizeBytes:4*1024*1024,optimizationMode:'auto',
       });
       assert.equal(attempt.status,201);
       tickets.push(attempt.body);
     }
     const denied=await send('POST','/v1/uploads',{
       fileName:'budget-overflow.jpg',contentType:'image/jpeg',
-      sizeBytes:25*1024*1024,optimizationMode:'auto',
+      sizeBytes:4*1024*1024,optimizationMode:'auto',
     });
     assert.equal(denied.status,503);
     assert.equal(storage.beginCalls,0);
@@ -292,10 +293,41 @@ test('input memory budget rejects too many partially uploaded images without clo
     assert.equal(cancelled.status,204);
     const allowed=await send('POST','/v1/uploads',{
       fileName:'budget-retry.jpg',contentType:'image/jpeg',
-      sizeBytes:25*1024*1024,optimizationMode:'auto',
+      sizeBytes:4*1024*1024,optimizationMode:'auto',
     });
     assert.equal(allowed.status,201);
+  },{isPro:true});
+});
+
+test('basic images stop at 2 MiB; only server-verified Pro gets 5 MiB',async()=>{
+  await withGateway(async({send,storage})=>{
+    const basic=await send('POST','/v1/uploads',{
+      fileName:'basic.jpg',contentType:'image/jpeg',
+      sizeBytes:2*1024*1024+1,optimizationMode:'auto',
+      pro:true,tier:'pro',
+    });
+    assert.equal(basic.status,413);
+    assert.equal(basic.body.error,'image_size_limit');
+    assert.equal(storage.beginCalls,0);
+    const small=await send('POST','/v1/uploads',{
+      fileName:'basic.jpg',contentType:'image/jpeg',
+      sizeBytes:2*1024*1024,optimizationMode:'auto',
+    });
+    assert.equal(small.status,201);
   });
+  await withGateway(async({send,storage})=>{
+    const pro=await send('POST','/v1/uploads',{
+      fileName:'pro.jpg',contentType:'image/jpeg',
+      sizeBytes:5*1024*1024,optimizationMode:'auto',
+    });
+    assert.equal(pro.status,201);
+    const beyond=await send('POST','/v1/uploads',{
+      fileName:'pro.jpg',contentType:'image/jpeg',
+      sizeBytes:5*1024*1024+1,optimizationMode:'auto',
+    });
+    assert.equal(beyond.status,422);
+    assert.equal(storage.beginCalls,0);
+  },{isPro:true});
 });
 
 test('invalid optimization modes are rejected before reserving or storing data',async()=>{

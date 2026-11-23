@@ -312,11 +312,12 @@ ColumnLayout {
             root.shareCardHandedOff = false
             root.shareCaptureBusy = false
         }
-        width: parent ? Math.min(650, parent.width - 24) : 640
+        // Image-led presentation: less outer chrome, more space for the artwork.
+        width: parent ? Math.min(980, parent.width - 24) : 800
         height: parent ? Math.min(parent.height - 24,
-            (width - Theme.space4 * 2) * 0.625 + 254) : 640
+            (width - Theme.space4 * 2) * 0.625 + 200) : 720
         contentItem: ColumnLayout {
-            spacing: Theme.space3
+            spacing: Theme.space2
             RowLayout {
                 Layout.fillWidth: true
                 DirectionAwareLabel {

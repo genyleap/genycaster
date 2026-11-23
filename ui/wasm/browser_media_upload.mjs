@@ -10,15 +10,17 @@ const allowedTypes=new Map([
     ['webp','image/webp'],['gif','image/gif'],['avif','image/avif'],
 ]);
 const hex=bytes=>Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
-function ensureImage(file) {
+function ensureImage(file,maxImageBytes=2*1024*1024) {
     if(!file || !/^[a-zA-Z0-9][a-zA-Z0-9._ -]{0,125}\.[A-Za-z0-9]{2,5}$/.test(file.name||''))
         throw new Error('Choose an image file with a supported extension.');
     const extension=file.name.split('.').at(-1).toLowerCase();
     const mime=allowedTypes.get(extension);
     if(!mime || file.type && file.type!==mime)
         throw new Error('Unsupported image format. Choose JPG, PNG, WebP, GIF, or AVIF.');
-    if(!Number.isSafeInteger(file.size)||file.size<=0||file.size>25*1024*1024)
-        throw new Error('Images must be smaller than 25 MB.');
+    if(![2*1024*1024,5*1024*1024].includes(maxImageBytes))
+        throw new Error('Invalid media upload limit.');
+    if(!Number.isSafeInteger(file.size)||file.size<=0||file.size>maxImageBytes)
+        throw new Error('Image exceeds the '+(maxImageBytes/1048576)+' MiB upload limit.');
     return mime;
 }
 async function responseJson(response) {
@@ -32,16 +34,16 @@ async function responseJson(response) {
 export async function uploadBrowserImage({
     file,fid,signal,onProgress=()=>{},fetchImpl=globalThis.fetch,
     crypto=globalThis.crypto,vault=createBrowserSignerVault(globalThis),
-    optimizationMode='auto',
+    optimizationMode='auto',maxImageBytes=2*1024*1024,
 }={}) {
-    const mime=ensureImage(file);
+    const mime=ensureImage(file,maxImageBytes);
     if(!['auto','high','original'].includes(optimizationMode))
         throw new Error('Unsupported image optimization mode.');
     if(!/^[1-9][0-9]{0,19}$/.test(fid))throw new Error('Sign in to your Farcaster account first.');
     const key=await vault.load(fid);
     if(!key)throw new Error('Authorize your Farcaster publishing signer before uploading an image.');
-    const signAndFetch=async(method,path,bytes,contentType)=>{
-        if(signal?.aborted)throw new Error('Upload cancelled');
+    const signAndFetch=async(method,path,bytes,contentType,requestSignal=signal)=>{
+        if(requestSignal?.aborted)throw new Error('Upload cancelled');
         const stamp=Math.floor(Date.now()/1000);
         const nonce=hex(crypto.getRandomValues(new Uint8Array(16)));
         const digest=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)));
@@ -52,7 +54,8 @@ export async function uploadBrowserImage({
         const signed=await vault.signMediaChallenge(fid,challenge);
         if(signed.publicKeyHex!==key.publicKeyHex)throw new Error('Signer account changed');
         const response=await fetchImpl(gateway+path,{
-            method,body:bytes,mode:'cors',credentials:'omit',redirect:'error',signal,
+            method,body:bytes,mode:'cors',credentials:'omit',redirect:'error',
+            signal:requestSignal,
             headers:{
                 'content-type':contentType,
                 'x-genycaster-fid':fid,
@@ -114,10 +117,17 @@ export async function uploadBrowserImage({
                 sourceSizeBytes:file.size};
     }catch(error){
         // Abort is best-effort. A managed upload ticket is never logged.
-        if(ticket?.uploadId && !signal?.aborted) {
-            try{await signAndFetch('DELETE','/v1/uploads',json({
-                uploadId:ticket.uploadId,
-            }),'application/json');}catch{/* ticket expires automatically */}
+        if(ticket?.uploadId) {
+            // Network abort is not server-side abort: release reserved ingress
+            // memory using a fresh, bounded request independent of the
+            // already-aborted upload signal.
+            const cleanup=new AbortController();
+            const timer=setTimeout(()=>cleanup.abort(),6000);
+            try{await signAndFetch('DELETE','/v1/uploads',
+                json({uploadId:ticket.uploadId}),
+                'application/json',cleanup.signal);}
+            catch{/* ticket expires and the server sweeps it */}
+            finally{clearTimeout(timer);}
         }
         throw error;
     }

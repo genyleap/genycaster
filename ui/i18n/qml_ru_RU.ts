@@ -4116,6 +4116,10 @@ Company | https://company.com</source>
             <source>Finalizing</source>
             <translation>Завершение</translation>
         </message>
+        <message id="genycaster.media.image_size_limit">
+            <source>Images are limited to %1 MiB for this account.</source>
+            <translation>Для этого аккаунта лимит изображения — %1 МиБ.</translation>
+        </message>
         <message id="genycaster.media.optimizing">
             <source>Compressing and saving image…</source>
             <translation>Сжатие и сохранение изображения…</translation>

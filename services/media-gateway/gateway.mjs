@@ -12,6 +12,7 @@ import { createBrowserReactionService } from './browser_cast_reactions.mjs';
 import {createSmartMediaPipeline} from './smart_media_pipeline/index.mjs';
 import {parseSmartMediaRequest} from './smart_media_pipeline/policy.mjs';
 import {createSmartMediaIngress, uploadOptimizedObject} from './smart_media_pipeline/ingest.mjs';
+import {createMediaTierReader} from './media_entitlements.mjs';
 import {
   createHash,
   createHmac,
@@ -102,7 +103,10 @@ export function loadConfig(env = process.env) {
     multipartPartBytes,
     downloadUrlLifetimeSeconds: positiveInteger(env.GENYLEAP_MEDIA_DOWNLOAD_URL_LIFETIME_SECONDS, 900, 'GENYLEAP_MEDIA_DOWNLOAD_URL_LIFETIME_SECONDS'),
     ticketLifetimeSeconds: positiveInteger(env.GENYLEAP_MEDIA_TICKET_LIFETIME_SECONDS, 1800, 'GENYLEAP_MEDIA_TICKET_LIFETIME_SECONDS'),
-    maxImageBytes: positiveInteger(env.GENYLEAP_MEDIA_MAX_IMAGE_BYTES, 25 * 1024 * 1024, 'GENYLEAP_MEDIA_MAX_IMAGE_BYTES'),
+    maxImageBytes: 5 * 1024 * 1024,
+    basicImageBytes: 2 * 1024 * 1024,
+    proImageBytes: 5 * 1024 * 1024,
+    mediaEntitlementSecret: String(env.GENYCASTER_MEDIA_ENTITLEMENT_SECRET || ''),
     maxVideoBytes: positiveInteger(env.GENYLEAP_MEDIA_MAX_VIDEO_BYTES, 512 * 1024 * 1024, 'GENYLEAP_MEDIA_MAX_VIDEO_BYTES'),
     maxJsonBytes: positiveInteger(env.GENYLEAP_MEDIA_MAX_JSON_BYTES, 64 * 1024, 'GENYLEAP_MEDIA_MAX_JSON_BYTES'),
     rateWindowMs: positiveInteger(env.GENYLEAP_MEDIA_RATE_WINDOW_MS, 60_000, 'GENYLEAP_MEDIA_RATE_WINDOW_MS'),
@@ -532,6 +536,13 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   };
   const retrieveImage = dependencies.retrieveImage ?? retrieveBrowserImage;
   const smartMediaPipeline = dependencies.smartMediaPipeline ?? createSmartMediaPipeline();
+  const isVerifiedMediaPro = dependencies.isVerifiedMediaPro
+    ?? createMediaTierReader({
+      origin:'https://genycaster.xyz',
+      secret:config.mediaEntitlementSecret,
+      fetchImpl:runtime.fetchImpl,
+      now:runtime.now,
+    });
   const smartMediaIngress = dependencies.smartMediaIngress ?? createSmartMediaIngress({
     now:runtime.now, maxSessionAgeMs:config.ticketLifetimeSeconds * 1000,
   });
@@ -1793,6 +1804,19 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         if (!definition) {
           writeJson(response, 422, { error: 'unsupported_media', message: 'Unsupported media type or file size.' });
           return;
+        }
+        // Limit *source* bytes before creating a ticket or reserving QStorage.
+        // Pro is verified against the private account subscription database;
+        // client flags, stickers and unverified tier headers are ignored.
+        if (definition.kind === 'image' && sizeBytes > config.basicImageBytes) {
+          if (sizeBytes > config.proImageBytes
+              || !(await isVerifiedMediaPro(String(authorization.fid)))) {
+            writeJson(response, 413, {
+              error:'image_size_limit',
+              message:'Basic images are limited to 2 MiB; verified Pro images to 5 MiB.',
+            });
+            return;
+          }
         }
         const partCount = multipartPartCount(sizeBytes, config.multipartPartBytes);
         if (partCount < 1 || partCount > 10000) {

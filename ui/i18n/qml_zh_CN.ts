@@ -4116,6 +4116,10 @@ Company | https://company.com</source>
             <source>Finalizing</source>
             <translation>完成</translation>
         </message>
+        <message id="genycaster.media.image_size_limit">
+            <source>Images are limited to %1 MiB for this account.</source>
+            <translation>此账户的图片上限为 %1 MiB。</translation>
+        </message>
         <message id="genycaster.media.optimizing">
             <source>Compressing and saving image…</source>
             <translation>正在压缩并保存图片…</translation>

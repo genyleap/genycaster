@@ -23,6 +23,23 @@ expiry. No original copy, sidecar, extra thumbnail or variant is stored
 durably in QStorage. This is also true for small source files whose final
 output is unchanged because recompression would make them larger.
 
+### Account-verified source-size limits
+
+Every image is validated **before** a signed upload ticket and cloud writes:
+**Basic 2 MiB; verified Pro 5 MiB.** Media Gateway independently verifies
+Farcaster FID signer authorization and, only when size is greater than 2 MiB,
+queries a private account subscription oracle. The oracle uses a dedicated
+HMAC secret, a timestamp with a 30-second skew window, and a verified
+PostgreSQL Pro subscription. A caller-supplied 'tier', frontend toggle, or
+unverified Pro badge is never trusted. Unreachable entitlement service
+fails closed for requests above 2 MiB. Videos retain the existing separate
+size policy.
+
+The shared secret `GENYCASTER_MEDIA_ENTITLEMENT_SECRET` (at least 32 random
+bytes) is configured **server-side only**, identically in the account API
+runtime and Media Gateway container; never embed it in WebAssembly or client
+credentials. No user subscription is inferred from historical wallet holdings.
+
 ### Upload policy
 
 | `optimizationMode` | Backend behavior | QStorage |
@@ -32,6 +49,8 @@ output is unchanged because recompression would make them larger.
 | `high` | max long edge 1600 px, higher quality | optimized |
 | `original` | preserve source bytes, existing QStorage multipart path | original |
 
+CPU-rasterized 1920 × 1200 Stats share cards deliberately request Original
+so fine-print readability is preserved; arbitrary user uploads default to Auto.
 The Original option is *supported by the backend but not yet surfaced in the
 UI*. Video upload uses the unchanged direct-storage path. Animated GIF,
 WebP and APNG are kept byte-identical when frame-safe transcoding is not

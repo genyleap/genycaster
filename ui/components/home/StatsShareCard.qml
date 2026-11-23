@@ -16,7 +16,9 @@ Item {
         id: previewImage
         anchors.fill: parent
         source: root.sourceUrl
-        sourceSize: Qt.size(960, 600)
+        // Decode the entire 2x CPU-rendered PNG; never ask Qt to downsample
+        // to the logical card size before the device composites the preview.
+        sourceSize: Qt.size(1920, 1200)
         fillMode: Image.PreserveAspectFit
         asynchronous: false
         cache: false

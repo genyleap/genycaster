@@ -22,8 +22,13 @@
 namespace genycaster::presentation {
 namespace {
 
-constexpr int CanvasWidth = 960;
-constexpr int CanvasHeight = 600;
+constexpr int LayoutWidth = 960;
+constexpr int LayoutHeight = 600;
+// Render at 2x native resolution; a Qt Quick 960px preview must never
+// decode the source down to 960px before device-pixel-ratio scaling.
+constexpr int RasterScale = 2;
+constexpr int CanvasWidth = LayoutWidth * RasterScale;
+constexpr int CanvasHeight = LayoutHeight * RasterScale;
 
 struct Palette final {
     QColor foreground;
@@ -132,7 +137,8 @@ void brandMark(QPainter& painter, const QRectF& rect)
 void metricTile(QPainter& painter, const Palette& palette, const QRectF& rect,
                 const QString& value, const QString& caption)
 {
-    roundedPanel(painter, rect, 19, palette.tile, palette.tileBorder);
+    // Metrics are part of the same canvas, not five nested bordered cards.
+    roundedPanel(painter, rect, 16, palette.tile);
     const bool longNumber = value.size() >= 8;
     const int numberSize = longNumber ? 25 : value.size() >= 6 ? 29 : 37;
     const QFont font = painter.font();
@@ -168,15 +174,17 @@ void drawImage(QImage& image, const QVariantMap& stats, const QString& displayNa
 {
     const auto palette = colorsFor(minimal);
     QPainter painter{&image};
-    painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
+    painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing |
+                           QPainter::SmoothPixmapTransform);
+    painter.scale(RasterScale, RasterScale);
     painter.setPen(Qt::NoPen);
 
-    const QRectF fullCard{0, 0, CanvasWidth, CanvasHeight};
+    const QRectF fullCard{0, 0, LayoutWidth, LayoutHeight};
     QPainterPath clip;
     clip.addRoundedRect(fullCard.adjusted(2, 2, -2, -2), 38, 38);
     painter.setClipPath(clip);
 
-    QLinearGradient background{QPointF{0, 0}, QPointF{CanvasWidth, CanvasHeight}};
+    QLinearGradient background{QPointF{0, 0}, QPointF{LayoutWidth, LayoutHeight}};
     background.setColorAt(0, minimal ? QColor{"#FFFFFF"} : QColor{"#0C142D"});
     background.setColorAt(1, minimal ? QColor{"#E9EEFF"} : QColor{"#18102F"});
     painter.fillRect(fullCard, background);

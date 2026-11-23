@@ -159,6 +159,49 @@ test('composer renders only one source-quality attachment, never the 96px select
     assert.match(bridge,/Math\.min\(1,96\/Math\.max\(bitmap\.width,bitmap\.height\)\)/);
 });
 
+test('2 MiB basic cap rejects before any request; verified Pro client may select up to 5 MiB',async()=>{
+    const vault={load:async()=>({fid,publicKeyHex:key}),
+        signMediaChallenge:async()=>({publicKeyHex:key,signature:'ab'.repeat(64)})};
+    let attempts=0;
+    const file=photo(2*1024*1024+1);
+    await assert.rejects(uploadBrowserImage({file,fid,vault,crypto:webcrypto,
+        fetchImpl:async()=>{attempts++;throw Error('must not request');}}),
+        /2 MiB upload limit/);
+    assert.equal(attempts,0);
+    await assert.rejects(uploadBrowserImage({file:photo(5*1024*1024+1),
+        fid,vault,crypto:webcrypto,maxImageBytes:5*1024*1024,
+        fetchImpl:async()=>{attempts++;throw Error('must not request');}}),
+        /5 MiB upload limit/);
+    assert.equal(attempts,0);
+});
+test('cancel aborts the active fetch and separately releases the signed server ticket',async()=>{
+    const controller=new AbortController();
+    const requests=[];
+    const vault={load:async()=>({fid,publicKeyHex:key}),
+        signMediaChallenge:async()=>({publicKeyHex:key,signature:'ab'.repeat(64)})};
+    const fetchImpl=async(url,opts)=>{
+        requests.push({url,opts});
+        if(url.endsWith('/v1/uploads')&&opts.method==='POST')
+            return Response.json({uploadId:'cancel_ticket_123',
+                mode:'gateway-multipart',assetUrl,partCount:1,
+                partSizeBytes:5*1024*1024},{status:201});
+        if(url.includes('/parts/1')) {
+            controller.abort();
+            throw new DOMException('Upload cancelled','AbortError');
+        }
+        if(opts.method==='DELETE') {
+            assert.equal(opts.signal.aborted,false);
+            assert.deepEqual(JSON.parse(new TextDecoder().decode(opts.body)),
+                {uploadId:'cancel_ticket_123'});
+            return Response.json({deleted:true});
+        }
+        throw Error('unexpected request');
+    };
+    await assert.rejects(uploadBrowserImage({file:photo(),fid,vault,
+        signal:controller.signal,crypto:webcrypto,fetchImpl}),/cancel/i);
+    assert.equal(requests.filter(r=>r.opts.method==='DELETE').length,1);
+});
+
 test('unsupported formats and missing signer do not reach media gateway',async()=>{
     let calls=0;
     const fetchImpl=async()=>{calls++;throw new Error('no');};
