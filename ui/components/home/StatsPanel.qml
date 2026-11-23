@@ -186,6 +186,7 @@ ColumnLayout {
     property string accountDisplayName: ""
     property string accountUsername: ""
     property string accountFid: ""
+    property string accountAvatarUrl: ""
     onAccountFidChanged: {
         if (statsShareModal.opened) statsShareModal.close()
     }
@@ -196,6 +197,7 @@ ColumnLayout {
     property int sharePeriodDays: 30
     property string shareAccountHandle: ""
     property string shareAccountFid: ""
+    property string shareAccountAvatarUrl: ""
     property bool shareCaptureBusy: false
     property string shareCaptureError: ""
     property string shareGeneratedCardUrl: ""
@@ -216,6 +218,7 @@ ColumnLayout {
                 root.shareSnapshot,
                 root.shareAccountName,
                 root.shareAccountHandle,
+                root.shareAccountAvatarUrl,
                 root.sharePeriodDays,
                 root.shareCardStyle,
                 root.shareCapturedAt)
@@ -238,6 +241,18 @@ ColumnLayout {
         }
     }
 
+    // The actual portrait arrives asynchronously. Regenerate the same CPU
+    // PNG once it is decoded so published media and preview remain identical.
+    Connections {
+        target: mediaUpload
+        function onStatsAvatarChanged() {
+            if (statsShareModal.opened && !root.shareCaptureBusy
+                    && !root.shareCardHandedOff
+                    && root.shareAccountFid === root.accountFid)
+                root.regenerateShareImage()
+        }
+    }
+
     function selectShareStyle(nextStyle) {
         if (nextStyle === root.shareCardStyle) return
         const previousStyle = root.shareCardStyle
@@ -255,6 +270,8 @@ ColumnLayout {
         root.shareAccountName = String(name || "")
         root.shareAccountHandle = String(handle || "")
         root.shareAccountFid = String(fid || "")
+        root.shareAccountAvatarUrl = String(root.accountAvatarUrl || "")
+        mediaUpload.prepareStatsAvatar(root.shareAccountAvatarUrl)
         root.shareCardStyle = "neon"
         root.shareCaptureError = ""
         root.shareCaptureBusy = false
@@ -312,12 +329,24 @@ ColumnLayout {
             root.shareCardHandedOff = false
             root.shareCaptureBusy = false
         }
-        // Image-led presentation: less outer chrome, more space for the artwork.
-        width: parent ? Math.min(980, parent.width - 24) : 800
-        height: parent ? Math.min(parent.height - 24,
-            (width - Theme.space4 * 2) * 0.625 + 200) : 720
-        contentItem: ColumnLayout {
-            spacing: Theme.space2
+        // A small, centered preview—not a nearly fullscreen image viewer.
+        // Published PNG size stays independent at 1920×1080.
+        padding: Theme.space3
+        width: parent ? Math.min(620, parent.width - Theme.space3 * 2) : 620
+        height: parent ? Math.min(parent.height - Theme.space3 * 2,
+            Math.max(350, (width - Theme.space3 * 2) * 540 / 960 + 166)) : 515
+        contentItem: Flickable {
+            id: shareModalScroll
+            clip: true
+            contentWidth: width
+            contentHeight: shareModalBody.implicitHeight
+            flickableDirection: Flickable.VerticalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            interactive: contentHeight > height
+            ColumnLayout {
+                id: shareModalBody
+                width: shareModalScroll.width
+                spacing: Theme.space2
             RowLayout {
                 Layout.fillWidth: true
                 DirectionAwareLabel {
@@ -356,25 +385,20 @@ ColumnLayout {
             Item {
                 id: statsSharePreviewViewport
                 Layout.fillWidth: true
-                Layout.preferredHeight: width * 600 / 960
+                Layout.preferredHeight: width * 540 / 960
                 clip: true
                 StatsShareCard {
                     id: shareCardPreview
                     sourceUrl: root.shareGeneratedCardUrl
-                    transformOrigin: Item.TopLeft
-                    scale: statsSharePreviewViewport.width / 960
+                    width: statsSharePreviewViewport.width
+                    height: statsSharePreviewViewport.height
+                    // One image scaling pass, directly from the 1920×1080
+                    // raster. Avoid scaling a pre-composited 960px QML item.
                     onFailedChanged: {
                         if (failed && root.shareGeneratedCardUrl.length > 0)
                             root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
                     }
                 }
-            }
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                text: qsTrId("genycaster.stats.card_compat_note")
-                font.pixelSize: Theme.typeCaptionSize
-                color: Theme.textSecondary
-                wrapMode: Text.Wrap
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
@@ -405,12 +429,15 @@ ColumnLayout {
                     Layout.fillWidth: true
                     compact: true
                     prominent: true
-                    text: root.shareCaptureBusy ? qsTrId("genycaster.stats.card_preparing")
-                                                : qsTrId("genycaster.stats.card_publish")
-                    enabled: !root.shareCaptureBusy && !mediaUpload.busy
+                    text: root.shareCaptureBusy || mediaUpload.statsAvatarLoading
+                        ? qsTrId("genycaster.stats.card_preparing")
+                        : qsTrId("genycaster.stats.card_publish")
+                    enabled: !root.shareCaptureBusy && !mediaUpload.statsAvatarLoading
+                             && !mediaUpload.busy
                              && shareCardPreview.ready && root.shareGeneratedCardUrl.length > 0
                     onClicked: root.captureStatsCard()
                 }
+            }
             }
         }
     }

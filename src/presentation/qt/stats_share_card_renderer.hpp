@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QImage>
 #include <QUrl>
 #include <QVariantMap>
 
@@ -17,6 +18,7 @@ struct StatsShareImage final {
     const QVariantMap& snapshot,
     const QString& displayName,
     const QString& username,
+    const QImage& avatar,
     int periodDays,
     const QString& style,
     double capturedAtMs);

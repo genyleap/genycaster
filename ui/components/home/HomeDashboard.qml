@@ -592,6 +592,7 @@ HomeActivityCard {
                         accountDisplayName: root.displayName
                         accountUsername: root.username
                         accountFid: root.accountFid
+                        accountAvatarUrl: root.avatarUrl
                         periodDays: root.statsDays
                         onProRequested: root.proRequested()
                         onPeriodRequested: days => root.statsDays = days
@@ -764,6 +765,7 @@ HomeActivityCard {
                 accountDisplayName: root.displayName
                 accountUsername: root.username
                 accountFid: root.accountFid
+                accountAvatarUrl: root.avatarUrl
                 periodDays: root.statsDays
                 onProRequested: root.proRequested()
                 onPeriodRequested: days => root.statsDays = days

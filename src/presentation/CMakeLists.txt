@@ -41,6 +41,7 @@ target_link_libraries(farcaster_presentation
         farcaster::presentation_media
         Qt6::Core
         Qt6::Qml
+        Qt6::Network
     PRIVATE
         Qt6::Gui
         Qt6::Quick

@@ -6,6 +6,11 @@
 #include <memory>
 #include <QFileInfo>
 #include <QFile>
+#include <QBuffer>
+#include <QImageReader>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QUrlQuery>
 #include <QStringView>
 #include <utility>
 
@@ -58,17 +63,99 @@ MediaUploadController::~MediaUploadController()
 
 QVariantMap MediaUploadController::renderStatsCard(
     const QVariantMap& stats, const QString& displayName,
-    const QString& username, const int periodDays,
+    const QString& username, const QString& avatarUrl, const int periodDays,
     const QString& style, const double capturedAtMs)
 {
+    // Never reuse the previous identity's portrait during account switching.
+    const QImage currentAvatar = avatarUrl == m_statsAvatarUrl
+        ? m_statsAvatar : QImage{};
     const auto result = genycaster::presentation::renderStatsShareCard(
-        stats, displayName, username, periodDays, style, capturedAtMs);
+        stats, displayName, username, currentAvatar, periodDays, style, capturedAtMs);
     if (!result.error.isEmpty() || !result.fileUrl.isLocalFile()) {
         return {{QStringLiteral("error"),
                  result.error.isEmpty() ? QStringLiteral("share_card_png_failed") : result.error}};
     }
     m_generatedStatsImages.insert(result.fileUrl.toLocalFile());
     return {{QStringLiteral("imageFileUrl"), result.fileUrl.toString(QUrl::FullyEncoded)}};
+}
+
+void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
+{
+    if (m_statsAvatarUrl == avatarUrl
+        && (!m_statsAvatar.isNull() || m_statsAvatarReply || avatarUrl.isEmpty()))
+        return;
+
+    ++m_statsAvatarGeneration;
+    m_statsAvatarUrl = avatarUrl;
+    m_statsAvatar = {};
+    if (m_statsAvatarReply) {
+        m_statsAvatarReply->abort();
+        m_statsAvatarReply->deleteLater();
+        m_statsAvatarReply = nullptr;
+    }
+    // The proxy enforces an explicit CDN allowlist, pinned public DNS, raster
+    // MIME and a small body cap. Never fetch an arbitrary URL from Qt directly.
+    const QUrl source{avatarUrl};
+    if (avatarUrl.size() > 2048 || source.scheme() != QStringLiteral("https")
+        || source.host().isEmpty() || !source.userInfo().isEmpty()
+        || source.hasFragment() || source.port(-1) != -1) {
+        emit statsAvatarChanged();
+        return;
+    }
+    QUrl proxy{QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/images")};
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("url"), source.toString(QUrl::FullyEncoded));
+    proxy.setQuery(query);
+    QNetworkRequest request{proxy};
+    request.setRawHeader("Accept", "image/jpeg,image/png,image/webp");
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(6500);
+    const quint64 generation = m_statsAvatarGeneration;
+    QNetworkReply* const reply = m_statsAvatarNetwork.get(request);
+    m_statsAvatarReply = reply;
+    emit statsAvatarChanged();
+    auto payload = std::make_shared<QByteArray>();
+    connect(reply, &QIODevice::readyRead, this, [reply, payload] {
+        if (reply->bytesAvailable() + payload->size() > 1024 * 1024) {
+            reply->abort();
+            return;
+        }
+        payload->append(reply->readAll());
+    });
+    connect(reply, &QNetworkReply::finished, this,
+            [this, reply, payload, generation] {
+        if (generation != m_statsAvatarGeneration) {
+            reply->deleteLater();
+            return;
+        }
+        m_statsAvatarReply = nullptr;
+        if (reply->error() == QNetworkReply::NoError
+            && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200
+            && payload->size() > 16 && payload->size() <= 1024 * 1024) {
+            QBuffer buffer{payload.get()};
+            if (buffer.open(QIODevice::ReadOnly)) {
+                QImageReader reader{&buffer};
+                reader.setAutoTransform(true);
+                const QSize original = reader.size();
+                if (original.isValid() && original.width() <= 4096
+                    && original.height() <= 4096
+                    && static_cast<qint64>(original.width()) * original.height()
+                         <= 8'000'000) {
+                    reader.setScaledSize(original.scaled(
+                        QSize{256, 256}, Qt::KeepAspectRatio));
+                    m_statsAvatar = reader.read();
+                }
+            }
+        }
+        reply->deleteLater();
+        emit statsAvatarChanged();
+    });
+}
+
+bool MediaUploadController::statsAvatarLoading() const noexcept
+{
+    return !m_statsAvatarReply.isNull();
 }
 
 bool MediaUploadController::discardStatsCardImage(const QUrl& localFile)

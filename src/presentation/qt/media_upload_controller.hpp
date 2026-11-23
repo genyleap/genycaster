@@ -17,6 +17,10 @@
 #pragma once
 
 #include <QObject>
+#include <QImage>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QPointer>
 #include <QString>
 #include <QUrl>
 #include <QVariantMap>
@@ -46,6 +50,7 @@ class MediaUploadController final : public QObject {
     Q_PROPERTY(qulonglong sourceBytes READ sourceBytes NOTIFY stateChanged)
     Q_PROPERTY(bool optimizationSeen READ optimizationSeen NOTIFY stateChanged)
     Q_PROPERTY(qulonglong maxImageBytes READ maxImageBytes WRITE setMaxImageBytes NOTIFY stateChanged)
+    Q_PROPERTY(bool statsAvatarLoading READ statsAvatarLoading NOTIFY statsAvatarChanged)
 
 public:
     /** @brief Creates an idle media-upload presentation adapter. */
@@ -75,6 +80,7 @@ public:
     [[nodiscard]] qulonglong maxImageBytes() const noexcept;
     void setMaxImageBytes(qulonglong limit);
     [[nodiscard]] quint64 uploadGeneration() const noexcept;
+    [[nodiscard]] bool statsAvatarLoading() const noexcept;
 
     /**
      * @brief Starts uploading one local file selected by the user.
@@ -96,9 +102,15 @@ public:
         const QVariantMap& stats,
         const QString& displayName,
         const QString& username,
+        const QString& avatarUrl,
         int periodDays,
         const QString& style,
         double capturedAtMs);
+
+    /** @brief Loads the owner's portrait through the first-party bounded image proxy.
+     * Completes asynchronously, without blocking the UI or reading private profile data.
+     */
+    Q_INVOKABLE void prepareStatsAvatar(const QString& avatarUrl);
 
     /** @brief Drops an unposted, generated Stats image; never user media. */
     Q_INVOKABLE bool discardStatsCardImage(const QUrl& localFile);
@@ -135,6 +147,7 @@ public:
 
 signals:
     void stateChanged();
+    void statsAvatarChanged();
 
     /** @brief Requests native upload orchestration for the local filesystem path. */
     void uploadRequested(QString localPath, int afterIndex);
@@ -163,6 +176,11 @@ private:
     QString m_selectedContentType{};
     QString m_localPath{};
     QSet<QString> m_generatedStatsImages{};
+    QNetworkAccessManager m_statsAvatarNetwork{this};
+    QPointer<QNetworkReply> m_statsAvatarReply{};
+    QString m_statsAvatarUrl{};
+    QImage m_statsAvatar{};
+    quint64 m_statsAvatarGeneration{0};
     int m_afterIndex{-1};
     qulonglong m_transferredBytes{};
     qulonglong m_totalBytes{};
