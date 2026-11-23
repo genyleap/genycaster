@@ -821,6 +821,9 @@ private:
     };
     void rememberDetailLocation();
     std::vector<DetailLocation> m_detailHistory{};
+    // A shell route (notifications, bookmarks, search) owns its origin.
+    // Its first detail must not snapshot the previously hidden cast/profile.
+    bool m_discardNextDetailOrigin{false};
     QString m_currentCastId{};
     QString m_currentProfileUsername{};
     bool m_restoringDetailHistory{false};

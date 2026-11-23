@@ -3273,7 +3273,10 @@ Item {
                       + " · " + root.protocolConnectionText(root.recoveryProtocol === "farcaster-snapchain")
                     : root.resumingRegistration ? qsTrId("genycaster.setup.design_signin_description") : ""
             }
-            Item { Layout.preferredHeight: Theme.space2 }
+            Item {
+                visible: !root.showRecovery
+                Layout.preferredHeight: Theme.space2
+            }
             // Only this picker chooses the protocol for Existing accounts.
             // The same stage is used on desktop, Android and WebAssembly.
             GridLayout {
@@ -3330,7 +3333,11 @@ Item {
             // Recovery grants custody authority and must remain an explicit alternative.
             // HyperSnap retains its own recovery-first route.
             GridLayout {
-                visible: !root.authenticated && root.existingProtocolSelected
+                // Hide the entire action grid while recovery is expanded.
+                // Hiding individual cards alone leaves a stale GridLayout row
+                // reservation after Layout.fillHeight has been negotiated.
+                visible: !root.showRecovery && !root.authenticated
+                         && root.existingProtocolSelected
                 Layout.fillWidth: true
                 columns: root.wideStage ? 2 : 1
                 uniformCellWidths: columns > 1

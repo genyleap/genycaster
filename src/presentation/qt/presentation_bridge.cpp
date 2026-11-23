@@ -1803,6 +1803,10 @@ void PresentationBridge::markNotificationsRead()
 void PresentationBridge::rememberDetailLocation()
 {
     if (m_restoringDetailHistory) return;
+    // clearDetailHistory() establishes a new navigation root. Its next
+    // destination comes from a shell route or feed; the old, hidden activeView
+    // must not be reinserted as a spurious breadcrumb.
+    if (std::exchange(m_discardNextDetailOrigin, false)) return;
 
     DetailLocation location{};
     if (m_activeView == QStringLiteral("cast") && !m_currentCastId.isEmpty()) {
@@ -1829,6 +1833,7 @@ void PresentationBridge::rememberDetailLocation()
 void PresentationBridge::clearDetailHistory()
 {
     m_detailHistory.clear();
+    m_discardNextDetailOrigin = true;
 }
 
 void PresentationBridge::openCast(const QString& castId)
