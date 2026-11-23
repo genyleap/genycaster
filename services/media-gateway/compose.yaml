@@ -1,6 +1,8 @@
 services:
   media-gateway:
-    build: .
+    build:
+      context: ..
+      dockerfile: media-gateway/Dockerfile
     restart: unless-stopped
     env_file: .env
     ports:

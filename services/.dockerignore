@@ -1,0 +1,13 @@
+# The image build context is services/ so the canonical shared deployment
+# policy can be copied to /deployment_config.mjs. No other service sources,
+# secrets, existing builds, tests output or Docker volumes enter the image.
+**
+!deployment_config.mjs
+!media-gateway/
+!media-gateway/**
+media-gateway/.env
+media-gateway/node_modules
+media-gateway/build
+media-gateway/storage/native/*.node
+media-gateway/dist
+media-gateway/.git

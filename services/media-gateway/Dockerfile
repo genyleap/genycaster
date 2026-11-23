@@ -13,7 +13,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY . ./
+# Build context is services/, not media-gateway/. The gateway intentionally
+# shares one server-only deployment policy with sibling services; copying
+# it to the parent of /app preserves existing ../deployment_config.mjs imports.
+COPY media-gateway/ ./
+COPY deployment_config.mjs /deployment_config.mjs
 
 # Reproducible, pinned libvips-based image processing for Smart Media Pipeline.
 # The native binding is isolated in the gateway; no client needs Sharp.
@@ -37,6 +41,7 @@ RUN apt-get update \
 
 WORKDIR /app
 
+COPY --from=builder /deployment_config.mjs /deployment_config.mjs
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/gateway.mjs ./gateway.mjs
@@ -53,7 +58,9 @@ COPY --from=builder /app/storage ./storage
 
 # Build context files may be copied from a restrictive deployment umask.
 # The unprivileged runtime must be able to import the browser image module.
-RUN find /app/smart_media_pipeline -type f -name "*.mjs" -exec chmod 0644 {} + \
+RUN chmod 0644 /deployment_config.mjs \
+    && chmod 0755 /app/storage/native \
+    && find /app/smart_media_pipeline -type f -name "*.mjs" -exec chmod 0644 {} + \
     && chmod 0644 /app/browser_image_proxy.mjs /app/browser_farcaster_auth.mjs /app/browser_token_insights.mjs /app/browser_miniapp_preview.mjs /app/browser_link_preview.mjs /app/browser_cast_views.mjs /app/browser_cast_reactions.mjs /app/gateway.mjs /app/server.mjs
 
 USER node
