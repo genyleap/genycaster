@@ -145,6 +145,8 @@ async function withGateway(run, overrides = {}) {
     browserReactionService: overrides.browserReactionService,
     limiter: overrides.limiter,
     uploadLimiter: overrides.uploadLimiter,
+    stickerPreviews: overrides.stickerPreviews,
+    stickerPreviewLimiter: overrides.stickerPreviewLimiter,
     now: () => nowMs,
   });
   await new Promise((resolve, reject) => {
@@ -1027,4 +1029,72 @@ test('native media upload fails closed when native registrar has no matching sig
     return new Response(JSON.stringify({signers:[],nextPageToken:''}),{
       status:200,headers:{'content-type':'application/json'}});
   }});
+});
+
+test('upload signer verification retries a transient protocol read without replaying POST',async()=>{
+  const body=Buffer.from(JSON.stringify({fileName:'stats.png',contentType:'image/png',sizeBytes:256}));
+  let lookups=0;
+  await withGateway(async({origin})=>{
+    const response=await fetch(origin+'/v1/uploads',{method:'POST',body,
+      headers:proofHeaders('POST','/v1/uploads',body,'media_upload_retry_nonce001')});
+    assert.equal(response.status,201);
+    assert.equal(lookups,2);
+  },{fetchImpl:async url=>{
+    ++lookups;
+    if(lookups===1)return new Response(null,{status:503});
+    return signerFetch(url);
+  }});
+});
+test('upload signer verification never turns HTTP 429 into unauthorized or retries signed upload',async()=>{
+  const body=Buffer.from(JSON.stringify({fileName:'stats.png',contentType:'image/png',sizeBytes:256}));
+  let lookups=0;
+  await withGateway(async({origin})=>{
+    const response=await fetch(origin+'/v1/uploads',{method:'POST',body,
+      headers:proofHeaders('POST','/v1/uploads',body,'media_upload_throttle_nonce001')});
+    assert.equal(response.status,429);
+    assert.equal((await response.json()).error,'signer_registry_rate_limited');
+    assert.equal(lookups,1);
+  },{fetchImpl:async()=>{++lookups;return new Response(null,{status:429});}});
+});
+test('upload fails closed if selected protocol registry remains unavailable',async()=>{
+  const body=Buffer.from(JSON.stringify({fileName:'stats.png',contentType:'image/png',sizeBytes:256}));
+  let lookups=0;
+  await withGateway(async({origin})=>{
+    const response=await fetch(origin+'/v1/uploads',{method:'POST',body,
+      headers:proofHeaders('POST','/v1/uploads',body,'media_upload_unavail_nonce001')});
+    assert.equal(response.status,503);
+    assert.equal((await response.json()).error,'signer_registry_unavailable');
+    assert.equal(lookups,2);
+  },{fetchImpl:async()=>{++lookups;throw new Error('temporary network outage');}});
+});
+
+test('sticker-preview HTTP route serves only an exact pinned ID as public PNG and rejects URL injection',async()=>{
+  let calls=0;
+  const png=Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0]);
+  const stickerPreviews={get:async id=>{
+    ++calls;
+    assert.equal(id,'cream-cat-soup-sip');
+    return {status:200,body:png,contentType:'image/png'};
+  }};
+  await withGateway(async({origin})=>{
+    const endpoint=origin+'/v1/browser/sticker-previews';
+    const response=await fetch(endpoint+'?id=cream-cat-soup-sip');
+    assert.equal(response.status,200);
+    assert.equal(response.headers.get('content-type'),'image/png');
+    assert.equal(response.headers.get('access-control-allow-origin'),'*');
+    assert.equal(response.headers.get('x-content-type-options'),'nosniff');
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()),png);
+    for(const invalid of [
+      '?id=../../etc/passwd',
+      '?id=cream-cat-soup-sip&url=https://localhost/admin',
+      '?url=https://mssgs-stickers.com/thumbs/unknown.webp',
+      '?id=cream-cat-soup-sip&id=02-big-smile',
+      '?id=nonexistent-asset',
+    ]){
+      const blocked=await fetch(endpoint+invalid);
+      assert.equal(blocked.status,404,invalid);
+      assert.equal((await blocked.json()).error,'sticker_not_found');
+    }
+    assert.equal(calls,1);
+  },{stickerPreviews});
 });

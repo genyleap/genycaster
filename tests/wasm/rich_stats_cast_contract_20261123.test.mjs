@@ -149,7 +149,9 @@ test('Native uploads distinguish local session rejection from remote gateway una
     assert.match(bridge,/case ErrorCode::Unauthorized:\s*return qtTrId\("genycaster\.media\.upload_authorization_failed"\)/);
     assert.match(bridge,/case ErrorCode::TransportFailure:/);
     assert.match(bridge,/mediaUploadFailureText\(started\.error\(\)\.code\)/);
-    assert.match(bridge,/mediaUploadFailureText\(state\.error->code\)/);
+    assert.match(bridge,/mediaUploadFailureText\(state\.error->code,state\.error->message\)/);
+    assert.match(bridge,/genycaster\.media\.upload_rate_limited/);
+    assert.match(bridge,/genycaster\.media\.upload_signer_network_unavailable/);
     assert.doesNotMatch(bridge,/controllerGuard->applyFailed\(qtTrId\("genycaster\.media\.upload_network_failed"\)\)/);
     assert.match(upload,/if \(!session \|\| session->fid\.value == 0U \|\| domain::session::isExpired/);
     assert.match(gateway,/authorizationHeaders\(/);

@@ -805,7 +805,10 @@ public:
             endpointUrl(m_baseUrl, completePath),
             *completeHeaders,
             completeBody,
-            m_config.requestTimeout,
+            // Finalization may run the Smart Media Pipeline and QStorage
+            // multipart complete/verification. Its 30s control timeout is
+            // appropriate for ticket creation, but too short for this phase.
+            std::max(m_config.requestTimeout, std::chrono::milliseconds{90'000}),
             m_config.maxResponseBytes,
             cancelled,
             progress,

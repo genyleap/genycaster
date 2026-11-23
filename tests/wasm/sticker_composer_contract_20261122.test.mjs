@@ -116,7 +116,7 @@ test('picker has library, discover, pack-detail preview, server install action a
  assert.match(picker,/function showPack\(id\)/);
  assert.match(picker,/function togglePack\(\)/);
  assert.match(picker,/stickerPrefs\.favoritesJson/);
- assert.match(picker,/StickerCatalog\.previewUrl\(stickerTile\.modelData\.id\)/);
+ assert.match(picker,/root\.stickerDisplayUrl\(stickerTile\.modelData\.id\)/);
  assert.match(picker,/onClicked: root\.chooseSticker/);
  assert.match(picker,/presentationBridge\.openExternalUrl\(root\.activePack\.credit\)/);
  assert.doesNotMatch(picker,/source: "file:\/\//);

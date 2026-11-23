@@ -313,6 +313,30 @@ function previewUrl(id) {
     return value ? (value.thumbnailUrl || value.url) : ""
 }
 
+// Only Android and WASM require the PNG presentation fallback. The external
+// sticker URL stays canonical for protocol embeds and Mac/desktop rendering.
+function displayPreviewUrl(id, baseUrl, compatibilityMode) {
+    var value = itemForId(id)
+    if (!value) return ""
+    if (!compatibilityMode) return previewUrl(id)
+    if (typeof baseUrl !== "string" || !baseUrl.startsWith("https://")
+        || !baseUrl.endsWith("/v1/browser/sticker-previews?id="))
+        return ""
+    return baseUrl + encodeURIComponent(value.id)
+}
+
+function previewForPublishedUrl(url, baseUrl, compatibilityMode) {
+    if (!compatibilityMode) return url
+    var value = String(url || "")
+    for (var i = 0; i < stickers.length; ++i) {
+        if (stickers[i].url === value)
+            return displayPreviewUrl(stickers[i].id, baseUrl, true)
+    }
+    // Older published casts keep their canonical URL; never proxy an
+    // arbitrary user-supplied image as a catalogue preview.
+    return value
+}
+
 function isStickerUrl(url) {
     var value = String(url || "").split("#")[0].split("?")[0]
     // Preserve already-published first-party stickers in historical casts;

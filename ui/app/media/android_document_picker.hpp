@@ -37,6 +37,7 @@
 #include <QThread>
 #include <QUuid>
 #include <QUrl>
+#include <QVariant>
 
 #include <array>
 #include <memory>
@@ -138,11 +139,35 @@ public:
         jni->DeleteLocalRef(filters);
         // Permission is granted solely for the returned URI, never all photos.
         intent.callObjectMethod("addFlags", "(I)Landroid/content/Intent;", jint{1});
+        // Unhandled Java exceptions in an intent or MIME filter can terminate
+        // the process instead of presenting the system file picker.
+        if (jni.checkAndClearExceptions()) {
+            fail(QStringLiteral("Android could not prepare the media picker."));
+            return;
+        }
 
         m_afterIndex = afterIndex;
         m_pending = true;
         qInfo() << "Genycaster Android: opening system media document picker";
-        QtAndroidPrivate::startActivity(intent, RequestCode, this);
+        // The Qt Quick event loop is not Android's main (Activity) thread.
+        // Starting a Java activity from the Qt thread can cause an uncaught
+        // CalledFromWrongThreadException on some emulator/OS versions.
+        const QPointer<AndroidComposerMediaPicker> receiver{this};
+        (void)QNativeInterface::QAndroidApplication::runOnAndroidMainThread(
+            [intent, receiver]() -> QVariant {
+                if (!receiver) return {};
+                QtAndroidPrivate::startActivity(intent, RequestCode, receiver.data());
+                QJniEnvironment activityJni;
+                if (activityJni.checkAndClearExceptions()) {
+                    QMetaObject::invokeMethod(receiver.data(), [receiver] {
+                        if (!receiver) return;
+                        receiver->m_pending = false;
+                        receiver->fail(QStringLiteral(
+                            "Android could not open the system document picker."));
+                    }, Qt::QueuedConnection);
+                }
+                return {};
+            });
     }
 
     void handleActivityResult(const int receiverRequestCode, const int resultCode,

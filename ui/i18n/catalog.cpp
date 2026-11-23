@@ -1447,6 +1447,12 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.media.completed");
     //% "Media upload failed."
     (void)qtTrId("genycaster.media.upload_failed");
+    //% "Too many upload requests. Wait before retrying; your content stays in the editor."
+    (void)qtTrId("genycaster.media.upload_rate_limited");
+    //% "Signer verification is temporarily unavailable on Farcaster or HyperSnap. Your content stays here; retry when the protocol recovers."
+    (void)qtTrId("genycaster.media.upload_signer_network_unavailable");
+    //% "Upload timed out. Check your connection and retry; your content remains in the editor."
+    (void)qtTrId("genycaster.media.upload_timeout");
     //% "Cancel upload"
     (void)qtTrId("genycaster.media.cancel");
     //% "Retry upload"

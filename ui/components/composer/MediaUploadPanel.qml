@@ -321,60 +321,64 @@ NeonCard {
         }
 
         Superellipse {
+            objectName: "responsiveComposerUploadStatusCard"
             visible: root.hasTransientUpload
             Layout.fillWidth: true
-            implicitHeight: uploadRow.implicitHeight + Theme.space3 * 2
+            Layout.preferredHeight: uploadContent.implicitHeight + Theme.space3 * 2
             fillColor: Theme.surfaceMuted
             borderWidth: 1
             borderColor: root.insertFailed || mediaUpload.errorText.length > 0
                 ? Theme.warning : Theme.borderMuted
             curveDepth: Theme.curveControl
 
-            RowLayout {
-                id: uploadRow
+            ColumnLayout {
+                id: uploadContent
                 anchors.fill: parent
                 anchors.margins: Theme.space3
-                layoutDirection: Theme.uiDirection
-                spacing: Theme.space3
+                spacing: Theme.space2
 
-                MediaPreview {
-                    visible: mediaUpload.localPreviewUrl.toString().length > 0
-                    Layout.preferredWidth: root.width < 620 ? 126 : 92
-                    Layout.preferredHeight: root.width < 620 ? 112 : 86
-                    fitImage: true
-                    source: mediaUpload.localPreviewUrl
-                    mediaType: mediaUpload.selectedContentType
-                    curveDepth: Theme.curveControl
-                    interactive: mediaUpload.previewKind === "video"
-                }
-
-                Superellipse {
-                    visible: mediaUpload.localPreviewUrl.toString().length === 0
-                    Layout.preferredWidth: 48
-                    Layout.preferredHeight: 48
-                    fillColor: Theme.surface
-                    borderWidth: 1
-                    borderColor: Theme.borderMuted
-                    curveDepth: Theme.curveControl
-
-                    Icon {
-                        anchors.centerIn: parent
-                        text: Theme.iconFile
-                        color: Theme.inkMuted
-                        preferredSize: Theme.typeBodySize
-                    }
-                }
-
-                ColumnLayout {
+                // Filename and actions share a compact header; progress and
+                // errors are full-width rows below, never squeezed beside a
+                // 126px thumbnail or a long filename on mobile.
+                RowLayout {
+                    id: uploadHeader
                     Layout.fillWidth: true
-                    spacing: Theme.space1
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
 
-                    RowLayout {
+                    MediaPreview {
+                        visible: mediaUpload.localPreviewUrl.toString().length > 0
+                        Layout.preferredWidth: root.width < 620 ? 64 : 88
+                        Layout.preferredHeight: root.width < 620 ? 64 : 80
+                        fitImage: true
+                        source: mediaUpload.localPreviewUrl
+                        mediaType: mediaUpload.selectedContentType
+                        curveDepth: Theme.curveControl
+                        interactive: false
+                    }
+
+                    Superellipse {
+                        visible: mediaUpload.localPreviewUrl.toString().length === 0
+                        Layout.preferredWidth: root.width < 620 ? 48 : 64
+                        Layout.preferredHeight: root.width < 620 ? 48 : 64
+                        fillColor: Theme.surface
+                        borderWidth: 1
+                        borderColor: Theme.borderMuted
+                        curveDepth: Theme.curveControl
+                        Icon {
+                            anchors.centerIn: parent
+                            text: Theme.iconFile
+                            color: Theme.inkMuted
+                            preferredSize: Theme.typeBodySize
+                        }
+                    }
+
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        layoutDirection: Theme.uiDirection
-                        spacing: Theme.space2
-
+                        Layout.minimumWidth: 0
+                        spacing: Theme.space1
                         DirectionAwareLabel {
+                            objectName: "composerUploadingFileName"
                             Layout.fillWidth: true
                             text: mediaUpload.fileName.length > 0
                                 ? mediaUpload.fileName : qsTrId("genycaster.composer.media")
@@ -383,9 +387,9 @@ NeonCard {
                             font.weight: Theme.weightDemiBold
                             elide: Text.ElideMiddle
                         }
-
                         DirectionAwareLabel {
                             visible: mediaUpload.totalBytes > 0
+                            Layout.fillWidth: true
                             text: root.formatBytes(mediaUpload.totalBytes)
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
@@ -393,113 +397,114 @@ NeonCard {
                         }
                     }
 
+                    ActionButton {
+                        visible: mediaUpload.busy
+                        quiet: true
+                        compact: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconClose
+                        Accessible.name: qsTrId("genycaster.media.cancel")
+                        onClicked: mediaUpload.cancel()
+                    }
+                    ActionButton {
+                        visible: mediaUpload.canRetry && !mediaUpload.busy
+                        quiet: true
+                        compact: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconRefresh
+                        Accessible.name: qsTrId("genycaster.media.retry")
+                        onClicked: mediaUpload.retry()
+                    }
+                }
+
+                DirectionAwareLabel {
+                    objectName: "composerUploadFullWidthStatus"
+                    Layout.fillWidth: true
+                    text: root.insertFailed ? qsTrId("genycaster.media.insert_failed")
+                        : mediaUpload.errorText.length > 0 ? mediaUpload.errorText
+                        : root.mediaPhaseText(mediaUpload.phase)
+                    color: root.insertFailed || mediaUpload.errorText.length > 0
+                        ? Theme.warning : Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
+                }
+
+                GridLayout {
+                    objectName: "smartMediaPipelineProgressSteps"
+                    visible: mediaUpload.busy
+                        && String(mediaUpload.selectedContentType || "").startsWith("image/")
+                    Layout.fillWidth: true
+                    columns: root.width < 480 ? 1 : 3
+                    columnSpacing: Theme.space2
+                    rowSpacing: Theme.space1
+                    Repeater {
+                        model: [
+                            qsTrId("genycaster.media.step_compressing"),
+                            qsTrId("genycaster.media.step_uploading"),
+                            qsTrId("genycaster.media.step_finalizing")
+                        ]
+                        delegate: RowLayout {
+                            required property int index
+                            required property string modelData
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space1
+                            Superellipse {
+                                Layout.preferredWidth: 8
+                                Layout.preferredHeight: 8
+                                curveDepth: Theme.curveTiny
+                                fillColor: index <= root.processingStep
+                                    ? Theme.accent : Theme.borderStrong
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: modelData
+                                color: index === root.processingStep
+                                    ? Theme.ink : Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: index === root.processingStep
+                                    ? Theme.weightDemiBold : Theme.weightRegular
+                                wrapMode: Text.Wrap
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    visible: mediaUpload.busy && mediaUpload.phase !== "uploading"
+                    spacing: Theme.space2
+                    GenySpinner {
+                        running: visible
+                        Layout.preferredWidth: 18
+                        Layout.preferredHeight: 18
+                        Accessible.ignored: true
+                    }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: root.insertFailed
-                            ? qsTrId("genycaster.media.insert_failed")
-                            : mediaUpload.errorText.length > 0
-                              ? mediaUpload.errorText
-                              : root.mediaPhaseText(mediaUpload.phase)
-                        color: root.insertFailed || mediaUpload.errorText.length > 0
-                            ? Theme.warning : Theme.inkMuted
+                        text: root.mediaPhaseText(mediaUpload.phase)
+                        color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
                     }
+                }
 
-                    RowLayout {
-                        layoutDirection: Theme.uiDirection
-                        objectName: "smartMediaPipelineProgressSteps"
-                        visible: mediaUpload.busy
-                            && String(mediaUpload.selectedContentType || "").startsWith("image/")
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
-
-                        Repeater {
-                            // Concise stage titles fit narrow mobile composers;
-                            // the full, localized description is above.
-                            model: [
-                                qsTrId("genycaster.media.step_compressing"),
-                                qsTrId("genycaster.media.step_uploading"),
-                                qsTrId("genycaster.media.step_finalizing")
-                            ]
-                            delegate: RowLayout {
-                                layoutDirection: Theme.uiDirection
-                                required property int index
-                                required property string modelData
-                                Layout.fillWidth: true
-                                spacing: Theme.space1
-
-                                Superellipse {
-                                    Layout.preferredWidth: 8
-                                    Layout.preferredHeight: 8
-                                    curveDepth: Theme.curveTiny
-                                    fillColor: index <= root.processingStep
-                                        ? Theme.accent : Theme.borderStrong
-                                }
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    text: modelData
-                                    color: index === root.processingStep
-                                        ? Theme.ink : Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    font.weight: index === root.processingStep
-                                        ? Theme.weightDemiBold : Theme.weightRegular
-                                    elide: Text.ElideRight
-                                }
-                            }
-                        }
-
-                        GenySpinner {
-                            visible: mediaUpload.phase === "compressing"
-                                || mediaUpload.phase === "preparing"
-                                || mediaUpload.phase === "optimizing"
-                                || mediaUpload.phase === "finalizing"
-                            running: visible && mediaUpload.busy
-                            Layout.preferredWidth: visible ? 18 : 0
-                            Layout.preferredHeight: visible ? 18 : 0
-                            Accessible.ignored: true
-                        }
-                    }
-
+                Superellipse {
+                    // Show progress only for measured network bytes.
+                    visible: mediaUpload.busy && mediaUpload.phase === "uploading"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 4
+                    fillColor: Theme.borderMuted
+                    curveDepth: 2
                     Superellipse {
-                        // Network bytes are measurable; backend conversion
-                        // and storage are not. Never show a fake 100% upload
-                        // bar while waiting on QStorage finalization.
-                        visible: mediaUpload.busy && mediaUpload.phase === "uploading"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 4
-                        fillColor: Theme.borderMuted
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        width: parent.width * Math.max(0.015, mediaUpload.progress)
+                        fillColor: Theme.accent
                         curveDepth: 2
-
-                        Superellipse {
-                            anchors.left: parent.left
-                            anchors.top: parent.top
-                            anchors.bottom: parent.bottom
-                            width: parent.width * Math.max(0.015, mediaUpload.progress)
-                            fillColor: Theme.accent
-                            curveDepth: 2
-                        }
                     }
-                }
-
-                ActionButton {
-                    visible: mediaUpload.busy
-                    quiet: true
-                    compact: true
-                    iconOnly: true
-                    iconGlyph: Theme.iconClose
-                    Accessible.name: qsTrId("genycaster.media.cancel")
-                    onClicked: mediaUpload.cancel()
-                }
-
-                ActionButton {
-                    visible: mediaUpload.canRetry && !mediaUpload.busy
-                    quiet: true
-                    compact: true
-                    iconOnly: true
-                    iconGlyph: Theme.iconRefresh
-                    Accessible.name: qsTrId("genycaster.media.retry")
-                    onClicked: mediaUpload.retry()
                 }
             }
         }

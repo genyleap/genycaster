@@ -6359,10 +6359,12 @@ void connectRuntime(
         return qtTrId("genycaster.media.upload_authorization_failed");
     case ErrorCode::InvalidArgument:
         return qtTrId("genycaster.media.upload_invalid_file");
-    case ErrorCode::Unavailable:
-    case ErrorCode::Timeout:
-    case ErrorCode::TransportFailure:
     case ErrorCode::RateLimited:
+        return qtTrId("genycaster.media.upload_rate_limited");
+    case ErrorCode::Timeout:
+        return qtTrId("genycaster.media.upload_timeout");
+    case ErrorCode::Unavailable:
+    case ErrorCode::TransportFailure:
         return qtTrId("genycaster.media.upload_network_failed");
     case ErrorCode::ProtocolFailure:
     case ErrorCode::Unsupported:
@@ -6370,6 +6372,19 @@ void connectRuntime(
     default:
         return qtTrId("genycaster.media.upload_failed");
     }
+}
+
+// Do not collapse a protocol-registry outage into a storage failure. The
+// upstream gateway provides a fixed public diagnostic, never a raw signer
+// key, upload URL or signed challenge.
+[[nodiscard]] QString mediaUploadFailureText(
+    const foundation::error::ErrorCode code, const std::string_view detail)
+{
+    if (code == foundation::error::ErrorCode::Unavailable
+        && detail.find("Signer network verification is temporarily unavailable.")
+            != std::string_view::npos)
+        return qtTrId("genycaster.media.upload_signer_network_unavailable");
+    return mediaUploadFailureText(code);
 }
 
 void connectMediaUpload(
@@ -6397,7 +6412,7 @@ void connectMediaUpload(
                         // Preserve error provenance without leaking provider response
                         // bodies, bearer credentials, or signed upload challenges.
                         const QString publicFailure = state.error
-                            ? mediaUploadFailureText(state.error->code)
+                            ? mediaUploadFailureText(state.error->code,state.error->message)
                             : qtTrId("genycaster.media.upload_failed");
 #ifndef NDEBUG
                         if (state.error) {
@@ -6518,7 +6533,8 @@ void connectBrowserMediaUpload(
         EM_ASM({
             window.__genycasterBrowserMedia?.pick(
                 UTF8ToString($0,$1),$2,$3);
-        },fid.constData(),fid.size(),afterIndex,controller.maxImageBytes());
+        },fid.constData(),fid.size(),afterIndex,
+           static_cast<int>(controller.maxImageBytes()));
     });
     QObject::connect(&controller, &MediaUploadController::uploadRequested,
                      &controller, [&controller, &bridge](const QString& localPath,
@@ -6551,7 +6567,7 @@ void connectBrowserMediaUpload(
             }
         }, fidUtf8.constData(), fidUtf8.size(),
            pathUtf8.constData(), pathUtf8.size(), afterIndex,
-           controller.maxImageBytes());
+           static_cast<int>(controller.maxImageBytes()));
     });
     QObject::connect(&controller, &MediaUploadController::cancelRequested,
                      &controller, [&controller] {

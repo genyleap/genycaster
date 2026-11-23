@@ -101,8 +101,16 @@ Item {
         }
     }
     function resolvedSource() {
-        if (root.officialSticker)
-            return String(root.embed.url || root.embed.value || "")
+        if (root.officialSticker) {
+            const canonical = String(root.embed.url || root.embed.value || "")
+            // Android/WASM Qt imageformat plugins do not consistently decode
+            // third-party WebP sticker thumbnails. The server's pinned-ID
+            // preview is a CORS-safe PNG; the original cast embed is unchanged.
+            return StickerCatalog.previewForPublishedUrl(canonical,
+                openProofConnections
+                  ? String(openProofConnections.stickerPreviewBaseUrl || "") : "",
+                Qt.platform.os === "wasm" || Qt.platform.os === "android")
+        }
         if (root.originFallbackAttempted && root.ownMediaUrl.length > 0)
             return root.ownMediaUrl
         const direct = String(root.embed.imageSource || "")

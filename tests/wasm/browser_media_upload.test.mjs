@@ -468,3 +468,40 @@ test('confirmed cast deletion invalidates nested detail replies and pinned reply
     assert.match(shell,/root.confirmedReply = \(\{\}\)/);
     assert.match(shell,/lastRemovedCastId/);
 });
+
+test('WASM accepts human filenames and JS BigInt media limits without widening account tiers',async()=>{
+    const vault={load:async()=>({fid,publicKeyHex:key}),
+        signMediaChallenge:async()=>({publicKeyHex:key,signature:'ab'.repeat(64)})};
+    const originalName='GenyCaster Updated_ Multiple Networks, One App.png';
+    const file=new File([new Uint8Array(128)],originalName,{type:'image/png'});
+    let requestCount=0;
+    const fetchImpl=async(url,opts)=>{
+        ++requestCount;
+        if(url.endsWith('/v1/uploads')){
+            const ticket=JSON.parse(new TextDecoder().decode(opts.body));
+            assert.equal(ticket.fileName,originalName);
+            assert.equal(ticket.sizeBytes,128);
+            return Response.json({uploadId:'unicode-media-ticket',
+                mode:'gateway-multipart',partCount:1,partSizeBytes:5*1024*1024,assetUrl},{status:201});
+        }
+        if(url.includes('/parts/1'))return Response.json({partNumber:1,etag:'"safe-part"'});
+        if(url.endsWith('/v1/uploads/complete'))return Response.json({
+            assetUrl,fileName:originalName,contentType:'image/png',sizeBytes:128,
+            storedSizeBytes:128,managementToken:'managed-token'});
+        throw Error('unexpected request: '+url);
+    };
+    const result=await uploadBrowserImage({file,fid,vault,crypto:webcrypto,
+        fetchImpl,maxImageBytes:2n*1024n*1024n,optimizationMode:'original'});
+    assert.equal(requestCount,3);
+    assert.equal(result.fileName,originalName);
+    await assert.rejects(uploadBrowserImage({file,fid,vault,crypto:webcrypto,
+        maxImageBytes:2000n,fetchImpl:async()=>{throw Error('no network');}}),
+        /Invalid media upload limit/);
+    const nonAscii=new File([new Uint8Array(9)],'تصویر (آمار)، ۳۰ روز.png',{type:'image/png'});
+    await assert.rejects(uploadBrowserImage({file:nonAscii,fid,vault,crypto:webcrypto,
+        maxImageBytes:5n*1024n*1024n,optimizationMode:'original',
+        fetchImpl:async()=>{throw new Error('accepted unicode file name');}}),
+        /accepted unicode file name/);
+    const code=readGenycasterMain();
+    assert.match(code,/static_cast<int>\(controller.maxImageBytes\(\)\)/);
+});

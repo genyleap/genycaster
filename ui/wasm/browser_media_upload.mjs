@@ -11,15 +11,29 @@ const allowedTypes=new Map([
     ['webp','image/webp'],['gif','image/gif'],['avif','image/avif'],
 ]);
 const hex=bytes=>Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
-function ensureImage(file,maxImageBytes=2*1024*1024) {
-    if(!file || !/^[a-zA-Z0-9][a-zA-Z0-9._ -]{0,125}\.[A-Za-z0-9]{2,5}$/.test(file.name||''))
-        throw new Error('Choose an image file with a supported extension.');
-    const extension=file.name.split('.').at(-1).toLowerCase();
-    const mime=allowedTypes.get(extension);
-    if(!mime || file.type && file.type!==mime)
-        throw new Error('Unsupported image format. Choose JPG, PNG, WebP, GIF, or AVIF.');
-    if(![2*1024*1024,5*1024*1024].includes(maxImageBytes))
+// Emscripten i64 Q_PROPERTY arguments may arrive as BigInt with WASM_BIGINT.
+// Keep the tier exactly 2 or 5 MiB; never silently widen an invalid limit.
+function mediaTier(value) {
+    const bytes=typeof value==='bigint' ? Number(value) : value;
+    if(![2*1024*1024,5*1024*1024].includes(bytes))
         throw new Error('Invalid media upload limit.');
+    return bytes;
+}
+function ensureImage(file,maxImageBytes=2*1024*1024) {
+    mediaTier(maxImageBytes);
+    // User-visible filenames can contain Unicode, commas and parentheses.
+    // Reject only paths, controls, excessive length and unsupported suffixes.
+    const name=file?.name;
+    if(typeof name!=='string' || name.length<5 || name.length>180
+        || /[/\\\u0000-\u001f\u007f]/u.test(name)
+        || !/\.[a-z0-9]{2,5}$/i.test(name))
+        throw new Error('Choose an image file with a supported extension.');
+    const extension=name.split('.').at(-1).toLowerCase();
+    const mime=allowedTypes.get(extension);
+    const declared=String(file.type||'').toLowerCase();
+    if(!mime || (declared && declared!=='application/octet-stream'
+        && declared!==mime && !(declared==='image/jpg' && mime==='image/jpeg')))
+        throw new Error('Unsupported image format. Choose JPG, PNG, WebP, GIF, or AVIF.');
     if(!Number.isSafeInteger(file.size)||file.size<=0||file.size>MAX_SOURCE_IMAGE_BYTES)
         throw new Error('Source image exceeds the 25 MiB preparation safety limit.');
     return mime;
@@ -38,6 +52,7 @@ export async function uploadBrowserImage({
     optimizationMode='auto',maxImageBytes=2*1024*1024,
     optimizeImage=optimizeBrowserImage,
 }={}) {
+    maxImageBytes=mediaTier(maxImageBytes);
     ensureImage(file,maxImageBytes);
     const originalSourceBytes=file.size;
     let optimized=false;

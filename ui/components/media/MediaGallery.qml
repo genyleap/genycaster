@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
+import "StickerCatalog.js" as StickerCatalog
 
 Popup {
     id: root
@@ -12,9 +13,21 @@ Popup {
     readonly property int itemCount: root.items ? root.items.length : 0
     readonly property int currentIndex: gallery.currentIndex
 
+    function compatibilityStickerUrl(item) {
+        if (!item || (Qt.platform.os !== "android" && Qt.platform.os !== "wasm"))
+            return ""
+        const original = String(item.url || item.value || "")
+        const converted = StickerCatalog.previewForPublishedUrl(original,
+            openProofConnections
+              ? String(openProofConnections.stickerPreviewBaseUrl || "") : "", true)
+        return converted !== original ? converted : ""
+    }
+
     function sourceFor(item) {
         if (!item)
             return ""
+        const png = root.compatibilityStickerUrl(item)
+        if (png.length > 0) return png
         const direct = String(item.imageSource || item.source || "")
         if (direct.length > 0)
             return direct
@@ -136,9 +149,10 @@ Popup {
                                 Image {
                                     id: fullImage
                                     anchors.fill: parent
-                                    source: dataStorage.remoteImageSource(root.sourceFor(mediaPage.modelData),
-                                                                          String(mediaPage.modelData.mediaCategory || "photos"),
-                                                                          true)
+                                    source: root.compatibilityStickerUrl(mediaPage.modelData).length > 0
+                                        ? root.compatibilityStickerUrl(mediaPage.modelData)
+                                        : dataStorage.remoteImageSource(root.sourceFor(mediaPage.modelData),
+                                              String(mediaPage.modelData.mediaCategory || "photos"),true)
                                     readonly property int decodeEdge: Math.max(1, Math.round(
                                         Math.max(width, height) * Screen.devicePixelRatio
                                         * renderingController.mediaDecodeScale))

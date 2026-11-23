@@ -1180,6 +1180,18 @@ Company | https://company.com</source>
             <source>This file was rejected. Check image format and upload size limits.</source>
             <translation>फ़ाइल अस्वीकृत। छवि का प्रारूप और आकार सीमा जाँचें।</translation>
         </message>
+        <message id="genycaster.media.upload_rate_limited">
+            <source>Too many upload requests. Wait before retrying; your content stays in the editor.</source>
+            <translation>बहुत अधिक अपलोड अनुरोध हुए हैं। दोबारा कोशिश से पहले प्रतीक्षा करें; सामग्री संपादक में बनी रहेगी।</translation>
+        </message>
+        <message id="genycaster.media.upload_signer_network_unavailable">
+            <source>Signer verification is temporarily unavailable on Farcaster or HyperSnap. Your content stays here; retry when the protocol recovers.</source>
+            <translation>Farcaster या HyperSnap पर साइनर सत्यापन अभी उपलब्ध नहीं है। सामग्री यहाँ सुरक्षित है; नेटवर्क बहाल होने पर दोबारा कोशिश करें।</translation>
+        </message>
+        <message id="genycaster.media.upload_timeout">
+            <source>Upload timed out. Check your connection and retry; your content remains in the editor.</source>
+            <translation>अपलोड का समय समाप्त हो गया। कनेक्शन जाँचकर दोबारा कोशिश करें; सामग्री संपादक में रहेगी।</translation>
+        </message>
         <message id="genycaster.media.upload_network_failed">
             <source>Media gateway is unavailable or timed out. Retry when the connection is restored.</source>
             <translation>मीडिया गेटवे उपलब्ध नहीं है या समय समाप्त हो गया। कनेक्शन वापस आने पर पुनः प्रयास करें।</translation>

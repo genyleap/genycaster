@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
+import "StickerCatalog.js" as StickerCatalog
 
 // Image-first draft presentation: a sticker is not a photo attachment card.
 // Preserve its original alpha, scale without cropping and keep Remove reachable
@@ -27,7 +28,9 @@ Item {
         objectName: "stickerDraftArtwork"
         anchors.fill: parent
         anchors.margins: Theme.space2
-        source: root.imageUrl
+        source: StickerCatalog.previewForPublishedUrl(root.imageUrl,
+            openProofConnections ? String(openProofConnections.stickerPreviewBaseUrl || "") : "",
+            Qt.platform.os === "wasm" || Qt.platform.os === "android")
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         cache: true

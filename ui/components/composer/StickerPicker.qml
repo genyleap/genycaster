@@ -24,6 +24,13 @@ Popup {
 
     readonly property bool compact: parent !== null
         && parent.width < Theme.breakpointMobile
+    readonly property bool needsPreviewCompatibility: Qt.platform.os === "wasm"
+        || Qt.platform.os === "android"
+    function stickerDisplayUrl(id) {
+        return StickerCatalog.displayPreviewUrl(id,
+            openProofConnections ? String(openProofConnections.stickerPreviewBaseUrl || "") : "",
+            root.needsPreviewCompatibility)
+    }
     readonly property real safeMargin: Theme.space3
     readonly property bool authorized: openProofConnections
         && openProofConnections.cloudAuthorizationReady
@@ -209,6 +216,13 @@ Popup {
     onHeightChanged: if (opened) root.reposition()
     onAnchorItemChanged: if (opened) root.reposition()
     onCompactChanged: if (opened) root.reposition()
+    // A cloud-session transition is a reason to fetch the private library.
+    // Unrelated stateChanged notifications (Pro, identity, profile) are not:
+    // repeating that GET flooded the gateway on browser/mobile startup.
+    onAuthorizedChanged: {
+        if (root.opened && root.authorized && !root.libraryReady)
+            openProofConnections.fetchStickerPacks()
+    }
 
     Connections {
         target: root.parent
@@ -228,11 +242,8 @@ Popup {
                 root.showLibrary()
             }
         }
-        // cloudAuthorizationReady uses stateChanged as its NOTIFY signal.
-        function onStateChanged() {
-            if (root.opened && root.authorized)
-                openProofConnections.fetchStickerPacks()
-        }
+        // The popup's onAuthorizedChanged handles the single transition
+        // to a verified cloud session, without retrying on every state event.
     }
 
     contentItem: ColumnLayout {
@@ -305,7 +316,7 @@ Popup {
 
         DirectionAwareLabel {
             Layout.fillWidth: true
-            visible: root.errorLabel().length > 0
+            visible: root.errorLabel().length > 0 && root.page !== "library"
             text: root.errorLabel()
             color: root.authorized && root.busy ? Theme.inkMuted : Theme.warning
             font.pixelSize: Theme.typeCaptionSize
@@ -369,7 +380,7 @@ Popup {
                                     required property var modelData
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 82
-                                    source: modelData.url
+                                    source: root.stickerDisplayUrl(modelData.id)
                                     fillMode: Image.PreserveAspectFit
                                     asynchronous: true
                                     smooth: true
@@ -510,7 +521,7 @@ Popup {
                         anchors.centerIn: parent
                         width: stickerTile.width - Theme.space3 * 2
                         height: width
-                        source: StickerCatalog.previewUrl(stickerTile.modelData.id)
+                        source: root.stickerDisplayUrl(stickerTile.modelData.id)
                         fillMode: Image.PreserveAspectFit
                         asynchronous: true
                         smooth: true
@@ -548,7 +559,7 @@ Popup {
             }
 
             ColumnLayout {
-                visible: root.installedIds.length === 0
+                visible: root.libraryReady && root.installedIds.length === 0
                 Layout.fillWidth: true
                 Layout.fillHeight: visible
                 spacing: Theme.space3
@@ -569,6 +580,47 @@ Popup {
                 ActionButton {
                     Layout.alignment: Qt.AlignHCenter
                     prominent: true
+                    text: qsTrId("genycaster.stickers.discover")
+                    onClicked: root.page = "discover"
+                }
+                Item { Layout.fillHeight: true }
+            }
+
+            ColumnLayout {
+                objectName: "stickerLibraryUnavailableState"
+                visible: !root.libraryReady
+                Layout.fillWidth: true
+                Layout.fillHeight: visible
+                spacing: Theme.space3
+                Item { Layout.fillHeight: true }
+                Icon {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: root.busy ? Theme.iconRefresh : Theme.iconWarning
+                    color: root.busy ? Theme.inkMuted : Theme.warning
+                    preferredSize: Theme.typeTitle1Size
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.errorLabel()
+                    color: Theme.inkMuted
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                }
+                ActionButton {
+                    visible: !root.busy
+                    Layout.alignment: Qt.AlignHCenter
+                    prominent: true
+                    text: qsTrId("genycaster.status.retry")
+                    onClicked: {
+                        if (root.authorized)
+                            openProofConnections.fetchStickerPacks()
+                        else
+                            openProofConnections.retryAccountSession()
+                    }
+                }
+                ActionButton {
+                    Layout.alignment: Qt.AlignHCenter
+                    quiet: true
                     text: qsTrId("genycaster.stickers.discover")
                     onClicked: root.page = "discover"
                 }
@@ -626,7 +678,7 @@ Popup {
                     required property var modelData
                     width: packPreview.cellWidth - Theme.space2
                     height: packPreview.cellHeight - Theme.space2
-                    source: modelData.url
+                    source: root.stickerDisplayUrl(modelData.id)
                     fillMode: Image.PreserveAspectFit
                     asynchronous: true
                     smooth: true

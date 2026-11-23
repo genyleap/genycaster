@@ -1737,6 +1737,12 @@ void OpenProofConnectionsController::fetchPublicActivitySource(qulonglong fid)
 
 // Private sticker library is canonical in the Genycaster account database.
 // Never treat QSettings, a remembered FID, or a local Pro label as an install.
+QString OpenProofConnectionsController::stickerPreviewBaseUrl() const
+{
+    return QString::fromUtf8(genycaster::deployment::browserGateway.data())
+        + QStringLiteral("/v1/browser/sticker-previews?id=");
+}
+
 void OpenProofConnectionsController::fetchStickerPacks()
 {
     if (!m_viewerFid || !cloudAuthorizationReady()

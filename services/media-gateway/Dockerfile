@@ -27,7 +27,7 @@ RUN cmake -S . -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build/native --parallel --target genyleap_quilibrium_storage \
     && mkdir -p storage/native \
     && cp build/native/genyleap_quilibrium_storage.node storage/native/ \
-    && node --test test/smart_media_pipeline.test.mjs test/gateway.test.mjs test/browser_image_proxy.test.mjs test/browser_farcaster_auth.test.mjs test/quilibrium_sdk_adapter.test.mjs test/browser_token_insights.test.mjs test/browser_miniapp_preview.test.mjs test/browser_link_preview.test.mjs test/browser_cast_views.test.mjs test/browser_cast_reactions.test.mjs test/channel_directory_gateway.test.mjs \
+    && node --test test/smart_media_pipeline.test.mjs test/gateway.test.mjs test/sticker_preview_gateway.test.mjs test/browser_image_proxy.test.mjs test/browser_farcaster_auth.test.mjs test/quilibrium_sdk_adapter.test.mjs test/browser_token_insights.test.mjs test/browser_miniapp_preview.test.mjs test/browser_link_preview.test.mjs test/browser_cast_views.test.mjs test/browser_cast_reactions.test.mjs test/channel_directory_gateway.test.mjs \
     && node --test test/native_addon.test.mjs
 
 FROM node:22-trixie-slim AS runtime
@@ -48,6 +48,8 @@ COPY --from=builder /app/gateway.mjs ./gateway.mjs
 COPY --from=builder /app/media_entitlements.mjs ./media_entitlements.mjs
 COPY --from=builder /app/smart_media_pipeline ./smart_media_pipeline
 COPY --from=builder /app/browser_image_proxy.mjs ./browser_image_proxy.mjs
+COPY --from=builder /app/sticker_previews.mjs ./sticker_previews.mjs
+COPY --from=builder /app/sticker_preview_index.json ./sticker_preview_index.json
 COPY --from=builder /app/browser_farcaster_auth.mjs ./browser_farcaster_auth.mjs
 COPY --from=builder /app/browser_token_insights.mjs ./browser_token_insights.mjs
 COPY --from=builder /app/browser_miniapp_preview.mjs ./browser_miniapp_preview.mjs
@@ -63,6 +65,7 @@ RUN chmod 0644 /deployment_config.mjs \
     && chmod 0755 /app/storage/native \
     && find /app/smart_media_pipeline -type f -name "*.mjs" -exec chmod 0644 {} + \
     && chmod 0644 /app/media_entitlements.mjs \
+    && chmod 0644 /app/sticker_previews.mjs /app/sticker_preview_index.json \
     && chmod 0644 /app/browser_image_proxy.mjs /app/browser_farcaster_auth.mjs /app/browser_token_insights.mjs /app/browser_miniapp_preview.mjs /app/browser_link_preview.mjs /app/browser_cast_views.mjs /app/browser_cast_reactions.mjs /app/gateway.mjs /app/server.mjs
 
 USER node

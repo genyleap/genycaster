@@ -10,6 +10,7 @@ import { publicLinkPreview } from './browser_link_preview.mjs';
 import { createCastViewService } from './browser_cast_views.mjs';
 import { createBrowserReactionService } from './browser_cast_reactions.mjs';
 import {createSmartMediaPipeline} from './smart_media_pipeline/index.mjs';
+import {createStickerPreviews,previewEntry} from './sticker_previews.mjs';
 import {parseSmartMediaRequest} from './smart_media_pipeline/policy.mjs';
 import {createSmartMediaIngress, uploadOptimizedObject} from './smart_media_pipeline/ingest.mjs';
 import {createMediaTierReader} from './media_entitlements.mjs';
@@ -321,10 +322,37 @@ async function signerIsAuthorized(config, fid, signerKey, fetchImpl, nowSeconds)
     url.searchParams.set('fid', String(fid));
     url.searchParams.set('pageSize', '100');
     if (pageToken) url.searchParams.set('pageToken', pageToken);
-    const response = await fetchImpl(url, { headers: { accept: 'application/json' } });
+    // Availability of the selected network's signer registry gates the
+    // irreversible first upload request. Retry ONLY a transient read once;
+    // never trust a stale signer, fail over to the other protocol or replay
+    // the signed upload POST.
+    let response;
+    for (let attempt = 0; attempt < 2; ++attempt) {
+      try {
+        response = await fetchImpl(url,{
+          headers:{accept:'application/json'},
+          signal:AbortSignal.timeout(6000),
+        });
+      } catch {
+        if (attempt === 0) continue;
+        const error = new Error('signer_registry_unavailable');
+        error.code = 'signer_registry_unavailable';
+        error.statusCode = 503;
+        throw error;
+      }
+      if ([502,503,504].includes(response.status) && attempt === 0) {
+        await response.body?.cancel().catch(()=>{});
+        continue;
+      }
+      break;
+    }
     if (!response.ok) {
-      const error = new Error(`signer verification failed with HTTP ${response.status}`);
-      error.statusCode = response.status >= 500 ? 503 : 401;
+      const code=response.status===429?'signer_registry_rate_limited'
+        :response.status>=500?'signer_registry_unavailable'
+        :'signer_not_authorized';
+      const error=new Error(code);
+      error.code=code;
+      error.statusCode=response.status===429?429:response.status>=500?503:401;
       throw error;
     }
     const document = await response.json();
@@ -519,6 +547,12 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   // the generic API budget. Only exact URLs from trusted catalogues qualify.
   const miniAppArtworkLimiter = dependencies.miniAppArtworkLimiter
     ?? new FixedWindowRateLimiter(config.rateWindowMs, Math.max(config.rateLimit, 180));
+  // Sticker packs show many small images at once, but only exact pinned
+  // public IDs may use this separately bounded, raster-only preview route.
+  const stickerPreviewLimiter = dependencies.stickerPreviewLimiter
+    ?? new FixedWindowRateLimiter(config.rateWindowMs, Math.max(config.rateLimit, 300));
+  const stickerPreviews = dependencies.stickerPreviews ?? createStickerPreviews({
+    now:runtime.now,managedMediaHost});
   const partLimiter = dependencies.partLimiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.partRateLimit);
   const farcasterBroker = dependencies.farcasterBroker ?? createBrowserFarcasterBroker({
     ...runtime, issuerOrigin:config.openProofIssuer.origin,
@@ -1396,6 +1430,35 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       return;
     }
 
+    if (requestUrl.pathname === '/v1/browser/sticker-previews') {
+      response.setHeader('access-control-allow-origin','*');
+      response.setHeader('cross-origin-resource-policy','cross-origin');
+      response.setHeader('x-content-type-options','nosniff');
+      response.setHeader('access-control-allow-methods','GET, OPTIONS');
+      if(request.method==='OPTIONS'){response.writeHead(204);response.end();return;}
+      if(request.method!=='GET'){writeJson(response,405,{error:'method_not_allowed'});return;}
+      const id=requestUrl.searchParams.get('id');
+      if(requestUrl.searchParams.size!==1 || !previewEntry(id)){
+        writeJson(response,404,{error:'sticker_not_found'});return;
+      }
+      const rate=stickerPreviewLimiter.check(clientAddress(request,config.trustCloudflare),runtime.now());
+      if(!rate.allowed){
+        writeJson(response,429,{error:'rate_limited'},{'retry-after':'60'});return;
+      }
+      const result=await stickerPreviews.get(id);
+      if(result.status!==200){
+        writeJson(response,result.status,{error:result.error});return;
+      }
+      response.writeHead(200,{
+        'content-type':'image/png',
+        'content-length':String(result.body.length),
+        'cache-control':'public, max-age=3600',
+        'x-content-type-options':'nosniff',
+      });
+      response.end(result.body);
+      return;
+    }
+
     if (requestUrl.pathname === '/v1/browser/images') {
       // Public raster bytes only. Browser clients cannot read many external
       // image CDNs directly because of cross-origin policy.
@@ -1990,9 +2053,20 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         status,
         message: String(error?.message || 'unknown error').slice(0, 500),
       });
+      // A protocol signer lookup outage is NOT a QStorage outage and must
+      // not tell the user that the stored media is broken. Never echo server
+      // provider errors, credentials, signed proofs or uploaded filenames.
+      const verifierUnavailable = error?.code === 'signer_registry_unavailable';
+      const verifierLimited = error?.code === 'signer_registry_rate_limited';
       writeJson(response, status, {
-        error: status >= 500 ? 'media_gateway_unavailable' : 'media_upload_rejected',
-        message: status >= 500 ? 'Media storage is temporarily unavailable.' : String(error.message || 'Media upload rejected.'),
+        error: verifierUnavailable ? 'signer_registry_unavailable'
+          : verifierLimited ? 'signer_registry_rate_limited'
+          : status >= 500 ? 'media_gateway_unavailable' : 'media_upload_rejected',
+        message: verifierUnavailable
+          ? 'Signer network verification is temporarily unavailable.'
+          : verifierLimited ? 'Signer network requests are rate limited; retry later.'
+          : status >= 500 ? 'Media storage is temporarily unavailable.'
+          : 'Media upload rejected.',
       });
     }
   });

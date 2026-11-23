@@ -1180,6 +1180,18 @@ Company | https://company.com</source>
             <source>This file was rejected. Check image format and upload size limits.</source>
             <translation>파일이 거부되었습니다. 이미지 형식과 크기 제한을 확인하세요.</translation>
         </message>
+        <message id="genycaster.media.upload_rate_limited">
+            <source>Too many upload requests. Wait before retrying; your content stays in the editor.</source>
+            <translation>업로드 요청이 너무 많습니다. 잠시 후 다시 시도하세요. 콘텐츠는 편집기에 남습니다.</translation>
+        </message>
+        <message id="genycaster.media.upload_signer_network_unavailable">
+            <source>Signer verification is temporarily unavailable on Farcaster or HyperSnap. Your content stays here; retry when the protocol recovers.</source>
+            <translation>Farcaster 또는 HyperSnap의 서명자 확인을 일시적으로 사용할 수 없습니다. 콘텐츠는 보존되며 복구 후 다시 시도할 수 있습니다.</translation>
+        </message>
+        <message id="genycaster.media.upload_timeout">
+            <source>Upload timed out. Check your connection and retry; your content remains in the editor.</source>
+            <translation>업로드 시간이 초과되었습니다. 연결 상태를 확인하고 다시 시도하세요. 콘텐츠는 편집기에 남습니다.</translation>
+        </message>
         <message id="genycaster.media.upload_network_failed">
             <source>Media gateway is unavailable or timed out. Retry when the connection is restored.</source>
             <translation>미디어 게이트웨이에 연결할 수 없거나 시간이 초과되었습니다. 다시 시도하세요.</translation>
