@@ -4108,22 +4108,6 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>上传</translation>
         </message>
-        <message id="genycaster.stats.share_x_text">
-            <source>X · image</source>
-            <translation>X · 图片</translation>
-        </message>
-        <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · image</source>
-            <translation>Telegram · 图片</translation>
-        </message>
-        <message id="genycaster.stats.share_image">
-            <source>Share image</source>
-            <translation>分享图片</translation>
-        </message>
-        <message id="genycaster.stats.share_image_hint">
-            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
-            <translation>在分享菜单中选择 X、Telegram 或 Instagram。如果不可用，请保存并附加 PNG。</translation>
-        </message>
         <message id="genycaster.stats.avatar_unavailable">
             <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
             <translation>头像暂不可用。卡片会显示名字首字母；重试以添加照片。</translation>

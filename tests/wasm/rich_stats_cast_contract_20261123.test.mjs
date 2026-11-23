@@ -58,10 +58,10 @@ test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image',
     assert.match(header,/Q_PROPERTY\(bool statsAvatarLoading/);
     assert.match(header,/Q_PROPERTY\(bool statsAvatarReady/);
     assert.match(panel,/statsAvatarReady/);
-    assert.match(panel,/function shareImageExternally\(\)/);
-    assert.match(panel,/onClicked: root\.shareImageExternally\(\)/);
+    assert.doesNotMatch(panel,/function shareImageExternally\(\)|externalShareOptions/);
+    assert.doesNotMatch(panel,/genycaster\.stats\.share_(?:x_text|telegram_text|image_hint)/);
     assert.doesNotMatch(panel,/twitter\.com\/intent\/tweet|t\.me\/share\/url/);
-    assert.match(panel,/mediaUpload\.shareStatsImage\(/);
+    assert.match(panel,/onClicked: root\.captureStatsCard\(\)/);
     assert.match(bridge,/sharePreparedStatsImage/);
     // C++ unit targets only link QtCore/Qml/Network. Never force QtGui's
     // QImage header into this public presentation adapter's include graph.
@@ -70,6 +70,13 @@ test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image',
     assert.match(header,/std::unique_ptr<QImage> m_statsAvatar/);
     assert.match(controller,/std::make_unique<QImage>/);
     assert.match(controller,/m_statsAvatarImageProvider->requestImageResponse/);
+    assert.match(controller,/void MediaUploadController::startStatsAvatarFallback/);
+    assert.match(controller,/startStatsAvatarFallback\(generation, false\)/);
+    assert.match(controller,/startStatsAvatarFallback\(generation, true\)/);
+    assert.match(controller,/request\.setRawHeader\("Accept", "image\/jpeg"\)/);
+    assert.match(controller,/QUrlQuery query/);
+    assert.match(controller,/payload->append\(reply->readAll\(\)\)/);
+    assert.match(panel,/!mediaUpload\.statsAvatarLoading && !root\.shareCardHandedOff/);
     assert.match(header,/setStatsAvatarImageProvider/);
     assert.match(read('ui/app/main.cpp'),/mediaUploadController\.setStatsAvatarImageProvider\(remoteAvatarImageProvider\)/);
     assert.doesNotMatch(panel,/\&\& \(!root\.shareAccountAvatarUrl\.length \|\| mediaUpload\.statsAvatarReady\)/);

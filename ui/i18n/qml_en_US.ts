@@ -4109,22 +4109,6 @@ Company | https://company.com</translation>
             <source>Uploading</source>
             <translation>Uploading</translation>
         </message>
-        <message id="genycaster.stats.share_x_text">
-            <source>X · image</source>
-            <translation>X · image</translation>
-        </message>
-        <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · image</source>
-            <translation>Telegram · image</translation>
-        </message>
-        <message id="genycaster.stats.share_image">
-            <source>Share image</source>
-            <translation>Share image</translation>
-        </message>
-        <message id="genycaster.stats.share_image_hint">
-            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
-            <translation>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</translation>
-        </message>
         <message id="genycaster.stats.avatar_unavailable">
             <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
             <translation>Photo unavailable. The card uses your initial; retry to include your photo.</translation>

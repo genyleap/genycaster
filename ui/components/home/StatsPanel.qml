@@ -247,7 +247,7 @@ ColumnLayout {
         target: mediaUpload
         function onStatsAvatarChanged() {
             if (statsShareModal.opened && !root.shareCaptureBusy
-                    && !root.shareCardHandedOff
+                    && !mediaUpload.statsAvatarLoading && !root.shareCardHandedOff
                     && root.shareAccountFid === root.accountFid)
                 root.regenerateShareImage()
         }
@@ -298,18 +298,6 @@ ColumnLayout {
         return lines.join("\n")
     }
 
-    function shareImageExternally() {
-        // Web intents accept text/URLs, not a private local image. Always
-        // hand off the actual 1920px PNG to the platform file share flow;
-        // users can select X, Telegram or Instagram when installed.
-        if (!root.shareGeneratedCardUrl.length || !shareCardPreview.ready
-                || root.shareCaptureBusy || mediaUpload.statsAvatarLoading)
-            return
-        if (!mediaUpload.shareStatsImage(root.shareGeneratedCardUrl,
-                                          root.compactShareText()))
-            root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
-    }
-
     function captureStatsCard() {
         if (root.shareCaptureBusy || !statsShareModal.opened
                 || !root.proUnlocked || !root.loaded || mediaUpload.busy
@@ -347,7 +335,7 @@ ColumnLayout {
         padding: Theme.space3
         width: parent ? Math.min(460, parent.width - Theme.space3 * 2) : 460
         height: parent ? Math.min(parent.height - Theme.space3 * 2,
-            Math.max(360, (width - Theme.space3 * 2) + 252)) : 680
+            Math.max(360, (width - Theme.space3 * 2) + 178)) : 600
         contentItem: Flickable {
             id: shareModalScroll
             clip: true
@@ -470,45 +458,6 @@ ColumnLayout {
                              && shareCardPreview.ready && root.shareGeneratedCardUrl.length > 0
                     onClicked: root.captureStatsCard()
                 }
-            }
-            GridLayout {
-                id: externalShareOptions
-                Layout.fillWidth: true
-                columns: statsShareModal.width < 440 ? 2 : 3
-                columnSpacing: Theme.space2
-                rowSpacing: Theme.space2
-                ActionButton {
-                    Layout.fillWidth: true
-                    compact: true
-                    quiet: true
-                    text: qsTrId("genycaster.stats.share_x_text")
-                    enabled: shareCardPreview.ready && !mediaUpload.statsAvatarLoading
-                    onClicked: root.shareImageExternally()
-                }
-                ActionButton {
-                    Layout.fillWidth: true
-                    compact: true
-                    quiet: true
-                    text: qsTrId("genycaster.stats.share_telegram_text")
-                    enabled: shareCardPreview.ready && !mediaUpload.statsAvatarLoading
-                    onClicked: root.shareImageExternally()
-                }
-                ActionButton {
-                    Layout.fillWidth: true
-                    compact: true
-                    prominent: true
-                    text: qsTrId("genycaster.stats.share_image")
-                    Layout.columnSpan: externalShareOptions.columns === 2 ? 2 : 1
-                    enabled: shareCardPreview.ready && !mediaUpload.statsAvatarLoading
-                    onClicked: root.shareImageExternally()
-                }
-            }
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                text: qsTrId("genycaster.stats.share_image_hint")
-                font.pixelSize: Theme.typeCaptionSize
-                color: Theme.textSecondary
-                wrapMode: Text.Wrap
             }
             }
         }

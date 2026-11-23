@@ -4108,22 +4108,6 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>업로드</translation>
         </message>
-        <message id="genycaster.stats.share_x_text">
-            <source>X · image</source>
-            <translation>X · 이미지</translation>
-        </message>
-        <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · image</source>
-            <translation>Telegram · 이미지</translation>
-        </message>
-        <message id="genycaster.stats.share_image">
-            <source>Share image</source>
-            <translation>이미지 공유</translation>
-        </message>
-        <message id="genycaster.stats.share_image_hint">
-            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
-            <translation>공유 메뉴에서 X, Telegram 또는 Instagram을 선택하세요. 지원되지 않으면 PNG를 저장해 첨부하세요.</translation>
-        </message>
         <message id="genycaster.stats.avatar_unavailable">
             <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
             <translation>사진을 불러올 수 없습니다. 카드에는 이름 첫 글자가 표시됩니다. 사진을 넣으려면 다시 시도하세요.</translation>

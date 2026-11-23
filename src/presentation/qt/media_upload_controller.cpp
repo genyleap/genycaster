@@ -144,6 +144,14 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
                         m_statsAvatar = std::make_unique<QImage>(std::move(decoded));
                 }
                 response->deleteLater();
+                if (!statsAvatarReady()) {
+                    // The provider's 1x1 failure sentinel (or an undecodable
+                    // source) must not become a permanent Stats avatar failure.
+                    // Re-fetch JPEG directly, with a pinned public proxy as
+                    // a final fallback for CORS/CDN restrictions.
+                    startStatsAvatarFallback(generation, false);
+                    return;
+                }
                 emit statsAvatarChanged();
             };
             connect(response, &QQuickImageResponse::finished,
@@ -158,8 +166,18 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
         }
     }
 
-    // Standalone controller tests without the application's image provider
-    // retain the bounded direct/proxied network path below.
+    // Tests without a composed provider, or a provider that refuses the
+    // request, still fetch the public portrait via the bounded JPEG path.
+    startStatsAvatarFallback(m_statsAvatarGeneration, false);
+}
+
+void MediaUploadController::startStatsAvatarFallback(
+    const quint64 generation, const bool viaGateway)
+{
+    if (generation != m_statsAvatarGeneration) return;
+    const QUrl source{m_statsAvatarUrl};
+    // These are public raster CDNs, not an arbitrary fetch/SSRF primitive.
+    // The gateway additionally enforces public DNS and decoded raster limits.
     static const QStringList allowedHosts{
         QStringLiteral("imagedelivery.net"), QStringLiteral("cdn.warpcast.com"),
         QStringLiteral("wrpcd.net"), QStringLiteral("cdn.farcaster.xyz"),
@@ -167,55 +185,66 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
         QStringLiteral("i.imgur.com"), QStringLiteral("pbs.twimg.com"),
         QStringLiteral("res.cloudinary.com"), QStringLiteral("ipfs.io"),
         QStringLiteral("gateway.pinata.cloud"), QStringLiteral("imagekit.io"),
-        QStringLiteral("lh3.googleusercontent.com")
+        QStringLiteral("lh3.googleusercontent.com"),
+        QStringLiteral("arweave.net"), QStringLiteral("media.discordapp.net"),
+        QStringLiteral("cdn.discordapp.com")
     };
-    const QString hostname = source.host().toLower();
+    const QString host = source.host().toLower();
     bool allowed = false;
     for (const QString& domain : allowedHosts) {
-        if (hostname == domain || hostname.endsWith(QLatin1Char('.') + domain)) {
+        if (host == domain
+            || (domain != QStringLiteral("media-farcaster.genyleap.com")
+                && host.endsWith(QLatin1Char('.') + domain))) {
             allowed = true;
             break;
         }
     }
     if (!allowed) {
+        qWarning() << "Stats avatar unsupported source host:" << host;
         emit statsAvatarChanged();
         return;
     }
-#if defined(Q_OS_WASM)
-    QUrl fetchUrl{QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/images")};
-    QUrlQuery query;
-    query.addQueryItem(QStringLiteral("url"), avatarUrl);
-    fetchUrl.setQuery(query);
-#else
-    const QUrl fetchUrl = source;
-#endif
+    QUrl fetchUrl = source;
+    if (viaGateway) {
+        fetchUrl = QUrl{QStringLiteral(
+            "https://storage-farcaster.genyleap.com/v1/browser/images")};
+        QUrlQuery query;
+        query.addQueryItem(QStringLiteral("url"), m_statsAvatarUrl);
+        fetchUrl.setQuery(query);
+    }
     QNetworkRequest request{fetchUrl};
-    request.setRawHeader("Accept", "image/jpeg,image/png,image/webp");
+    // Many Cloudflare Images /original URLs negotiate WebP by default. A
+    // JPEG-only request is portable across native and Qt/WASM image readers.
+    request.setRawHeader("Accept", "image/jpeg");
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::SameOriginRedirectPolicy);
-    request.setTransferTimeout(6500);
-    const quint64 generation = m_statsAvatarGeneration;
+    request.setTransferTimeout(10000);
     QNetworkReply* const reply = m_statsAvatarNetwork.get(request);
     m_statsAvatarReply = reply;
     emit statsAvatarChanged();
+
+    constexpr qsizetype MaxAvatarBytes = 1024 * 1024;
     auto payload = std::make_shared<QByteArray>();
     connect(reply, &QIODevice::readyRead, this, [reply, payload] {
-        if (reply->bytesAvailable() + payload->size() > 1024 * 1024) {
+        if (reply->bytesAvailable() + payload->size() > MaxAvatarBytes) {
             reply->abort();
             return;
         }
         payload->append(reply->readAll());
     });
     connect(reply, &QNetworkReply::finished, this,
-            [this, reply, payload, generation] {
+            [this, reply, payload, generation, viaGateway] {
         if (generation != m_statsAvatarGeneration) {
             reply->deleteLater();
             return;
         }
         m_statsAvatarReply = nullptr;
+        // Collect any tail bytes delivered together with finished().
+        if (reply->bytesAvailable() + payload->size() <= MaxAvatarBytes)
+            payload->append(reply->readAll());
         if (reply->error() == QNetworkReply::NoError
             && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200
-            && payload->size() > 16 && payload->size() <= 1024 * 1024) {
+            && payload->size() > 16 && payload->size() <= MaxAvatarBytes) {
             QBuffer buffer{payload.get()};
             if (buffer.open(QIODevice::ReadOnly)) {
                 QImageReader reader{&buffer};
@@ -233,7 +262,17 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
                 }
             }
         }
+        if (!statsAvatarReady() && viaGateway) {
+            qWarning() << "Stats avatar JPEG/proxy failed for public host:"
+                       << QUrl{m_statsAvatarUrl}.host()
+                       << "HTTP" << reply->attribute(
+                              QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        }
         reply->deleteLater();
+        if (!statsAvatarReady() && !viaGateway) {
+            startStatsAvatarFallback(generation, true);
+            return;
+        }
         emit statsAvatarChanged();
     });
 }

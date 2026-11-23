@@ -4108,22 +4108,6 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>Hochladen</translation>
         </message>
-        <message id="genycaster.stats.share_x_text">
-            <source>X · image</source>
-            <translation>X · Bild</translation>
-        </message>
-        <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · image</source>
-            <translation>Telegram · Bild</translation>
-        </message>
-        <message id="genycaster.stats.share_image">
-            <source>Share image</source>
-            <translation>Bild teilen</translation>
-        </message>
-        <message id="genycaster.stats.share_image_hint">
-            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
-            <translation>Wähle X, Telegram oder Instagram im Teilen-Menü. Andernfalls PNG speichern und anhängen.</translation>
-        </message>
         <message id="genycaster.stats.avatar_unavailable">
             <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
             <translation>Foto nicht verfügbar. Die Karte zeigt deinen Anfangsbuchstaben. Erneut versuchen, um das Foto einzufügen.</translation>

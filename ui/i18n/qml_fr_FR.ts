@@ -4109,22 +4109,6 @@ Entreprise | https://company.com</translation>
             <source>Uploading</source>
             <translation>Envoi</translation>
         </message>
-        <message id="genycaster.stats.share_x_text">
-            <source>X · image</source>
-            <translation>X · image à partager</translation>
-        </message>
-        <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · image</source>
-            <translation>Telegram · image à partager</translation>
-        </message>
-        <message id="genycaster.stats.share_image">
-            <source>Share image</source>
-            <translation>Partager l’image</translation>
-        </message>
-        <message id="genycaster.stats.share_image_hint">
-            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
-            <translation>Choisissez X, Telegram ou Instagram dans le menu de partage. Sinon, enregistrez et joignez le PNG.</translation>
-        </message>
         <message id="genycaster.stats.avatar_unavailable">
             <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
             <translation>Photo indisponible. La carte affiche votre initiale ; réessayez pour ajouter la photo.</translation>

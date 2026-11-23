@@ -4109,22 +4109,6 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>آپلود</translation>
         </message>
-        <message id="genycaster.stats.share_x_text">
-            <source>X · image</source>
-            <translation>X · تصویر</translation>
-        </message>
-        <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · image</source>
-            <translation>تلگرام · تصویر</translation>
-        </message>
-        <message id="genycaster.stats.share_image">
-            <source>Share image</source>
-            <translation>اشتراک تصویر</translation>
-        </message>
-        <message id="genycaster.stats.share_image_hint">
-            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
-            <translation>در پنجرهٔ اشتراک‌گذاری، X، تلگرام یا اینستاگرام را انتخاب کنید. در غیر این صورت، PNG را ذخیره و پیوست کنید.</translation>
-        </message>
         <message id="genycaster.stats.avatar_unavailable">
             <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
             <translation>تصویر پروفایل در دسترس نیست؛ فعلاً حرف نخست نام نمایش داده می‌شود. برای افزودن عکس دوباره تلاش کنید.</translation>

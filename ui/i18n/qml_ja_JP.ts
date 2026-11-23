@@ -4108,22 +4108,6 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>アップロード</translation>
         </message>
-        <message id="genycaster.stats.share_x_text">
-            <source>X · image</source>
-            <translation>X · 画像</translation>
-        </message>
-        <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · image</source>
-            <translation>Telegram · 画像</translation>
-        </message>
-        <message id="genycaster.stats.share_image">
-            <source>Share image</source>
-            <translation>画像を共有</translation>
-        </message>
-        <message id="genycaster.stats.share_image_hint">
-            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
-            <translation>共有メニューで X、Telegram、Instagram を選択してください。使えない場合は PNG を保存して添付してください。</translation>
-        </message>
         <message id="genycaster.stats.avatar_unavailable">
             <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
             <translation>写真を取得できません。カードには名前の頭文字が表示されます。写真を含めるには再試行してください。</translation>

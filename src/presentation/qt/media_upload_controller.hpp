@@ -177,6 +177,9 @@ signals:
 private:
     void resetProgress();
     void clearSelection();
+    // Retry a failed cached/remote avatar as a bounded JPEG fetch, then via
+    // the first-party public raster proxy without ever exposing credentials.
+    void startStatsAvatarFallback(quint64 generation, bool viaGateway);
 
     bool m_available{false};
     bool m_busy{false};

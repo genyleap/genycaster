@@ -4108,22 +4108,6 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>الرفع</translation>
         </message>
-        <message id="genycaster.stats.share_x_text">
-            <source>X · image</source>
-            <translation>X · صورة</translation>
-        </message>
-        <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · image</source>
-            <translation>تيليجرام · صورة</translation>
-        </message>
-        <message id="genycaster.stats.share_image">
-            <source>Share image</source>
-            <translation>مشاركة الصورة</translation>
-        </message>
-        <message id="genycaster.stats.share_image_hint">
-            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
-            <translation>اختر X أو تيليجرام أو إنستغرام من قائمة المشاركة، أو احفظ صورة PNG وأرفقها.</translation>
-        </message>
         <message id="genycaster.stats.avatar_unavailable">
             <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
             <translation>الصورة غير متاحة. ستظهر أحرف اسمك؛ أعد المحاولة لإضافة صورتك.</translation>

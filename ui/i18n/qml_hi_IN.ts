@@ -4108,22 +4108,6 @@ Company | https://company.com</source>
             <source>Uploading</source>
             <translation>अपलोड</translation>
         </message>
-        <message id="genycaster.stats.share_x_text">
-            <source>X · image</source>
-            <translation>X · तस्वीर</translation>
-        </message>
-        <message id="genycaster.stats.share_telegram_text">
-            <source>Telegram · image</source>
-            <translation>Telegram · तस्वीर</translation>
-        </message>
-        <message id="genycaster.stats.share_image">
-            <source>Share image</source>
-            <translation>चित्र साझा करें</translation>
-        </message>
-        <message id="genycaster.stats.share_image_hint">
-            <source>Choose X, Telegram or Instagram in the share sheet. Otherwise save and attach the PNG.</source>
-            <translation>शेयर मेनू में X, Telegram या Instagram चुनें। अन्यथा PNG सहेजकर संलग्न करें।</translation>
-        </message>
         <message id="genycaster.stats.avatar_unavailable">
             <source>Photo unavailable. The card uses your initial; retry to include your photo.</source>
             <translation>फ़ोटो उपलब्ध नहीं है। कार्ड पर नाम का पहला अक्षर दिखेगा; फ़ोटो जोड़ने के लिए दोबारा कोशिश करें।</translation>
