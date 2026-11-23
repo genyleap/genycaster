@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtCore
 import Farcaster.Client
 
 // Stats is a presentation surface. All provider requests and calculations
@@ -199,6 +198,53 @@ ColumnLayout {
     property string shareAccountFid: ""
     property bool shareCaptureBusy: false
     property string shareCaptureError: ""
+    property string shareGeneratedCardUrl: ""
+    property bool shareCardHandedOff: false
+
+    // An ordinary CPU-raster PNG is generated BEFORE the preview opens.
+    // The displayed Image uses that exact file; Qt Quick's asynchronous
+    // grabToImage callback is never part of the share/publish critical path.
+    function regenerateShareImage() {
+        if (root.shareCaptureBusy) return false
+        if (mediaUpload.busy) {
+            root.shareCaptureError = qsTrId("genycaster.media.upload_unavailable")
+            return false
+        }
+        root.shareCaptureBusy = true
+        try {
+            const created = mediaUpload.renderStatsCard(
+                root.shareSnapshot,
+                root.shareAccountName,
+                root.shareAccountHandle,
+                root.sharePeriodDays,
+                root.shareCardStyle,
+                root.shareCapturedAt)
+            const next = String(created.imageFileUrl || "")
+            if (!next) {
+                root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
+                return false
+            }
+            const previous = root.shareGeneratedCardUrl
+            root.shareGeneratedCardUrl = next
+            root.shareCaptureError = ""
+            if (previous.length > 0 && previous !== next)
+                mediaUpload.discardStatsCardImage(previous)
+            return true
+        } catch (error) {
+            root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
+            return false
+        } finally {
+            root.shareCaptureBusy = false
+        }
+    }
+
+    function selectShareStyle(nextStyle) {
+        if (nextStyle === root.shareCardStyle) return
+        const previousStyle = root.shareCardStyle
+        root.shareCardStyle = nextStyle
+        if (!root.regenerateShareImage())
+            root.shareCardStyle = previousStyle
+    }
 
     function openStatsShare(name, handle, fid) {
         if (root.section !== "social" || !root.proUnlocked || !root.loaded)
@@ -212,6 +258,10 @@ ColumnLayout {
         root.shareCardStyle = "neon"
         root.shareCaptureError = ""
         root.shareCaptureBusy = false
+        root.shareCardHandedOff = false
+        // If image generation fails, leave the preview open with an explicit
+        // error and a selectable text-only fallback; never hang on Preparing.
+        root.regenerateShareImage()
         statsShareModal.open()
     }
 
@@ -227,7 +277,7 @@ ColumnLayout {
             lines.push(qsTrId("genycaster.stats.share_reactions_line")
                 .arg(metric(stats.likes)).arg(metric(stats.recasts))
                 .arg(metric(stats.receivedReplies)))
-        lines.push("Powered by Genycaster")
+        lines.push("", "Powered by Genycaster")
         return lines.join("\n")
     }
 
@@ -236,42 +286,32 @@ ColumnLayout {
                 || !root.proUnlocked || !root.loaded || mediaUpload.busy
                 || root.shareAccountFid !== root.accountFid)
             return
-        root.shareCaptureBusy = true
-        root.shareCaptureError = ""
-        const started = shareCardPreview.grabToImage(function(result) {
-            if (!root.shareCaptureBusy || !statsShareModal.opened)
-                return
-            // Qt's writable temp directory is available on desktop, Android
-            // and Emscripten; never write image data into a QML string.
-            const directory = StandardPaths.writableLocation(StandardPaths.TempLocation)
-            const leaf = "genycaster-stats-" + root.shareAccountFid
-                + "-" + root.shareCapturedAt + ".png"
-            const localPath = directory.replace(/\\/g, "/") + "/" + leaf
-            if (!directory || !result || !result.saveToFile(localPath)) {
-                root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
-                root.shareCaptureBusy = false
-                return
-            }
-            const fileUrl = "file://" + (localPath.charAt(0) === "/" ? "" : "/")
-                + encodeURI(localPath)
-            root.shareCaptureBusy = false
-            statsShareModal.close()
-            root.shareRequested({
-                schema: "genycaster.stats/v1",
-                text: root.compactShareText(),
-                imageFileUrl: fileUrl
-            })
-        }, Qt.size(960, 600))
-        if (!started) {
+        if (!root.shareGeneratedCardUrl.length || !shareCardPreview.ready) {
             root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
-            root.shareCaptureBusy = false
+            return
         }
+        const fileUrl = root.shareGeneratedCardUrl
+        root.shareCardHandedOff = true
+        statsShareModal.close()
+        root.shareRequested({
+            schema: "genycaster.stats/v1",
+            text: root.compactShareText(),
+            imageFileUrl: fileUrl
+        })
     }
 
     GenyModal {
         id: statsShareModal
         objectName: "statsShareRichCastPreview"
         parent: Overlay.overlay
+        onClosed: {
+            const unusedImage = root.shareGeneratedCardUrl
+            root.shareGeneratedCardUrl = ""
+            if (!root.shareCardHandedOff && unusedImage.length > 0)
+                mediaUpload.discardStatsCardImage(unusedImage)
+            root.shareCardHandedOff = false
+            root.shareCaptureBusy = false
+        }
         width: parent ? Math.min(650, parent.width - 24) : 640
         height: parent ? Math.min(parent.height - 24,
             (width - Theme.space4 * 2) * 0.625 + 254) : 640
@@ -302,13 +342,13 @@ ColumnLayout {
                     compact: true
                     text: qsTrId("genycaster.stats.card_theme_neon")
                     prominent: root.shareCardStyle === "neon"
-                    onClicked: root.shareCardStyle = "neon"
+                    onClicked: root.selectShareStyle("neon")
                 }
                 ActionButton {
                     compact: true
                     text: qsTrId("genycaster.stats.card_theme_minimal")
                     prominent: root.shareCardStyle === "minimal"
-                    onClicked: root.shareCardStyle = "minimal"
+                    onClicked: root.selectShareStyle("minimal")
                 }
                 Item { Layout.fillWidth: true }
             }
@@ -319,14 +359,13 @@ ColumnLayout {
                 clip: true
                 StatsShareCard {
                     id: shareCardPreview
-                    snapshot: root.shareSnapshot
-                    displayName: root.shareAccountName
-                    username: root.shareAccountHandle
-                    periodDays: root.sharePeriodDays
-                    capturedAt: root.shareCapturedAt
-                    cardStyle: root.shareCardStyle
+                    sourceUrl: root.shareGeneratedCardUrl
                     transformOrigin: Item.TopLeft
                     scale: statsSharePreviewViewport.width / 960
+                    onFailedChanged: {
+                        if (failed && root.shareGeneratedCardUrl.length > 0)
+                            root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
+                    }
                 }
             }
             DirectionAwareLabel {
@@ -368,6 +407,7 @@ ColumnLayout {
                     text: root.shareCaptureBusy ? qsTrId("genycaster.stats.card_preparing")
                                                 : qsTrId("genycaster.stats.card_publish")
                     enabled: !root.shareCaptureBusy && !mediaUpload.busy
+                             && shareCardPreview.ready && root.shareGeneratedCardUrl.length > 0
                     onClicked: root.captureStatsCard()
                 }
             }

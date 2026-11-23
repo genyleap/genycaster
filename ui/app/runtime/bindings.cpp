@@ -6503,14 +6503,16 @@ void connectBrowserMediaUpload(
         }
         const QByteArray pathUtf8 = localPath.toUtf8();
         const QByteArray fidUtf8 = QByteArray::number(bridge.accountFid());
-        // Qt grabbed the first-party card into the sandbox file. Copy it
-        // directly from Emscripten FS into browser File memory; the signed
-        // browser media gateway still owns upload authorization and transport.
+        // A CPU-rendered first-party PNG is stored in Qt's virtual FS.
+        // Inside EM_ASM the Emscripten FS symbol is available directly;
+        // Module.FS may be absent unless explicitly exported to JS.
+        // The browser receives only these bytes and uses the existing signed
+        // media gateway for authorization and transport.
         EM_ASM({
             const fid=UTF8ToString($0,$1);
             try {
                 const path=UTF8ToString($2,$3);
-                const bytes=Module.FS.readFile(path);
+                const bytes=FS.readFile(path);
                 if(!window.__genycasterBrowserMedia?.uploadGenerated)
                     throw new Error('Browser media upload is unavailable');
                 window.__genycasterBrowserMedia.uploadGenerated(fid,$4,bytes);

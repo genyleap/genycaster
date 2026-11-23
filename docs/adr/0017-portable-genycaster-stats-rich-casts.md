@@ -25,9 +25,13 @@
 2. Missing engagement remains unavailable (represented by an em dash), not
    fabricated as zero. Engagement reflects responses counted to date on
    posts from the period, not a historical time series.
-3. The captured image is 960x600 PNG and the text caption repeats the key
-   quantities even if the image is unavailable or unreadable. The author
-   reviews it in the normal Composer before granting a publish action.
+3. The card is a CPU-rasterized 960x600 PNG using QImage/QPainter and the
+   official vector Genycaster mark. Its QML preview displays that *exact*
+   file rather than a second rendering. This bypasses Qt Quick/WebGL
+   grabToImage callback stalls (which previously left Preparing… indefinitely).
+   The text caption repeats key quantities, including a deliberate blank
+   line before its Powered by footer, even if the image is unreadable.
+   The author reviews it in the normal Composer before granting publication.
 4. The existing signer-authorized Media Gateway creates the sole stable public
    image URL. The source temporary file path is never embedded in a Cast.
 5. Upload progress blocks publishing until the image is attached. If capture or
@@ -42,12 +46,16 @@
 - **Dependencies:** StatsController (derived data); Qt Quick image capture
   (presentation); existing MediaUploadController, signer and media gateway
   (application/transport); canonical Cast writer.
-- **Local state:** A transient snapshot and temporary PNG for the share attempt.
-  There is no new database or duplicated social graph.
+- **Local state:** A transient snapshot and an owned temporary PNG for the
+  share attempt. Unsent/previous style files are deleted on cancellation,
+  switching styles, completion or adapter destruction. There is no new
+  database or duplicated social graph.
 - **Expected failures:** Stats unavailable; Pro entitlement unresolved;
-  render capture failed; generated PNG invalid; user signer unavailable;
-  media upload cancelled, timed out or refused; publishing rejected or
-  ambiguously acknowledged.
+  CPU rasterization/PNG encoding failed; temporary filesystem unavailable;
+  user signer unavailable; media upload cancelled, timed out or refused;
+  publishing rejected or ambiguously acknowledged. No indefinitely pending
+  grabToImage callback exists. A failed attachment visibly offers Retry or
+  deliberate Text only, without silently publishing an incomplete Cast.
 - **Offline:** Existing cached Stats may remain visible, but publication and
   upload require connectivity. No Cast is automatically published later as a
   side effect of preparing its image.

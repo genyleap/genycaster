@@ -5,28 +5,40 @@ import {readFileSync} from 'node:fs';
 const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 
-test('Rich Cast v1 snapshots real stats and renders one 960 x 600 branded PNG', () => {
+test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image', () => {
     const panel=read('ui/components/home/StatsPanel.qml');
     const card=read('ui/components/home/StatsShareCard.qml');
+    const renderer=read('src/presentation/qt/stats_share_card_renderer.cpp');
+    const controller=read('src/presentation/qt/media_upload_controller.cpp');
+    const header=read('src/presentation/qt/media_upload_controller.hpp');
+    const cmake=read('src/presentation/CMakeLists.txt');
     assert.match(panel,/root\.shareSnapshot = Object\.assign\(\{\}, root\.metrics\)/);
     assert.match(panel,/root\.shareCapturedAt = Date\.now\(\)/);
     assert.match(panel,/root\.sharePeriodDays = root\.periodDays/);
-    assert.match(panel,/shareCardPreview\.grabToImage\(/);
-    assert.match(panel,/Qt\.size\(960, 600\)/);
-    assert.match(panel,/result\.saveToFile\(localPath\)/);
-    assert.match(panel,/StandardPaths\.TempLocation/);
-    assert.match(panel,/statsShareModal\.opened/);
+    assert.match(panel,/mediaUpload\.renderStatsCard\(/);
+    assert.match(panel,/root\.shareGeneratedCardUrl = next/);
+    assert.match(panel,/sourceUrl: root\.shareGeneratedCardUrl/);
+    assert.match(panel,/root\.shareCardHandedOff = true/);
+    assert.match(panel,/mediaUpload\.discardStatsCardImage\(unusedImage\)/);
+    assert.match(panel,/if \(!root\.shareGeneratedCardUrl\.length \|\| !shareCardPreview\.ready\)/);
+    assert.doesNotMatch(panel,/\.grabToImage\s*\(|result\.saveToFile\s*\(|StandardPaths\.TempLocation/);
     assert.match(card,/objectName: "genycasterRichStatsCard"/);
     assert.match(card,/width: 960\s*height: 600/);
-    assert.match(card,/snapshot\.hasEngagement === true/);
-    assert.match(card,/engagementAvailable \? fmt\(value\) : "—"/);
+    assert.match(card,/source: root\.sourceUrl/);
+    assert.match(card,/cache: false/);
+    assert.match(card,/readonly property bool ready: previewImage\.status === Image\.Ready/);
+    assert.match(renderer,/CanvasWidth = 960/);
+    assert.match(renderer,/CanvasHeight = 600/);
+    assert.match(renderer,/QImage::Format_ARGB32_Premultiplied/);
+    assert.match(renderer,/QPainter painter\{&image\}/);
+    assert.match(renderer,/QTemporaryFile temporary/);
+    assert.match(renderer,/output\.save\(&temporary, "PNG"\)/);
+    assert.match(renderer,/brandMark\(painter/);
     for(const metric of ['engagement','casts','replies','likes','recasts','receivedReplies'])
-        assert.match(card,new RegExp('root\\.snapshot\\.'+metric));
-    assert.match(card,/width: \(parent\.width - 13\) \/ 2/);
-    assert.match(card,/width: \(parent\.width - 26\) \/ 3/);
-    assert.match(card,/modelData\.value\.length > 6 \? 23/);
-    assert.match(card,/cardStyle: "neon"/);
-    assert.match(card,/lightStyle: cardStyle === "minimal"/);
+        assert.ok(renderer.includes('formattedCount(stats, "' + metric + '")'));
+    assert.match(controller,/QVariantMap MediaUploadController::renderStatsCard/);
+    assert.match(header,/Q_INVOKABLE QVariantMap renderStatsCard/);
+    assert.match(cmake,/qt\/stats_share_card_renderer\.cpp/);
 });
 
 test('Stats Cast is ordinary text and a single signed media embed, not a nonstandard protocol', () => {
@@ -37,7 +49,7 @@ test('Stats Cast is ordinary text and a single signed media embed, not a nonstan
     assert.match(panel,/signal shareRequested\(var payload\)/);
     assert.match(panel,/schema: "genycaster\.stats\/v1"/);
     assert.match(panel,/Genycaster Stats · /);
-    assert.match(panel,/Powered by Genycaster/);
+    assert.match(panel,/lines\.push\("", "Powered by Genycaster"\)/);
     assert.match(panel,/imageFileUrl: fileUrl/);
     assert.match(panel,/imageFileUrl: ""/); // explicit text-only fallback
     assert.match(home,/signal statsReportRequested\(var payload\)/);
@@ -52,6 +64,10 @@ test('Stats Cast is ordinary text and a single signed media embed, not a nonstan
     assert.match(composer,/root\.statsImageFileUrl\.length === 0/);
     assert.match(composer,/objectName: "statsCardUploadFallback"/);
     assert.match(composer,/root\.statsImageFileUrl = ""/);
+    assert.match(composer,/root\.statsImageUploadAttempted = true/);
+    assert.match(composer,/mediaUpload\.discardStatsCardImage\(temporaryImage\)/);
+    assert.match(composer,/qsTrId\("genycaster\.media\.retry"\)/);
+    assert.match(composer,/richComposer\.setBlockText\(0, String\(root\.suggestedText \|\| ""\)\)/);
     assert.match(composer,/root\.publicationEmbeds\(\)/);
     assert.doesNotMatch(panel,/publishCast|submitCast|sendCast/);
 });
@@ -61,7 +77,7 @@ test('WebAssembly generated PNG upload reuses the signer proof, bounded media an
     const browser=read('ui/wasm/protocol-signer-pre.js');
     const sender=read('ui/wasm/browser_media_upload.mjs');
     assert.match(bridge,/MediaUploadController::uploadRequested/);
-    assert.match(bridge,/Module\.FS\.readFile\(path\)/);
+    assert.match(bridge,/const bytes=FS\.readFile\(path\)/);
     assert.match(bridge,/__genycasterBrowserMedia\.uploadGenerated\(fid,\$4,bytes\)/);
     assert.match(browser,/function uploadGeneratedMedia\(fid,afterIndex,bytes\)/);
     assert.match(browser,/8\*1024\*1024/);

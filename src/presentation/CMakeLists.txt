@@ -15,6 +15,8 @@ add_library(farcaster_presentation STATIC
     qt/media_playback_coordinator.hpp
     qt/media_upload_controller.cpp
     qt/media_upload_controller.hpp
+    qt/stats_share_card_renderer.cpp
+    qt/stats_share_card_renderer.hpp
     qt/rich_composer_controller.cpp
     qt/rich_composer_controller.hpp
     qt/emoji_controller.cpp

@@ -1,9 +1,11 @@
 #include "media_upload_controller.hpp"
+#include "stats_share_card_renderer.hpp"
 
 #include <algorithm>
 #include <array>
 #include <memory>
 #include <QFileInfo>
+#include <QFile>
 #include <QStringView>
 #include <utility>
 
@@ -46,6 +48,36 @@ constexpr std::array SupportedMediaTypes{
 MediaUploadController::MediaUploadController(QObject* parent)
     : QObject{parent}
 {
+}
+
+MediaUploadController::~MediaUploadController()
+{
+    for (const auto& path : std::as_const(m_generatedStatsImages))
+        QFile::remove(path);
+}
+
+QVariantMap MediaUploadController::renderStatsCard(
+    const QVariantMap& stats, const QString& displayName,
+    const QString& username, const int periodDays,
+    const QString& style, const double capturedAtMs)
+{
+    const auto result = genycaster::presentation::renderStatsShareCard(
+        stats, displayName, username, periodDays, style, capturedAtMs);
+    if (!result.error.isEmpty() || !result.fileUrl.isLocalFile()) {
+        return {{QStringLiteral("error"),
+                 result.error.isEmpty() ? QStringLiteral("share_card_png_failed") : result.error}};
+    }
+    m_generatedStatsImages.insert(result.fileUrl.toLocalFile());
+    return {{QStringLiteral("imageFileUrl"), result.fileUrl.toString(QUrl::FullyEncoded)}};
+}
+
+bool MediaUploadController::discardStatsCardImage(const QUrl& localFile)
+{
+    if (!localFile.isLocalFile()) return false;
+    const QString path = localFile.toLocalFile();
+    if (m_busy && m_localPath == path) return false;
+    if (!m_generatedStatsImages.remove(path)) return false;
+    return QFile::remove(path);
 }
 
 bool MediaUploadController::available() const noexcept
@@ -231,6 +263,8 @@ void MediaUploadController::clear()
     m_canRetry = false;
     m_errorText.clear();
     m_phase.clear();
+    if (m_generatedStatsImages.remove(m_localPath))
+        QFile::remove(m_localPath);
     clearSelection();
     resetProgress();
     emit stateChanged();
@@ -284,6 +318,8 @@ void MediaUploadController::applyCompleted(
     m_transferredBytes = sizeBytes;
     m_totalBytes = sizeBytes;
     m_progress = 1.0;
+    if (m_generatedStatsImages.remove(m_localPath))
+        QFile::remove(m_localPath);
     if (!fileName.isEmpty()) {
         m_fileName = std::move(fileName);
     }

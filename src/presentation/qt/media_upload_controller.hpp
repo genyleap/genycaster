@@ -19,6 +19,8 @@
 #include <QObject>
 #include <QString>
 #include <QUrl>
+#include <QVariantMap>
+#include <QSet>
 
 /**
  * @brief QML-facing state adapter for one media upload.
@@ -45,6 +47,7 @@ class MediaUploadController final : public QObject {
 public:
     /** @brief Creates an idle media-upload presentation adapter. */
     explicit MediaUploadController(QObject* parent = nullptr);
+    ~MediaUploadController() override;
 
     [[nodiscard]] bool available() const noexcept;
     [[nodiscard]] bool busy() const noexcept;
@@ -73,6 +76,22 @@ public:
 
     /** @brief Open the browser's native image picker without requiring QFile URLs. */
     Q_INVOKABLE bool browseBrowserImage(int afterIndex = -1);
+
+    /**
+     * @brief Produces a real first-party Stats PNG using Qt raster painting.
+     * No scene-graph screenshot / WebGL grab is involved on any platform.
+     * The returned file:// URL feeds the existing signed media uploader.
+     */
+    Q_INVOKABLE QVariantMap renderStatsCard(
+        const QVariantMap& stats,
+        const QString& displayName,
+        const QString& username,
+        int periodDays,
+        const QString& style,
+        double capturedAtMs);
+
+    /** @brief Drops an unposted, generated Stats image; never user media. */
+    Q_INVOKABLE bool discardStatsCardImage(const QUrl& localFile);
 
     /** @brief Apply an explicitly selected browser file without exposing it to QML. */
     void applyBrowserSelection(QString fileName, QString contentType, qulonglong sizeBytes, int afterIndex);
@@ -133,6 +152,7 @@ private:
     QString m_previewKind{};
     QString m_selectedContentType{};
     QString m_localPath{};
+    QSet<QString> m_generatedStatsImages{};
     int m_afterIndex{-1};
     qulonglong m_transferredBytes{};
     qulonglong m_totalBytes{};

@@ -656,7 +656,7 @@ test("localized stats report has a precise scope note, a dated source and stable
     assert.match(shell, /"structuredReport": Boolean\(structuredReport\)/);
     assert.match(shell, /intent\.structuredReport/);
     assert.match(composer, /property bool structuredReport: false/);
-    assert.match(composer, /if \(root\.structuredReport\)\s*\n\s*richComposer\.markdownSource = root\.suggestedText\s*\n\s*else\s*\n\s*richComposer\.setBlockText\(0, root\.suggestedText\)/);
+    assert.match(composer, /if \(root\.structuredReport\)\s*\n\s*richComposer\.setBlockText\(0, String\(root\.suggestedText \|\| ""\)\)/);
     assert.match(shell, /composerDrawer\.structuredReport = false/);
     // Ordinary compose uses literal text, so user-supplied Markdown is not reinterpreted.
     assert.match(shell, /onComposeRequested: text => root\.openComposer\(null, "", text\)/);
@@ -670,7 +670,7 @@ test("shared stats reports render as one multiline rich-text block without giant
     const importer = read("src/application/rich_format.cpp");
     assert.match(panel, /return paragraphs\.join\("\\n"\)/);
     assert.doesNotMatch(panel, /return paragraphs\.join\("\\n\\n"\)/);
-    assert.match(composer, /if \(root\.structuredReport\)\s*\n\s*richComposer\.markdownSource = root\.suggestedText/);
+    assert.match(composer, /if \(root\.structuredReport\)\s*\n\s*richComposer\.setBlockText\(0, String\(root\.suggestedText \|\| ""\)\)/);
     // A paragraph is the maximal run of nonblank lines. This is what keeps
     // the visual ListView at one editor item instead of one 86px+ card per KPI.
     assert.match(importer, /if \(!paragraph\.empty\(\)\) paragraph\.push_back\('\\n'\)/);

@@ -83,6 +83,7 @@ GenyDrawer {
     // composer handoffs still retain their exact literal characters.
     property bool structuredReport: false
     property string statsImageFileUrl: ""
+    property bool statsImageUploadAttempted: false
     property var suggestedEmbeds: []
     property bool transientDraft: false
     property string editorMode: "visual"
@@ -682,6 +683,7 @@ GenyDrawer {
         root.focusedComposerEditor = null
         root.pendingEditorReveal = false
         root.initialFocusAttempts = 0
+        root.statsImageUploadAttempted = false
         root.selectedParentUrl = ""
         root.selectedContextLabel = ""
         root.selectedContextImage = ""
@@ -709,7 +711,13 @@ GenyDrawer {
             if (!restoredDraft) richComposer.newDocument()
         }
         if (root.transientDraft) {
-            richComposer.markdownSource = String(root.suggestedText || "")
+            // Stats is a plain-text Cast with intentional single and blank
+            // lines. Parsing as Markdown would split its footer into a
+            // separate oversized rich-editor block on desktop.
+            if (root.structuredReport)
+                richComposer.setBlockText(0, String(root.suggestedText || ""))
+            else
+                richComposer.markdownSource = String(root.suggestedText || "")
             const embeds = root.suggestedEmbeds || []
             for (let index = 0; index < Math.min(2, embeds.length); ++index)
                 richComposer.insertEmbed(String(embeds[index] || ""), "", -1)
@@ -720,10 +728,7 @@ GenyDrawer {
             // must remain exactly what the user typed).
             richComposer.newDocument()
             restoredDraft = false
-            if (root.structuredReport)
-                richComposer.markdownSource = root.suggestedText
-            else
-                richComposer.setBlockText(0, root.suggestedText)
+            richComposer.setBlockText(0, root.suggestedText)
         }
         // A Stats card is a locally rendered PNG, not a private protocol
         // embed. Upload it through the same signer-authorized media gateway
@@ -732,6 +737,7 @@ GenyDrawer {
             root.insertKind = "media"
             Qt.callLater(function() {
                 if (!root.opened || !root.statsImageFileUrl.length) return
+                root.statsImageUploadAttempted = true
                 if (!mediaUpload.beginUpload(root.statsImageFileUrl, -1))
                     root.mediaInsertFailed = true
             })
@@ -1569,7 +1575,11 @@ GenyDrawer {
             const nextMetadata = Object.assign({}, root.mediaMetadata)
             nextMetadata[canonicalUrl] = {
                 fileName: mediaUpload.fileName,
-                localPreviewUrl: mediaUpload.localPreviewUrl.toString(),
+                // Generated Stats thumbnails are temporary local PNGs.
+                // Their source file is released after successful attachment;
+                // preview the durable asset instead of a dead file:// URL.
+                localPreviewUrl: root.statsImageFileUrl.length > 0
+                      ? canonicalUrl : mediaUpload.localPreviewUrl.toString(),
                 mediaType: String(mediaType || mediaUpload.selectedContentType || ""),
                 sizeBytes: Number(mediaUpload.totalBytes || 0)
             }
@@ -1733,7 +1743,10 @@ GenyDrawer {
             // fallback is always available without losing the Stats caption.
             RowLayout {
                 objectName: "statsCardUploadFallback"
-                visible: root.statsImageFileUrl.length > 0 && !mediaUpload.busy
+                visible: root.statsImageFileUrl.length > 0
+                         && root.statsImageUploadAttempted && !mediaUpload.busy
+                         && (root.mediaInsertFailed || mediaUpload.phase === "failed"
+                             || mediaUpload.phase === "cancelled")
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 DirectionAwareLabel {
@@ -1746,11 +1759,23 @@ GenyDrawer {
                 ActionButton {
                     compact: true
                     quiet: true
+                    text: qsTrId("genycaster.media.retry")
+                    onClicked: {
+                        if (mediaUpload.busy || !root.statsImageFileUrl.length) return
+                        root.mediaInsertFailed = !mediaUpload.beginUpload(root.statsImageFileUrl, -1)
+                    }
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
                     text: qsTrId("genycaster.stats.card_text_only")
                     onClicked: {
                         if (mediaUpload.busy) return
+                        const temporaryImage = root.statsImageFileUrl
                         root.statsImageFileUrl = ""
                         root.mediaInsertFailed = false
+                        mediaUpload.clear()
+                        mediaUpload.discardStatsCardImage(temporaryImage)
                     }
                 }
             }
