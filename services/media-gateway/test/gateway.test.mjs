@@ -26,6 +26,9 @@ function config() {
     GENYLEAP_MEDIA_TICKET_SECRET: '0123456789abcdef0123456789abcdef',
     GENYLEAP_MEDIA_MULTIPART_PART_BYTES: String(5 * 1024 * 1024),
     GENYLEAP_MEDIA_MAX_IMAGE_BYTES: String(25 * 1024 * 1024),
+    // Keep the pre-pipeline fixture's intentionally synthetic image bytes on
+    // the direct legacy path. The real optimized ingress has separate tests.
+    GENYLEAP_MEDIA_DEFAULT_IMAGE_OPTIMIZATION: 'original',
     GENYLEAP_MEDIA_MAX_VIDEO_BYTES: String(512 * 1024 * 1024),
   });
 }

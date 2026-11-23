@@ -47,7 +47,8 @@ test('browser upload signs canonical media proof, transfers parts and inserts on
         if(url.endsWith('/v1/uploads/complete'))
             return new Response(JSON.stringify({
                 assetUrl,fileName:'photo.png',contentType:'image/png',
-                sizeBytes:128,managementToken:'opaque-token',
+                sizeBytes:128,storedSizeBytes:96,optimized:true,
+                managementToken:'opaque-token',
             }));
         throw new Error('unexpected upload request '+url);
     };
@@ -56,6 +57,10 @@ test('browser upload signs canonical media proof, transfers parts and inserts on
         onProgress:(...args)=>phases.push(args),
     });
     assert.equal(result.assetUrl,assetUrl);
+    assert.equal(result.sizeBytes,96,'actual QStorage object size must be reported');
+    assert.equal(result.storedSizeBytes,96);
+    const create=JSON.parse(new TextDecoder().decode(requests[0].opts.body));
+    assert.equal(create.optimizationMode,'auto');
     assert.equal(requests.length,3);
     assert.equal(challenges.length,3);
     assert.equal(phases.at(-1)[0],'verifying');

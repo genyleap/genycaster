@@ -12,5 +12,8 @@
     "test": "node --test test/gateway.test.mjs test/quilibrium_sdk_adapter.test.mjs",
     "test:native": "node --test test/native_addon.test.mjs",
     "test:all": "npm run build:native && npm test && npm run test:native"
+  },
+  "dependencies": {
+    "sharp": "^0.35.5"
   }
 }

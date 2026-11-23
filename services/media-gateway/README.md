@@ -23,7 +23,32 @@ short-lived QStorage-compatible presigned GET redirect. Upload writes use normal
 QStorage interoperability tests accept header-authenticated writes and hashed-payload presigned GETs but reject `UNSIGNED-PAYLOAD` read presigns and
 presigned PUTs with `403 AccessDenied` (including AWS botocore reference presigning).
 
+## Smart Media Pipeline
+
+Image uploads use **Smart Media Pipeline** by default to lower long-term
+QStorage bills. Signed, bounded source chunks are assembled temporarily
+inside Media Gateway; the gateway validates and optimizes the image using
+Sharp/libvips, and **only the final optimized bytes** are written to QStorage.
+The original is not stored in QStorage unless the signed upload explicitly
+requests `optimizationMode: "original"` (a backend capability reserved for
+a future quality selector). GIF/APNG/animated WebP are preserved without
+losing frames. Video follows the existing direct multipart route.
+
+The default backend policy can be rolled back with
+`GENYLEAP_MEDIA_DEFAULT_IMAGE_OPTIMIZATION=original`, but production's
+default is `auto`. Signed response includes `storedSizeBytes` for actual
+cloud usage, alongside backward-compatible source `sizeBytes`.
+The same stable, public Cast Embed URL and managed deletion token are kept.
+
+See [Smart Media Pipeline](smart_media_pipeline/README.md) for the full API,
+in-memory limits, automatic quality policy, optional responsive variants and
+rollback strategy. Previously stored media is unchanged.
+
 ## Upload architecture
+
+The diagram below describes the direct-storage path still used for videos
+and explicitly original image uploads. Auto/High images are instead ingested
+temporarily by the gateway and sent to QStorage **after** compression.
 
 ```text
 Genycaster Desktop
@@ -58,10 +83,15 @@ Media Gateway
 QStorage
 ```
 
-The default part size is 8 MiB. Nginx request buffering is disabled, and the Node gateway buffers at
-most one bounded part because normal SigV4 signing requires the payload hash before forwarding the
-part to QStorage. Whole media files are never buffered in process memory or persisted on the VPS by
-the application.
+The default part size is 8 MiB. Nginx request buffering is disabled.
+For **video and Original uploads**, Node buffers at most one bounded part
+while signing the chunk and forwarding it to QStorage.
+
+For **Auto/High images**, the whole image is temporarily staged in bounded
+process memory (up to 25 MiB per image, 64 MiB total reservation across
+up to three sessions). The gateway optimizes it *before* uploading a single
+final object. The original is never persisted on the VPS or in QStorage.
+Staging is lost on restart; incomplete uploads must be retried.
 
 Cancellation uses `DELETE /v1/uploads` to abort the provider multipart session. The HMAC-protected
 upload ticket contains the opaque provider upload ID, stable object key, exact expected file size,

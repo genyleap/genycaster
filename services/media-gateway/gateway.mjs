@@ -9,6 +9,9 @@ import { publicMiniAppPreview, validMiniAppTarget } from './browser_miniapp_prev
 import { publicLinkPreview } from './browser_link_preview.mjs';
 import { createCastViewService } from './browser_cast_views.mjs';
 import { createBrowserReactionService } from './browser_cast_reactions.mjs';
+import {createSmartMediaPipeline} from './smart_media_pipeline/index.mjs';
+import {parseSmartMediaRequest} from './smart_media_pipeline/policy.mjs';
+import {createSmartMediaIngress, uploadOptimizedObject} from './smart_media_pipeline/ingest.mjs';
 import {
   createHash,
   createHmac,
@@ -62,6 +65,10 @@ export function loadConfig(env = process.env) {
   if (connectionBrowserBase.protocol !== 'https:' ||
       connectionBrowserBase.pathname !== '/openproof')
     throw new Error('GENYCASTER_OPENPROOF_CONNECTION_BROWSER_BASE must be HTTPS /openproof');
+  const defaultImageOptimization = String(
+    env.GENYLEAP_MEDIA_DEFAULT_IMAGE_OPTIMIZATION || 'auto').trim().toLowerCase();
+  if (!['auto', 'high', 'original'].includes(defaultImageOptimization))
+    throw new Error('GENYLEAP_MEDIA_DEFAULT_IMAGE_OPTIMIZATION must be auto, high, or original.');
   const ticketSecret = String(env.GENYLEAP_MEDIA_TICKET_SECRET || '');
   if (ticketSecret.length < 32) throw new Error('GENYLEAP_MEDIA_TICKET_SECRET must contain at least 32 characters.');
   const multipartPartBytes = positiveInteger(
@@ -90,6 +97,7 @@ export function loadConfig(env = process.env) {
       'GENYCASTER_HYPERSNAP_ORIGIN',
     ),
     ticketSecret,
+    defaultImageOptimization,
     proofLifetimeSeconds: positiveInteger(env.GENYLEAP_MEDIA_PROOF_LIFETIME_SECONDS, 300, 'GENYLEAP_MEDIA_PROOF_LIFETIME_SECONDS'),
     multipartPartBytes,
     downloadUrlLifetimeSeconds: positiveInteger(env.GENYLEAP_MEDIA_DOWNLOAD_URL_LIFETIME_SECONDS, 900, 'GENYLEAP_MEDIA_DOWNLOAD_URL_LIFETIME_SECONDS'),
@@ -262,7 +270,7 @@ function decodeTicket(config, token, nowSeconds) {
   if (!raw) return null;
   let payload;
   try { payload = JSON.parse(raw.toString('utf8')); } catch { return null; }
-  if (!payload || ![1, 2].includes(payload.v) || !Number.isSafeInteger(payload.exp) || payload.exp < nowSeconds) return null;
+  if (!payload || ![1, 2, 3].includes(payload.v) || !Number.isSafeInteger(payload.exp) || payload.exp < nowSeconds) return null;
   return payload;
 }
 
@@ -523,6 +531,10 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     return {authorization,accept:'application/json'};
   };
   const retrieveImage = dependencies.retrieveImage ?? retrieveBrowserImage;
+  const smartMediaPipeline = dependencies.smartMediaPipeline ?? createSmartMediaPipeline();
+  const smartMediaIngress = dependencies.smartMediaIngress ?? createSmartMediaIngress({
+    now:runtime.now, maxSessionAgeMs:config.ticketLifetimeSeconds * 1000,
+  });
   const resolveMiniAppPreview = dependencies.resolveMiniAppPreview ?? publicMiniAppPreview;
   const verifiedMiniAppIcons = new Map();
   const channelDirectoryCache = new Map();
@@ -606,7 +618,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     return refreshIconsPromise;
   }
 
-  return http.createServer(async (request, response) => {
+  const server = http.createServer(async (request, response) => {
     response.setHeader('server', '');
     let requestUrl;
     try { requestUrl = new URL(request.url || '/', 'http://media.invalid'); }
@@ -1535,7 +1547,44 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         writeJson(response, 404, { error: 'asset_not_found' });
         return;
       }
+      let requestedVariant;
       try {
+        requestedVariant = parseSmartMediaRequest(requestUrl.searchParams);
+      } catch (error) {
+        writeJson(response, error.statusCode || 400, {
+          error: error.code || 'invalid_media_variant',
+        });
+        return;
+      }
+      try {
+        if (requestedVariant && requestedVariant.variant !== 'original') {
+          const extension = key.slice(key.lastIndexOf('.') + 1).toLowerCase();
+          const supported = {
+            jpg:'image/jpeg', png:'image/png', webp:'image/webp',
+            gif:'image/gif', avif:'image/avif',
+          };
+          const sourceMime = supported[extension];
+          if (!sourceMime) {
+            writeJson(response, 415, {error:'unsupported_media_variant'});
+            return;
+          }
+          const result = await smartMediaPipeline.getVariant({
+            key, sourceMime, request:requestedVariant,
+            readOriginal:() => storage.readImageObject(key, config.maxImageBytes),
+          });
+          response.writeHead(200, {
+            'content-type': result.contentType,
+            'content-length': String(result.bytes.length),
+            'cache-control':'public, max-age=120',
+            'access-control-allow-origin':'*',
+            'cross-origin-resource-policy':'cross-origin',
+            'x-content-type-options':'nosniff',
+            'x-smart-media-variant':requestedVariant.variant,
+            'x-smart-media-optimized':result.optimized ? '1' : '0',
+          });
+          response.end(request.method === 'HEAD' ? undefined : result.bytes);
+          return;
+        }
         if (request.method === 'HEAD') {
           const object = await storage.headObject(key);
           const headers = {
@@ -1596,9 +1645,13 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         });
         response.end();
       } catch (error) {
-        const status = error?.statusCode === 404 ? 404 : 503;
-        writeJson(response, status, { error: status === 404
-          ? 'asset_not_found' : 'media_gateway_unavailable' });
+        const explicitVariant = requestedVariant && requestedVariant.variant !== 'original';
+        const knownVariantStatus = Number.isSafeInteger(error?.statusCode)
+          && error.statusCode >= 400 && error.statusCode < 600;
+        const status = explicitVariant && knownVariantStatus ? error.statusCode
+          : error?.statusCode === 404 ? 404 : 503;
+        writeJson(response, status, { error: explicitVariant && error?.code
+          ? error.code : status === 404 ? 'asset_not_found' : 'media_gateway_unavailable' });
       }
       return;
     }
@@ -1648,8 +1701,12 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       if (partRoute) {
         const nowSeconds = Math.floor(runtime.now() / 1000);
         const ticket = decodeTicket(config, partMatch[1], nowSeconds);
-        if (!ticket || ticket.v !== 2 || !ticket.providerUploadId ||
-            !Number.isSafeInteger(ticket.sizeBytes) || !Number.isSafeInteger(ticket.partSizeBytes)) {
+        if (!ticket || ![2, 3].includes(ticket.v)
+            || (ticket.v === 2 && !ticket.providerUploadId)
+            || (ticket.v === 3 && (!ticket.sessionId
+                || !['auto', 'high'].includes(ticket.optimizationMode)))
+            || !Number.isSafeInteger(ticket.sizeBytes)
+            || !Number.isSafeInteger(ticket.partSizeBytes)) {
           writeJson(response, 403, { error: 'invalid_upload_ticket' });
           return;
         }
@@ -1678,6 +1735,10 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         );
         if (!ticketMatchesAuthorization(ticket, authorization)) {
           writeJson(response, 403, { error: 'invalid_upload_ticket' });
+          return;
+        }
+        if (ticket.v === 3) {
+          writeJson(response, 200, smartMediaIngress.addPart(ticket, partNumber, body));
           return;
         }
         const uploaded = await storage.uploadPart({
@@ -1717,6 +1778,8 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           return;
         }
         await storage.deleteObject(managed.key);
+        smartMediaPipeline.invalidate(managed.key);
+        smartMediaIngress.forgetByKey(managed.key);
         response.writeHead(204, { 'cache-control': 'no-store' });
         response.end();
         return;
@@ -1736,10 +1799,41 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           writeJson(response, 422, { error: 'unsupported_media', message: 'Media requires too many upload parts.' });
           return;
         }
+        // Auto is the storage-cost-saving default for *all* image clients.
+        // Legacy tickets issued by previous deployments remain valid (v2).
+        // Video uses the existing direct provider multipart path unchanged.
+        const optimizationMode = document.optimizationMode === undefined
+          ? (definition.kind === 'image' ? config.defaultImageOptimization : 'original')
+          : document.optimizationMode;
+        if (!['auto', 'high', 'original'].includes(optimizationMode)
+            || (definition.kind !== 'image' && optimizationMode !== 'original')) {
+          writeJson(response, 422, {error:'invalid_optimization_mode'});
+          return;
+        }
         const key = objectKey(definition, runtime.now());
         const stableAssetUrl = assetUrl(config, key);
-        const multipart = await storage.beginMultipartUpload({ key, contentType });
         const nowSeconds = Math.floor(runtime.now() / 1000);
+        if (optimizationMode === 'auto' || optimizationMode === 'high') {
+          const sessionId = smartMediaIngress.create({
+            fid:authorization.fid, contentType, sizeBytes, key, partCount,
+          });
+          const ticket = encodeTicket(config, {
+            v:3, sessionId, key, fileName, contentType, sizeBytes,
+            optimizationMode, assetUrl:stableAssetUrl,
+            fid:authorization.fid, signerKey:authorization.signerKey,
+            partSizeBytes:config.multipartPartBytes,
+            exp:nowSeconds + config.ticketLifetimeSeconds,
+          });
+          writeJson(response, 201, {
+            uploadId:ticket, mode:'gateway-multipart',
+            partSizeBytes:config.multipartPartBytes,
+            partCount, assetUrl:stableAssetUrl,
+            expiresIn:config.ticketLifetimeSeconds,
+            optimizationMode,
+          });
+          return;
+        }
+        const multipart = await storage.beginMultipartUpload({ key, contentType });
         const ticket = encodeTicket(config, {
           v: 2,
           key,
@@ -1766,14 +1860,27 @@ export function createMediaGateway(config, storage, dependencies = {}) {
 
       const nowSeconds = Math.floor(runtime.now() / 1000);
       const ticket = decodeTicket(config, document.uploadId, nowSeconds);
-      if (!ticket || ticket.v !== 2 || !ticket.providerUploadId ||
-          !ticketMatchesAuthorization(ticket, authorization)) {
+      if (!ticket || ![2, 3].includes(ticket.v)
+          || (ticket.v === 2 && !ticket.providerUploadId)
+          || (ticket.v === 3 && (!ticket.sessionId
+              || !['auto','high'].includes(ticket.optimizationMode)))
+          || !ticketMatchesAuthorization(ticket, authorization)) {
         writeJson(response, 403, { error: 'invalid_upload_ticket' });
         return;
       }
 
       if (abortRoute) {
-        await storage.abortMultipartUpload({
+        if (ticket.v === 3) {
+          const phase = smartMediaIngress.abort(ticket);
+          if (phase === 'completed') {
+            // The client may have missed a success response. A subsequent
+            // signed abort must also remove the completed-but-unpublished
+            // object so the optimized payload does not become an orphan.
+            await storage.deleteObject(ticket.key);
+            smartMediaPipeline.invalidate(ticket.key);
+            smartMediaIngress.forgetCompleted(ticket);
+          }
+        } else await storage.abortMultipartUpload({
           key: ticket.key,
           providerUploadId: ticket.providerUploadId,
         });
@@ -1792,6 +1899,41 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         return;
       }
 
+      if (ticket.v === 3) {
+        const finalImage = await smartMediaIngress.complete(ticket, parts, async original => {
+          const optimized = await smartMediaPipeline.optimizeForStorage(
+            original, ticket.contentType, ticket.optimizationMode);
+          // Stable Embed URLs retain their expected extension/MIME, and no
+          // original image ever enters cloud storage on this path.
+          if (optimized.contentType !== ticket.contentType)
+            throw new Error('Optimized image MIME mismatch');
+          await uploadOptimizedObject(storage, {
+            key:ticket.key, contentType:optimized.contentType,
+            bytes:optimized.bytes, partSizeBytes:config.multipartPartBytes,
+          });
+          // Store only an acknowledgement in the idempotency receipt; never
+          // retain the optimized buffer after the QStorage write completes.
+          return {
+            storedSizeBytes:optimized.bytes.length, optimized:optimized.optimized,
+          };
+        });
+        writeJson(response, 200, {
+          assetUrl:ticket.assetUrl,
+          contentType:ticket.contentType,
+          fileName:ticket.fileName,
+          // Old clients still use this as the source-byte accounting check.
+          // Modern clients use storedSizeBytes for the actual object size.
+          sizeBytes:ticket.sizeBytes,
+          sourceSizeBytes:ticket.sizeBytes,
+          storedSizeBytes:finalImage.storedSizeBytes,
+          optimized:finalImage.optimized,
+          optimizationMode:ticket.optimizationMode,
+          managementToken:encodeAssetManagementToken(config, {
+            key:ticket.key, fid:ticket.fid,
+          }),
+        });
+        return;
+      }
       await storage.completeMultipartUpload({
         key: ticket.key,
         providerUploadId: ticket.providerUploadId,
@@ -1830,4 +1972,6 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       });
     }
   });
+  server.on('close', () => smartMediaIngress.close?.());
+  return server;
 }

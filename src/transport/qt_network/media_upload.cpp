@@ -461,6 +461,11 @@ public:
             {QStringLiteral("fileName"), info.fileName()},
             {QStringLiteral("contentType"), contentType},
             {QStringLiteral("sizeBytes"), static_cast<double>(sizeBytes)},
+            // Optimize before persisting images in QStorage. Videos remain
+            // on the existing provider multipart path. Future UI may expose
+            // a user-selected "original" policy; it is not required here.
+            {QStringLiteral("optimizationMode"),
+                image ? QStringLiteral("auto") : QStringLiteral("original")},
         };
         const QByteArray createBody = jsonBody(createObject);
         const QString createPath = QStringLiteral("/v1/uploads");
@@ -674,7 +679,13 @@ public:
         const auto finalSize = finalSizeField.isUndefined()
             ? std::optional<std::uint64_t>{sizeBytes}
             : detail::boundedJsonUnsigned(finalSizeField, sizeBytes);
+        const QJsonValue storedSizeField =
+            completion->value(QStringLiteral("storedSizeBytes"));
+        const auto storedSize = storedSizeField.isUndefined()
+            ? finalSize
+            : detail::boundedJsonUnsigned(storedSizeField, sizeBytes);
         if (!validHttpUrl(finalAssetUrl) || !finalSize || *finalSize != sizeBytes ||
+            !storedSize || *storedSize == 0U ||
             managementToken.isEmpty()) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::ProtocolFailure,
@@ -686,7 +697,7 @@ public:
                 .url = toString(finalAssetUrl),
                 .contentType = toString(finalContentType),
                 .fileName = toString(finalFileName),
-                .sizeBytes = *finalSize,
+                .sizeBytes = *storedSize,
                 .kind = image ? domain::media::Kind::Image : domain::media::Kind::Video,
             },
             .managementToken = toString(managementToken),

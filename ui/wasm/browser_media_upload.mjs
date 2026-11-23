@@ -32,8 +32,11 @@ async function responseJson(response) {
 export async function uploadBrowserImage({
     file,fid,signal,onProgress=()=>{},fetchImpl=globalThis.fetch,
     crypto=globalThis.crypto,vault=createBrowserSignerVault(globalThis),
+    optimizationMode='auto',
 }={}) {
     const mime=ensureImage(file);
+    if(!['auto','high','original'].includes(optimizationMode))
+        throw new Error('Unsupported image optimization mode.');
     if(!/^[1-9][0-9]{0,19}$/.test(fid))throw new Error('Sign in to your Farcaster account first.');
     const key=await vault.load(fid);
     if(!key)throw new Error('Authorize your Farcaster publishing signer before uploading an image.');
@@ -67,6 +70,7 @@ export async function uploadBrowserImage({
         onProgress('authorizing',0,file.size);
         ticket=await signAndFetch('POST','/v1/uploads',json({
             fileName:file.name,contentType:mime,sizeBytes:file.size,
+            optimizationMode,
         }),'application/json');
         if(ticket.mode!=='gateway-multipart'||!Number.isInteger(ticket.partCount)
            ||ticket.partCount<1||ticket.partCount>8
@@ -93,7 +97,13 @@ export async function uploadBrowserImage({
            ||!completed.assetUrl.startsWith(deployment.mediaPublicOrigin+'/m/v1/')
            ||completed.sizeBytes!==file.size)
             throw new Error('Media Gateway returned an invalid media asset.');
-        return completed;
+        // The signed gateway reports source bytes separately from the
+        // optimized bytes actually stored in QStorage.
+        const storedSize=completed.storedSizeBytes;
+        if(storedSize!==undefined && (!Number.isSafeInteger(storedSize)
+           ||storedSize<=0||storedSize>file.size))
+            throw new Error('Media Gateway returned an invalid optimized size.');
+        return {...completed,sizeBytes:storedSize??completed.sizeBytes};
     }catch(error){
         // Abort is best-effort. A managed upload ticket is never logged.
         if(ticket?.uploadId && !signal?.aborted) {
