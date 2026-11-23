@@ -953,19 +953,16 @@ Item {
                         id: legalDocumentContent
                         width: legalBodyScroll.width
                         spacing: Theme.space4
-                        DirectionAwareLabel {
+                        ReadableMarkdown {
                             id: legalBody
                             width: parent.width
-                            // Qt 6.12 renders localized headings, lists and emphasis.
-                            // Never show raw Markdown source or an empty "read below".
-                            textFormat: Text.MarkdownText
-                            text: root.legalDocument === "terms"
-                                  ? qsTrId("genycaster.setup.terms_body")
-                                  : qsTrId("genycaster.setup.privacy_body")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeLabelSize
-                            wrapMode: Text.WordWrap
-                            lineHeight: 1.55
+                            markdownSource: root.legalDocument === "terms"
+                                ? qsTrId("genycaster.setup.terms_body")
+                                : qsTrId("genycaster.setup.privacy_body")
+                            // Long-form documents need comfortable leading and
+                            // reliable Markdown heading/list/link handling.
+                            font.pixelSize: Theme.typeBodySize
+                            lineHeight: 1.58
                         }
                     }
                 }

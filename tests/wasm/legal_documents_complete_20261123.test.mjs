@@ -15,7 +15,11 @@ test('Genycaster legal reader is entirely in-app with real Markdown and no exter
   const legal=setup.slice(setup.indexOf('id: legalReader'),setup.indexOf('id: setupCanvas'));
   assert.match(legal,/id: legalBodyScroll/);
   assert.match(legal,/contentHeight: legalDocumentContent\.implicitHeight/);
-  assert.match(legal,/textFormat: Text\.MarkdownText/);
+  assert.match(legal,/ReadableMarkdown \{/);
+  const documentRenderer=source('ui/components/content/ReadableMarkdown.qml');
+  assert.match(documentRenderer,/textFormat: Text\.MarkdownText/);
+  assert.match(documentRenderer,/onLinkActivated:/);
+  assert.match(documentRenderer,/https:/);
   assert.match(legal,/genycaster\.setup\.terms_body/);
   assert.match(legal,/genycaster\.setup\.privacy_body/);
   assert.match(legal,/genycaster\.setup\.legal_intro/);

@@ -86,7 +86,8 @@ test('mobile settings fill safe-area viewport; Persian release numerals remain d
   const notice=read('ui/components/settings/UpdateNoticeDrawer.qml');
   assert.match(settings,/GenyAdaptiveDialog \{/);
   assert.match(settings,/mobileFullScreen: true/);
-  assert.match(settings,/height: parent \? \(mobilePresentation \? parent\.height/);
+  assert.match(settings,/desktopFullScreen: true/);
+  assert.match(settings,/height: parent \? parent\.height : 780/);
   assert.doesNotMatch(settings,/parent\.height - Math\.max\(Theme\.space7/);
   assert.match(settings,/layoutDirection: Theme\.uiDirection/);
   assert.match(settings,/LocaleFormat\.localizeDigits\(updateController\.versionNumber\)/);

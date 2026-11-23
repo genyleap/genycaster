@@ -223,8 +223,16 @@ export function createBrowserSignerVault(environment = globalThis, options = {})
             // observed in production); this is not the image's byte length.
             // Keep a strict bound AND validate every field and allowed route,
             // rather than widening an arbitrary-message signing capability.
-            if (!(challenge instanceof Uint8Array) || challenge.byteLength > 4096
-                || challenge.byteLength < 190) throw failure('invalid media challenge size');
+            // A JS Uint8Array can cross a browser realm (WASM host/iframe):
+            // instanceof Uint8Array then fails despite valid signed bytes.
+            // ArrayBuffer.isView is realm-independent; reject DataView and all
+            // non-byte typed arrays before examining the canonical request.
+            const canonicalByteView = ArrayBuffer.isView(challenge)
+                && challenge.BYTES_PER_ELEMENT === 1
+                && Object.prototype.toString.call(challenge) === '[object Uint8Array]';
+            const size = canonicalByteView ? challenge.byteLength : 0;
+            if (!canonicalByteView || size > 4096 || size < 190)
+                throw failure('invalid media challenge size (' + size + ' bytes)');
             const prefix = new TextEncoder().encode('genycaster-media-upload-v1\n');
             if (!prefix.every((value,index) => challenge[index] === value))
                 throw failure('media challenge domain mismatch');

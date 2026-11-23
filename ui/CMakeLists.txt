@@ -35,6 +35,7 @@ set(farcasterQmlFiles
     components/navigation/BottomNavigation.qml
     components/composer/CodeBlockEditor.qml
     components/content/CodeBlockView.qml
+    components/content/ReadableMarkdown.qml
     components/media/CastEmbedsPanel.qml
     components/composer/ComposerToolbar.qml
     components/feed/CastItem.qml
@@ -1684,15 +1685,20 @@ if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
         # runtime. Static WASM's QML dependency scanner cannot see that import.
         # Bundle its actual Qt plugin explicitly, keeping Noto animations
         # functional rather than producing repeated missing-plugin warnings.
-        find_package(Qt6 REQUIRED COMPONENTS QuickTimeline)
+        find_package(Qt6 REQUIRED COMPONENTS QuickTimeline LottieVectorImageHelpers)
         if(NOT TARGET Qt6::qtquicktimelineplugin)
             message(FATAL_ERROR "WASM Lottie requires the QtQuick.Timeline QML plugin")
+        endif()
+        if(NOT TARGET Qt6::LottieVectorImageHelpersplugin)
+            message(FATAL_ERROR "WASM Lottie requires its runtime VectorImageHelpers QML plugin")
         endif()
         # qt_import_plugins() handles ordinary Qt plugins, not a QML import
         # discovered only inside Lottie's runtime-generated VectorImage QML.
         # Explicitly link the static QML plugin and its generated registration
         # stub: without this, QtQuick.Timeline is absent from the WASM binary.
-        target_link_libraries(genycaster PRIVATE Qt6::qtquicktimelineplugin)
+        target_link_libraries(genycaster PRIVATE
+            Qt6::qtquicktimelineplugin
+            Qt6::LottieVectorImageHelpersplugin)
         qt_import_plugins(genycaster
             INCLUDE Qt6::QLottieVectorImagePlugin
             EXCLUDE_BY_TYPE sqldrivers)

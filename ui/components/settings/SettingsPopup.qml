@@ -3156,14 +3156,13 @@ GenyAdaptiveDialog {
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.Wrap
                             }
-                            DirectionAwareLabel {
+                            ReadableMarkdown {
                                 Layout.fillWidth: true
                                 visible: updateController.releaseNotes.length > 0
-                                text: LocaleFormat.localizeDigits(updateController.releaseNotes)
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                wrapMode: Text.Wrap
-                                textFormat: Text.PlainText
+                                markdownSource: LocaleFormat.localizeDigits(
+                                    updateController.releaseNotes)
+                                font.pixelSize: Theme.typeLabelSize
+                                lineHeight: 1.5
                             }
                             DirectionAwareLabel {
                                 visible: updateController.error.length > 0
@@ -3254,6 +3253,15 @@ GenyAdaptiveDialog {
                                 Item { Layout.fillWidth: true }
                             }
 
+                            GenyProgressBar {
+                                Layout.fillWidth: true
+                                compact: true
+                                visible: updateController.downloading
+                                from: 0
+                                to: 1
+                                value: updateController.downloadProgress
+                                indeterminate: updateController.downloadProgress <= 0
+                            }
                             SettingsAction {
                                 text: updateController.checking ? qsTrId("genycaster.settings.checking") : qsTrId("genycaster.settings.check_now")
                                 enabled: !updateController.checking && !updateController.downloading
@@ -3272,11 +3280,6 @@ GenyAdaptiveDialog {
                                     else
                                         updateController.downloadUpdate()
                                 }
-                            }
-                            SettingsAction {
-                                quiet: true
-                                text: qsTrId("genycaster.settings.release_notes_and_downloads")
-                                onClicked: updateController.openReleasePage()
                             }
                         }
                     }

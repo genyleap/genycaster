@@ -44,15 +44,16 @@ test('WASM metadata carries independently versioned, fully localized release inf
     const result=spawnSync('python3',args,{encoding:'utf8'});
     assert.equal(result.status,0,result.stderr);
     const metadata=JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'));
-    assert.equal(metadata.releaseNotes.type,'feature');
-    assert.equal(metadata.releaseNotes.changes.length,6);
+    assert.equal(metadata.releaseNotes.type,sourceNotes.type);
+    assert.equal(metadata.releaseNotes.changes.length,sourceNotes.changes.length);
     assert.deepEqual(metadata.releaseNotes,sourceNotes);
     assert.equal(metadata.productName,'Genycaster');
     assert.equal(metadata.versionNumber,numericVersion);
     assert.equal(metadata.releaseChannel,channel);
     assert.equal(metadata.releaseChannelNumber,Number(channelNumber));
     assert.equal(metadata.appVersion,releaseVersion);
-    assert.equal(metadata.releaseNotes.translations['fa-IR'].title,'جنی‌کستر ۱.۰ بتا');
+    assert.equal(metadata.releaseNotes.translations['fa-IR'].title,
+      sourceNotes.translations['fa-IR'].title);
     assert.notEqual(metadata.releaseNotes.translations['fa-IR'].title,'Genycaster v'+releaseVersion);
     const rendered=readFileSync(join(dir,'genycaster.html'),'utf8');
     assert.match(rendered,/<title>Genycaster<\/title>/);

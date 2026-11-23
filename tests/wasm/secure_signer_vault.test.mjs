@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
+import { runInNewContext } from 'node:vm';
 import { createBrowserSignerVault } from '../../ui/wasm/secure_signer_vault.mjs';
 
 class MemoryIndexedDB {
@@ -239,4 +240,29 @@ test('223 KiB Stats PNG completes a multipart upload using real browser vault si
     assert.equal(result.sizeBytes,223*1024);
     assert.equal(sizes.length,3);
     assert.ok(sizes[1]>900,'PUT multipart challenge reproduces old production error');
+});
+
+test('media signing accepts canonical Uint8Array bytes from a separate browser realm', async () => {
+    const vault = createBrowserSignerVault(environment(new MemoryIndexedDB()));
+    const fid = '4294967297';
+    const signer = await vault.ensure(fid);
+    const canonical = new TextEncoder().encode([
+        'genycaster-media-upload-v1','POST','/v1/uploads',fid,
+        signer.publicKeyHex,'1795471234','aa'.repeat(16),'cd'.repeat(32),
+    ].join('\n'));
+    const foreign = runInNewContext('new Uint8Array(bytes)', {
+        bytes: [...canonical],
+    });
+    assert.equal(foreign instanceof Uint8Array, false,
+        'different realms do not share Uint8Array constructors');
+    assert.equal(ArrayBuffer.isView(foreign), true);
+    const result = await vault.signMediaChallenge(fid,foreign);
+    const publicKey = await webcrypto.subtle.importKey(
+        'raw',Buffer.from(signer.publicKeyHex,'hex'),'Ed25519',true,['verify']);
+    assert.equal(await webcrypto.subtle.verify('Ed25519',
+        publicKey,Buffer.from(result.signature,'hex'),canonical),true);
+    await assert.rejects(vault.signMediaChallenge(fid,new DataView(canonical.buffer)),
+        /invalid media challenge size/);
+    await assert.rejects(vault.signMediaChallenge(fid,new Int8Array(canonical)),
+        /invalid media challenge size/);
 });

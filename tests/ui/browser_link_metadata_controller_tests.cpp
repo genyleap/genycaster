@@ -96,6 +96,8 @@ int main(int argc, char** argv)
     controller.requestPreview(QStringLiteral("https://quilcast.com/m/a8b2f916360fe7de52fe7fe8.jpg"), QStringLiteral("link"));
     controller.requestPreview(QStringLiteral("https://quilcast.com/m/a8b2f916360fe7de52fe7fe8.jpg"), QStringLiteral("miniapp"));
     controller.requestPreview(QStringLiteral("https://gateway.pinata.cloud/ipfs/bafybeicdae7bmjnkp3aiwdemgduv6bwfmqf4xnbhfsjiz73k5fg375yneq/eye512.webp"), QStringLiteral("link"));
+    controller.requestPreview(QStringLiteral("https://imagedelivery.net/BXIuQx4ige9GuW0la56BHw/350c100b-e026-42cd-3b41-1f2657ebe300/original"), QStringLiteral("miniapp"));
+    controller.requestPreview(QStringLiteral("https://imagedelivery.net/BXIuQx4ige9GuW0la56BHw/350c100b-e026-42cd-3b41-1f2657ebe300/original"), QStringLiteral("link"));
 
     QEventLoop loop{};
     QTimer watcher{};

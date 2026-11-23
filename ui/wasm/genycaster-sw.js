@@ -1,6 +1,6 @@
 /* Public application assets only. Never cache user API responses or credentials. */
 "use strict";
-const CACHE="genycaster-static-v15";
+const CACHE="genycaster-static-v16";
 const WASM_HASH=/^genycaster\.[0-9a-f]{20}\.wasm$/;
 // Explicit allowlist: a same-origin .json/.html URL might contain personal
 // account data. Never cache arbitrary paths based solely on file extension.
@@ -108,7 +108,10 @@ self.addEventListener("fetch",event=>{
         // WebAssembly is never handled here; all other public assets can
         // still fall back to an offline cache when available.
         try{
-            const response=await fetch(request);
+            // Mutable JS modules (including the signing vault) must be
+            // revalidated against the current deployment after an app update;
+            // stale browser HTTP cache must not retain old authorization code.
+            const response=await fetch(request,{cache:"no-cache"});
             if(cache && cacheResponse(response)) {
                 // Do not hold streaming compilation behind the full download
                 // and disk write. waitUntil keeps the background write alive.

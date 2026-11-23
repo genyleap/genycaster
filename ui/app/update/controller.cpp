@@ -205,7 +205,14 @@ bool matchingAsset(const QString& name)
         n.contains(QStringLiteral("-ci-test")) ||
         n.endsWith(QStringLiteral(".zsync"))) return false;
 #if defined(Q_OS_MACOS)
-    return n.endsWith(QStringLiteral("-macos-") + arch + QStringLiteral(".dmg"));
+    // Official releases may publish notarized builds under the plain name
+    // or carry an explicit signing suffix (including legacy ad-hoc DMGs).
+    // The user can download them in-app; the post-exit helper still requires
+    // Gatekeeper approval and matching Apple team ID for silent replacement.
+    const QString prefix = QStringLiteral("-macos-") + arch;
+    return n.endsWith(prefix + QStringLiteral(".dmg"))
+        || n.endsWith(prefix + QStringLiteral("-signed-notarized.dmg"))
+        || n.endsWith(prefix + QStringLiteral("-adhoc-unnotarized.dmg"));
 #elif defined(Q_OS_WIN)
     return n.endsWith(QStringLiteral("-windows-") + arch + QStringLiteral(".exe"));
 #elif defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
@@ -220,7 +227,12 @@ bool matchingAsset(const QString& name)
 
 int assetPreference(const QString& name)
 {
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && !defined(Q_OS_WASM)
+#if defined(Q_OS_MACOS)
+    const QString lower = name.toLower();
+    if (lower.endsWith(QStringLiteral("-signed-notarized.dmg"))) return 40;
+    if (lower.endsWith(QStringLiteral("-adhoc-unnotarized.dmg"))) return 10;
+    return 30;
+#elif defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && !defined(Q_OS_WASM)
     const bool runningAppImage = !qEnvironmentVariable("APPIMAGE").isEmpty();
     const QString distro = QSysInfo::productType().toLower();
     const bool debian = distro == QStringLiteral("debian")
@@ -389,7 +401,7 @@ void UpdateController::applyReleaseTranslation()
         const QString id = change.toObject().value(QStringLiteral("id")).toString();
         const QString item = items.value(id).toString();
         if (!item.isEmpty() && bullets.size() < 12)
-            bullets.append(QStringLiteral("• ") + item.left(400));
+            bullets.append(QStringLiteral("- ") + item.left(400));
     }
     m_releaseNotes = bullets.join(QLatin1Char('\n'));
     m_releaseType = m_releaseData.value(QStringLiteral("type")).toString();
@@ -680,7 +692,14 @@ void UpdateController::handleRelease(QNetworkReply* reply, const bool manual)
     if (m_releaseData.isEmpty()) {
         // Older releases without locale metadata remain readable in English.
         m_releaseTitle = obj.value(QStringLiteral("name")).toString().trimmed().left(120);
-        m_releaseNotes = obj.value(QStringLiteral("body")).toString().trimmed().left(1600);
+        // Render official release Markdown in the in-app document viewer.
+        // Bound remote text without truncating mid-line or breaking link syntax.
+        QString notes = obj.value(QStringLiteral("body")).toString().trimmed().left(16'384);
+        if (notes.size() == 16'384) {
+            const qsizetype boundary = notes.lastIndexOf(QLatin1Char('\n'));
+            if (boundary > 0) notes.truncate(boundary);
+        }
+        m_releaseNotes = std::move(notes);
         m_releaseSummary.clear();
         m_releaseType.clear();
     } else {
@@ -711,8 +730,9 @@ void UpdateController::handleRelease(QNetworkReply* reply, const bool manual)
             m_assetDigest = digest;
         }
         m_status = m_assetUrl.isEmpty()
-            ? QStringLiteral("Update available; use release page (no verified compatible package)")
-            : QStringLiteral("Verified update available");
+            ? QStringLiteral("A newer release exists, but no verified compatible package "
+                             "is published for this device yet.")
+            : QStringLiteral("Verified in-app update available");
     } else {
         m_status = QStringLiteral("Up to date");
     }

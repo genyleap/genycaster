@@ -88,6 +88,14 @@ BrowserLinkMetadataController::Request BrowserLinkMetadataController::normalized
     // URL to the HTML link/Mini App preview endpoints can only yield 404,
     // wasting gateway capacity and producing noisy browser-console errors.
     const QString path = url.path().toLower();
+    // Cloudflare Images serves raster artwork through extensionless /original
+    // variants. These are not web pages or Mini Apps; avoid both HTML preview
+    // endpoints (which return HTTP 404 for otherwise valid cast artwork).
+    const QStringList segments = path.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+    if (url.host().compare(QLatin1String("imagedelivery.net"), Qt::CaseInsensitive) == 0
+        && segments.size() == 3 && segments[0].size() >= 6
+        && segments[1].size() >= 16 && segments[2] == QLatin1String("original"))
+        return req;
     if (path.endsWith(QLatin1String(".png"))
         || path.endsWith(QLatin1String(".jpg"))
         || path.endsWith(QLatin1String(".jpeg"))

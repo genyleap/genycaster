@@ -70,7 +70,12 @@ Popup {
         const releaseKey = Qt.platform.os === "wasm"
             ? version + "@" + String(updateController.webLatestBuild || "")
             : version
-        if (updateController.updateAvailable && version.length > 0
+        // Native releases without a verified, compatible binary are not
+        // actionable. Never show an "Update available" dialog whose only
+        // update button opens a GitHub web page.
+        const actionable = Qt.platform.os === "wasm"
+            ? updateController.updateAvailable : updateController.canDownload
+        if (actionable && version.length > 0
                 && releaseKey !== lastPresentedVersion) {
             lastPresentedVersion = releaseKey
             open()
@@ -244,6 +249,28 @@ Popup {
                 wrapMode: Text.Wrap
             }
 
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: updateController.downloading
+                         || updateController.downloadedFilePath.length > 0
+                spacing: Theme.space2
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: updateController.status
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
+                GenyProgressBar {
+                    Layout.fillWidth: true
+                    compact: true
+                    visible: updateController.downloading
+                    from: 0
+                    to: 1
+                    value: updateController.downloadProgress
+                    indeterminate: updateController.downloadProgress <= 0
+                }
+            }
             RowLayout {
                 layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
@@ -277,21 +304,30 @@ Popup {
                 interactive: contentHeight > height
                 flickableDirection: Flickable.VerticalFlick
                 contentWidth: width
-                contentHeight: Math.max(height, releaseNotesText.implicitHeight + Theme.space3)
+                contentHeight: Math.max(height, releaseNotesContent.implicitHeight + Theme.space3)
                 boundsBehavior: Flickable.StopAtBounds
-                DirectionAwareLabel {
-                    id: releaseNotesText
+                Column {
+                    id: releaseNotesContent
                     width: parent.width
-                    text: updateController.releaseNotes.length > 0
-                          ? LocaleFormat.localizeDigits(
-                                updateController.releaseSummary.length > 0
-                                ? updateController.releaseSummary + "\n\n" + updateController.releaseNotes
-                                : updateController.releaseNotes)
-                          : qsTrId("genycaster.update.no_notes")
-                    color: Theme.inkMuted
-                    font.pixelSize: Theme.typeMetaSize
-                    textFormat: Text.PlainText
-                    wrapMode: Text.Wrap
+                    spacing: Theme.space3
+                    DirectionAwareLabel {
+                        width: parent.width
+                        visible: updateController.releaseSummary.length > 0
+                        text: LocaleFormat.localizeDigits(updateController.releaseSummary)
+                        textFormat: Text.PlainText
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightMedium
+                        wrapMode: Text.WordWrap
+                    }
+                    ReadableMarkdown {
+                        width: parent.width
+                        markdownSource: updateController.releaseNotes.length > 0
+                            ? LocaleFormat.localizeDigits(updateController.releaseNotes)
+                            : qsTrId("genycaster.update.no_notes")
+                        font.pixelSize: Theme.typeLabelSize
+                        lineHeight: 1.52
+                    }
                 }
             }
         }
@@ -314,37 +350,26 @@ Popup {
             ActionButton {
                 Layout.fillWidth: true
                 compact: true
-                quiet: true
-                visible: Qt.platform.os !== "wasm"
-                text: qsTrId("genycaster.update.notes")
-                iconGlyph: Theme.iconArrowUpRight
-                onClicked: {
-                    root.close()
-                    updateController.openReleasePage()
-                }
-            }
-            ActionButton {
-                Layout.fillWidth: true
-                compact: true
                 positive: true
                 busy: updateController.downloading || updateController.webRefreshing
                 iconGlyph: Theme.iconRefresh
                 text: Qt.platform.os === "wasm" ? qsTrId("genycaster.update.refresh")
-                      : updateController.canDownload
-                        ? (updateController.downloadedFilePath.length > 0
-                            ? qsTrId("genycaster.update.installer") : qsTrId("genycaster.update.download"))
-                        : qsTrId("genycaster.update.view")
+                      : updateController.downloadedFilePath.length > 0
+                        ? qsTrId("genycaster.update.installer")
+                        : qsTrId("genycaster.update.download")
+                enabled: Qt.platform.os === "wasm"
+                    ? !updateController.webRefreshing
+                    : updateController.canDownload && !updateController.downloading
                 onClicked: {
-                    root.close()
-                    if (Qt.platform.os === "wasm")
+                    if (Qt.platform.os === "wasm") {
+                        root.close()
                         updateController.refreshWebApp()
-                    else if (updateController.canDownload) {
+                    } else if (updateController.canDownload) {
                         if (updateController.downloadedFilePath.length > 0)
                             updateController.installDownloadedUpdate()
                         else
                             updateController.downloadUpdate()
-                    } else
-                        updateController.openReleasePage()
+                    }
                 }
             }
         }

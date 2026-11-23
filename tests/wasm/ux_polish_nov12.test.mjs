@@ -100,7 +100,10 @@ test('Settings uses shared responsive navigation and Home has functional activit
     const home=read('ui/components/home/HomeDashboard.qml');
     assert.match(settings,/component SettingsNavigationTab: Button/);
     assert.equal((settings.match(/delegate: SettingsNavigationTab \{/g)||[]).length,3);
-    assert.match(settings,/Math\.min\(920, Math\.max\(0, parent\.width - Theme\.space4 \* 2\)\)/);
+    // Settings now occupies the full native/mobile viewport; the former
+    // centered 920px modal was replaced to avoid expensive backdrop blur.
+    assert.match(settings,/desktopFullScreen: true/);
+    assert.match(settings,/width: parent \? parent\.width : 1180/);
     assert.match(home,/component HomeActivityCard: NeonCard/);
     assert.match(home,/root\.notificationUnreadCount > 0/);
     assert.match(home,/onClicked: root\.notificationsRequested\(\)/);
