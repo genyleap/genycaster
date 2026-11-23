@@ -54,6 +54,12 @@ test('Rich Cast v1 uses one CPU-raster PNG as both preview and published image',
     assert.match(header,/Q_INVOKABLE void prepareStatsAvatar/);
     assert.match(header,/void statsAvatarChanged\(\)/);
     assert.match(header,/Q_PROPERTY\(bool statsAvatarLoading/);
+    // C++ unit targets only link QtCore/Qml/Network. Never force QtGui's
+    // QImage header into this public presentation adapter's include graph.
+    assert.doesNotMatch(header,/#include\s*[<"]QImage[>"]/);
+    assert.match(header,/class QImage;/);
+    assert.match(header,/std::unique_ptr<QImage> m_statsAvatar/);
+    assert.match(controller,/std::make_unique<QImage>/);
     assert.match(panel,/!mediaUpload\.statsAvatarLoading/);
     assert.match(cmake,/qt\/stats_share_card_renderer\.cpp/);
 });

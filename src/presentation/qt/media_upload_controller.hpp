@@ -17,7 +17,6 @@
 #pragma once
 
 #include <QObject>
-#include <QImage>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QPointer>
@@ -25,6 +24,10 @@
 #include <QUrl>
 #include <QVariantMap>
 #include <QSet>
+
+#include <memory>
+
+class QImage;
 
 /**
  * @brief QML-facing state adapter for one media upload.
@@ -179,7 +182,9 @@ private:
     QNetworkAccessManager m_statsAvatarNetwork{this};
     QPointer<QNetworkReply> m_statsAvatarReply{};
     QString m_statsAvatarUrl{};
-    QImage m_statsAvatar{};
+    // Keep the QtGui image type out of this QtCore/QtNetwork-facing header:
+    // presentation unit tests should not require QtGui just to include it.
+    std::unique_ptr<QImage> m_statsAvatar{};
     quint64 m_statsAvatarGeneration{0};
     int m_afterIndex{-1};
     qulonglong m_transferredBytes{};

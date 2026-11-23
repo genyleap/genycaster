@@ -67,8 +67,8 @@ QVariantMap MediaUploadController::renderStatsCard(
     const QString& style, const double capturedAtMs)
 {
     // Never reuse the previous identity's portrait during account switching.
-    const QImage currentAvatar = avatarUrl == m_statsAvatarUrl
-        ? m_statsAvatar : QImage{};
+    const QImage currentAvatar = avatarUrl == m_statsAvatarUrl && m_statsAvatar
+        ? *m_statsAvatar : QImage{};
     const auto result = genycaster::presentation::renderStatsShareCard(
         stats, displayName, username, currentAvatar, periodDays, style, capturedAtMs);
     if (!result.error.isEmpty() || !result.fileUrl.isLocalFile()) {
@@ -82,12 +82,13 @@ QVariantMap MediaUploadController::renderStatsCard(
 void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
 {
     if (m_statsAvatarUrl == avatarUrl
-        && (!m_statsAvatar.isNull() || m_statsAvatarReply || avatarUrl.isEmpty()))
+        && ((m_statsAvatar && !m_statsAvatar->isNull())
+            || m_statsAvatarReply || avatarUrl.isEmpty()))
         return;
 
     ++m_statsAvatarGeneration;
     m_statsAvatarUrl = avatarUrl;
-    m_statsAvatar = {};
+    m_statsAvatar.reset();
     if (m_statsAvatarReply) {
         m_statsAvatarReply->abort();
         m_statsAvatarReply->deleteLater();
@@ -144,7 +145,9 @@ void MediaUploadController::prepareStatsAvatar(const QString& avatarUrl)
                          <= 8'000'000) {
                     reader.setScaledSize(original.scaled(
                         QSize{256, 256}, Qt::KeepAspectRatio));
-                    m_statsAvatar = reader.read();
+                    QImage decoded = reader.read();
+                    if (!decoded.isNull())
+                        m_statsAvatar = std::make_unique<QImage>(std::move(decoded));
                 }
             }
         }
