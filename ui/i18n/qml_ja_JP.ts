@@ -7900,6 +7900,38 @@ Company | https://company.com</source>
             <source>As of %1</source>
             <translation>集計時点: %1</translation>
         </message>
+        <message id="genycaster.stats.card_title">
+            <source>Stats share card</source>
+            <translation>統計シェアカード</translation>
+        </message>
+        <message id="genycaster.stats.card_theme_neon">
+            <source>Neon</source>
+            <translation>ネオン</translation>
+        </message>
+        <message id="genycaster.stats.card_theme_minimal">
+            <source>Minimal</source>
+            <translation>ミニマル</translation>
+        </message>
+        <message id="genycaster.stats.card_text_only">
+            <source>Text only</source>
+            <translation>テキストのみ</translation>
+        </message>
+        <message id="genycaster.stats.card_publish">
+            <source>Cast card</source>
+            <translation>カードを投稿</translation>
+        </message>
+        <message id="genycaster.stats.card_preparing">
+            <source>Preparing…</source>
+            <translation>準備中…</translation>
+        </message>
+        <message id="genycaster.stats.card_compat_note">
+            <source>This cast includes an image and a readable text summary for other clients.</source>
+            <translation>このキャストには、他のクライアントでも読める画像とテキスト要約が含まれます。</translation>
+        </message>
+        <message id="genycaster.stats.card_capture_failed">
+            <source>Could not create the Stats image. Try again.</source>
+            <translation>統計画像を作成できませんでした。もう一度お試しください。</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>結果を共有</translation>

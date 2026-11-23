@@ -7900,6 +7900,38 @@ Company | https://company.com</source>
             <source>As of %1</source>
             <translation>집계 기준: %1</translation>
         </message>
+        <message id="genycaster.stats.card_title">
+            <source>Stats share card</source>
+            <translation>통계 공유 카드</translation>
+        </message>
+        <message id="genycaster.stats.card_theme_neon">
+            <source>Neon</source>
+            <translation>네온</translation>
+        </message>
+        <message id="genycaster.stats.card_theme_minimal">
+            <source>Minimal</source>
+            <translation>미니멀</translation>
+        </message>
+        <message id="genycaster.stats.card_text_only">
+            <source>Text only</source>
+            <translation>텍스트만</translation>
+        </message>
+        <message id="genycaster.stats.card_publish">
+            <source>Cast card</source>
+            <translation>카드 게시</translation>
+        </message>
+        <message id="genycaster.stats.card_preparing">
+            <source>Preparing…</source>
+            <translation>준비 중…</translation>
+        </message>
+        <message id="genycaster.stats.card_compat_note">
+            <source>This cast includes an image and a readable text summary for other clients.</source>
+            <translation>이 캐스트에는 다른 클라이언트에서도 읽을 수 있는 이미지와 텍스트 요약이 포함됩니다.</translation>
+        </message>
+        <message id="genycaster.stats.card_capture_failed">
+            <source>Could not create the Stats image. Try again.</source>
+            <translation>통계 이미지를 만들 수 없습니다. 다시 시도하세요.</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>결과 공유</translation>

@@ -115,6 +115,15 @@ Item {
                 && root.channelImageUrl.length === 0)
             channelDirectory.ensureChannelImage(root.castChannel)
     }
+    // Rich Cast v1 is detected from an ordinary protocol text + image pair.
+    // This is an aesthetic hint, NOT verification of author or metric values;
+    // all clients can still read the unchanged canonical Cast.
+    readonly property bool genycasterStatsCast: {
+        const text = String(root.modelData.text || "")
+        return /^Genycaster Stats · [^\\n]{1,80}\\n/.test(text)
+            && /\\nPowered by Genycaster\\s*$/.test(text)
+            && root.visualEmbeds.length === 1
+    }
     readonly property string authorName: root.modelData.displayName
         || root.authorHandle || qsTrId("genycaster.cast.unknown")
     // A provider's fid:<number> locator is not an @username.
@@ -1009,6 +1018,26 @@ Item {
                         gesturePolicy: TapHandler.ReleaseWithinBounds
                         onTapped: root.openRequested(String(root.parentCastId || root.parentPreview.castId || ""))
                     }
+                }
+
+                RowLayout {
+                    objectName: "genycasterStatsCastIdentity"
+                    visible: root.genycasterStatsCast
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: visible ? 26 : 0
+                    spacing: Theme.space1
+                    Icon {
+                        text: Theme.iconSpark
+                        color: Theme.accent
+                        preferredSize: Theme.iconSizeSmall
+                    }
+                    Label {
+                        text: "Genycaster Stats"
+                        color: Theme.accent
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightDemiBold
+                    }
+                    Item { Layout.fillWidth: true }
                 }
 
                 Loader {

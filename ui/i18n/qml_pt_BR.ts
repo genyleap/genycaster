@@ -7900,6 +7900,38 @@ Company | https://company.com</source>
             <source>As of %1</source>
             <translation>Até %1</translation>
         </message>
+        <message id="genycaster.stats.card_title">
+            <source>Stats share card</source>
+            <translation>Cartão de compartilhamento de estatísticas</translation>
+        </message>
+        <message id="genycaster.stats.card_theme_neon">
+            <source>Neon</source>
+            <translation>Néon</translation>
+        </message>
+        <message id="genycaster.stats.card_theme_minimal">
+            <source>Minimal</source>
+            <translation>Minimalista</translation>
+        </message>
+        <message id="genycaster.stats.card_text_only">
+            <source>Text only</source>
+            <translation>Somente texto</translation>
+        </message>
+        <message id="genycaster.stats.card_publish">
+            <source>Cast card</source>
+            <translation>Publicar cartão</translation>
+        </message>
+        <message id="genycaster.stats.card_preparing">
+            <source>Preparing…</source>
+            <translation>Preparando…</translation>
+        </message>
+        <message id="genycaster.stats.card_compat_note">
+            <source>This cast includes an image and a readable text summary for other clients.</source>
+            <translation>Este cast inclui uma imagem e um resumo em texto legível em outros clientes.</translation>
+        </message>
+        <message id="genycaster.stats.card_capture_failed">
+            <source>Could not create the Stats image. Try again.</source>
+            <translation>Não foi possível criar a imagem das estatísticas. Tente novamente.</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>Compartilhar resultados</translation>

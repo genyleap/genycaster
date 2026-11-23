@@ -116,6 +116,7 @@ set(farcasterQmlFiles
     components/home/HomeComposer.qml
     components/home/HomeDashboard.qml
     components/home/StatsPanel.qml
+    components/home/StatsShareCard.qml
     components/home/MarketPanel.qml
     components/home/MarketKpi.qml
     components/home/MarketFearGauge.qml

@@ -7900,6 +7900,38 @@ Company | https://company.com</source>
             <source>As of %1</source>
             <translation>%1 तक</translation>
         </message>
+        <message id="genycaster.stats.card_title">
+            <source>Stats share card</source>
+            <translation>आँकड़े साझा करने का कार्ड</translation>
+        </message>
+        <message id="genycaster.stats.card_theme_neon">
+            <source>Neon</source>
+            <translation>नियॉन</translation>
+        </message>
+        <message id="genycaster.stats.card_theme_minimal">
+            <source>Minimal</source>
+            <translation>मिनिमल</translation>
+        </message>
+        <message id="genycaster.stats.card_text_only">
+            <source>Text only</source>
+            <translation>केवल टेक्स्ट</translation>
+        </message>
+        <message id="genycaster.stats.card_publish">
+            <source>Cast card</source>
+            <translation>कार्ड पोस्ट करें</translation>
+        </message>
+        <message id="genycaster.stats.card_preparing">
+            <source>Preparing…</source>
+            <translation>तैयार हो रहा है…</translation>
+        </message>
+        <message id="genycaster.stats.card_compat_note">
+            <source>This cast includes an image and a readable text summary for other clients.</source>
+            <translation>इस कास्ट में अन्य क्लाइंट में पढ़ने योग्य छवि और टेक्स्ट सारांश है।</translation>
+        </message>
+        <message id="genycaster.stats.card_capture_failed">
+            <source>Could not create the Stats image. Try again.</source>
+            <translation>आँकड़ों की छवि नहीं बन सकी। फिर से प्रयास करें।</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>परिणाम साझा करें</translation>

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtCore
 import Farcaster.Client
 
 // Stats is a presentation surface. All provider requests and calculations
@@ -176,7 +177,202 @@ ColumnLayout {
 
     signal periodRequested(int days)
     signal refreshRequested()
-    signal shareRequested(string text)
+    signal shareRequested(var payload)
+
+    // Snapshot is frozen before the preview opens: later Stats refreshes must
+    // not silently change a report already being prepared for publication.
+    property var shareSnapshot: ({})
+    property double shareCapturedAt: 0
+    property string shareCardStyle: "neon"
+    property string accountDisplayName: ""
+    property string accountUsername: ""
+    property string accountFid: ""
+    onAccountFidChanged: {
+        if (statsShareModal.opened) statsShareModal.close()
+    }
+    onProUnlockedChanged: {
+        if (!proUnlocked && statsShareModal.opened) statsShareModal.close()
+    }
+    property string shareAccountName: ""
+    property int sharePeriodDays: 30
+    property string shareAccountHandle: ""
+    property string shareAccountFid: ""
+    property bool shareCaptureBusy: false
+    property string shareCaptureError: ""
+
+    function openStatsShare(name, handle, fid) {
+        if (root.section !== "social" || !root.proUnlocked || !root.loaded)
+            return
+        root.shareSnapshot = Object.assign({}, root.metrics)
+        root.shareCapturedAt = Date.now()
+        root.sharePeriodDays = root.periodDays
+        root.shareAccountName = String(name || "")
+        root.shareAccountHandle = String(handle || "")
+        root.shareAccountFid = String(fid || "")
+        root.shareCardStyle = "neon"
+        root.shareCaptureError = ""
+        root.shareCaptureBusy = false
+        statsShareModal.open()
+    }
+
+    function compactShareText() {
+        const metric = value => LocaleFormat.formatInteger(Math.max(0, Number(value || 0)))
+        const lines = ["Genycaster Stats · " + root.rangeLabel(root.sharePeriodDays)]
+        const stats = root.shareSnapshot
+        if (stats.hasEngagement === true)
+            lines.push(qsTrId("genycaster.stats.share_engagement_line").arg(metric(stats.engagement)))
+        lines.push(qsTrId("genycaster.stats.share_publishing_line")
+            .arg(metric(stats.casts)).arg(metric(stats.replies)))
+        if (stats.hasEngagement === true)
+            lines.push(qsTrId("genycaster.stats.share_reactions_line")
+                .arg(metric(stats.likes)).arg(metric(stats.recasts))
+                .arg(metric(stats.receivedReplies)))
+        lines.push("Powered by Genycaster")
+        return lines.join("\n")
+    }
+
+    function captureStatsCard() {
+        if (root.shareCaptureBusy || !statsShareModal.opened
+                || !root.proUnlocked || !root.loaded || mediaUpload.busy
+                || root.shareAccountFid !== root.accountFid)
+            return
+        root.shareCaptureBusy = true
+        root.shareCaptureError = ""
+        const started = shareCardPreview.grabToImage(function(result) {
+            if (!root.shareCaptureBusy || !statsShareModal.opened)
+                return
+            // Qt's writable temp directory is available on desktop, Android
+            // and Emscripten; never write image data into a QML string.
+            const directory = StandardPaths.writableLocation(StandardPaths.TempLocation)
+            const leaf = "genycaster-stats-" + root.shareAccountFid
+                + "-" + root.shareCapturedAt + ".png"
+            const localPath = directory.replace(/\\/g, "/") + "/" + leaf
+            if (!directory || !result || !result.saveToFile(localPath)) {
+                root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
+                root.shareCaptureBusy = false
+                return
+            }
+            const fileUrl = "file://" + (localPath.charAt(0) === "/" ? "" : "/")
+                + encodeURI(localPath)
+            root.shareCaptureBusy = false
+            statsShareModal.close()
+            root.shareRequested({
+                schema: "genycaster.stats/v1",
+                text: root.compactShareText(),
+                imageFileUrl: fileUrl
+            })
+        }, Qt.size(960, 600))
+        if (!started) {
+            root.shareCaptureError = qsTrId("genycaster.stats.card_capture_failed")
+            root.shareCaptureBusy = false
+        }
+    }
+
+    GenyModal {
+        id: statsShareModal
+        objectName: "statsShareRichCastPreview"
+        parent: Overlay.overlay
+        width: parent ? Math.min(650, parent.width - 24) : 640
+        height: parent ? Math.min(parent.height - 24,
+            (width - Theme.space4 * 2) * 0.625 + 254) : 640
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            RowLayout {
+                Layout.fillWidth: true
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.stats.card_title")
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightBold
+                    color: Theme.textPrimary
+                }
+                ActionButton {
+                    iconOnly: true
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconClose
+                    text: qsTrId("genycaster.pro.not_now")
+                    onClicked: statsShareModal.close()
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                ActionButton {
+                    compact: true
+                    text: qsTrId("genycaster.stats.card_theme_neon")
+                    prominent: root.shareCardStyle === "neon"
+                    onClicked: root.shareCardStyle = "neon"
+                }
+                ActionButton {
+                    compact: true
+                    text: qsTrId("genycaster.stats.card_theme_minimal")
+                    prominent: root.shareCardStyle === "minimal"
+                    onClicked: root.shareCardStyle = "minimal"
+                }
+                Item { Layout.fillWidth: true }
+            }
+            Item {
+                id: statsSharePreviewViewport
+                Layout.fillWidth: true
+                Layout.preferredHeight: width * 600 / 960
+                clip: true
+                StatsShareCard {
+                    id: shareCardPreview
+                    snapshot: root.shareSnapshot
+                    displayName: root.shareAccountName
+                    username: root.shareAccountHandle
+                    periodDays: root.sharePeriodDays
+                    capturedAt: root.shareCapturedAt
+                    cardStyle: root.shareCardStyle
+                    transformOrigin: Item.TopLeft
+                    scale: statsSharePreviewViewport.width / 960
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.stats.card_compat_note")
+                font.pixelSize: Theme.typeCaptionSize
+                color: Theme.textSecondary
+                wrapMode: Text.Wrap
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                visible: root.shareCaptureError.length > 0
+                text: root.shareCaptureError
+                color: Theme.danger
+                wrapMode: Text.Wrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                ActionButton {
+                    Layout.fillWidth: true
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.stats.card_text_only")
+                    enabled: !root.shareCaptureBusy
+                    onClicked: {
+                        statsShareModal.close()
+                        root.shareRequested({
+                            schema: "genycaster.stats/v1",
+                            text: root.compactShareText(),
+                            imageFileUrl: ""
+                        })
+                    }
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    compact: true
+                    prominent: true
+                    text: root.shareCaptureBusy ? qsTrId("genycaster.stats.card_preparing")
+                                                : qsTrId("genycaster.stats.card_publish")
+                    enabled: !root.shareCaptureBusy && !mediaUpload.busy
+                    onClicked: root.captureStatsCard()
+                }
+            }
+        }
+    }
     signal castRequested(string hash)
     signal proRequested()
 
@@ -222,11 +418,9 @@ ColumnLayout {
             iconSize: Theme.iconSizeLarge
             iconGlyph: Theme.iconShare
             text: qsTrId("genycaster.stats.share_results")
-            onClicked: {
-                const draft = root.buildShareText()
-                if (draft.length > 0)
-                    root.shareRequested(draft)
-            }
+            onClicked: root.openStatsShare(root.accountDisplayName,
+                                            root.accountUsername,
+                                            root.accountFid)
         }
 
         ActionButton {

@@ -82,6 +82,7 @@ GenyDrawer {
     // drafts use the paragraph-aware Markdown importer; ordinary quick
     // composer handoffs still retain their exact literal characters.
     property bool structuredReport: false
+    property string statsImageFileUrl: ""
     property var suggestedEmbeds: []
     property bool transientDraft: false
     property string editorMode: "visual"
@@ -599,7 +600,8 @@ GenyDrawer {
         root.synchronizeEditorState()
         if (!root.withinAccountCharacterLimit || !root.hasPublishableContent()
                 || root.attachedMediaCount > root.maxMediaUploads
-                || presentationBridge.writeBusy || mediaUpload.busy)
+                || presentationBridge.writeBusy || mediaUpload.busy
+                || root.statsImageFileUrl.length > 0)
             return
         const planned = root.threadPayload()
         if (planned.error) {
@@ -722,6 +724,17 @@ GenyDrawer {
                 richComposer.markdownSource = root.suggestedText
             else
                 richComposer.setBlockText(0, root.suggestedText)
+        }
+        // A Stats card is a locally rendered PNG, not a private protocol
+        // embed. Upload it through the same signer-authorized media gateway
+        // as user photos; publish remains blocked while upload is busy.
+        if (root.statsImageFileUrl.length > 0) {
+            root.insertKind = "media"
+            Qt.callLater(function() {
+                if (!root.opened || !root.statsImageFileUrl.length) return
+                if (!mediaUpload.beginUpload(root.statsImageFileUrl, -1))
+                    root.mediaInsertFailed = true
+            })
         }
         if (root.initialAction === "quote" && root.quotedCast) {
             richComposer.insertCastReference(String(root.quotedCast.castId || ""),
@@ -1567,6 +1580,9 @@ GenyDrawer {
                 return
             }
             root.mediaInsertFailed = false
+            if (root.statsImageFileUrl.length > 0
+                    && String(mediaUpload.fileName || "").startsWith("genycaster-stats-"))
+                root.statsImageFileUrl = ""
             if (afterIndex >= 0)
                 root.pendingMediaAfterIndex = afterIndex + 1
             mediaUpload.clear()
@@ -1644,6 +1660,7 @@ GenyDrawer {
                     text: root.parentCast ? qsTrId("genycaster.shell.reply")
                                          : qsTrId("genycaster.shell.publish")
                     enabled: !presentationBridge.writeBusy && !mediaUpload.busy
+                             && root.statsImageFileUrl.length === 0
                              && root.withinAccountCharacterLimit && root.hasPublishableContent()
                     onClicked: root.publishCurrent()
                 }
@@ -1698,6 +1715,7 @@ GenyDrawer {
                     text: root.parentCast ? qsTrId("genycaster.shell.reply")
                                          : qsTrId("genycaster.shell.publish")
                     enabled: !presentationBridge.writeBusy && !mediaUpload.busy
+                             && root.statsImageFileUrl.length === 0
                              && root.withinAccountCharacterLimit && root.hasPublishableContent()
                     onClicked: root.publishCurrent()
                 }
@@ -1708,6 +1726,33 @@ GenyDrawer {
                 Layout.fillWidth: true
                 mode: root.editorMode
                 onModeRequested: mode => root.setEditorMode(mode)
+            }
+
+            // A failed generated-card upload must not turn the requested
+            // image Cast into a silent text-only publication. A deliberate
+            // fallback is always available without losing the Stats caption.
+            RowLayout {
+                objectName: "statsCardUploadFallback"
+                visible: root.statsImageFileUrl.length > 0 && !mediaUpload.busy
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.media.upload_failed")
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.stats.card_text_only")
+                    onClicked: {
+                        if (mediaUpload.busy) return
+                        root.statsImageFileUrl = ""
+                        root.mediaInsertFailed = false
+                    }
+                }
             }
 
             RowLayout {

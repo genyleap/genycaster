@@ -6493,6 +6493,36 @@ void connectBrowserMediaUpload(
                 UTF8ToString($0,$1),$2);
         },fid.constData(),fid.size(),afterIndex);
     });
+    QObject::connect(&controller, &MediaUploadController::uploadRequested,
+                     &controller, [&controller, &bridge](const QString& localPath,
+                                                        const int afterIndex) {
+        if (!bridge.isAuthenticated() || !bridge.writeReady()
+            || bridge.signerBusy()) {
+            controller.applyFailed(QStringLiteral("Publishing signer is unavailable."));
+            return;
+        }
+        const QByteArray pathUtf8 = localPath.toUtf8();
+        const QByteArray fidUtf8 = QByteArray::number(bridge.accountFid());
+        // Qt grabbed the first-party card into the sandbox file. Copy it
+        // directly from Emscripten FS into browser File memory; the signed
+        // browser media gateway still owns upload authorization and transport.
+        EM_ASM({
+            const fid=UTF8ToString($0,$1);
+            try {
+                const path=UTF8ToString($2,$3);
+                const bytes=Module.FS.readFile(path);
+                if(!window.__genycasterBrowserMedia?.uploadGenerated)
+                    throw new Error('Browser media upload is unavailable');
+                window.__genycasterBrowserMedia.uploadGenerated(fid,$4,bytes);
+            } catch(error) {
+                window.__genycasterBrowserMedia?.events?.push({
+                    kind:'failed',fid,
+                    error:String(error?.message||error).slice(0,180)
+                });
+            }
+        }, fidUtf8.constData(), fidUtf8.size(),
+           pathUtf8.constData(), pathUtf8.size(), afterIndex);
+    });
     QObject::connect(&controller, &MediaUploadController::cancelRequested,
                      &controller, [&controller] {
         EM_ASM({window.__genycasterBrowserMedia?.cancel();});

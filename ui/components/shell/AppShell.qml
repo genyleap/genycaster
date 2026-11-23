@@ -982,7 +982,7 @@ Item {
             if (presentationBridge.isAuthenticated && presentationBridge.writeReady)
                 root.openComposer(intent.parentCast, intent.initialAction,
                                   intent.suggestedText, intent.quoteCast,
-                                  intent.structuredReport)
+                                  intent.structuredReport, intent.statsImageFileUrl)
         })
     }
 
@@ -1295,7 +1295,7 @@ Item {
                             { castId: hash, authorFid: authorFid }))
     }
 
-    function openComposer(parentCast, initialAction, suggestedText, quoteCast, structuredReport) {
+    function openComposer(parentCast, initialAction, suggestedText, quoteCast, structuredReport, statsImageFileUrl) {
         if (!presentationBridge.isAuthenticated) {
             root.pendingComposerIntent = null
             accountPopup.open()
@@ -1310,7 +1310,8 @@ Item {
                 "initialAction": initialAction || "",
                 "suggestedText": suggestedText || "",
                 "quoteCast": quoteCast || null,
-                "structuredReport": Boolean(structuredReport)
+                "structuredReport": Boolean(structuredReport),
+                "statsImageFileUrl": String(statsImageFileUrl || "")
             }
             if (!presentationBridge.signerBusy)
                 root.requestInteractionAuthorization()
@@ -1349,9 +1350,12 @@ Item {
         composerDrawer.parentCast = composerParent
         composerDrawer.quotedCast = initialAction === "quote" ? (quoteCast || null) : null
         composerDrawer.initialAction = String(initialAction || "")
-        composerDrawer.transientDraft = false
+        // Stats handoffs are isolated from saved account drafts and never
+        // grant media or signer authority merely by opening the editor.
+        composerDrawer.transientDraft = Boolean(structuredReport)
         composerDrawer.suggestedText = String(suggestedText || "")
         composerDrawer.structuredReport = Boolean(structuredReport)
+        composerDrawer.statsImageFileUrl = String(statsImageFileUrl || "")
         // Clear the Home quick draft only after a confirmed Cast, never
         // when the full editor is opened or dismissed without publishing.
         root.homeDraftForCast = !composerParent && composerDrawer.suggestedText.length > 0
@@ -2244,7 +2248,7 @@ Item {
                                         onExploreRequested: root.openExplorer()
                                         onProRequested: genyProDetailsDrawer.open()
                                         onComposeRequested: text => root.openComposer(null, "", text)
-                                        onStatsReportRequested: text => root.openComposer(null, "", text, null, true)
+                                        onStatsReportRequested: payload => root.openComposer(null, "", String(payload.text || ""), null, true, String(payload.imageFileUrl || ""))
                                         onPhotoRequested: root.openComposer(null, "media", homeDashboard.draftText)
                                         onSearchRequested: searchPalette.open()
                                         onNotificationsRequested: root.openShellRoute("notifications")

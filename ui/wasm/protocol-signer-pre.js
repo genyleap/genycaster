@@ -742,6 +742,48 @@
         // may reject file picker prompts after an await/dynamic import.
         picker.click();
     }
+    // First-party Stats cards are captured in Qt's virtual filesystem.
+    // The browser receives only the generated PNG (never a user-selected
+    // File, custody secret or signer key). Reuse the identical signed gateway
+    // upload and lifecycle path as the manual image picker.
+    function uploadGeneratedMedia(fid,afterIndex,bytes){
+        if(typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid))return;
+        if(!(bytes instanceof Uint8Array)||bytes.length<64||bytes.length>8*1024*1024
+           ||[137,80,78,71,13,10,26,10].some((byte,index)=>bytes[index]!==byte)){
+            mediaReport({kind:'failed',fid,error:'Invalid generated Stats PNG.'});
+            return;
+        }
+        cancelMedia();
+        const current=mediaEpoch;
+        const controller=new AbortController();
+        mediaAbort=controller;
+        const file=new File([bytes],'genycaster-stats-card.png',{type:'image/png'});
+        (async()=>{
+            try{
+                const {uploadBrowserImage}=await import('./browser_media_upload.mjs');
+                const result=await uploadBrowserImage({
+                    file,fid,signal:controller.signal,
+                    onProgress:(phase,transferred,total)=>{
+                        if(current===mediaEpoch)
+                            mediaReport({kind:'progress',fid,phase,transferred,total});
+                    },
+                });
+                if(current===mediaEpoch)
+                    mediaReport({kind:'completed',fid,
+                        assetUrl:result.assetUrl,
+                        contentType:result.contentType,
+                        fileName:result.fileName,
+                        managementToken:result.managementToken,
+                        sizeBytes:result.sizeBytes});
+            }catch(error){
+                if(current===mediaEpoch)
+                    mediaReport({kind:'failed',fid,
+                        error:String(error?.message||error).slice(0,240)});
+            }finally{
+                if(current===mediaEpoch)mediaAbort=null;
+            }
+        })();
+    }
     const pendingRemovals=new Set();
     async function removeManagedMedia(fid,managementToken){
         if(typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid)
@@ -760,7 +802,8 @@
         }
     }
     window.__genycasterBrowserMedia=Object.freeze({
-        pick:pickMedia,cancel:cancelMedia,remove:removeManagedMedia,
+        pick:pickMedia,uploadGenerated:uploadGeneratedMedia,
+        cancel:cancelMedia,remove:removeManagedMedia,
         events:mediaEvents
     });
     window.__genycasterBrowserSigning = Object.freeze({start,retryAccountSession,events});

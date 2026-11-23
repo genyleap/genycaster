@@ -88,7 +88,7 @@ Item {
 
     signal exploreRequested()
     signal composeRequested(string text)
-    signal statsReportRequested(string text)
+    signal statsReportRequested(var payload)
     signal proRequested()
     signal photoRequested()
     signal searchRequested()
@@ -589,11 +589,14 @@ HomeActivityCard {
                         compact: false
                         tabActive: root.activeTab === "stats"
                         proUnlocked: root.verifiedGenyPro
+                        accountDisplayName: root.displayName
+                        accountUsername: root.username
+                        accountFid: root.accountFid
                         periodDays: root.statsDays
                         onProRequested: root.proRequested()
                         onPeriodRequested: days => root.statsDays = days
                         onRefreshRequested: root.requestStats(true)
-                        onShareRequested: text => root.statsReportRequested(text)
+                        onShareRequested: payload => root.statsReportRequested(payload)
                         onCastRequested: hash => root.castRequested(hash)
                     }
                 }
@@ -758,11 +761,14 @@ HomeActivityCard {
                 compact: true
                 tabActive: root.activeTab === "stats"
                 proUnlocked: root.verifiedGenyPro
+                accountDisplayName: root.displayName
+                accountUsername: root.username
+                accountFid: root.accountFid
                 periodDays: root.statsDays
                 onProRequested: root.proRequested()
                 onPeriodRequested: days => root.statsDays = days
                 onRefreshRequested: root.requestStats(true)
-                onShareRequested: text => root.statsReportRequested(text)
+                onShareRequested: payload => root.statsReportRequested(payload)
                 onCastRequested: hash => root.castRequested(hash)
             }
 
