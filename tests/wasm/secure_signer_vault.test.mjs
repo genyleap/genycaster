@@ -146,3 +146,97 @@ test('an insecure or tampered CryptoKey record fails closed', async () => {
     await assert.rejects(vault.signHash('99', new Uint8Array(20)),
         /invalid security properties/);
 });
+
+test('real gateway-sized multipart media challenges sign without weakening vault scope', async () => {
+    const storage = new MemoryIndexedDB();
+    const vault = createBrowserSignerVault(environment(storage));
+    const fid = '4294967297';
+    const {publicKeyHex} = await vault.ensure(fid);
+    // Opaque server-issued multipart ticket is embedded in the exact PUT
+    // pathname, making the signed eight-line message exceed the old 900-byte
+    // ceiling even for a small PNG.
+    const ticket = 'a'.repeat(660) + '.' + 'b'.repeat(43);
+    const partPath = '/v1/uploads/' + ticket + '/parts/1';
+    const encode = (method, path, signerKey = publicKeyHex,
+                    challengeFid = fid, nonce = 'ab'.repeat(16)) =>
+        new TextEncoder().encode([
+            'genycaster-media-upload-v1', method, path, challengeFid,
+            signerKey, '1795471234', nonce, 'cd'.repeat(32),
+        ].join('\n'));
+    const multipart = encode('PUT', partPath);
+    assert.ok(multipart.byteLength > 900 && multipart.byteLength < 4096);
+    const result = await vault.signMediaChallenge(fid, multipart);
+    assert.equal(result.publicKeyHex, publicKeyHex);
+    const publicKey = await webcrypto.subtle.importKey(
+        'raw', Buffer.from(publicKeyHex, 'hex'), 'Ed25519', true, ['verify']);
+    assert.equal(await webcrypto.subtle.verify(
+        'Ed25519', publicKey, Buffer.from(result.signature, 'hex'), multipart), true);
+    // The other gateway routes retain the same canonical signature protocol.
+    for (const [method, path] of [
+        ['POST','/v1/uploads'], ['POST','/v1/uploads/complete'],
+        ['DELETE','/v1/uploads'], ['DELETE','/v1/assets'],
+    ]) {
+        const signed = await vault.signMediaChallenge(fid, encode(method, path));
+        assert.match(signed.signature, /^[a-f0-9]{128}$/);
+    }
+    for (const unsafe of [
+        encode('PUT', '/admin/' + ticket + '/parts/1'),
+        encode('GET', partPath),
+        encode('PUT', '/v1/uploads/' + ticket + '/parts/0'),
+        encode('PUT', partPath, publicKeyHex, '123'),
+        encode('PUT', partPath, 'ff'.repeat(32)),
+        encode('POST', '/v1/uploads', publicKeyHex, fid, 'not-a-nonce'),
+        new Uint8Array(4097),
+    ]) {
+        await assert.rejects(vault.signMediaChallenge(fid, unsafe),
+            /invalid media challenge|media challenge signer key mismatch/);
+    }
+});
+
+test('223 KiB Stats PNG completes a multipart upload using real browser vault signatures', async () => {
+    const {uploadBrowserImage} = await import('../../ui/wasm/browser_media_upload.mjs');
+    const fid = '4294967297';
+    const vault = createBrowserSignerVault(environment(new MemoryIndexedDB()));
+    const signer = await vault.ensure(fid);
+    const publicKey = await webcrypto.subtle.importKey(
+        'raw', Buffer.from(signer.publicKeyHex,'hex'), 'Ed25519', true, ['verify']);
+    const bytes = new Uint8Array(223*1024);
+    const file = {
+        name:'Genycaster-Stats-1795438652836.png', type:'image/png', size:bytes.length,
+        slice:(from,to)=>new Blob([bytes.subarray(from,to)]),
+    };
+    const ticket = 'a'.repeat(660)+'.'+'b'.repeat(43);
+    const assetUrl='https://media-farcaster.genyleap.com/m/v1/2026/11/stats.png';
+    const sizes=[];
+    const fetchImpl=async(url,opts)=>{
+        const path=new URL(url).pathname;
+        const digest=Buffer.from(await webcrypto.subtle.digest('SHA-256',opts.body)).toString('hex');
+        const challenge=new TextEncoder().encode([
+            'genycaster-media-upload-v1', opts.method, path, fid, signer.publicKeyHex,
+            opts.headers['x-genycaster-timestamp'],opts.headers['x-genycaster-nonce'],digest,
+        ].join('\n'));
+        sizes.push(challenge.byteLength);
+        assert.equal(await webcrypto.subtle.verify('Ed25519',publicKey,
+            Buffer.from(opts.headers['x-genycaster-signature'],'hex'),challenge),true);
+        if(path==='/v1/uploads' && opts.method==='POST')
+            return new Response(JSON.stringify({
+                uploadId:ticket, mode:'gateway-multipart', partCount:1,
+                partSizeBytes:1024*1024, assetUrl, optimizationMode:'original',
+            }),{status:201});
+        if(path.endsWith('/parts/1') && opts.method==='PUT')
+            return new Response(JSON.stringify({partNumber:1,etag:'"part-1"'}),{status:200});
+        if(path==='/v1/uploads/complete' && opts.method==='POST')
+            return new Response(JSON.stringify({
+                assetUrl,sizeBytes:bytes.length,contentType:'image/png',
+                fileName:file.name,
+            }),{status:200});
+        throw new Error('Unexpected mocked upload route '+path);
+    };
+    const result=await uploadBrowserImage({
+        file,fid,vault,crypto:webcrypto,fetchImpl,optimizationMode:'original',
+    });
+    assert.equal(result.assetUrl,assetUrl);
+    assert.equal(result.sizeBytes,223*1024);
+    assert.equal(sizes.length,3);
+    assert.ok(sizes[1]>900,'PUT multipart challenge reproduces old production error');
+});

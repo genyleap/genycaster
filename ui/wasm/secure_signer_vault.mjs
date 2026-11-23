@@ -217,13 +217,37 @@ export function createBrowserSignerVault(environment = globalThis, options = {})
         // Do not expose an arbitrary-message signer to UI code.
         async signMediaChallenge(fidValue, challenge) {
             const fid = requireFid(fidValue);
-            if (!(challenge instanceof Uint8Array) || challenge.byteLength > 900
-                || challenge.byteLength < 90) throw failure('invalid media challenge size');
+            // Upload tickets are HMAC-authenticated opaque tokens embedded in
+            // the canonical PUT pathname. A valid gateway-issued v3 ticket
+            // can push the eight-line challenge beyond 900 bytes (928 bytes
+            // observed in production); this is not the image's byte length.
+            // Keep a strict bound AND validate every field and allowed route,
+            // rather than widening an arbitrary-message signing capability.
+            if (!(challenge instanceof Uint8Array) || challenge.byteLength > 4096
+                || challenge.byteLength < 190) throw failure('invalid media challenge size');
             const prefix = new TextEncoder().encode('genycaster-media-upload-v1\n');
             if (!prefix.every((value,index) => challenge[index] === value))
                 throw failure('media challenge domain mismatch');
+            const fields = new TextDecoder('utf-8', {fatal:true})
+                .decode(challenge).split('\n');
+            const [domain,method,path,challengeFid,signerKey,timestamp,nonce,digest] = fields;
+            const routeAllowed =
+                (method === 'POST' && (path === '/v1/uploads'
+                    || path === '/v1/uploads/complete'))
+                || (method === 'DELETE' && (path === '/v1/uploads'
+                    || path === '/v1/assets'))
+                || (method === 'PUT' && /^\/v1\/uploads\/[A-Za-z0-9_-]{16,3500}\.[A-Za-z0-9_-]{43}\/parts\/[1-9][0-9]{0,4}$/.test(path));
+            if (fields.length !== 8 || domain !== 'genycaster-media-upload-v1'
+                || !routeAllowed || challengeFid !== fid
+                || !/^[a-f0-9]{64}$/.test(signerKey || '')
+                || !/^[1-9][0-9]{9,10}$/.test(timestamp || '')
+                || !/^[a-f0-9]{32}$/.test(nonce || '')
+                || !/^[a-f0-9]{64}$/.test(digest || ''))
+                throw failure('invalid media challenge format');
             const record = await read(fid);
             if (!record) throw failure('authorized media signer unavailable');
+            if (signerKey !== record.publicKeyHex)
+                throw failure('media challenge signer key mismatch');
             const signature = new Uint8Array(
                 await crypto.subtle.sign('Ed25519', record.privateKey, challenge));
             if (signature.length !== signatureSize || !await crypto.subtle.verify(
