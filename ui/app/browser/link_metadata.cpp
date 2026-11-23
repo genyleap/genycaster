@@ -84,6 +84,18 @@ BrowserLinkMetadataController::Request BrowserLinkMetadataController::normalized
         || pageUrl.trimmed().size() > 2048) return req;
     QUrl url{pageUrl.trimmed()};
     if (!safeHost(url)) return req;
+    // Raw cast artwork is already handled by the image renderer. Sending its
+    // URL to the HTML link/Mini App preview endpoints can only yield 404,
+    // wasting gateway capacity and producing noisy browser-console errors.
+    const QString path = url.path().toLower();
+    if (path.endsWith(QLatin1String(".png"))
+        || path.endsWith(QLatin1String(".jpg"))
+        || path.endsWith(QLatin1String(".jpeg"))
+        || path.endsWith(QLatin1String(".webp"))
+        || path.endsWith(QLatin1String(".gif"))
+        || path.endsWith(QLatin1String(".avif"))
+        || path.endsWith(QLatin1String(".svg"))
+        || path.endsWith(QLatin1String(".ico"))) return req;
     url.setFragment({});
     // One canonical page identity. Mini App lookup uses the origin URL
     // to match the gateway contract, but the signal still names the page.

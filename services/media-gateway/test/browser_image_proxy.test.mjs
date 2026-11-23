@@ -43,6 +43,15 @@ test('public image URL policy rejects credentialed/non-HTTPS/internal destinatio
                  hostname, hostname);
   }
   assert.equal(validImageUrl('https://imagekit.io.evil.test/file'), null);
+  assert.equal(validImageUrl('https://quilcast.com/m/a8b2f916360fe7de52fe7fe8.jpg')?.hostname, 'quilcast.com');
+  assert.equal(validImageUrl('https://sub.quilcast.com/m/a8b2f916360fe7de52fe7fe8.jpg'), null);
+  assert.equal(validImageUrl('https://quilcast.com/admin'), null);
+  assert.equal(validImageUrl('https://quilcast.com/m/a8b2f916360fe7de52fe7fe8.jpg?fetch=private'), null);
+  const pinataImage='https://red-geographical-clownfish-714.mypinata.cloud/ipfs/bafybeicdae7bmjnkp3aiwdemgduv6bwfmqf4xnbhfsjiz73k5fg375yneq/eye512.webp';
+  assert.equal(validImageUrl(pinataImage)?.hostname, 'red-geographical-clownfish-714.mypinata.cloud');
+  assert.equal(validImageUrl('https://red-geographical-clownfish-714.mypinata.cloud/admin'), null);
+  assert.equal(validImageUrl('https://red-geographical-clownfish-714.mypinata.cloud.evil.test/ipfs/bafybeicdae7bmjnkp3aiwdemgduv6bwfmqf4xnbhfsjiz73k5fg375yneq/eye512.webp'), null);
+  assert.equal(validImageUrl('https://red-geographical-clownfish-714.mypinata.cloud/ipfs/not-a-cid/eye512.webp'), null);
   const channelCid='bafkreigbei45ni5zsliszzeivotgee5auj2ykkh6zrzjwvm4izviidusny';
   assert.equal(validImageUrl('https://ipfs.decentralized-content.com/ipfs/'+channelCid)?.hostname,
                'ipfs.decentralized-content.com');

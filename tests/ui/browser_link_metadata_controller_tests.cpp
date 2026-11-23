@@ -92,6 +92,10 @@ int main(int argc, char** argv)
     controller.requestPreview(QStringLiteral("http://example.com/not-https"), QStringLiteral("link"));
     controller.requestPreview(QStringLiteral("https://localhost/private"), QStringLiteral("link"));
     controller.requestPreview(QStringLiteral("https://example.com/cast"), QStringLiteral("other"));
+    // Image-only cast embeds must never request an HTML/Mini App preview.
+    controller.requestPreview(QStringLiteral("https://quilcast.com/m/a8b2f916360fe7de52fe7fe8.jpg"), QStringLiteral("link"));
+    controller.requestPreview(QStringLiteral("https://quilcast.com/m/a8b2f916360fe7de52fe7fe8.jpg"), QStringLiteral("miniapp"));
+    controller.requestPreview(QStringLiteral("https://gateway.pinata.cloud/ipfs/bafybeicdae7bmjnkp3aiwdemgduv6bwfmqf4xnbhfsjiz73k5fg375yneq/eye512.webp"), QStringLiteral("link"));
 
     QEventLoop loop{};
     QTimer watcher{};

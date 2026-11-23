@@ -1688,8 +1688,13 @@ if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
         if(NOT TARGET Qt6::qtquicktimelineplugin)
             message(FATAL_ERROR "WASM Lottie requires the QtQuick.Timeline QML plugin")
         endif()
+        # qt_import_plugins() handles ordinary Qt plugins, not a QML import
+        # discovered only inside Lottie's runtime-generated VectorImage QML.
+        # Explicitly link the static QML plugin and its generated registration
+        # stub: without this, QtQuick.Timeline is absent from the WASM binary.
+        target_link_libraries(genycaster PRIVATE Qt6::qtquicktimelineplugin)
         qt_import_plugins(genycaster
-            INCLUDE Qt6::QLottieVectorImagePlugin Qt6::qtquicktimelineplugin
+            INCLUDE Qt6::QLottieVectorImagePlugin
             EXCLUDE_BY_TYPE sqldrivers)
     else()
         qt_import_plugins(genycaster

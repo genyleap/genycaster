@@ -17,6 +17,8 @@ export const defaultBrowserImageHosts = [
   // image hosts recognized by the C++ Cast embed classifier.
   'media.tenor.com', 'media1.tenor.com', 'media.giphy.com', 'lh3.googleusercontent.com', 'imagekit.io',
   'assets.geckoterminal.com',
+  // Public cast image CDN; accept only opaque /m/<id> raster assets below.
+  'quilcast.com',
   // Cloudflare Stream exposes a deterministic raster poster for public video
   // manifests. Only the /thumbnails/thumbnail.jpg asset is admissible here.
   'videodelivery.net', 'cloudflarestream.com',
@@ -77,10 +79,19 @@ export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts,
   const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '');
   // First-party managed-media hostnames are exact authorities, never wildcard
   // grants for attacker-controlled subdomains.
-  if (!allowedHosts.some(host => hostname === host
-      || (host !== managedMediaHost && host !== 'media-farcaster.genyleap.com'
-          && host !== 'media1.tenor.com'
-          && hostname.endsWith('.' + host)))) return null;
+  // Pinata uses account-specific public IPFS subdomains. Permit only a
+  // content-addressed /ipfs/CID/file raster asset, not arbitrary endpoints,
+  // and retain the existing DNS pinning, private-IP, size and MIME checks.
+  const pinataSubdomain = /^[a-z0-9-]{1,100}\.mypinata\.cloud$/.test(hostname);
+  const safePinataPath = /^\/ipfs\/(?:b[a-z2-7]{30,100}|Qm[1-9A-HJ-NP-Za-km-z]{44})\/[A-Za-z0-9._~-]{1,100}\.(?:png|jpe?g|webp|gif|avif)$/i.test(parsed.pathname);
+  if (!(pinataSubdomain && safePinataPath)
+      && !allowedHosts.some(host => hostname === host
+          || (host !== managedMediaHost && host !== 'media-farcaster.genyleap.com'
+              && host !== 'media1.tenor.com' && host !== 'quilcast.com'
+              && hostname.endsWith('.' + host)))) return null;
+  if (hostname === 'quilcast.com'
+      && (!/^\/m\/[a-f0-9]{16,80}\.(?:png|jpe?g|webp|gif)$/i.test(parsed.pathname)
+          || parsed.search)) return null;
   // Tenor's media1 delivery host returns HTTP 404 to HEAD but valid animated
   // GIF bytes to GET. Proxy just its opaque public GIF assets; do not turn
   // the entire tenor.com namespace into a general-purpose fetch surface.
