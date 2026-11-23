@@ -141,10 +141,12 @@ event arrives.
 - Every Setup stage uses a shared icon/title baseline. The Welcome language
   selector is now one compact, translated field instead of a wide stacked
   form. Footer controls preserve a bounded mobile layout.
-- The Terms/Privacy reader is a shorter, article-like sheet and includes
-  links to the **full published** Genyleap terms and privacy policy, plus a
-  governing-note explanation. The in-app body is a summary, not a fabricated
-  full legal document.
+- The Genycaster Terms of Service and Privacy Policy are now complete,
+  product-specific Markdown documents shown inside the Setup reader in every
+  supported language. The reader covers identity and signer permissions,
+  public protocol data, QStorage uploads, third-party services, device storage
+  and the limits of deletion. It does not rely on external legal links or
+  suggest that website-wide Genyleap terms are Genycaster's own terms.
 - The browser-only Farcaster phrase entry lives in a right-side desktop
   drawer and a bottom-up mobile sheet, with keyboard-safe scrolling and a
   sticky action row. No recovery words are written to logs, C++, localStorage,

@@ -921,6 +921,13 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.legal_intro")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeLabelSize
+                    wrapMode: Text.WordWrap
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
                     text: root.legalDocument === "terms"
                         ? qsTrId("genycaster.setup.terms_updated")
                         : qsTrId("genycaster.setup.privacy_updated")
@@ -945,6 +952,9 @@ Item {
                         DirectionAwareLabel {
                             id: legalBody
                             width: parent.width
+                            // Qt 6.12 renders localized headings, lists and emphasis.
+                            // Never show raw Markdown source or an empty "read below".
+                            textFormat: Text.MarkdownText
                             text: root.legalDocument === "terms"
                                   ? qsTrId("genycaster.setup.terms_body")
                                   : qsTrId("genycaster.setup.privacy_body")
@@ -953,26 +963,7 @@ Item {
                             wrapMode: Text.WordWrap
                             lineHeight: 1.55
                         }
-                        DirectionAwareLabel {
-                            width: parent.width
-                            visible: root.legalDocument === "terms"
-                            text: qsTrId("genycaster.setup.legal_governing_note")
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
                     }
-                }
-                ActionButton {
-                    objectName: "setupOpenPublishedLegalDocument"
-                    Layout.fillWidth: true
-                    compact: true
-                    text: root.legalDocument === "terms"
-                        ? qsTrId("genycaster.setup.open_terms")
-                        : qsTrId("genycaster.setup.open_privacy")
-                    onClicked: Qt.openUrlExternally(root.legalDocument === "terms"
-                        ? "https://genyleap.com/terms-of-use"
-                        : "https://genyleap.com/privacy")
                 }
                 SetupPrimaryButton {
                     Layout.fillWidth: true

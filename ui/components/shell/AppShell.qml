@@ -1102,6 +1102,24 @@ Item {
         root.returnToPendingShellRoute()
     }
 
+    // A public profile read of our own FID is not the authenticated account
+    // surface. Preserve the existing Cast -> Profile -> Cast breadcrumb while
+    // requesting the account-bound read (and its correct signer/Pro state).
+    // Numeric FIDs are protocol-scoped; never treat a matching HyperSnap FID
+    // as our Farcaster account, or vice versa.
+    function openProfileFromContent(fid) {
+        const target = Number(fid)
+        if (!Number.isSafeInteger(target) || target <= 0) return
+        if (root.shellRoute.length > 0) {
+            root.rememberShellRouteForReturn()
+            presentationBridge.clearDetailHistory()
+            root.shellRoute = ""
+        }
+        // Protocol and custody ownership are verified in C++, never QML.
+        presentationBridge.openContentProfileFid(
+            target, String(providerProfiles.activeReadContract || ""))
+    }
+
     property bool profileEditorRequestedFromSettings: false
     property int profileEditorAttempts: 0
     function openMyProfileEditorFromSettings() {
@@ -1295,7 +1313,7 @@ Item {
                     && presentationBridge.activeView !== "profile")
                 root.clearPendingShellReturn()
             root.shellRoute = ""
-            presentationBridge.openProfileFid(Number(target.substring(5)))
+            root.openProfileFromContent(Number(target.substring(5)))
             return
         }
         if (/^@[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*$/.test(target)) {
@@ -1303,7 +1321,8 @@ Item {
                     && presentationBridge.activeView !== "profile")
                 root.clearPendingShellReturn()
             root.shellRoute = ""
-            presentationBridge.openProfileUsername(target.substring(1))
+            presentationBridge.openContentProfileUsername(
+                target.substring(1), String(providerProfiles.activeReadContract || ""))
             return
         }
         presentationBridge.openExternalUrl(target)
@@ -2084,7 +2103,7 @@ Item {
                                                     presentationBridge.clearDetailHistory()
                                                     root.shellRoute = ""
                                                     ++root.profileTopRevision
-                                                    presentationBridge.openProfileFid(fid)
+                                                    root.openProfileFromContent(fid)
                                                 }
                                                 onReplyRequested: cast => root.openComposer(cast)
                                                 onQuoteRequested: cast => root.openQuoteComposer(cast)
@@ -2200,7 +2219,7 @@ Item {
                                                     presentationBridge.clearDetailHistory()
                                                     root.shellRoute = ""
                                                     ++root.profileTopRevision
-                                                    presentationBridge.openProfileFid(fid)
+                                                    root.openProfileFromContent(fid)
                                                 }
                                                 onCastRequested: castId => {
                                                     root.rememberShellRouteForReturn()
@@ -2400,7 +2419,7 @@ Item {
                                                 onCastRequested: castId => presentationBridge.openCast(castId)
                                                 onProfileRequested: fid => {
                                                     ++root.profileTopRevision
-                                                    presentationBridge.openProfileFid(fid)
+                                                    root.openProfileFromContent(fid)
                                                 }
                                                 onReplyRequested: cast => root.openComposer(cast)
                                                 onQuoteRequested: cast => root.openQuoteComposer(cast)
@@ -2477,7 +2496,7 @@ Item {
                                                 }
                                                 onProfileRequested: fid => {
                                                     root.closeTopicBrowser()
-                                                    presentationBridge.openProfileFid(fid)
+                                                    root.openProfileFromContent(fid)
                                                 }
                                                 onMediaRequested: (items,index) => mediaGallery.openAt(items,index)
                                                 onExternalRequested: url => root.openCastTextLink(url)
@@ -2585,7 +2604,7 @@ Item {
                                                 onCastRequested: castId => presentationBridge.openCast(castId)
                                                 onProfileRequested: fid => {
                                                     ++root.profileTopRevision
-                                                    presentationBridge.openProfileFid(fid)
+                                                    root.openProfileFromContent(fid)
                                                 }
                                                 onReplyRequested: cast => root.openComposer(cast)
                                                 onQuoteRequested: cast => root.openQuoteComposer(cast)
@@ -2664,7 +2683,7 @@ Item {
                                                 onCastRequested: castId => presentationBridge.openCast(castId)
                                                 onProfileRequested: fid => {
                                                     ++root.profileTopRevision
-                                                    presentationBridge.openProfileFid(fid)
+                                                    root.openProfileFromContent(fid)
                                                 }
                                                 onReplyRequested: cast => root.openComposer(cast)
                                                 onQuoteRequested: cast => root.openQuoteComposer(cast)
@@ -2882,7 +2901,7 @@ Item {
                                     onAccountRequested: root.openAccountPopup()
                                     onRefreshRequested: presentationBridge.retry()
                                     onProfileRequested: username => root.openSuggestedProfile(username)
-                                    onProfileFidRequested: fid => presentationBridge.openProfileFid(fid)
+                                    onProfileFidRequested: fid => root.openProfileFromContent(fid)
                                     onOwnProfileRequested: root.openMyProfileFromNavigation()
                                     onMarketSettingsRequested: { root.openLocaleSettings(2) }
                                 }
@@ -2916,7 +2935,7 @@ Item {
                                     onSearchRequested: searchPalette.open()
                                     onAccountRequested: root.openAccountPopup()
                                     onOwnProfileRequested: root.openMyProfileFromNavigation()
-                                    onProfileRequested: fid => presentationBridge.openProfileFid(fid)
+                                    onProfileRequested: fid => root.openProfileFromContent(fid)
                                     onNotificationsRequested: root.openShellRoute("notifications")
                                     onExploreRequested: root.openExplorer()
                                 }
@@ -3072,7 +3091,7 @@ Item {
             onAccountRequested: root.openAccountPopup()
             onRefreshRequested: presentationBridge.retry()
             onProfileRequested: username => root.openSuggestedProfile(username)
-            onProfileFidRequested: fid => presentationBridge.openProfileFid(fid)
+            onProfileFidRequested: fid => root.openProfileFromContent(fid)
             onOwnProfileRequested: root.openMyProfileFromNavigation()
             onMarketSettingsRequested: { root.openLocaleSettings(2) }
             }
@@ -3122,7 +3141,7 @@ Item {
         onProfileRequested: fid => {
             root.clearPendingShellReturn()
             root.shellRoute = ""
-            presentationBridge.openProfileFid(fid)
+            root.openProfileFromContent(fid)
         }
         onChannelRequested: (channelId, channelInfo) => {
             root.selectedChannelInfo = channelInfo || ({})

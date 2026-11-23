@@ -6029,12 +6029,12 @@ Company | https://company.com</source>
             <translation>Idioma</translation>
         </message>
         <message id="genycaster.setup.design_terms_title">
-            <source>Terms &amp; Privacy</source>
-            <translation>Privacidade e Termos</translation>
+            <source>Your data. Your choice.</source>
+            <translation>Seus dados. Sua escolha.</translation>
         </message>
         <message id="genycaster.setup.design_terms_description">
-            <source>Please review and accept our terms to continue.</source>
-            <translation>Duas permissões claras. Os documentos completos ficam a um toque.</translation>
+            <source>Review how Genycaster handles identity, public posts, media, on-device keys and connected services.</source>
+            <translation>Entenda como o Genycaster trata identidade, publicações, mídias, chaves locais e serviços conectados.</translation>
         </message>
         <message id="genycaster.setup.design_account_title">
             <source>Choose an account</source>
@@ -6429,62 +6429,128 @@ Company | https://company.com</source>
             <translation>Antes de continuar</translation>
         </message>
         <message id="genycaster.setup.terms_title">
-            <source>Terms of Use</source>
-            <translation>Termos de Uso</translation>
+            <source>Terms of Service</source>
+            <translation>Termos de Serviço</translation>
+        </message>
+        <message id="genycaster.setup.terms_updated">
+            <source>Genycaster beta · Accounts, publishing and conduct</source>
+            <translation>Genycaster beta · Contas, publicações e conduta</translation>
+        </message>
+        <message id="genycaster.setup.privacy_updated">
+            <source>Genycaster beta · Data, devices and public networks</source>
+            <translation>Genycaster beta · Dados, aparelhos e redes públicas</translation>
+        </message>
+        <message id="genycaster.setup.legal_intro">
+            <source>Read how Genycaster handles your account, device keys and public activity before accepting.</source>
+            <translation>Leia sobre contas, chaves do dispositivo e atividades públicas antes de aceitar.</translation>
         </message>
         <message id="genycaster.setup.terms_body">
-            <source>These general terms apply to use of the Genyleap website preview. Product repositories, downloads and third-party services may have their own licenses or terms.
+            <source>**Genycaster is a client for decentralized social networks.** These terms explain what happens when you use the application, including when an action becomes public or cannot be reversed. By accepting, you agree to use Genycaster responsibly. Genyleap maintains the Genycaster application; Farcaster, HyperSnap, identity providers and external services remain separate systems.
 
-Website content
-Website information is provided for general product, engineering and company communication. Availability, roadmap details and technical scope may change as products evolve.
+### 1. Accounts and authorization
+You can sign in with an approved Farcaster signature or supported Genyleap/OpenProof identity to read content without entering a recovery phrase. **Signing in is not permission to publish.** Creating posts, reacting, following or editing protocol data requires a signer authorized for the selected account and protocol. If you choose custody recovery, use only your own phrase, on a trusted device. Never give it to another person.
 
-Downloads and repositories
-Review the applicable repository license, release notes and compatibility information before installing or redistributing software.
+### 2. Public activity and permanence
+Posts (Casts), replies, reactions, follows, public profile details and associated identifiers may be submitted to decentralized networks and made visible to others. After network acceptance, information may be indexed, replicated, quoted, cached or archived by independent parties. **Deleting a post in Genycaster cannot guarantee deletion of every external copy.** Confirm the active account and protocol before publishing.
 
-Project enquiries
-Submitting a project enquiry does not by itself create a contract or guarantee acceptance. Scope, commercial terms and delivery commitments require separate agreement.</source>
-            <translation>Estes termos gerais se aplicam à prévia do site Genyleap. Repositórios, downloads e serviços de terceiros podem ter licenças ou condições próprias.
+### 3. Media, uploads and drafts
+Images and files you select for upload may be processed locally, then transferred through Genycaster's media gateway and storage infrastructure, including QStorage. An unpublished draft is different from an uploaded file or publicly embedded media. Cancellation or deletion may trigger cleanup of application-managed uploads, but network failures, caches and copies outside Genycaster's control can prevent complete removal. Do not upload material you are not permitted to share.
 
-Conteúdo do site
-As informações apresentam produtos, engenharia e a empresa. Disponibilidade, cronogramas e escopo técnico podem mudar.
+### 4. External providers and mini apps
+Genycaster can open linked websites, mini apps and external wallet or identity approval flows. They may operate their own infrastructure, permissions and privacy policies. A wallet signature or protocol transaction must be reviewed in its own context. Genycaster does not control the availability, content or actions of independent services.
 
-Downloads e repositórios
-Confira a licença aplicável, as notas da versão e os requisitos de compatibilidade antes de instalar ou redistribuir programas.
+### 5. Your content and conduct
+You remain responsible for what you post and for ensuring you have the rights to upload or redistribute it. Do not impersonate others, distribute malware, abuse network services, violate applicable law or use another person's keys or credentials. Product features are not an endorsement of third-party content.
 
-Consultas de projeto
-Enviar uma consulta não cria contrato nem garante aceitação. Escopo, condições comerciais e entregas exigem acordo separado.</translation>
+### 6. Availability and irreversible actions
+Genycaster is evolving software. Network synchronization, third-party nodes, storage gateways, payment services and signer authorization can be delayed or unavailable. The app may show pending states; **do not treat a submitted transaction as confirmed until its protocol confirms it**. Back up recovery material independently and understand that losing access to a device or signer may require new authorization. Software is provided subject to applicable law and without an assurance of uninterrupted operation.
+
+### 7. Changes and questions
+Features and these terms may be revised as Genycaster develops. The current in-app version should be available for review before acceptance of updated terms. For questions about the application, use Genycaster's official support or project communication channels.</source>
+            <translation>**Genycaster é um cliente para redes sociais descentralizadas.** Estes termos explicam o uso do aplicativo e as consequências de ações públicas ou irreversíveis. A Genyleap mantém o Genycaster; Farcaster, HyperSnap e outros provedores são sistemas independentes.
+
+### 1. Contas e autorização
+Você pode entrar com uma assinatura Farcaster verificada ou identidade compatível Genyleap/OpenProof para **ler sem informar a frase de recuperação**. Entrar não autoriza publicação ou interações: é necessário um assinante autorizado para a conta e o protocolo selecionados. Use somente a sua frase, em dispositivo confiável, e nunca a compartilhe.
+
+### 2. Atividade pública e permanência
+Casts, respostas, reações, seguidores, perfil público e identificadores podem ficar visíveis nas redes descentralizadas. Terceiros podem indexar, copiar, citar e arquivar os dados. **Excluir uma publicação no Genycaster não garante a remoção de todas as cópias externas.** Confira a conta e o protocolo antes de publicar.
+
+### 3. Mídia, arquivos e rascunhos
+Os arquivos selecionados podem ser processados no dispositivo e enviados pelo gateway de mídia a serviços como QStorage. Um rascunho não publicado não é o mesmo que um arquivo já enviado ou público. Cancelar pode solicitar a limpeza de uploads temporários gerenciados, mas falhas e caches externos impedem garantias de remoção completa. Envie apenas material que você tenha direito de compartilhar.
+
+### 4. Serviços e miniapps
+Miniapps, sites, carteiras e serviços de identidade externos possuem suas próprias condições, permissões e políticas. Confira assinaturas e transações antes da aprovação. O Genycaster não controla os serviços independentes.
+
+### 5. Responsabilidade pelo conteúdo
+Você responde pelo que publica e pelos direitos de compartilhamento. Não se passe por outra pessoa, distribua malware, abuse da rede, descumpra a lei ou utilize chaves de terceiros. A presença de conteúdo externo não significa endosso.
+
+### 6. Disponibilidade e confirmações
+O aplicativo está evoluindo. Sincronização, nós, armazenamento, pagamentos e autorizações podem atrasar ou falhar. **Uma transação enviada não está confirmada até o protocolo confirmar.** Faça backup seguro das informações de recuperação; perder um dispositivo pode exigir nova autorização. Não se garante serviço ininterrupto dentro dos limites legais.
+
+### 7. Alterações e suporte
+Funcionalidades e termos podem mudar. A versão atual deve ser exibida antes de aceitar alterações. Use os canais oficiais do Genycaster para dúvidas.</translation>
         </message>
         <message id="genycaster.setup.privacy_title">
             <source>Privacy Policy</source>
             <translation>Política de Privacidade</translation>
         </message>
         <message id="genycaster.setup.privacy_body">
-            <source>Genyleap stores information you submit through forms and limited technical telemetry needed for security, service operation and download analytics.
+            <source>**Your identity, your keys, your visibility.** Genycaster combines decentralized social protocols with local device controls. This notice distinguishes information kept on your device from information sent to Genyleap services, protocol networks and external providers.
 
-What we collect
-Contact submissions include your name, email, subject and message. Project submissions may also include company, phone, selected service, budget range, timeline and project description. For downloads, we may record the requested product and file, timestamp, IP address, User-Agent, browser/device and operating-system details, network-provided country code, referrer, and automated-crawler indicators.
+### 1. Public information is not private
+Your FID, public username, profile, Casts, replies, reactions, follows and public media can be read, indexed and copied by other people or infrastructure providers. This remains true when you use a read-only session. **Public network data may outlive a local deletion or account sign-out.**
 
-Why we use it
-Submitted information is used to review and respond to requests. Download telemetry helps operate delivery, distinguish human and automated traffic, understand usage, and prevent abuse.
+### 2. Account and identity verification
+When you connect an account, Genycaster processes the account identifier/FID, selected protocol, verification state and the signatures or challenges required by Farcaster and Genyleap/OpenProof. Account-linked features, including signer status, streaks and Pro eligibility, may require checks with the relevant services. Sign-in approval alone does not authorize posting.
 
-Genycaster-specific notice
-Genycaster uses your Genyleap/OpenProof identity and linked Farcaster FID for account verification. A recovery phrase entered in the browser is processed on your device, not uploaded or stored by Genycaster. A separately authorized device signer can be retained in local protected storage for future interactions. Public posts and media are submitted to the selected protocol and media services when you choose to publish. Appearance and language preferences are stored locally unless a feature says otherwise.
+### 3. Recovery phrases and device signers
+A recovery phrase entered in Genycaster's supported recovery flow is intended to be processed on your device for custody verification and signer authorization; **the phrase itself is not uploaded as an API request or stored by the application**. A resulting authorized signer or device credential may be stored locally, subject to the platform's secure-storage capabilities. Treat your device, backups and clipboard as sensitive. Only enter recovery words when you deliberately choose recovery or signer authorization; browsing does not require them.
 
-Contact
-For privacy questions, use Genyleap's published Contact page or contact email.</source>
-            <translation>A Genyleap armazena dados enviados por formulários e informações técnicas limitadas necessárias à segurança, operação dos serviços e análise dos downloads.
+### 4. Local data
+Depending on platform and settings, Genycaster may keep appearance and language preferences, draft text, caches, browsing state and device-session or signer metadata in application storage. Signing out ends the local session; it does not erase public protocol records. Removing local application data may remove drafts or device credentials that cannot be reconstructed without your backup.
 
-Dados coletados
-Os contatos podem incluir nome, e-mail, assunto e mensagem. Consultas de projetos podem incluir empresa, telefone, serviço, orçamento, prazo e descrição. Downloads podem registrar produto, arquivo, horário, IP, navegador, dispositivo, sistema operacional, país, origem e sinais de tráfego automatizado.
+### 5. Uploads and QStorage
+Selected media can pass through local processing/compression and the media gateway into storage services such as QStorage. The service needs the file and technical request information to perform that upload. Uploaded or published files may be accessible by public URLs, mirrors and caches. Clearing a draft should request removal of application-managed temporary uploads where supported; it cannot guarantee erasure of copies already replicated by others.
 
-Finalidade
-Os dados são usados para responder solicitações, manter entregas confiáveis, entender o uso e prevenir abusos.
+### 6. Service requests and diagnostics
+To deliver feeds, verify accounts, authorize signers and handle uploads, network services necessarily process requests containing relevant FIDs, content identifiers, public signatures, IP addresses and technical connection information. Providers may keep security or reliability logs according to their own practices. Genycaster does not represent decentralized nodes or third-party gateways as private storage.
 
-Nota sobre o Genycaster
-O app verifica a identidade Genyleap/OpenProof e o FID Farcaster vinculado. A frase de recuperação inserida no navegador é processada no aparelho, sem upload ou armazenamento pelo Genycaster. Um assinante autorizado separadamente pode permanecer em armazenamento local protegido. Publicações e mídias públicas são enviadas aos serviços selecionados quando você decide publicar. Idioma e aparência são salvos localmente salvo indicação contrária.
+### 7. Mini apps, wallets and external links
+Opening a mini app, external URL, wallet approval, purchase flow or other provider may share information with that provider under its own terms. Review requested permissions, destination and signature details before approving. Genycaster cannot control independent websites or wallets.
 
-Contato
-Para questões de privacidade, use a página de contato ou o e-mail publicado da Genyleap.</translation>
+### 8. Your choices and limits
+You can choose read-only sign-in, decline signer authorization, sign out, manage local app data and use protocol-supported revoke or deletion operations where available. These controls affect the local device or selected service; they do not guarantee removal of public blockchain/network history or third-party archives. Do not use recovery phrases on untrusted devices.
+
+### 9. Updates and contact
+This notice describes the product's current intended data flows, not a guarantee about services outside Genycaster's control. Material changes should be presented in the application. Contact the official Genycaster/Genyleap support channels for privacy questions and requests.</source>
+            <translation>**Sua identidade, suas chaves, sua visibilidade.** Esta política distingue dados armazenados no dispositivo daqueles enviados à Genyleap, às redes públicas e aos provedores independentes.
+
+### 1. Dados públicos
+FID, nome, perfil, Casts, respostas, reações, seguidores e mídias públicas podem ser vistos, indexados e copiados por terceiros. **Sair da conta ou apagar dados locais não elimina o histórico da rede pública.**
+
+### 2. Verificação da conta
+O Genycaster processa ID/FID, protocolo, estado de verificação e desafios ou assinaturas necessários ao Farcaster e ao Genyleap/OpenProof. Estado do assinante, Streak e elegibilidade Pro podem exigir consultas aos serviços. Entrar não habilita publicações automaticamente.
+
+### 3. Frase de recuperação e assinantes
+A frase informada no fluxo de recuperação compatível é processada **no dispositivo para verificar propriedade e autorizar o assinante; a frase em si não é enviada como requisição API nem armazenada pelo aplicativo**. Um assinante autorizado ou credencial de dispositivo pode permanecer em armazenamento local protegido, conforme o sistema. Proteja aparelho, backups e área de transferência. Ler conteúdo não requer frase de recuperação.
+
+### 4. Dados no aparelho
+Idioma, aparência, rascunhos, cache, estado de navegação, sessão e metadados do assinante podem ser guardados localmente. Sair encerra a sessão local, não os registros públicos. Apagar dados do app pode eliminar rascunhos e credenciais sem recuperação possível.
+
+### 5. Mídia e QStorage
+Arquivos podem ser processados/comprimidos localmente e enviados pelo gateway para QStorage ou outros serviços. O provedor recebe o arquivo e dados técnicos necessários. URLs públicas, cópias e caches podem permanecer. A remoção de uploads temporários gerenciados é solicitada quando suportada, mas réplicas externas não são garantidamente apagadas.
+
+### 6. Conexões e diagnósticos
+Feeds, verificação e uploads envolvem FID, identificadores de conteúdo, assinaturas públicas, IP e informações de conexão. Provedores externos podem manter registros de segurança. Nós descentralizados não são armazenamento privado.
+
+### 7. Carteiras e apps externos
+Miniapps, links, aprovações de carteiras e pagamentos podem compartilhar informações com serviços independentes. Confira destino, permissões e detalhes da assinatura.
+
+### 8. Escolhas e limites
+Você pode usar apenas leitura, recusar um assinante, sair da conta, gerenciar dados locais e usar revogação ou exclusão suportadas pelo protocolo. Essas ações não garantem remover histórico público ou arquivos de terceiros. Não informe frases em dispositivos não confiáveis.
+
+### 9. Mudanças e contato
+Esta política descreve os fluxos pretendidos atualmente, não o comportamento de terceiros. Alterações relevantes devem aparecer no aplicativo. Para dúvidas, utilize os canais oficiais Genycaster/Genyleap.</translation>
         </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>
@@ -7091,8 +7157,8 @@ Para questões de privacidade, use a página de contato ou o e-mail publicado da
             <translation>Encontre pessoas, publicações e canais</translation>
         </message>
         <message id="genycaster.setup.single_legal_consent">
-            <source>I have read and agree to the Terms of Use and Privacy Policy.</source>
-            <translation>Li e concordo com os Termos de Uso e a Política de Privacidade.</translation>
+            <source>I agree to the Genycaster Terms of Service and acknowledge the Privacy Policy.</source>
+            <translation>Concordo com os Termos de Serviço do Genycaster e confirmo que li a Política de Privacidade.</translation>
         </message>
         <message id="genycaster.setup.world_conversations">
             <source>A world of conversations. In your language.</source>

@@ -44,7 +44,7 @@ test('own profile entry pins authenticated protocol before any public request or
     assert.match(own, /m_profileFid = m_accountFid/);
     assert.match(own, /m_currentProfileUsername\.clear\(\)/);
     assert.match(own, /m_detail\.clear\(\);\s*m_rows\.clear\(\);\s*m_next\.clear\(\);/);
-    assert.match(own, /if \(!\(m_activeView == QStringLiteral\("profile"\)[\s\S]*?m_profileIsOwnAccount\)\)\s*rememberDetailLocation\(\)/);
+    assert.match(own, /if \(!\(m_activeView == QStringLiteral\("profile"\)[\s\S]*?m_profileFid == m_accountFid\)\)\s*rememberDetailLocation\(\)/);
     const affinity = own.indexOf('emit ownProfileReadAffinityRequested(true, nativeCustodyAccount())');
     const request = own.indexOf('emit profileRequested(m_accountFid, false)');
     const state = own.indexOf('beginIntent(');

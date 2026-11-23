@@ -1916,10 +1916,11 @@ void PresentationBridge::openMyProfile()
     // dispatches a PUBLIC read and can briefly paint "Follow" and public
     // activity for our own FID, especially across HyperSnap/Farcaster
     // selectors. Replaying that public route from Back also lost ownership.
-    // Reopening the already-active own profile is a refresh, not a new
-    // breadcrumb. Avoid a Back loop to the same exact surface.
+    // Reclassifying an already-active same-FID public profile as the
+    // authenticated account is not a new destination. Never leave a public
+    // "Follow yourself" breadcrumb behind the owner profile.
     if (!(m_activeView == QStringLiteral("profile")
-          && m_profileFid == m_accountFid && m_profileIsOwnAccount))
+          && m_profileFid == m_accountFid))
         rememberDetailLocation();
     m_profileIsOwnAccount = true;
     m_ownProfileReadReady = false;
@@ -2021,6 +2022,40 @@ void PresentationBridge::openProfileFid(const qulonglong fid)
     // surfaces. Start both immediately: SQLite/memory can paint the screen in
     // the same turn while their network refreshes reconcile in parallel.
     emit feedRequested(m_profileFeed, m_profileFid, {}, {}, recoveryProbe);
+}
+
+void PresentationBridge::openContentProfileFid(
+    const qulonglong fid, const QString& readContract)
+{
+    // The destination FID is protocol-scoped. An identical numeric FID on
+    // the other network is a foreign profile, never our account.
+    const bool sameProtocol = nativeCustodyAccount()
+        ? readContract == QStringLiteral("hypersnap-v2")
+        : readContract == QStringLiteral("snapchain-v1");
+    if (m_isAuthenticated && m_accountFid != 0 && fid == m_accountFid
+        && sameProtocol) {
+        // openMyProfile records the current Cast before switching to the
+        // authenticated profile and restores owner-only UI atomically.
+        openMyProfile();
+        return;
+    }
+    openProfileFid(fid);
+}
+
+void PresentationBridge::openContentProfileUsername(
+    const QString& username, const QString& readContract)
+{
+    const QString target = username.trimmed();
+    // HyperSnap does not have a Farcaster username namespace. Compare
+    // handles only for an authenticated Farcaster session and read source.
+    if (m_isAuthenticated && !nativeCustodyAccount()
+        && readContract == QStringLiteral("snapchain-v1")
+        && !m_accountUsername.isEmpty()
+        && target.compare(m_accountUsername, Qt::CaseInsensitive) == 0) {
+        openMyProfile();
+        return;
+    }
+    openProfileUsername(target);
 }
 
 void PresentationBridge::selectProfileFeed(const QString& feed)

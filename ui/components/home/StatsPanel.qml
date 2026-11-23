@@ -341,13 +341,15 @@ ColumnLayout {
             id: shareModalScroll
             clip: true
             contentWidth: width
-            contentHeight: shareModalBody.implicitHeight
+            contentHeight: shareModalBody ? shareModalBody.implicitHeight : 0
             flickableDirection: Flickable.VerticalFlick
             boundsBehavior: Flickable.StopAtBounds
             interactive: contentHeight > height
             ColumnLayout {
                 id: shareModalBody
-                width: shareModalScroll.width
+                // Overlay relocation can transiently invalidate the Flickable id.
+                // Use the actual parent geometry and guard its lifetime.
+                width: parent ? parent.width : (shareModalScroll ? shareModalScroll.width : 0)
                 spacing: Theme.space2
             RowLayout {
                 Layout.fillWidth: true

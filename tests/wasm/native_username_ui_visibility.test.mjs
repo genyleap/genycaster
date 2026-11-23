@@ -62,7 +62,7 @@ test('suggested profiles without username navigate by FID rather than searching 
   assert.match(rail,/signal profileFidRequested\(double fid\)/);
   assert.match(rail,/if \(fid > 0\) root\.profileFidRequested\(fid\)/);
   const shell=read('ui/components/shell/AppShell.qml');
-  assert.equal((shell.match(/onProfileFidRequested: fid => presentationBridge\.openProfileFid\(fid\)/g)||[]).length,2);
+  assert.equal((shell.match(/onProfileFidRequested: fid => root\.openProfileFromContent\(fid\)/g)||[]).length,2);
 });
 
 test('native username text is retained only for backward-compatible locale lookup',()=>{

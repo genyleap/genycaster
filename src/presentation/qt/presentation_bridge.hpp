@@ -293,6 +293,14 @@ public:
     /** @brief Resolves one exact Farcaster username from Explore and opens its profile without retargeting Home. */
     Q_INVOKABLE void openProfileUsername(const QString& username);
     Q_INVOKABLE void openProfileFid(qulonglong fid);
+
+    /** @brief Contextual links preserve own-account custody and the origin breadcrumb.
+     *  FIDs are scoped to a read protocol: equal numbers across Farcaster and
+     *  HyperSnap must not grant account-ownership UI or signer privileges.
+     */
+    Q_INVOKABLE void openContentProfileFid(qulonglong fid, const QString& readContract);
+    Q_INVOKABLE void openContentProfileUsername(const QString& username,
+                                               const QString& readContract);
     Q_INVOKABLE void selectProfileFeed(const QString& feed);
     Q_INVOKABLE void openFollowers();
     Q_INVOKABLE void openFollowing();
