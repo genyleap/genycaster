@@ -1,4 +1,5 @@
 import QtQuick
+import Farcaster.Client
 
 // Preview the EXACT PNG that will be attached to a public Cast. Keeping one
 // raster renderer avoids QML/WebGL grabToImage stalls and WYSIWYG drift.

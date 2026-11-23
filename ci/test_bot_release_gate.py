@@ -34,7 +34,8 @@ class BotReleaseGateTests(unittest.TestCase):
         result = self.run_gate()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("release: True", result.stdout)
-        self.assertIn("version: 1.0.0", result.stdout)
+        from ci.release_gate import release_designation
+        self.assertIn("version: " + release_designation(ROOT), result.stdout)
 
     def test_ordinary_dispatch_does_not_publish(self) -> None:
         result = self.run_gate(GENYCASTER_MANUAL_RELEASE="false")

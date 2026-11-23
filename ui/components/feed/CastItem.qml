@@ -1021,6 +1021,7 @@ Item {
                 }
 
                 RowLayout {
+                    layoutDirection: Theme.uiDirection
                     objectName: "genycasterStatsCastIdentity"
                     visible: root.genycasterStatsCast
                     Layout.fillWidth: true

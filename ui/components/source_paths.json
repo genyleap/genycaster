@@ -182,5 +182,6 @@
   "VectorStroke.qml": "visual/VectorStroke.qml",
   "VideoPreview.qml": "media/VideoPreview.qml",
   "VisualPost.qml": "feed/VisualPost.qml",
-  "WalletBrowserPicker.qml": "settings/WalletBrowserPicker.qml"
+  "WalletBrowserPicker.qml": "settings/WalletBrowserPicker.qml",
+  "StatsShareCard.qml": "home/StatsShareCard.qml"
 }

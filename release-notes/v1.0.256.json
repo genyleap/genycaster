@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "type": "improvement",
+  "changes": [
+    {
+      "id": "identity-protection",
+      "category": "security"
+    },
+    {
+      "id": "wallet-permissions",
+      "category": "security"
+    },
+    {
+      "id": "consent-and-policy",
+      "category": "security"
+    },
+    {
+      "id": "protocol-outages",
+      "category": "improvement"
+    },
+    {
+      "id": "account-onboarding",
+      "category": "improvement"
+    },
+    {
+      "id": "social-navigation",
+      "category": "fix"
+    },
+    {
+      "id": "media-upload",
+      "category": "improvement"
+    },
+    {
+      "id": "stats-and-sharing",
+      "category": "feature"
+    },
+    {
+      "id": "stickers-and-reactions",
+      "category": "feature"
+    },
+    {
+      "id": "mini-apps",
+      "category": "improvement"
+    },
+    {
+      "id": "rendering-and-web",
+      "category": "improvement"
+    },
+    {
+      "id": "release-operations",
+      "category": "maintenance"
+    }
+  ],
+  "translations": {
+    "en-US": {
+      "title": "Genycaster 1.0.256 — Security, Reliability & UI Refresh",
+      "summary": "Cumulative changes since v1.0.0: safer signing and wallet boundaries, clearer protocol recovery, richer publishing and substantial Qt/WASM UX and performance work.",
+      "items": {
+        "identity-protection": "Recovery phrases stay on the trusted device; signer authorization is separate from read access, clears sensitive entry after submission and handles Snapchain per-FID rate limits without automatic re-submission.",
+        "wallet-permissions": "Hardened Mini App and external wallet integration with origin-scoped permissions, revocation controls, consent epochs and protection against late or cross-origin RPC results.",
+        "consent-and-policy": "Replaced empty Terms/Privacy screens with in-app Markdown documents in 12 languages; explicit, initially unchecked consent and transparent disclosures about public casts, QStorage and third-party networks.",
+        "protocol-outages": "When HyperSnap shard 0 lags or an account-write response is uncertain, readiness checks block new irreversible writes while read-only confirmation continues with bounded backoff; Farcaster failures show actionable fallback and signer status.",
+        "account-onboarding": "Reworked Farcaster signature-first reading and 24-word recovery, HyperSnap registration/synchronization progress, signer device authorization and mobile/desktop onboarding with safer paste/focus handling.",
+        "social-navigation": "Fixed own-profile versus public Follow rendering and Back paths through notifications, mentions, casts and nested profiles; stale async replies can no longer hijack the active view.",
+        "media-upload": "Added local image optimization before QStorage uploads, clearer compression/upload/finalization stages, attachment-card grids, cancellation and cleanup of abandoned content.",
+        "stats-and-sharing": "Added portable shareable Stats image cards, improved avatars and media fallbacks, square and cover-oriented layouts, and share options for social destinations.",
+        "stickers-and-reactions": "Added synced sticker packs with public/Pro availability, improved picker and Cream Cat collection; polished Like heart bounce/fill, Recast and other engagement micro-animations with Reduce Motion support.",
+        "mini-apps": "Improved Mini App discovery, external wallet handoff, responsive actions, native and web boundaries, and browser-hosted app lifecycle behavior.",
+        "rendering-and-web": "Refined Neon/superellipse visual hierarchy, RTL/mobile navigation, Android rendering and feed image incubation; reduced expensive background work and improved WASM asset caching and loading.",
+        "release-operations": "Improved versioned native and WASM distribution, download hub, checksum verification, health/status reporting and recovery diagnostics; platform-specific signing and compatibility checks remain enforced."
+      }
+    },
+    "fa-IR": {
+      "title": "جنی‌کستر ۱.۰.۲۵۶ — امنیت، پایداری و بازطراحی تجربهٔ کاربری",
+      "summary": "مجموع تغییرات پس از نسخهٔ ۱.۰.۰: حفاظت بهتر از امضا و کیف پول، بازیابی شفاف‌تر پروتکل‌ها، انتشار محتوای غنی‌تر و بهینه‌سازی گستردهٔ Qt و وب.",
+      "items": {
+        "identity-protection": "عبارت بازیابی روی دستگاه مورد اعتماد می‌ماند؛ مجوز امضا از دسترسی خواندن جداست، واژه‌ها پس از ارسال پاک می‌شوند و محدودیت نرخ اسنپ‌چین بدون ارسال خودکار دوباره مدیریت می‌شود.",
+        "wallet-permissions": "مرزهای امنیتی مینی‌اپ‌ها و کیف پول خارجی با مجوز محدود به مبدأ، امکان لغو دسترسی، رضایت صریح و جلوگیری از پاسخ دیرهنگام یا میان‌مبدأ تقویت شد.",
+        "consent-and-policy": "صفحه‌های ناقص شرایط استفاده و حریم خصوصی با اسناد Markdown داخلی در ۱۲ زبان جایگزین شدند؛ پذیرش پیش‌فرض خاموش است و دربارهٔ کست‌های عمومی، QStorage و شبکه‌های بیرونی توضیح داده شده است.",
+        "protocol-outages": "در کندی شارد صفر هایپراسنپ یا پاسخ نامشخص ثبت حساب، درخواست غیرقابل‌بازگشت جدید متوقف و تأیید فقط‌خواندنی با وقفهٔ افزایشی ادامه می‌یابد؛ خطاهای فارکستر مسیر جایگزین و وضعیت امضا دارند.",
+        "account-onboarding": "ورود خواندنی با امضای فارکستر، بازیابی ۲۴ واژه، پیشرفت ثبت‌نام هایپراسنپ، مجوز امضاکننده و مراحل Setup در موبایل و دسکتاپ بازطراحی و مشکل Paste/Focus اصلاح شد.",
+        "social-navigation": "نمایش اشتباه Follow در پروفایل خودی و تاریخچهٔ Back میان اعلان، منشن، کست و پروفایل‌ها اصلاح شد؛ پاسخ قدیمی شبکه دیگر صفحهٔ فعال را تغییر نمی‌دهد.",
+        "media-upload": "بهینه‌سازی محلی تصویر پیش از آپلود QStorage، نمایش مراحل فشرده‌سازی/آپلود/نهایی‌سازی، کارت‌های پیوست، لغو و پاک‌سازی محتوای رهاشده اضافه شد.",
+        "stats-and-sharing": "کارت تصویری اشتراک‌گذاری آمار، آواتار و جایگزین امن تصاویر، طرح مربع و کاوری و گزینه‌های اشتراک در شبکه‌های اجتماعی بهبود یافتند.",
+        "stickers-and-reactions": "بسته‌های استیکر همگام‌شونده، دسترسی عمومی/Pro، بستهٔ Cream Cat و انتخابگر بهبود یافت؛ انیمیشن جهش قلب و واکنش‌های دیگر با احترام به Reduce Motion اضافه شد.",
+        "mini-apps": "کشف مینی‌اپ‌ها، انتقال به کیف پول خارجی، دکمه‌های واکنش‌گرا، تفکیک محیط بومی و وب و چرخهٔ عمر مینی‌اپ‌ها بهتر شد.",
+        "rendering-and-web": "طراحی Neon و Superellipse، جهت‌گذاری راست‌به‌چپ، ناوبری موبایل، رندر اندروید و عمر پیش‌نمایش‌های فید اصلاح و بار اضافی و بارگذاری WASM بهینه شد.",
+        "release-operations": "انتشار نسخه‌های بومی و وب، مرکز دانلود، کنترل چک‌سام، وضعیت سرویس و عیب‌یابی بازیابی بهتر شد؛ بررسی سازگاری و امضای هر پلتفرم همچنان الزامی است."
+      }
+    },
+    "ar-SA": {
+      "title": "Genycaster 1.0.256 — تحديث الأمان والموثوقية والواجهة",
+      "summary": "أهم التحسينات منذ v1.0.0: توقيع أكثر أماناً، تعافٍ أوضح للشبكات، نشر أغنى وأداء أفضل.",
+      "items": {
+        "identity-protection": "تبقى كلمات الاسترداد محلياً، وتُفصل صلاحيات الموقّع عن القراءة، وتُمحى الكلمات بعد الإرسال مع احترام حدود طلبات Snapchain.",
+        "wallet-permissions": "تعزيز أذونات المحافظ والتطبيقات المصغرة حسب الأصل مع سحب الوصول ومنع ردود RPC المتأخرة أو عبر المواقع.",
+        "consent-and-policy": "وثائق شروط وخصوصية داخلية بتنسيق Markdown بـ12 لغة وقبول غير محدد مسبقاً وشرح بيانات الشبكات العامة وQStorage.",
+        "protocol-outages": "تمنع مراقبة تأخر شارد HyperSnap عمليات الكتابة الخطرة وتستمر بفحوص قراءة متدرجة؛ تظهر بدائل واضحة عند تعطل Farcaster.",
+        "account-onboarding": "تحسين الدخول بتوقيع Farcaster واسترداد 24 كلمة وتقدم تسجيل HyperSnap وتفويض الجهاز والتركيز واللصق.",
+        "social-navigation": "إصلاح ملف المستخدم الخاص وزر المتابعة والعودة بين الإشعارات والإشارات والمنشورات ومنع الردود القديمة من تغيير الصفحة.",
+        "media-upload": "ضغط الصور محلياً قبل QStorage مع مراحل رفع واضحة وبطاقات مرفقات وإلغاء وتنظيف المحتوى المتروك.",
+        "stats-and-sharing": "بطاقات مشاركة الإحصاءات وصور الحساب والتخطيطات المربعة وخيارات المشاركة الاجتماعية.",
+        "stickers-and-reactions": "حزم ملصقات عامة وPro ومجموعة Cream Cat وحركات لطيفة للقلب وإعادة النشر تحترم تقليل الحركة.",
+        "mini-apps": "تحسين اكتشاف التطبيقات المصغرة والاتصال بالمحافظ الخارجية وعزل الويب عن التطبيقات الأصلية.",
+        "rendering-and-web": "تحسينات Neon وSuperellipse وRTL وأندرويد وأداء تحميل صور الخلاصة وملفات WASM.",
+        "release-operations": "تحسين حزم النشر والتحقق من البصمات ومركز التنزيل وحالة الخدمة مع إبقاء تدقيق توقيع المنصات."
+      }
+    },
+    "de-DE": {
+      "title": "Genycaster 1.0.256 — Sicherheit, Stabilität und UX",
+      "summary": "Änderungen seit v1.0.0: sichereres Signieren, klarere Protokollwiederherstellung, bessere Medien und schnellere Oberflächen.",
+      "items": {
+        "identity-protection": "Wiederherstellungswörter bleiben lokal; Signiererrechte sind vom Lesen getrennt, Eingaben werden gelöscht und Snapchain-FID-Limits ohne automatische Wiederholung behandelt.",
+        "wallet-permissions": "Mini-App- und Wallet-Zugriffe sind ursprungsgebunden, widerrufbar und gegen verspätete oder fremde RPC-Antworten geschützt.",
+        "consent-and-policy": "Vollständige In-App-Markdown-Dokumente zu Nutzungsbedingungen und Datenschutz in 12 Sprachen mit standardmäßig deaktivierter Einwilligung.",
+        "protocol-outages": "Bei verzögertem HyperSnap-Shard 0 werden irreversible Schreibvorgänge gesperrt und schreibgeschützte Prüfungen mit Backoff fortgesetzt; Farcaster bietet Fehlerhinweise.",
+        "account-onboarding": "Überarbeitete Farcaster-Signaturanmeldung, 24-Wort-Wiederherstellung, HyperSnap-Registrierung, Geräteautorisierung und Eingabefokus.",
+        "social-navigation": "Korrekte eigene Profile und Zurück-Navigation zwischen Hinweisen, Erwähnungen und Casts; veraltete Antworten ändern die aktive Ansicht nicht.",
+        "media-upload": "Lokale Bildoptimierung vor QStorage, klarer Upload-Fortschritt, Anhangskarten, Abbruch und Bereinigung.",
+        "stats-and-sharing": "Teilbare Statistikbilder, bessere Profilbilder, quadratische Cover und soziale Freigabeoptionen.",
+        "stickers-and-reactions": "Synchronisierte Sticker-Pakete, Pro-Zugriff, Cream Cat und Herzsprung-/Recast-Animationen mit Reduce Motion.",
+        "mini-apps": "Verbesserte Mini-App-Suche, externe Wallet-Übergabe und Web-/Native-Isolation.",
+        "rendering-and-web": "Neon-/Superellipse-UI, RTL, Android-Rendering sowie weniger unnötiges Laden und bessere WASM-Caches.",
+        "release-operations": "Versionierte Installationspakete, Prüfsummen, Download-Portal, Dienststatus und plattformspezifische Signaturprüfungen."
+      }
+    },
+    "es-ES": {
+      "title": "Genycaster 1.0.256 — Seguridad, fiabilidad y experiencia",
+      "summary": "Mejoras acumuladas desde v1.0.0: firmas más seguras, recuperación clara, publicación enriquecida y mayor rendimiento.",
+      "items": {
+        "identity-protection": "Las frases de recuperación permanecen en el dispositivo; firmar se separa de leer, se borran las entradas y se respetan los límites de Snapchain.",
+        "wallet-permissions": "Permisos de min apps y carteras vinculados al origen, revocables y protegidos contra respuestas RPC tardías o externas.",
+        "consent-and-policy": "Condiciones y privacidad completas en Markdown, disponibles en 12 idiomas con consentimiento desmarcado inicialmente.",
+        "protocol-outages": "Durante retrasos del shard 0 de HyperSnap se evitan escrituras irreversibles y se mantiene la comprobación de solo lectura con espera progresiva; Farcaster ofrece alternativas.",
+        "account-onboarding": "Mejorados el acceso por firma de Farcaster, la recuperación de 24 palabras, el registro de HyperSnap y el enfoque/pegado.",
+        "social-navigation": "Corregidos perfil propio, botón Seguir y navegación de regreso desde notificaciones, menciones y casts; respuestas antiguas no cambian la pantalla.",
+        "media-upload": "Optimización local de imágenes antes de QStorage, etapas claras de carga, tarjetas de adjuntos y limpieza tras cancelar.",
+        "stats-and-sharing": "Tarjetas visuales para compartir estadísticas, avatares mejores, formato cuadrado y opciones de redes sociales.",
+        "stickers-and-reactions": "Packs de pegatinas sincronizados, acceso público/Pro, Cream Cat y animaciones de corazón y recast con Reduce Motion.",
+        "mini-apps": "Mejor descubrimiento de min apps, conexión de carteras externas y separación web/nativa.",
+        "rendering-and-web": "UI Neon/Superellipse, RTL, renderizado Android y mejoras de imágenes y caché WASM.",
+        "release-operations": "Paquetes versionados, sumas de verificación, portal de descargas, estado de servicios y controles de firma."
+      }
+    },
+    "fr-FR": {
+      "title": "Genycaster 1.0.256 — Sécurité, fiabilité et ergonomie",
+      "summary": "Évolutions depuis v1.0.0 : signature mieux protégée, récupération des protocoles, publication enrichie et performances.",
+      "items": {
+        "identity-protection": "Les mots de récupération restent locaux ; les droits de signature sont distincts de la lecture, les entrées sont effacées et les limites Snapchain respectées.",
+        "wallet-permissions": "Autorisations des mini-apps et portefeuilles limitées à l’origine, révocables et protégées des réponses RPC tardives ou intersites.",
+        "consent-and-policy": "Conditions et confidentialité en Markdown dans l’application, traduites en 12 langues, avec consentement initialement décoché.",
+        "protocol-outages": "Si le shard 0 de HyperSnap tarde, les écritures irréversibles sont bloquées et des contrôles en lecture seule continuent avec temporisation ; Farcaster propose des recours.",
+        "account-onboarding": "Connexion par signature Farcaster, récupération des 24 mots, inscription HyperSnap et gestion du collage/focus améliorées.",
+        "social-navigation": "Profils personnels, bouton Suivre et retour depuis notifications, mentions et casts corrigés ; les réponses périmées ne changent plus la vue.",
+        "media-upload": "Optimisation locale des images avant QStorage, étapes de transfert, cartes de pièces jointes et nettoyage après annulation.",
+        "stats-and-sharing": "Images statistiques partageables, avatars améliorés, couvertures carrées et partage social.",
+        "stickers-and-reactions": "Packs de stickers synchronisés, options publiques/Pro, Cream Cat et animations douces du cœur et des recasts.",
+        "mini-apps": "Découverte des mini-apps, relais vers les portefeuilles externes et isolation web/natif améliorés.",
+        "rendering-and-web": "Interface Neon/Superellipse, RTL, rendu Android, chargement des images et cache WASM optimisés.",
+        "release-operations": "Paquets versionnés, sommes de contrôle, espace de téléchargement, statut des services et vérification des signatures."
+      }
+    },
+    "hi-IN": {
+      "title": "Genycaster 1.0.256 — सुरक्षा, विश्वसनीयता और बेहतर UX",
+      "summary": "v1.0.0 के बाद के सुधार: सुरक्षित साइनिंग, स्पष्ट नेटवर्क रिकवरी, समृद्ध पोस्टिंग और तेज़ इंटरफ़ेस।",
+      "items": {
+        "identity-protection": "रिकवरी शब्द डिवाइस पर रहते हैं; पढ़ने और साइन करने की अनुमति अलग है, इनपुट मिटते हैं और Snapchain FID दर सीमाओं में पुनः अनुरोध नहीं भेजा जाता।",
+        "wallet-permissions": "मिनी ऐप और बाहरी वॉलेट के मूल-आधारित, वापस लिए जा सकने वाले परमिशन तथा देर से आने वाले RPC उत्तरों से सुरक्षा।",
+        "consent-and-policy": "12 भाषाओं में इन-ऐप Markdown शर्तें और गोपनीयता नीति, डिफ़ॉल्ट रूप से बिना टिक सहमति के।",
+        "protocol-outages": "HyperSnap shard 0 के पिछड़ने पर अपरिवर्तनीय लिखना रोका जाता है और केवल-पठन जाँच क्रमिक विलंब से जारी रहती है; Farcaster के विकल्प स्पष्ट हैं।",
+        "account-onboarding": "Farcaster सिग्नेचर लॉगिन, 24 शब्द रिकवरी, HyperSnap सेटअप और पेस्ट/फोकस सुधारे गए।",
+        "social-navigation": "खुद की प्रोफ़ाइल, Follow और नोटिफिकेशन, मेंशन, कास्ट से Back की समस्या ठीक; पुराने उत्तर दृश्य नहीं बदलते।",
+        "media-upload": "QStorage अपलोड से पहले स्थानीय तस्वीर संपीड़न, स्पष्ट चरण, अटैचमेंट कार्ड और रद्द करने पर सफ़ाई।",
+        "stats-and-sharing": "शेयर योग्य आँकड़े कार्ड, बेहतर अवतार, चौकोर कवर और सामाजिक शेयर विकल्प।",
+        "stickers-and-reactions": "सिंक्ड स्टिकर पैक, सार्वजनिक/Pro विकल्प, Cream Cat और Reduce Motion-अनुकूल हार्ट व री-कास्ट एनिमेशन।",
+        "mini-apps": "मिनी ऐप खोज, बाहरी वॉलेट हैंडऑफ़ और वेब/नेटिव सुरक्षा सीमाएँ बेहतर।",
+        "rendering-and-web": "Neon/Superellipse UI, RTL, Android रेंडरिंग, फ़ीड छवि तथा WASM कैश और प्रदर्शन में सुधार।",
+        "release-operations": "संस्करणबद्ध पैकेज, चेकसम, डाउनलोड हब, सर्विस स्टेटस और प्लेटफ़ॉर्म साइनिंग जाँच।"
+      }
+    },
+    "ja-JP": {
+      "title": "Genycaster 1.0.256 — セキュリティ・安定性・操作性",
+      "summary": "v1.0.0 以降の累積改善：署名の安全性、ネットワーク復旧、投稿機能、Qt と Web の性能。",
+      "items": {
+        "identity-protection": "復元ワードは端末内に保持。閲覧と署名権限を分離し、入力を消去し、Snapchain の FID 制限では自動再送しません。",
+        "wallet-permissions": "ミニアプリと外部ウォレットにオリジン限定・取り消し可能な権限を導入し、遅延した RPC 応答を遮断します。",
+        "consent-and-policy": "利用規約とプライバシー文書をアプリ内 Markdown で12言語提供。同意は初期状態で未選択です。",
+        "protocol-outages": "HyperSnap の shard 0 が遅延した場合は不可逆な書き込みを停止し、読み取り確認をバックオフ付きで継続。Farcaster に代替手段を表示。",
+        "account-onboarding": "Farcaster 署名ログイン、24語復元、HyperSnap 登録、端末署名者認可、貼り付けとフォーカスを改善。",
+        "social-navigation": "自分のプロフィールと Follow 表示、通知・メンション・Cast 間の戻る操作を修正。古い応答で画面が変わらなくなりました。",
+        "media-upload": "QStorage 転送前のローカル画像最適化、段階表示、添付カード、キャンセルと残存データの整理。",
+        "stats-and-sharing": "共有可能な統計画像、アバター、正方形カバーとソーシャル共有を改善。",
+        "stickers-and-reactions": "同期型ステッカーパック、公開/Pro、Cream Cat と Reduce Motion 対応のハートやリキャストの動き。",
+        "mini-apps": "ミニアプリ探索、外部ウォレット連携、Web とネイティブの境界を改善。",
+        "rendering-and-web": "Neon/Superellipse、RTL、Android 描画、フィード画像と WASM キャッシュの性能向上。",
+        "release-operations": "バージョン付き配布物、チェックサム、ダウンロード、稼働状況、署名検証を整備。"
+      }
+    },
+    "ko-KR": {
+      "title": "Genycaster 1.0.256 — 보안, 안정성 및 UX 개선",
+      "summary": "v1.0.0 이후 변경: 안전한 서명, 네트워크 복구, 풍부한 게시 기능 및 성능 개선.",
+      "items": {
+        "identity-protection": "복구 단어는 기기에만 보관하며 읽기와 서명 권한을 분리합니다. 제출 뒤 입력을 지우고 Snapchain FID 요청 제한에서 자동 재전송을 하지 않습니다.",
+        "wallet-permissions": "미니 앱과 외부 지갑의 출처 기반 권한, 접근 취소 및 늦은 RPC 응답 차단 강화.",
+        "consent-and-policy": "12개 언어의 앱 내 Markdown 약관·개인정보 문서와 기본 미선택 동의.",
+        "protocol-outages": "HyperSnap shard 0 지연 시 위험한 쓰기를 막고 읽기 전용 확인을 점진적 대기와 함께 지속하며 Farcaster 대안을 안내.",
+        "account-onboarding": "Farcaster 서명 로그인, 24단어 복구, HyperSnap 등록 및 붙여넣기·초점 개선.",
+        "social-navigation": "내 프로필·Follow와 알림·멘션·Cast의 뒤로 가기 수정. 오래된 응답이 화면을 바꾸지 않습니다.",
+        "media-upload": "QStorage 업로드 전 로컬 이미지 최적화, 단계 표시, 첨부 카드와 취소 시 정리.",
+        "stats-and-sharing": "공유 가능한 통계 이미지, 아바타, 정사각형 커버와 소셜 공유.",
+        "stickers-and-reactions": "동기화 스티커 팩, 공개/Pro, Cream Cat 및 Reduce Motion을 반영한 하트·리캐스트 애니메이션.",
+        "mini-apps": "미니 앱 검색, 외부 지갑 연결, 웹/네이티브 분리 강화.",
+        "rendering-and-web": "Neon/Superellipse, RTL, Android 렌더링 및 피드 이미지와 WASM 캐시 성능 개선.",
+        "release-operations": "버전 패키지, 체크섬, 다운로드 포털, 서비스 상태 및 플랫폼 서명 확인."
+      }
+    },
+    "pt-BR": {
+      "title": "Genycaster 1.0.256 — Segurança, estabilidade e UX",
+      "summary": "Melhorias desde v1.0.0: assinaturas mais seguras, recuperação de rede, publicação rica e desempenho otimizado.",
+      "items": {
+        "identity-protection": "As palavras de recuperação ficam no dispositivo; leitura e assinatura são separadas, entradas são apagadas e limites por FID do Snapchain não geram reenvio automático.",
+        "wallet-permissions": "Permissões de miniapps e carteiras externas limitadas à origem, revogáveis e protegidas de respostas RPC tardias.",
+        "consent-and-policy": "Termos e privacidade em Markdown dentro do app, em 12 idiomas, com consentimento inicialmente desmarcado.",
+        "protocol-outages": "Com atraso no shard 0 do HyperSnap, novas escritas irreversíveis são bloqueadas e verificações somente leitura continuam com espera gradual; Farcaster indica alternativas.",
+        "account-onboarding": "Login por assinatura Farcaster, recuperação de 24 palavras, cadastro HyperSnap, autorização e colagem/foco aprimorados.",
+        "social-navigation": "Perfil próprio, Follow e Voltar entre notificações, menções e casts corrigidos; respostas antigas não substituem a tela.",
+        "media-upload": "Otimização local de imagens antes do QStorage, etapas de envio, cartões de anexos e limpeza ao cancelar.",
+        "stats-and-sharing": "Imagens compartilháveis de estatísticas, avatares melhores, capas quadradas e opções de redes sociais.",
+        "stickers-and-reactions": "Pacotes de stickers sincronizados, opções públicas/Pro, Cream Cat e animações de coração/recast com Reduce Motion.",
+        "mini-apps": "Descoberta de miniapps, integração com carteiras externas e isolamento web/nativo melhores.",
+        "rendering-and-web": "Neon/Superellipse, RTL, renderização Android, imagens do feed e cache WASM otimizados.",
+        "release-operations": "Pacotes versionados, checksums, downloads, status do serviço e verificações de assinatura."
+      }
+    },
+    "ru-RU": {
+      "title": "Genycaster 1.0.256 — Безопасность, надёжность и UX",
+      "summary": "Изменения после v1.0.0: защита подписи, восстановление протоколов, богатые публикации и ускорение интерфейса.",
+      "items": {
+        "identity-protection": "Слова восстановления остаются на устройстве; чтение отделено от подписи, ввод очищается, а ограничения запросов Snapchain по FID не вызывают автоматического повтора.",
+        "wallet-permissions": "Разрешения мини-приложений и внешних кошельков привязаны к источнику, отзывные и защищены от поздних RPC-ответов.",
+        "consent-and-policy": "Встроенные Markdown-условия и политика конфиденциальности на 12 языках; согласие по умолчанию снято.",
+        "protocol-outages": "При отставании шарда 0 HyperSnap необратимые записи блокируются, а проверки только на чтение продолжаются с задержкой; Farcaster показывает альтернативы.",
+        "account-onboarding": "Улучшены вход по подписи Farcaster, восстановление 24 слов, регистрация HyperSnap, разрешение устройства, вставка и фокус.",
+        "social-navigation": "Исправлены собственный профиль и Follow, возврат из уведомлений, упоминаний и кастов; старые ответы не меняют экран.",
+        "media-upload": "Локальная оптимизация изображений до QStorage, этапы загрузки, карточки вложений и очистка отменённых публикаций.",
+        "stats-and-sharing": "Изображения статистики для публикации, аватары, квадратные обложки и варианты социального обмена.",
+        "stickers-and-reactions": "Синхронизируемые стикеры, публичные/Pro наборы, Cream Cat и анимации лайка/репоста с Reduce Motion.",
+        "mini-apps": "Улучшены поиск мини-приложений, переход к внешним кошелькам и изоляция веб/нативных функций.",
+        "rendering-and-web": "Neon/Superellipse, RTL, рендеринг Android, подгрузка изображений и кэш WASM оптимизированы.",
+        "release-operations": "Пакеты с версиями, контрольные суммы, центр загрузок, состояние служб и проверки подписи платформ."
+      }
+    },
+    "zh-CN": {
+      "title": "Genycaster 1.0.256 — 安全性、稳定性与体验升级",
+      "summary": "自 v1.0.0 起的累计改进：更安全的签名、网络恢复、丰富的发布能力及更快的界面。",
+      "items": {
+        "identity-protection": "恢复助记词保留在设备本地；浏览与签名权限分离，提交后清除输入，遇到 Snapchain FID 限流时不会自动重复提交。",
+        "wallet-permissions": "迷你应用和外部钱包实施来源限定、可撤销的授权，并阻止迟到或跨来源 RPC 响应。",
+        "consent-and-policy": "在应用内提供12种语言的 Markdown 服务条款与隐私政策，用户同意默认不勾选。",
+        "protocol-outages": "当 HyperSnap 分片 0 落后时阻止不可逆写入，并以退避方式继续只读确认；Farcaster 故障提供明确替代路径。",
+        "account-onboarding": "改进 Farcaster 签名登录、24词恢复、HyperSnap 注册、设备签名者授权以及粘贴和焦点处理。",
+        "social-navigation": "修复自己的主页误显 Follow，以及通知、提及和 Cast 间返回；过期网络响应不再改变当前页面。",
+        "media-upload": "QStorage 上传前本地图片优化、清晰的压缩与上传阶段、附件卡片及取消后清理。",
+        "stats-and-sharing": "可分享的统计图片、头像、方形封面和社交平台分享功能。",
+        "stickers-and-reactions": "同步贴纸包、公开/Pro 权限、Cream Cat，以及支持减少动态效果的点赞和转发动画。",
+        "mini-apps": "改善迷你应用发现、外部钱包连接及 Web/原生平台隔离。",
+        "rendering-and-web": "优化 Neon/Superellipse、RTL、Android 绘制、信息流图片加载及 WASM 缓存性能。",
+        "release-operations": "版本化安装包、校验和、下载中心、服务状态及平台签名检查。"
+      }
+    }
+  }
+}

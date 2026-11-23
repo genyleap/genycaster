@@ -352,6 +352,7 @@ ColumnLayout {
                 width: parent ? parent.width : (shareModalScroll ? shareModalScroll.width : 0)
                 spacing: Theme.space2
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 DirectionAwareLabel {
                     Layout.fillWidth: true
@@ -370,6 +371,7 @@ ColumnLayout {
                 }
             }
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 ActionButton {
@@ -413,6 +415,7 @@ ColumnLayout {
                 wrapMode: Text.Wrap
             }
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 visible: root.shareAccountAvatarUrl.length > 0
                     && !mediaUpload.statsAvatarLoading && !mediaUpload.statsAvatarReady
@@ -432,6 +435,7 @@ ColumnLayout {
                 }
             }
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 ActionButton {

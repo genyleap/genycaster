@@ -44,6 +44,7 @@ NeonCard {
         contentItem: ColumnLayout {
             spacing: Theme.space2
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 DirectionAwareLabel {
                     Layout.fillWidth: true
@@ -406,6 +407,7 @@ NeonCard {
                     }
 
                     RowLayout {
+                        layoutDirection: Theme.uiDirection
                         objectName: "smartMediaPipelineProgressSteps"
                         visible: mediaUpload.busy
                             && String(mediaUpload.selectedContentType || "").startsWith("image/")
@@ -421,16 +423,17 @@ NeonCard {
                                 qsTrId("genycaster.media.step_finalizing")
                             ]
                             delegate: RowLayout {
+                                layoutDirection: Theme.uiDirection
                                 required property int index
                                 required property string modelData
                                 Layout.fillWidth: true
                                 spacing: Theme.space1
 
-                                Rectangle {
+                                Superellipse {
                                     Layout.preferredWidth: 8
                                     Layout.preferredHeight: 8
-                                    radius: 4
-                                    color: index <= root.processingStep
+                                    curveDepth: Theme.curveTiny
+                                    fillColor: index <= root.processingStep
                                         ? Theme.accent : Theme.borderStrong
                                 }
                                 DirectionAwareLabel {
@@ -512,6 +515,7 @@ NeonCard {
             GridLayout {
                 id: attachmentGrid
                 objectName: "composerAttachmentGrid"
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 columns: root.width >= 535 ? 2 : 1
                 columnSpacing: Theme.space2
@@ -536,6 +540,7 @@ NeonCard {
                             spacing: Theme.space1
 
                             RowLayout {
+                                layoutDirection: Theme.uiDirection
                                 Layout.fillWidth: true
                                 spacing: Theme.space2
 

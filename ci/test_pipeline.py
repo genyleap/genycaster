@@ -319,11 +319,13 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("emit nativeRecoveryRequested(std::move(recoveryWords));", bridge)
         self.assertIn("Qt.ImhSensitiveData", setup)
         self.assertIn("nativeRecoveryGrid.clearAll()", setup)
-        # Device signer consent must survive the one-shot zeroization of the
-        # recovery editor. Clearing that editor resets its opt-in checkbox.
-        self.assertIn("const authorizeDeviceSigner = deviceSignerConsent.checked", setup)
+        # Explicit recovery submission also requests the device signer; a
+        # redundant opt-in checkbox was removed. Capture the intent before
+        # zeroizing the sensitive editor, not afterward.
+        self.assertIn("const authorizeDeviceSigner = true", setup)
+        self.assertNotIn("deviceSignerConsent.checked", setup)
         self.assertLess(
-            setup.index("const authorizeDeviceSigner = deviceSignerConsent.checked"),
+            setup.index("const authorizeDeviceSigner = true"),
             setup.index("nativeRecoveryGrid.clearAll()", setup.index("let words = nativeRecoveryGrid.phrase()")))
         self.assertIn("root.nativeRecoverFarcasterAccount(words, authorizeDeviceSigner)", setup)
         self.assertIn("root.nativeRecoverHyperSnapAccount(words, authorizeDeviceSigner)", setup)

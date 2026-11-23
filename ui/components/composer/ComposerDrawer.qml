@@ -1757,6 +1757,7 @@ GenyDrawer {
             // image Cast into a silent text-only publication. A deliberate
             // fallback is always available without losing the Stats caption.
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 objectName: "statsCardUploadFallback"
                 visible: root.statsImageFileUrl.length > 0
                          && root.statsImageUploadAttempted && !mediaUpload.busy
