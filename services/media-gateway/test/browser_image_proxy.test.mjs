@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isPublicAddress, validImageUrl, validPublicFaviconUrl,
   maximumBrowserImageBytes, retrieveBrowserImage,
-  rasterMimeFromBytes } from '../browser_image_proxy.mjs';
+  rasterMimeFromBytes, compatibleBrowserRaster } from '../browser_image_proxy.mjs';
 
 test('public favicon exception allows only bounded site icon paths', () => {
   for (const allowed of [
@@ -345,4 +345,24 @@ test('public Quilcast and narrowly scoped Pinata CID assets pass browser proxy p
     'https://evil.tba-mobile.mypinata.cloud.evil.test/ipfs/QmdD5hZrJz1CDVLs2Tg5JLnNR8hjWFVZmMqVWRAWoWYFJd',
     'http://tba-mobile.mypinata.cloud/ipfs/QmdD5hZrJz1CDVLs2Tg5JLnNR8hjWFVZmMqVWRAWoWYFJd'
   ])assert.equal(validImageUrl(url),null,url);
+});
+
+test('Recaster cast images only: exact host and bounded opaque raster path',()=>{
+ const path='/cast/0123456789abcdef0123456789abcdef.png';
+ assert.ok(validImageUrl('https://cdn.recaster.org'+path));
+ for(const url of ['https://cdn.recaster.org/admin','https://cdn.recaster.org'+path+'?x=1','https://sub.cdn.recaster.org'+path,'https://cdn.recaster.org/cast/short.png'])
+  assert.equal(validImageUrl(url),null,url);
+});
+test('Qt conservative raster fallback converts fixed WebP bytes and preserves alpha',async()=>{
+ const {default:sharp}=await import('sharp');
+ for(const alpha of [false,true]){
+  const body=await sharp({create:{width:20,height:20,channels:alpha?4:3,background:alpha?'#44779980':'#447799'}}).webp().toBuffer();
+  const original={status:200,body,contentType:'image/webp'};
+  assert.equal(await compatibleBrowserRaster(original,false),original);
+  const result=await compatibleBrowserRaster(original,true);
+  assert.equal(result.status,200);
+  assert.equal(result.contentType,alpha?'image/png':'image/jpeg');
+  assert.equal(rasterMimeFromBytes(result.body),result.contentType);
+  assert.equal((await sharp(result.body).metadata()).width,20);
+ }
 });

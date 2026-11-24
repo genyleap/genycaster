@@ -1555,8 +1555,12 @@ export function createMediaGateway(config, storage, dependencies = {}) {
             || (verifiedMiniAppImages.get(requested) || 0) > runtime.now());
       // Qt WASM retries undecodable CDN artwork with JPEG at the front of
       // Accept. Forward only a fixed, safe preference bit, never raw headers.
-      const preferJpeg = /^image\/jpeg(?:[,;]|$)/i.test(
-        String(request.headers.accept || '').trim());
+      const acceptedImageTypes = String(request.headers.accept || '').trim();
+      // Some Qt builds advertise PNG/JPEG but no WebP decoder. A wildcard
+      // is not a declaration that optional Qt image plugins are available.
+      const preferJpeg = /^image\/jpeg(?:[,;]|$)/i.test(acceptedImageTypes)
+        || (/^image\/(?:png|jpeg)(?:[,;]|$)/i.test(acceptedImageTypes)
+            && !/(?:^|,)\s*image\/webp(?:[,;]|$)/i.test(acceptedImageTypes));
       const options = { allowedHosts: allowedHosts || browserImageHosts,
         managedMediaHost, preferJpeg };
       const artworkKey = (preferJpeg ? 'jpeg:' : 'default:') + requested;

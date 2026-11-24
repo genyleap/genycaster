@@ -2,6 +2,7 @@ import { lookup } from 'node:dns/promises';
 import https from 'node:https';
 import { randomUUID } from 'node:crypto';
 import { isIP } from 'node:net';
+import sharp from 'sharp';
 
 // Fixed first-party policy: requests for arbitrary URLs must never become a
 // general-purpose internet proxy or a route to internal services.
@@ -22,6 +23,8 @@ export const defaultBrowserImageHosts = [
   'media.onterminus.com',
   // Public cast image CDN; accept only opaque /m/<id> raster assets below.
   'quilcast.com',
+  // Recaster's public immutable cast raster assets only.
+  'cdn.recaster.org',
   // Cloudflare Stream exposes a deterministic raster poster for public video
   // manifests. Only the /thumbnails/thumbnail.jpg asset is admissible here.
   'videodelivery.net', 'cloudflarestream.com',
@@ -103,8 +106,11 @@ export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts,
   if (!(pinataSubdomain && safePinataPath && safePinataQuery)
       && !allowedHosts.some(host => hostname === host
           || (host !== managedMediaHost && host !== 'media-farcaster.genyleap.com'
-              && host !== 'media1.tenor.com' && host !== 'quilcast.com'
+              && host !== 'media1.tenor.com' && host !== 'quilcast.com' && host !== 'cdn.recaster.org'
               && hostname.endsWith('.' + host)))) return null;
+  if (hostname === 'cdn.recaster.org'
+      && (!/^\/cast\/[A-Za-z0-9_-]{16,128}\.(?:png|jpe?g|webp)$/i.test(parsed.pathname)
+          || parsed.search)) return null;
   if (hostname === 'quilcast.com'
       && (!/^\/m\/[a-f0-9]{16,80}\.(?:png|jpe?g|webp|gif)$/i.test(parsed.pathname)
           || parsed.search)) return null;
@@ -173,6 +179,27 @@ export function rasterMimeFromBytes(bytes) {
   return null;
 }
 
+// Negotiation alone does not guarantee compatibility: immutable WebP/AVIF
+// sources may ignore Accept. Convert only when the caller requests the
+// conservative Qt raster representation; native WebP/GIF paths stay intact.
+export async function compatibleBrowserRaster(result, preferJpeg) {
+  if (!preferJpeg || result.status !== 200
+      || !['image/webp','image/avif'].includes(result.contentType)) return result;
+  try {
+    const input = sharp(result.body, {limitInputPixels:20 * 1024 * 1024, failOn:'error'});
+    const metadata = await input.metadata();
+    const resized = input.rotate().resize({width:2048,height:2048,fit:'inside',withoutEnlargement:true});
+    const body = await (metadata.hasAlpha
+      ? resized.png({compressionLevel:6})
+      : resized.jpeg({quality:85})).toBuffer();
+    if (body.length > maximumBrowserImageBytes)
+      return {status:413,error:'image_too_large'};
+    return {status:200,body,contentType:metadata.hasAlpha?'image/png':'image/jpeg'};
+  } catch {
+    return {status:415,error:'image_invalid_payload'};
+  }
+}
+
 export async function retrieveBrowserImage(rawUrl, {
   lookupHost = lookup,
   allowedHosts = defaultBrowserImageHosts,
@@ -205,7 +232,7 @@ export async function retrieveBrowserImage(rawUrl, {
   }
   // Prefer IPv4 when the host has no working IPv6 egress; still pin DNS.
   const selected = addresses.find(entry => entry.family === 4) ?? addresses[0];
-  return await new Promise(resolve => {
+  const result = await new Promise(resolve => {
     let finished = false;
     const finish = value => { if (!finished) { finished = true; resolve(value); } };
     // Bust caches that might retain the expired QStorage 307 even longer
@@ -309,4 +336,5 @@ export async function retrieveBrowserImage(rawUrl, {
     request.on('error', () => finish({ status: 502, error: 'image_network_failed' }));
     request.end();
   });
+  return compatibleBrowserRaster(result, preferJpeg);
 }

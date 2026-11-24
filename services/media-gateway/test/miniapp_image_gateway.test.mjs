@@ -429,3 +429,12 @@ test('public feed previews and avatars use a separate bounded quota',async()=>{
     assert.equal(limited.headers.get('retry-after'),'60');
   } finally {await new Promise(resolve=>gateway.close(resolve));}
 });
+
+test('Qt PNG-first clients without WebP get conservative upstream negotiation',async()=>{
+ await withServer(async(state,base)=>{
+  const url=base+'/v1/browser/images?url='+encodeURIComponent(icon);
+  const r=await fetch(url,{headers:{accept:'image/png,image/jpeg,image/gif,*/*;q=0.1'}});
+  assert.equal(r.status,200);
+  assert.equal(state.seen[0].options.preferJpeg,true);
+ });
+});
