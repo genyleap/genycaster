@@ -301,4 +301,102 @@ contract test includes cursor routing, fallback and decoded-parent checks;
 `tests/wasm/explorer_freshness_scroll_regressions.test.mjs` checks the
 Following reply projection and extensionless image classification.
 
+## Proposed feed fluidity and Neon integration — 24 November 2026
+
+**Status: proposed, not implemented or benchmarked.** Source baseline:
+[`d0cb948`](https://github.com/genyleap/genycaster/tree/d0cb9487c9dacc1ebd41cc2aa92943eac1055761).
+The user-visible symptom is heavy scrolling between casts. The engineering
+goal is Telegram Desktop-class responsiveness while preserving GenyCaster's
+visual fidelity, content coverage and Qt Quick architecture.
+
+### Existing strengths and remaining hypotheses
+
+Timeline already uses a recycled ListView with a bounded cache; Magazine
+uses a native viewport-window MasonryWindowModel. FeedRowsModel reconciles
+stable identities incrementally. Remote images use bounded asynchronous
+decode, decoded-image caching and frame-paced presentation; video players
+are admitted on demand. Do not replace these foundations merely to introduce
+another renderer. The CPU model microbenchmarks above are not GPU or
+end-to-end scrolling measurements.
+
+| Priority | Source evidence | Proposed action |
+| --- | --- | --- |
+| P0 | [SuperellipseImage.qml](../ui/components/visual/SuperellipseImage.qml) enables a persistent Image layer and MultiEffect mask for admitted clipped images; [Avatar.qml](../ui/components/content/Avatar.qml) uses the same path. | Profile offscreen passes, texture allocations and bandwidth. Prototype direct texture sampling plus analytic contour coverage in one QSG material, without a separate mask texture or per-image offscreen layer. |
+| P0 | [CastItem.qml](../ui/components/feed/CastItem.qml) has a large rich delegate tree, nested layouts, loaders, contextual previews and engagement controls. | Count live objects and binding evaluations; load only applicable subtrees; cache presentation-ready metadata and preserve interaction/accessibility. Timeline already hides the decorative card surface, so Glass alone is not an adequate explanation. |
+| P1 | [FeedSurface.qml](../ui/components/feed/FeedSurface.qml) commits resolved heights during flicking; [FeedMasonryView.qml](../ui/components/feed/FeedMasonryView.qml) coalesces layout but still receives late measurements. | Cache measured heights by content/layout revision and width; reserve known media aspect ratios; minimize reflow and preserve stable cast/offset anchors. Do not freeze incorrect heights or introduce gaps/overlap during scrolling. |
+| P1 | [remote_image.cpp](../ui/app/media/remote_image.cpp) caches decoded CPU images, but a cached QImage does not guarantee a resident GPU texture. | Measure uploads, residency, repeated allocations and frame-admission queues; evaluate bounded per-window GPU texture reuse with render-thread ownership, invalidation and context-loss handling. |
+| P1 | SuperellipseImage's GIF playback can continue during scrolling; pooled rows are hidden but near-viewport delegates may remain active. | Separate actual viewport visibility from delegate retention; budget decorative animation and pause offscreen work where appropriate without interrupting user-initiated playback. |
+| P2 | [RichCastRenderer.qml](../ui/components/content/RichCastRenderer.qml) builds spans and rich blocks; embed classification and hydration can trigger presentation changes. | Profile parsing, shaping and binding work; move proven hot transformations to cached C++ presentation data. Consider a lightweight native cast renderer only if optimized Qt Quick delegates still miss the frame budget. |
+
+### Planned integration of the new Neon design kit
+
+GenyCaster is intended to integrate the redesigned standalone
+[Neon](https://github.com/genyleap/neon) kit again. The current reference
+baseline is [Neon 0.7.0 / `873bac8`](https://github.com/genyleap/neon/tree/873bac8fbbf52a65d2fc30925af7ff67fa288d50),
+not a declaration that this version is already integrated or native-certified.
+A shared native image renderer is a **proposed next Neon capability**, not
+a feature claimed to exist in that baseline.
+
+```text
+GenyCaster feed models / stable viewport geometry / media policy
+                         |
+                Cast presentation
+                         |
+         Neon shared visual primitives
+     (analytic shapes, materials, future image material)
+                         |
+              Qt Quick Scene Graph / RHI
+                         |
+           Metal / Vulkan / platform backend
+```
+
+Neon should own generic image geometry, analytic anti-aliasing, material
+composition and reusable rendering primitives. GenyCaster should retain
+protocol data, feed ordering, remote-image provider, download policy,
+decode scheduling, media admission, playback and application state.
+Avoid duplicating the provider or constructing a separate render engine.
+Preserve avatar silhouettes, PreserveAspectFit/Crop behavior, transparency,
+DPR, fallback rendering, GIF/video semantics, RTL and accessibility.
+Validate texture lifetime and sharing on the owning render thread; account
+for atlas coordinates, premultiplied alpha, source changes and device loss.
+Use public Qt scene-graph APIs and QSB; no private backend shortcuts.
+
+### Execution and acceptance gates
+
+1. Establish a Release/Metal baseline on the user's iMac M1 for P03/P04/P05/P07.
+   Compare Timeline and Magazine separately on the same fixture and cache
+   state; capture p50/p95/p99 frame intervals, missed refresh deadlines,
+   GUI-thread and render/GPU time, object counts, upload volume, memory
+   and render passes. Use Instruments and Qt QML/scene-graph diagnostics.
+2. Isolate the image-mask hypothesis with an A/B test (existing path versus
+   a diagnostic unmasked path). The unmasked variant is diagnostic only,
+   not a quality-equivalent production win. Repeat with static media,
+   animated media and text-only fixtures; compare Efficiency and Adaptive
+   as a secondary multi-variable diagnostic, not proof of one root cause.
+3. Implement and qualify the shared Neon image primitive in Neon first.
+   Compare it against the existing masked path with equivalent pixels,
+   dimensions, sampling and feature behavior. Verify native builds,
+   QSB, visual regression, resource ownership and supported backends.
+4. Pin a verified Neon revision, migrate image/avatar rendering
+   incrementally behind a reversible integration boundary, and remeasure.
+   Migrate other shared visual controls only where the contracts match;
+   avoid rewriting working feed models or interaction logic.
+5. Optimize remaining measured delegate, geometry, upload and animation
+   bottlenecks. Preserve scroll continuity, media readiness, click targets,
+   accessibility, selection and return-from-detail behavior. Extend the
+   existing media-scroll tests and add reproducible real-frame traces.
+
+For a 60 Hz display the frame interval budget is about 16.67 ms; at 120 Hz
+it is about 8.33 ms. These are targets, not achieved GenyCaster results.
+Use the actual refresh rate and report distributions, not average FPS
+alone. Follow the existing ten-run methodology and keep native desktop,
+mobile and WASM qualification separate.
+
+**Engineering principle:** avoid unnecessary work before optimizing
+individual draws. Borrow Telegram Desktop's viewport-limited work,
+incremental invalidation and bounded resource lifetime, not its QWidget
+rendering architecture. Preserve visual quality and functional behavior.
+No performance improvement or confirmed root cause is claimed until
+measured on the real rendering path.
+
 See also [Architecture](ARCHITECTURE.md), [UI performance contract](14-performance-and-ui-runtime.md), and [Contributing](../CONTRIBUTING.md).
