@@ -247,8 +247,10 @@ NeonSurface {
                             source: root.accountProtocol === "hypersnap"
                                 ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/quilibrium/hypersnap.svg"
                                 : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/farcaster.svg"
-                            sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio),
-                                                Math.ceil(height * Screen.devicePixelRatio))
+                            // The SVG's implicit geometry depends on sourceSize.
+                            // Derive it from the theme token, never layout width/height.
+                            sourceSize: Qt.size(Math.ceil(Theme.iconSizeSmall * Screen.devicePixelRatio),
+                                                Math.ceil(Theme.iconSizeSmall * Screen.devicePixelRatio))
                             smooth: true
                         }
                         DirectionAwareLabel {
@@ -264,21 +266,6 @@ NeonSurface {
                     }
 
                     DirectionAwareLabel {
-                        id: sidebarFidValue
-                        objectName: "sidebarFidMetric"
-                        visible: Number(root.fid) > 0
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.detail.fid_value").arg(LocaleFormat.formatInteger(root.fid))
-                        color: Theme.textTertiary
-                        font.pixelSize: Theme.typeCaptionSize
-                        elide: Text.ElideRight
-                        Accessible.role: Accessible.Button
-                        Accessible.name: text
-                        Accessible.onPressAction: root.requestProfile()
-                        TapHandler { onTapped: root.requestProfile() }
-                    }
-
-                    DirectionAwareLabel {
                         visible: root.location.length > 0 && !root.compact
                         Layout.fillWidth: true
                         text: root.location
@@ -291,30 +278,9 @@ NeonSurface {
                 RowLayout {
                     Layout.alignment: Qt.AlignVCenter
                     spacing: Theme.space1
-                    layoutDirection: Theme.uiDirection
-
-                    Item {
-                    id: streakRing
-                    objectName: "sidebarStreakRing"
-                    Layout.preferredWidth: root.compact ? 42 : 50
-                    Layout.preferredHeight: Layout.preferredWidth
-
-                    ProgressRing {
-                        anchors.fill: parent
-                        progress: root.streakActive && root.streakNext > 0
-                            ? Math.min(1, root.streakCurrent/root.streakNext) : 0
-                        strokeWidth: root.compact ? 3.5 : 4
-                        inset: 3
-                        trackColor: Theme.borderMuted
-                        progressColor: root.streakActive ? Theme.streak : Theme.inkMuted
-                    }
-                    Icon {
-                        anchors.centerIn: parent
-                        text: Theme.iconStreakFlame
-                        preferredSize: Theme.scaleUi(22)
-                        color: root.streakActive ? Theme.streak : Theme.inkMuted
-                    }
-                    }
+                    layoutDirection: Qt.LeftToRight
+                    LayoutMirroring.enabled: false
+                    LayoutMirroring.childrenInherit: true
 
                     DirectionAwareLabel {
                         objectName: "sidebarStreakMetric"
@@ -322,6 +288,29 @@ NeonSurface {
                         color: root.streakActive ? Theme.streak : Theme.textSecondary
                         font.pixelSize: Theme.typeTitle3Size
                         font.weight: Theme.weightBold
+                    }
+
+                    Item {
+                        id: streakRing
+                        objectName: "sidebarStreakRing"
+                        Layout.preferredWidth: root.compact ? 42 : 50
+                        Layout.preferredHeight: Layout.preferredWidth
+
+                        ProgressRing {
+                            anchors.fill: parent
+                            progress: root.streakActive && root.streakNext > 0
+                                ? Math.min(1, root.streakCurrent/root.streakNext) : 0
+                            strokeWidth: root.compact ? 3.5 : 4
+                            inset: 3
+                            trackColor: Theme.borderMuted
+                            progressColor: root.streakActive ? Theme.streak : Theme.inkMuted
+                        }
+                        Icon {
+                            anchors.centerIn: parent
+                            text: Theme.iconStreakFlame
+                            preferredSize: Theme.scaleUi(22)
+                            color: root.streakActive ? Theme.streak : Theme.inkMuted
+                        }
                     }
                     Accessible.role: Accessible.Button
                     Accessible.name: qsTrId("genycaster.streak.title") + " "
@@ -446,11 +435,42 @@ NeonSurface {
                 TapHandler { onTapped: root.proRequested() }
             }
             ActionButton {
+                id: profileAction
+                objectName: "sidebarProfileAction"
                 Layout.fillWidth: true
                 compact: true
                 quiet: true
                 iconGlyph: Theme.iconProfile
                 text: qsTrId("genycaster.side_nav.profile")
+                Accessible.name: text + (root.fid > 0 ? ", " + sidebarFidValue.text : "")
+                implicitWidth: Math.max(68, contentItem.implicitWidth + leftPadding + rightPadding)
+                contentItem: RowLayout {
+                    spacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
+                    Icon {
+                        text: Theme.iconProfile
+                        color: profileAction.foregroundColor
+                        preferredSize: Theme.iconSize
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        text: profileAction.text
+                        color: profileAction.foregroundColor
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightMedium
+                        elide: Text.ElideRight
+                    }
+                    DirectionAwareLabel {
+                        id: sidebarFidValue
+                        objectName: "sidebarFidMetric"
+                        visible: root.fid > 0
+                        text: qsTrId("genycaster.detail.fid_value").arg(LocaleFormat.formatInteger(root.fid))
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeMetaSize
+                        font.weight: Theme.weightMedium
+                    }
+                }
                 onClicked: root.requestProfile()
             }
         }

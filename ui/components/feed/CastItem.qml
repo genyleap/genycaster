@@ -356,7 +356,7 @@ Item {
     readonly property bool combinedLinkCast: {
         if (root.magazineCard || root.mediaFirst || root.supportingEmbeds.length !== 1
                 || root.displayText.length === 0 || root.displayText.length > 180
-                || root.textPreview.truncated)
+                || root.textPreviewTruncated)
             return false
         const embed = root.supportingEmbeds[0]
         if (root.embedFamily(embed) !== "link" || /[@#][a-z0-9_]/i.test(root.displayText))
@@ -374,7 +374,7 @@ Item {
     readonly property real mediaContentInset: 0
 
     readonly property string displayText: {
-        const source = String(root.modelData.text || "")
+        const source = String((root.modelData || {}).text || "")
         // URL embeds render as semantic preview cards. Keep the protocol text in
         // modelData for copy/share, but do not duplicate raw URLs in the cast body.
         return source.replace(/https?:\/\/[^\s<>]+/gi, " ")
@@ -391,25 +391,40 @@ Item {
     // text unchanged for Conversation, copy and share.
     function makeTextPreview(value, characters, lines) {
         const original = String(value || "")
-        const paragraphs = original.split("\n")
+        const paragraphs = original.split(/\r\n|[\n\r\u2028\u2029]/)
         const lineLimited = paragraphs.slice(0, lines).join("\n")
-        const points = Array.from(lineLimited)
-        if (points.length <= characters && paragraphs.length <= lines)
+        // QV4's Array.from(string) enumerates UTF-16 units on Qt 6.12.
+        // Scan surrogate pairs explicitly and stop at the preview budget.
+        let end = 0
+        let count = 0
+        while (end < lineLimited.length && count < characters) {
+            const first = lineLimited.charCodeAt(end)
+            const second = lineLimited.charCodeAt(end + 1)
+            end += first >= 0xD800 && first <= 0xDBFF
+                    && second >= 0xDC00 && second <= 0xDFFF ? 2 : 1
+            ++count
+        }
+        const characterLimited = end < lineLimited.length
+        if (!characterLimited && paragraphs.length <= lines)
             return {text: original, truncated: false}
-        let preview = points.slice(0, characters).join("")
+        let preview = lineLimited.slice(0, end)
         // Never render a partial username, URL or trailing broken word as
         // an active link. Codepoint slicing also keeps surrogate pairs whole.
-        if (points.length > characters) {
+        if (characterLimited) {
             const boundary = Math.max(preview.lastIndexOf(" "), preview.lastIndexOf("\n"))
             if (boundary >= Math.floor(preview.length * 0.65))
                 preview = preview.slice(0, boundary)
             else if (/@[A-Za-z0-9_.:-]*$/.test(preview))
                 preview = preview.replace(/@[A-Za-z0-9_.:-]*$/, "")
         }
-        return {text: preview.trimEnd() + "…", truncated: true}
+        // Qt's QV4 engine does not implement String.prototype.trimEnd().
+        return {text: preview.replace(/\s+$/, "") + "…", truncated: true}
     }
     readonly property var textPreview: root.makeTextPreview(root.displayText,
-        root.magazineCard ? 260 : root.compact ? 320 : 480, root.magazineCard ? 5 : 7)
+        root.magazineCard ? 360 : root.compact ? 420 : 560, root.magazineCard ? 7 : 9)
+    // Bind consumers to typed values, even during delegate initialization.
+    readonly property bool textPreviewTruncated: Boolean(root.textPreview && root.textPreview.truncated)
+    readonly property string textPreviewBody: root.textPreview ? String(root.textPreview.text || "") : ""
 
     // Cast permalinks are protocol identities, never the first media/embed URL.
     // Keep the copy action consistent with the footer Share menu and its
@@ -1068,10 +1083,24 @@ Item {
                     Item { Layout.fillWidth: true }
                 }
 
+                // Always show the actual excerpt before the continuation link.
+                // A short native Text layout does not depend on asynchronous
+                // rich sidecars or Repeater delegate geometry.
+                RichText {
+                    objectName: "castTextExcerpt"
+                    visible: root.textPreviewTruncated && !root.combinedLinkCast
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.preferredHeight: visible ? implicitHeight : 0
+                    sourceText: visible ? root.textPreviewBody : ""
+                    onExternalRequested: url => root.externalRequested(url)
+                }
+
                 Loader {
                     id: castTextBody
                     objectName: "castTextBody"
                     active: root.displayText.length > 0 && !root.combinedLinkCast
+                            && !root.textPreviewTruncated
                     visible: active
                     // Magazine cards are admitted only near the viewport; avoid
                     // abandoning unfinished rich/embedded QML incubation on
@@ -1092,8 +1121,7 @@ Item {
                     sourceComponent: Component {
                         RichCastRenderer {
                             castId: String(root.modelData.castId || "")
-                            plainText: root.textPreview.text
-                            useRichSidecar: !root.textPreview.truncated
+                            plainText: root.displayText
                             compact: root.compact
                             magazineCard: root.magazineCard
                             sharedMediaGeometry: root.sharedMediaGeometry
@@ -1112,14 +1140,17 @@ Item {
 
                 ActionButton {
                     objectName: "castReadMore"
-                    visible: root.textPreview.truncated && !root.combinedLinkCast
+                    visible: root.textPreviewTruncated && !root.combinedLinkCast
                              && String(root.modelData.castId || "").length > 0
                     Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
                     compact: true
                     quiet: true
+                    elevated: false
                     alignStart: true
-                    text: qsTrId("genycaster.topic_browser.view_cast")
-                    iconGlyph: Theme.iconArrowUpRight
+                    leftPadding: 0
+                    rightPadding: 0
+                    implicitWidth: Math.max(44, contentItem.implicitWidth)
+                    text: qsTrId("genycaster.cast.read_more")
                     customForegroundColor: Theme.accent
                     onClicked: root.openRequested(String(root.modelData.castId))
                 }

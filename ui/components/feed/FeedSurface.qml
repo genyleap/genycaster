@@ -236,45 +236,54 @@ Item {
     }
 
     function isCollectibleMarketplaceUrl(value) {
-        const url = String(value || "").toLowerCase()
-        if (url.length === 0)
-            return false
-
-        // Explicit mint routes are collectible evidence even when the mint is
-        // hosted on a project-owned domain rather than a known marketplace.
-        if (/https?:\/\/[^\s?#]+\/(?:[^\s?#]+\/)*mint(?:\/|[?#\s]|$)/i.test(url))
-            return true
-
-        // Zora serves both NFT collectibles and fungible/social coins. Coin
-        // routes must never leak into Explorer's NFT-art branch.
-        if (url.indexOf("zora.co/") >= 0) {
-            if (/zora\.co\/(?:coin|coins|trade|swap)\//.test(url))
-                return false
-            return url.indexOf("zora.co/collect/") >= 0
-                    || url.indexOf("zora.co/collections/") >= 0
-                    || url.indexOf("zora.co/@") >= 0
+        // This accepts both an embed URL and prose containing several URLs.
+        // Match actual hosts, not lookalike domains or strings in query data.
+        const urls = String(value || "").match(/https?:\/\/[^\s<>]+/gi) || []
+        for (let index = 0; index < urls.length; ++index) {
+            const parsed = urls[index].match(/^https?:\/\/(?:www\.)?([a-z0-9.-]+)(\/[^?#\s]*)?(?:[?#]|$)/i)
+            if (!parsed)
+                continue
+            const host = parsed[1].toLowerCase()
+            const path = String(parsed[2] || "/").toLowerCase()
+            if (host === "zora.co") {
+                if (/^\/(?:collect|collections)\//.test(path))
+                    return true
+                // Profile and coin pages are not unambiguous NFT evidence.
+                continue
+            }
+            if (/\/(?:coins?|trade|swap)(?:\/|$)/.test(path))
+                continue
+            const marketplacePaths = {
+                "superrare.com": /^\/artwork\//,
+                "opensea.io": /^\/(?:assets|item|collection)\//,
+                "foundation.app": /^\/.+/,
+                "manifold.xyz": /^\/.+/,
+                "manifold.gallery": /^\/.+/,
+                "rarible.com": /^\/(?:token|collection|items)\//,
+                "magiceden.io": /^\/(?:item-details|marketplace|collections|ordinals\/item-details)\//,
+                "highlight.xyz": /^\/(?:mint|collections)\//,
+                "mint.fun": /^\/.+/,
+                "objkt.com": /^\/(?:tokens|collections)\//,
+                "transient.xyz": /^\/.+/,
+                "fxhash.xyz": /^\/.+/,
+                "sound.xyz": /^\/.+/,
+                "rodeo.club": /^\/.+/,
+                "scatter.art": /^\/.+/,
+                "blur.io": /^\/(?:collection|asset)\//,
+                "artblocks.io": /^\/.+/,
+                "gallery.so": /^\/.+/,
+                "teia.art": /^\/objkt\//,
+                "makersplace.com": /^\/.+/,
+                "knownorigin.io": /^\/.+/
+            }
+            if (Object.prototype.hasOwnProperty.call(marketplacePaths, host)
+                    && marketplacePaths[host].test(path))
+                return true
+            // Project-hosted explicit mint pages can also be collectible links.
+            if (/\/mint(?:\/|$)/.test(path))
+                return true
         }
-
-        return url.indexOf("superrare.com/artwork/") >= 0
-                || url.indexOf("opensea.io/assets/") >= 0
-                || url.indexOf("opensea.io/item/") >= 0
-                || url.indexOf("opensea.io/collection/") >= 0
-                || url.indexOf("foundation.app/") >= 0
-                || url.indexOf("manifold.xyz/") >= 0
-                || url.indexOf("rarible.com/token/") >= 0
-                || url.indexOf("rarible.com/collection/") >= 0
-                || url.indexOf("magiceden.io/item-details/") >= 0
-                || url.indexOf("magiceden.io/marketplace/") >= 0
-                || url.indexOf("highlight.xyz/mint/") >= 0
-                || url.indexOf("highlight.xyz/collections/") >= 0
-                || url.indexOf("mint.fun/") >= 0
-                || url.indexOf("objkt.com/tokens/") >= 0
-                || url.indexOf("objkt.com/collections/") >= 0
-                || url.indexOf("transient.xyz/") >= 0
-                || url.indexOf("fxhash.xyz/") >= 0
-                || url.indexOf("sound.xyz/") >= 0
-                || url.indexOf("rodeo.club/") >= 0
-                || url.indexOf("scatter.art/") >= 0
+        return false
     }
 
     function isNftAssetLocator(value) {
@@ -339,6 +348,9 @@ Item {
                 || url.indexOf("pbs.twimg.com/") >= 0
                 || url.indexOf("arweave.net/") >= 0
                 || url.indexOf("gateway.pinata.cloud/") >= 0
+                || /https?:\/\/[a-z0-9-]+\.mypinata\.cloud\/ipfs\//i.test(url)
+                || url.indexOf("media.onterminus.com/") >= 0
+                || url.indexOf("quilcast.com/m/") >= 0
                 || url.indexOf("nftstorage.link/") >= 0
                 || url.indexOf("ipfs.io/") >= 0
                 || url.indexOf("wrpcd.net/") >= 0
@@ -363,7 +375,11 @@ Item {
         return channel === "art" || channel === "photography" || channel === "basepaint"
                 || channel === "design" || channel === "superrare" || channel === "nft"
                 || channel === "cryptoart" || channel === "digital-art" || channel === "artists"
-                || channel === "illustration"
+                || channel === "illustration" || channel === "nfts"
+                || channel === "generative-art" || channel === "pixel-art"
+                || channel === "artwork" || channel === "digitalart"
+                || channel === "opensea" || channel === "foundation"
+                || channel === "objkt" || channel === "fxhash"
     }
 
     function hasArtChannelMediaCandidate(data) {
@@ -428,7 +444,7 @@ Item {
             const contract = String(embed.contractAddress || metadata.contractAddress || "").trim()
             const assetKind = String(metadata.assetKind || embed.assetKind || "").toLowerCase()
             if (root.isNftAssetLocator(value) || root.isCollectibleMarketplaceUrl(value)
-                    || ((kind === "collectible" || kind === "nft") && tokenId.length > 0)
+                    || kind === "collectible" || kind === "nft"
                     || (contract.length > 0 && tokenId.length > 0)
                     || assetKind === "artwork" || assetKind === "collectible")
                 return true
@@ -439,18 +455,17 @@ Item {
     function hasCollectible(data) {
         const row = data || ({})
         const text = String(row.text || "")
-        const channel = String(row.channelId || "").toLowerCase()
-        const explicitNft = /(?:#nft\b|\bnfts\b|\bnft\b|\bmint(?:ed|ing)?\b|\bonchain art\b|\bdigital collectible\b|\berc[- ]?(?:721|1155)\b)/i.test(text)
-        const artContext = /(?:\bart(?:work|ist|ists)?\b|\bcryptoart\b|\billustrat(?:ion|or)\b|\bphotograph(?:y|er)\b|\bpaint(?:ing|ed)?\b|\bdigital creation\b|\bonchain\b)/i.test(text)
-        // NFTs is a visual/collectible discovery surface, not a keyword search.
-        // A bare "NFT" mention or ordinary mint discussion with no artwork or
-        // actual collection destination must never qualify as an art piece.
-        if (root.containsCollectibleLink(row))
+        const explicitNft = /(?:\bnfts?\b|\b(?:cryptoart|nftart)\b|\bon[- ]?chain art\b|\bdigital collectibles?\b|\bnon[- ]fungible tokens?\b|\berc[- ]?(?:721|1155)\b|\b(?:nft|art|collectible)\s+mint\b)/i.test(text)
+        const artContext = /(?:\bart(?:work|ist|ists)?\b|\bcryptoart\b|\billustrat(?:ion|or|ed)\b|\bphotograph(?:y|er|s)?\b|\bpaint(?:ing|ed)?\b|\bdigital (?:creation|art)\b|\bgenerative art\b|\bpixel art\b|\bsculpture\b)/i.test(text)
+        const mintContext = /\b(?:mint(?:ed|ing)?|collect(?:ed|ing)?|edition|drop|collection)\b/i.test(text)
+        // This is the NFT/art topic, not an image-only gallery. Text-only
+        // NFT discussions and genuine art-channel posts remain discoverable.
+        // Generic photos, arbitrary mint/coin talk and unrelated links alone
+        // are not sufficient evidence.
+        if (root.containsCollectibleLink(row) || explicitNft || root.isArtChannelCast(row))
             return true
-        if (!root.rowHasImage(row))
-            return false
-        return root.isArtChannelCast(row) || root.hasArtChannelMediaCandidate(row)
-                || explicitNft || artContext
+        return root.hasArtChannelMediaCandidate(row)
+                || (root.rowHasImage(row) && (artContext || mintContext))
     }
 
     function primeArtPreviews() {
@@ -742,10 +757,10 @@ Item {
         const lineHeight = Math.ceil(Theme.typeBodySize * Theme.typeBodyLineHeight)
         const charactersPerLine = Math.max(18,
             Math.floor(contentWidth / Math.max(7, Theme.typeBodySize * 0.55)))
-        const textLimit = root.magazineEnabled ? 260 : root.compact ? 320 : 480
+        const textLimit = root.magazineEnabled ? 360 : root.compact ? 420 : 560
         const sourceText = String(value.text || "")
         const textLength = Math.min(textLimit, sourceText.length)
-        const logicalLines = Math.min(root.magazineEnabled ? 5 : 7,
+        const logicalLines = Math.min(root.magazineEnabled ? 7 : 9,
                                       sourceText.split("\n").length)
         const textLines = textLength > 0
             ? Math.max(logicalLines, Math.ceil(textLength / charactersPerLine))
@@ -1955,7 +1970,8 @@ Item {
                 filtered: root.presentationFilterActive
                 moreFilteredAvailable: root.hasMore
                                        && (root.filterPrefetchPages >= root.filterPrefetchLimit
-                                           || root.automaticPrefetchPages >= root.automaticPrefetchLimit)
+                                           || root.automaticPrefetchPages >= root.automaticPrefetchLimit
+                                           || root.automaticNoProgressPages >= root.automaticNoProgressLimit)
                 onMoreFilteredRequested: {
                     // Explicit user intent may start a new bounded search window. Automatic
                     // tab switching itself never resets the shared source-pressure budget.

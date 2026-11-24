@@ -650,6 +650,10 @@
             <source>Cast · FID %1</source>
             <translation>キャスト · FID %1</translation>
         </message>
+        <message id="genycaster.cast.read_more">
+            <source>Read more</source>
+            <translation>続きを読む</translation>
+        </message>
         <message id="genycaster.topic_browser.view_cast">
             <source>View cast</source>
             <translation>キャストを表示</translation>

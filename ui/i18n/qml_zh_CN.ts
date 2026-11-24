@@ -650,6 +650,10 @@
             <source>Cast · FID %1</source>
             <translation>帖子 · FID %1</translation>
         </message>
+        <message id="genycaster.cast.read_more">
+            <source>Read more</source>
+            <translation>阅读更多</translation>
+        </message>
         <message id="genycaster.topic_browser.view_cast">
             <source>View cast</source>
             <translation>查看 Cast</translation>

@@ -650,6 +650,10 @@
             <source>Cast · FID %1</source>
             <translation>Каст · FID %1</translation>
         </message>
+        <message id="genycaster.cast.read_more">
+            <source>Read more</source>
+            <translation>Читать далее</translation>
+        </message>
         <message id="genycaster.topic_browser.view_cast">
             <source>View cast</source>
             <translation>Просмотреть каст</translation>

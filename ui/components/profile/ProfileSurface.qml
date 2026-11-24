@@ -1196,10 +1196,10 @@ Item {
             Math.floor(contentWidth / Math.max(7, Theme.typeBodySize * 0.55)))
         // CastItem owns the bounded preview contract. Reserve the CTA
         // as part of long-card geometry, not the full Conversation body.
-        const textLimit = root.profileMagazineEnabled ? 260 : root.compact ? 320 : 480
+        const textLimit = root.profileMagazineEnabled ? 360 : root.compact ? 420 : 560
         const sourceText = String(value.text || "")
         const textLength = Math.min(textLimit, sourceText.length)
-        const logicalLines = Math.min(root.profileMagazineEnabled ? 5 : 7,
+        const logicalLines = Math.min(root.profileMagazineEnabled ? 7 : 9,
                                       sourceText.split("\n").length)
         const textLines = textLength > 0
             ? Math.max(logicalLines, Math.ceil(textLength / charactersPerLine))

@@ -404,13 +404,18 @@ constexpr std::string_view conversationCursorPrefix{"conversations:v1:"};
 
 // Independent artwork/mint searches: a single literal "nft" query misses
 // verified artworks and collection links whose author never writes that word.
-constexpr std::string_view collectibleCursorPrefix{"collectibles:v2:"};
+constexpr std::string_view collectibleCursorPrefix{"collectibles:v3:"};
+constexpr std::string_view previousCollectibleCursorPrefix{"collectibles:v2:"};
 constexpr std::string_view legacyCollectibleCursorPrefix{"collectibles:v1:"};
 // The first source is the real NFT/art channel feed, not a text-only "art"
 // search. Subsequent turns keep independent search cursors for collectible
 // links outside those channels.
-constexpr std::array<std::string_view, 5> collectibleSearchTerms{
-    "nft,art", "mint", "opensea", "superrare", "foundation"};
+constexpr std::size_t previousCollectibleSourceCount{5U};
+constexpr std::array<std::string_view, 15> collectibleSearchTerms{
+    "nft,art,cryptoart,photography,design,basepaint,illustration,generative-art,pixel-art",
+    "mint", "opensea", "superrare", "foundation", "nft", "artwork",
+    "objkt", "magiceden", "rarible", "fxhash", "manifold", "highlight",
+    "artblocks", "zora"};
 
 struct CollectibleSearchCursor final {
     std::size_t turn{};
@@ -438,23 +443,28 @@ struct CollectibleSearchCursor final {
 [[nodiscard]] foundation::result::Result<CollectibleSearchCursor>
 decodeCollectibleCursor(std::string_view text)
 {
-    // The v1 first turn searched text "art"; v2's first turn is a
-    // channel feed. Replaying a v1 search cursor against /feed/channels
-    // would fail. Decode old cursors but retire that incompatible turn.
+    // Preserve unchanged marketplace cursors across upgrades. The channel
+    // query changed in v3, so its old cursor cannot be replayed against
+    // the expanded channel selector. New discovery sources start fresh.
     const bool legacy = text.starts_with(legacyCollectibleCursorPrefix);
-    if (!legacy && !text.starts_with(collectibleCursorPrefix))
+    const bool previous = text.starts_with(previousCollectibleCursorPrefix);
+    const bool oldCursor = legacy || previous;
+    if (!oldCursor && !text.starts_with(collectibleCursorPrefix))
         return std::unexpected(makeError(ErrorCode::InvalidArgument, "Invalid artwork discovery cursor."));
     text.remove_prefix(legacy ? legacyCollectibleCursorPrefix.size()
-                              : collectibleCursorPrefix.size());
+                              : previous ? previousCollectibleCursorPrefix.size()
+                                         : collectibleCursorPrefix.size());
+    const auto sourceCount = oldCursor ? previousCollectibleSourceCount
+                                       : collectibleSearchTerms.size();
     const auto firstColon = text.find(':');
     std::size_t turn{};
     if (firstColon == text.npos ||
         std::from_chars(text.data(), text.data() + firstColon, turn).ec != std::errc{}
-        || turn >= collectibleSearchTerms.size())
+        || turn >= sourceCount)
         return std::unexpected(makeError(ErrorCode::InvalidArgument, "Invalid artwork cursor index."));
     text.remove_prefix(firstColon + 1U);
     CollectibleSearchCursor state{.turn = turn};
-    for (std::size_t i = 0; i < state.cursors.size(); ++i) {
+    for (std::size_t i = 0; i < sourceCount; ++i) {
         if (text.size() < 2U || (text[0] != '+' && text[1] != ':'))
             return std::unexpected(makeError(ErrorCode::InvalidArgument, "Malformed artwork cursor."));
         const auto status = text.front();
@@ -480,10 +490,10 @@ decodeCollectibleCursor(std::string_view text)
     }
     if (!text.empty())
         return std::unexpected(makeError(ErrorCode::InvalidArgument, "Trailing artwork cursor data."));
-    if (legacy) {
+    if (oldCursor) {
         state.cursors[0].reset();
-        state.exhausted[0] = true;
-        if (state.turn == 0U) state.turn = 1U;
+        state.exhausted[0] = false;
+        state.turn = 0U;
     }
     return state;
 }
