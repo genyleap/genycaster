@@ -523,6 +523,23 @@ void testProfileNavigationKeepsIndependentMetadataAndCachedCounts()
     assert(bridge.detail().value(QStringLiteral("fid")).toUInt() == 202U);
     assert(bridge.detail().value(QStringLiteral("followerCount")).toUInt() == 0U);
 
+    // Username resolution is not a second history entry.
+    bridge.openCast(QStringLiteral("0xusername-mention"));
+    bridge.openProfileUsername(QStringLiteral("alice"));
+    assert(bridge.activeProfileFidText() == QStringLiteral("0"));
+    bridge.resolveProfileUsername(QStringLiteral("alice"), 101);
+    assert(bridge.activeProfileFidText() == QStringLiteral("101"));
+    bridge.returnFromDetail();
+    assert(bridge.activeView() == QStringLiteral("cast"));
+    bridge.resolveProfileUsername(QStringLiteral("alice"), 101);
+    assert(bridge.activeView() == QStringLiteral("cast"));
+    bridge.openProfileUsername(QStringLiteral("bob"));
+    bridge.resolveProfileUsername(QStringLiteral("alice"), 101);
+    assert(bridge.activeProfileFidText() == QStringLiteral("0"));
+    bridge.resolveProfileUsername(QStringLiteral("bob"), 202);
+    bridge.returnFromDetail();
+    assert(bridge.activeView() == QStringLiteral("cast"));
+
     // Notifications -> Cast -> mentioned profile -> Back must remain on
     // the Cast even if a previously requested profile arrives afterward.
     bridge.openCast(QStringLiteral("0xmentioned-cast"));

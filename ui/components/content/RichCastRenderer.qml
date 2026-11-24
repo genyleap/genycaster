@@ -9,6 +9,9 @@ ColumnLayout {
     Layout.minimumWidth: 0
     property string castId: ""
     property string plainText: ""
+    // A bounded feed preview must not restore the complete rich sidecar.
+    // The Conversation renderer keeps the default full-fidelity path.
+    property bool useRichSidecar: true
     property bool compact: false
     property bool magazineCard: false
     property var sharedMediaGeometry: null
@@ -24,7 +27,8 @@ ColumnLayout {
 
     readonly property var richBlocks: {
         const revision = richComposer.revision
-        return root.castId.length > 0 ? richComposer.richBlocksForCast(root.castId) : []
+        return root.useRichSidecar && root.castId.length > 0
+            ? richComposer.richBlocksForCast(root.castId) : []
     }
     readonly property bool enhanced: richBlocks && richBlocks.length > 0
     spacing: Theme.space1

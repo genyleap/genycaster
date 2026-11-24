@@ -355,7 +355,8 @@ Item {
     // on the existing interactive Cast renderer.
     readonly property bool combinedLinkCast: {
         if (root.magazineCard || root.mediaFirst || root.supportingEmbeds.length !== 1
-                || root.displayText.length === 0 || root.displayText.length > 180)
+                || root.displayText.length === 0 || root.displayText.length > 180
+                || root.textPreview.truncated)
             return false
         const embed = root.supportingEmbeds[0]
         if (root.embedFamily(embed) !== "link" || /[@#][a-z0-9_]/i.test(root.displayText))
@@ -383,6 +384,32 @@ Item {
                      .replace(/\n{3,}/g, "\n\n")
                      .trim()
     }
+
+    // Feed cards are previews, not a second detail surface. Bound by both
+    // Unicode codepoints and logical lines so long prose, repeated linebreaks
+    // and code blocks cannot create unbounded delegates. Keep the protocol
+    // text unchanged for Conversation, copy and share.
+    function makeTextPreview(value, characters, lines) {
+        const original = String(value || "")
+        const paragraphs = original.split("\n")
+        const lineLimited = paragraphs.slice(0, lines).join("\n")
+        const points = Array.from(lineLimited)
+        if (points.length <= characters && paragraphs.length <= lines)
+            return {text: original, truncated: false}
+        let preview = points.slice(0, characters).join("")
+        // Never render a partial username, URL or trailing broken word as
+        // an active link. Codepoint slicing also keeps surrogate pairs whole.
+        if (points.length > characters) {
+            const boundary = Math.max(preview.lastIndexOf(" "), preview.lastIndexOf("\n"))
+            if (boundary >= Math.floor(preview.length * 0.65))
+                preview = preview.slice(0, boundary)
+            else if (/@[A-Za-z0-9_.:-]*$/.test(preview))
+                preview = preview.replace(/@[A-Za-z0-9_.:-]*$/, "")
+        }
+        return {text: preview.trimEnd() + "…", truncated: true}
+    }
+    readonly property var textPreview: root.makeTextPreview(root.displayText,
+        root.magazineCard ? 260 : root.compact ? 320 : 480, root.magazineCard ? 5 : 7)
 
     // Cast permalinks are protocol identities, never the first media/embed URL.
     // Keep the copy action consistent with the footer Share menu and its
@@ -629,7 +656,7 @@ Item {
                                 Layout.minimumWidth: 0
                                 // Never bind a child width to the arranging RowLayout width.
                                 // This caused Qt 6 recursive rearrange warnings.
-                                Layout.fillWidth: true
+                                Layout.fillWidth: false
                                 // A viewport-derived cap, not a preferredWidth
                                 // binding fed back into the arranging RowLayout.
                                 // Reserve room for time, emoji, channel and menu.
@@ -663,8 +690,9 @@ Item {
                                 visible: root.castChannel.length > 0
                                          && (root.compact ? root.width >= 450
                                                           : (!root.magazineCard || root.width >= 390))
-                                Layout.fillWidth: true
+                                Layout.fillWidth: false
                                 Layout.minimumWidth: 0
+                                Layout.maximumWidth: Math.max(60, root.width * 0.32)
                                 spacing: Theme.space1
                                 layoutDirection: Theme.uiDirection
 
@@ -696,7 +724,6 @@ Item {
                             }
 
                             Item {
-                                visible: !castInlineChannel.visible
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 1
                             }
@@ -1065,7 +1092,8 @@ Item {
                     sourceComponent: Component {
                         RichCastRenderer {
                             castId: String(root.modelData.castId || "")
-                            plainText: root.displayText
+                            plainText: root.textPreview.text
+                            useRichSidecar: !root.textPreview.truncated
                             compact: root.compact
                             magazineCard: root.magazineCard
                             sharedMediaGeometry: root.sharedMediaGeometry
@@ -1080,6 +1108,20 @@ Item {
                             onCastRequested: castId => root.openRequested(castId)
                         }
                     }
+                }
+
+                ActionButton {
+                    objectName: "castReadMore"
+                    visible: root.textPreview.truncated && !root.combinedLinkCast
+                             && String(root.modelData.castId || "").length > 0
+                    Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                    compact: true
+                    quiet: true
+                    alignStart: true
+                    text: qsTrId("genycaster.topic_browser.view_cast")
+                    iconGlyph: Theme.iconArrowUpRight
+                    customForegroundColor: Theme.accent
+                    onClicked: root.openRequested(String(root.modelData.castId))
                 }
 
                 // Protocol cast order: author/parent, text, embedded media,

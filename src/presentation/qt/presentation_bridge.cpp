@@ -12,6 +12,7 @@
 #include <QDesktopServices>
 #include <QList>
 #include <QSettings>
+#include <QScopedValueRollback>
 #include <QSet>
 #include <QString>
 #include <QStringList>
@@ -1980,6 +1981,19 @@ void PresentationBridge::openProfileUsername(const QString& username)
     emit rowsChanged();
     beginIntent(qtTrId("genycaster.bridge.checking_local_identity"));
     emit profileUsernameRequested(canonical, consumeRecoveryProbe());
+}
+
+void PresentationBridge::resolveProfileUsername(const QString& username, const qulonglong fid)
+{
+    if (fid == 0 || m_activeView != QStringLiteral("profile") || m_profileFid != 0
+        || m_currentProfileUsername.compare(username.trimmed(), Qt::CaseInsensitive) != 0) {
+        return;
+    }
+    // Username -> FID is the completion of one navigation intent, not a
+    // second navigation. Recording the unresolved username here creates a
+    // self breadcrumb that resolves to the same profile every time Back runs.
+    const QScopedValueRollback<bool> suppressHistory{m_restoringDetailHistory, true};
+    openProfileFid(fid);
 }
 
 void PresentationBridge::openProfileFid(const qulonglong fid)

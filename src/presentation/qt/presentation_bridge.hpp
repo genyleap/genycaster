@@ -563,6 +563,9 @@ public:
     void applyIdentity(qulonglong fid, QString displayName, QString username, QVariantMap profile,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
 
+    /** @brief Completes username resolution within the existing navigation entry; ignores superseded lookups. */
+    void resolveProfileUsername(const QString& username, qulonglong fid);
+
     /** @brief Commits transient exact-lookup status without mutating the currently viewed Home identity. */
     void applyLookupState(QString status, QString error, QString diagnostic,
         bool busy, bool stale, bool sourceUnavailable);

@@ -16,6 +16,8 @@ Rectangle {
     property bool writeReady: false
     property bool writeBusy: false
     property double accountFid: 0
+    // Registry provenance, not the selected read provider.
+    property string accountProtocol: ""
     property string accountName: ""
     property string accountUsername: ""
     property string accountAvatarUrl: ""
@@ -389,6 +391,7 @@ Rectangle {
             Layout.maximumHeight: implicitHeight
             authenticated: root.isAuthenticated
             fid: root.accountFid
+            accountProtocol: root.accountProtocol
             displayName: root.accountName
             username: root.accountUsername
             avatarUrl: root.accountAvatarUrl

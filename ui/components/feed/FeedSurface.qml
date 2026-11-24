@@ -344,11 +344,22 @@ Item {
                 || url.indexOf("wrpcd.net/") >= 0
     }
 
+    // Indexed casts may omit the channel object while retaining the canonical
+    // Farcaster channel parent URL. Also support previously cached rows.
+    function channelSlugFor(data) {
+        const row = data || ({})
+        const explicit = String(row.channelId || row.castChannel || "").trim().toLowerCase()
+        if (explicit)
+            return explicit
+        const match = String(row.parentUrl || "").match(/^https:\/\/(?:www\.)?(?:warpcast\.com|farcaster\.xyz)\/(?:~\/)?channel\/([a-z0-9][a-z0-9_-]{0,63})\/?(?:[?#].*)?$/i)
+        return match ? match[1].toLowerCase() : ""
+    }
+
     function isArtChannelCast(data) {
         const row = data || ({})
         if (Boolean(row._artChannelSource))
             return true
-        const channel = String(row.channelId || "").toLowerCase()
+        const channel = root.channelSlugFor(row)
         return channel === "art" || channel === "photography" || channel === "basepaint"
                 || channel === "design" || channel === "superrare" || channel === "nft"
                 || channel === "cryptoart" || channel === "digital-art" || channel === "artists"
@@ -731,9 +742,14 @@ Item {
         const lineHeight = Math.ceil(Theme.typeBodySize * Theme.typeBodyLineHeight)
         const charactersPerLine = Math.max(18,
             Math.floor(contentWidth / Math.max(7, Theme.typeBodySize * 0.55)))
-        const textLength = Math.min(600, String(value.text || "").length)
+        const textLimit = root.magazineEnabled ? 260 : root.compact ? 320 : 480
+        const sourceText = String(value.text || "")
+        const textLength = Math.min(textLimit, sourceText.length)
+        const logicalLines = Math.min(root.magazineEnabled ? 5 : 7,
+                                      sourceText.split("\n").length)
         const textLines = textLength > 0
-            ? Math.max(1, Math.min(8, Math.ceil(textLength / charactersPerLine))) : 0
+            ? Math.max(logicalLines, Math.ceil(textLength / charactersPerLine))
+                + (sourceText.length > textLimit || sourceText.split("\n").length > logicalLines ? 2 : 0) : 0
         const embeds = value.embeds || []
         let supportingEmbedCount = 0
         for (let index = 0; index < embeds.length; ++index) {

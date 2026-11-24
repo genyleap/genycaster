@@ -1504,14 +1504,23 @@ Item {
         const emptySettledSource = presentationBridge.feedStarted
                                    && !presentationBridge.isBusy
                                    && presentationBridge.rows.length === 0
-        const sameHealthySource = presentationBridge.activeView === "feed"
-                                  && presentationBridge.activeFeed === source
-                                  && presentationBridge.feedStarted
-                                  && !emptySettledSource
+        const sameSource = presentationBridge.activeView === "feed"
+                           && presentationBridge.activeFeed === source
+        const sourceFailed = presentationBridge.sourceUnavailable
+                             || String(presentationBridge.errorText || "").length > 0
+        const sameHealthySource = sameSource && presentationBridge.feedStarted
+                                  && !emptySettledSource && !sourceFailed
         // Explorer projections are sparse. Re-entering a semantic tab must also
         // refresh the source first page; otherwise Devs/NFTs can keep projecting
         // an old cached timeline forever even though the tab itself changed.
-        if (!sameHealthySource) {
+        if (sameSource && !presentationBridge.isBusy
+                && (sourceFailed || emptySettledSource
+                    || (nextMode === "visuals" && modeChanged))) {
+            // An explicitly selected sparse NFT tab gets a fresh first page
+            // and one authorized recovery probe, rather than reusing a failed
+            // Following stream or stale rows from another semantic category.
+            presentationBridge.refreshLatestFeed()
+        } else if (!sameHealthySource && !(sameSource && presentationBridge.isBusy)) {
             presentationBridge.selectFeed(source)
         } else if ((refreshRequested || (modeChanged && presentationBridge.isStale))
                    && !presentationBridge.isBusy) {
@@ -1996,6 +2005,8 @@ Item {
             writeReady: presentationBridge.writeReady
             writeBusy: presentationBridge.writeBusy
             accountFid: presentationBridge.accountFid
+            accountProtocol: presentationBridge.nativeCustodyAccount ? "hypersnap"
+                : presentationBridge.farcasterCustodyAccount ? "farcaster" : ""
             accountName: presentationBridge.accountName
             accountUsername: presentationBridge.accountUsername
             accountAvatarUrl: presentationBridge.accountAvatarUrl

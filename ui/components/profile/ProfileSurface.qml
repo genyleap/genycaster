@@ -1194,14 +1194,16 @@ Item {
         const lineHeight = Math.ceil(Theme.typeBodySize * Theme.typeBodyLineHeight)
         const charactersPerLine = Math.max(18,
             Math.floor(contentWidth / Math.max(7, Theme.typeBodySize * 0.55)))
-        // Long text-only Magazine cards can wrap far beyond eight lines.
-        // Use a wider provisional line budget so later hydration does not
-        // position an adjacent card inside unresolved text.
-        const textLength = Math.min(root.profileMagazineEnabled ? 1200 : 600,
-                                    String(value.text || "").length)
+        // CastItem owns the bounded preview contract. Reserve the CTA
+        // as part of long-card geometry, not the full Conversation body.
+        const textLimit = root.profileMagazineEnabled ? 260 : root.compact ? 320 : 480
+        const sourceText = String(value.text || "")
+        const textLength = Math.min(textLimit, sourceText.length)
+        const logicalLines = Math.min(root.profileMagazineEnabled ? 5 : 7,
+                                      sourceText.split("\n").length)
         const textLines = textLength > 0
-            ? Math.max(1, Math.min(root.profileMagazineEnabled ? 28 : 8,
-                                   Math.ceil(textLength / charactersPerLine))) : 0
+            ? Math.max(logicalLines, Math.ceil(textLength / charactersPerLine))
+                + (sourceText.length > textLimit || sourceText.split("\n").length > logicalLines ? 2 : 0) : 0
         const embeds = value.embeds || []
         let reservation = 112 + textLines * lineHeight
 
@@ -3071,12 +3073,20 @@ Item {
                 ExplorerLayoutControls {
                     layoutMode: root.displayLayout
                     condensed: root.profileContentWidth < 620
-                    filterAvailable: true
-                    filterLabel: qsTrId("genycaster.filters.profile")
+                    filterAvailable: false
                     onLayoutRequested: mode => root.layoutRequested(mode)
-                    onFilterRequested: profileFilterSheet.open()
                 }
                 Item { Layout.fillWidth: true }
+                ActionButton {
+                    objectName: "profileDesktopFilterTrigger"
+                    Layout.alignment: Qt.AlignVCenter
+                    compact: true
+                    pill: true
+                    iconOnly: root.profileContentWidth < 620
+                    iconGlyph: "filter"
+                    text: qsTrId("genycaster.filters.profile")
+                    onClicked: profileFilterSheet.open()
+                }
             }
 
             // One compact navigation row, like the X profile timeline:

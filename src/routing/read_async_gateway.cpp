@@ -422,7 +422,23 @@ foundation::result::Result<AppRequest> RoutedReadGateway::feed(
     const application::read::model::ReadOptions options)
 {
     const auto capabilityId = feedCapabilityId(query.kind);
-    auto route = m_router.resolve(requestFor(capabilityId, options));
+    auto request = requestFor(capabilityId, options);
+    // Raw Following derives a complete timeline by scanning every followee
+    // and intentionally rejects graphs beyond its bounded fan-out. When the
+    // operator/user has authorized compatible read fallback, prefer a native
+    // indexed Following capability instead of retrying a bounded raw scan.
+    // A strict provider selection is never bypassed: resolve() still enforces
+    // explicit affinity, deployment and provider health constraints.
+    if (query.kind == application::read::model::FeedQuery::Kind::Following
+        && m_allowCompatibleProfileEnrichment) {
+        request.minimumQuality = capability::model::CapabilityQuality::Native;
+    }
+    auto route = m_router.resolve(request);
+    if (!route && request.minimumQuality == capability::model::CapabilityQuality::Native) {
+        // Keep raw-only deployments functional, including their continuations.
+        // The selected provider still validates ownership of every cursor.
+        route = m_router.resolve(requestFor(capabilityId, options));
+    }
     if (!route) {
         return std::unexpected(std::move(route.error()));
     }

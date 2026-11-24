@@ -5517,12 +5517,12 @@ void connectRuntime(
             runtime->cancelAllRequests();
             const std::uint64_t requestGeneration = runtime->beginPrimaryRequestGeneration();
             auto request = runtime->service->openIdentity(requestedUsername.toStdString(),
-                [&bridge, runtime, requestGeneration](application::read::model::IdentityState state) {
+                [&bridge, runtime, requestGeneration, requestedUsername](application::read::model::IdentityState state) {
                     if (!runtime->isCurrentPrimaryRequestGeneration(requestGeneration)) {
                         return;
                     }
                     QMetaObject::invokeMethod(&bridge,
-                        [&bridge, runtime, requestGeneration, state = std::move(state)]() mutable {
+                        [&bridge, runtime, requestGeneration, requestedUsername, state = std::move(state)]() mutable {
                             if (!runtime->isCurrentPrimaryRequestGeneration(requestGeneration)) {
                                 return;
                             }
@@ -5530,7 +5530,8 @@ void connectRuntime(
                                 statusText(state.metadata), errorText(state.metadata), diagnosticText(state.metadata),
                                 isBusy(state.metadata), state.metadata.isStale, state.metadata.isSourceUnavailable);
                             if (state.fid) {
-                                bridge.openProfileFid(static_cast<qulonglong>(state.fid->value));
+                                bridge.resolveProfileUsername(requestedUsername,
+                                    static_cast<qulonglong>(state.fid->value));
                             }
                         }, Qt::QueuedConnection);
                 }, application::read::model::ReadOptions{

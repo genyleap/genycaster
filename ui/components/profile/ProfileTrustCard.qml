@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Window
 import Farcaster.Client
 
 NeonSurface {
@@ -11,6 +12,7 @@ NeonSurface {
 
     property bool authenticated: false
     property double fid: 0
+    property string accountProtocol: ""
     property string displayName: ""
     property string username: ""
     property string avatarUrl: ""
@@ -137,8 +139,7 @@ NeonSurface {
             DirectionAwareLabel {
                 text: metric.valueText
                 color: metric.valueColor
-                font.pixelSize: root.compact ? Math.max(10, Theme.typeMetaSize - 1)
-                                             : Theme.typeMetaSize
+                font.pixelSize: root.compact ? Theme.typeLabelSize : Theme.typeTitle3Size
                 font.weight: Theme.weightBold
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -146,8 +147,8 @@ NeonSurface {
         DirectionAwareLabel {
             Layout.fillWidth: true
             text: parent.labelText
-            color: Theme.textTertiary
-            font.pixelSize: Theme.typeCaptionSize
+            color: Theme.textSecondary
+            font.pixelSize: Theme.typeMetaSize
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             maximumLineCount: 2
@@ -192,6 +193,7 @@ NeonSurface {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     spacing: 1
 
                     RowLayout {
@@ -231,6 +233,36 @@ NeonSurface {
                         elide: Text.ElideNone
                     }
 
+                    RowLayout {
+                        visible: root.accountProtocol === "farcaster"
+                                 || root.accountProtocol === "hypersnap"
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
+                        layoutDirection: Theme.uiDirection
+
+                        Image {
+                            Layout.preferredWidth: Theme.iconSizeSmall
+                            Layout.preferredHeight: Theme.iconSizeSmall
+                            fillMode: Image.PreserveAspectFit
+                            source: root.accountProtocol === "hypersnap"
+                                ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/quilibrium/hypersnap.svg"
+                                : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/farcaster.svg"
+                            sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio),
+                                                Math.ceil(height * Screen.devicePixelRatio))
+                            smooth: true
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: root.accountProtocol === "hypersnap"
+                                ? qsTrId("genycaster.settings.hypersnap_label")
+                                : qsTrId("genycaster.settings.farcaster_label")
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            font.weight: Theme.weightDemiBold
+                            elide: Text.ElideRight
+                        }
+                    }
+
                     DirectionAwareLabel {
                         id: sidebarFidValue
                         objectName: "sidebarFidMetric"
@@ -256,10 +288,15 @@ NeonSurface {
                     }
                 }
 
-                Item {
+                RowLayout {
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: Theme.space1
+                    layoutDirection: Theme.uiDirection
+
+                    Item {
                     id: streakRing
                     objectName: "sidebarStreakRing"
-                    Layout.preferredWidth: root.compact ? 46 : 54
+                    Layout.preferredWidth: root.compact ? 42 : 50
                     Layout.preferredHeight: Layout.preferredWidth
 
                     ProgressRing {
@@ -277,6 +314,22 @@ NeonSurface {
                         preferredSize: Theme.scaleUi(22)
                         color: root.streakActive ? Theme.streak : Theme.inkMuted
                     }
+                    }
+
+                    DirectionAwareLabel {
+                        objectName: "sidebarStreakMetric"
+                        text: root.streakKnown ? LocaleFormat.formatInteger(root.streakCurrent) : "—"
+                        color: root.streakActive ? Theme.streak : Theme.textSecondary
+                        font.pixelSize: Theme.typeTitle3Size
+                        font.weight: Theme.weightBold
+                    }
+                    Accessible.role: Accessible.Button
+                    Accessible.name: qsTrId("genycaster.streak.title") + " "
+                        + (root.streakKnown ? LocaleFormat.formatInteger(root.streakCurrent) : "—")
+                    Accessible.onPressAction: root.toggleFace()
+                    activeFocusOnTab: true
+                    Keys.onReturnPressed: root.toggleFace()
+                    Keys.onSpacePressed: root.toggleFace()
                     HoverHandler { cursorShape: Qt.PointingHandCursor }
                     TapHandler { onTapped: root.toggleFace() }
                 }
@@ -321,16 +374,7 @@ NeonSurface {
                         valueText: root.followers >= 0 ? LocaleFormat.formatCompactNumber(root.followers) : "—"
                         labelText: qsTrId("genycaster.shell.followers")
                     }
-                    Rectangle { Layout.preferredWidth: Theme.strokeHairline; Layout.preferredHeight: 28; color: Theme.divider }
-                    Metric {
-                        objectName: "sidebarStreakMetric"
-                        Layout.fillWidth: true
-                        valueText: root.streakKnown
-                            ? LocaleFormat.formatInteger(root.streakCurrent) : "—"
-                        labelText: qsTrId("genycaster.streak.title")
-                        iconGlyph: Theme.iconStreakFlame
-                        valueColor: root.streakActive ? Theme.streak : Theme.inkMuted
-                    }
+
                 }
             }
 
