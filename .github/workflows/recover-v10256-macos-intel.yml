@@ -7,8 +7,8 @@ concurrency:
   group: genycaster-v10256-verified-intel-recovery
   cancel-in-progress: false
 env:
-  ORIGINAL_RUN: '45232420557'
-  ORIGINAL_SHA: 'b1cbc135ffdaf6eff152f463403269e9025e73a2'
+  ORIGINAL_RUN: '45353054595'
+  ORIGINAL_SHA: 'de22a0c7bf02e06fa170dd039f6faae9e8fca71d'
   RELEASE_TAG: v1.0.256
 jobs:
   recover-intel:
