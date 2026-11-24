@@ -1444,6 +1444,46 @@ if(_genycasterScriptFontFiles)
         FILES ${_genycasterScriptFontFiles})
 endif()
 
+# Unicode styled letters (e.g. mathematical bold/italic used by Farcaster
+# display names and bios) are genuine Supplementary Plane codepoints, not
+# Markdown/CSS. Qt WASM cannot discover host browser fonts: embed an OFL-1.1
+# mathematical font with verified cmap coverage and let Qt's standard glyph
+# fallback preserve the user's original text and style without normalization.
+# Noto Sans Math, copyright Google LLC and the Noto Project Authors, OFL-1.1:
+# https://github.com/google/fonts/tree/main/ofl/notosansmath
+if(EMSCRIPTEN)
+    set(_genycasterMathFontPath
+        "${CMAKE_BINARY_DIR}/_deps/genycaster-math-fonts/NotoSansMath-Regular.ttf")
+    set(_genycasterMathFontHash
+        "3f495fe933c06786e4d5f6d86b8ee70b6753a68ee3b9d87528726de0f6e2c47d")
+    get_filename_component(_genycasterMathFontDir "${_genycasterMathFontPath}" DIRECTORY)
+    file(MAKE_DIRECTORY "${_genycasterMathFontDir}")
+    if(NOT EXISTS "${_genycasterMathFontPath}")
+        file(DOWNLOAD
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansmath/NotoSansMath-Regular.ttf"
+            "${_genycasterMathFontPath}"
+            EXPECTED_HASH "SHA256=${_genycasterMathFontHash}"
+            TLS_VERIFY ON TIMEOUT 90 INACTIVITY_TIMEOUT 30
+            STATUS _genycasterMathFontStatus)
+        list(GET _genycasterMathFontStatus 0 _genycasterMathFontResult)
+        if(NOT _genycasterMathFontResult EQUAL 0)
+            file(REMOVE "${_genycasterMathFontPath}")
+            message(FATAL_ERROR
+                "WASM styled-Unicode font could not be downloaded: ${_genycasterMathFontStatus}")
+        endif()
+    endif()
+    file(SHA256 "${_genycasterMathFontPath}" _genycasterActualMathFontHash)
+    if(NOT _genycasterActualMathFontHash STREQUAL _genycasterMathFontHash)
+        message(FATAL_ERROR "Unexpected Noto Sans Math font hash")
+    endif()
+    set_source_files_properties("${_genycasterMathFontPath}" PROPERTIES
+        QT_RESOURCE_ALIAS "assets/fonts/NotoSansMath-Regular.ttf")
+    qt_add_resources(genycaster genycaster_styled_unicode_font
+        ${_genycasterLargeResources}
+        PREFIX "/qt/qml/Farcaster/Client"
+        FILES "${_genycasterMathFontPath}")
+endif()
+
 # The WASM font resources use Qt's BIG_RESOURCES two-pass object embedding
 # above, so even the large multilingual font bypasses generated hex-array
 # C++ compilation. All application code retains normal Release optimization.

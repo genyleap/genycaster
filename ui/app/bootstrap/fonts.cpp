@@ -2,6 +2,7 @@
 // public module does not export Qt's internal templates or QObject ABI.
 module;
 #include <QDebug>
+#include <QChar>
 #include <QFile>
 #include <QFont>
 #include <QFontDatabase>
@@ -108,6 +109,22 @@ bool FontFamilies::load()
             qWarning() << "Bundled color emoji unavailable; using monochrome fallback";
             QFontDatabase::addApplicationEmojiFontFamily(monoEmojiFamilies.front());
         }
+
+        // Styled names/bios use mathematical alphanumeric codepoints in
+        // U+1D400..U+1D7FF. WASM has no OS/browser font discovery, so ordinary
+        // Qt font merging needs a bundled fallback for these glyphs. Do not
+        // replace the textual Unicode with its NFKC/plain Latin equivalent:
+        // that would destroy the author's intended typography.
+        const QStringList mathFamilies = loadApplicationFont(QStringLiteral(
+            ":/qt/qml/Farcaster/Client/assets/fonts/NotoSansMath-Regular.ttf"));
+        if (mathFamilies.isEmpty()) {
+            qCritical() << "Bundled mathematical Unicode font is missing";
+            return false;
+        }
+        QFontDatabase::addApplicationFallbackFontFamily(
+            QChar::Script_Common, mathFamilies.front());
+        QFontDatabase::addApplicationFallbackFontFamily(
+            QChar::Script_Latin, mathFamilies.front());
 #endif
 
         // Devanagari/CJK resources are optional in source/developer builds.

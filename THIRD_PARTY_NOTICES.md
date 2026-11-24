@@ -8,6 +8,7 @@ This file acknowledges third-party assets and libraries committed to or used by 
 |---|---|---|
 | Noto Animated Emoji Lottie assets | [Google Noto Emoji](https://github.com/googlefonts/noto-emoji) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); full bundled text at `ui/assets/emoji/LICENSE.NotoAnimatedEmoji.txt` |
 | Noto Color Emoji / the GenyCaster font subset | Google | [SIL OFL 1.1](ui/assets/fonts/OFL-NotoEmoji.txt); `ui/assets/fonts/GenycasterColorEmoji.ttf` and `GenycasterEmojiFallback.ttf` |
+| Noto Sans Math (downloaded at a pinned SHA-256 for WASM styled Unicode fallback) | [The Noto Project Authors](https://github.com/notofonts/math) | [SIL OFL 1.1](ui/assets/fonts/OFL-NotoSansMath.txt); preserves Mathematical Alphanumeric Symbols in public profile names and bios |
 | Vazirmatn typography (fetched/embedded at build time when configured) | [Vazirmatn authors](https://github.com/rastikerdar/vazirmatn) | [SIL OFL 1.1](ui/assets/fonts/OFL-Vazirmatn.txt); follow license and attribution for distributed binaries |
 | Solar Icon Set subset | **480 Design** — [upstream](https://github.com/480-Design/Solar-Icon-Set) | Icon artwork is attributed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Adapted/tinted for the GenyCaster UI; see `ui/assets/icons/genyleap/SOLAR_ICON_SET.md` |
 | Font Awesome Free (when included) | Fonticons, Inc. | SVG/icons: CC BY 4.0; fonts: SIL OFL 1.1; [bundled notice](ui/assets/icons/LICENSE.Font-Awesome.txt) |

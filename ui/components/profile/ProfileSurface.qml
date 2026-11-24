@@ -19,6 +19,7 @@ Item {
     // commit. Never derive the requested identity from the resolved value.
     property var activeDetail: ({})
     property string activeDetailSignature: ""
+    property string activeDetailNetwork: ""
     function resolveActiveDetail() {
         const current = root.detail || ({})
         const requestedFid = root.ownProfileNavigation
@@ -50,6 +51,15 @@ Item {
             }
         }
         if (currentMatches) return current
+        // A metadata refresh can temporarily publish an empty detail even
+        // while the requested profile FID remains unchanged. Do not tear down
+        // its loaded cover, display name and bio during that interval. Exact
+        // FID and protocol guards prevent showing another user's identity.
+        if (!root.ownProfileNavigation && root.activeDetailNetwork === root.profileNetwork
+                && requestedFid !== "0" && requestedFid.length > 0
+                && String(root.activeDetail.fidString || root.activeDetail.fid || "")
+                    === requestedFid)
+            return root.activeDetail
         if (root.ownProfileNavigation && root.accountFidText.length > 0) {
             const owned = presentationBridge.accountProfile || ({})
             if (String(owned.fidString || owned.fid || "") === root.accountFidText)
@@ -72,6 +82,8 @@ Item {
         if (signature === root.activeDetailSignature) return
         root.activeDetailSignature = signature
         root.activeDetail = next
+        if (next && String(next.fidString || next.fid || "") === root.profileFidText)
+            root.activeDetailNetwork = root.profileNetwork
     }
     // Coalesce duplicate session and read notifications on the next event
     // turn. The activeDetail value is never a QML binding, so observers
@@ -890,6 +902,25 @@ Item {
     // Keep QVariantMap payloads out of ListModel roles; the model itself stays
     // type-stable and delegates re-read only when their revision role changes.
     property var stablePayloads: ({})
+    property string rowsIdentityKey: ""
+    // A profile's rows belong to the requested FID, not to the asynchronous
+    // arrival of its banner/metadata. Reset once at actual navigation time,
+    // before any cache/network rows settle; a late profile detail must never
+    // destroy an already-rendered timeline.
+    function reconcileProfileRowsIdentity() {
+        const key = root.profileNetwork + ":" + root.profileFidText
+        if (key === root.rowsIdentityKey || root.profileFidText.length === 0)
+            return
+        root.rowsIdentityKey = key
+        root.cancelViewportCorrections()
+        root.stableModelSyncPending = false
+        root.positionedProfileFid = Number(root.profileFidText)
+        profileRowsModel.clear()
+        root.stablePayloads = ({})
+        stableModelSyncTimer.restart()
+    }
+    onProfileFidTextChanged: Qt.callLater(root.reconcileProfileRowsIdentity)
+    onProfileNetworkChanged: Qt.callLater(root.reconcileProfileRowsIdentity)
 
     signal backRequested()
     signal followersRequested()
@@ -1418,18 +1449,11 @@ Item {
         publicProfileExtrasFetch.restart()
     }
     onDetailChanged: {
+        // Metadata and its cover often arrive AFTER cached Cast rows. The
+        // requested-FID change owns the only model reset; an HTTP profile
+        // response is never allowed to clear visible Cast delegates or
+        // reposition the reader during a gesture.
         root.synchronizeActiveDetail()
-        const incomingFid = Number((root.detail || ({})).fid || 0)
-        // The bridge, not a mutable QML snapshot, retains metadata for an
-        // in-place refresh and validates the incoming FID.
-        // A transient empty detail during metadata refresh is not a new
-        // profile; clearing the ListView here teleports the reader to the top.
-        if (incomingFid > 0 && incomingFid !== root.positionedProfileFid) {
-            profileRowsModel.clear()
-            root.viewportAnchorKey = ""
-            root.stableModelSyncPending = false
-        }
-        root.positionNewProfileAtBeginning()
     }
     onRowsChanged: stableModelSyncTimer.restart()
     onProfileFeedChanged: {
@@ -1843,7 +1867,17 @@ Item {
                         const diagonal = Math.pow(0.5, 1 / exponent)
                         return Math.max(0.5522847498, Math.min(0.985, (8 * diagonal - 4) / 3))
                     }
-                    height: Boolean(root.activeDetail.bannerUrl)
+                    // Reserve the final banner geometry while the target
+                    // profile is still resolving. A late cover image must
+                    // never grow the header underneath a reader's scroll.
+                    // Profiles confirmed to have no banner retain the original
+                    // compact empty-cover design.
+                    readonly property bool metadataPending:
+                        root.visible && root.profileFidText.length > 0
+                        && root.profileFidText !== "0"
+                        && String(root.activeDetail.fidString || root.activeDetail.fid || "")
+                           !== root.profileFidText
+                    height: Boolean(root.activeDetail.bannerUrl) || metadataPending
                             ? Math.max(root.compact ? 132 : 156,
                                        Math.min(root.compact ? 196 : 280,
                                                 Math.round(width / bannerAspectRatio)))
@@ -1884,6 +1918,9 @@ Item {
                         asynchronous: true
                         framePacedPresentation: false
                         deferNewLoadsWhileScrolling: false
+                        // A late decoded cover should fade into the stable
+                        // header, not pop abruptly or trigger a layout pass.
+                        smoothReveal: true
                         // Profile covers use the direct scene-graph image path.
                         // The large/wide MultiEffect mask can resolve the image
                         // successfully yet produce a blank layer on some render

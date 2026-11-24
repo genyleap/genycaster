@@ -103,8 +103,11 @@ Item {
             return true
         }
         if (root.topicBrowseActive) { root.closeTopicBrowser(); return true }
-        if (presentationBridge.activeView === "cast"
-                || presentationBridge.activeView === "profile") {
+        if (presentationBridge.activeView === "profile") {
+            root.returnFromProfileSurface()
+            return true
+        }
+        if (presentationBridge.activeView === "cast") {
             root.returnFromCastDetail()
             return true
         }
@@ -848,6 +851,12 @@ Item {
     // opened above it. Back from that content restores this route instead of
     // falling through to the Home feed.
     property string pendingReturnShellRoute: ""
+    // Explicit Cast -> mentioned public profile navigation retains a stable
+    // source Cast even if an asynchronous provider callback drops C++ history.
+    // The actual native breadcrumb is tried first; this is a bounded
+    // correctness fallback for browser reentrancy, not a second history stack.
+    property string pendingMentionOriginCastId: ""
+    property string pendingMentionTargetFid: ""
     // Explicit Explorer tab navigation must reveal its real inline header
     // (including stories), even after returning from a nested detail view.
     property int explorerTopRevision: 0
@@ -1280,6 +1289,8 @@ Item {
 
     function clearPendingShellReturn() {
         root.pendingReturnShellRoute = ""
+        root.pendingMentionOriginCastId = ""
+        root.pendingMentionTargetFid = ""
     }
 
     function returnToPendingShellRoute() {
@@ -1300,6 +1311,37 @@ Item {
     function returnFromProfileSurface() {
         presentationBridge.returnFromDetail()
         root.returnToPendingShellRoute()
+        // The last explicitly requested mention target is unchanged by Back.
+        // A successful native breadcrumb advances to another FID or Cast.
+        root.restoreMentionCastWhenBackDidNotNavigate(root.pendingMentionTargetFid)
+    }
+    function restoreMentionCastWhenBackDidNotNavigate(previousFid) {
+        const sourceCast = root.pendingMentionOriginCastId
+        if (sourceCast.length === 0) return
+        // If Back really returned to a Cast or the originating shell route,
+        // keep that transition. If it returned to an intermediate profile,
+        // the FID changed and the native nested breadcrumb remains authoritative.
+        const stuckOnTarget = root.shellRoute.length === 0
+            && presentationBridge.activeView === "profile"
+            && previousFid === root.pendingMentionTargetFid
+            && String(presentationBridge.activeProfileFidText || "") === previousFid
+        const fellPastOrigin = presentationBridge.activeView === "feed"
+        if (stuckOnTarget || fellPastOrigin) {
+            // An empty native history may jump straight to Feed/Notifications
+            // instead of the mentioned Cast. Keep the originating shell route
+            // for the *next* Back; this Back must first show the conversation.
+            if (root.shellRoute.length > 0) {
+                root.pendingReturnShellRoute = root.shellRoute
+                root.shellRoute = ""
+            }
+            root.pendingMentionOriginCastId = ""
+            root.pendingMentionTargetFid = ""
+            presentationBridge.clearDetailHistory()
+            presentationBridge.openCast(sourceCast)
+        } else if (presentationBridge.activeView !== "profile") {
+            root.pendingMentionOriginCastId = ""
+            root.pendingMentionTargetFid = ""
+        }
     }
 
     // A public profile read of our own FID is not the authenticated account
@@ -1310,6 +1352,18 @@ Item {
     function openProfileFromContent(fid) {
         const target = Number(fid)
         if (!Number.isSafeInteger(target) || target <= 0) return
+        if (presentationBridge.activeView === "cast" && root.shellRoute.length === 0) {
+            const sourceCast = String(presentationBridge.detail.castId || "")
+            if (/^0x[0-9a-fA-F]{40}$/.test(sourceCast)) {
+                root.pendingMentionOriginCastId = sourceCast
+                root.pendingMentionTargetFid = String(target)
+            }
+        } else if (presentationBridge.activeView === "profile"
+                   && root.pendingMentionOriginCastId.length > 0) {
+            // Nested public profiles keep the same originating Cast, but
+            // the immediate target must track the newest explicit click.
+            root.pendingMentionTargetFid = String(target)
+        }
         if (root.shellRoute.length > 0) {
             root.rememberShellRouteForReturn()
             presentationBridge.clearDetailHistory()
