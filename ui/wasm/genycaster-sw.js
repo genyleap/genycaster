@@ -60,12 +60,21 @@ self.addEventListener("install",event=>{
                 urls.push(url);
             }
             const cache=await caches.open(CACHE);
-            await Promise.all(urls.map(async url=>{
-                try {
-                    const response=await fetch(url,{cache:"no-cache"});
-                    if(cacheResponse(response))await cache.put(url,response);
-                }catch{ /* optional offline cache miss */ }
-            }));
+            // A cold Qt launch simultaneously downloads a ~49 MiB WASM
+            // engine. Do not compete with it using 50+ parallel background
+            // image/module requests; use a small bounded install queue.
+            let next=0;
+            const precache=async()=>{
+                while(next<urls.length) {
+                    const url=urls[next++];
+                    try{
+                        const response=await fetch(url,{cache:"no-cache"});
+                        if(cacheResponse(response))await cache.put(url,response);
+                    }catch{ /* optional offline cache miss */ }
+                }
+            };
+            await Promise.all(Array.from(
+                {length:Math.min(2,urls.length)},()=>precache()));
         } catch(error) {
             console.warn("[GenyCaster] Offline pre-cache skipped",error);
         }

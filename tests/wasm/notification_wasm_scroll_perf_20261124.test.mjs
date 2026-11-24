@@ -63,3 +63,22 @@ test('legitimate Terminus cast images are allowed without turning browser gatewa
   assert.equal(validImageUrl('http://media.onterminus.com/cbae63ae6740e06b05684dddf05bbe8b.jpg'),null);
   assert.equal(validImageUrl('https://media.onterminus.com/api/private'),null);
 });
+
+test('immutable WASM gzip reuses binary identity rather than deployment fingerprint',()=>{
+  const loader=text('ui/wasm/genycaster-loader.js');
+  const section=loader.slice(loader.indexOf('async function compressedBrowserEngine'),
+    loader.indexOf('window.fetch=async function'));
+  assert.match(section,/const releaseToken=name\.match\(\/\^genycaster\\\.\(\[0-9a-f\]\{20\}\)\\\.wasm\$\/\)/);
+  assert.match(section,/cache:"force-cache"/);
+  assert.doesNotMatch(section,/const releaseToken=String\(releaseInfo\.version/);
+  assert.match(section,/new DecompressionStream\("gzip"\)/);
+});
+
+test('offline precache is bounded to two concurrent assets while the large WASM loads',()=>{
+  const worker=text('ui/wasm/genycaster-sw.js');
+  assert.match(worker,/let next=0;/);
+  assert.match(worker,/const precache=async\(\)=>/);
+  assert.match(worker,/Math\.min\(2,urls\.length\)/);
+  assert.doesNotMatch(worker,/Promise\.all\(urls\.map/);
+  assert.match(worker,/WASM_HASH\.test\(relative\)\)return;/);
+});

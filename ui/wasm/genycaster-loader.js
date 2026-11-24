@@ -330,17 +330,16 @@ async function compressedBrowserEngine(url,options) {
        || !hashedWasm.test(name) || gzipName!==name+".gz"
        || !Number.isSafeInteger(gzipBytes) || gzipBytes<=0)return null;
     const gzipUrl=new URL(gzipName,location.href);
-    // Older deployments incorrectly answered a missing .wasm.gz with a 200
-    // HTML shell. A browser may retain that response and force-cache
-    // would reuse it even after the correct sidecar has been deployed.
-    // A release-scoped URL isolates old CDN entries; revalidation prevents
-    // a poisoned browser cache from making the runtime permanently fail.
-    const releaseToken=String(releaseInfo.version||releaseInfo.buildId||"")
-        .replace(/[^a-f0-9]/gi,"").slice(0,32);
+    // A 49 MiB gzip sidecar is immutable because its filename embeds the
+    // actual WASM SHA-256 prefix. A change to UI/JS must not create a fresh
+    // 49 MiB cache key; use the binary fingerprint, not the release manifest's
+    // mutable version. Browser disk cache can then serve repeat visits with
+    // no conditional network request.
+    const releaseToken=name.match(/^genycaster\.([0-9a-f]{20})\.wasm$/)?.[1] || "";
     if(releaseToken)gzipUrl.searchParams.set("v",releaseToken);
     let source;
     try{
-        source=await originalFetch(gzipUrl.href,{...options,cache:"no-cache"});
+        source=await originalFetch(gzipUrl.href,{...options,cache:"force-cache"});
     }catch(error){
         console.warn("[Genycaster] Compressed WASM unavailable; using native fetch",
             String(error?.message||error));
