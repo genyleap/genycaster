@@ -54,8 +54,8 @@
       }
       const cssHref = parsed.querySelector('link[rel="stylesheet"]')?.getAttribute("href");
       const scriptSrc = parsed.querySelector('script[src*="/download/download.js"]')?.getAttribute("src");
-      if (cssHref !== "/download/download.css?v=4" ||
-          scriptSrc !== "/download/download.js?v=4") {
+      if (cssHref !== "/download/download.css?v=5" ||
+          scriptSrc !== "/download/download.js?v=5") {
         throw new Error("Download asset version mismatch");
       }
 
