@@ -165,15 +165,73 @@ Item {
                                     && (imageSource.status === Image.Loading || root.waitingForAdmission
                                         || (root.decodedReady && !root.ready))
     readonly property bool decodedReady: imageSource.status === Image.Ready && !root.providerFallback
-    readonly property bool ready: root.decodedReady && root.presentationReady
-                                  && root.presentationEnabled
+    // Keep the already presented texture for the SAME image during a
+    // resolution upgrade. Identity changes always invalidate it immediately.
+    property bool sizeReloadInFlight: false
+    readonly property bool retainingSizedTexture: root.sizeReloadInFlight
+        && root.presentationReady && imageSource.status !== Image.Error
+        && imageSource.status !== Image.Ready
+    readonly property bool ready: (root.decodedReady || root.retainingSizedTexture)
+                                  && root.presentationReady && root.presentationEnabled
     readonly property bool hasRenderableGeometry: root.width >= 1 && root.height >= 1
     readonly property bool requiresFramePacedPresentation: root.framePacedPresentation
                                                             && root.width * root.height >= 160 * 160
     readonly property bool maskActive: root.visible && root.clipToSuperellipse
                                        && imageSource.visible && root.hasRenderableGeometry
-    readonly property int stableSourceWidth: root.quantizedDecodeDimension(root.requestedSourceWidth, root.width)
-    readonly property int stableSourceHeight: root.quantizedDecodeDimension(root.requestedSourceHeight, root.height)
+    readonly property size desiredDecodeSize: Qt.size(
+        root.quantizedDecodeDimension(root.requestedSourceWidth, root.width),
+        root.quantizedDecodeDimension(root.requestedSourceHeight, root.height))
+    // Decode size is NOT viewport geometry. During resize the GPU scales the
+    // existing texture. Commit both dimensions atomically after it settles,
+    // and only if there is a meaningful resolution change.
+    property size stableDecodeSize: Qt.size(0, 0)
+    readonly property int stableSourceWidth: stableDecodeSize.width
+    readonly property int stableSourceHeight: stableDecodeSize.height
+    function commitDecodeSize(initial) {
+        if (!root.hasRenderableGeometry)
+            return
+        if (!initial && imageSource.status === Image.Loading)
+            return
+        const next = root.desiredDecodeSize
+        const previous = root.stableDecodeSize
+        if (!initial && previous.width > 0 && previous.height > 0) {
+            const grows = next.width > previous.width * 1.20
+                       || next.height > previous.height * 1.20
+            const shrinks = next.width < previous.width * 0.50
+                         && next.height < previous.height * 0.50
+            if (!grows && !shrinks)
+                return
+        }
+        if (next.width === previous.width && next.height === previous.height)
+            return
+        root.sizeReloadInFlight = root.decodedReady && root.presentationReady
+        root.stableDecodeSize = next
+    }
+    onDesiredDecodeSizeChanged: {
+        if (root.componentReady)
+            decodeSizeSettler.restart()
+    }
+    onWidthChanged: {
+        if (root.componentReady && root.desiredDecodeSize.width !== root.stableSourceWidth)
+            decodeSizeSettler.restart()
+    }
+    onHeightChanged: {
+        if (root.componentReady && root.desiredDecodeSize.height !== root.stableSourceHeight)
+            decodeSizeSettler.restart()
+    }
+    onHasRenderableGeometryChanged: {
+        if (root.componentReady && root.hasRenderableGeometry
+                && root.activeSource.toString().length === 0) {
+            root.commitDecodeSize(true)
+            sourceStartTimer.restart()
+        }
+    }
+    Timer {
+        id: decodeSizeSettler
+        interval: 200
+        repeat: false
+        onTriggered: root.commitDecodeSize(false)
+    }
 
     function resolveScrollHost() {
         let candidate = root.parent
@@ -189,6 +247,8 @@ Item {
 
     function synchronizeActiveSource() {
         if (!root.componentReady)
+            return
+        if (!root.hasRenderableGeometry && root.activeSource.toString().length === 0)
             return
         const requested = root.effectiveSource
         const current = root.activeSource.toString()
@@ -206,6 +266,7 @@ Item {
                     root.activeSource = ""
                     sourceStartTimer.restart()
                 } else {
+                    root.commitDecodeSize(true)
                     root.activeSource = requested
                 }
             }
@@ -220,7 +281,8 @@ Item {
 
     function synchronizePresentation() {
         if (!root.decodedReady) {
-            root.presentationReady = false
+            if (!root.retainingSizedTexture)
+                root.presentationReady = false
             return
         }
         // Optional presentation deferral never discards decoded bytes. Normal
@@ -261,7 +323,7 @@ Item {
         // replacement decode is ready.
         const propertyName = "retainWhileLoading"
         if (imageSource[propertyName] !== undefined)
-            imageSource[propertyName] = root.retainPreviousWhileLoading
+            imageSource[propertyName] = root.retainPreviousWhileLoading || root.sizeReloadInFlight
     }
 
     Timer {
@@ -295,6 +357,7 @@ Item {
         // before deciding whether a new request is allowed during scrolling.
         root.resolveScrollHost()
         root.syncRetainWhileLoading()
+        root.commitDecodeSize(true)
         root.componentReady = true
         if (root.loadDelayMs > 0)
             sourceStartTimer.restart()
@@ -308,16 +371,26 @@ Item {
             root.resolveScrollHost()
     }
     onActiveSourceChanged: {
+        root.sizeReloadInFlight = false
         root.invalidatePresentationAdmission()
         presentationTimer.restart()
     }
     onDecodedReadyChanged: {
-        if (!root.decodedReady)
+        if (!root.decodedReady && !root.retainingSizedTexture)
             root.invalidatePresentationAdmission()
         root.synchronizePresentation()
     }
+    onStatusChanged: {
+        if (status === Image.Ready || status === Image.Error) {
+            root.sizeReloadInFlight = false
+            if (status === Image.Ready && root.desiredDecodeSize !== root.stableDecodeSize)
+                decodeSizeSettler.restart()
+        }
+    }
+    onSizeReloadInFlightChanged: root.syncRetainWhileLoading()
     onRetainPreviousWhileLoadingChanged: root.syncRetainWhileLoading()
     onSourceChanged: {
+        root.sizeReloadInFlight = false
         root.manualLoadRequested = false
         // Invalidate synchronously: derived effectiveSource bindings may still
         // describe the old URL while this notification is being delivered.
@@ -406,9 +479,9 @@ Item {
         id: imageSource
         z: 1
         anchors.fill: parent
-        source: root.hasRenderableGeometry ? root.activeSource : ""
-        sourceSize.width: root.stableSourceWidth
-        sourceSize.height: root.stableSourceHeight
+        // A momentary zero-size layout must not detach an existing texture.
+        source: root.activeSource
+        sourceSize: root.stableDecodeSize
         fillMode: root.fillMode
         asynchronous: root.asynchronous
         // RemoteImageProvider already has bounded memory + disk caches. Avoid
@@ -444,7 +517,7 @@ Item {
         // ImagePolicy applies to GIFs too. The still-image provider remains
         // the single source of admission and is allowed to fail back cleanly
         // when the animation codec or network is unavailable.
-        source: root.componentReady && root.hasRenderableGeometry
+        source: root.componentReady
                 && root.automaticDownloadAllowed
                 && root.activeSource.toString().length > 0
             ? root.animatedGifUrl : ""
@@ -523,7 +596,8 @@ Item {
         height: snappedSize
         x: Math.round(((root.width - width) / 2) * devicePixelRatio) / devicePixelRatio
         y: Math.round(((root.height - height) / 2) * devicePixelRatio) / devicePixelRatio
-        visible: root.showLoadingIndicator && root.loading && !root.manualLoadRequired
+        visible: root.showLoadingIndicator && root.loading && !root.retainingSizedTexture
+                 && !root.manualLoadRequired
 
         GenySpinner {
             objectName: "mediaLoadingSpinner"

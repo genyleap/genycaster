@@ -17,7 +17,7 @@ test('measured media heights are routed to native stable-lane geometry instead o
   // heights, geometry change, no overlap, and reverse viewport admission.
   const native = source('ui/app/social/feed_rows.cpp');
   const fixture = source('tests/ui/feed_rows_model_tests.cpp');
-  assert.match(wall, /layoutModel\.relayout\(columns, cardWidth, gutter,/);
+  assert.match(wall, /layoutModel\.relayout\(columns, committedCardWidth, gutter,/);
   assert.match(wall, /onHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
   assert.match(wall, /onImplicitHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
   assert.match(wall, /view\.retainHeight\(stableKey, revisionKey, width, resolved\)/);
@@ -76,7 +76,7 @@ test('Magazine soft-reveals hydrated cards and coalesces lane balancing only aft
   assert.match(header, /Q_INVOKABLE void requestRepack\(\) noexcept;/);
   assert.match(cpp, /void MasonryWindowModel::requestRepack\(\) noexcept[\s\S]*?m_forceRepack = true;/);
   assert.match(wall, /function scheduleRebalance\(\)/);
-  assert.match(wall, /if \(visible && positioned && !moving\)\s+rebalanceTimer\.restart\(\)/);
+  assert.match(wall, /if \(visible && positioned && !moving && !resizeInProgress\)\s+rebalanceTimer\.restart\(\)/);
   assert.match(wall, /onMovementStarted: rebalanceTimer\.stop\(\)/);
   assert.match(wall, /onMovementEnded: if \(rebalancePending\) scheduleRebalance\(\)/);
   assert.match(wall, /id: rebalanceTimer; interval: 300; repeat: false; onTriggered: view\.rebalanceNow\(\)/);

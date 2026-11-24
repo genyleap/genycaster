@@ -48,6 +48,12 @@ Flickable {
     }
     function retainHeight(key, revision, width, height) {
         if (!(height > 0) || !key) return
+        if (resizeInProgress) {
+            if (layoutModel.retainHeight(key, revision, width, height, true, true))
+                scheduleLayout()
+            rebalancePending = true
+            return
+        }
         const id = heightKey(key, revision, width)
         if (!Object.prototype.hasOwnProperty.call(measuredHeights, id)) {
             measuredOrder.push(id)
@@ -77,6 +83,28 @@ Flickable {
     property bool positioned: false
     property bool relayoutPending: false
     property bool rebalancePending: false
+    property bool resizeInProgress: false
+    property real committedCardWidth: 1
+    function viewportResized() {
+        if (!positioned || !visible) {
+            scheduleLayout()
+            return
+        }
+        resizeInProgress = true
+        resizeSettleTimer.restart()
+        rebalanceTimer.stop()
+        scheduleLayout()
+    }
+    Timer {
+        id: resizeSettleTimer
+        interval: 160
+        repeat: false
+        onTriggered: {
+            view.resizeInProgress = false
+            view.forceLayout()
+            if (view.rebalancePending) view.scheduleRebalance()
+        }
+    }
 
     signal layoutStarted()
     signal layoutFinished()
@@ -115,14 +143,20 @@ Flickable {
             relayoutPending = true
             return
         }
+        if (!visible) return
         if (!layoutTimer.running) layoutTimer.start()
     }
     function scheduleAdmission() {
         if (!admissionTimer.running) admissionTimer.start()
     }
     function updateAdmissions() {
+        // A zero-delay viewport timer can run during layout invalidation;
+        // only commit admissions against the completed numeric geometry.
+        if (arranging || layoutTimer.running)
+            return
         layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer,
-                                view.visible && positioned && height > 0)
+                                view.visible && positioned && height > 0,
+                                view.resizeInProgress)
     }
     function scheduleRebalance() {
         // Newly hydrated dimensions invalidate the original shortest-lane
@@ -130,11 +164,11 @@ Flickable {
         // numeric slots once the viewport is at rest. Never animate a live
         // kinetic gesture or instantiate the offscreen cast delegates.
         rebalancePending = true
-        if (visible && positioned && !moving)
+        if (visible && positioned && !moving && !resizeInProgress)
             rebalanceTimer.restart()
     }
     function rebalanceNow() {
-        if (!rebalancePending || !visible || !positioned || moving)
+        if (!rebalancePending || !visible || !positioned || moving || resizeInProgress)
             return
         rebalancePending = false
         layoutModel.requestRepack()
@@ -159,8 +193,11 @@ Flickable {
         }
         const anchor = anchorIndex >= 0 ? layoutModel.geometryAt(anchorIndex) : null
         const offset = anchor && anchor.stableKey ? anchor.y - contentY : 0
-        layoutModel.relayout(columns, cardWidth, gutter, headerLoader.height + gutter,
-                             leadingInset, layoutDirection === Qt.RightToLeft)
+        // Apply the card width in the same geometry transaction, then
+        // restore the reading anchor before admitting/evicting anything.
+        committedCardWidth = cardWidth
+        layoutModel.relayout(columns, committedCardWidth, gutter, headerLoader.height + gutter,
+                             leadingInset, layoutDirection === Qt.RightToLeft, true)
         if (anchor && anchor.stableKey && !moving) {
             // A source-index is not identity when rows insert above the reader.
             const restored = layoutModel.geometryForKey(anchor.stableKey)
@@ -170,9 +207,9 @@ Flickable {
         }
         positioned = true
         arranging = false
-        scheduleAdmission()
+        updateAdmissions()
         // Initial rows may arrive before the first viewport has geometry.
-        if (rebalancePending && !moving && !rebalanceTimer.running)
+        if (rebalancePending && !moving && !resizeInProgress && !rebalanceTimer.running)
             rebalanceTimer.start()
         layoutFinished()
         if (relayoutPending) {
@@ -210,12 +247,21 @@ Flickable {
         event.accepted = true
     }
     onModelChanged: scheduleLayout()
-    onWidthChanged: scheduleLayout()
-    onHeightChanged: scheduleAdmission()
+    onWidthChanged: viewportResized()
+    onHeightChanged: {
+        viewportResized()
+        scheduleAdmission()
+    }
     onContentYChanged: scheduleAdmission()
     onVisibleChanged: {
-        scheduleAdmission()
-        if (visible && rebalancePending) scheduleRebalance()
+        if (!visible) {
+            resizeSettleTimer.stop()
+            resizeInProgress = false
+            layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer, false, false)
+        } else {
+            scheduleLayout()
+            if (rebalancePending) scheduleRebalance()
+        }
     }
     onMovementStarted: rebalanceTimer.stop()
     onMovementEnded: if (rebalancePending) scheduleRebalance()
@@ -278,7 +324,7 @@ Flickable {
                 && paintedHeight > 0
             x: cardX
             y: cardY
-            width: view.cardWidth
+            width: view.committedCardWidth
             height: Math.max(1, cardHeight)
             // The native slot boundary is authoritative. During a pending
             // Like or delayed rich preview, prevent a temporarily oversized
@@ -287,7 +333,7 @@ Flickable {
             clip: true
 
             function offerEstimate() {
-                if (!view.estimateHeight || view.recalledHeight(stableKey, revisionKey, width) > 0)
+                if (view.resizeInProgress || !view.estimateHeight || view.recalledHeight(stableKey, revisionKey, width) > 0)
                     return
                 const hint = Number(view.estimateHeight(stableKey, presentationKind,
                                                         mediaLayoutKind, width))
@@ -333,7 +379,27 @@ Flickable {
                 // the updated content reports its own implicitHeight.
                 if (!(previousPaintedHeight > 0)) offerEstimate()
             }
-            onWidthChanged: offerEstimate()
+            onWidthChanged: {
+                // Measure the actual rewrapped card after Qt Layout has
+                // processed its new width; avoid a guessed height overwrite.
+                widthMeasureTimer.restart()
+            }
+            Connections {
+                target: view
+                function onResizeInProgressChanged() {
+                    if (!view.resizeInProgress)
+                        widthMeasureTimer.restart()
+                }
+            }
+            Timer {
+                id: widthMeasureTimer
+                interval: 16
+                repeat: false
+                onTriggered: {
+                    if (slot.cardReady) slot.recordHeight()
+                    else slot.offerEstimate()
+                }
+            }
 
             Timer {
                 id: revisionSettleTimer

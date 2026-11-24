@@ -154,6 +154,19 @@ int main(int argc, char** argv)
     require(rebalanced.value(QStringLiteral("x")) != top.value(QStringLiteral("x")));
     require(rebalanced.value(QStringLiteral("y")).toDouble() < previousLaneY + 90.0);
     require(magazine.geometryAt(0).value(QStringLiteral("height")).toDouble() == 900.0);
+    // A resize can change both lane count and viewport position. Numeric
+    // geometry must not evict the old viewport before QML restores its anchor.
+    const int originalWindowCount = magazine.count();
+    QSignalSpy resizeRemovals{&magazine, &QAbstractItemModel::rowsRemoved};
+    magazine.relayout(2, 470.0, 12.0, 12.0, 12.0, false, true);
+    require(magazine.count() == originalWindowCount && resizeRemovals.isEmpty());
+    require(magazine.geometryAt(0).value(QStringLiteral("height")).toDouble() == 900.0);
+    magazine.setViewport(8000.0, 720.0, 280.0, 950.0, true, true);
+    require(magazine.windowIndexForSource(0) >= 0);
+    require(resizeRemovals.isEmpty());
+    magazine.setViewport(8000.0, 720.0, 280.0, 950.0, true, false);
+    require(magazine.windowIndexForSource(0) < 0);
+    magazine.relayout(3, 320.0, 12.0, 12.0, 12.0, false);
     magazine.setViewport(8000.0, 720.0, 280.0, 950.0, true);
     require(magazine.count() > 0 && magazine.count() < 70);
     const int distantSource = magazine.data(magazine.index(0, 0),

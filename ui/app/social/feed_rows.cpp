@@ -371,11 +371,24 @@ void MasonryWindowModel::requestRepack() noexcept
 
 bool MasonryWindowModel::retainHeight(const QString& key, const QString& revision,
                                       const qreal width, const qreal height,
-                                      const bool measured)
+                                      const bool measured, const bool transient)
 {
     if (key.isEmpty() || !std::isfinite(width) || !std::isfinite(height) || height <= 0
         || width <= 0) return false;
     const QString id = heightKey(key, revision, width);
+    if (transient) {
+        if (std::abs(m_resizeSampleWidth - width) >= 0.01) {
+            m_resizeSamples.clear();
+            m_resizeSampleWidth = width;
+        }
+        const auto prior = m_resizeSamples.constFind(id);
+        if (prior != m_resizeSamples.cend() && std::abs(*prior - height) < 1.0)
+            return false;
+        if (m_resizeSamples.size() >= 160 && prior == m_resizeSamples.cend())
+            return false;
+        m_resizeSamples.insert(id, height);
+        return true;
+    }
     const auto existing = m_heightSamples.constFind(id);
     if (existing != m_heightSamples.cend()
         && m_exactSamples.value(id) && !measured) return false;
@@ -398,18 +411,19 @@ bool MasonryWindowModel::retainHeight(const QString& key, const QString& revisio
 
 void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
                                  const qreal gap, const qreal top,
-                                 const qreal leadingInset, const bool rtl)
+                                 const qreal leadingInset, const bool rtl,
+                                 const bool deferWindowUpdate)
 {
     if (!(cardWidth > 0) || !std::isfinite(cardWidth)) return;
     const int nextColumns = std::clamp(columns, 1, 8);
     const bool packAgain = m_forceRepack || m_columns != nextColumns;
-    const bool sameWidth = std::abs(m_cardWidth - cardWidth) < 1.0;
+    // Preserve already measured geometry as a provisional estimate even
+    // when width changes. Live delegates replace it with exact new heights.
+    // Falling back to generic card heights on every resize collapses lanes.
     QHash<QString, qreal> previousHeights{};
-    if (sameWidth) {
-        previousHeights.reserve(m_geometry.size());
-        for (const Slot& slot : std::as_const(m_geometry))
-            previousHeights.insert(slot.key, slot.height);
-    }
+    previousHeights.reserve(m_geometry.size());
+    for (const Slot& slot : std::as_const(m_geometry))
+        previousHeights.insert(slot.key, slot.height);
     QHash<QString, int> previousColumns{};
     if (!packAgain) {
         previousColumns.reserve(m_geometry.size());
@@ -455,7 +469,9 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
         // Engagement/viewer revisions do not imply a visual-height change.
         // Hold the same cast's previous geometry until its actual delegate
         // reports a new painted height instead of flashing to a placeholder.
-        slot.height = sample != m_heightSamples.cend() ? *sample
+        const auto resizeSample = m_resizeSamples.constFind(id);
+        slot.height = resizeSample != m_resizeSamples.cend() ? *resizeSample
+            : sample != m_heightSamples.cend() ? *sample
             : previousHeights.value(slot.key, fallbackHeight(slot));
         slot.y = bottoms[slot.column];
         const int visualColumn = m_rtl ? m_columns - 1 - slot.column : slot.column;
@@ -472,7 +488,9 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
         ? *std::min_element(bottoms.cbegin(), bottoms.cend())
         : std::max(0.0, m_top - m_gap);
     emit geometryChanged();
-    synchronizeWindow();
+    // QML restores the stable scroll anchor before committing admissions.
+    // Avoid evicting delegates against the pre-relayout viewport.
+    if (!deferWindowUpdate) synchronizeWindow();
 }
 
 int MasonryWindowModel::laneAt(const qreal x) const noexcept
@@ -535,13 +553,19 @@ int MasonryWindowModel::windowIndexForSource(const int sourceIndex) const
 
 void MasonryWindowModel::setViewport(const qreal top, const qreal height,
                                     const qreal enteringBuffer,
-                                    const qreal retentionBuffer, const bool active)
+                                    const qreal retentionBuffer, const bool active,
+                                    const bool retainExisting)
 {
     m_viewportTop = std::isfinite(top) ? top : 0.0;
     m_viewportHeight = std::max(0.0, std::isfinite(height) ? height : 0.0);
     m_buffer = std::max(0.0, std::isfinite(retentionBuffer) ? retentionBuffer : 0.0);
     m_enterBuffer = std::max(0.0, std::isfinite(enteringBuffer) ? enteringBuffer : 0.0);
     m_active = active;
+    if (!active || (!retainExisting && m_retainExisting)) {
+        m_resizeSamples.clear();
+        m_resizeSampleWidth = 0;
+    }
+    m_retainExisting = active && retainExisting;
     synchronizeWindow();
 }
 
@@ -567,7 +591,21 @@ void MasonryWindowModel::synchronizeWindow()
                     || retained.contains(slot.key)) admitted.append(*it);
             }
         }
+        // During the short resize transaction retain the existing delegate
+        // identities, but still admit newly visible cards. Removed source
+        // rows are never retained. Normal bounded eviction resumes on settle.
+        if (m_retainExisting) {
+            constexpr qsizetype resizeRetentionLimit{160};
+            for (const Slot& slot : std::as_const(m_window)) {
+                if (admitted.size() >= resizeRetentionLimit) break;
+                const auto found = m_indexByKey.constFind(slot.key);
+                if (found != m_indexByKey.cend()
+                    && std::find(admitted.cbegin(), admitted.cend(), *found) == admitted.cend())
+                    admitted.append(*found);
+            }
+        }
         std::sort(admitted.begin(), admitted.end());
+        admitted.erase(std::unique(admitted.begin(), admitted.end()), admitted.end());
     }
     int index = 0;
     for (const int sourceIndex : std::as_const(admitted)) {

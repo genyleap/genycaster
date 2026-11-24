@@ -21,6 +21,7 @@ test('Magazine stores measured card sizes and image aspect for reverse scroll wi
                             wall.indexOf('    readonly property int count:'));
   const context = vm.createContext({
     measuredHeights: {}, measuredOrder: [], aspectMemory: {}, aspectOrder: [],
+    resizeInProgress: false,
     layoutModel: { retainHeight: () => false }
   });
   vm.runInContext(source, context);

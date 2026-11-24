@@ -27,9 +27,40 @@ Item {
     readonly property real captureScale: root.browserRenderer
         ? Math.min(0.0625, 256 / Math.max(1, width, height))
         : Math.min(0.125, 512 / Math.max(1, width, height))
-    readonly property size textureExtent: Qt.size(
+    readonly property size desiredTextureExtent: Qt.size(
         Math.max(1, Math.ceil(width * captureScale)),
         Math.max(1, Math.ceil(height * captureScale)))
+    // Capture targets are GPU allocations, not layout dimensions. Retain
+    // the last color field during a live resize, then refresh all three
+    // passes together instead of reallocating their FBOs every frame.
+    property size textureExtent: Qt.size(1, 1)
+    property bool captureGeometryReady: false
+    property bool resizingCapture: false
+    function captureGeometryChanged() {
+        if (!captureGeometryReady) return
+        resizingCapture = true
+        captureResizeSettler.restart()
+    }
+    onWidthChanged: captureGeometryChanged()
+    onHeightChanged: captureGeometryChanged()
+    Component.onCompleted: {
+        textureExtent = desiredTextureExtent
+        captureGeometryReady = true
+    }
+    Timer {
+        id: captureResizeSettler
+        interval: 180
+        repeat: false
+        onTriggered: {
+            root.textureExtent = root.desiredTextureExtent
+            root.resizingCapture = false
+            if (root.capturing) {
+                capture.scheduleUpdate()
+                horizontalTexture.scheduleUpdate()
+                blurredTexture.scheduleUpdate()
+            }
+        }
+    }
     // Retain broad color fields without blurring saturated pixels into a
     // near-neutral average. Mobile keeps a shorter effective sampling reach.
     readonly property real effectiveBlur: Math.max(14, Math.min(160, blurRadius))
@@ -47,7 +78,7 @@ Item {
         interval: 240
         repeat: true
         triggeredOnStart: true
-        running: root.browserRenderer && root.capturing
+        running: root.browserRenderer && root.capturing && !root.resizingCapture
         onTriggered: capture.scheduleUpdate()
     }
 
@@ -60,7 +91,7 @@ Item {
         hideSource: false
         recursive: false
         visible: false
-        live: root.capturing && !root.browserRenderer
+        live: root.capturing && !root.browserRenderer && !root.resizingCapture
         smooth: true
         wrapMode: ShaderEffectSource.ClampToEdge
     }
@@ -80,7 +111,7 @@ Item {
         format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F
         textureSize: root.textureExtent
         visible: false
-        live: root.capturing
+        live: root.capturing && !root.resizingCapture
         smooth: true
         wrapMode: ShaderEffectSource.ClampToEdge
     }
@@ -100,7 +131,7 @@ Item {
         format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F
         textureSize: root.textureExtent
         visible: false
-        live: root.capturing
+        live: root.capturing && !root.resizingCapture
         smooth: true
         wrapMode: ShaderEffectSource.ClampToEdge
     }

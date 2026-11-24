@@ -88,12 +88,12 @@ test("Magazine / Timeline view actions sit next to Everyone / Following, without
 
 test("Masonry viewport admission has no Loader.active geometry binding or loop", () => {
     const source = read("ui/components/feed/FeedMasonryView.qml");
-    const match = source.match(/    function updateAdmissions\(\) \{([\s\S]*?)\n    \}\n    function forceLayout\(\)/);
+    const match = source.match(/    function updateAdmissions\(\) \{([\s\S]*?)\n    \}\n    function scheduleRebalance\(\)/);
     assert.ok(match, "Viewport admission logic must be present");
     assert.match(source, /active: slot\.admitted/);
     assert.doesNotMatch(source, /active: view\.visible && view\.positioned && slot\.placed/);
     assert.match(source, /onContentYChanged: scheduleAdmission\(\)/);
-    assert.match(source, /onVisibleChanged: \{\s*scheduleAdmission\(\)\s*if \(visible && rebalancePending\) scheduleRebalance\(\)\s*\}/);
+    assert.match(source, /onVisibleChanged: \{[\s\S]*?layoutModel\.setViewport\(contentY, height, cacheBuffer, retentionBuffer, false, false\)/);
     assert.match(source, /function scheduleAdmission\(\)/);
     assert.match(source, /onTriggered: view\.updateAdmissions\(\)/);
     assert.match(source, /readonly property real retentionBuffer: cacheBuffer \+/);
@@ -103,21 +103,29 @@ test("Masonry viewport admission has no Loader.active geometry binding or loop",
     const calls = [];
     const context = vm.createContext({
         contentY: 0, height: 400, cacheBuffer: 100, retentionBuffer: 240,
-        view: {visible: true}, positioned: true,
+        view: {visible: true, resizeInProgress: false}, positioned: true,
+        arranging: false, layoutTimer: {running: false},
         layoutModel: {setViewport(...args) {calls.push(args)}}
     });
     vm.runInContext("function updateAdmissions() {" + match[1] + "\n}", context);
     vm.runInContext("updateAdmissions()", context);
-    assert.deepEqual([...calls.at(-1)], [0, 400, 100, 240, true]);
+    assert.deepEqual([...calls.at(-1)], [0, 400, 100, 240, true, false]);
     context.contentY = 650;
     vm.runInContext("updateAdmissions()", context);
-    assert.deepEqual([...calls.at(-1)], [650, 400, 100, 240, true]);
+    assert.deepEqual([...calls.at(-1)], [650, 400, 100, 240, true, false]);
     context.view.visible = false;
     vm.runInContext("updateAdmissions()", context);
-    assert.deepEqual([...calls.at(-1)], [650, 400, 100, 240, false]);
+    assert.deepEqual([...calls.at(-1)], [650, 400, 100, 240, false, false]);
     context.view.visible = true;
     vm.runInContext("updateAdmissions()", context);
-    assert.deepEqual([...calls.at(-1)], [650, 400, 100, 240, true]);
+    assert.deepEqual([...calls.at(-1)], [650, 400, 100, 240, true, false]);
+    context.view.resizeInProgress = true;
+    vm.runInContext("updateAdmissions()", context);
+    assert.deepEqual([...calls.at(-1)], [650, 400, 100, 240, true, true]);
+    const before = calls.length;
+    context.layoutTimer.running = true;
+    vm.runInContext("updateAdmissions()", context);
+    assert.equal(calls.length, before, "never admit against an invalidated layout");
     const native = read("ui/app/social/feed_rows.cpp");
     assert.match(native, /void MasonryWindowModel::synchronizeWindow\(\)/);
     assert.match(native, /std::lower_bound\(lane\.cbegin\(\), lane\.cend\(\), minimum/);

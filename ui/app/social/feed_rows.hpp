@@ -132,18 +132,18 @@ public:
 
     /** @brief Rebuilds numeric geometry; never instantiates visual delegates. */
     Q_INVOKABLE void relayout(int columns, qreal cardWidth, qreal gap, qreal top,
-                            qreal leadingInset, bool rtl);
+                            qreal leadingInset, bool rtl, bool deferWindowUpdate = false);
 
     /** @brief Rebalances lane assignment on the next relayout, after scrolling settles. */
     Q_INVOKABLE void requestRepack() noexcept;
 
     /** @brief Updates the bounded visible window by per-lane binary search. */
     Q_INVOKABLE void setViewport(qreal top, qreal height, qreal enteringBuffer,
-                                 qreal retentionBuffer, bool active);
+                                 qreal retentionBuffer, bool active, bool retainExisting = false);
 
     /** @brief Records a width/revision-specific estimate or exact painted height. */
     Q_INVOKABLE bool retainHeight(const QString& key, const QString& revision,
-                                 qreal width, qreal height, bool measured);
+                                 qreal width, qreal height, bool measured, bool transient = false);
 
     /** @brief Returns the source row at a content-space coordinate or -1. */
     Q_INVOKABLE [[nodiscard]] int indexAt(qreal x, qreal y) const;
@@ -188,6 +188,10 @@ private:
     QVector<Slot> m_window{};
     QVector<QVector<int>> m_lanes{};
     QHash<QString, qreal> m_heightSamples{};
+    // The transient map contains only the current resize width. Do not evict
+    // useful settled samples for every intermediate pixel of window geometry.
+    QHash<QString, qreal> m_resizeSamples{};
+    qreal m_resizeSampleWidth{0};
     QHash<QString, bool> m_exactSamples{};
     QList<QString> m_sampleOrder{};
     int m_columns{1};
@@ -203,6 +207,7 @@ private:
     qreal m_enterBuffer{0};
     bool m_rtl{false};
     bool m_active{false};
+    bool m_retainExisting{false};
     bool m_relayoutScheduled{false};
     bool m_forceRepack{false};
 };

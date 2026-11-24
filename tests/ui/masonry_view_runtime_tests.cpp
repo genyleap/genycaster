@@ -182,6 +182,24 @@ Feed.FeedMasonryView {
             require(std::abs(y - previousBottom.value(laneX)) <= 0.75);
         previousBottom[laneX] = y + height + 12.0;
     }
+    // Repeated 2 -> 3 -> 2 column changes retain the mounted card identity.
+    auto itemForFirst = [&]() -> QObject* {
+        QVariant item{};
+        const QVariant index{0};
+        require(QMetaObject::invokeMethod(root, "itemAtIndex",
+                    Q_RETURN_ARG(QVariant, item), Q_ARG(QVariant, index)));
+        return item.value<QObject*>();
+    };
+    auto* firstItem = itemForFirst();
+    require(firstItem != nullptr);
+    for (const auto width : {1050, 1250, 980, 1320, 960}) {
+        root->setWidth(width);
+        QTest::qWait(35);
+        require(itemForFirst() == firstItem);
+    }
+    QTest::qWait(420);
+    require(itemForFirst() == firstItem);
+    require(layout->count() < 80);
     root->setProperty("contentY", 9000.0);
     QTest::qWait(90);
     require(layout->count() > 0 && layout->count() < 80);

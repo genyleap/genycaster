@@ -16,11 +16,14 @@ Item {
     // must remain masked until the parent's aspect commit updates its slot.
     property bool awaitFinalAspect: false
     property bool fullBleedAspect: false
+    property bool aspectCommitted: false
     readonly property bool finalAspectReady: {
+        if (root.aspectCommitted)
+            return true
         if (!root.awaitFinalAspect || !root.preserveAspect)
             return true
-        if (preview.status !== Image.Ready)
-            return false
+        // Once this identity has a known aspect, subsequent geometry or
+        // decode-size changes must not hide the painted image.
         const ratio = Number(root.reportedAspect || 0)
         if (!(ratio > 0) || root.width <= 0 || root.height <= 0)
             return false
@@ -35,6 +38,11 @@ Item {
             ? Math.ceil(naturalHeight)
             : Math.ceil(Math.max(64, Math.min(Math.max(900, root.width * 2.35), naturalHeight)))
         return Math.abs(root.height - expectedHeight) <= 2
+    }
+    onFinalAspectReadyChanged: {
+        if (finalAspectReady && root.awaitFinalAspect && root.preserveAspect
+                && root.reportedAspect > 0)
+            root.aspectCommitted = true
     }
     // The performance-safe defaults avoid briefly constructing layer effects
     // before GalleryLayout applies its multi-image bindings. Single-image slots
@@ -98,6 +106,7 @@ Item {
         if (identity !== root.reportedMediaIdentity) {
             root.reportedMediaIdentity = identity
             root.reportedAspect = 0
+            root.aspectCommitted = false
         }
     }
     function resolvedSource() {
@@ -171,8 +180,7 @@ Item {
         onStatusChanged: root.reportDecodedAspect()
         onSourceImplicitWidthChanged: root.reportDecodedAspect()
         onSourceImplicitHeightChanged: root.reportDecodedAspect()
-        onPaintedWidthChanged: root.reportDecodedAspect()
-        onPaintedHeightChanged: root.reportDecodedAspect()
+        // Painted dimensions are viewport geometry, not source metadata.
     }
 
     // Multi-image feed galleries stay on Image's direct scene-graph texture path.

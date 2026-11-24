@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read = path => readFileSync(path, 'utf8');
+function method(qml, name, root, imageSource, Image) {
+    const start = qml.indexOf("    function " + name + "(");
+    const end = qml.indexOf("\n    }", start);
+    assert.ok(start >= 0 && end > start);
+    return new Function("root", "imageSource", "Image", qml.slice(start, end + 6) + "\nreturn " + name + ";")(root,imageSource,Image);
+}
+test("resize keeps decoded pixels; only a meaningful settled decode size replaces the texture", () => {
+    const qml = read("ui/components/visual/SuperellipseImage.qml");
+    const Image = {Ready:1, Loading:2, Error:3};
+    const imageSource = {status:Image.Ready};
+    const root = {hasRenderableGeometry:true, desiredDecodeSize:{width:768,height:512},
+        stableDecodeSize:{width:0,height:0}, decodedReady:false, presentationReady:false};
+    const commit = method(qml,"commitDecodeSize",root,imageSource,Image);
+    commit(true);
+    assert.deepEqual(root.stableDecodeSize,{width:768,height:512});
+    root.decodedReady = root.presentationReady = true;
+    root.desiredDecodeSize = {width:640,height:384};
+    commit(false);
+    assert.equal(root.stableDecodeSize.width,768);
+    root.desiredDecodeSize = {width:896,height:512};
+    commit(false);
+    assert.equal(root.stableDecodeSize.width,768);
+    root.desiredDecodeSize = {width:1024,height:768};
+    commit(false);
+    assert.equal(root.stableDecodeSize.width,1024);
+    assert.equal(root.sizeReloadInFlight,true);
+    imageSource.status = Image.Loading;
+    root.desiredDecodeSize = {width:1536,height:1024};
+    commit(false);
+    assert.equal(root.stableDecodeSize.width,1024,"do not cancel an in-flight decode");
+    assert.match(qml,/sourceSize: root\.stableDecodeSize/);
+    assert.match(qml,/onSourceChanged: \{\s*root\.sizeReloadInFlight = false/);
+    assert.match(qml,/onActiveSourceChanged: \{\s*root\.sizeReloadInFlight = false/);
+    assert.match(qml,/imageSource\[propertyName\] = root\.retainPreviousWhileLoading \|\| root\.sizeReloadInFlight/);
+});
+test("masonry geometry and admissions commit in order; reflection FBOs settle independently", () => {
+    const qml = read("ui/components/feed/FeedMasonryView.qml");
+    const cpp = read("ui/app/social/feed_rows.cpp");
+    const neon = read("ui/components/visual/NeonReflectionSource.qml");
+    const force = qml.slice(qml.indexOf("function forceLayout()"),qml.indexOf("function positionViewAtBeginning()"));
+    assert.ok(force.indexOf("layoutModel.relayout(")<force.indexOf("layoutModel.geometryForKey("));
+    assert.ok(force.indexOf("layoutModel.geometryForKey(")<force.indexOf("updateAdmissions()"));
+    assert.match(cpp,/if \(!deferWindowUpdate\) synchronizeWindow\(\)/);
+    assert.match(cpp,/resizeRetentionLimit\{160\}/);
+    assert.match(cpp,/m_resizeSamples\.clear\(\)/);
+    assert.match(qml,/if \(resizeInProgress\) \{\s*if \(layoutModel\.retainHeight\(key, revision, width, height, true, true\)\)/);
+    assert.match(neon,/property size textureExtent: Qt\.size\(1, 1\)/);
+    assert.match(neon,/root\.textureExtent = root\.desiredTextureExtent/);
+    assert.equal((neon.match(/live: root\.capturing[^\n]*!root\.resizingCapture/g)||[]).length,3);
+});
