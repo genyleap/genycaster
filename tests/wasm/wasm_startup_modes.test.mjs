@@ -5,6 +5,16 @@ import {readFileSync} from "node:fs";
 
 const script=readFileSync(new URL("../../ui/wasm/genycaster-loader.js",import.meta.url),"utf8");
 function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false,withoutLength=false,studioTimed=false,authRestorePending=false}={}) {
+    function element(tag="div") {
+        const children=[];
+        let text="";
+        return {tag,children,
+            get textContent(){return text+children.map(child=>child.textContent).join("");},
+            set textContent(value){text=String(value);children.length=0;},
+            replaceChildren(...next){text="";children.splice(0,children.length,...next);},
+            append(...next){children.push(...next);}
+        };
+    }
     const nodes=new Map();
     for(const id of ["genycaster-boot","boot-heading","boot-status","boot-stage",
         "boot-fill","boot-percent","boot-retry","boot-build-credit","qt-screen",
@@ -16,11 +26,11 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
         "genycaster-update-current-channel","genycaster-update-next-channel",
         "genycaster-update-details","genycaster-studio-intro"]) {
         const classes=new Set();
-        nodes.set(id,{
-            hidden:id==="genycaster-update-banner"||id==="genycaster-update-backdrop"||id==="genycaster-studio-intro",textContent:"",style:{},dataset:{},
+        nodes.set(id,Object.assign(element(),{
+            hidden:id==="genycaster-update-banner"||id==="genycaster-update-backdrop"||id==="genycaster-studio-intro",style:{},dataset:{},
             classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)},
             handlers:{},addEventListener(type,handler){this.handlers[type]=handler;}
-        });
+        }));
     }
     const storage=new Map();
     if(loaded)storage.set("genycaster.boot.loaded.v1","1");
@@ -61,7 +71,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
             getItem:key=>storage.get(key)||null,
             setItem:(key,val)=>storage.set(key,val),
         },
-        document:{getElementById:id=>nodes.get(id),visibilityState:"visible",
+        document:{getElementById:id=>nodes.get(id),createElement:tag=>element(tag),visibilityState:"visible",
             addEventListener(name,handler){listeners[name]=handler;},
             documentElement:{
                 setAttribute:(key,value)=>{if(key==="data-chrome-theme")chrome.scheme=value;},

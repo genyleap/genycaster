@@ -6893,10 +6893,6 @@ FID، نام کاربری و پروفایل عمومی، کست‌ها، پاس�
             <source>Star on GitHub</source>
             <translation>ستاره‌زدن در گیت‌هاب</translation>
         </message>
-        <message id="genycaster.settings.release_notes_and_downloads">
-            <source>Release notes and downloads</source>
-            <translation> یادداشت‌های انتشار و دانلودها</translation>
-        </message>
         <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
             <source>Restart Genycaster to apply network changes.</source>
             <translation> برای اعمال تغییرات شبکه، Genycaster را مجدداً راه‌اندازی کنید.</translation>
@@ -7497,10 +7493,6 @@ FID، نام کاربری و پروفایل عمومی، کست‌ها، پاس�
             <source>This release has no published change notes. View the official release for details.</source>
             <translation>برای این نسخه یادداشت تغییراتی منتشر نشده است. برای جزئیات به صفحهٔ رسمی انتشار مراجعه کنید.</translation>
         </message>
-        <message id="genycaster.update.notes">
-            <source>Release notes</source>
-            <translation>یادداشت‌های انتشار</translation>
-        </message>
         <message id="genycaster.update.refresh">
             <source>Refresh to update</source>
             <translation>بازبارگذاری و به‌روزرسانی</translation>
@@ -7512,10 +7504,6 @@ FID، نام کاربری و پروفایل عمومی، کست‌ها، پاس�
         <message id="genycaster.update.download">
             <source>Download</source>
             <translation>دریافت</translation>
-        </message>
-        <message id="genycaster.update.view">
-            <source>View release</source>
-            <translation>مشاهدهٔ انتشار</translation>
         </message>
         <message id="genycaster.apps.category.art_creativity">
             <source>Art &amp; Creativity</source>

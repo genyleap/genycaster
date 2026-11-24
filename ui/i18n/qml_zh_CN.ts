@@ -6868,10 +6868,6 @@ Genycaster 处理账户 ID/FID、协议、验证状态以及 Farcaster 与 Genyl
             <source>Star on GitHub</source>
             <translation>在 GitHub 上加星</translation>
         </message>
-        <message id="genycaster.settings.release_notes_and_downloads">
-            <source>Release notes and downloads</source>
-            <translation>发行说明和下载</translation>
-        </message>
         <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
             <source>Restart Genycaster to apply network changes.</source>
             <translation>重启 Genycaster 以应用网络更改。</translation>
@@ -7492,10 +7488,6 @@ Genycaster 处理账户 ID/FID、协议、验证状态以及 Farcaster 与 Genyl
             <source>This release has no published change notes. View the official release for details.</source>
             <translation>此版本尚未发布更新说明。详情请查看官方发布页面。</translation>
         </message>
-        <message id="genycaster.update.notes">
-            <source>Release notes</source>
-            <translation>版本说明</translation>
-        </message>
         <message id="genycaster.update.refresh">
             <source>Refresh to update</source>
             <translation>刷新并更新</translation>
@@ -7507,10 +7499,6 @@ Genycaster 处理账户 ID/FID、协议、验证状态以及 Farcaster 与 Genyl
         <message id="genycaster.update.download">
             <source>Download</source>
             <translation>下载</translation>
-        </message>
-        <message id="genycaster.update.view">
-            <source>View release</source>
-            <translation>查看发布</translation>
         </message>
         <message id="genycaster.apps.category.art_creativity">
             <source>Art &amp; Creativity</source>

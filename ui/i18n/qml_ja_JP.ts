@@ -6868,10 +6868,6 @@ Genycaster は ID/FID、プロトコル、検証状態、Farcaster と Genyleap/
             <source>Star on GitHub</source>
             <translation>GitHub でスターを付ける</translation>
         </message>
-        <message id="genycaster.settings.release_notes_and_downloads">
-            <source>Release notes and downloads</source>
-            <translation>リリースノートとダウンロード</translation>
-        </message>
         <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
             <source>Restart Genycaster to apply network changes.</source>
             <translation>ネットワーク変更を適用するには Genycaster を再起動してください。</translation>
@@ -7492,10 +7488,6 @@ Genycaster は ID/FID、プロトコル、検証状態、Farcaster と Genyleap/
             <source>This release has no published change notes. View the official release for details.</source>
             <translation>このリリースの更新履歴は公開されていません。詳細は公式リリースページをご覧ください。</translation>
         </message>
-        <message id="genycaster.update.notes">
-            <source>Release notes</source>
-            <translation>リリースノート</translation>
-        </message>
         <message id="genycaster.update.refresh">
             <source>Refresh to update</source>
             <translation>再読み込みして更新</translation>
@@ -7507,10 +7499,6 @@ Genycaster は ID/FID、プロトコル、検証状態、Farcaster と Genyleap/
         <message id="genycaster.update.download">
             <source>Download</source>
             <translation>ダウンロード</translation>
-        </message>
-        <message id="genycaster.update.view">
-            <source>View release</source>
-            <translation>リリースを見る</translation>
         </message>
         <message id="genycaster.apps.category.art_creativity">
             <source>Art &amp; Creativity</source>

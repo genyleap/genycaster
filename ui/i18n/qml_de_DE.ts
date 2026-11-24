@@ -6868,10 +6868,6 @@ Die Erklärung beschreibt vorgesehene Abläufe, nicht das Verhalten unabhängige
             <source>Star on GitHub</source>
             <translation>Stern auf GitHub vergeben</translation>
         </message>
-        <message id="genycaster.settings.release_notes_and_downloads">
-            <source>Release notes and downloads</source>
-            <translation>Versionshinweise und Downloads</translation>
-        </message>
         <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
             <source>Restart Genycaster to apply network changes.</source>
             <translation>Starten Sie Genycaster neu, um Netzwerkänderungen anzuwenden.</translation>
@@ -7492,10 +7488,6 @@ Die Erklärung beschreibt vorgesehene Abläufe, nicht das Verhalten unabhängige
             <source>This release has no published change notes. View the official release for details.</source>
             <translation>Für dieses Release wurden keine Änderungsnotizen veröffentlicht. Details stehen auf der offiziellen Release-Seite.</translation>
         </message>
-        <message id="genycaster.update.notes">
-            <source>Release notes</source>
-            <translation>Versionshinweise</translation>
-        </message>
         <message id="genycaster.update.refresh">
             <source>Refresh to update</source>
             <translation>Zum Aktualisieren neu laden</translation>
@@ -7507,10 +7499,6 @@ Die Erklärung beschreibt vorgesehene Abläufe, nicht das Verhalten unabhängige
         <message id="genycaster.update.download">
             <source>Download</source>
             <translation>Herunterladen</translation>
-        </message>
-        <message id="genycaster.update.view">
-            <source>View release</source>
-            <translation>Release anzeigen</translation>
         </message>
         <message id="genycaster.apps.category.art_creativity">
             <source>Art &amp; Creativity</source>

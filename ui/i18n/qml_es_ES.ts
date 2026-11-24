@@ -6869,10 +6869,6 @@ Se describen los flujos previstos, no las prácticas de terceros. Los cambios im
             <source>Star on GitHub</source>
             <translation>Dar una estrella en GitHub</translation>
         </message>
-        <message id="genycaster.settings.release_notes_and_downloads">
-            <source>Release notes and downloads</source>
-            <translation>Notas y descargas de la versión</translation>
-        </message>
         <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
             <source>Restart Genycaster to apply network changes.</source>
             <translation>Reinicie Genycaster para aplicar cambios de red.</translation>
@@ -7493,10 +7489,6 @@ Se describen los flujos previstos, no las prácticas de terceros. Los cambios im
             <source>This release has no published change notes. View the official release for details.</source>
             <translation>No hay notas publicadas para esta versión. Consulta el lanzamiento oficial para más detalles.</translation>
         </message>
-        <message id="genycaster.update.notes">
-            <source>Release notes</source>
-            <translation>Notas de la versión</translation>
-        </message>
         <message id="genycaster.update.refresh">
             <source>Refresh to update</source>
             <translation>Actualizar página</translation>
@@ -7508,10 +7500,6 @@ Se describen los flujos previstos, no las prácticas de terceros. Los cambios im
         <message id="genycaster.update.download">
             <source>Download</source>
             <translation>Descargar</translation>
-        </message>
-        <message id="genycaster.update.view">
-            <source>View release</source>
-            <translation>Ver versión</translation>
         </message>
         <message id="genycaster.apps.category.art_creativity">
             <source>Art &amp; Creativity</source>

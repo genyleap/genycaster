@@ -6868,10 +6868,6 @@ Genycaster обрабатывает ID/FID, протокол, статус пр�
             <source>Star on GitHub</source>
             <translation>Поставить звезду на GitHub</translation>
         </message>
-        <message id="genycaster.settings.release_notes_and_downloads">
-            <source>Release notes and downloads</source>
-            <translation>Примечания к выпуску и загрузки</translation>
-        </message>
         <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
             <source>Restart Genycaster to apply network changes.</source>
             <translation>Перезапустите Genycaster, чтобы применить изменения сети.</translation>
@@ -7492,10 +7488,6 @@ Genycaster обрабатывает ID/FID, протокол, статус пр�
             <source>This release has no published change notes. View the official release for details.</source>
             <translation>Для этой версии нет опубликованных примечаний. Подробности — на официальной странице релиза.</translation>
         </message>
-        <message id="genycaster.update.notes">
-            <source>Release notes</source>
-            <translation>Примечания к выпуску</translation>
-        </message>
         <message id="genycaster.update.refresh">
             <source>Refresh to update</source>
             <translation>Обновить страницу</translation>
@@ -7507,10 +7499,6 @@ Genycaster обрабатывает ID/FID, протокол, статус пр�
         <message id="genycaster.update.download">
             <source>Download</source>
             <translation>Скачать</translation>
-        </message>
-        <message id="genycaster.update.view">
-            <source>View release</source>
-            <translation>Посмотреть выпуск</translation>
         </message>
         <message id="genycaster.apps.category.art_creativity">
             <source>Art &amp; Creativity</source>

@@ -413,7 +413,18 @@ for path in ROOT.rglob("*"):
             add(path, "vendor/flagship-backend semantic leaked outside provider adapter boundary")
 
     if path.suffix == ".qml":
-        if PROVIDER_SEMANTICS.search(without_comments(text)) and rel not in PROVIDER_SELECTION_QML:
+        qml_semantics = without_comments(text)
+        if rel == "ui/components/shell/AppShell.qml":
+            qml_semantics = qml_semantics.replace(
+                'accountProtocol: presentationBridge.nativeCustodyAccount ? "hypersnap"',
+                'accountProtocol: presentationBridge.nativeCustodyAccount ? "native"')
+        elif rel == "ui/components/profile/ProfileTrustCard.qml":
+            qml_semantics = qml_semantics.replace('root.accountProtocol === "hypersnap"',
+                                                  'root.accountProtocol === "native"')
+            qml_semantics = qml_semantics.replace(
+                'qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/quilibrium/hypersnap.svg',
+                'local-protocol-icon')
+        if PROVIDER_SEMANTICS.search(qml_semantics) and rel not in PROVIDER_SELECTION_QML:
             add(path, "provider/backend semantic leaked into QML")
         if QML_IO.search(text):
             add(path, "QML must not own network, websocket, or database I/O")

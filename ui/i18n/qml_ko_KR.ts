@@ -6868,10 +6868,6 @@ Genycaster는 계정 ID/FID, 프로토콜, 확인 상태, Farcaster 및 Genyleap
             <source>Star on GitHub</source>
             <translation>GitHub에서 별표 누르기</translation>
         </message>
-        <message id="genycaster.settings.release_notes_and_downloads">
-            <source>Release notes and downloads</source>
-            <translation>릴리스 노트 및 다운로드</translation>
-        </message>
         <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
             <source>Restart Genycaster to apply network changes.</source>
             <translation>네트워크 변경 사항을 적용하려면 Genycaster를 다시 시작하세요.</translation>
@@ -7492,10 +7488,6 @@ Genycaster는 계정 ID/FID, 프로토콜, 확인 상태, Farcaster 및 Genyleap
             <source>This release has no published change notes. View the official release for details.</source>
             <translation>이 릴리스에는 게시된 변경 사항이 없습니다. 공식 릴리스 페이지에서 자세한 내용을 확인하세요.</translation>
         </message>
-        <message id="genycaster.update.notes">
-            <source>Release notes</source>
-            <translation>릴리스 정보</translation>
-        </message>
         <message id="genycaster.update.refresh">
             <source>Refresh to update</source>
             <translation>새로고침하여 업데이트</translation>
@@ -7507,10 +7499,6 @@ Genycaster는 계정 ID/FID, 프로토콜, 확인 상태, Farcaster 및 Genyleap
         <message id="genycaster.update.download">
             <source>Download</source>
             <translation>다운로드</translation>
-        </message>
-        <message id="genycaster.update.view">
-            <source>View release</source>
-            <translation>릴리스 보기</translation>
         </message>
         <message id="genycaster.apps.category.art_creativity">
             <source>Art &amp; Creativity</source>

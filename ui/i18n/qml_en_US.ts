@@ -6893,10 +6893,6 @@ This notice describes the product's current intended data flows, not a guarantee
             <source>Star on GitHub</source>
             <translation>Star on GitHub</translation>
         </message>
-        <message id="genycaster.settings.release_notes_and_downloads">
-            <source>Release notes and downloads</source>
-            <translation>Release notes and downloads</translation>
-        </message>
         <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
             <source>Restart Genycaster to apply network changes.</source>
             <translation>Restart Genycaster to apply network changes.</translation>
@@ -7497,10 +7493,6 @@ This notice describes the product's current intended data flows, not a guarantee
             <source>This release has no published change notes. View the official release for details.</source>
             <translation>This release has no published change notes. View the official release for details.</translation>
         </message>
-        <message id="genycaster.update.notes">
-            <source>Release notes</source>
-            <translation>Release notes</translation>
-        </message>
         <message id="genycaster.update.refresh">
             <source>Refresh to update</source>
             <translation>Refresh to update</translation>
@@ -7512,10 +7504,6 @@ This notice describes the product's current intended data flows, not a guarantee
         <message id="genycaster.update.download">
             <source>Download</source>
             <translation>Download</translation>
-        </message>
-        <message id="genycaster.update.view">
-            <source>View release</source>
-            <translation>View release</translation>
         </message>
         <message id="genycaster.apps.category.art_creativity">
             <source>Art &amp; Creativity</source>

@@ -6868,10 +6868,6 @@ Genycaster खाता ID/FID, प्रोटोकॉल, सत्याप�
             <source>Star on GitHub</source>
             <translation>GitHub पर स्टार दें</translation>
         </message>
-        <message id="genycaster.settings.release_notes_and_downloads">
-            <source>Release notes and downloads</source>
-            <translation>रिलीज़ नोट्स और डाउनलोड</translation>
-        </message>
         <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
             <source>Restart Genycaster to apply network changes.</source>
             <translation>नेटवर्क बदलाव लागू करने के लिए Genycaster रीस्टार्ट करें।</translation>
@@ -7492,10 +7488,6 @@ Genycaster खाता ID/FID, प्रोटोकॉल, सत्याप�
             <source>This release has no published change notes. View the official release for details.</source>
             <translation>इस रिलीज़ के बदलाव प्रकाशित नहीं किए गए हैं। विवरण के लिए आधिकारिक रिलीज़ पृष्ठ देखें।</translation>
         </message>
-        <message id="genycaster.update.notes">
-            <source>Release notes</source>
-            <translation>रिलीज़ नोट्स</translation>
-        </message>
         <message id="genycaster.update.refresh">
             <source>Refresh to update</source>
             <translation>अपडेट के लिए रीफ़्रेश करें</translation>
@@ -7507,10 +7499,6 @@ Genycaster खाता ID/FID, प्रोटोकॉल, सत्याप�
         <message id="genycaster.update.download">
             <source>Download</source>
             <translation>डाउनलोड</translation>
-        </message>
-        <message id="genycaster.update.view">
-            <source>View release</source>
-            <translation>रिलीज़ देखें</translation>
         </message>
         <message id="genycaster.apps.category.art_creativity">
             <source>Art &amp; Creativity</source>
