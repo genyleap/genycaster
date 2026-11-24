@@ -112,6 +112,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(int notificationUnreadCount READ notificationUnreadCount NOTIFY notificationsChanged)
     Q_PROPERTY(bool hasUnreadNotifications READ hasUnreadNotifications NOTIFY notificationsChanged)
     Q_PROPERTY(int feedPageSize READ feedPageSize NOTIFY readPreferencesChanged)
+    Q_PROPERTY(bool followingArtworkScan READ followingArtworkScan WRITE setFollowingArtworkScan)
     Q_PROPERTY(int contextHydrationLimit READ contextHydrationLimit NOTIFY readPreferencesChanged)
     Q_PROPERTY(bool linkPreviewPrefetchEnabled READ linkPreviewPrefetchEnabled NOTIFY readPreferencesChanged)
     Q_PROPERTY(bool inlineYouTubeEnabled READ inlineYouTubeEnabled NOTIFY readPreferencesChanged)
@@ -253,6 +254,8 @@ public:
     [[nodiscard]] int notificationUnreadCount() const noexcept;
     [[nodiscard]] bool hasUnreadNotifications() const noexcept;
     [[nodiscard]] int feedPageSize() const noexcept;
+    [[nodiscard]] bool followingArtworkScan() const noexcept { return m_followingArtworkScan; }
+    void setFollowingArtworkScan(bool enabled) noexcept { m_followingArtworkScan = enabled; }
     [[nodiscard]] int contextHydrationLimit() const noexcept;
     [[nodiscard]] bool linkPreviewPrefetchEnabled() const noexcept;
     [[nodiscard]] bool inlineYouTubeEnabled() const noexcept;
@@ -850,6 +853,7 @@ private:
     bool m_allowRecoveryProbeForNextIntent{false};
     QSettings* m_settings{nullptr};
     int m_feedPageSize{20};
+    bool m_followingArtworkScan{false};
     int m_contextHydrationLimit{40};
     bool m_linkPreviewPrefetchEnabled{true};
     bool m_inlineYouTubeEnabled{true};

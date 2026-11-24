@@ -39,7 +39,7 @@ Item {
     // Give the nested Loader a real vertical extent. Width-only anchoring
     // allows rich children to calculate their implicitHeight while painting
     // with a zero-height scene node, clipping markdown/media into the next row.
-    height: implicitHeight
+    height: root.magazineCard ? Math.max(implicitHeight, magazinePaintHeight) : implicitHeight
 
     Loader {
         id: loader

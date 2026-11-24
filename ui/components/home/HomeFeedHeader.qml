@@ -215,10 +215,28 @@ Item {
                 objectName: "explorerAudienceSelector"
                 // One continuous superellipse with a matching interior rim,
                 // shared hover material and equal-sized localized segments.
-                Layout.preferredWidth: root.compact ? 228
-                                     : root.condensedFeedActions ? 198 : 240
-                Layout.minimumWidth: Layout.preferredWidth
-                Layout.preferredHeight: 42
+                readonly property real segmentInset: 3
+                readonly property real segmentGap: 4
+                readonly property real segmentWidth: Math.max(Theme.scaleUi(72),
+                    Math.ceil(Math.max(everyoneMetrics.advanceWidth, followingMetrics.advanceWidth)
+                              + Theme.space3 * 2))
+                Layout.preferredWidth: segmentWidth * 2 + segmentInset * 2 + segmentGap
+                Layout.minimumWidth: Math.min(Layout.preferredWidth, Theme.scaleUi(144))
+                Layout.preferredHeight: root.compact ? Math.max(44, Theme.compactControlHeight)
+                                                     : Theme.compactControlHeight
+                Layout.alignment: Qt.AlignVCenter
+                TextMetrics {
+                    id: everyoneMetrics
+                    text: qsTrId("genycaster.home.scope_everyone")
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.typeCaptionSize
+                    font.weight: Theme.weightDemiBold
+                }
+                TextMetrics {
+                    id: followingMetrics
+                    text: qsTrId("genycaster.home.scope_following")
+                    font: everyoneMetrics.font
+                }
                 interactive: true
                 ambientNeon: true
                 neonStrength: Theme.neonControlStrength

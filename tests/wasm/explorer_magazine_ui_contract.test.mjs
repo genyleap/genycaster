@@ -158,7 +158,8 @@ test("windowed Explorer keeps view actions at leading edge and collapses crowded
         && row.indexOf('text: root.compact ? qsTrId') < row.indexOf("id: audienceSelector"),
         "View buttons sit at the leading edge, and Everyone/Following remain at trailing edge");
     assert.match(header, /readonly property bool condensedFeedActions: !root\.compact && root\.width < 690/);
-    assert.match(header, /root\.condensedFeedActions \? 198 : 240/);
+    assert.match(header, /Layout\.preferredWidth: segmentWidth \* 2 \+ segmentInset \* 2 \+ segmentGap/);
+    assert.match(header, /Layout\.preferredHeight: root\.compact \? Math\.max\(44, Theme\.compactControlHeight\)\s*: Theme\.compactControlHeight/);
     assert.match(controls, /property bool condensed: false/);
     assert.equal((controls.match(/iconOnly: root\.condensed/g) || []).length, 3);
     assert.match(cast, /objectName: "magazineCastTime"/);

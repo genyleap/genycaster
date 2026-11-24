@@ -3392,7 +3392,7 @@ Item {
                 // that only declares implicitHeight. Keep the paint bounds
                 // synchronized with rich-text/media layout growth so the
                 // following Magazine slot never draws over this card.
-                height: implicitHeight
+                height: Math.max(implicitHeight, magazinePaintHeight)
                 modelData: {
                     // Native role notification rebinds payload changes even
                     // though the QML stablePayloads map mutates in place.

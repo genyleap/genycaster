@@ -55,14 +55,17 @@ Item {
                                                 && CastReactions.reacted(root.reactionCastId, root.viewerFid, "like")
     readonly property bool browserRecastEvidence: Qt.platform.os === "wasm"
                                                   && CastReactions.reacted(root.reactionCastId, root.viewerFid, "recast")
-    readonly property var browserLikeOverride: Qt.platform.os === "wasm"
-        ? CastReactions.localValue(root.reactionCastId, root.viewerFid, "like") : null
-    readonly property var browserRecastOverride: Qt.platform.os === "wasm"
-        ? CastReactions.localValue(root.reactionCastId, root.viewerFid, "recast") : null
-    readonly property bool effectiveLikedByMe: root.browserLikeOverride !== null
-        ? root.browserLikeOverride : root.likedByMe || root.browserLikeEvidence
-    readonly property bool effectiveRecastedByMe: root.browserRecastOverride !== null
-        ? root.browserRecastOverride : root.recastedByMe || root.browserRecastEvidence
+     // A confirmed explicit false (Unlike / Undo recast) is authoritative.
+    // Browser read-cache positives are a fallback for unknown viewer state,
+    // never a reason to override the newly confirmed local mutation.
+    readonly property bool effectiveLikedByMe: root.viewDescriptor.likedByMe !== undefined
+        && root.viewDescriptor.likedByMe !== null
+        ? Boolean(root.viewDescriptor.likedByMe)
+        : root.likedByMe || root.browserLikeEvidence
+    readonly property bool effectiveRecastedByMe: root.viewDescriptor.recastedByMe !== undefined
+        && root.viewDescriptor.recastedByMe !== null
+        ? Boolean(root.viewDescriptor.recastedByMe)
+        : root.recastedByMe || root.browserRecastEvidence
 
     // Browser positive evidence has the same explicit viewport lifetime as
     // native Views. A pooled row releases its queued demand immediately.
@@ -331,10 +334,8 @@ Item {
                 return
             }
             const next = !root.effectiveRecastedByMe
-            recastButton.playReactionMotion("recast", next)
-            if (Qt.platform.os === "wasm" && root.viewerFid > 0)
-                CastReactions.setLocal(root.reactionCastId, root.viewerFid, "recast", next)
             root.recastRequested(next)
+            recastButton.playReactionMotion("recast", next)
         }
     }
 
@@ -360,10 +361,8 @@ Item {
                 return
             }
             const next = !root.effectiveLikedByMe
-            likeButton.playReactionMotion("like", next)
-            if (Qt.platform.os === "wasm" && root.viewerFid > 0)
-                CastReactions.setLocal(root.reactionCastId, root.viewerFid, "like", next)
             root.likeRequested(next)
+            likeButton.playReactionMotion("like", next)
         }
     }
     }

@@ -204,13 +204,14 @@ Item {
     readonly property bool curateHomeForYou: false
     readonly property bool presentationFilterActive: !root.socialMode
     readonly property int filterTargetCount: root.compact ? 5 : 8
-    readonly property int filterPrefetchLimit: root.presentationMode === "visuals" ? 12 : 8
+    readonly property int filterPrefetchLimit: root.presentationMode === "visuals" && root.activeFeed !== "following" ? 12 : 8
     readonly property int automaticPrefetchLimit: 16
     // One bounded automatic chain between real user scroll gestures. Content
     // geometry and busy-state changes must not replenish the budget.
     property int automaticLastRowCount: -1
     property int automaticNoProgressPages: 0
-    readonly property int automaticNoProgressLimit: root.presentationMode === "visuals" ? 5 : 2
+    readonly property int automaticNoProgressLimit: root.presentationMode === "visuals"
+        ? (root.activeFeed === "following" ? 8 : 5) : 2
     property Component headerContent: null
     // Presentation filters preserve provider order; they only select eligible
     // rows. Pagination therefore remains provider-stable across every branch.
@@ -452,6 +453,36 @@ Item {
         return false
     }
 
+    // An artist's directly attached work may be captioned only "GM", a
+    // title, an emoji, or nothing. The provider already supplies author bios.
+    // Use that context only for actual media, not arbitrary link thumbnails.
+    function hasArtistIdentity(data) {
+        const row = data || ({})
+        const bio = String(row.authorBio || "") + " " + String(row.displayName || "")
+        return /\b(?:artists?|cryptoartist|nftartist|illustrator|photographer|painter|sculptor|printmaker|visual artist|generative art|cryptoart|digital art|pixel art|fine art|artworks?|creative coder|3d artist|motion artist|art & design)\b/i.test(bio)
+            || /(?:هنرمند|نقاش|عکاس|هنر دیجیتال|アーティスト|イラストレーター|艺术家|藝術家|художник|artista|artiste|künstler)/i.test(bio)
+    }
+
+    function hasDirectArtworkMedia(data) {
+        const embeds = (data || ({})).embeds || []
+        for (let index = 0; index < embeds.length; ++index) {
+            const embed = embeds[index] || ({})
+            const url = root.embedUrl(embed)
+            if (root.isFungibleTokenEvidence(embed, ({})))
+                continue
+            const kind = String(embed.kind || "").toLowerCase()
+            if (kind === "image" || kind === "video"
+                    || root.looksLikeArtworkUrl(url)
+                    || /\.(?:avif|gif|jpe?g|png|webp|mp4|webm)(?:$|[?#])/i.test(url))
+                return true
+            // A classified direct attachment is different from an OG image
+            // on an article. Do not infer artwork from the latter.
+            if (root.classifiedFamily(embed, ({})) === "image")
+                return true
+        }
+        return false
+    }
+
     function hasCollectible(data) {
         const row = data || ({})
         const text = String(row.text || "")
@@ -468,7 +499,16 @@ Item {
             return false
         if (root.isArtChannelCast(row) || explicitNft)
             return true
-        return artContext && root.rowHasImage(row)
+        if (artContext && root.rowHasImage(row))
+            return true
+        // Following is already account scoped. Use artist identity + original
+        // media for captionless artworks, without importing global results.
+        if (root.activeFeed !== "following" || !root.hasArtistIdentity(row))
+            return false
+        if (row.isReply || String(row.parentCastId || "").length > 0)
+            return false
+        const unrelated = /\b(?:medical diagnosis|diagnosed|diabetes|hospital|surgery|blood sugar|my (?:son|daughter|child) (?:is|has|was)|stock market|token price|price chart|trading signals|live demo|software release|product announcement|bug fix|github repository)\b/i.test(text)
+        return !unrelated && root.hasDirectArtworkMedia(row)
     }
 
     function primeArtPreviews() {
@@ -1194,6 +1234,8 @@ Item {
         // Without this, a sparse Devs/NFTs visit could permanently exhaust its
         // two-page allowance and only ever show old cached matches afterward.
         root.resetCurrentFilterPrefetchBudget()
+        if (root.presentationMode === "visuals")
+            root.resetAutomaticPageBudget()
         // Keep the existing delegate pool alive until the new projection can
         // reconcile keys; clearing the whole model forced expensive remounts.
         root.deferFeedWork(true, root.presentationMode === "visuals", true)
@@ -1968,6 +2010,30 @@ Item {
                                readList.height - (readList.headerItem
                                   ? readList.headerItem.implicitHeight : 0), 280)
                     : (root.compact ? 116 : 56)
+            readonly property bool moreFiltered: root.presentationFilterActive && root.hasMore
+                && (root.filterPrefetchPages >= root.filterPrefetchLimit
+                    || !root.canAutomaticallyPage())
+                && !root.busy && !root.loadMorePending
+                && !root.offline && !root.sourceUnavailable && root.errorText.length === 0
+            function continueFilteredSearch() {
+                root.resetCurrentFilterPrefetchBudget()
+                root.resetAutomaticPageBudget()
+                root.restartSemanticDeadline()
+                // Explicit user intent works even when target count has
+                // already been reached or the shortest lane is not near end.
+                root.loadMorePending = true
+                root.loadMoreRequested()
+                loadMoreRelease.restart()
+            }
+            id: footer
+            ActionButton {
+                objectName: "moreFilteredCasts"
+                anchors.centerIn: parent
+                visible: stableRows.count > 0 && footer.moreFiltered
+                compact: true
+                text: qsTrId("genycaster.feed.more_filtered")
+                onClicked: footer.continueFilteredSearch()
+            }
 
             EmptyState {
                 id: feedEmptyState
@@ -1979,10 +2045,7 @@ Item {
                 onMoreFilteredRequested: {
                     // Explicit user intent may start a new bounded search window. Automatic
                     // tab switching itself never resets the shared source-pressure budget.
-                    root.resetCurrentFilterPrefetchBudget()
-                    root.resetAutomaticPageBudget()
-                    root.restartSemanticDeadline()
-                    root.scheduleLoadMore()
+                    footer.continueFilteredSearch()
                 }
                 anchors.fill: parent
                 visible: stableRows.count === 0 && !root.waitingForFirstRows

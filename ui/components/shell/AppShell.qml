@@ -1140,6 +1140,14 @@ Item {
             root.closeTopicBrowser()
     }
     property string explorerPresentationMode: "for-you"
+    Binding {
+        target: presentationBridge
+        property: "followingArtworkScan"
+        value: root.primaryDestination === "explorer" && root.shellRoute.length === 0
+            && root.explorerPresentationMode === "visuals"
+            && root.explorerAudience === "following"
+            && presentationBridge.isAuthenticated
+    }
     property string explorerVisualFilter: "nfts"
     // Keep the notifications busy flag as an imperative snapshot. Feeding the
     // bridge property directly into the lazily-instantiated route produced a QML
@@ -4169,6 +4177,48 @@ Item {
             root.showNextBuzz()
         }
     }
+    Popup {
+        id: protocolWriteFeedback
+        objectName: "protocolWriteFeedback"
+        parent: Overlay.overlay
+        modal: false
+        focus: false
+        z: 15002
+        padding: Theme.space3
+        width: parent ? Math.min(400, parent.width - Theme.space3 * 2) : 330
+        x: parent ? (Theme.rtl ? Theme.space3 : Math.max(Theme.space3, parent.width - width - Theme.space3)) : 0
+        y: Theme.space3
+        property string message: ""
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: PopupSurface { curveDepth: Theme.curveContainer }
+        Timer {
+            id: protocolWriteFeedbackTimer
+            interval: 6500
+            onTriggered: protocolWriteFeedback.close()
+        }
+        contentItem: DirectionAwareLabel {
+            text: protocolWriteFeedback.message
+            wrapMode: Text.WordWrap
+            color: Theme.textPrimary
+            font.pixelSize: Theme.typeBodySize
+        }
+        Connections {
+            target: presentationBridge
+            function onStateChanged() {
+                const error = String(presentationBridge.writeErrorText || "")
+                if ((presentationBridge.writePhase === "failed" || presentationBridge.writePhase === "blocked")
+                        && error.length > 0 && error !== protocolWriteFeedback.message) {
+                    protocolWriteFeedback.message = error
+                    protocolWriteFeedback.open()
+                    protocolWriteFeedbackTimer.restart()
+                } else if (error.length === 0) {
+                    protocolWriteFeedback.message = ""
+                    protocolWriteFeedback.close()
+                }
+            }
+        }
+    }
+
     Popup {
         id: genyBuzzFeedbackToast
         objectName: "genyBuzzSendFeedback"

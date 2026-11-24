@@ -3676,7 +3676,7 @@ void PresentationBridge::setReaction(
     const bool active)
 {
     const QString canonicalKind = kind.trimmed().toLower();
-    const QString canonicalCastId = targetCastId.trimmed();
+    const QString canonicalCastId = canonicalProtocolCastId(targetCastId);
     // A concurrent write or a startup transition is not a missing signer.
     // Do not open another authorization prompt for either state.
     if (m_writeBusy) return;
@@ -4223,12 +4223,13 @@ void PresentationBridge::applyWriteState(
     const QString targetCastId = presentationMutation.value(QStringLiteral("targetCastId")).toString();
     if ((operationKind == QStringLiteral("like") || operationKind == QStringLiteral("unlike") ||
          operationKind == QStringLiteral("recast") || operationKind == QStringLiteral("undo-recast")) &&
-        !targetCastId.isEmpty()) {
+        !targetCastId.isEmpty() && m_writePhase == QStringLiteral("confirmed")) {
         const bool active = operationKind == QStringLiteral("like") || operationKind == QStringLiteral("recast");
         const QString reaction = (operationKind == QStringLiteral("like") || operationKind == QStringLiteral("unlike"))
             ? QStringLiteral("like") : QStringLiteral("recast");
         rememberReactionOverride(m_reactionOverrides, targetCastId, reaction, active);
         updateReactionPresentation(m_rows, targetCastId, reaction, active);
+        updateReactionPresentation(m_pendingFeedRows, targetCastId, reaction, active);
         writeRowsChanged = !m_rows.isEmpty();
         updateReactionPresentation(m_writeRows, targetCastId, reaction, active);
         updateReactionPresentation(m_detail, targetCastId, reaction, active);

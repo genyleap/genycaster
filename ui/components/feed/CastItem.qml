@@ -517,7 +517,7 @@ Item {
     // The parent Loader measures implicitHeight, but the card must also have
     // actual paint geometry for anchored rich text/media and interaction hit
     // targets. Never leave a zero-height Item painting into the next slot.
-    height: implicitHeight
+    height: root.magazineCard ? Math.max(implicitHeight, magazinePaintHeight) : implicitHeight
     Accessible.description: (root.modelData.castId !== undefined ? qsTrId("genycaster.cast.view_conversation") : "")
                             + (Number(root.modelData.embedCount || 0) > 1
                                ? " · " + qsTrId("genycaster.cast.value_embeds").arg(LocaleFormat.formatInteger(Number(root.modelData.embedCount || 0))) : "")

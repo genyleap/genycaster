@@ -36,8 +36,9 @@ test('browser reactions fetch positive evidence through bounded account-scoped s
   assert.match(bar,/CastReactions.release\(/);
   assert.match(bar,/root.enrichmentActive/);
   assert.match(bar,/effectiveLikedByMe/);
-  assert.match(bar,/CastReactions.setLocal\(root.reactionCastId, root.viewerFid, "recast", next\)/);
-  assert.match(bar,/CastReactions.setLocal\(root.reactionCastId, root.viewerFid, "like", next\)/);
+  assert.doesNotMatch(bar,/CastReactions\.setLocal\(/);
+  assert.match(bar,/root\.recastRequested\(next\)\s+recastButton\.playReactionMotion/);
+  assert.match(bar,/root\.likeRequested\(next\)\s+likeButton\.playReactionMotion/);
   assert.match(bar,/scrollMoving: false/);
   assert.match(read('ui/components/feed/CastItem.qml'),/scrollMoving: root.scrollMoving/g);
   assert.match(gateway,/requestUrl.pathname === '\/v1\/browser\/cast-reactions'/);

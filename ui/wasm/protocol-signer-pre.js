@@ -615,11 +615,13 @@
                         report({kind: "write", phase: "confirmed", fid, hash,
                             protocol:native?'hypersnap-v2':'farcaster-snapchain',
                             operation: action,
-                            targetFid: action==='follow'||action==='block'
+                            targetFid: action==='reaction' ? String(payload.target?.fid||'')
+                                : action==='follow'||action==='block'
                                 ? String(payload.targetFid||'') : '',
-                            active: action==='follow'||action==='block'
+                            active: action==='follow'||action==='block'||action==='reaction'
                                 ? payload.active===true : false,
-                            targetCastId: action==='remove'
+                            reaction: action==='reaction' ? String(payload.reaction||'') : '',
+                            targetCastId: action==='remove'||action==='reaction'
                                 ? String(payload.target?.hash||'') : ''});
                     }
                 }

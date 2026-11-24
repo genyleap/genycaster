@@ -831,6 +831,7 @@ void attachChannelPresentation(QVariantMap& row, const domain::cast::Cast& cast)
             profile && profile->username ? QString::fromStdString(profile->username->value) : QString{},
             profile && profile->displayName ? QString::fromStdString(profile->displayName->value) : QString{},
             avatarUrl(profile),
+            profile ? QString::fromStdString(profile->bio) : QString{},
             cast->parent ? QString::fromStdString(cast->parent->value) : QString{},
             cast->parentUrl ? QString::fromStdString(*cast->parentUrl) : QString{},
             parentPreview.value(QStringLiteral("text")).toString(),
@@ -876,6 +877,7 @@ void attachChannelPresentation(QVariantMap& row, const domain::cast::Cast& cast)
             {QStringLiteral("author"), username(profile)},
             {QStringLiteral("displayName"), displayName(profile)},
             {QStringLiteral("avatarUrl"), avatarUrl(profile)},
+            {QStringLiteral("authorBio"), profile ? QString::fromStdString(profile->bio) : QString{}},
             {QStringLiteral("text"), readableCastText(*cast)},
             {QStringLiteral("createdAtMs"), static_cast<qlonglong>(cast->createdAt.time_since_epoch().count())},
             {QStringLiteral("isReply"), cast->parent.has_value()},
@@ -5680,7 +5682,9 @@ void connectRuntime(
             const bool allowRecoveryProbe) {
             const bool continuationRequest = !continuation.isEmpty();
             // Snapshot GUI-owned read settings before asynchronous callbacks.
-            const std::size_t requestedPageSize = static_cast<std::size_t>(bridge.feedPageSize());
+            const int pageSize = feed == QStringLiteral("following") && bridge.followingArtworkScan()
+                ? std::max(40, bridge.feedPageSize()) : bridge.feedPageSize();
+            const std::size_t requestedPageSize = static_cast<std::size_t>(pageSize);
             const std::size_t contextHydrationLimit = static_cast<std::size_t>(bridge.contextHydrationLimit());
             const qulonglong viewerFid = bridge.isAuthenticated() ? bridge.accountFid() : 0U;
             // Cache materialization is bounded for both cold and warm reads.
@@ -5844,7 +5848,9 @@ void connectRuntime(
             const auto surfaceGeneration =
                 runtime->feedSurfaceGeneration.load(std::memory_order_acquire);
             const auto requestGeneration = runtime->beginFeedRequestGeneration();
-            const auto pageSize = static_cast<std::size_t>(bridge.feedPageSize());
+            const auto pageSize = static_cast<std::size_t>(
+                feed == QStringLiteral("following") && bridge.followingArtworkScan()
+                    ? std::max(40, bridge.feedPageSize()) : bridge.feedPageSize());
             const qulonglong viewerFid = bridge.isAuthenticated() ? bridge.accountFid() : 0U;
             auto query = feedQueryForSurface(feed, fid, channel, pageSize);
             auto request = runtime->service->openLocalFeedWindow(

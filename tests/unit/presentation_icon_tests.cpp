@@ -855,6 +855,47 @@ void testFirstPageCacheDoesNotRemountLiveTimeline()
 }
 
 
+void testReactionConfirmationAndCanonicalTarget()
+{
+    PresentationBridge bridge{};
+    bridge.applyRuntimeState(true);
+    bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 77,
+        {}, {}, {}, {}, {}, {});
+    bridge.applySignerState(QStringLiteral("ready"), false, true, {}, {});
+    const QString bare(40, QLatin1Char('a'));
+    const QString id = QStringLiteral("0x") + bare;
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("following"),
+        {QVariantMap{{QStringLiteral("castId"), id}, {QStringLiteral("authorFid"), 42U},
+                     {QStringLiteral("likeCount"), 2U}, {QStringLiteral("likedByMe"), false}}},
+        {}, {}, {}, {}, false, false, false, false);
+    int requests = 0;
+    QString target;
+    QObject::connect(&bridge, &PresentationBridge::reactionRequested, &bridge,
+        [&](QString kind, qulonglong fid, QString castId, bool active) {
+            assert(kind == QStringLiteral("like") && fid == 42 && active);
+            ++requests;
+            target = std::move(castId);
+        });
+    bridge.setReaction(QStringLiteral("like"), 42, QString(40, QLatin1Char('z')), true);
+    assert(requests == 0);
+    bridge.setReaction(QStringLiteral("like"), 42, bare.toUpper(), true);
+    assert(requests == 1 && target == id);
+    const QVariantMap mutation{{QStringLiteral("operationKind"), QStringLiteral("like")},
+                               {QStringLiteral("targetCastId"), id}};
+    bridge.applyWriteState(QStringLiteral("failed"), false, {}, QStringLiteral("Rejected"), mutation);
+    assert(!bridge.rows().front().toMap().value(QStringLiteral("likedByMe")).toBool());
+    bridge.applyWriteState(QStringLiteral("confirmed"), false, {}, {}, mutation);
+    assert(bridge.rows().front().toMap().value(QStringLiteral("likedByMe")).toBool());
+    assert(bridge.rows().front().toMap().value(QStringLiteral("likeCount")).toInt() == 3);
+    bridge.applyWriteState(QStringLiteral("confirmed"), false, {}, {}, mutation);
+    assert(bridge.rows().front().toMap().value(QStringLiteral("likeCount")).toInt() == 3);
+    bridge.applyWriteState(QStringLiteral("confirmed"), false, {}, {},
+        {{QStringLiteral("operationKind"), QStringLiteral("unlike")},
+         {QStringLiteral("targetCastId"), id}});
+    assert(!bridge.rows().front().toMap().value(QStringLiteral("likedByMe")).toBool());
+    assert(bridge.rows().front().toMap().value(QStringLiteral("likeCount")).toInt() == 2);
+}
+
 void testViewerReactionFirstNegativeAndDuplicateEvidence()
 {
     PresentationBridge bridge{};
@@ -1172,6 +1213,7 @@ int main(int argc, char* argv[])
     testFirstPageCacheDoesNotRemountLiveTimeline();
     testBoundedWarmRefreshRetainsAnchorAndOlderCachedRows();
     testSourceSwitchAdmitsCachedTimeline();
+    testReactionConfirmationAndCanonicalTarget();
     testViewerReactionFirstNegativeAndDuplicateEvidence();
     testViewerReactionPartialTypeCoverage();
     testPaginationPreservesHydratedReferencedContext();

@@ -63,9 +63,10 @@ for token in (
     "property int conversationPrefetchPages: 0",
     "property int developerPrefetchPages: 0",
     "property int automaticPrefetchPages: 0",
-    'readonly property int filterPrefetchLimit: root.presentationMode === "visuals" ? 12 : 8',
+    'readonly property int filterPrefetchLimit: root.presentationMode === "visuals" && root.activeFeed !== "following" ? 12 : 8',
     "readonly property int automaticPrefetchLimit: 16",
-    'readonly property int automaticNoProgressLimit: root.presentationMode === "visuals" ? 5 : 2',
+    'readonly property int automaticNoProgressLimit: root.presentationMode === "visuals"',
+    '? (root.activeFeed === "following" ? 8 : 5) : 2',
     "property int automaticLastRowCount: -1",
     "function resetAllFilterPrefetchBudgets()",
     "root.isRootPost(row)",
@@ -114,7 +115,7 @@ for token in (
     'function rowHasImage(data)',
     'function containsCollectibleLink(data)',
     'if (root.containsCollectibleLink(row))',
-    'return artContext && root.rowHasImage(row)',
+    'if (artContext && root.rowHasImage(row))',
 ):
     if token not in feed:
         errors.append(f"NFT-art filtering contract missing {token!r}")
@@ -224,7 +225,7 @@ for token in (
     "function rowHasImage(data)",
     "function containsCollectibleLink(data)",
     "if (root.containsCollectibleLink(row))",
-    "return artContext && root.rowHasImage(row)",
+    "if (artContext && root.rowHasImage(row))",
 ):
     if token not in feed:
         errors.append(f"NFT live-feed filtering missing {token!r}")

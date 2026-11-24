@@ -39,6 +39,7 @@
 
 #include "presentation_bridge.hpp"
 #include "rich_composer_controller.hpp"
+#include "cast_payload.hpp"
 
 namespace genycaster::ui::browser_signing {
 
@@ -314,6 +315,29 @@ private:
                                          ? (active ? QStringLiteral("block") : QStringLiteral("unblock"))
                                          : (active ? QStringLiteral("follow") : QStringLiteral("unfollow"))},
                                     {QStringLiteral("targetFid"), targetFid},
+                                });
+                        }
+                    } else if (operation == QStringLiteral("reaction")) {
+                        const auto target = event.value(QStringLiteral("targetCastId")).toString();
+                        const auto reaction = event.value(QStringLiteral("reaction")).toString();
+                        const auto activeValue = event.value(QStringLiteral("active"));
+                        bool validFid = false;
+                        const auto targetFid = event.value(QStringLiteral("targetFid")).toString().toULongLong(&validFid);
+                        const bool active = activeValue.toBool();
+                        if (!validFid || !makeCastReference(targetFid, target)
+                            || !makeCastReference(presentation->accountFid(), hash)
+                            || !activeValue.isBool()
+                            || (reaction != QStringLiteral("like") && reaction != QStringLiteral("recast"))) {
+                            presentation->applyWriteState(QStringLiteral("failed"), false, {},
+                                qtTrId("genycaster.bridge.that_farcaster_reaction_target_is_invalid"));
+                        } else {
+                            presentation->applyWriteState(QStringLiteral("confirmed"), false, {}, {},
+                                QVariantMap{
+                                    {QStringLiteral("operationKind"),
+                                     reaction == QStringLiteral("like")
+                                         ? (active ? QStringLiteral("like") : QStringLiteral("unlike"))
+                                         : (active ? QStringLiteral("recast") : QStringLiteral("undo-recast"))},
+                                    {QStringLiteral("targetCastId"), target},
                                 });
                         }
                     } else if (operation == QStringLiteral("remove")) {

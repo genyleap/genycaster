@@ -24,7 +24,7 @@ test('UI and Explorer strict gates agree on bounded sparse prefetch budgets',()=
   const explorerGate=read('ci/check_explorer_semantic_contract.py');
   for(const [name,count] of [['filterPrefetchLimit',8],['automaticPrefetchLimit',16]]) {
     const definition=name==="filterPrefetchLimit"
-      ? 'readonly property int filterPrefetchLimit: root.presentationMode === "visuals" ? 12 : 8'
+      ? 'readonly property int filterPrefetchLimit: root.presentationMode === "visuals" && root.activeFeed !== "following" ? 12 : 8'
       : `readonly property int ${name}: ${count}`;
     assert.ok(feed.includes(definition),`FeedSurface ${name} drift`);
     assert.ok(uiGate.includes(definition),`UI gate ${name} drift`);
@@ -34,5 +34,5 @@ test('UI and Explorer strict gates agree on bounded sparse prefetch budgets',()=
   assert.match(feed,/root\.automaticPrefetchPages >= root\.automaticPrefetchLimit/);
   assert.match(feed,/root\.resetCurrentFilterPrefetchBudget\(\)/);
   assert.match(feed,/root\.resetAutomaticPageBudget\(\)/);
-  assert.match(feed,/readonly property int automaticNoProgressLimit: root\.presentationMode === "visuals" \? 5 : 2/);
+  assert.match(feed,/readonly property int automaticNoProgressLimit: root\.presentationMode === "visuals"\s*\? \(root\.activeFeed === "following" \? 8 : 5\) : 2/);
 });
