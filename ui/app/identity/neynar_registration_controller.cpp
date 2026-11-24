@@ -64,9 +64,10 @@ NeynarRegistrationController::NeynarRegistrationController(
     : QObject{parent}, m_origin{std::move(origin)}, m_ports{std::move(ports)},
       m_endpointValid{canonicalEndpoint(m_origin, allowLocalTesting)}
 {
-    // A syntactically valid HTTPS origin is NOT evidence of a deployed
-    // funded enrollment service. Probe safely before offering a voucher.
-    QTimer::singleShot(0, this, [this] { refreshAvailability(); });
+    // Paid Farcaster enrollment is optional and may not be deployed. Never
+    // issue a registration POST merely because the app started (including
+    // signed-in users opening Notifications). The setup route probes only
+    // when a user explicitly chooses the Farcaster registration provider.
 }
 
 NeynarRegistrationController::~NeynarRegistrationController()
@@ -122,7 +123,8 @@ void NeynarRegistrationController::setIdentityRuntimeReady(const bool ready)
 {
     if (m_registrationSupported == ready) return;
     m_registrationSupported = ready;
-    if (ready && !m_available) refreshAvailability();
+    // Readiness alone is not user intent to start sponsored enrollment.
+    // Setup probes the endpoint on explicit provider selection.
     emit changed();
 }
 

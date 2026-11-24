@@ -325,3 +325,24 @@ test('Tenor animated GIF is retrieved using GET with validated raster bytes, not
   assert.equal(result.contentType,'image/gif');
   assert.deepEqual(methods,['GET']);
 });
+
+test('public Quilcast and narrowly scoped Pinata CID assets pass browser proxy policy',()=>{
+  const image='https://quilcast.com/m/a8b2f916360fe7de52fe7fe8.jpg';
+  const pinata='https://red-geographical-clownfish-714.mypinata.cloud/ipfs/bafybeicdae7bmjnkp3aiwdemqduv6bwfmgf4xnbhfsjiz73k5fg375yneq/eye512.webp';
+  const cid='https://tba-mobile.mypinata.cloud/ipfs/QmdD5hZrJz1CDVLs2Tg5JLnNR8hjWFVZmMqVWRAWoWYFJd';
+  const accessToken='x'.repeat(40);
+  for(const url of [image,pinata,cid,cid+'?pinataGatewayToken='+accessToken]){
+    assert.equal(validImageUrl(url)?.href,url,url);
+  }
+  for(const url of [
+    image+'?token=evil','https://sub.quilcast.com/m/a8b2f916360fe7de52fe7fe8.jpg',
+    'https://quilcast.com/admin',
+    'https://tba-mobile.mypinata.cloud/admin',
+    cid+'?url=https://127.0.0.1/private',
+    cid+'?pinataGatewayToken='+accessToken+'&debug=1',
+    cid+'?pinataGatewayToken=short',
+    cid+'/admin/private',
+    'https://evil.tba-mobile.mypinata.cloud.evil.test/ipfs/QmdD5hZrJz1CDVLs2Tg5JLnNR8hjWFVZmMqVWRAWoWYFJd',
+    'http://tba-mobile.mypinata.cloud/ipfs/QmdD5hZrJz1CDVLs2Tg5JLnNR8hjWFVZmMqVWRAWoWYFJd'
+  ])assert.equal(validImageUrl(url),null,url);
+});

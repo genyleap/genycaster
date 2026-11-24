@@ -86,8 +86,21 @@ export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts,
   // content-addressed /ipfs/CID/file raster asset, not arbitrary endpoints,
   // and retain the existing DNS pinning, private-IP, size and MIME checks.
   const pinataSubdomain = /^[a-z0-9-]{1,100}\.mypinata\.cloud$/.test(hostname);
-  const safePinataPath = /^\/ipfs\/(?:b[a-z2-7]{30,100}|Qm[1-9A-HJ-NP-Za-km-z]{44})\/[A-Za-z0-9._~-]{1,100}\.(?:png|jpe?g|webp|gif|avif)$/i.test(parsed.pathname);
-  if (!(pinataSubdomain && safePinataPath)
+  // Dedicated Pinata gateways serve both a CID directly and a named image
+  // under that CID. Reject directories, traversal and arbitrary publisher
+  // paths; the downloaded bytes still undergo public-DNS, size and raster
+  // signature validation.
+  const safePinataPath = /^\/ipfs\/(?:b[a-z2-7]{30,100}|Qm[1-9A-HJ-NP-Za-km-z]{44})(?:\/[A-Za-z0-9._~-]{1,100}\.(?:png|jpe?g|webp|gif|avif))?$/i.test(parsed.pathname);
+  // Restricted gateway tokens are intentionally embedded in some public
+  // Cast image URLs. Accept ONLY the named Pinata query on an exact CID
+  // raster path, not general query strings or application API endpoints.
+  const pinataParameters = [...parsed.searchParams.entries()];
+  const safePinataQuery = pinataParameters.length === 0
+      || (pinataParameters.length === 1
+          && pinataParameters[0][0] === 'pinataGatewayToken'
+          && /^[A-Za-z0-9_-]{16,256}$/.test(pinataParameters[0][1]));
+  if (pinataSubdomain && (!safePinataPath || !safePinataQuery)) return null;
+  if (!(pinataSubdomain && safePinataPath && safePinataQuery)
       && !allowedHosts.some(host => hostname === host
           || (host !== managedMediaHost && host !== 'media-farcaster.genyleap.com'
               && host !== 'media1.tenor.com' && host !== 'quilcast.com'

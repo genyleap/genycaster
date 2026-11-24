@@ -86,6 +86,10 @@ Item {
     onRuntimeReadyChanged: {
         if (runtimeReady && showsSetupConnectivity)
             checkSetupConnections()
+        if (runtimeReady && visible && accountIntent === "new"
+                && choosingRegistrationProvider
+                && registrationProviderId === "farcaster-snapchain")
+            neynarRegistration.refreshAvailability()
     }
     property string registrationError: ""
     property bool confirmWalletReplacement: false
@@ -2159,6 +2163,10 @@ Item {
                             root.registrationProviderId = "farcaster-snapchain"
                             root.farcasterSponsoredEnrollmentChosen = false
                             root.registrationError = ""
+                            // Do not probe an optional paid enrollment endpoint
+                            // at global app startup. Probe only for this
+                            // explicit new-account choice.
+                            neynarRegistration.refreshAvailability()
                         }
                     }
                 }

@@ -781,6 +781,48 @@ function fail(error) {
     console.error("[Genycaster] startup failed",error);
     recoverFromStaleWasmServiceWorker(error);
 }
+// Browser WebGL is accelerated by the GPU when the browser permits it, but a
+// browser can also route the SAME API through a software rasterizer. Inspect
+// Qt's existing canvas only after QML is ready; never allocate a second
+// framebuffer or render context and never request elevated browser privileges.
+function browserGraphicsStatus() {
+    try {
+        const canvases=[];
+        const visit=(node,depth)=>{
+            if(!node || depth>4)return;
+            for(const canvas of node.querySelectorAll?.('canvas')||[])
+                if(!canvases.includes(canvas))canvases.push(canvas);
+            if(node.shadowRoot)visit(node.shadowRoot,depth+1);
+            for(const host of node.querySelectorAll?.('*')||[])
+                if(host.shadowRoot)visit(host.shadowRoot,depth+1);
+        };
+        visit(screen,0);
+        for(const canvas of canvases) {
+            // An existing Qt WebGL2 context returns itself. If Qt opened
+            // WebGL1, the WebGL2 request fails without replacing the context.
+            const gl=canvas.getContext('webgl2')||canvas.getContext('webgl');
+            if(!gl)continue;
+            const unmasked=gl.getExtension('WEBGL_debug_renderer_info');
+            const raw=unmasked
+                ? String(gl.getParameter(unmasked.UNMASKED_RENDERER_WEBGL)||'') : '';
+            const renderer=String(gl.getParameter(gl.RENDERER)||'');
+            const software=/(swiftshader|llvmpipe|softpipe|software rasterizer|basic render driver)/i.test(raw||renderer);
+            return {
+                api:typeof WebGL2RenderingContext!=='undefined'
+                    && gl instanceof WebGL2RenderingContext?'WebGL2':'WebGL1',
+                renderer:raw||renderer||'browser-masked',
+                softwareRenderer:software,
+                hardwareAcceleration:software?'software':
+                    raw?'browser-renderer-reported':'unverified'
+            };
+        }
+    }catch(error) {
+        console.debug('[Genycaster] WebGL renderer inspection unavailable',String(error));
+    }
+    return {api:'unknown',hardwareAcceleration:'unverified'};
+}
+window.__genycasterGraphicsStatus=browserGraphicsStatus;
+
 // The Qt loader signals only that WebAssembly bootstrapped, NOT that QML
 // constructed Main. Requiring an explicit C++ acknowledgement prevents the
 // silent black screen seen when a type in the AppShell dependency tree fails.
@@ -800,6 +842,9 @@ function revealReady() {
     if(studioIntro)studioIntro.hidden=true;
     if(boot?.dataset)boot.dataset.intro='off';
     const timing=wasmResourceUrl?wasmTiming(wasmResourceUrl):null;
+    // Diagnostic evidence from the *actual* Qt canvas, not a synthetic
+    // WebGL capability probe on an unrelated temporary canvas.
+    console.info("[Genycaster] Graphics",JSON.stringify(browserGraphicsStatus()));
     // A worker-handled request is not proof of a cache hit.
     // Keep native responses intact rather than injecting headers.
     console.info("[Genycaster] Startup",JSON.stringify({

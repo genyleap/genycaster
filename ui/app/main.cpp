@@ -40,6 +40,7 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QSGRendererInterface>
 #if defined(Q_OS_ANDROID)
 #include "media/android_icon.hpp"
 #include "media/android_document_picker.hpp"
@@ -297,6 +298,13 @@ private:
 
 int main(int argc, char* argv[])
 {
+#if defined(Q_OS_WASM)
+    // Qt Quick's browser scene graph must use the GPU-oriented OpenGL RHI.
+    // Emscripten translates this backend into WebGL 2 (or WebGL 1 when
+    // constrained by the browser). A browser/driver software GPU fallback
+    // cannot be overridden from application code.
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGLRhi);
+#endif
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
     // Parallels' virtual GPU can create a window without presenting frames.
     // Keep Qt's RHI scene graph (Shapes and shader effects require it) and
@@ -1531,6 +1539,10 @@ int main(int argc, char* argv[])
     desktopInstance.setWindow(mainWindow);
 #endif
     renderingController.attachWindow(mainWindow);
+#if defined(Q_OS_WASM)
+    qInfo() << "Genycaster WebAssembly Qt Quick renderer:"
+            << mainWindow->rendererInterface()->graphicsApi();
+#endif
 #if defined(Q_OS_ANDROID)
     if (auto* shell = mainWindow->findChild<QObject*>(QStringLiteral("appShell"))) {
         mainWindow->installEventFilter(new AndroidBackDispatcher{mainWindow, shell});
