@@ -12,8 +12,8 @@
       location.search + location.hash);
   }
   const $ = (id) => document.getElementById(id);
-  const version = "1.0.0";
-  const releasePrefix = "https://github.com/genyleap/genycaster/releases/download/v1.0.0/";
+  const version = "1.0.256";
+  const releasePrefix = "https://github.com/genyleap/genycaster/releases/download/v1.0.256/";
   const supported = Object.freeze({
     windows: {name:"Windows", desc:"descWindows", format:"EXE", arches:{x64:"Windows x64",arm64:"Windows ARM64"}},
     macos: {name:"macOS",desc:"descMac",format:"DMG",arches:{arm64:"Apple Silicon",x64:"Intel"}},
@@ -21,17 +21,17 @@
     android: {name:"Android",desc:"descAndroid",format:"APK",arches:{arm64:"Android ARM64-v8a"}},
     ios: {name:"iOS / iPadOS",desc:"descIos",format:"—",arches:{}}
   });
-  // Explicit filenames observed in the existing GitHub v1.0.0 Release.
+  // Explicit filenames observed in the existing GitHub v1.0.256 Release.
   // Never build a live installer link from an untrusted catalog filename.
   const names = Object.freeze({
-    windows:{x64:"GenyCaster-v1.0.0-windows-x86_64.exe",arm64:"GenyCaster-v1.0.0-windows-arm64.exe"},
-    macos:{arm64:"GenyCaster-v1.0.0-macos-arm64-adhoc-UNNOTARIZED.dmg",x64:"GenyCaster-v1.0.0-macos-x86_64-adhoc-UNNOTARIZED.dmg"},
-    linux:{x64:"GenyCaster-v1.0.0-linux-x86_64.AppImage",arm64:"GenyCaster-v1.0.0-linux-arm64.AppImage"},
-    android:{arm64:"GenyCaster-v1.0.0-android-arm64-v8a.apk"}
+    windows:{x64:"GenyCaster-v1.0.256-windows-x86_64.exe",arm64:"GenyCaster-v1.0.256-windows-arm64.exe"},
+    macos:{arm64:"GenyCaster-v1.0.256-macos-arm64-adhoc-UNNOTARIZED.dmg",x64:"GenyCaster-v1.0.256-macos-x86_64-adhoc-UNNOTARIZED.dmg"},
+    linux:{x64:"GenyCaster-v1.0.256-linux-x86_64.AppImage",arm64:"GenyCaster-v1.0.256-linux-arm64.AppImage"},
+    android:{arm64:"GenyCaster-v1.0.256-android-arm64-v8a.apk"}
   });
   const debNames = Object.freeze({
-    x64:"GenyCaster-v1.0.0-linux-x86_64.deb",
-    arm64:"GenyCaster-v1.0.0-linux-arm64.deb"
+    x64:"GenyCaster-v1.0.256-linux-x86_64.deb",
+    arm64:"GenyCaster-v1.0.256-linux-arm64.deb"
   });
   const copy = Object.freeze({
       skip:"Skip to downloads",webLink:"Open web app",eyebrow:"GENYCASTER / PUBLIC RELEASE",
@@ -129,7 +129,7 @@
     const ready = loaded && available;
     $("selected-version").textContent = ready ? "v" + entry.version :
       !loaded ? "Checking…" : "Not available";
-    $("release-number").textContent = ready ? "v" + entry.version + " · Beta" : "—";
+    $("release-number").textContent = ready ? "v" + entry.version + " · Stable" : "—";
     $("file-name").textContent = ready ? entry.url.slice(releasePrefix.length) :
       platform === "ios" ? "No iOS build" : "Installer not available";
     $("file-hash").textContent = ready ? entry.sha256.slice(0,16) + "…" : "—";

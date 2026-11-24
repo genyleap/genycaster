@@ -8,7 +8,7 @@ const read = path => readFileSync(new URL(path, root), 'utf8');
 const script = read('ui/wasm/download/download.js');
 const html = read('ui/wasm/download/index.html');
 const css = read('ui/wasm/download/download.css');
-const github = 'https://github.com/genyleap/genycaster/releases/download/v1.0.0/';
+const github = 'https://github.com/genyleap/genycaster/releases/download/v1.0.256/';
 const releases = {
   windows:{x64:'windows-x86_64.exe',arm64:'windows-arm64.exe'},
   macos:{arm64:'macos-arm64-adhoc-UNNOTARIZED.dmg',x64:'macos-x86_64-adhoc-UNNOTARIZED.dmg'},
@@ -19,8 +19,8 @@ const manifest = () => ({
   schema:1,
   platforms:Object.fromEntries(Object.entries(releases).map(([os,arches])=>
     [os,Object.fromEntries(Object.entries(arches).map(([arch,suffix])=>[arch,{
-      sha256:'a'.repeat(64),version:'1.0.0',
-      url:github+'GenyCaster-v1.0.0-'+suffix,
+      sha256:'a'.repeat(64),version:'1.0.256',
+      url:github+'GenyCaster-v1.0.256-'+suffix,
       ...(os==='macos'?{distribution:'ad-hoc-unnotarized'}:{})
     }]))]))
 });
@@ -111,7 +111,7 @@ test('dedicated canonical page is compact, English-only, and uses native geometr
   assert.ok(script.includes('$("selected-icon").dataset.platform = platform'));
   assert.match(html,/src="\/download\/download\.js\?v=4"/);
   assert.match(script,/history\.replaceState\(history\.state/);
-  assert.match(html,/https:\/\/github.com\/genyleap\/genycaster\/releases\/download\/v1.0.0\/SHA256SUMS/);
+  assert.match(html,/https:\/\/github.com\/genyleap\/genycaster\/releases\/download\/v1.0.256\/SHA256SUMS/);
   assert.match(css,/@media\(max-width:690px\)/);
   assert.doesNotMatch(css,/html\[dir="rtl"\]/);
   assert.doesNotMatch(css,/radial-gradient|--glow|box-shadow:0 0/);
@@ -136,12 +136,12 @@ test('all 7 native architecture links resolve to the exact release filenames', a
       h.arch(arch);
       assert.equal(h.ids['download-primary'].hidden,false,`${os} ${arch}`);
       assert.equal(h.ids['download-primary'].href,
-        github+'GenyCaster-v1.0.0-'+suffix);
-      assert.equal(h.ids['selected-version'].textContent,'v1.0.0');
-      assert.match(h.ids['primary-text'].textContent,/v1.0.0/);
-      assert.match(h.ids['file-name'].textContent,/^GenyCaster-v1.0.0-/);
+        github+'GenyCaster-v1.0.256-'+suffix);
+      assert.equal(h.ids['selected-version'].textContent,'v1.0.256');
+      assert.match(h.ids['primary-text'].textContent,/v1.0.256/);
+      assert.match(h.ids['file-name'].textContent,/^GenyCaster-v1.0.256-/);
       assert.match(h.ids['file-hash'].textContent,/^a{16}…$/);
-      assert.equal(h.tabs.find(t=>t.dataset.platform===os).versionLabel.textContent,'v1.0.0');
+      assert.equal(h.tabs.find(t=>t.dataset.platform===os).versionLabel.textContent,'v1.0.256');
     }
   }
   h.choose('macos');assert.equal(h.ids['trust-notice'].hidden,false);
@@ -161,7 +161,7 @@ test('browser detection and architecture controls work without language switchin
   assert.equal(h.ids['download-primary'].hidden,false);
   assert.equal(h.doc.documentElement.lang,'en');
   assert.equal(h.doc.documentElement.dir,'ltr');
-  assert.match(h.ids['primary-text'].textContent,/v1.0.0/);
+  assert.match(h.ids['primary-text'].textContent,/v1.0.256/);
   h.choose('windows');h.arch('arm64');
   assert.match(h.ids['download-primary'].href,/windows-arm64.exe$/);
 });
@@ -187,8 +187,8 @@ test('Superellipse SVG must never cover bare labels, architecture text or badges
   assert.doesNotMatch(rule[1],/z-index:\s*0\s*;/);
   assert.match(css,/\.gs-shaped\s*\{[^}]*isolation:isolate/);
   assert.match(css,/\.gs-shaped > :not\(svg\.gs-shape\) \{position:relative;z-index:1\}/);
-  assert.match(html,/class="version">v1\.0\.0 · Beta/);
-  assert.match(html,/Version 1\.0\.0<\/span>/);
+  assert.match(html,/class="version">v1\.0\.256 · Stable/);
+  assert.match(html,/Version 1\.0\.256<\/span>/);
   assert.match(script,/button\.textContent = label/);
   assert.match(script,/label\.textContent = !loaded/);
 });
