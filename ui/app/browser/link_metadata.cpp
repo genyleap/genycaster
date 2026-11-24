@@ -20,7 +20,10 @@ constexpr qsizetype maximumActive{2};
 constexpr qsizetype maximumCached{192};
 constexpr qsizetype maximumResponseBytes{96 * 1024};
 constexpr qint64 verifiedFreshMs{3 * 60 * 1000};
+// A public page with no link metadata or Mini App manifest should not be
+// retried constantly as each QML delegate is recycled.
 constexpr qint64 unavailableRetryMs{15 * 1000};
+constexpr qint64 notFoundRetryMs{5 * 60 * 1000};
 constexpr int requestDeadlineMs{7 * 1000};
 // A cold Mini App lookup may require manifest + one or two same-origin
 // redirects. Give that path more time without slowing normal link previews.
@@ -238,12 +241,14 @@ void BrowserLinkMetadataController::complete(QNetworkReply* reply, Request reque
         }
     }
     reply->deleteLater();
-    // A valid app manifest with an unreachable per-cast page is provisional.
-    // The QML card can render its fallback, but retry after the short
-    // negative cooldown instead of caching incomplete art for three minutes.
-    store(request.key, value, value.isEmpty()
-        || value.value(QStringLiteral("castMetadataPending")).toBool()
-        ? unavailableRetryMs : verifiedFreshMs);
+    // Repeated HTTP 404 previews on recycled delegates flood WASM's console
+    // and compete with the animation thread. A definite "not found" is
+    // cached longer; timeouts/429/5xx retain the short retry window.
+    const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    const qint64 cacheMs = status == 404 ? notFoundRetryMs
+        : (value.isEmpty() || value.value(QStringLiteral("castMetadataPending")).toBool())
+            ? unavailableRetryMs : verifiedFreshMs;
+    store(request.key, value, cacheMs);
     emit previewReady(request.url, request.kind, value);
     dispatch();
 }

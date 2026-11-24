@@ -28,6 +28,10 @@ Superellipse {
     // A gateway-origin 403 or timeout is transient; retry twice after its
     // bounded negative cache expires, never on every animation frame.
     property int miniAppRetryCount: 0
+    // Inline notification rows must stay lightweight and deterministic; they
+    // still link to the original URL but do not launch opportunistic network
+    // discovery for every recycled delegate.
+    property bool metadataDiscoveryEnabled: true
     property bool metadataManagedExternally: false
     property var resolvedPreview: ({})
     property var pendingResolvedPreview: ({})
@@ -70,7 +74,8 @@ Superellipse {
     readonly property real captionLineHeight: Math.ceil(Theme.typeCaptionSize * Theme.typeCaptionLineHeight)
     property var scrollHost: null
     readonly property bool scrollMoving: root.scrollHost !== null
-                                         && Boolean(root.scrollHost.moving)
+                                         && (Boolean(root.scrollHost.moving)
+                                              || Boolean(root.scrollHost.browserWheelInProgress))
 
     // Keep resolved metadata as one explicitly reconciled snapshot. Selecting
     // between multiple reactive JS objects inside a readonly QML binding
@@ -258,7 +263,8 @@ Superellipse {
     }
 
     function requestBrowserLinkPreview() {
-        if (Qt.platform.os !== 'wasm' || root.targetUrl.length === 0
+        if (!root.metadataDiscoveryEnabled || Qt.platform.os !== 'wasm'
+                || root.targetUrl.length === 0
                 || root.scrollMoving || Boolean(root.browserLinkPreview.resolved)
                 || Boolean(root.browserMiniAppPreview.resolved)
                 || root.browserLinkRequestedUrl === root.targetUrl
@@ -270,8 +276,8 @@ Superellipse {
     }
 
     function requestBrowserMiniAppManifest() {
-        if (Qt.platform.os !== "wasm" || root.targetUrl.length === 0
-                || root.scrollMoving
+        if (!root.metadataDiscoveryEnabled || Qt.platform.os !== "wasm"
+                || root.targetUrl.length === 0 || root.scrollMoving
                 || (Boolean(root.browserMiniAppPreview.resolved)
                     && !Boolean(root.browserMiniAppPreview.castMetadataPending))
                 || root.browserPreviewRequestUrl === root.targetUrl
@@ -342,7 +348,8 @@ Superellipse {
     }
 
     function requestRemoteMetadataIfNeeded() {
-        if (root.metadataManagedExternally || root.targetUrl.length === 0 || root.scrollMoving)
+        if (!root.metadataDiscoveryEnabled || root.metadataManagedExternally
+                || root.targetUrl.length === 0 || root.scrollMoving)
             return
         if (typeof presentationBridge !== "undefined" && presentationBridge !== null
                 && !presentationBridge.linkPreviewPrefetchEnabled)

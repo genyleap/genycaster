@@ -456,7 +456,10 @@ Item {
     }
 
     function scheduleViewportRestore(key, offset, captureAfter) {
-        if (key.length === 0)
+        // A direct WASM wheel scroll doesn't set ListView.moving. Restoring a
+        // previously captured anchor during those ticks makes the page snap
+        // back and fight every new scroll delta.
+        if (key.length === 0 || list.browserWheelInProgress || list.moving)
             return
         root.pendingRestoreKey = key
         root.pendingRestoreOffset = offset
@@ -465,7 +468,8 @@ Item {
     }
 
     function stabilizeViewportAfterGeometryChange() {
-        if (list.moving || root.viewportAnchorKey.length === 0 || root.restoringViewport) return
+        if (list.moving || list.browserWheelInProgress
+                || root.viewportAnchorKey.length === 0 || root.restoringViewport) return
         root.restoringViewport = true
         root.scheduleViewportRestore(root.viewportAnchorKey, root.viewportAnchorOffset, true)
     }
@@ -495,7 +499,7 @@ Item {
     }
 
     function requestStableModelSync() {
-        if (list.moving) {
+        if (list.moving || list.browserWheelInProgress) {
             root.stableModelSyncPending = true
             return
         }
@@ -563,6 +567,14 @@ Item {
         interval: 0
         repeat: false
         onTriggered: {
+            // Drop stale anchors rather than replaying them after a wheel/drag
+            // begins between scheduling and the next event-loop turn.
+            if (list.browserWheelInProgress || list.moving) {
+                root.pendingRestoreKey = ""
+                root.pendingRestoreCapture = false
+                root.restoringViewport = false
+                return
+            }
             const key = root.pendingRestoreKey
             const offset = root.pendingRestoreOffset
             const recapture = root.pendingRestoreCapture
@@ -782,6 +794,21 @@ Item {
         }
 
         Timer {
+            id: browserWheelSettleTimer
+            interval: 180
+            repeat: false
+            onTriggered: {
+                list.browserWheelInProgress = false
+                if (root.stableModelSyncPending)
+                    root.requestStableModelSync()
+                root.captureViewportAnchor()
+                if (!root.loadingNotifications && root.hasMore
+                        && list.contentY + list.height >= list.contentHeight - 260)
+                    root.loadMoreRequested()
+            }
+        }
+
+        Timer {
             id: scrollWorkThrottle
             interval: 32
             repeat: false
@@ -812,15 +839,31 @@ Item {
             rightMargin: root.compact ? 0 : root.gutter
             topMargin: 0
             bottomMargin: Theme.space5
-            cacheBuffer: Math.max(height, 800)
+            // WASM delegates own images, layout and Neon shader resources.
+            // Reusing a bounded near-viewport neighborhood dramatically
+            // reduces the number of live QML items on large desktop screens.
+            cacheBuffer: Math.min(600, Math.max(240, height * 0.45))
             reuseItems: true
+            property bool browserWheelInProgress: false
+            onBrowserWheelInProgressChanged: {
+                if (!browserWheelInProgress) return
+                // The previous idle anchor is no longer valid once a new
+                // wheel gesture starts. Never restore it against user input.
+                viewportRestoreTimer.stop()
+                root.pendingRestoreKey = ""
+                root.pendingRestoreCapture = false
+                root.restoringViewport = false
+                scrollWorkThrottle.stop()
+                browserWheelSettleTimer.restart()
+            }
             boundsBehavior: Flickable.DragOverBounds
             boundsMovement: Flickable.FollowBoundsBehavior
             ScrollBar.vertical: GenyScrollBar {}
 
             HoverHandler {
                 id: notificationListPointer
-                enabled: list.visible && Theme.neonEnabled && !list.moving
+                enabled: list.visible && Theme.neonEnabled
+                    && !list.moving && !list.browserWheelInProgress
                 blocking: false
             }
 
@@ -837,6 +880,10 @@ Item {
             }
 
             onContentYChanged: {
+                if (list.browserWheelInProgress) {
+                    browserWheelSettleTimer.restart()
+                    return
+                }
                 if (!list.moving && !root.restoringViewport && !scrollWorkThrottle.running)
                     scrollWorkThrottle.start()
             }
@@ -849,7 +896,7 @@ Item {
                     root.loadMoreRequested()
             }
             onContentHeightChanged: {
-                if (!list.moving) {
+                if (!list.moving && !list.browserWheelInProgress) {
                     root.stabilizeViewportAfterGeometryChange()
                     if (!root.loadingNotifications && root.hasMore && contentY + height >= contentHeight - 260)
                         root.loadMoreRequested()
@@ -880,8 +927,9 @@ Item {
                 NeonSurface {
                     id: notificationCardSurface
                     anchors.fill: parent
-                    interactive: !list.moving
-                    proximityPointerActive: notificationListPointer.hovered && !list.moving
+                    interactive: !list.moving && !list.browserWheelInProgress
+                    proximityPointerActive: notificationListPointer.hovered
+                        && !list.moving && !list.browserWheelInProgress
                     proximityPointerX: notificationCardSurface.mapFromItem(
                         list, notificationListPointer.point.position.x,
                         notificationListPointer.point.position.y).x
@@ -893,6 +941,8 @@ Item {
                     // Keep their ambient rim while idle, but only for the
                     // currently visible neighborhood of a recycled ListView.
                     ambientNeon: notificationRow.visible && !list.moving
+                        && !list.browserWheelInProgress
+                        && (Qt.platform.os !== "wasm" || notificationRow.latestActivity)
                         && notificationRow.y + notificationRow.height >= list.contentY - 160
                         && notificationRow.y <= list.contentY + list.height + 160
                     neonStrength: Theme.neonCardStrength
@@ -1215,6 +1265,10 @@ Item {
                                      && root.notificationImageUrl(linkUrl).length === 0
                             Layout.fillWidth: true
                             embed: ({ kind: "external", url: linkUrl })
+                            // Notifications carry their own excerpt/context;
+                            // avoid speculative gateway lookups for every
+                            // recycled ListView delegate.
+                            metadataDiscoveryEnabled: false
                             compact: true
                             embeddedInCard: true
                             suppressArtwork: true
@@ -1404,7 +1458,7 @@ Item {
 
                 HoverHandler {
                     id: rowHover
-                    enabled: !list.moving
+                    enabled: !list.moving && !list.browserWheelInProgress
                     cursorShape: String(notificationRow.modelData.castId || "").length > 0
                                  || notificationRow.kindKey === "follow"
                                  ? Qt.PointingHandCursor : Qt.ArrowCursor

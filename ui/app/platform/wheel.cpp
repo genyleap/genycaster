@@ -59,6 +59,13 @@ bool moveAxis(QQuickItem* item, const char* positionName,
     const double next = std::clamp(previous + delta, minimum, maximum);
     if (std::abs(previous - next) < 0.1) return false;
 
+    // Browser wheel input adjusts contentY directly; unlike a native Flickable
+    // gesture it never sets QQuickFlickable::moving. NotificationSurface uses
+    // this explicit state to suppress stale viewport-anchor corrections while
+    // the user's wheel burst is still in progress.
+    const QVariant wheelActive = item->property("browserWheelInProgress");
+    if (wheelActive.isValid() && !wheelActive.toBool())
+        item->setProperty("browserWheelInProgress", true);
     if (!item->setProperty(positionName, next)) return false;
     return std::abs(item->property(positionName).toDouble() - previous) > 0.1;
 }

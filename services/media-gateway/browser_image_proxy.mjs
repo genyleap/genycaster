@@ -17,6 +17,9 @@ export const defaultBrowserImageHosts = [
   // image hosts recognized by the C++ Cast embed classifier.
   'media.tenor.com', 'media1.tenor.com', 'media.giphy.com', 'lh3.googleusercontent.com', 'imagekit.io',
   'assets.geckoterminal.com',
+  // Public Terminus Cast media uses content-addressed raster URLs.
+  // The stricter per-host path check below disallows arbitrary site paths.
+  'media.onterminus.com',
   // Public cast image CDN; accept only opaque /m/<id> raster assets below.
   'quilcast.com',
   // Cloudflare Stream exposes a deterministic raster poster for public video
@@ -91,6 +94,11 @@ export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts,
               && hostname.endsWith('.' + host)))) return null;
   if (hostname === 'quilcast.com'
       && (!/^\/m\/[a-f0-9]{16,80}\.(?:png|jpe?g|webp|gif)$/i.test(parsed.pathname)
+          || parsed.search)) return null;
+  // Terminus images are only immutable 32-hex-byte-named raster files.
+  // Preserve the gateway's existing DNS pinning, MIME and byte-size limits.
+  if (hostname === 'media.onterminus.com'
+      && (!/^\/[a-f0-9]{32}\.(?:png|jpe?g|webp|gif|avif)$/i.test(parsed.pathname)
           || parsed.search)) return null;
   // Tenor's media1 delivery host returns HTTP 404 to HEAD but valid animated
   // GIF bytes to GET. Proxy just its opaque public GIF assets; do not turn
@@ -264,11 +272,23 @@ export async function retrieveBrowserImage(rawUrl, {
       });
       response.on('end', () => {
         if (finished) return;
+        // Reject truncated payloads even when the leading raster signature
+        // is valid, so incomplete JPEG/WebP never receives a cacheable 200.
+        if ((reported > 0 && total !== reported)
+            || (typeof response.complete === 'boolean' && !response.complete)) {
+          finish({ status: 502, error: 'image_stream_incomplete' });
+          return;
+        }
         const data = Buffer.concat(chunks, total);
         const rasterType = rasterMimeFromBytes(data);
         finish(rasterType
           ? { status: 200, body: data, contentType: rasterType }
           : { status: 415, error: 'image_invalid_payload' });
+      });
+      response.on('aborted', () => finish({ status: 502, error: 'image_stream_failed' }));
+      response.on('close', () => {
+        if (!finished && typeof response.complete === 'boolean' && !response.complete)
+          finish({ status: 502, error: 'image_stream_incomplete' });
       });
       response.on('error', () => finish({ status: 502, error: 'image_stream_failed' }));
     });
