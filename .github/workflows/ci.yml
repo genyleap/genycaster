@@ -102,6 +102,9 @@ jobs:
           python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py ci/test_native_runtime_audits.py ci/test_nsis_cpack_config.py ci/test_packaging.py ci/test_linux_cpp_runtime.py ci/test_linux_release_parity.py ci/test_linux_distro_assets.py ci/test_macos_otool_headers.py ci/test_release_feature_contract.py ci/test_release_workflow_integrity.py ci/test_bot_release_gate.py ci/test_android_ffmpeg_release_policy.py ci/test_android_maven_mirror.py ci/test_macos_signing_policy.py ci/test_platform_arm64_dispatch.py ci/test_qt_webengine_windows.py ci/test_wasm_domain_scope.py ci/test_wasm_webgl_shaders.py
           python3 ci/check_deployment_boundaries.py
           python3 ci/check_media_upload_contract.py
+          # The media gateway imports sharp for sticker preview generation.
+          # Install the locked runtime dependencies before exercising its routes.
+          npm ci --prefix services/media-gateway --ignore-scripts --no-audit --no-fund
           node --test services/test/deployment_config.test.mjs
           node --test tests/wasm/openproof_registration_parity.test.mjs tests/wasm/openproof_native_enrollment.test.mjs tests/wasm/native_custody_worker_lifetime.test.mjs
           # Fail before expensive Qt installs if Neon pointer geometry or the
