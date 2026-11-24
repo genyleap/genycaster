@@ -408,3 +408,24 @@ test('temporary cast-head failure does not cache a generic Mini App preview for 
   assert.equal(calls,2);
  }finally{await new Promise(resolve=>gateway.close(resolve));}
 });
+
+test('public feed previews and avatars use a separate bounded quota',async()=>{
+  const gateway=createMediaGateway({...config,rateLimit:1,imageRateLimit:3},{},{
+    limiter:{check:()=>({allowed:false,remaining:0})},
+    retrieveImage:async()=>({status:200,body:Buffer.from([137,80,78,71]),contentType:'image/png'}),
+    farcasterBroker:{}
+  });
+  await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
+  try {
+    const base='http://127.0.0.1:'+gateway.address().port;
+    assert.equal((await fetch(base+'/v1/browser/miniapps?kind=catalog')).status,429);
+    for(let i=0;i<3;i++){
+      const r=await fetch(base+'/v1/browser/images?url='+encodeURIComponent('https://imagedelivery.net/test/'+i+'/public'));
+      assert.equal(r.status,200);
+      assert.equal(r.headers.get('access-control-allow-origin'),'*');
+    }
+    const limited=await fetch(base+'/v1/browser/images?url='+encodeURIComponent('https://imagedelivery.net/test/4/public'));
+    assert.equal(limited.status,429);
+    assert.equal(limited.headers.get('retry-after'),'60');
+  } finally {await new Promise(resolve=>gateway.close(resolve));}
+});

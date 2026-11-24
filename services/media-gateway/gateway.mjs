@@ -112,6 +112,7 @@ export function loadConfig(env = process.env) {
     maxJsonBytes: positiveInteger(env.GENYLEAP_MEDIA_MAX_JSON_BYTES, 64 * 1024, 'GENYLEAP_MEDIA_MAX_JSON_BYTES'),
     rateWindowMs: positiveInteger(env.GENYLEAP_MEDIA_RATE_WINDOW_MS, 60_000, 'GENYLEAP_MEDIA_RATE_WINDOW_MS'),
     rateLimit: positiveInteger(env.GENYLEAP_MEDIA_RATE_LIMIT, 60, 'GENYLEAP_MEDIA_RATE_LIMIT'),
+    imageRateLimit: positiveInteger(env.GENYLEAP_MEDIA_IMAGE_RATE_LIMIT, 300, 'GENYLEAP_MEDIA_IMAGE_RATE_LIMIT'),
     partRateLimit: positiveInteger(env.GENYLEAP_MEDIA_PART_RATE_LIMIT, 240, 'GENYLEAP_MEDIA_PART_RATE_LIMIT'),
     trustCloudflare: env.GENYLEAP_MEDIA_TRUST_CLOUDFLARE === '1',
     openProofIssuer,
@@ -542,6 +543,10 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   // equally bounded window; do not bypass proof verification or replay checks.
   const uploadLimiter = dependencies.uploadLimiter
     ?? new FixedWindowRateLimiter(config.rateWindowMs, config.rateLimit);
+  // Feed previews and avatars have their own bounded per-client quota.
+  // Image scrolling must not exhaust the general API or signer budget.
+  const imageLimiter = dependencies.imageLimiter
+    ?? new FixedWindowRateLimiter(config.rateWindowMs, config.imageRateLimit ?? 300);
   // Verified Mini App artwork is shown in a 3-column scrolling gallery.
   // It needs a separate *bounded* allowance so a fast fling cannot exhaust
   // the generic API budget. Only exact URLs from trusted catalogues qualify.
@@ -1484,7 +1489,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       const verifiedArtwork = typeof requested === 'string'
         && ((verifiedMiniAppIcons.get(requested) || 0) > runtime.now()
             || (verifiedMiniAppImages.get(requested) || 0) > runtime.now());
-      const limit = verifiedArtwork ? miniAppArtworkLimiter : limiter;
+      const limit = verifiedArtwork ? miniAppArtworkLimiter : imageLimiter;
       const rate = limit.check(clientAddress(request, config.trustCloudflare), runtime.now());
       if (!rate.allowed) {
         writeJson(response, 429, { error: 'rate_limited' }, { 'retry-after': '60' });
