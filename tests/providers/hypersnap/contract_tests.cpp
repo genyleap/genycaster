@@ -501,7 +501,30 @@ private:
             return R"json({"events":[{"id":23756802,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600010,"castAddBody":{"text":"A"}}}}},{"id":23756801,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600000,"castAddBody":{"text":"B"}}}}},{"id":23756800,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600015,"castAddBody":{"parentCastId":{"fid":2,"hash":"0xparent"}}}}}}]})json";
         }
         if (url.find("/v2/farcaster/feed/channels") != std::string::npos) {
-            return test::hypersnap::fixtures::rootPostFeedResponse();
+            if (url.find("channel_ids=dev") != std::string::npos)
+                return test::hypersnap::fixtures::rootPostFeedResponse();
+            auto cast = test::hypersnap::fixtures::rootPostFeedResponse();
+            const bool cryptoart = url.find("channel_ids=cryptoart&") != std::string::npos;
+            const bool objkt = url.find("channel_ids=objkt&") != std::string::npos;
+            if (!cryptoart && !objkt)
+                return R"json({"casts":[],"next":null})json";
+            const bool next = url.find("cursor=crypto-next") != std::string::npos;
+            const std::string hash = cryptoart
+                ? (next ? "0xcccccccccccccccccccccccccccccccccccccccc"
+                        : "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                : "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+            cast.replace(cast.find("0xabc123"), std::string{"0xabc123"}.size(), hash);
+            const std::string timestamp = cryptoart
+                ? (next ? "2026-08-28T12:34:56.789Z" : "2026-08-30T12:34:56.789Z")
+                : "2026-08-29T12:34:56.789Z";
+            cast.replace(cast.find("2026-08-27T12:34:56.789Z"),
+                std::string{"2026-08-27T12:34:56.789Z"}.size(), timestamp);
+            if (cryptoart && !next) {
+                const auto cursor = cast.find(R"json("cursor":null)json");
+                cast.replace(cursor, std::string{R"json("cursor":null)json"}.size(),
+                    R"json("cursor":"crypto-next")json");
+            }
+            return cast;
         }
         if (url.find("/v2/farcaster/cast/search") != std::string::npos) {
             // Matches the provider's real {result:{casts,next}} envelope.
@@ -833,59 +856,69 @@ void testRecentAsyncFeedAndCursor()
         assert(result->casts.front().parent);
         assert(result->casts.front().parent->value == "0xparent");
     }
-    const auto artNext = querySemantic(application::read::model::FeedQuery::Kind::Nfts);
-    assert(artNext);
-    // The NFT/art channel is the first verified media source. Once exhausted,
-    // a marketplace/mint search must advance independently instead of
-    // repeating channel results or displaying an empty category.
-    querySemantic(application::read::model::FeedQuery::Kind::Nfts, artNext);
+    const auto requestArtwork = [&](std::optional<capability::pagination::ContinuationToken> token) {
+        auto pending = std::make_shared<
+            std::promise<foundation::result::Result<capability::feed::FeedPage>>>();
+        auto future = pending->get_future();
+        auto request = gateway.feed(application::read::model::FeedQuery{
+            .kind = application::read::model::FeedQuery::Kind::Nfts,
+            .limit = 3U, .continuation = std::move(token)},
+            [pending](foundation::result::Result<capability::feed::FeedPage> page) {
+                pending->set_value(std::move(page));
+            });
+        assert(request);
+        assert(future.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
+        auto page = future.get();
+        assert(page);
+        return std::move(*page);
+    };
+    const auto artFirst = requestArtwork(std::nullopt);
+    // Stop at an unread channel frontier, even when another source has older
+    // ready results. That source's next page may contain a newer post.
+    assert(artFirst.casts.size() == 1U && artFirst.next);
+    assert(artFirst.casts[0].id.value == "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    const auto artSecond = requestArtwork(artFirst.next);
+    assert(artSecond.casts.size() == 2U && !artSecond.next);
+    assert(artSecond.casts[0].id.value == "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    assert(artSecond.casts[1].id.value == "0xcccccccccccccccccccccccccccccccccccccccc");
+    assert(artFirst.casts[0].createdAt > artSecond.casts[0].createdAt);
+    assert(artSecond.casts[0].createdAt > artSecond.casts[1].createdAt);
     querySemantic(application::read::model::FeedQuery::Kind::Developers);
     const auto searches = transport.requestedUrls();
-    assert(std::ranges::any_of(searches, [](const auto& url) {
-        return url.find("/v2/farcaster/feed/channels") != std::string::npos
-            && url.find("channel_ids=nft%2Cart") != std::string::npos; }));
-    assert(std::ranges::any_of(searches, [](const auto& url) {
+    assert(std::ranges::count_if(searches, [](const auto& url) {
+        return url.find("channel_ids=cryptoart&") != std::string::npos; }) == 2);
+    assert(std::ranges::count_if(searches, [](const auto& url) {
+        return url.find("channel_ids=objkt&") != std::string::npos; }) == 1);
+    assert(std::ranges::none_of(searches, [](const auto& url) {
         return url.find("/v2/farcaster/cast/search") != std::string::npos
-            && url.find("q=mint") != std::string::npos; }));
+            && (url.find("q=mint") != std::string::npos || url.find("q=art") != std::string::npos); }));
     assert(std::ranges::any_of(searches, [](const auto& url) {
         return url.find("/v2/farcaster/feed/channels") != std::string::npos
             && url.find("channel_ids=dev%2Cdevelopers%2Cbuild%2Cprogramming")
                 != std::string::npos; }));
-    // A compatible node may implement search but not channel feeds. Its
-    // search cursor must never be replayed against the unsupported endpoint.
+    // A node without the chronological channel endpoint must report that
+    // NFT source as unavailable rather than silently returning stale search.
     {
         RecentAsyncTransport unavailable{false, false, false, true};
         provider::hypersnap::async_gateway::AsyncGateway compatibilityGateway{
             unavailable, decode, serial, *continuation, testConfig()};
-        const auto requestCompat = [&](const std::optional<capability::pagination::ContinuationToken> token) {
-            auto pending = std::make_shared<
-                std::promise<foundation::result::Result<capability::feed::FeedPage>>>();
-            auto future = pending->get_future();
-            auto started = compatibilityGateway.feed(
-                application::read::model::FeedQuery{
-                    .kind = application::read::model::FeedQuery::Kind::Nfts,
-                    .limit = 3U, .continuation = token},
-                [pending](foundation::result::Result<capability::feed::FeedPage> page) {
-                    pending->set_value(std::move(page));
-                });
-            assert(started);
-            assert(future.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
-            auto page = future.get();
-            assert(page && !page->casts.empty());
-            return page->next;
-        };
-        auto compatNext = requestCompat(std::nullopt);
-        assert(compatNext);
-        requestCompat(compatNext);
+        auto pending = std::make_shared<
+            std::promise<foundation::result::Result<capability::feed::FeedPage>>>();
+        auto future = pending->get_future();
+        auto started = compatibilityGateway.feed(
+            application::read::model::FeedQuery{
+                .kind = application::read::model::FeedQuery::Kind::Nfts, .limit = 3U},
+            [pending](foundation::result::Result<capability::feed::FeedPage> page) {
+                pending->set_value(std::move(page));
+            });
+        assert(started);
+        assert(future.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
+        const auto unavailablePage = future.get();
+        assert(!unavailablePage);
+        assert(unavailablePage.error().code == foundation::error::ErrorCode::Unavailable);
         const auto urls = unavailable.requestedUrls();
-        assert(std::ranges::count_if(urls, [](const auto& url) {
-            return url.find("/v2/farcaster/feed/channels") != std::string::npos; }) == 1);
-        assert(std::ranges::any_of(urls, [](const auto& url) {
-            return url.find("/v2/farcaster/cast/search") != std::string::npos
-                && url.find("q=art") != std::string::npos; }));
-        assert(std::ranges::any_of(urls, [](const auto& url) {
-            return url.find("/v2/farcaster/cast/search") != std::string::npos
-                && url.find("q=mint") != std::string::npos; }));
+        assert(std::ranges::none_of(urls, [](const auto& url) {
+            return url.find("/v2/farcaster/cast/search") != std::string::npos; }));
         auto devPending = std::make_shared<
             std::promise<foundation::result::Result<capability::feed::FeedPage>>>();
         auto devFuture = devPending->get_future();

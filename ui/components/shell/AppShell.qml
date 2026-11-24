@@ -1494,6 +1494,8 @@ Item {
         // The content category and audience scope are orthogonal. Every
         // Explorer category projects from the selected provider feed; never
         // silently return to global Recent when the user selects Following.
+        // The NFT adapter queries individual channel heads and merges their
+        // timestamps; Following always keeps its account-scoped source.
         const globalSource = nextMode === "visuals" ? "nfts"
                            : nextMode === "devs" ? "developers"
                            : nextMode === "conversations" ? "conversations" : "recent"

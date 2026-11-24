@@ -96,7 +96,7 @@ test("5- or 10-post pages hydrate underfilled magazine columns without unbounded
     assert.match(wall, /readonly property real shortestColumnBottom: layoutModel\.shortestColumnBottom/);
     assert.match(feed, /if \(!magazineView\.moving && !scrollWorkThrottle\.running\)/);
     assert.match(feed, /readonly property int automaticPrefetchLimit: 16/);
-    assert.match(feed, /readonly property int automaticNoProgressLimit: 2/);
+    assert.match(feed, /readonly property int automaticNoProgressLimit: root\.presentationMode === "visuals" \? 5 : 2/);
 });
 
 test("Page size 5/10 is explicitly supported while 20 stays default, without forcing more card delegates", () => {

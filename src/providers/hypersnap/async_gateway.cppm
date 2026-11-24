@@ -120,6 +120,7 @@ public:
 
 private:
     struct RecentWindowCache;
+    struct ArtworkPageCache;
 
     /** @brief Loads confirmed network casts, keeping blocking work off Qt. */
     [[nodiscard]] foundation::result::Result<application::read::async_gateway::Request>
@@ -128,7 +129,14 @@ private:
         application::read::async_gateway::FeedCompletion completion,
         application::read::model::ReadOptions options);
 
+    /** @brief Merges independently paginated NFT/art channels chronologically. */
+    [[nodiscard]] foundation::result::Result<application::read::async_gateway::Request>
+    artworkFeed(application::read::model::FeedQuery query,
+                application::read::async_gateway::FeedCompletion completion,
+                application::read::model::ReadOptions options);
+
     std::shared_ptr<RecentWindowCache> m_recentWindowCache{};
+    std::shared_ptr<ArtworkPageCache> m_artworkPageCache{};
     async_request::Client m_client;
     application::executor::IExecutor& m_continuationExecutor;
     storage::continuation::ContinuationStore& m_continuations;

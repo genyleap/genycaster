@@ -1138,20 +1138,28 @@ Item {
                     }
                 }
 
-                ActionButton {
+                Button {
+                    id: readMoreLink
                     objectName: "castReadMore"
                     visible: root.textPreviewTruncated && !root.combinedLinkCast
                              && String(root.modelData.castId || "").length > 0
                     Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
-                    compact: true
-                    quiet: true
-                    elevated: false
-                    alignStart: true
-                    leftPadding: 0
-                    rightPadding: 0
+                    padding: 0
                     implicitWidth: Math.max(44, contentItem.implicitWidth)
+                    implicitHeight: Math.max(root.compact ? 44 : 24, contentItem.implicitHeight)
                     text: qsTrId("genycaster.cast.read_more")
-                    customForegroundColor: Theme.accent
+                    background: null
+                    contentItem: DirectionAwareLabel {
+                        text: readMoreLink.text
+                        color: Theme.accent
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightMedium
+                        font.underline: readMoreLink.hovered || readMoreLink.visualFocus
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    Accessible.role: Accessible.Link
+                    Accessible.name: text
+                    HoverHandler { cursorShape: Qt.PointingHandCursor }
                     onClicked: root.openRequested(String(root.modelData.castId))
                 }
 

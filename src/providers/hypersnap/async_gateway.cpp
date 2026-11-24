@@ -402,102 +402,192 @@ constexpr std::uint64_t recentEventShift{14U};
 constexpr std::string_view recentCursorPrefix{"recent:v1:"};
 constexpr std::string_view conversationCursorPrefix{"conversations:v1:"};
 
-// Independent artwork/mint searches: a single literal "nft" query misses
-// verified artworks and collection links whose author never writes that word.
-constexpr std::string_view collectibleCursorPrefix{"collectibles:v3:"};
-constexpr std::string_view previousCollectibleCursorPrefix{"collectibles:v2:"};
-constexpr std::string_view legacyCollectibleCursorPrefix{"collectibles:v1:"};
-// The first source is the real NFT/art channel feed, not a text-only "art"
-// search. Subsequent turns keep independent search cursors for collectible
-// links outside those channels.
-constexpr std::size_t previousCollectibleSourceCount{5U};
-constexpr std::array<std::string_view, 15> collectibleSearchTerms{
-    "nft,art,cryptoart,photography,design,basepaint,illustration,generative-art,pixel-art",
-    "mint", "opensea", "superrare", "foundation", "nft", "artwork",
-    "objkt", "magiceden", "rarible", "fxhash", "manifold", "highlight",
-    "artblocks", "zora"};
+// The compatible channel API accepts a channel_ids string but some live
+// providers only honor its first ID. Query each canonical channel separately.
+// Keep this source order stable; the versioned cursor encodes one state per
+// source. Marketplace/art channels outside /nft matter just as much.
+constexpr std::array<std::string_view, 12> artworkChannels{
+    "cryptoart", "objkt", "art", "nft", "digital-art", "generative-art",
+    "artists", "fxhash", "photography", "basepaint", "pixel-art", "illustration"};
+constexpr std::size_t artworkSourcePageSize{20U};
+constexpr std::string_view artworkCursorPrefix{"artwork-chronological:v1:"};
 
-struct CollectibleSearchCursor final {
-    std::size_t turn{};
-    std::array<std::optional<std::string>, collectibleSearchTerms.size()> cursors{};
-    std::array<bool, collectibleSearchTerms.size()> exhausted{};
+struct ArtworkSourceCursor final {
+    std::optional<std::string> cursor{};
+    std::string anchor{};
+    bool exhausted{false};
 };
 
-[[nodiscard]] std::string encodeCollectibleCursor(const CollectibleSearchCursor& state)
+struct ArtworkCursor final {
+    std::uint64_t snapshot{};
+    std::int64_t watermarkMs{};
+    std::string watermarkHash{};
+    std::array<ArtworkSourceCursor, artworkChannels.size()> sources{};
+};
+
+[[nodiscard]] std::string encodeArtworkCursor(const ArtworkCursor& state)
 {
-    std::string encoded{collectibleCursorPrefix};
-    encoded += std::to_string(state.turn) + ":";
-    for (std::size_t i = 0; i < state.cursors.size(); ++i) {
-        if (state.exhausted[i]) {
-            encoded += "x:";
-        } else if (state.cursors[i]) {
-            encoded += "+" + std::to_string(state.cursors[i]->size()) + ":";
-            encoded += *state.cursors[i] + ":";
-        } else {
-            encoded += "-:";
-        }
+    std::string encoded{artworkCursorPrefix};
+    auto field = [&encoded](const std::string_view value) {
+        encoded += std::to_string(value.size()) + ":";
+        encoded += value;
+    };
+    field(std::to_string(state.snapshot));
+    field(std::to_string(state.watermarkMs));
+    field(state.watermarkHash);
+    for (const auto& source : state.sources) {
+        encoded += source.exhausted ? 'x' : 'p';
+        field(source.cursor.value_or(""));
+        field(source.anchor);
     }
     return encoded;
 }
 
-[[nodiscard]] foundation::result::Result<CollectibleSearchCursor>
-decodeCollectibleCursor(std::string_view text)
+[[nodiscard]] foundation::result::Result<ArtworkCursor>
+decodeArtworkCursor(std::string_view value)
 {
-    // Preserve unchanged marketplace cursors across upgrades. The channel
-    // query changed in v3, so its old cursor cannot be replayed against
-    // the expanded channel selector. New discovery sources start fresh.
-    const bool legacy = text.starts_with(legacyCollectibleCursorPrefix);
-    const bool previous = text.starts_with(previousCollectibleCursorPrefix);
-    const bool oldCursor = legacy || previous;
-    if (!oldCursor && !text.starts_with(collectibleCursorPrefix))
-        return std::unexpected(makeError(ErrorCode::InvalidArgument, "Invalid artwork discovery cursor."));
-    text.remove_prefix(legacy ? legacyCollectibleCursorPrefix.size()
-                              : previous ? previousCollectibleCursorPrefix.size()
-                                         : collectibleCursorPrefix.size());
-    const auto sourceCount = oldCursor ? previousCollectibleSourceCount
-                                       : collectibleSearchTerms.size();
-    const auto firstColon = text.find(':');
-    std::size_t turn{};
-    if (firstColon == text.npos ||
-        std::from_chars(text.data(), text.data() + firstColon, turn).ec != std::errc{}
-        || turn >= sourceCount)
-        return std::unexpected(makeError(ErrorCode::InvalidArgument, "Invalid artwork cursor index."));
-    text.remove_prefix(firstColon + 1U);
-    CollectibleSearchCursor state{.turn = turn};
-    for (std::size_t i = 0; i < sourceCount; ++i) {
-        if (text.size() < 2U || (text[0] != '+' && text[1] != ':'))
-            return std::unexpected(makeError(ErrorCode::InvalidArgument, "Malformed artwork cursor."));
-        const auto status = text.front();
-        text.remove_prefix(1U);
-        if (status == 'x' || status == '-') {
-            if (text.empty() || text.front() != ':')
-                return std::unexpected(makeError(ErrorCode::InvalidArgument, "Malformed artwork cursor state."));
-            text.remove_prefix(1U);
-            state.exhausted[i] = status == 'x';
-        } else if (status == '+') {
-            const auto colon = text.find(':');
-            std::size_t length{};
-            if (colon == text.npos || colon == 0U
-                || std::from_chars(text.data(), text.data() + colon, length).ec != std::errc{}
-                || length > 4096U || text.size() < colon + 1U + length + 1U
-                || text[colon + 1U + length] != ':')
-                return std::unexpected(makeError(ErrorCode::InvalidArgument, "Malformed artwork provider cursor."));
-            state.cursors[i] = std::string{text.substr(colon + 1U, length)};
-            text.remove_prefix(colon + 1U + length + 1U);
-        } else {
-            return std::unexpected(makeError(ErrorCode::InvalidArgument, "Unknown artwork cursor state."));
-        }
+    if (!value.starts_with(artworkCursorPrefix)) {
+        // Old round-robin search cursors have a different selector contract.
+        // Restart at the live channel heads instead of replaying stale search
+        // positions against a different endpoint.
+        if (value.starts_with("collectibles:v1:") || value.starts_with("collectibles:v2:")
+            || value.starts_with("collectibles:v3:")) return ArtworkCursor{};
+        return std::unexpected(makeError(ErrorCode::InvalidArgument, "Invalid artwork cursor."));
     }
-    if (!text.empty())
+    value.remove_prefix(artworkCursorPrefix.size());
+    const auto field = [&value](const std::size_t maximum) -> std::optional<std::string> {
+        const auto colon = value.find(':');
+        if (colon == value.npos || colon == 0U) return std::nullopt;
+        std::size_t length{};
+        const auto parsed = std::from_chars(value.data(), value.data() + colon, length);
+        if (parsed.ec != std::errc{} || parsed.ptr != value.data() + colon
+            || length > maximum || value.size() - colon - 1U < length) return std::nullopt;
+        value.remove_prefix(colon + 1U);
+        std::string result{value.substr(0, length)};
+        value.remove_prefix(length);
+        return result;
+    };
+    ArtworkCursor state{};
+    const auto snapshot = field(20U);
+    const auto watermark = field(20U);
+    const auto hash = field(42U);
+    if (!snapshot || !watermark || !hash)
+        return std::unexpected(makeError(ErrorCode::InvalidArgument, "Malformed artwork cursor."));
+    const auto snapshotResult = std::from_chars(snapshot->data(), snapshot->data() + snapshot->size(), state.snapshot);
+    const auto watermarkResult = std::from_chars(watermark->data(), watermark->data() + watermark->size(), state.watermarkMs);
+    if (snapshotResult.ec != std::errc{} || snapshotResult.ptr != snapshot->data() + snapshot->size()
+        || watermarkResult.ec != std::errc{} || watermarkResult.ptr != watermark->data() + watermark->size())
+        return std::unexpected(makeError(ErrorCode::InvalidArgument, "Malformed artwork snapshot."));
+    state.watermarkHash = *hash;
+    for (auto& source : state.sources) {
+        if (value.empty() || (value.front() != 'p' && value.front() != 'x'))
+            return std::unexpected(makeError(ErrorCode::InvalidArgument, "Malformed artwork source."));
+        source.exhausted = value.front() == 'x';
+        value.remove_prefix(1U);
+        auto cursor = field(4096U);
+        auto anchor = field(42U);
+        if (!cursor || !anchor)
+            return std::unexpected(makeError(ErrorCode::InvalidArgument, "Malformed artwork source cursor."));
+        if (!cursor->empty()) source.cursor = std::move(*cursor);
+        source.anchor = std::move(*anchor);
+    }
+    if (!value.empty())
         return std::unexpected(makeError(ErrorCode::InvalidArgument, "Trailing artwork cursor data."));
-    if (oldCursor) {
-        state.cursors[0].reset();
-        state.exhausted[0] = false;
-        state.turn = 0U;
-    }
     return state;
 }
 
+[[nodiscard]] bool artworkNewer(const domain::cast::Cast& first,
+                                const domain::cast::Cast& second)
+{
+    if (first.createdAt != second.createdAt) return first.createdAt > second.createdAt;
+    return first.id.value > second.id.value;
+}
+
+using ArtworkPages = std::array<std::shared_ptr<const codec::FeedPayload>, artworkChannels.size()>;
+
+// Merge sorted source pages at their unread frontiers. If one source needs
+// its next page, stop before emitting older candidates from other sources.
+// This preserves chronology across pagination instead of round-robin blocks.
+[[nodiscard]] foundation::result::Result<capability::feed::FeedPage>
+mergeArtworkPages(ArtworkCursor& state, const ArtworkPages& pages, const std::size_t limit)
+{
+    std::array<std::size_t, artworkChannels.size()> positions{};
+    for (std::size_t i = 0; i < pages.size(); ++i) {
+        if (state.sources[i].exhausted) continue;
+        if (!pages[i])
+            return std::unexpected(makeError(ErrorCode::Unavailable, "Artwork source page is unavailable."));
+        const auto& casts = pages[i]->casts;
+        const auto& anchor = state.sources[i].anchor;
+        if (!anchor.empty()) {
+            const auto found = std::ranges::find_if(casts, [&](const auto& cast) { return cast.id.value == anchor; });
+            if (found == casts.end())
+                return std::unexpected(makeError(ErrorCode::Conflict, "Artwork page changed; refresh the feed."));
+            positions[i] = static_cast<std::size_t>(std::distance(casts.begin(), found)) + 1U;
+        }
+        // New posts arriving at an unconsumed channel head belong to a fresh
+        // snapshot, not to the middle of an existing paginated timeline.
+        if (!state.watermarkHash.empty()) {
+            while (positions[i] < casts.size()) {
+                const auto& cast = casts[positions[i]];
+                const auto time = cast.createdAt.time_since_epoch().count();
+                if (time < state.watermarkMs ||
+                    (time == state.watermarkMs && cast.id.value < state.watermarkHash)) break;
+                state.sources[i].anchor = cast.id.value;
+                ++positions[i];
+            }
+        }
+    }
+
+    capability::feed::FeedPage result{};
+    std::unordered_set<std::string> seen{};
+    std::unordered_set<std::uint64_t> authors{};
+    std::array<bool, artworkChannels.size()> advanced{};
+    const auto advanceExhaustedPages = [&]() {
+        bool needNext = false;
+        for (std::size_t i = 0; i < pages.size(); ++i) {
+            auto& source = state.sources[i];
+            if (source.exhausted || advanced[i] || positions[i] < pages[i]->casts.size()) continue;
+            advanced[i] = true;
+            auto next = pages[i]->providerCursor;
+            if (next && source.cursor && *next == *source.cursor) next.reset();
+            source.cursor = std::move(next);
+            source.anchor.clear();
+            source.exhausted = !source.cursor;
+            needNext = needNext || !source.exhausted;
+        }
+        return needNext;
+    };
+    while (result.casts.size() < limit) {
+        if (advanceExhaustedPages()) break;
+        std::optional<std::size_t> best{};
+        for (std::size_t i = 0; i < pages.size(); ++i) {
+            if (state.sources[i].exhausted) continue;
+            if (!best || artworkNewer(pages[i]->casts[positions[i]], pages[*best]->casts[positions[*best]]))
+                best = i;
+        }
+        if (!best) break;
+        const auto i = *best;
+        const auto& cast = pages[i]->casts[positions[i]++];
+        state.sources[i].anchor = cast.id.value;
+        if (!seen.insert(cast.id.value).second) continue;
+        state.watermarkMs = cast.createdAt.time_since_epoch().count();
+        state.watermarkHash = cast.id.value;
+        authors.insert(cast.author.value);
+        result.entries.push_back(domain::feed::FeedEntry{.castId = cast.id, .sortTime = cast.createdAt});
+        result.casts.push_back(cast);
+    }
+    // If the limit landed on a page boundary, persist the next raw cursor.
+    static_cast<void>(advanceExhaustedPages());
+    std::unordered_set<std::uint64_t> seenProfiles{};
+    for (const auto& page : pages) {
+        if (!page) continue;
+        for (const auto& profile : page->profiles) {
+            if (authors.contains(profile.fid.value) && seenProfiles.insert(profile.fid.value).second)
+                result.profiles.push_back(profile);
+        }
+    }
+    return result;
+}
 
 struct RecentCursor final {
     std::uint64_t firstEnd{};
@@ -624,6 +714,45 @@ struct AsyncGateway::RecentWindowCache final {
     }
 };
 
+struct AsyncGateway::ArtworkPageCache final {
+    struct Entry final {
+        std::uint64_t snapshot{};
+        std::size_t source{};
+        std::optional<std::string> cursor{};
+        std::shared_ptr<const codec::FeedPayload> page{};
+        std::chrono::steady_clock::time_point observed{};
+    };
+
+    std::mutex mutex{};
+    std::vector<Entry> entries{};
+
+    [[nodiscard]] std::shared_ptr<const codec::FeedPayload> find(
+        const std::uint64_t snapshot, const std::size_t source, const std::optional<std::string>& cursor)
+    {
+        std::scoped_lock lock{mutex};
+        const auto now = std::chrono::steady_clock::now();
+        std::erase_if(entries, [now](const Entry& entry) {
+            return now - entry.observed >= std::chrono::minutes{5};
+        });
+        const auto found = std::ranges::find_if(entries, [&](const Entry& entry) {
+            return entry.snapshot == snapshot && entry.source == source && entry.cursor == cursor;
+        });
+        return found == entries.end() ? nullptr : found->page;
+    }
+
+    void remember(const std::uint64_t snapshot, const std::size_t source,
+                  const std::optional<std::string>& cursor, std::shared_ptr<const codec::FeedPayload> page)
+    {
+        std::scoped_lock lock{mutex};
+        std::erase_if(entries, [&](const Entry& entry) {
+            return entry.snapshot == snapshot && entry.source == source;
+        });
+        constexpr std::size_t maximumEntries{2U * artworkChannels.size()};
+        if (entries.size() >= maximumEntries) entries.erase(entries.begin());
+        entries.push_back(Entry{snapshot, source, cursor, std::move(page), std::chrono::steady_clock::now()});
+    }
+};
+
 AsyncGateway::AsyncGateway(
     transport::async_http::IAsyncHttpTransport& transport,
     execution::weighted_thread_pool::WeightedThreadPoolExecutor& decodeExecutor,
@@ -631,6 +760,7 @@ AsyncGateway::AsyncGateway(
     storage::continuation::ContinuationStore& continuations,
     config::Config config)
     : m_recentWindowCache(std::make_shared<RecentWindowCache>()),
+      m_artworkPageCache(std::make_shared<ArtworkPageCache>()),
       m_client(transport, decodeExecutor, config),
       m_continuationExecutor(continuationExecutor),
       m_continuations(continuations),
@@ -1211,6 +1341,142 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
     return applicationRequest(group);
 }
 
+foundation::result::Result<AppRequest> AsyncGateway::artworkFeed(
+    application::read::model::FeedQuery query,
+    application::read::async_gateway::FeedCompletion completion,
+    const application::read::model::ReadOptions options)
+{
+    auto group = std::make_shared<Group>();
+    const auto capabilityId = capability::catalog::feedNftsRead();
+    const auto requestPriority = priorityFor(options, transport::async_http::Priority::Visible);
+    const capability::pagination::PageRequest pageRequest{
+        .limit = query.limit, .continuation = query.continuation};
+    auto scheduled = m_continuationExecutor.post(
+        [this, group, capabilityId, pageRequest, requestPriority,
+         completion = std::move(completion)]() mutable {
+            if (group->cancelled.load(std::memory_order_acquire)) return;
+            // Use the existing NFT capability scope. Legacy search cursors
+            // are decoded as a fresh snapshot, not passed to channel feeds.
+            continuation::Store store{m_continuations, m_config.provider.id, m_config.baseUrl};
+            auto raw = store.resolve(capabilityId, pageRequest);
+            if (!raw) { completion(std::unexpected(std::move(raw.error()))); return; }
+            ArtworkCursor cursor{};
+            if (*raw) {
+                auto decoded = decodeArtworkCursor(**raw);
+                if (!decoded) { completion(std::unexpected(std::move(decoded.error()))); return; }
+                cursor = std::move(*decoded);
+            }
+            if (cursor.snapshot == 0U) {
+                static std::atomic_uint64_t snapshotSequence{0U};
+                cursor.snapshot = static_cast<std::uint64_t>(
+                    std::chrono::steady_clock::now().time_since_epoch().count())
+                    + snapshotSequence.fetch_add(1U, std::memory_order_relaxed) + 1U;
+            }
+            struct MergeState final {
+                std::mutex mutex{};
+                ArtworkPages pages{};
+                std::size_t pending{};
+                std::size_t successful{};
+                std::optional<Error> error{};
+            };
+            auto merge = std::make_shared<MergeState>();
+            auto resultCallback = std::make_shared<application::read::async_gateway::FeedCompletion>(
+                std::move(completion));
+            std::array<bool, artworkChannels.size()> missing{};
+            for (std::size_t i = 0; i < cursor.sources.size(); ++i) {
+                const auto& source = cursor.sources[i];
+                if (source.exhausted) continue;
+                merge->pages[i] = m_artworkPageCache->find(cursor.snapshot, i, source.cursor);
+                if (merge->pages[i]) ++merge->successful;
+                else { missing[i] = true; ++merge->pending; }
+            }
+            auto finish = [this, group, capabilityId, pageRequest, cursor, merge, resultCallback]() mutable {
+                auto status = m_continuationExecutor.post(
+                    [this, group, capabilityId, pageRequest, cursor, merge, resultCallback]() mutable {
+                        if (group->cancelled.load(std::memory_order_acquire) || !*resultCallback) return;
+                        auto done = std::move(*resultCallback);
+                        if (merge->error) { done(std::unexpected(std::move(*merge->error))); return; }
+                        if (merge->successful == 0U &&
+                            std::ranges::any_of(cursor.sources, [](const auto& source) { return !source.exhausted; })) {
+                            done(std::unexpected(makeError(ErrorCode::Unavailable, "No artwork channel returned a page.")));
+                            return;
+                        }
+                        auto page = mergeArtworkPages(cursor, merge->pages, pageRequest.limit);
+                        if (!page) { done(std::unexpected(std::move(page.error()))); return; }
+                        const bool hasMore = std::ranges::any_of(cursor.sources,
+                            [](const auto& source) { return !source.exhausted; });
+                        continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
+                        auto next = continuations.bind(capabilityId,
+                            hasMore ? std::optional<std::string>{encodeArtworkCursor(cursor)} : std::nullopt);
+                        if (!next) { done(std::unexpected(std::move(next.error()))); return; }
+                        page->next = std::move(*next);
+                        done(std::move(*page));
+                    });
+                if (!status && *resultCallback) {
+                    auto done = std::move(*resultCallback);
+                    done(std::unexpected(std::move(status.error())));
+                }
+            };
+            if (merge->pending == 0U) { finish(); return; }
+            auto accept = [this, group, cursor, merge, finish](
+                const std::size_t index, foundation::result::Result<std::string> body) mutable {
+                if (group->cancelled.load(std::memory_order_acquire)) return;
+                std::shared_ptr<const codec::FeedPayload> page{};
+                std::optional<Error> error{};
+                bool supported = false;
+                if (body) {
+                    auto payload = codec::decodeFeed(*body);
+                    if (payload) {
+                        // Normalize the same protocol IDs across all sources.
+                        for (auto& cast : payload->casts) {
+                            if (cast.id.value.size() == 40U) cast.id.value.insert(0U, "0x");
+                        }
+                        std::ranges::sort(payload->casts, artworkNewer);
+                        page = std::make_shared<const codec::FeedPayload>(std::move(*payload));
+                        supported = true;
+                        m_artworkPageCache->remember(cursor.snapshot, index, cursor.sources[index].cursor, page);
+                    } else {
+                        error = std::move(payload.error());
+                    }
+                } else if (supportsAliasFallback(body.error().code)) {
+                    // An absent channel is not a fabricated result or a reason
+                    // to fall back to an unrelated, stale full-text search.
+                    page = std::make_shared<const codec::FeedPayload>();
+                } else {
+                    error = std::move(body.error());
+                }
+                bool ready = false;
+                {
+                    std::scoped_lock lock{merge->mutex};
+                    merge->pages[index] = std::move(page);
+                    if (supported) ++merge->successful;
+                    if (error && !merge->error) merge->error = std::move(error);
+                    ready = --merge->pending == 0U;
+                }
+                if (ready) finish();
+            };
+            // Start only uncached source pages. The asynchronous HTTP
+            // transport owns the concurrency/priority and cancellation budget.
+            for (std::size_t i = 0; i < cursor.sources.size(); ++i) {
+                const auto& source = cursor.sources[i];
+                if (!missing[i]) continue;
+                std::vector<std::pair<std::string, std::string>> parameters{
+                    {"channel_ids", std::string{artworkChannels[i]}},
+                    {"limit", std::to_string(artworkSourcePageSize)}};
+                if (source.cursor) parameters.emplace_back("cursor", *source.cursor);
+                auto operation = m_client.getJson("/v2/farcaster/feed/channels", parameters,
+                    [accept, i](foundation::result::Result<std::string> body) mutable {
+                        accept(i, std::move(body));
+                    },
+                    request::GetOptions{.timeout = discoveryRequestTimeout}, requestPriority);
+                if (!operation) accept(i, std::unexpected(std::move(operation.error())));
+                else group->add(std::move(*operation));
+            }
+        });
+    if (!scheduled) return std::unexpected(std::move(scheduled.error()));
+    return applicationRequest(group);
+}
+
 foundation::result::Result<AppRequest> AsyncGateway::feed(
     application::read::model::FeedQuery query,
     application::read::async_gateway::FeedCompletion completion,
@@ -1226,6 +1492,10 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
     if (query.kind == application::read::model::FeedQuery::Kind::Recent
         || query.kind == application::read::model::FeedQuery::Kind::Conversations) {
         return recentFeed(std::move(query), std::move(completion), options);
+    }
+
+    if (query.kind == application::read::model::FeedQuery::Kind::Nfts) {
+        return artworkFeed(std::move(query), std::move(completion), options);
     }
 
     FeedSpec spec{};
@@ -1248,17 +1518,8 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
         spec.capabilityId = capability::catalog::feedConversationsRead();
         break;
     case application::read::model::FeedQuery::Kind::Nfts:
-        spec.capabilityId = capability::catalog::feedNftsRead();
-        // The first turn selects indexed NFT/art channels. Further turns
-        // search mint/marketplace destinations beyond those channels.
-        spec.path = "/v2/farcaster/cast/search";
-        spec.query = {{"q", "mint"}, {"sort_type", "recent"}};
-        // Older compatible nodes may lack /feed/channels, but still support
-        // search. Do not make their NFT tab unusable.
-        spec.fallbackPath = "/v2/farcaster/cast/search";
-        spec.fallbackQuery = {{"q", "art"}, {"sort_type", "recent"}};
-        spec.timeout = discoveryRequestTimeout;
-        break;
+        // Handled by the chronological multi-channel merge above.
+        return std::unexpected(makeError(ErrorCode::InternalFailure, "Unreachable artwork feed route."));
     case application::read::model::FeedQuery::Kind::Developers:
         spec.capabilityId = capability::catalog::feedDevelopersRead();
         // Prioritize canonical developer-channel posts. Search-index casts
@@ -1474,64 +1735,30 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                 return;
             }
 
-            // Rotate through independently indexed art and mint destinations.
-            // Each source owns its cursor, so an abundant general art search
-            // cannot indefinitely starve OpenSea/SuperRare/mint discovery.
-            std::optional<CollectibleSearchCursor> collectibleState{};
-            if (query.kind == application::read::model::FeedQuery::Kind::Nfts) {
-                if (*cursor) {
-                    auto decoded = decodeCollectibleCursor(**cursor);
-                    if (!decoded) {
-                        completion(std::unexpected(std::move(decoded.error())));
-                        return;
-                    }
-                    collectibleState = std::move(*decoded);
-                } else {
-                    collectibleState.emplace();
-                }
-            }
-            // Build the feed request inline rather than retaining recursive
-            // closure state. The preferred endpoint is the common path; alias
-            // fallback is started only for NotFound/Unsupported.
-            auto resolvedCursor = collectibleState
-                ? collectibleState->cursors[collectibleState->turn] : *cursor;
+            // The generic indexed feeds use a single provider continuation.
+            auto resolvedCursor = *cursor;
             const bool communityContinuation = spec.communityDiscoveryFallback && resolvedCursor
                 && std::string_view{*resolvedCursor}.starts_with(communityCursorPrefix);
             if (communityContinuation) {
                 resolvedCursor = resolvedCursor->substr(communityCursorPrefix.size());
             }
-            const bool collectibleChannelSource =
-                collectibleState && collectibleState->turn == 0U;
             auto preferredQuery = communityContinuation
                 ? std::vector<std::pair<std::string, std::string>>{{"fid", "3"}}
-                : collectibleChannelSource
-                    ? std::vector<std::pair<std::string, std::string>>{
-                          {"channel_ids", std::string{collectibleSearchTerms[0]}}}
-                    : spec.query;
-            if (collectibleState && !collectibleChannelSource) {
-                for (auto& [name, value] : preferredQuery) {
-                    if (name == "q") {
-                        value = collectibleSearchTerms[collectibleState->turn];
-                        break;
-                    }
-                }
-            }
+                : spec.query;
             preferredQuery.emplace_back("limit", std::to_string(pageRequest.limit));
             if (resolvedCursor) {
                 preferredQuery.emplace_back("cursor", *resolvedCursor);
             }
             auto preferred = m_client.getJson(
-                communityContinuation ? "/v2/farcaster/feed/following"
-                    : collectibleChannelSource ? "/v2/farcaster/feed/channels" : spec.path,
+                communityContinuation ? "/v2/farcaster/feed/following" : spec.path,
                 preferredQuery,
                 [this, group, spec, capabilityId, selectorIdentity, pageRequest, resolvedCursor, requestPriority,
-                 communityContinuation, collectibleState, collectibleChannelSource,
+                 communityContinuation,
                  completion = std::move(completion)](
                     foundation::result::Result<std::string> body) mutable {
                     auto process = std::make_shared<std::function<void(
                         foundation::result::Result<std::string>, bool, bool)>>(
                         [this, group, spec, capabilityId, selectorIdentity, resolvedCursor, requestPriority,
-                         collectibleState, collectibleChannelSource,
                          completion = std::move(completion)](
                                        foundation::result::Result<std::string> selectedBody,
                                        const bool communityFallback,
@@ -1557,30 +1784,6 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                         }
                         if (communityFallback && providerCursor) {
                             *providerCursor = std::string{communityCursorPrefix} + *providerCursor;
-                        }
-                        if (collectibleState) {
-                            auto state = *collectibleState;
-                            const auto completedTurn = state.turn;
-                            // If an older provider does not implement channel
-                            // feeds, its text-search cursor is not a channel
-                            // cursor. Never feed it back into /feed/channels.
-                            const bool skippedChannel = collectibleChannelSource
-                                && usedAliasFallback;
-                            state.cursors[completedTurn] = skippedChannel
-                                ? std::nullopt : providerCursor;
-                            state.exhausted[completedTurn] = skippedChannel || !providerCursor;
-                            bool foundNext = false;
-                            for (std::size_t offset = 1U; offset <= state.cursors.size(); ++offset) {
-                                const auto candidate = (completedTurn + offset) % state.cursors.size();
-                                if (!state.exhausted[candidate]) {
-                                    state.turn = candidate;
-                                    foundNext = true;
-                                    break;
-                                }
-                            }
-                            providerCursor = foundNext
-                                ? std::optional<std::string>{encodeCollectibleCursor(state)}
-                                : std::nullopt;
                         }
                         auto page = pageFromPayload(std::move(*payload));
                         if (spec.path == "/v2/farcaster/cast/search") {
@@ -1649,9 +1852,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                         // text-search index may omit display mention ranges,
                         // so only its turns need the optional bulk enrichment.
                         const bool searchNeedsMentions =
-                            (usedAliasFallback ||
-                             (!collectibleChannelSource
-                              && spec.path == "/v2/farcaster/cast/search"))
+                            (usedAliasFallback || spec.path == "/v2/farcaster/cast/search")
                             && !page.casts.empty();
                         const bool sparseXMentions = !searchNeedsMentions
                             && std::ranges::any_of(page.casts, mayContainSparseXMention);

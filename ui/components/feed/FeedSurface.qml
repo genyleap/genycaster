@@ -169,6 +169,7 @@ Item {
     // JS object/list wrappers can otherwise be rejected. Keep only primitive,
     // type-stable roles in ListModel and store row payloads externally by key.
     property var stablePayloads: ({})
+    property string stableProjectionScope: ""
     property string pendingViewportKey: ""
     property real pendingViewportOffset: 0
     property real pendingViewportY: 0
@@ -203,13 +204,13 @@ Item {
     readonly property bool curateHomeForYou: false
     readonly property bool presentationFilterActive: !root.socialMode
     readonly property int filterTargetCount: root.compact ? 5 : 8
-    readonly property int filterPrefetchLimit: 8
+    readonly property int filterPrefetchLimit: root.presentationMode === "visuals" ? 12 : 8
     readonly property int automaticPrefetchLimit: 16
     // One bounded automatic chain between real user scroll gestures. Content
     // geometry and busy-state changes must not replenish the budget.
     property int automaticLastRowCount: -1
     property int automaticNoProgressPages: 0
-    readonly property int automaticNoProgressLimit: 2
+    readonly property int automaticNoProgressLimit: root.presentationMode === "visuals" ? 5 : 2
     property Component headerContent: null
     // Presentation filters preserve provider order; they only select eligible
     // rows. Pagination therefore remains provider-stable across every branch.
@@ -279,9 +280,9 @@ Item {
             if (Object.prototype.hasOwnProperty.call(marketplacePaths, host)
                     && marketplacePaths[host].test(path))
                 return true
-            // Project-hosted explicit mint pages can also be collectible links.
-            if (/\/mint(?:\/|$)/.test(path))
-                return true
+            // Arbitrary /mint paths are not proof of an NFT: fungible-token
+            // campaigns use the same route names. Their cast must carry
+            // independent NFT/art evidence instead.
         }
         return false
     }
@@ -369,11 +370,10 @@ Item {
 
     function isArtChannelCast(data) {
         const row = data || ({})
-        if (Boolean(row._artChannelSource))
-            return true
+        // A generic discovery source is not proof of a cast's subject.
         const channel = root.channelSlugFor(row)
         return channel === "art" || channel === "photography" || channel === "basepaint"
-                || channel === "design" || channel === "superrare" || channel === "nft"
+                || channel === "superrare" || channel === "nft"
                 || channel === "cryptoart" || channel === "digital-art" || channel === "artists"
                 || channel === "illustration" || channel === "nfts"
                 || channel === "generative-art" || channel === "pixel-art"
@@ -456,16 +456,19 @@ Item {
         const row = data || ({})
         const text = String(row.text || "")
         const explicitNft = /(?:\bnfts?\b|\b(?:cryptoart|nftart)\b|\bon[- ]?chain art\b|\bdigital collectibles?\b|\bnon[- ]fungible tokens?\b|\berc[- ]?(?:721|1155)\b|\b(?:nft|art|collectible)\s+mint\b)/i.test(text)
-        const artContext = /(?:\bart(?:work|ist|ists)?\b|\bcryptoart\b|\billustrat(?:ion|or|ed)\b|\bphotograph(?:y|er|s)?\b|\bpaint(?:ing|ed)?\b|\bdigital (?:creation|art)\b|\bgenerative art\b|\bpixel art\b|\bsculpture\b)/i.test(text)
-        const mintContext = /\b(?:mint(?:ed|ing)?|collect(?:ed|ing)?|edition|drop|collection)\b/i.test(text)
-        // This is the NFT/art topic, not an image-only gallery. Text-only
-        // NFT discussions and genuine art-channel posts remain discoverable.
-        // Generic photos, arbitrary mint/coin talk and unrelated links alone
-        // are not sufficient evidence.
-        if (root.containsCollectibleLink(row) || explicitNft || root.isArtChannelCast(row))
+        // Generic "collection", "drop", "mint", "art", and "photographs"
+        // are not evidence of art: medical posts and product screenshots
+        // routinely contain them. Require specific artistic subject matter.
+        const artContext = /(?:\b(?:artworks?|cryptoart|illustrations?|illustrator|paintings?|sculptures?)\b|\b(?:digital|generative|pixel|abstract|concept|fine|visual|on[- ]?chain|original) art\b|\b(?:my|our|new|original) (?:art|artwork|painting|illustration|sculpture)\b|\b(?:fine[- ]art|street|landscape|portrait|artistic|macro) photography\b|\b(?:oil|watercolor|watercolour|acrylic) (?:painting|on canvas)\b)/i.test(text)
+        if (root.containsCollectibleLink(row))
             return true
-        return root.hasArtChannelMediaCandidate(row)
-                || (root.rowHasImage(row) && (artContext || mintContext))
+        const campaign = /\b(?:daily tasks?|check[- ]ins?|onchain claims?|claim (?:points|rewards)|earn (?:points|rewards)|token farming|airdrop farming|reward points)\b/i.test(text)
+        const nftSubject = /\b(?:nft(?:s)?\s+(?:art|artist|collection|marketplace|royalties|ownership|mint|edition)|(?:mint|collect|sell|buy|own)(?:ing|ed)?\s+(?:an?\s+|the\s+)?nft|erc[- ]?(?:721|1155)|non[- ]fungible tokens?|digital collectibles?)\b/i.test(text)
+        if (campaign && !artContext && !nftSubject)
+            return false
+        if (root.isArtChannelCast(row) || explicitNft)
+            return true
+        return artContext && root.rowHasImage(row)
     }
 
     function primeArtPreviews() {
@@ -674,13 +677,9 @@ Item {
         }
         for (let index = 0; index < primary.length; ++index)
             appendUnique(primary[index])
-        if (root.presentationMode === "visuals" && root.activeFeed !== "nfts") {
-            // A topic-backed NFT search is authoritative. Never append stale
-            // unrelated artwork discovered for an older generic feed.
-            const artRows = root.supplementalRows || []
-            for (let index = 0; index < artRows.length; ++index)
-                appendUnique(artRows[index])
-        }
+        // NFT discovery projects exclusively from the active chronological
+        // source. Do not merge an older global supplement into Following
+        // or insert old indexed results above today's casts.
 
         const result = []
         for (let index = 0; index < source.length; ++index) {
@@ -1049,9 +1048,13 @@ Item {
 
     function synchronizeStableModel() {
         const source = root.sourceRows()
-        // A temporary empty refresh is not an authoritative removal.
-        if (source.length === 0 && root.busy && stableRows.count > 0)
+        // Preserve rows during a refresh of the SAME projection only.
+        // A different topic/audience must never inherit unrelated cards.
+        const scope = root.activeFeed + ":" + root.presentationMode + ":" + root.socialMode
+        const sameScope = root.stableProjectionScope === scope
+        if (source.length === 0 && root.busy && stableRows.count > 0 && sameScope)
             return
+        root.stableProjectionScope = scope
 
         // One transfer of primitive roles into the native model. Every move,
         // insertion, revision and removal is reconciled inside C++ instead
@@ -1105,7 +1108,8 @@ Item {
                                          || root.errorText.length > 0)))
             return false
         if (root.filterPrefetchPages >= root.filterPrefetchLimit
-                || root.automaticPrefetchPages >= root.automaticPrefetchLimit)
+                || root.automaticPrefetchPages >= root.automaticPrefetchLimit
+                || root.automaticNoProgressPages >= root.automaticNoProgressLimit)
             return false
         // stableRows is the already-classified presentation snapshot. Re-running
         // sourceRows() from the scroll hot path repeats media/link classification.

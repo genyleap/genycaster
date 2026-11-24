@@ -375,7 +375,7 @@ if ('property bool notificationBusySnapshot: false' not in app_shell
     errors.append('Notifications must copy loading state imperatively into the lazy route; never bind it to the bridge notificationsChanged cascade')
 if ('const modeChanged = root.explorerPresentationMode !== nextMode' not in app_shell
         or 'const refreshRequested = Boolean(forceRefresh)' not in app_shell
-        or 'if (!sameHealthySource)' not in app_shell
+        or 'else if (!sameHealthySource && !(sameSource && presentationBridge.isBusy))' not in app_shell
         or 'presentationBridge.retry()' not in app_shell
         or 'root.selectExplorerPresentationMode(root.explorerPresentationMode, true)' not in app_shell
         or 'presentationBridge.selectFeed(source)' not in app_shell):
@@ -767,9 +767,9 @@ if 'genycasterPayload' in link_preview_resolver:
 # Keep this strict UI audit consistent with the separately checked canonical
 # Explorer pagination acceptance. The bounded 8/16 budget provides sparse tabs
 # with enough provider pages without unbounded load loops.
-if ('readonly property int filterPrefetchLimit: 8' not in feed_surface
+if ('readonly property int filterPrefetchLimit: root.presentationMode === "visuals" ? 12 : 8' not in feed_surface
         or 'readonly property int automaticPrefetchLimit: 16' not in feed_surface):
-    errors.append('Sparse Explorer semantic tabs must retain the bounded eight-page/per-filter and sixteen-page global prefetch budget')
+    errors.append('Sparse Explorer semantic tabs must retain the bounded 8-page default, 12-page NFT, and sixteen-page global prefetch budget')
 # A single shared caption Loader now precedes media for every cast, rather
 # than duplicating caption subtrees for visual vs text-only casts.
 # Rich text is a small native document subtree and deliberately synchronous:

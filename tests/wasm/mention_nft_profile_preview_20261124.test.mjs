@@ -28,6 +28,11 @@ test("NFT channel parent fallback accepts canonical Farcaster URLs, never arbitr
     assert.equal(hasCollectible({text: "My new painting", image: true}), true);
     assert.equal(hasCollectible({text: "Lunch photo", image: true}), false);
     assert.equal(hasCollectible({text: "Discussing JavaScript"}), false);
+    assert.equal(hasCollectible({text: "Doctors took a collection of samples during treatment", image: true}), false);
+    assert.equal(hasCollectible({text: "A few stills from a video, here's the new collection", image: true}), false);
+    assert.equal(hasCollectible({text: "Daily tasks, check-ins & onchain claims. Get NFT rewards", image: true}), false);
+    assert.equal(hasCollectible({text: "A new generative art piece", image: true}), true);
+    assert.equal(hasCollectible({_artChannelSource: true, text: "Unrelated feed row", image: true}), false);
     const marketplace = method(qml, "isCollectibleMarketplaceUrl");
     for (const link of ["https://opensea.io/assets/base/0xabc/1", "https://magiceden.io/collections/xyz", "https://zora.co/collect/base:0xabc", "https://objkt.com/tokens/abc/1", "https://artblocks.io/project/1"])
         assert.equal(marketplace("Look: " + link), true, link);
@@ -54,6 +59,10 @@ test("cast previews preserve short text, limit long text and Unicode, and open f
     }
     assert.match(qml, /objectName: "castTextExcerpt"[\s\S]*?sourceText: visible \? root\.textPreviewBody/);
     assert.match(qml, /qsTrId\("genycaster\.cast\.read_more"\)/);
+    const readMore = qml.slice(qml.indexOf('id: readMoreLink'), qml.indexOf('// Protocol cast order:'));
+    assert.match(readMore, /background: null/);
+    assert.match(readMore, /Accessible\.role: Accessible\.Link/);
+    assert.doesNotMatch(readMore, /NeonSurface|ActionButton|customForegroundColor/);
     assert.match(qml, /Boolean\(root\.textPreview && root\.textPreview\.truncated\)/);
     assert.doesNotMatch(qml, /preview\.trimEnd\(/);
 });
