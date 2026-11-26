@@ -2853,13 +2853,19 @@ QVariantMap PresentationBridge::browserEditorGeometry(QObject* editor, QObject* 
     const auto* item = qobject_cast<QQuickItem*>(editor);
     if (!item || !item->window() || !item->isVisible() || !item->isEnabled())
         return {};
-    const auto rect = item->mapRectToScene(item->boundingRect());
+    // TextInput/TextEdit may expose text/caret bounds from boundingRect().
+    // The browser hit target must follow the actual layout box instead.
+    const auto layoutRect = [](const QQuickItem* target) {
+        return target->mapRectToScene(QRectF(0, 0, target->width(), target->height()));
+    };
+    const auto rect = layoutRect(item);
     QRectF clip(0, 0, item->window()->width(), item->window()->height());
     if (item->opacity() < 0.99) return {};
     for (auto* parent = item->parentItem(); parent; parent = parent->parentItem()) {
-        if (parent->opacity() < 0.99) return {};
+        if (parent->opacity() < 0.99)
+            return {};
         if (parent->clip())
-            clip = clip.intersected(parent->mapRectToScene(parent->boundingRect()));
+            clip = clip.intersected(layoutRect(parent));
     }
     clip = clip.intersected(rect);
     if (clip.isEmpty()) return {};
@@ -2872,11 +2878,12 @@ QVariantMap PresentationBridge::browserEditorGeometry(QObject* editor, QObject* 
         const qsizetype branchIndex = children.indexOf(const_cast<QQuickItem*>(branch));
         for (qsizetype i = 0; i < children.size(); ++i) {
             const auto* sibling = children.at(i);
-            if (sibling == branch || !sibling->isVisible() || sibling->opacity() <= 0)
+            if (sibling == branch || !sibling->isVisible() || sibling->opacity() <= 0
+                || sibling->property("browserEditorOverlayHost").toBool())
                 continue;
             if (branch && (sibling->z() < branch->z()
                         || (sibling->z() == branch->z() && i < branchIndex))) continue;
-            if (sibling->mapRectToScene(sibling->boundingRect()).intersects(clip))
+            if (layoutRect(sibling).intersects(clip))
                 return {};
         }
     }

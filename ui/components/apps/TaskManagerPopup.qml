@@ -6,6 +6,10 @@ import Farcaster.Client
 Item {
     id: root
 
+    // This Item is only a controller. The actual popup and dimmer are
+    // independently stacked by Qt in the window overlay.
+    readonly property bool browserEditorOverlayHost: true
+
     readonly property bool compactPresentation: parent ? parent.width < Theme.breakpointMobile : false
     readonly property bool opened: (desktopDialog && desktopDialog.opened)
                                   || (mobileDrawer && mobileDrawer.opened)

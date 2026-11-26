@@ -19,7 +19,12 @@ test('visible editors are isolated by token and covered controls release their b
  assert.match(js,/fields.delete\(field.token\)/);
  assert.match(js,/field.input.value='';\s*field.input.remove\(\)/);
  assert.match(js,/if\(!layout\(f\)\)\{remove\(f\);return false;\}/);
- assert.match(cpp,/sibling->mapRectToScene\(sibling->boundingRect\(\)\).intersects\(clip\)/);
+ assert.match(cpp,/sibling->property\("browserEditorOverlayHost"\).toBool\(\)/);
+ for (const host of ['controls/GenyAdaptiveDialog','apps/TaskManagerPopup'])
+  assert.match(read('ui/components/'+host+'.qml'),/readonly property bool browserEditorOverlayHost: true/);
+ assert.match(cpp,/layoutRect\(sibling\).intersects\(clip\)/);
+ assert.match(cpp,/QRectF\(0, 0, target->width\(\), target->height\(\)\)/);
+ assert.match(cpp,/const auto rect = layoutRect\(item\)/);
  assert.match(adapter,/browserEditing = opened && pendingPaste === token/);
  assert.match(adapter,/if \(!ok\) \{ root.cancelPaste\(\); return \}/);
 });

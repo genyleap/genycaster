@@ -9,6 +9,10 @@ import Farcaster.Client
 Item {
     id: control
 
+    // This Item is only a controller. The actual popup and dimmer are
+    // independently stacked by Qt in the window overlay.
+    readonly property bool browserEditorOverlayHost: true
+
     property Item contentItem: null
     property Item blurSourceItem: null
     // Opt-in: static, downsampled backdrop for expensive desktop inspectors.
