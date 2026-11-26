@@ -62,6 +62,7 @@ export function createAccountApi({
   registrationRelay = null,
   swapQuoteProvider = null,
   swapQuoteStatus = undefined,
+  allowLegacySignerSessions = undefined,
 } = {}) {
   const endpoint = new URL(catalogUrl);
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password
@@ -70,6 +71,7 @@ export function createAccountApi({
 
   const cloud = store && issuer ? createCloudHandler({
     store,issuer,fetchImpl,publicOrigin,browserGateway,snapchainOrigin,hypersnapOrigin,
+    ...(allowLegacySignerSessions!==undefined?{allowLegacySignerSessions}:{}),
     ...(topicVerifier ? {verifyTopicOwner:topicVerifier} : {}),
     ...(proResolver ? {resolvePro:proResolver} : {}),
     ...(assetsResolver ? {resolveGenyAssets:assetsResolver} : {}),

@@ -5,6 +5,7 @@ import {validStickerPackIds,addedPremiumPack,normalizeStickerLibrary} from './st
 import {createSignerSessionProof,isCanonicalUint64Fid,
   FIRST_NATIVE_HYPERSNAP_FID} from './signer_session_proof.mjs';
 import {serverDeployment, trustedOrigin} from '../deployment_config.mjs';
+import {createCloudDeviceProof} from './cloud_device_proof.mjs';
 import {validateFeedback} from './feedback.mjs';
 import {authorizeMediaEntitlement,verifiedMediaPro} from './media_entitlements.mjs';
 import {handleGenyBuzz} from './genybuzz.mjs';
@@ -435,6 +436,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
                                     browserGateway=serverDeployment().browserGateway,
                                     snapchainOrigin=serverDeployment().snapchainOrigin,
                                     hypersnapOrigin=serverDeployment().hypersnapOrigin,
+                                    allowLegacySignerSessions=process.env.GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS!=='0',
                                     verifyTopicOwner=verifyCastTopicOwnership,
                                     verifyStreakCast=verifyStreakCastOwnership,
                                     proPolicy=createGenyAssetsPolicy(),
@@ -496,6 +498,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
   const signerProof=createSignerSessionProof({
     fetchImpl,issuer:upstream,snapchainOrigin:trustedSnapchainOrigin,
     hypersnapOrigin:trustedHyperSnapOrigin});
+  const deviceProof=createCloudDeviceProof({store,issuer:upstream,
+    hypersnapOrigin:trustedHyperSnap,fetchImpl});
   const readGithubCalendar=createGithubCalendarReader({fetchImpl});
   const leaderboardProfiles=createLeaderboardProfileReader({
     fetchImpl,hypersnapOrigin:trustedHyperSnapOrigin});
@@ -532,7 +536,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       '; Path=/; Max-Age='+SESSION_LIFETIME+
       '; Secure; HttpOnly; SameSite=Strict');
     respond(response,200,{fid:owner.fid,issuer:owner.issuer,
-      subject:owner.subject,csrf_token:csrf});
+      subject:owner.subject,csrf_token:csrf,...(owner.deviceKey?{auth_source:'device'}:{})});
   }
   async function allowProMutation(owner,response) {
     const membership=await resolvePro(owner.fid,owner);
@@ -553,6 +557,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       const cookie=sessionToken(request);
       if(!cookie || typeof store.getSession!=='function') return null;
       const session=await store.getSession(sessionDigest(cookie));
+      if(!allowLegacySignerSessions && !['device','openproof'].includes(session?.auth_source))return null;
       // The signed account proof issues protocol-scoped sessions. HyperSnap
       // native FIDs use their own verified signer registry and issuer; never
       // mistake them for a linked OpenProof/Farcaster identity.
@@ -574,7 +579,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         return null;
       return {issuer:session.issuer,subject:session.subject,
         fid:match[2],cookieAuth:true,
-        sessionToken:cookie,csrfToken:session.csrf_token};
+        sessionToken:cookie,csrfToken:session.csrf_token,authSource:session.auth_source};
     }
     if (!/^Bearer [A-Za-z0-9._~+/-]+={0,2}$/.test(header) || header.length>8192) return null;
     const recovery=header.startsWith('Bearer recovery.');
@@ -616,7 +621,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
       'muted_profiles','sticker_packs','feedback','buzz','buzz/preferences','buzz/inbox','buzz/ack',
       'pro/wallet/challenge','pro/wallet/verify','pro/wallets',
-      'session','session/challenge','session/proof','swap/quote'].includes(entity)) {
+      'session','session/challenge','session/proof','session/device/challenge','session/device/proof','swap/quote'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
     // Internal signed, read-only entitlement check for the separate Media
@@ -728,7 +733,31 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         catch {respond(response,503,{error:'cloud_unavailable'});}
       return true;
     }
+    if(entity==='session/device/challenge'||entity==='session/device/proof') {
+      if(request.method!=='POST'){respond(response,405,{error:'method_not_allowed'});return true;}
+      if(!sameOriginRequest(request)){respond(response,403,{error:'origin_not_allowed'});return true;}
+      if(!store.cloudDevicesReady?.()){respond(response,503,{error:'account_devices_not_ready'});return true;}
+      try {
+        if(!String(request.headers['content-type']||'').startsWith('application/json')){
+          respond(response,415,{error:'unsupported_media_type'});return true;
+        }
+        const input=await readBody(request,2048);
+        if(entity.endsWith('/challenge'))respond(response,200,deviceProof.issue(input));
+        else {
+          // A legacy cookie/social signer may NOT enroll a private device.
+          const verified=input?.purpose==='enroll'&&input?.network==='farcaster'
+            ?await authorize(request):null;
+          await issueSession(await deviceProof.prove(input,verified),response);
+        }
+      }catch(error) {
+        const status=[400,401,413,429,503].includes(error?.status)?error.status:503;
+        respond(response,status,{error:status===503?'device_service_unavailable':
+          status===401?'invalid_device_proof':status===429?'challenge_limit':'invalid_device_request'});
+      }
+      return true;
+    }
     if(entity==='session/challenge' || entity==='session/proof') {
+      if(!allowLegacySignerSessions){respond(response,410,{error:'device_enrollment_required'});return true;}
       if(request.method!=='POST') {
         respond(response,405,{error:'method_not_allowed'});return true;
       }
@@ -744,7 +773,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           respond(response,200,signerProof.issue(data?.fid));return true;
         }
         const owner=await signerProof.prove(data);
-        await issueSession(owner,response);
+        await issueSession({...owner,authSource:'legacy'},response);
         return true;
       }catch(error) {
         const code=String(error?.message||'');
@@ -1143,12 +1172,13 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           if(owner.cookieAuth || typeof store.createSession!=='function') {
             respond(response,401,{error:'authentication_required'});return true;
           }
-          await issueSession(owner,response);
+          await issueSession({...owner,authSource:'openproof'},response);
           return true;
         }
         if(request.method==='GET' && owner.cookieAuth) {
           respond(response,200,{fid:owner.fid,issuer:owner.issuer,
-            subject:owner.subject,csrf_token:owner.csrfToken});
+            subject:owner.subject,csrf_token:owner.csrfToken,
+            ...(owner.authSource==='device'?{auth_source:'device'}:{})});
           return true;
         }
         if(request.method==='DELETE' && owner.cookieAuth

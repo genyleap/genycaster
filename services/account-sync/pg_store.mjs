@@ -38,7 +38,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13,14,15,16)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13,14,15,16,17)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -57,6 +57,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const buzzReady=versions.has(14);
   const proWalletReady=versions.has(15);
   const proMultiProtocolQuoteReady=versions.has(16);
+  const cloudDevicesReady=sessionsReady&&versions.has(17);
   // Reserved singleton in the existing account-owned notifications table.
   // Schema v3+ already supports private JSONB settings and atomic revisions.
   const stickerPacksReady=versions.has(3);
@@ -632,24 +633,69 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       }
       return {collection_id:change.collection_id,cast_hash:change.cast_hash,removed:false};
     },
-    async createSession({issuer,subject},tokenHash,csrfToken) {
+    cloudDevicesReady:()=>cloudDevicesReady,
+    async enrollCloudDevice({issuer,subject},publicKey) {
+      if(!cloudDevicesReady)throw new Error('account_devices_not_ready');
+      await pool.query(`INSERT INTO cloud_device_credentials(issuer,subject,public_key)
+        VALUES($1,$2,$3) ON CONFLICT(issuer,subject,public_key)
+        DO UPDATE SET last_used_at=now()`,[issuer,subject,publicKey]);
+    },
+    async touchCloudDevice({issuer,subject},publicKey) {
+      if(!cloudDevicesReady)return false;
+      const result=await pool.query(`UPDATE cloud_device_credentials SET last_used_at=now()
+        WHERE issuer=$1 AND subject=$2 AND public_key=$3
+          AND last_used_at>now()-interval '90 days'`,[issuer,subject,publicKey]);
+      return result.rowCount===1;
+    },
+    async createSession({issuer,subject,deviceKey,authSource='legacy'},tokenHash,csrfToken) {
       if(!sessionsReady)throw new Error('account_sessions_not_ready');
-      await pool.query(`INSERT INTO account_sessions
+      if(deviceKey) {
+        if(!cloudDevicesReady||authSource!=='device')throw new Error('account_devices_not_ready');
+        // FK and row locking serialize creation against device revocation.
+        const client=await pool.connect();
+        try {
+          await client.query('BEGIN');
+          const device=await client.query(`SELECT public_key FROM cloud_device_credentials
+            WHERE issuer=$1 AND subject=$2 AND public_key=$3
+              AND last_used_at>now()-interval '90 days' FOR UPDATE`,[issuer,subject,deviceKey]);
+          if(device.rowCount!==1)throw new Error('device_not_enrolled');
+          await client.query(`DELETE FROM account_sessions
+            WHERE issuer=$1 AND subject=$2 AND device_key=$3`,[issuer,subject,deviceKey]);
+          await client.query(`INSERT INTO account_sessions
+            (issuer,subject,token_hash,csrf_token,expires_at,device_key,auth_source)
+            VALUES ($1,$2,$3,$4,now()+interval '30 days',$5,'device')`,
+            [issuer,subject,tokenHash,csrfToken,deviceKey]);
+          await client.query('COMMIT');
+        }catch(error){await client.query('ROLLBACK');throw error;}
+        finally{client.release();}
+      }else if(cloudDevicesReady) {
+        await pool.query(`INSERT INTO account_sessions
+          (issuer,subject,token_hash,csrf_token,expires_at,auth_source)
+          VALUES ($1,$2,$3,$4,now()+interval '30 days',$5)`,
+          [issuer,subject,tokenHash,csrfToken,authSource]);
+      }else await pool.query(`INSERT INTO account_sessions
           (issuer,subject,token_hash,csrf_token,expires_at)
           VALUES ($1,$2,$3,$4,now()+interval '30 days')`,
         [issuer,subject,tokenHash,csrfToken]);
     },
     async getSession(tokenHash) {
       if(!sessionsReady)return null;
-      const result=await pool.query(`SELECT issuer,subject,csrf_token
-          FROM account_sessions WHERE token_hash=$1 AND expires_at>now()`,
-        [tokenHash]);
+      const result=await pool.query(cloudDevicesReady
+        ?`SELECT issuer,subject,csrf_token,auth_source,device_key
+          FROM account_sessions WHERE token_hash=$1 AND expires_at>now()`
+        :`SELECT issuer,subject,csrf_token
+          FROM account_sessions WHERE token_hash=$1 AND expires_at>now()`,[tokenHash]);
       return result.rows[0]||null;
     },
     async revokeSession(tokenHash) {
       if(!sessionsReady)return;
-      await pool.query('DELETE FROM account_sessions WHERE token_hash=$1',
-        [tokenHash]);
+      if(cloudDevicesReady) {
+        // Explicit logout revokes the enrolled credential and its cookies.
+        await pool.query(`DELETE FROM cloud_device_credentials d USING account_sessions s
+          WHERE s.token_hash=$1 AND d.issuer=s.issuer AND d.subject=s.subject
+            AND d.public_key=s.device_key`,[tokenHash]);
+      }
+      await pool.query('DELETE FROM account_sessions WHERE token_hash=$1',[tokenHash]);
     },
     async getDraft({issuer,subject},id) {
       const result=await pool.query(`SELECT ${COLUMNS.drafts}
