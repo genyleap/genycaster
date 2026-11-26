@@ -12,12 +12,18 @@ test('shared drawers preserve interruptible edge gestures and semantic reduced-m
   assert.doesNotMatch(drawer, /readonly property int sheetMotionDuration:[^\n]*:\s*275/);
 });
 
-test('selection handle uses the scene-graph circle instead of a second legacy rounded rectangle', () => {
+test('editable text delegates selection to platform owners while cast grips retain semantic geometry', () => {
   const textarea = read('ui/components/controls/BidiTextArea.qml');
-  assert.match(textarea, /Superellipse\s*\{\s*anchors\.centerIn: parent\s*width: 14\s*height: 14\s*curveDepth: width \/ 2\s*exponent: 2\s*fillColor: Theme\.nativeSelectionAccent\s*borderWidth: 2\s*borderColor: Theme\.editorSurface/);
-  assert.doesNotMatch(textarea, /\bradius\s*:/);
-  assert.match(textarea, /selectionHandleDragging = true/);
-  assert.match(textarea, /onCanceled: root\.selectionHandleDragging = false/);
+  const editor = read('ui/components/composer/EditorContextMenu.qml');
+  const cast = read('ui/components/content/RichInlineText.qml');
+  assert.match(textarea, /EditorContextMenu \{ id: editorMenu; editor: root \}/);
+  assert.match(textarea, /if \(Qt\.platform\.os === "wasm"\) editorMenu\.requestSystemEditor\(\)\s*else forceActiveFocus\(\)/);
+  assert.match(textarea, /persistentSelection: true/);
+  assert.match(editor, /readonly property bool browser: Qt\.platform\.os === "wasm"/);
+  assert.doesNotMatch(textarea, /\bselectionHandleDragging\b/);
+  assert.match(cast, /Superellipse\s*\{\s*anchors\.centerIn: parent\s*width: 13\s*height: 13\s*curveDepth: width \/ 2\s*exponent: 2\s*fillColor: root\.usePlatformSelection \? Theme\.accent\s*: Theme\.nativeSelectionAccent\s*borderWidth: 2\s*borderColor: Theme\.surfaceRaised/);
+  assert.match(cast, /selectionHandleDragging = true/);
+  assert.match(cast, /onCanceled: \{\s*root\.selectionHandleDragging = false/);
 });
 
 test('profile holder and social proof marks use theme-rendered circles and themed hover chrome', () => {

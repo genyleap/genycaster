@@ -255,3 +255,10 @@ genycaster.setup.neynar_voucher_placeholder
 genycaster.setup.registration_start
 genycaster.setup.registration_storage_note
 genycaster.setup.wallet_verified
+# Native editor ownership and unified setup supersede these labels; retain for cached clients.
+genycaster.editor.cut
+genycaster.editor.redo
+genycaster.editor.system_edit_hint
+genycaster.editor.undo
+genycaster.setup.continue_sponsored
+genycaster.setup.keep_recovery_words
