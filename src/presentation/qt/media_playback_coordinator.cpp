@@ -242,7 +242,7 @@ qulonglong MediaPlaybackCoordinator::prepareSource(const QString& source)
                 return;
             }
             if (remote) {
-#if defined(Q_OS_ANDROID)
+#if !defined(Q_OS_WASM)
                 // A speculative HEAD on the application HTTP transport must
                 // never veto an otherwise valid FFmpeg media GET. The Qt
                 // backend owns redirects, TLS, ranges and decode errors.
@@ -250,7 +250,7 @@ qulonglong MediaPlaybackCoordinator::prepareSource(const QString& source)
                     emit guard->sourcePreparationFailed(requestId, source, QString{});
                     return;
                 }
-                qInfo() << "Genycaster: Android media source delegated to FFmpeg";
+                qInfo() << "Genycaster: Native media source delegated to playback backend";
                 emit guard->sourcePrepared(requestId, source);
 #else
                 if (guard->m_sourcePreparationBackend.start) {

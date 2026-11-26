@@ -392,7 +392,20 @@ public:
         connect(&m_controller, &MiniAppHostController::closeAllRequested, this,
             [this] { terminateAll(); });
         connect(&m_controller, &MiniAppHostController::walletBrowserCancelRequested,
-                this, [this] { endWalletSession(); });
+                this, [this] {
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+                    if (Session* session = find(m_walletTaskId)) {
+                        session->walletApprovalDismissed = true;
+#if GENYCASTER_MINIAPP_SIWF
+                        if (session->pendingSignIn)
+                            finishSignIn(session->taskId, session->documentGeneration,
+                                session->signInSequence, session->documentToken,
+                                session->pendingSignInId, {}, {}, false, true);
+#endif
+                    }
+#endif
+                    endWalletSession();
+                });
         // A native WKWebView drawer is an NSView above the Qt scene graph.
         // QML popup z-order cannot cover it. Reveal the Qt wallet chooser
         // while preserving the live Mini App document and its pending RPC.
@@ -550,6 +563,8 @@ private:
         bool ready{};
         bool failed{};
         bool pendingSignIn{};
+        bool walletApprovalDismissed{};
+        QJsonValue pendingSignInId{};
         quint64 signInSequence{};
         QHash<QString, PendingCompose> pendingCompose{};
         QHash<QString, PendingSwap> pendingSwaps{};
@@ -1192,6 +1207,9 @@ private:
             active->rateWindow.restart();
             active->messageCount = 0;
             active->pendingSignIn = false;
+            // A dismissed wallet approval stays dismissed for this task,
+            // including automatic reloads/redirects. Explicit toolbar Retry
+            // terminates this task and creates a fresh user-initiated one.
             active->ready = false;
             const quint64 readyGeneration = active->readyGeneration;
             QTimer::singleShot(readyTimeoutMs, this, [this, taskId, readyGeneration] {
@@ -2347,7 +2365,8 @@ private:
                       const quint64 sequence, const QString& document,
                       const QJsonValue& id,
                       const QString& message = {}, const QString& signature = {},
-                      const bool authAddress = false, const bool userRejected = false)
+                      const bool authAddress = false, const bool userRejected = false,
+                      const bool invalidProof = false)
     {
         Session* const session = find(taskId);
         if (!session || !session->pendingSignIn
@@ -2368,6 +2387,11 @@ private:
             return;
         }
         if (message.isEmpty() || signature.isEmpty()) {
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+            // Do not stack a QML failure dialog over a native session or
+            // allow an auto-retrying app to trap the user in wallet approval.
+            session->walletApprovalDismissed = true;
+#endif
             if (userRejected) {
                 // Exact official Mini App wire result for wallet rejection.
                 session->browser->reply(rawResponse(id, QJsonObject{
@@ -2375,11 +2399,17 @@ private:
                         {QStringLiteral("type"), QStringLiteral("rejected_by_user")}}}
                 }), document);
             } else {
-                m_controller.reportMiniAppSignInVerificationFailed();
-                session->browser->reply(errorResponse(id, QStringLiteral(
-                    "Sign in failed: the wallet proof could not be verified for this FID. "
-                    "Use a current Farcaster custody/auth address wallet and retry.")), document);
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
+                if (invalidProof) m_controller.reportMiniAppSignInVerificationFailed();
+#endif
+                const QString reason = invalidProof
+                    ? QStringLiteral("Sign in failed: wallet proof could not be verified for this FID. Use a current Farcaster custody/auth address wallet.")
+                    : QStringLiteral("Sign in failed or the wallet session was closed. Reload the Mini App to try again.");
+                session->browser->reply(errorResponse(id, reason), document);
             }
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+            if (m_walletTaskId == taskId) endWalletSession();
+#endif
             return;
         }
         m_controller.dismissMiniAppSignInVerificationFailed();
@@ -2454,12 +2484,22 @@ private:
                 return;
             }
         }
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+        if (session.walletApprovalDismissed) {
+            session.browser->reply(rawResponse(id, QJsonObject{
+                {QStringLiteral("error"), QJsonObject{
+                    {QStringLiteral("type"), QStringLiteral("rejected_by_user")}}}
+            }), document);
+            return;
+        }
+#endif
         if (!ensureWalletSession(session)) {
             session.browser->reply(errorResponse(id, QStringLiteral(
                 "No approved Mini App wallet session is available.")), document);
             return;
         }
         session.pendingSignIn = true;
+        session.pendingSignInId = id;
         const quint64 sequence = ++session.signInSequence;
         QTimer::singleShot(180'000, this,
             [this, taskId, generation, sequence, document, id] {
@@ -2569,7 +2609,8 @@ private:
                                 runtime->finishSignIn(taskId, generation, sequence, document,
                                     id, siwe, signature, authAddress);
                             else
-                                runtime->finishSignIn(taskId, generation, sequence, document, id);
+                                runtime->finishSignIn(taskId, generation, sequence, document, id,
+                                    {}, {}, false, false, true);
                         }, Qt::QueuedConnection);
                 });
             });
@@ -2646,6 +2687,12 @@ private:
             rpcError(rpcIdValue, 4200, QStringLiteral("Ethereum wallet provider is unavailable."));
             return;
         }
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+        if (session.walletApprovalDismissed) {
+            rpcError(rpcIdValue, 4001, QStringLiteral("Wallet approval dismissed. Reload the Mini App to retry."));
+            return;
+        }
+#endif
         if (!ensureWalletSession(session)) {
             rpcError(rpcIdValue, 4900, QStringLiteral("Could not start the Genycaster wallet session."));
             return;
@@ -2690,6 +2737,9 @@ private:
                             {QStringLiteral("id"), static_cast<double>(response.id)},
                         };
                         if (response.error) {
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+                            if (response.error->code == 4001) active->walletApprovalDismissed = true;
+#endif
                             QJsonObject error{
                                 {QStringLiteral("code"), response.error->code},
                                 {QStringLiteral("message"), QString::fromStdString(response.error->message)},

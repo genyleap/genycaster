@@ -1,7 +1,11 @@
 #include "browser.hpp"
 #include "browser_mobile_bridge.h"
 
+#include <QBuffer>
 #include <QCoreApplication>
+#include <QImage>
+#include <QPainter>
+#include <QSvgRenderer>
 #include <QGuiApplication>
 #include <QHash>
 #include <QJniObject>
@@ -18,6 +22,18 @@
 namespace farcaster::platform::miniapp {
 namespace {
 constexpr auto javaClass = "com/genyleap/genycaster/MiniAppBrowser";
+QString toolbarIcon(const QString& asset)
+{
+    QSvgRenderer renderer(QStringLiteral(":/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/") + asset);
+    if (!renderer.isValid()) return {};
+    QImage image(96, 96, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    { QPainter painter(&image); renderer.render(&painter); }
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    if (!buffer.open(QIODevice::WriteOnly) || !image.save(&buffer, "PNG")) return {};
+    return QString::fromLatin1(bytes.toBase64());
+}
 class AndroidBrowser;
 QHash<jlong, QPointer<AndroidBrowser>> sessions;
 jlong nextId = 0; // Accessed only on Qt GUI thread.
@@ -43,7 +59,14 @@ public:
                 && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
         const QJsonArray labels{qtTrId("genycaster.profile.back"), qtTrId("genycaster.feed_header.refresh"),
             qtTrId("genycaster.miniapp.minimize"), qtTrId("genycaster.shell.close"),
-            qtTrId("genycaster.miniapp.share"), qtTrId("genycaster.miniapp.loading"), dark};
+            qtTrId("genycaster.miniapp.share"), qtTrId("genycaster.miniapp.loading"), dark,
+            QJsonObject{
+                {QStringLiteral("back"), toolbarIcon(QStringLiteral("navigation/arrow-left.svg"))},
+                {QStringLiteral("refresh"), toolbarIcon(QStringLiteral("actions/repost.svg"))},
+                {QStringLiteral("share"), toolbarIcon(QStringLiteral("actions/share.svg"))},
+                {QStringLiteral("minimize"), toolbarIcon(QStringLiteral("navigation/chevron-down.svg"))},
+                {QStringLiteral("close"), toolbarIcon(QStringLiteral("system/close.svg"))}
+            }};
         const auto controls = QJniObject::fromString(QString::fromUtf8(QJsonDocument(labels).toJson(QJsonDocument::Compact)));
         QJniObject::callStaticMethod<void>(javaClass, "create",
             "(Landroid/content/Context;JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZI)V",

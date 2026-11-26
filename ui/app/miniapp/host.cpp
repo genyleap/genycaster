@@ -281,6 +281,15 @@ void MiniAppHostController::requestWalletBrowser(const QString& localSessionUrl)
     m_walletBrowserSelectedId.clear();
     m_walletBrowserSelectedName.clear();
     m_walletBrowserOptions.clear();
+#if (defined(Q_OS_ANDROID) || defined(Q_OS_IOS)) && GENYCASTER_HAS_MINIAPP_HOST
+    if (m_nativeSdkAvailable) {
+        // Mobile uses its isolated WalletConnect approval surface directly.
+        // Do not surface the desktop browser chooser even for one frame.
+        chooseWalletBrowser(QStringLiteral("system"));
+        if (!m_walletBrowserWaiting) cancelWalletBrowser();
+        return;
+    }
+#endif
     const auto candidates = installedWalletBrowsers();
     for (const auto& candidate : candidates) {
         m_walletBrowserOptions.append(QVariantMap{
@@ -335,9 +344,15 @@ void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
         if (m_nativeSdkAvailable) {
             using namespace farcaster::platform::miniapp;
             BrowserCallbacks callbacks{};
-            callbacks.closed = [this]{ QTimer::singleShot(0,this,[this]{cancelWalletBrowser();}); };
-            callbacks.failed = [this](const QString& error){
-                QTimer::singleShot(0,this,[this,error]{
+            const QString approvalUrl = m_walletBrowserSessionUrl;
+            callbacks.closed = [this,approvalUrl]{
+                QTimer::singleShot(0,this,[this,approvalUrl]{
+                    if (m_walletBrowserSessionUrl == approvalUrl) cancelWalletBrowser();
+                });
+            };
+            callbacks.failed = [this,approvalUrl](const QString& error){
+                QTimer::singleShot(0,this,[this,approvalUrl,error]{
+                    if (m_walletBrowserSessionUrl != approvalUrl) return;
                     cancelWalletBrowser();
                     setState(m_active,error);
                 });
@@ -373,6 +388,12 @@ void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
     }
     if (!launched) {
         m_walletBrowserError = qtTrId("genycaster.wallet.browser_open_failed");
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+        if (m_nativeSdkAvailable) {
+            cancelWalletBrowser();
+            return;
+        }
+#endif
         emit walletBrowserPickerChanged();
         return;
     }

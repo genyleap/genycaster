@@ -5,11 +5,9 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.RectF;
 import android.graphics.Color;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
@@ -54,6 +52,7 @@ public final class MiniAppBrowser {
     private boolean initializing, wantsVisible;
     private String pendingUrl="", pendingReferrer="";
     private int ink, surface, border;
+    private JSONObject icons;
     private long openedAt;
     private int dp(float value) {
         return Math.round(value * outer.getResources().getDisplayMetrics().density);
@@ -64,44 +63,21 @@ public final class MiniAppBrowser {
         ImageButton button=new ImageButton(activity);
         button.setContentDescription(label);
         button.setTooltipText(label);
-        button.setPadding(dp(10),dp(10),dp(10),dp(10));
+        button.setPadding(dp(13),dp(13),dp(13),dp(13));
         button.setScaleType(ImageView.ScaleType.FIT_CENTER);
         button.setBackground(new RippleDrawable(ColorStateList.valueOf(
             (ink & 0x00ffffff) | 0x22000000),null,new GradientDrawable()));
-        button.setImageDrawable(new android.graphics.drawable.Drawable(){
-            private final Paint pen=new Paint(Paint.ANTI_ALIAS_FLAG);
-            @Override public void draw(Canvas canvas){
-                canvas.save();
-                canvas.translate(getBounds().left,getBounds().top);
-                canvas.scale(getBounds().width()/24f,getBounds().height()/24f);
-                pen.setColor(ink);pen.setStyle(Paint.Style.STROKE);pen.setStrokeWidth(1.8f);
-                pen.setStrokeCap(Paint.Cap.ROUND);pen.setStrokeJoin(Paint.Join.ROUND);
-                Path path=new Path();
-                switch(glyph){
-                    case "back":
-                        path.moveTo(15,5);path.lineTo(8,12);path.lineTo(15,19);
-                        canvas.drawPath(path,pen);break;
-                    case "refresh":
-                        canvas.drawArc(new RectF(4,4,20,20),-35,300,false,pen);
-                        path.moveTo(20,3);path.lineTo(20,9);path.lineTo(14,9);
-                        canvas.drawPath(path,pen);break;
-                    case "share":
-                        canvas.drawLine(8,11,16,6,pen);canvas.drawLine(8,13,16,18,pen);
-                        canvas.drawCircle(5,12,3,pen);canvas.drawCircle(19,4,3,pen);canvas.drawCircle(19,20,3,pen);break;
-                    case "minimize":
-                        path.moveTo(5,9);path.lineTo(12,16);path.lineTo(19,9);
-                        canvas.drawPath(path,pen);break;
-                    default:
-                        canvas.drawLine(6,6,18,18,pen);canvas.drawLine(18,6,6,18,pen);break;
-                }
-                canvas.restore();
-            }
-            @Override public void setAlpha(int alpha){pen.setAlpha(alpha);}
-            @Override public void setColorFilter(android.graphics.ColorFilter filter){pen.setColorFilter(filter);}
-            @Override public int getOpacity(){return android.graphics.PixelFormat.TRANSLUCENT;}
-            @Override public int getIntrinsicWidth(){return dp(24);}
-            @Override public int getIntrinsicHeight(){return dp(24);}
-        });
+        // The source SVG is rasterized by Qt from the actual Genyleap
+        // icon pack; Android only scales and tints its alpha mask.
+        if (icons != null) {
+            try {
+                byte[] bytes=Base64.decode(icons.optString(glyph,""),Base64.DEFAULT);
+                button.setImageBitmap(BitmapFactory.decodeByteArray(bytes,0,bytes.length));
+                button.setImageTintList(new ColorStateList(
+                    new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},
+                    new int[]{(ink & 0x00ffffff) | 0x55000000,ink}));
+            } catch(IllegalArgumentException ignored) {}
+        }
         button.setOnClickListener(v->click.run());
         return button;
     }
@@ -189,6 +165,7 @@ public final class MiniAppBrowser {
         JSONArray labels;
         try { labels=new JSONArray(controls); } catch(Exception ignored) { labels=new JSONArray(); }
         boolean dark=labels.optBoolean(6,false);
+        icons=labels.optJSONObject(7);
         surface=Color.parseColor(dark?"#1B1D23":"#FFFFFF");
         ink=Color.parseColor(dark?"#F7F7F8":"#17181B");
         border=Color.parseColor(dark?"#22252B":"#ECEDEF");
@@ -278,8 +255,17 @@ public final class MiniAppBrowser {
                 String target=request.getUrl().toString();
                 if(wallet && request.hasGesture() && target.length()<=4096
                     && target.matches("wc:[0-9a-fA-F-]+@2\\?.+")) {
-                    try { activity.startActivity(new Intent(Intent.ACTION_VIEW,request.getUrl())); }
-                    catch (RuntimeException ignored) { /* QR remains available. */ }
+                    try {
+                        Intent walletIntent=new Intent(Intent.ACTION_VIEW,request.getUrl());
+                        walletIntent.addCategory(Intent.CATEGORY_BROWSABLE);
+                        activity.startActivity(walletIntent);
+                    } catch (android.content.ActivityNotFoundException | SecurityException ignored) {
+                        // No compatible installed handler: keep pairing QR and
+                        // copy-link available instead of opening a browser.
+                        android.widget.Toast.makeText(activity,
+                            "No compatible wallet app found. Use the pairing QR or copy the link.",
+                            android.widget.Toast.LENGTH_LONG).show();
+                    }
                     return true;
                 }
                 if(!allowed(request.getUrl())) { fail("genycaster.miniapp.navigation_blocked"); return true; }
