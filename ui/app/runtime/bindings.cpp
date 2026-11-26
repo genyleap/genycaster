@@ -2765,14 +2765,12 @@ void connectRuntime(
             Qt::QueuedConnection);
     };
 
-    // A locally restored account snapshot is not perpetual write authority.
-    // The HyperSnap registry renewal below can refresh it after an independent
-    // custody check. Until then, leave queued writes intact and do not emit
-    // an unauthorized failure every 30/60 seconds from the recovery timers.
+    // A remembered registry account still requires an independently verified,
+    // scoped signer. Other expired sessions must not retry queued writes.
     const auto resumeAuthorizedWrites = [runtime, writeObserver] {
         if (!runtime->writeService) return;
         auto session = runtime->currentSessionSnapshot();
-        if (!session || domain::session::isExpired(
+        if (!session || !domain::session::isProtocolSessionEligible(
                 *session, foundation::time::now())) return;
         (void)runtime->writeService->resume(std::move(session), writeObserver);
     };
@@ -2785,13 +2783,19 @@ void connectRuntime(
         const auto observedSession = runtime->currentSessionSnapshot();
         QMetaObject::invokeMethod(
             &bridge,
-            [&bridge, state = std::move(state), observedSession]() mutable {
+            [&bridge, runtime, state = std::move(state), observedSession]() mutable {
+                const auto current = runtime->currentSessionSnapshot();
                 // A queued result from the prior account must not mark the
                 // new account write-ready or launch another custody request.
                 if (state.phase == application::signer::SignerPhase::SignedOut) {
                     if (bridge.isAuthenticated()) return;
-                } else if (!observedSession || !bridge.isAuthenticated()
+                } else if (!observedSession || !current || !bridge.isAuthenticated()
+                           || current->fid.value != observedSession->fid.value
+                           || current->identityIssuer != observedSession->identityIssuer
+                           || current->identitySubject != observedSession->identitySubject
                            || bridge.accountFid() != observedSession->fid.value
+                           || bridge.accountIdentityIssuer() != (observedSession->identityIssuer
+                               ? QString::fromStdString(*observedSession->identityIssuer) : QString{})
                            || (state.record
                                && state.record->local.fid.value != bridge.accountFid())) {
                     return;
@@ -2916,6 +2920,9 @@ void connectRuntime(
                 }, Qt::QueuedConnection);
             }
 
+#if !defined(Q_OS_WASM)
+            // The browser bridge owns its WebCrypto signer lifecycle. A native
+            // fallback must not overwrite the browser's ready state.
             if (runtime->signerService) {
                 (void)runtime->signerService->restore(signerSession, signerObserver);
             } else if (signerSession) {
@@ -2931,6 +2938,7 @@ void connectRuntime(
                     .phase = application::signer::SignerPhase::SignedOut,
                 });
             }
+#endif
         };
 
 #if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH

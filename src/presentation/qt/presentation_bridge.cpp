@@ -4010,6 +4010,13 @@ void PresentationBridge::applyAuthenticationState(
         m_writePhase = QStringLiteral("idle");
         m_writeStatusText.clear();
         m_writeErrorText.clear();
+    } else if (accountRowsChanged) {
+        // A signer belongs to an account, never to the previous UI session.
+        m_writeReady = false;
+        m_signerPhase = QStringLiteral("checking");
+        m_signerBusy = true;
+        m_signerStatusText.clear();
+        m_signerErrorText.clear();
     } else {
         m_writeReady = m_signerPhase == QStringLiteral("ready");
     }

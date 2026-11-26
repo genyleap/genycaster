@@ -38,7 +38,7 @@ test('native expired sessions do not continuously retry queued writes',()=>{
   const runtime=read('ui/app/runtime/bindings.cpp');
   const writes=read('src/application/write.cpp');
   assert.match(runtime,/const auto resumeAuthorizedWrites = \[runtime, writeObserver\]/);
-  assert.match(runtime,/if \(!session \|\| domain::session::isExpired\(/);
+  assert.match(runtime,/if \(!session \|\| !domain::session::isProtocolSessionEligible\(/);
   assert.match(runtime,/outboxRetryTimer->setInterval\(30'000\)/);
   assert.match(runtime,/runtimeRecoveryTimer->setInterval\(60'000\)/);
   assert.match(runtime,/resumeAuthorizedWrites\(\)/);
