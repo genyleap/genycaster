@@ -39,7 +39,7 @@ test('manual Pro and Streak retries prefer independent protocol-scoped cloud dev
   assert.doesNotMatch(pre,/https:\/\/app\.genycaster\.xyz/);
   assert.match(pre,/if \(accountSessionPromise && accountSessionOwner === fid && accountSessionNetwork===network && !bearer\)/);
   assert.match(pre,/ensureBrowserAccountSession\(args\)/);
-  assert.match(pre,/Object\.freeze\(\{start,retryAccountSession,events\}\)/);
+  assert.match(pre,/Object\.freeze\(\{start,authorizeRecovery,retryAccountSession,events\}\)/);
   assert.match(controller,/window\.__genycasterBrowserSigning/);
   assert.match(controller,/bridge\.retryAccountSession\(UTF8ToString\(\$0,\$1\)\)/);
   assert.match(controller,/if \(browserStarted\)/);
