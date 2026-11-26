@@ -3017,8 +3017,7 @@ void connectRuntime(
         QObject::connect(challengeWatcher,
             &QFutureWatcher<void>::finished, &bridge,
             [challengeWatcher, challengeFuture, runtime, &bridge,
-             &connections, protectedWallet, recoveredWords,
-             enrollmentGeneration, generation, fid,
+             &connections, protectedWallet, recoveredWords, fid,
              custody, gateway, current]() mutable {
                 auto challenge = challengeFuture->result();
                 challengeWatcher->deleteLater();
@@ -3056,8 +3055,7 @@ void connectRuntime(
                 QObject::connect(signatureWatcher,
                     &QFutureWatcher<void>::finished, &bridge,
                     [signatureWatcher, signatureFuture, runtime, &bridge, &connections,
-                     enrollmentGeneration, generation,
-                     current, fid, custody, gateway,
+                     current, fid, gateway,
                      challenge = std::move(*challenge)]() mutable {
                 const auto signature = signatureFuture->result();
                 signatureWatcher->deleteLater();
@@ -3070,14 +3068,18 @@ void connectRuntime(
                 auto* completedWatcher = new QFutureWatcher<void>(&bridge);
                 QObject::connect(completedWatcher,
                     &QFutureWatcher<void>::finished, &bridge,
-                    [completedWatcher, completedFuture, runtime, &bridge, &connections,
-                     enrollmentGeneration, generation,
-                     current, fid, custody]() mutable {
-                        auto verified = completedFuture->result();
+                    [completedWatcher, completedFuture, &connections, current, fid]() mutable {
+                        auto verified = completedFuture->takeResult();
                         completedWatcher->deleteLater();
-                        if (!current()) return;
+                        if (!current()) {
+                            if (verified) std::fill(verified->accountTicket.begin(),
+                                                    verified->accountTicket.end(), char{0});
+                            return;
+                        }
                         if (!verified || verified->fid.value != fid
                             || verified->issuer != genycaster::deployment::openProofIssuer) {
+                            if (verified) std::fill(verified->accountTicket.begin(),
+                                                    verified->accountTicket.end(), char{0});
                             connections.setNativeEnrollmentPhase(
                                 fid, QStringLiteral("retry"));
                             return;
