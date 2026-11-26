@@ -55,30 +55,38 @@
     }
     // The Pro/Streak retry button must use the browser's registered signer,
     // not Qt's native-only vault signer. This is single-flight per identity.
-    function retryAccountSession(fid) {
-        if (ownerProtocol === "hypersnap-v2"
-            || typeof fid !== "string" || !/^[1-9][0-9]{0,18}$/.test(fid)
-            || !Number.isSafeInteger(Number(fid))
+    function retryAccountSession(fid, bearer = '') {
+        if (typeof fid !== "string" || !/^[1-9][0-9]{0,19}$/.test(fid)
+            || BigInt(fid)>18446744073709551615n
             || owner !== fid || window.location.origin !== "https://genycaster.xyz")
             return false;
-        if (accountSessionPromise && accountSessionOwner === fid) return true;
+        if (accountSessionPromise && accountSessionOwner === fid && !bearer) return true;
+        if(bearer)cancelAccountSession();
         const currentEpoch = epoch;
         const controller=new AbortController();
         accountSessionAbort=controller;
         accountSessionOwner = fid;
+        const network=ownerProtocol==='hypersnap-v2'?'hypersnap':'farcaster';
         const operation = import('./browser_account_session.mjs')
-            .then(module => module.ensureBrowserAccountSession({
-                fid, origin:window.location.origin, signal:controller.signal,
-            }))
+            .then(async module => {
+                const args={fid,network,bearer,origin:window.location.origin,signal:controller.signal};
+                const device=await module.ensureBrowserCloudDeviceSession(args);
+                if(device)return device;
+                if(network==='hypersnap')throw Error('Cloud device enrollment required');
+                // Compatibility only; strict account API disables this endpoint.
+                return module.ensureBrowserAccountSession(args);
+            })
             .then(result => {
                 if (epoch === currentEpoch && owner === fid)
                     report({kind:'account-session',phase:'ready',
-                        fid,csrfToken:result.csrf_token});
+                        fid,protocol:network==='hypersnap'?'hypersnap-v2':'farcaster-snapchain',
+                        csrfToken:result.csrf_token});
             })
             .catch(error => {
                 if (epoch === currentEpoch && owner === fid)
                     report({kind:'account-session',phase:'failed',fid,
-                        error:String(error?.message||error).slice(0,140)});
+                        protocol:network==='hypersnap'?'hypersnap-v2':'farcaster-snapchain',
+                        error:'account_session_unavailable'});
             })
             .finally(() => {
                 if (accountSessionPromise === operation) {
@@ -142,6 +150,14 @@
                 throw new Error('HyperSnap custody is not verified for this FID');
             return custody;
         }catch(error){custody.dispose();throw error;}
+    }
+    async function enrollNativeCloudDevice(fid,phrase,signal) {
+        const {deriveFarcasterCustody}=await import('./farcaster_recovery.mjs');
+        const custody=await deriveFarcasterCustody(phrase);
+        try {
+            const {ensureBrowserCloudDeviceSession}=await import('./browser_account_session.mjs');
+            await ensureBrowserCloudDeviceSession({fid,network:'hypersnap',custody,signal});
+        } finally {custody.dispose();}
     }
     // Show feedback in the same browser frame as the click, before ES module
     // parsing or cryptographic initialization can delay the recovery form.
@@ -368,6 +384,8 @@
                                     if(!isCurrent())throw error;
                                     console.warn('HyperSnap signer activation is pending');
                                 }
+                                try {await enrollNativeCloudDevice(recovered.fid,phrase,controller.signal);}
+                                catch {if(!isCurrent())throw Error('Recovery cancelled');}
                                 return recovered;
                             },{presentation:'full',protocol:'hypersnap-v2'});
                     }else {
@@ -410,6 +428,8 @@
                                     } catch {
                                         console.warn('HyperSnap signer authorization is pending');
                                     }
+                                    try {await enrollNativeCloudDevice(established.fid,phrase,controller.signal);}
+                                    catch {if(!isCurrent())throw Error('Registration cancelled');}
                                     return established;
                                 }
                                 const established=await enrollment.register(phrase,options);
@@ -511,6 +531,11 @@
                                         fid:verifiedFid,custody,gatewayOrigin:openProofGatewayOrigin,
                                         signal:controller.signal,
                                     });
+                                    try {
+                                        const {ensureBrowserCloudDeviceSession}=await import('./browser_account_session.mjs');
+                                        await ensureBrowserCloudDeviceSession({fid:verifiedFid,
+                                            bearer:verifiedOpenProof.accountTicket,signal:controller.signal});
+                                    }catch {if(controller.signal.aborted)throw Error('Recovery cancelled');}
                                 }});
                         });
                     if(epoch!==thisEpoch || owner!==fid) return;
@@ -571,7 +596,7 @@
                     // the protocol signer reports its separate write-ready
                     // phase. The server still validates the one-use signature
                     // and exact owner FID; no local balance implies a tier.
-                    if (existing && !native && epoch===thisEpoch && owner===fid)
+                    if (action==='restore' && epoch===thisEpoch && owner===fid)
                         retryAccountSession(fid);
                     if (action === "restore-for-setup" && !existing) {
                         // Never collect a phrase on app reload or a restored session.

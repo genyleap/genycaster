@@ -136,7 +136,9 @@ export function createBrowserSignerVault(environment = globalThis, options = {})
     // HyperSnap keys are scoped by protocol to prevent a numerical FID
     // collision from reusing authority issued by another chain.
     const scope = options.scope === undefined ? '' : options.scope;
-    if(scope !== '' && scope !== 'hypersnap-v2')
+    const cloudNetwork=scope==='cloud-device-farcaster'?'farcaster':
+        scope==='cloud-device-hypersnap'?'hypersnap':null;
+    if(scope !== '' && scope !== 'hypersnap-v2' && !cloudNetwork)
         throw failure('unsupported protocol signer vault scope');
     const keyOf = fid => scope ? scope + ':' + fid : fid;
     const read = async fid => validateRecord(crypto, fid,
@@ -178,6 +180,7 @@ export function createBrowserSignerVault(environment = globalThis, options = {})
         },
 
         async signHash(fidValue, hash) {
+            if(cloudNetwork)throw failure('cloud device key cannot sign social or media messages');
             const fid = requireFid(fidValue);
             if (!(hash instanceof Uint8Array) || hash.byteLength !== digestSize) {
                 throw failure('canonical Farcaster hash must be exactly 20 bytes');
@@ -198,6 +201,7 @@ export function createBrowserSignerVault(environment = globalThis, options = {})
         // message signatures and media uploads. Only this exact
         // domain-separated nonce challenge is permitted.
         async signAccountChallenge(fidValue, nonce) {
+            if(cloudNetwork)throw failure('cloud device key cannot sign social or media messages');
             const fid=requireFid(fidValue);
             if(typeof nonce!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(nonce))
                 throw failure('invalid account-session challenge');
@@ -213,9 +217,29 @@ export function createBrowserSignerVault(environment = globalThis, options = {})
             return {publicKeyHex:record.publicKeyHex,signature:encodeHex(signature)};
         },
 
+        async signCloudDeviceChallenge(fidValue,challenge) {
+            const fid=requireFid(fidValue);
+            const {purpose,network,public_key,nonce}=challenge||{};
+            if(!cloudNetwork||network!==cloudNetwork||challenge.fid!==fid||
+                !['enroll','restore'].includes(purpose)||
+                typeof public_key!=='string'||!/^[0-9a-f]{64}$/.test(public_key)||
+                typeof nonce!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(nonce))
+                throw failure('invalid cloud device challenge');
+            const record=await read(fid);
+            if(!record||record.publicKeyHex!==public_key)
+                throw failure('cloud device key changed');
+            const bytes=new TextEncoder().encode([
+                'genycaster-cloud-device-v2',purpose,network,fid,public_key,nonce].join('\n'));
+            const signature=new Uint8Array(await crypto.subtle.sign('Ed25519',record.privateKey,bytes));
+            if(signature.length!==64||!await crypto.subtle.verify('Ed25519',record.publicKey,signature,bytes))
+                throw failure('cloud device proof self-verification failed');
+            return {signature:encodeHex(signature)};
+        },
+
         // A narrowly scoped media proof is not a Farcaster cast signature.
         // Do not expose an arbitrary-message signer to UI code.
         async signMediaChallenge(fidValue, challenge) {
+            if(cloudNetwork)throw failure('cloud device key cannot sign social or media messages');
             const fid = requireFid(fidValue);
             // Upload tickets are HMAC-authenticated opaque tokens embedded in
             // the canonical PUT pathname. A valid gateway-issued v3 ticket

@@ -239,6 +239,9 @@ private:
 
             const QString error = event.value(QStringLiteral("error")).toString();
             if(kind==QStringLiteral("account-session")) {
+                const bool nativeEvent = event.value(QStringLiteral("protocol")).toString()
+                    == QStringLiteral("hypersnap-v2");
+                if (nativeEvent != presentation->nativeCustodyAccount()) continue;
                 if(phase==QStringLiteral("ready") && m_accountSessionObserver) {
                     const QByteArray csrf=event.value(QStringLiteral("csrfToken"))
                                                .toString().toUtf8();

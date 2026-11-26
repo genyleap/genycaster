@@ -72,3 +72,65 @@ export async function ensureBrowserAccountSession({
     throw Error('Browser rejected the verified account session');
   return restored;
 }
+
+
+// Private device sessions are enrolled with a verified OpenProof grant
+// or an independent native custody proof, never a social signer.
+export async function ensureBrowserCloudDeviceSession({
+  fid,network='farcaster',bearer,custody,
+  fetchImpl=globalThis.fetch,environment=globalThis,signal,
+  origin=globalThis.location?.origin,
+  vault,
+}={}) {
+  if(origin!==deployment.publicOrigin)throw Error('Unapproved account origin');
+  if(!['farcaster','hypersnap'].includes(network)||
+     typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid)||
+     (network==='farcaster'?!validFid(fid):BigInt(fid)<4294967296n||BigInt(fid)>18446744073709551615n))
+    throw Error('Invalid protocol-scoped account');
+  const enroll=network==='farcaster'?typeof bearer==='string'&&bearer.length>0:
+    typeof custody?.signMessage==='function';
+  const expectedIssuer=network==='farcaster'?deployment.openProofIssuer:'hypersnap:native-registry';
+  const matches=body=>body?.fid===fid&&body.issuer===expectedIssuer&&
+    body.subject===network+':'+fid&&/^[A-Za-z0-9_-]{43}$/.test(body.csrf_token||'');
+  const options={credentials:'same-origin',cache:'no-store',redirect:'error',signal};
+  const existing=await fetchImpl(endpoint,{...options,method:'GET'});
+  if(existing.status===200){
+    const body=await jsonResponse(existing);
+    if(!matches(body))throw Error('Signed-in account differs from the existing browser session');
+    if(body.auth_source==='device'&&!enroll)return body;
+  }else if(existing.status!==401)throw Error('Account session unavailable');
+  vault??=createBrowserSignerVault(environment,{scope:'cloud-device-'+network});
+  const key=await (enroll?vault.ensure(fid):vault.load(fid));
+  if(!key)return null; // old account has not yet enrolled; explicit migration required
+  const expected={purpose:enroll?'enroll':'restore',network,fid,public_key:key.publicKeyHex};
+  const headers={'content-type':'application/json',accept:'application/json'};
+  const challengeReply=await fetchImpl(endpoint+'/device/challenge',{
+    ...options,method:'POST',headers,body:JSON.stringify(expected)});
+  if(challengeReply.status===404||challengeReply.status===503)return null;
+  const challenge=await jsonResponse(challengeReply);
+  if(Object.keys(expected).some(k=>challenge[k]!==expected[k])||
+     !/^[A-Za-z0-9_-]{43}$/.test(challenge.nonce||''))throw Error('Invalid cloud device challenge');
+  const proof=await vault.signCloudDeviceChallenge(fid,challenge);
+  const body={...expected,nonce:challenge.nonce,signature:proof.signature};
+  if(enroll&&network==='farcaster')headers.authorization='Bearer '+bearer;
+  if(enroll&&network==='hypersnap'){
+    const address=String(custody.address||'').toLowerCase();
+    if(!/^0x[0-9a-f]{40}$/.test(address))throw Error('Invalid custody address');
+    const canonical=['genycaster-cloud-device-v2',expected.purpose,network,fid,
+      expected.public_key,challenge.nonce].join('\n');
+    body.custody_address=address;
+    body.custody_signature=await custody.signMessage([
+      'Genycaster — authorize private cloud device',
+      'This authorizes private Genycaster data on this device, not social signing or a transaction.',
+      'Origin: https://genycaster.xyz',canonical,'Custody: '+address].join('\n'));
+  }
+  if(signal?.aborted)throw Error('Account session cancelled');
+  const reply=await fetchImpl(endpoint+'/device/proof',{
+    ...options,method:'POST',headers,body:JSON.stringify(body)});
+  if(!enroll&&reply.status===401)return null;
+  const granted=await jsonResponse(reply);
+  if(!matches(granted)||granted.auth_source!=='device')throw Error('Cloud device principal mismatch');
+  const confirmed=await request(fetchImpl,endpoint,{method:'GET',signal});
+  if(!matches(confirmed)||confirmed.auth_source!=='device')throw Error('Cloud device cookie mismatch');
+  return confirmed;
+}
