@@ -3616,6 +3616,7 @@ Item {
                         iconGlyph: Theme.iconUser
                         title: presentationBridge.isAuthenticated
                            ? (presentationBridge.accountIdentityIssuer === "genycaster:device-local"
+                              || presentationBridge.accountIdentityIssuer === "farcaster:optimism-id-registry"
                               || presentationBridge.authenticationRoute === "farcaster"
                               || presentationBridge.authenticationRoute === "recovery"
                               || presentationBridge.accountIdentityIssuer.length === 0
@@ -3629,6 +3630,8 @@ Item {
                     subtitle: presentationBridge.isAuthenticated
                               ? (presentationBridge.accountIdentityIssuer === "genycaster:device-local"
                                  ? qsTrId("genycaster.setup.remembered_device_label")
+                                 : presentationBridge.accountIdentityIssuer === "farcaster:optimism-id-registry"
+                                 ? qsTrId("genycaster.shell.this_verified_session_identifies_your_account_protocol")
                                  : presentationBridge.authenticationRoute === "recovery"
                                  ? qsTrId("genycaster.setup.recovery_verified")
                                  : presentationBridge.authenticationRoute === "farcaster"

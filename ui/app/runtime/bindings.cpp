@@ -2974,7 +2974,7 @@ void connectRuntime(
     const QPointer<NativeCustodyWalletController> protectedWallet{nativeWallet};
     beginNativeOpenProofEnrollment =
         [runtime, &bridge, &connections, protectedWallet,
-         sessionObserver, enrollmentGeneration](const std::uint64_t fid,
+         enrollmentGeneration](const std::uint64_t fid,
                                                QString custody,
                                                std::shared_ptr<QByteArray> recoveredWords) {
         const auto active = runtime->currentSessionSnapshot();
@@ -3018,7 +3018,7 @@ void connectRuntime(
             &QFutureWatcher<void>::finished, &bridge,
             [challengeWatcher, challengeFuture, runtime, &bridge,
              &connections, protectedWallet, recoveredWords,
-             sessionObserver, enrollmentGeneration, generation, fid,
+             enrollmentGeneration, generation, fid,
              custody, gateway, current]() mutable {
                 auto challenge = challengeFuture->result();
                 challengeWatcher->deleteLater();
@@ -3056,7 +3056,7 @@ void connectRuntime(
                 QObject::connect(signatureWatcher,
                     &QFutureWatcher<void>::finished, &bridge,
                     [signatureWatcher, signatureFuture, runtime, &bridge, &connections,
-                     sessionObserver, enrollmentGeneration, generation,
+                     enrollmentGeneration, generation,
                      current, fid, custody, gateway,
                      challenge = std::move(*challenge)]() mutable {
                 const auto signature = signatureFuture->result();
@@ -3071,7 +3071,7 @@ void connectRuntime(
                 QObject::connect(completedWatcher,
                     &QFutureWatcher<void>::finished, &bridge,
                     [completedWatcher, completedFuture, runtime, &bridge, &connections,
-                     sessionObserver, enrollmentGeneration, generation,
+                     enrollmentGeneration, generation,
                      current, fid, custody]() mutable {
                         auto verified = completedFuture->result();
                         completedWatcher->deleteLater();
@@ -3082,72 +3082,26 @@ void connectRuntime(
                                 fid, QStringLiteral("retry"));
                             return;
                         }
-                        auto ticket = std::make_shared<QByteArray>(
-                            QByteArray::fromStdString(verified->accountTicket));
+                        QByteArray ticket=QByteArray::fromStdString(verified->accountTicket);
                         std::fill(verified->accountTicket.begin(),
                                   verified->accountTicket.end(), char{0});
-                        const QString subject = QString::fromStdString(verified->subject);
-                        const int expires = verified->expiresSeconds;
-                        const auto now = foundation::time::now();
-                        domain::session::ClientSession canonical{
-                            .identityIssuer = verified->issuer,
-                            .identitySubject = verified->subject,
-                            .fid = domain::identity::Fid{fid},
-                            .custodyAddress = custody.toLower().toStdString(),
-                            .method = domain::session::AuthenticationMethod::Custody,
-                            .authenticatedAt = now,
-                            .expiresAt = now + std::chrono::duration_cast<
-                                std::chrono::milliseconds>(
-                                    std::chrono::seconds{expires})
-                        };
-                        auto saved = runtime->sessionService->acceptVerifiedRecovery(
-                            std::move(canonical),
-                            [&bridge, &connections, runtime, sessionObserver,
-                             enrollmentGeneration, generation, ticket,
-                             subject, fid, expires](
-                                application::session::SessionState state) mutable {
-                                const bool accepted =
-                                    state.phase == application::session::SessionPhase::Authenticated
-                                    && state.session && state.session->fid.value == fid
-                                    && state.session->identityIssuer
-                                    == genycaster::deployment::openProofIssuer
-                                    && state.session->identitySubject
-                                    == subject.toStdString();
-                                if (enrollmentGeneration->load(std::memory_order_acquire)
-                                        != generation) {
-                                    ticket->fill(char{0});
-                                    return;
-                                }
-                                sessionObserver(std::move(state));
-                                QMetaObject::invokeMethod(&bridge,
-                                    [&bridge, &connections, runtime,
-                                     enrollmentGeneration, generation,
-                                     ticket, subject, fid, expires, accepted]() mutable {
-                                        if (!accepted
-                                            || enrollmentGeneration->load(
-                                                std::memory_order_acquire) != generation
-                                            || !bridge.isAuthenticated()
-                                            || bridge.accountFid() != fid
-                                            || bridge.accountIdentityIssuer()
-                                                != connections.identityIssuer()) {
-                                            ticket->fill(char{0});
-                                            if (bridge.isAuthenticated()
-                                                && bridge.accountFid() == fid)
-                                                connections.setNativeEnrollmentPhase(
-                                                    fid, QStringLiteral("retry"));
-                                            return;
-                                        }
-                                        connections.acceptRecoveryGrant(
-                                            std::move(*ticket), subject, fid, expires);
-                                        connections.setNativeEnrollmentPhase(
-                                            fid, QStringLiteral("linked"));
-                                    }, Qt::QueuedConnection);
-                            });
-                        if (!saved) {
-                            ticket->fill(char{0});
-                            connections.setNativeEnrollmentPhase(
-                                fid, QStringLiteral("retry"));
+                        const QString subject=QString::fromStdString(verified->subject);
+                        const int expires=verified->expiresSeconds;
+                        // The independently verified central account grant is
+                        // short-lived. Do not replace the durable, registry-
+                        // verified protocol identity with the grant's TTL or
+                        // launch a second signer restoration during KEY_ADD.
+                        if (!current() || connections.activeAccountFid() != fid
+                            || subject.isEmpty() || subject.size() > 512
+                            || ticket.isEmpty() || expires < 60 || expires > 3600) {
+                            ticket.fill(char{0});
+                            if (current())
+                                connections.setNativeEnrollmentPhase(fid, QStringLiteral("retry"));
+                            return;
                         }
+                        connections.acceptRecoveryGrant(
+                            std::move(ticket), subject, fid, expires);
+                        connections.setNativeEnrollmentPhase(fid, QStringLiteral("linked"));
                     });
                 *completedFuture = QtConcurrent::run(
                     [runtime, gateway = gateway.toStdString(),

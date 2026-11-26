@@ -18,8 +18,11 @@ test('new Farcaster FID uses the original trusted OPP proof and never repeats pr
     assert.match(runtime, /startRecoveryChallenge\(\*runtime->transport/);
     assert.match(runtime, /completeRecoveryChallenge\(/);
     assert.match(runtime, /signOpenProofFarcasterChallenge\(/);
-    assert.match(runtime, /acceptVerifiedRecovery\(/);
-    assert.match(runtime, /acceptRecoveryGrant\(/);
+    const enrollment=runtime.slice(runtime.indexOf('beginNativeOpenProofEnrollment ='),runtime.indexOf('beginNativeWalletEnrollment ='));
+    assert.doesNotMatch(enrollment,/acceptVerifiedRecovery\(|sessionObserver\(/);
+    assert.match(enrollment,/connections\.activeAccountFid\(\) != fid/);
+    assert.match(enrollment,/connections\.acceptRecoveryGrant\(/);
+    assert.match(runtime,/acceptVerifiedRecovery\(/); // explicit OpenProof recovery remains supported
     assert.match(runtime, /genycaster::deployment::openProofIssuer/);
     assert.match(wallet, /custody::signOneTimeIdentityProof\(/);
     assert.doesNotMatch(walletApi, /Q_INVOKABLE.*signOpenProof/);
