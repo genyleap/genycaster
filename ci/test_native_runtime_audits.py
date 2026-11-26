@@ -89,7 +89,7 @@ class RuntimePackagingTests(unittest.TestCase):
         cmake = Path("src/platform/CMakeLists.txt").read_text(encoding="utf-8")
         for snippet in (
             "CredReadW(", "CredWriteW(", "CredDeleteW(",
-            "CRED_TYPE_GENERIC", "CRED_PERSIST_ENTERPRISE",
+            "CRED_TYPE_GENERIC", "CRED_PERSIST_LOCAL_MACHINE",
             "windowsLoadSeed(service, fid)", "windowsSaveSeed(service, fid, seed)",
             "windowsDeleteSeed(service, fid)", "qtkeychainCompatNamingScheme",
             "qtkeychainFallbackToCompatNamingScheme",

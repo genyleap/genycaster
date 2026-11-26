@@ -32,7 +32,7 @@ test('saved signer verification never requires a new custody approval', () => {
   assert.match(bridgeH, /void signerRefreshRequested\(\)/);
   assert.match(bridge, /void PresentationBridge::refreshSigner\(\)/);
   assert.match(runtime, /&PresentationBridge::signerRefreshRequested/);
-  const retryStart = runtime.indexOf('&PresentationBridge::signerRefreshRequested');
+  const retryStart = runtime.indexOf('const auto revalidateSigner =');
   const retry = runtime.slice(retryStart,
                               runtime.indexOf('&PresentationBridge::networkReachabilityChanged', retryStart));
   assert.match(retry, /signerService->restore\(session, signerObserver\)/);

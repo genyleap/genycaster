@@ -5418,7 +5418,55 @@ void connectRuntime(
         });
     authenticationPollTimer->start();
 
-    (void)runtime->sessionService->restore(sessionObserver);
+    // A temporarily locked OS vault is not a sign-out. Retry only the
+    // original restore operation; explicit user authentication cancels it.
+    auto restoreRetry = std::make_shared<std::atomic_bool>(true);
+    auto restoreInFlight = std::make_shared<std::atomic_bool>(false);
+    auto restoreGeneration = std::make_shared<std::atomic_uint64_t>(0U);
+    const auto cancelRestore = [restoreRetry, restoreGeneration] {
+        restoreRetry->store(false, std::memory_order_release);
+        restoreGeneration->fetch_add(1U, std::memory_order_acq_rel);
+    };
+    QObject::connect(&bridge, &PresentationBridge::signInRequested, &bridge, cancelRestore);
+    QObject::connect(&bridge, &PresentationBridge::signInCancelRequested, &bridge, cancelRestore);
+    QObject::connect(&bridge, &PresentationBridge::signOutRequested, &bridge, cancelRestore);
+    QObject::connect(&bridge, &PresentationBridge::nativeRecoveryRequested, &bridge, cancelRestore);
+    QObject::connect(&bridge, &PresentationBridge::nativeFarcasterRecoveryRequested, &bridge, cancelRestore);
+    QObject::connect(&bridge, &PresentationBridge::nativeHyperSnapRecoveryRequested, &bridge, cancelRestore);
+    const auto restoreDevice = [runtime, sessionObserver, restoreRetry, restoreInFlight, restoreGeneration] {
+        if (!restoreRetry->load(std::memory_order_acquire) ||
+            restoreInFlight->exchange(true, std::memory_order_acq_rel)) return;
+        const auto generation = restoreGeneration->load(std::memory_order_acquire);
+        auto result = runtime->sessionService->restore(
+            [sessionObserver, restoreRetry, restoreInFlight, restoreGeneration, generation](
+                    application::session::SessionState state) mutable {
+                restoreInFlight->store(false, std::memory_order_release);
+                if (restoreGeneration->load(std::memory_order_acquire) != generation) return;
+                restoreRetry->store(state.phase == application::session::SessionPhase::Failed &&
+                    state.error && (state.error->code == foundation::error::ErrorCode::Unavailable ||
+                    state.error->code == foundation::error::ErrorCode::StorageFailure ||
+                    state.error->code == foundation::error::ErrorCode::Unauthorized ||
+                    state.error->code == foundation::error::ErrorCode::Timeout),
+                    std::memory_order_release);
+                sessionObserver(std::move(state));
+            });
+        if (!result) restoreInFlight->store(false, std::memory_order_release);
+    };
+    auto* const deviceRestoreTimer = new QTimer(&bridge);
+    deviceRestoreTimer->setInterval(30'000);
+    QObject::connect(deviceRestoreTimer, &QTimer::timeout, &bridge, [&bridge, restoreDevice] {
+        if (!bridge.isAuthenticated() && !bridge.authenticationBusy() &&
+            QGuiApplication::applicationState() == Qt::ApplicationActive) restoreDevice();
+    });
+    deviceRestoreTimer->start();
+    if (auto* app = qobject_cast<QGuiApplication*>(QCoreApplication::instance())) {
+        QObject::connect(app, &QGuiApplication::applicationStateChanged, &bridge,
+            [&bridge, restoreDevice](Qt::ApplicationState state) {
+                if (state == Qt::ApplicationActive && !bridge.isAuthenticated() &&
+                    !bridge.authenticationBusy()) restoreDevice();
+            });
+    }
+    restoreDevice();
 #else
     // Browser identity is intentionally ephemeral and never restored from
     // native persisted sessions (which might already be expired).

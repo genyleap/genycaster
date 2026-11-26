@@ -216,3 +216,37 @@ EIP-1193 provider from an explicit user action; it never reuses Mini App
 permission grants, browser authentication secrets or localhost transports.
 Wallet responses are not proof of membership until server receipt verification. See `services/account-sync/README.md` for the operational
 checkout contract and migration `012_pro_billing.sql`.
+
+
+### Device-local authentication continuity (native and browser)
+
+Shipping native builds authenticate the SQLite identity snapshot with a
+separate OS-vault Ed25519 key in `org.genycaster.device-session`. The seal
+binds issuer, subject, FID, custody address, authentication method and
+timestamps. The SQLite row is not an authentication credential. Existing
+unsealed records require one verified login; the social signer and public
+cache are not removed by this migration. The browser uses a non-extractable
+WebCrypto device key and version-2 identity seal; old v1 rows require one
+verified login. Device-local continuity is capped at 30 days and never
+extends an OpenProof bearer or a network signer registration. A missing,
+malformed or mismatched seal cannot restore an authenticated account. A
+temporarily unavailable native vault is a retryable storage failure.
+
+All protocol signing requests bind the FID, public key and scope. Native
+signer state is serialized across social and media workers, and an atomic
+generation lock invalidates queued signing authority when the account changes
+or the user signs out. Foreground and bounded timer checks are read-only;
+they do not prompt for custody words or silently grant KEY_ADD.
+
+Windows keys use local-machine persistence; pre-existing enterprise
+credentials are restricted in place on access. Android cloud backup and
+device transfer explicitly exclude app data. Apple and Linux retain their
+existing secure backend policy. Browser origin compromise, OS compromise
+and compromised keyboard/clipboard are outside the local seal's guarantees.
+
+**Remaining migration boundary:** the existing cloud account API can still
+issue a session from a network-authorized social signer. Replacing that
+legacy bootstrap with independently enrolled/revocable cloud device
+credentials requires a coordinated account-service schema and client rollout.
+Do not disable the existing endpoint until both Farcaster/OpenProof and
+HyperSnap custody enrollment and existing account migration are verified.
