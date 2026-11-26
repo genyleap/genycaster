@@ -16,15 +16,17 @@ Item {
     // enabled for every production feed delegate by default.
     property bool audioOutputEnabled: true
     property bool playbackRequested: false
+    property bool browserPlayback: false
     MediaResourceScope {
         id: resourceScope
         owner: root
-        onEligibleChanged: if (!eligible) root.playbackRequested = false
+        onEligibleChanged: if (!eligible) root.releasePlayback()
+        onRevoked: root.releasePlayback()
     }
     Timer {
         id: releaseTimer
         interval: 0
-        onTriggered: root.playbackRequested = false
+        onTriggered: root.releasePlayback()
     }
     property real reservedMediaAspect: 16 / 9
     readonly property bool playerReady: playerLoader.status === Loader.Ready
@@ -63,15 +65,32 @@ Item {
 
     signal openRequested(string url)
 
+    function releasePlayback() {
+        if (root.browserPlayback) {
+            root.browserPlayback = false
+            const session = resourceScope.coordinator()
+            if (session) session.closeBrowserHls()
+        }
+        resourceScope.releaseReservation()
+        root.playbackRequested = false
+    }
+    Component.onDestruction: root.releasePlayback()
+
     function requestPlayback() {
         if (!root.hasSource || root.playbackRequested || !resourceScope.eligible) return
+        releaseTimer.stop()
+        if (!resourceScope.reservePlayback()) return
         const candidate = root.adaptiveSource.length > 0 ? root.adaptiveSource : root.targetUrl
         // Browser Qt Multimedia has inconsistent adaptive HLS support.
         // Use the browser's native HLS support or local hls.js/MSE instead.
         if (Qt.platform.os === 'wasm' && /\.m3u8(?:[?#]|$)/i.test(candidate)) {
             if (typeof mediaPlayback !== 'undefined'
                     && mediaPlayback !== null
-                    && mediaPlayback.openBrowserHls(candidate)) return
+                    && mediaPlayback.openBrowserHls(candidate)) {
+                root.browserPlayback = true
+                return
+            }
+            resourceScope.releaseReservation()
             root.openRequested(candidate)
             return
         }
@@ -80,21 +99,23 @@ Item {
 
     onVisibleChanged: {
         if (!root.visible)
-            root.playbackRequested = false
+            root.releasePlayback()
     }
 
     // A reused delegate must neither finish activating nor retain the previous
     // Cast's media session. Loader owns and releases the complete player tree.
     onTargetUrlChanged: {
         root.playbackRequested = false
+        root.releasePlayback()
         aspectReservationTimer.restart()
     }
     onAdaptiveSourceChanged: {
         root.playbackRequested = false
+        root.releasePlayback()
         aspectReservationTimer.restart()
     }
 
-    onVideoRenditionsChanged: root.playbackRequested = false
+    onVideoRenditionsChanged: root.releasePlayback()
 
     function reserveMediaAspect() {
         root.reservedMediaAspect = root.mediaAspect > 0 ? root.mediaAspect : 16 / 9
@@ -252,8 +273,10 @@ Item {
         visible: root.playerReady
         onLoaded: {
             const loadedPlayer = playerLoader.item as GenyVideoPlayer
-            if (loadedPlayer && root.playbackRequested && resourceScope.eligible)
+            if (loadedPlayer && root.playbackRequested && resourceScope.eligible && resourceScope.handoffPlayback())
                 loadedPlayer.resumePlayback()
+            else
+                releaseTimer.restart()
         }
 
         sourceComponent: Component {

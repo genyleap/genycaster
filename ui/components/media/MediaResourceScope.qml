@@ -8,10 +8,34 @@ QtObject {
     property bool observeViewport: true
     readonly property bool foreground: Qt.application.state !== Qt.ApplicationSuspended
         && Qt.application.state !== Qt.ApplicationHidden
-        && ((Qt.platform.os !== "android" && Qt.platform.os !== "ios"
-             && Qt.platform.os !== "wasm") || Qt.application.state === Qt.ApplicationActive)
+        && ((Qt.platform.os !== "android" && Qt.platform.os !== "ios")
+             || Qt.application.state === Qt.ApplicationActive)
     readonly property bool eligible: owner !== null && owner.visible && foreground
         && (!observeViewport || intersectsViewport())
+
+    // Reserve before asynchronous incubation, not after it. A subsequent Play
+    // revokes this pending intent even if no QMediaPlayer exists yet.
+    signal revoked()
+    function coordinator() {
+        return typeof mediaPlayback !== "undefined" && mediaPlayback !== null ? mediaPlayback : null
+    }
+    function reservePlayback() {
+        if (!eligible) return false
+        const session = coordinator()
+        return !session || session.claimPrimary(root)
+    }
+    function handoffPlayback() {
+        const session = coordinator()
+        if (!eligible || (session && !session.isPrimary(root))) return false
+        if (session) session.release(root)
+        return true
+    }
+    function releaseReservation() {
+        const session = coordinator()
+        if (session) session.release(root)
+    }
+    function suspendFromPlaybackCoordinator() { root.revoked() }
+    Component.onDestruction: releaseReservation()
 
     function intersectsViewport() {
         if (!owner || owner.width <= 0 || owner.height <= 0)
@@ -32,7 +56,7 @@ QtObject {
                 // contentItem's x/y already include the scroll translation.
                 // Read the offsets explicitly to track changes on all backends.
                 const mapped = owner.mapToItem(parent, 0, 0)
-                if (!isFinite(cx) || !isFinite(cy)
+                if (!isFinite(x) || !isFinite(y) || !isFinite(cx) || !isFinite(cy)
                         || mapped.x + owner.width <= 0 || mapped.y + owner.height <= 0
                         || mapped.x >= parent.width || mapped.y >= parent.height)
                     return false

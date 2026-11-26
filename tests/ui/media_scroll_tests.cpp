@@ -2084,6 +2084,15 @@ int main(int argc, char** argv)
         expect(video->findChildren<QMediaPlayer*>().size() == 1, "explicit playback constructs exactly one MediaPlayer");
         expect(video->property("implicitHeight").toDouble() == videoHeight,
             "lazy playback activation preserves video row geometry");
+        auto* videoItem = qobject_cast<QQuickItem*>(video.get());
+        videoItem->setVisible(false);
+        expect(QTest::qWaitFor([&] { return video->findChildren<QMediaPlayer*>().empty(); }),
+            "hidden delegate releases the multimedia stack");
+        videoItem->setVisible(true);
+        expect(!flag(*video, "playbackRequested"), "showing a recycled delegate cannot restart playback");
+        playControl->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
+        expect(QTest::qWaitFor([&] { return flag(*video, "playerReady"); }), "new explicit Play recreates one session");
         video->setProperty("embed", QVariantMap{
             {QStringLiteral("url"), QStringLiteral("https://video.invalid/recycled.mp4")}});
         expect(!flag(*video, "playbackRequested"), "delegate reuse cancels previous playback intent");

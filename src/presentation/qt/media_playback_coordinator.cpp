@@ -200,6 +200,13 @@ bool MediaPlaybackCoordinator::openBrowserHls(const QString& source) const
 #endif
 }
 
+void MediaPlaybackCoordinator::closeBrowserHls() const
+{
+#ifdef Q_OS_WASM
+    EM_ASM({ window.__genycasterBrowserHls?.close(); });
+#endif
+}
+
 qulonglong MediaPlaybackCoordinator::prepareSource(const QString& source)
 {
     const qulonglong requestId = m_nextSourcePreparationId++;

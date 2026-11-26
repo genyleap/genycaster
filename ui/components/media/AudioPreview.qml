@@ -60,6 +60,8 @@ Superellipse {
         if (!root.activated) {
             // Loading the player creates a platform audio device: only do it
             // after explicit Play, never while creating/recycling feed rows.
+            const session = root.coordinator()
+            if (session && !session.claimPrimary(root)) return
             root.activated = true
             return
         }
@@ -100,8 +102,8 @@ Superellipse {
         onLoaded: {
             if (root.activated && resourceScope.eligible && item && item.player) {
                 const session = root.coordinator()
-                if (session) session.claimPrimary(root)
-                item.player.play()
+                if (!session || session.isPrimary(root)) item.player.play()
+                else root.activated = false
             }
         }
         sourceComponent: Item {

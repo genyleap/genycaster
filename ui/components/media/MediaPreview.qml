@@ -34,12 +34,13 @@ Item {
     MediaResourceScope {
         id: resourceScope
         owner: root
-        onEligibleChanged: if (!eligible) root.userPlayback = false
+        onEligibleChanged: if (!eligible) root.releasePlayback()
+        onRevoked: root.releasePlayback()
     }
     Timer {
         id: releaseTimer
         interval: 0
-        onTriggered: root.userPlayback = false
+        onTriggered: root.releasePlayback()
     }
     property bool primedVideoFrame: false
 
@@ -64,14 +65,22 @@ Item {
 
     clip: false
 
+    function releasePlayback() {
+        resourceScope.releaseReservation()
+        root.userPlayback = false
+    }
+    Component.onDestruction: root.releasePlayback()
+
     onSourceChanged: {
         root.userPlayback = false
+        root.releasePlayback()
         root.primedVideoFrame = false
     }
 
     onIsVideoChanged: {
         if (!isVideo) {
             root.userPlayback = false
+            root.releasePlayback()
             root.primedVideoFrame = false
         }
     }
@@ -112,7 +121,7 @@ Item {
         borderWidth: 0
     }
 
-    // Decode the canonical source (not the upload thumbnail), but bound the
+    // Full-fidelity image for authored attachments: decode the canonical source, but bound the
     // display raster to the physical viewport. The uploaded bytes are unchanged.
     Image {
         id: fullImage
@@ -140,8 +149,11 @@ Item {
         active: root.isVideo && root.hasSource && root.userPlayback && resourceScope.eligible
         visible: active && !root.failed
         onLoaded: {
-            if (resourceScope.eligible && root.userPlayback && root.isVideo && root.hasSource && item)
+            if (resourceScope.eligible && root.userPlayback && root.isVideo && root.hasSource && item
+                    && resourceScope.handoffPlayback())
                 item.resumePlayback()
+            else
+                releaseTimer.restart()
         }
         sourceComponent: GenyVideoPlayer {
             onResourceRevoked: releaseTimer.restart()
@@ -207,7 +219,10 @@ Item {
         enabled: root.interactive && root.isVideo && root.hasSource && !root.failed
         gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: {
+            if (!resourceScope.eligible) return
             if (!videoLoader.item) {
+                releaseTimer.stop()
+                if (!resourceScope.reservePlayback()) return
                 // First tap constructs the player; onLoaded owns activation.
                 root.primedVideoFrame = true
                 root.userPlayback = true

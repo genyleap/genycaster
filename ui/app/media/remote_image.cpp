@@ -702,8 +702,30 @@ struct ResponseControl final {
             std::memory_order_acq_rel,
             std::memory_order_acquire));
         cancelled.store(true, std::memory_order_release);
+        // Never invoke the transport while holding a mutex: completion may
+        // immediately attempt to deliver the terminal response.
+        farcaster::transport::async_http::Operation operation;
+        {
+            const std::scoped_lock lock{operationMutex};
+            operation = std::move(activeOperation);
+        }
+        operation.cancel();
     }
 
+    void setOperation(farcaster::transport::async_http::Operation operation)
+    {
+        {
+            const std::scoped_lock lock{operationMutex};
+            if (!cancelled.load(std::memory_order_acquire)) {
+                activeOperation = std::move(operation);
+                return;
+            }
+        }
+        operation.cancel();
+    }
+
+    std::mutex operationMutex{};
+    farcaster::transport::async_http::Operation activeOperation{};
     std::atomic_bool cancelled{false};
     std::atomic<FailureCommitState> failureState{FailureCommitState::Active};
     std::mutex mutex{};
@@ -819,19 +841,11 @@ public:
 
     void cancel() override
     {
-        // QQuickImageResponse cancellation is primarily a presentation-lifecycle
-        // event: ListView recycling and scroll-time detachment cancel the QML
-        // consumer even though the URL itself is still useful. Mark this response
-        // cancelled so it can never expose a texture, but let already-admitted
-        // bounded network/decode work finish and populate the provider cache.
-        // A post-fling request then becomes a cache hit instead of restarting I/O.
+        // This control owns one request/consumer. Stop abandoned network and
+        // queued decode work. An already-running successful decode may still
+        // warm the bounded cache; no stale response can publish a texture.
         m_cancelled.store(true, std::memory_order_release);
-    }
-
-    void setOperation(farcaster::transport::async_http::Operation operation)
-    {
-        const std::scoped_lock lock{m_operationMutex};
-        m_operation = std::move(operation);
+        m_control->cancel();
     }
 
     void complete(QImage image)
@@ -855,8 +869,6 @@ private:
     std::shared_ptr<RemoteImageProvider::Impl> m_impl;
     std::shared_ptr<ResponseControl> m_control;
     mutable std::mutex m_resultMutex{};
-    std::mutex m_operationMutex{};
-    std::optional<farcaster::transport::async_http::Operation> m_operation{};
     std::atomic_bool m_cancelled{false};
     std::atomic_bool m_completed{false};
     QImage m_image{};
@@ -890,12 +902,7 @@ void setResponseOperation(
         operation.cancel();
         return;
     }
-    const std::scoped_lock lock{control->mutex};
-    if (control->response == nullptr) {
-        operation.cancel();
-        return;
-    }
-    control->response->setOperation(std::move(operation));
+    control->setOperation(std::move(operation));
 }
 
 void RemoteImageProvider::Impl::start(
@@ -1059,7 +1066,6 @@ void RemoteImageProvider::Impl::startNetwork(
             if (!result || result->statusCode < 200U || result->statusCode >= 300U) {
                 const bool deniedByOrigin = result
                     && (result->statusCode == 401U || result->statusCode == 403U);
-                if (deniedByOrigin) rememberForbiddenOrigin(urlText);
 #if defined(Q_OS_WASM)
                 // Do not log full URLs: CDNs may put identifying tokens in
                 // paths or queries. Record only host and bounded status.
@@ -1080,6 +1086,7 @@ void RemoteImageProvider::Impl::startNetwork(
                     deliverResponse(control, QImage{});
                     return;
                 }
+                if (deniedByOrigin) rememberForbiddenOrigin(urlText);
                 rememberFailure(urlText);
                 deliverResponse(control, transparentFailureImage(nullptr));
                 return;

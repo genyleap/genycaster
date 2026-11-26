@@ -31,3 +31,20 @@ test('browser media closes on lifecycle transitions', () => {
     assert.match(browser,/addEventListener\("pagehide", close\)/);
     assert.match(browser,/if \(document\.hidden\) close\(\)/);
 });
+
+test('pending playback is reserved before asynchronous player creation', () => {
+    const scope = media('MediaResourceScope');
+    assert.match(scope,/session\.claimPrimary\(root\)/);
+    assert.match(scope,/session\.isPrimary\(root\)/);
+    for (const name of ['VideoPreview','MediaPreview']) {
+        const preview = media(name);
+        assert.match(preview,/resourceScope\.reservePlayback\(\)/);
+        assert.match(preview,/resourceScope\.handoffPlayback\(\)/);
+    }
+});
+test('abandoned image request cancels its transport without holding the response mutex', () => {
+    const image = read('ui/app/media/remote_image.cpp');
+    assert.match(image,/m_control->cancel\(\)/);
+    assert.match(image,/operation = std::move\(activeOperation\);\s*\}\s*operation\.cancel\(\)/);
+    assert.match(image,/control->setOperation\(std::move\(operation\)\)/);
+});

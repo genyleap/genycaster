@@ -522,7 +522,7 @@ Item {
         // ImagePolicy applies to GIFs too. The still-image provider remains
         // the single source of admission and is allowed to fail back cleanly
         // when the animation codec or network is unavailable.
-        source: root.componentReady
+        source: root.componentReady && root.hasRenderableGeometry
                 && animationScope.eligible && !Theme.powerSave
                 && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
                 && root.automaticDownloadAllowed

@@ -107,6 +107,7 @@ public:
 
     /** Use native browser HLS / locally bundled MediaSource fallback on WASM. */
     Q_INVOKABLE bool openBrowserHls(const QString& source) const;
+    Q_INVOKABLE void closeBrowserHls() const;
 
     /**
      * @brief Starts non-blocking preparation of a decoder-facing source.

@@ -646,6 +646,7 @@ Item {
     function resetPlayback() {
         startupTimer.stop()
         startupWatchdog.stop()
+        activation.resumeAfterLoad = false
         adaptiveDownshift.stop()
         adaptiveUpgrade.stop()
         player.stop()
