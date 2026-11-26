@@ -4520,7 +4520,8 @@ Item {
     // platform browser adapters and do not import QtWebView.
     Loader {
         id: androidMiniAppHostLoader
-        active: Qt.platform.os === "android" || Qt.platform.os === "ios"
+        active: (Qt.platform.os === "android" || Qt.platform.os === "ios")
+                && !miniAppHost.nativeSdkAvailable
         source: active ? "qrc:/qt/qml/Farcaster/Client/components/AndroidMiniAppWebView.qml" : ""
         onStatusChanged: {
             if (status === Loader.Error) {

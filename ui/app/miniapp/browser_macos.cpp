@@ -72,7 +72,7 @@ class MacBrowser final : public Browser {
 public:
     MacBrowser(const QString& title, const QUrl& origin, BrowserCallbacks callbacks,
                PresentationMode mode, bool reduceMotion, bool initiallyVisible, BrowserRole role)
-        : m_callbacks(std::move(callbacks)) {
+        : m_callbacks(std::move(callbacks)), m_role(role), m_origin(origin) {
         GenyMacBrowserCallbacks native{};
         native.context = this;
         native.event = &MacBrowser::nativeEvent;
@@ -173,8 +173,23 @@ private:
         if (callbacks.failed && translationId)
             callbacks.failed(qtTrId(translationId));
     }
-    static int nativeAllowedUrl(void*, const char* url) {
-        return url && allowedWebUrl(QUrl::fromEncoded(QByteArray(url))) ? 1 : 0;
+    static int nativeAllowedUrl(void* context, const char* url) {
+        if (!url) return 0;
+        const auto* self = static_cast<MacBrowser*>(context);
+        const QUrl parsed = QUrl::fromEncoded(QByteArray(url), QUrl::StrictMode);
+#if defined(Q_OS_IOS)
+        if (self->m_role == BrowserRole::WalletApproval) {
+            static const QRegularExpression path{QStringLiteral("^/session/[0-9a-f]{64}$")};
+            return parsed.isValid() && parsed == self->m_origin
+                && parsed.scheme() == QStringLiteral("http")
+                && parsed.host() == QStringLiteral("127.0.0.1") && parsed.port() > 0
+                && parsed.userInfo().isEmpty() && !parsed.hasQuery() && !parsed.hasFragment()
+                && path.match(parsed.path()).hasMatch();
+        }
+#else
+        (void)self;
+#endif
+        return allowedWebUrl(parsed) ? 1 : 0;
     }
     static const char* nativeLocalize(void*, const char* translationId) {
         static thread_local QByteArray translation;
@@ -190,6 +205,8 @@ private:
     }
 
     BrowserCallbacks m_callbacks;
+    [[maybe_unused]] BrowserRole m_role;
+    [[maybe_unused]] QUrl m_origin;
     GenyMacBrowser* m_controller = nullptr;
 };
 } // namespace

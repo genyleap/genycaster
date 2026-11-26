@@ -396,7 +396,11 @@ public:
         // while preserving the live Mini App document and its pending RPC.
         connect(&m_controller, &MiniAppHostController::walletBrowserPickerChanged,
                 this, [this] {
-                    if (m_controller.walletBrowserPickerActive()) {
+                    if (m_controller.walletBrowserPickerActive()
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+                        || m_controller.walletBrowserWaiting()
+#endif
+                    ) {
                         Session* current = foreground();
                         if (m_walletChooserHiddenTaskId.isEmpty() && current
                             && current->browser && current->taskId == m_walletTaskId) {
@@ -412,7 +416,11 @@ public:
                     QTimer::singleShot(0, this, [this, hiddenTask] {
                         Session* current = foreground();
                         if (current && current->browser && current->taskId == hiddenTask
-                            && !m_controller.walletBrowserPickerActive())
+                            && !m_controller.walletBrowserPickerActive()
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+                            && !m_controller.walletBrowserWaiting()
+#endif
+                        )
                             current->browser->setVisible(true);
                     });
                 });
@@ -572,8 +580,12 @@ private:
 
     [[nodiscard]] bool supportsParallelWindowVisibility() const
     {
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+        return false;
+#else
         return presentationMode(m_controller.presentationMode())
             == platform::miniapp::PresentationMode::Window;
+#endif
     }
 
     [[nodiscard]] QString taskState(const Session& session) const
@@ -1583,8 +1595,12 @@ private:
                 QMetaObject::invokeMethod(runtime,
                     [runtime,taskId,onComplete=std::move(onComplete),
                      result=std::move(result)]() mutable {
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
                         if (runtime->m_walletTaskId==taskId)
                             runtime->m_controller.walletBrowserRequestFinished(!result.error);
+#else
+                        (void)taskId;
+#endif
                         onComplete(*runtime,std::move(result));
                     },Qt::QueuedConnection);
             });
@@ -2292,8 +2308,12 @@ private:
                 QMetaObject::invokeMethod(runtime,
                     [runtime, taskId, completion = std::move(completion),
                      response = std::move(response)]() mutable {
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
                         if (runtime->m_walletTaskId == taskId)
                             runtime->m_controller.walletBrowserRequestFinished(!response.error);
+#else
+                        (void)taskId;
+#endif
                         completion(*runtime, std::move(response));
                     }, Qt::QueuedConnection);
             });
@@ -2637,8 +2657,10 @@ private:
                             || active->documentGeneration != documentGeneration) {
                             return;
                         }
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
                         if (runtime->m_walletTaskId == taskId)
                             runtime->m_controller.walletBrowserRequestFinished(!response.error);
+#endif
                         QJsonObject rpcResponse{
                             {QStringLiteral("jsonrpc"), QStringLiteral("2.0")},
                             {QStringLiteral("id"), static_cast<double>(response.id)},

@@ -22,13 +22,8 @@ class ReleaseFeatureContractTest(unittest.TestCase):
                 any(item.startswith("Windows:") for item in current),
                 "A missing Windows Mini App SDK host must block Release",
             )
-        # Android v1 intentionally admits an origin-locked public WebView,
-        # not a privileged SDK or EIP-1193 wallet provider.
-        if "GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=1" not in ui:
-            self.assertFalse(
-                any(item.startswith("Android:") for item in current),
-                "The audited Android public-only variant is a valid v1 scope",
-            )
+        self.assertFalse(any(item.startswith("Android:") for item in current))
+        self.assertFalse(any(item.startswith("iOS:") for item in current))
         if "set(FARCASTER_ENABLE_MINIAPPS OFF CACHE BOOL" in wasm:
             app = read("src/application/CMakeLists.txt")
             browser_feature = ("if(EMSCRIPTEN AND FARCASTER_BUILD_UI)" in app
@@ -181,34 +176,21 @@ class ReleaseFeatureContractTest(unittest.TestCase):
                     self.assertTrue(
                         any(message.startswith(feature + ":") for message in blockers()))
 
-    def test_android_requires_explicit_public_only_scope_and_unprivileged_qml(self):
-        self.assertFalse(any(message.startswith("Android:") for message in blockers()))
+    def test_native_mobile_release_rejects_weakened_adapter(self):
+        self.assertFalse(any(message.startswith(("Android:", "iOS:")) for message in blockers()))
         original = feature_contract.read
-
         modifications = (
-            (".github/workflows/ci.yml",
-             "-DGENYCASTER_ANDROID_MINIAPP_SCOPE=public-only",
-             "-DGENYCASTER_ANDROID_MINIAPP_SCOPE=full-sdk"),
-            ("ui/components/apps/AndroidWebView.qml",
-             "function blockForeignNavigation(index, destination)",
-             "function navigateWithoutOriginCheck(index, destination)"),
-            ("ui/components/apps/AndroidWebView.qml",
-             "import QtWebView",
-             "import QtWebChannel\nimport QtWebView"),
-            ("ui/components/apps/AndroidWebView.qml",
-             'const nextUrl = String(web.url || "")',
-             'const nextUrl = String(undefined)'),
-            ("ui/CMakeLists.txt",
-             "GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW=1",
-             "GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW=0"),
-            ("ci/verify_platform_package.py",
-             "libplugins_webview_qtwebview_android_",
-             "removed_android_webview_plugin_"),
-            ("CMakeLists.txt",
-             'if(NOT GENYCASTER_ANDROID_MINIAPP_SCOPE STREQUAL "public-only")',
-             'if(FALSE)'),
+            ("Android", ".github/workflows/ci.yml", "-DGENYCASTER_ANDROID_MINIAPP_SCOPE=native-sdk", "-DGENYCASTER_ANDROID_MINIAPP_SCOPE=public-only"),
+            ("Android", "properties/Android/src/com/genyleap/genycaster/MiniAppBrowser.java", "!isMainFrame || !allowed(sourceOrigin)", "false"),
+            ("Android", "properties/Android/src/com/genyleap/genycaster/MiniAppBrowser.java", "WebViewCompat.setProfile(web,profile)", "web.clearHistory()"),
+            ("Android", "ci/verify_platform_package.py", "Lcom/genyleap/genycaster/MiniAppBrowser;", "Lmissing;"),
+            ("Android", "ui/CMakeLists.txt", "GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=1", "GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=0"),
+            ("iOS", "ui/app/miniapp/browser_ios.m", "!message.frameInfo.isMainFrame", "NO"),
+            ("iOS", "ui/app/miniapp/browser_ios.m", "WKWebsiteDataStore.nonPersistentDataStore", "WKWebsiteDataStore.defaultDataStore"),
+            ("iOS", "ui/CMakeLists.txt", "GENYCASTER_HAS_IOS_MINIAPP_SDK_HOST=1", "GENYCASTER_HAS_IOS_MINIAPP_SDK_HOST=0"),
+            ("iOS", "ci/verify_platform_package.py", "GenyIOSBrowser", "MissingBrowser"),
         )
-        for target, before, after in modifications:
+        for platform, target, before, after in modifications:
             def weakened(path):
                 source = original(path)
                 if path == target:
@@ -217,14 +199,7 @@ class ReleaseFeatureContractTest(unittest.TestCase):
                 return source
             with self.subTest(path=target, mutation=after):
                 with patch.object(feature_contract, "read", side_effect=weakened):
-                    self.assertTrue(
-                        any(message.startswith("Android:") for message in blockers()))
-
-    def test_android_cmake_refuses_claims_of_privileged_mini_app_sdk(self):
-        source = feature_contract.read("CMakeLists.txt")
-        self.assertIn('if(FARCASTER_ENABLE_MINIAPPS)', source)
-        self.assertIn("Android has no privileged Mini App SDK host.", source)
-        self.assertIn('if(NOT GENYCASTER_ANDROID_MINIAPP_SCOPE STREQUAL "public-only")', source)
+                    self.assertTrue(any(message.startswith(platform + ":") for message in blockers()))
 
     def test_external_wallet_transport_is_required_despite_deferred_wallet_product(self):
         self.assertFalse(

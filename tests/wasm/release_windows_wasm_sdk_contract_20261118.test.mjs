@@ -89,14 +89,14 @@ test('WASM advertises the actual isolated JS mini app SDK without enabling nativ
   assert.match(sdk,/injected\.dispose\(\)/);
 });
 
-test('Android public-only scope must be explicit; unsupported privileged SDK claims stay blocked',()=>{
+test('Android native SDK scope requires an origin-bound adapter',()=>{
   const code=read('ci/verify_release_feature_contract.py');
-  assert.match(code,/public_only = \(/);
-  assert.match(code,/if not public_only:/);
-  assert.match(code,/GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only/);
-  assert.match(code,/Android: public-only Mini App scope is not explicitly declared/);
-  assert.match(code,/blockForeignNavigation/);
-  assert.match(code,/runJavaScript/);
+  assert.match(code,/android_sdk = \(/);
+  assert.match(code,/if not android_sdk:/);
+  assert.match(code,/GENYCASTER_ANDROID_MINIAPP_SCOPE=native-sdk/);
+  assert.match(code,/Android: native Mini App SDK origin, runtime or package contract missing/);
+  assert.match(code,/WebViewCompat.addWebMessageListener/);
+  assert.match(code,/!isMainFrame \|\| !allowed\(sourceOrigin\)/);
   assert.match(code,/if args\.strict:/);
   assert.match(code,/return 1/);
 });

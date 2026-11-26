@@ -29,7 +29,7 @@ namespace farcaster::platform::miniapp {
 enum class PresentationMode { Window, Bottom, Left, Right };
 
 /** @brief Selects whether the isolated browser exposes the Farcaster Mini App bridge. */
-enum class BrowserRole { MiniApp, Media };
+enum class BrowserRole { MiniApp, Media, WalletApproval };
 
 /** @brief GUI-thread callbacks; the browser detaches them before destruction. */
 struct BrowserCallbacks final {

@@ -275,7 +275,7 @@ constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
     const std::string_view basePath,
     const std::string_view nonce,
     const std::string_view appName,
-    const std::string_view origin)
+    const std::string_view origin, const bool walletConnectAvailable)
 {
     std::string page = R"html(<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wallet approval · GenyCaster</title><style nonce=")html";
     page += nonce;
@@ -338,6 +338,13 @@ pre{background:var(--canvas);padding:9px;border-radius:8px;white-space:pre-wrap;
 <span class="label" id="wallet-label">Choose your wallet</span>
 <div id="options" role="radiogroup" aria-labelledby="wallet-label" aria-busy="true"></div>
 <p id="wallet" role="status" aria-live="polite">Looking for wallets…</p>
+<section id="walletconnect" hidden>
+<button id="wc-connect" type="button">Connect mobile wallet</button>
+<button id="wc-cancel" type="button" hidden>Cancel pairing</button>
+<p id="wc-status" role="status" aria-live="polite"></p>
+<img id="wc-qr" width="240" height="240" alt="WalletConnect pairing QR" hidden>
+<p><a id="wc-open" hidden>Open wallet</a> <button id="wc-copy" type="button" hidden>Copy pairing link</button></p>
+</section>
 <section id="request" hidden><div id="kind">Explicit approval required</div>
 <h2 id="method">Wallet request</h2>
 <pre id="message" hidden></pre>
@@ -355,6 +362,9 @@ This one-time page passes the request to your installed wallet extension. Your w
 const base=")html";
     page += basePath;
     page += R"html(";
+const walletConnectAvailable=)html";
+    page += walletConnectAvailable ? "true" : "false";
+    page += R"html(;
 const status=document.getElementById('status'),wallet=document.getElementById('wallet');
 const box=document.getElementById('request'),approve=document.getElementById('approve');
 const options=document.getElementById('options'),reject=document.getElementById('reject');
@@ -363,8 +373,11 @@ const message=document.getElementById('message'),kind=document.getElementById('k
 let current=null,busy=false,selected=null,listeners=[],undelivered=null;
 let stopped=false, nextTimer=null, lastConsentResultShown=false;
 const scheduleNext=(delay=750)=>{if(!stopped)nextTimer=setTimeout(poll,delay);};
+let wcModule=null,wcAbort=null,wcUri='';
 const stopPolling=()=>{
   stopped=true;
+  wcAbort?.abort();
+  if(wcModule)wcModule.disconnectWalletConnect().catch(()=>{});
   if(nextTimer!==null)clearTimeout(nextTimer);
   nextTimer=null;
   detach();
@@ -479,8 +492,44 @@ setTimeout(()=>{
 },350);
 setTimeout(()=>{
   if(!providers.length){wallet.className='error';
-    wallet.textContent='No EIP-1193 wallet detected. Reopen the connection in GenyCaster and choose a browser with a wallet extension.';}
+    wallet.textContent=walletConnectAvailable ? 'Connect your mobile wallet below.'
+      : 'No EIP-1193 wallet detected. Reopen the connection in GenyCaster and choose a browser with a wallet extension.';}
 },800);
+if(walletConnectAvailable){
+  const panel=document.getElementById('walletconnect'), connect=document.getElementById('wc-connect');
+  const cancel=document.getElementById('wc-cancel'), detail=document.getElementById('wc-status');
+  const qr=document.getElementById('wc-qr'), open=document.getElementById('wc-open'), copy=document.getElementById('wc-copy');
+  panel.hidden=false;
+  const clearPairing=()=>{wcUri='';qr.hidden=true;qr.removeAttribute('src');open.hidden=true;open.removeAttribute('href');copy.hidden=true;};
+  cancel.onclick=()=>wcAbort?.abort();
+  copy.onclick=async()=>{try{if(wcUri)await navigator.clipboard.writeText(wcUri);}catch{detail.textContent='Copy is unavailable. Use the pairing QR or open your wallet.';}};
+  connect.onclick=async()=>{
+    if(wcAbort||stopped)return;
+    const controller=new AbortController();
+    wcAbort=controller;connect.disabled=true;cancel.hidden=false;clearPairing();
+    try{
+      detail.textContent='Preparing secure wallet connection…';
+      wcModule=await import(base+'/walletconnect.mjs');
+      const provider=await wcModule.connectWalletConnect({
+        freshSession:true,metadataOrigin:'https://genycaster.xyz',signal:controller.signal,
+        onUri:async uri=>{
+          if(controller.signal.aborted||stopped)return;
+          wcUri=uri;open.href=uri;open.hidden=false;copy.hidden=false;
+          detail.textContent='Open a WalletConnect-compatible wallet, or scan this QR to approve pairing.';
+          try{const image=await wcModule.createQrImage(uri);
+            if(wcUri===uri&&!controller.signal.aborted){qr.src=image;qr.hidden=false;}
+          }catch{}
+        }
+      });
+      if(stopped||controller.signal.aborted){await wcModule.disconnectWalletConnect();return;}
+      add('WalletConnect',provider);
+      const index=providers.findIndex(item=>item.provider===provider);
+      if(index>=0)select(index);
+      detail.textContent='Wallet paired. Review and approve the current request below.';
+    }catch(error){detail.textContent=String(error?.message||error).slice(0,240);}
+    finally{wcAbort=null;connect.disabled=false;cancel.hidden=true;clearPairing();}
+  };
+}
 const requestLabel=name=>{
   if(name==='eth_requestAccounts')return 'Connect wallet';
   if(name==='personal_sign'||name.startsWith('eth_sign'))return 'Sign message';
@@ -512,7 +561,7 @@ const execute=async()=>{
   const request=current;
   const showApproval=Boolean(request.requiresApproval);
   if(!undelivered){
-    if(showApproval)show('Opening '+selected.name+'… Check the wallet extension for any approval prompt.');
+    if(showApproval)show('Opening '+selected.name+'… Review the request in your selected wallet.');
     try{
       undelivered={transportId:request.transportId,result:
         await selected.provider.request({method:request.method,params:request.params})};
@@ -606,7 +655,13 @@ const poll=async()=>{
   }
   scheduleNext(800);
 };
-window.addEventListener('pagehide',stopPolling,{once:true});
+if(walletConnectAvailable){
+  window.addEventListener('pagehide',()=>{
+    if(nextTimer!==null)clearTimeout(nextTimer);
+    nextTimer=null;
+  });
+  window.addEventListener('pageshow',()=>{if(!stopped&&!current&&nextTimer===null)scheduleNext(0);});
+}else window.addEventListener('pagehide',stopPolling,{once:true});
 poll();
 </script></main></body></html>)html";
     return page;
@@ -762,9 +817,22 @@ public:
                 // wallet's actual chain cannot be fabricated before connect.
                 immediateError = rpcError(
                     request.id, 4900, "Connect a wallet before making this request.");
+            } else if (!m_config.walletConnectModule.empty() && !m_pending.empty()) {
+                immediateError = rpcError(request.id, 4900, "Another mobile wallet request is pending.");
             } else if (m_pending.size() >= MaximumQueuedRequests) {
                 immediateError = rpcError(request.id, 4900, "Too many wallet requests are pending.");
             } else {
+                const bool showNativeApproval = !m_config.walletConnectModule.empty()
+                    && sensitiveMethod(request.method, m_accountAccessGrants.contains(m_origin));
+                if (showNativeApproval && m_config.nativeApprovalSettled) {
+                    auto settled = m_config.nativeApprovalSettled;
+                    const auto url = sessionUrlLocked();
+                    completion = [done = std::move(completion), settled = std::move(settled), url]
+                        (capability::wallet::EthereumRpcResponse response) mutable {
+                            settled(url, !response.error);
+                            done(std::move(response));
+                        };
+                }
                 transportId = ++m_nextTransportId;
                 m_pending.emplace(transportId, Pending{
                     .transportId = transportId,
@@ -776,7 +844,7 @@ public:
                     .sessionGeneration = m_sessionGeneration,
                     .delivered = false,
                 });
-                if (!m_pageLaunched) {
+                if (!m_pageLaunched || showNativeApproval) {
                     m_pageLaunched = true;
                     launchUrl = sessionUrlLocked();
                 }
@@ -827,9 +895,16 @@ private:
         response.set("X-Content-Type-Options", "nosniff");
         response.set("X-Frame-Options", "DENY");
         if (!nonce.empty()) {
+            std::string connect = "default-src 'none'; connect-src 'self'";
+            const bool mobileWallet = !m_config.walletConnectModule.empty();
+            if (mobileWallet)
+                connect += " https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com"
+                           " wss://*.walletconnect.com wss://*.walletconnect.org wss://*.reown.com";
             response.set("Content-Security-Policy",
-                "default-src 'none'; connect-src 'self'; script-src 'nonce-" + std::string{nonce}
-                    + "'; style-src 'nonce-" + std::string{nonce} + "'; base-uri 'none'; frame-ancestors 'none'");
+                connect + "; script-src 'nonce-" + std::string{nonce}
+                    + (mobileWallet ? "' 'self'" : "'")
+                    + "; style-src 'nonce-" + std::string{nonce}
+                    + "'; img-src data:; base-uri 'none'; frame-ancestors 'none'");
         }
     }
 
@@ -839,7 +914,8 @@ private:
         const std::string base = basePathLocked();
         if (!target.starts_with(base)) return false;
         suffix.assign(target.substr(base.size()));
-        return suffix.empty() || suffix == "/next" || suffix == "/result" || suffix == "/event";
+        return suffix.empty() || suffix == "/next" || suffix == "/result" || suffix == "/event"
+            || (suffix == "/walletconnect.mjs" && !m_config.walletConnectModule.empty());
     }
 
     void run(const std::stop_token stopToken) {
@@ -950,7 +1026,16 @@ private:
             http::response<http::string_body> response{http::status::ok, request.version()};
             response.set(http::field::content_type, "text/html; charset=utf-8");
             secureHeaders(response, nonce);
-            response.body() = bridgePage(base, nonce, appName, origin);
+            response.body() = bridgePage(base, nonce, appName, origin, !m_config.walletConnectModule.empty());
+            response.prepare_payload();
+            writeBounded(socket, response);
+            return;
+        }
+        if (request.method() == http::verb::get && suffix == "/walletconnect.mjs") {
+            http::response<http::string_body> response{http::status::ok, request.version()};
+            response.set(http::field::content_type, "text/javascript; charset=utf-8");
+            secureHeaders(response);
+            response.body() = m_config.walletConnectModule;
             response.prepare_payload();
             writeBounded(socket, response);
             return;
@@ -1310,6 +1395,10 @@ makeBridge(Config config)
         return std::unexpected(makeError(
             foundation::error::ErrorCode::InvalidArgument,
             "Mini App wallet request limit must be between 1 KiB and 256 KiB."));
+    }
+    if (config.walletConnectModule.size() > 8U * 1024U * 1024U) {
+        return std::unexpected(makeError(foundation::error::ErrorCode::InvalidArgument,
+            "Bundled WalletConnect module exceeds size limit."));
     }
     if (config.requestTimeout <= std::chrono::milliseconds::zero()) {
         return std::unexpected(makeError(

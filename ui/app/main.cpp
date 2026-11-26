@@ -1004,6 +1004,7 @@ int main(int argc, char* argv[])
     miniAppHostControllerOwner = std::make_unique<MiniAppHostController>(
         miniAppLaunchAvailable, settings);
     MiniAppHostController& miniAppHost = *miniAppHostControllerOwner;
+    miniAppHost.setNativeSdkAvailable(GENYCASTER_HAS_MINIAPP_HOST != 0);
     proWalletHostOwner = std::make_unique<MiniAppHostController>(true, settings);
     MiniAppHostController& proWalletHost = *proWalletHostOwner;
     mediaWebHostControllerOwner = std::make_unique<MediaWebHostController>(
@@ -1124,30 +1125,48 @@ int main(int argc, char* argv[])
         });
 #if FARCASTER_HAS_MINIAPP_EVM_WALLET
     {
-        auto walletBridge = farcaster::provider::compatibility::browser_wallet::bridge::makeBridge({
-            .launch = walletLaunchTemplate.isEmpty()
-                ? farcaster::provider::compatibility::browser_wallet::bridge::WalletLauncher{
-                    [host = QPointer<MiniAppHostController>{&miniAppHost}](const std::string& url)
-                        -> foundation::result::Status {
-                        if (!host) {
-                            return std::unexpected(foundation::error::Error::make(
-                                foundation::error::ErrorCode::Unavailable,
-                                "Mini App wallet picker is no longer available."));
-                        }
-                        const QString sessionUrl = QString::fromStdString(url);
-                        QMetaObject::invokeMethod(host, [host, sessionUrl] {
-                            if (host) host->requestWalletBrowser(sessionUrl);
+        std::string nativeWalletConnectModule{};
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+        QFile moduleFile{QStringLiteral(":/genycaster/miniapp/genycaster-walletconnect.mjs")};
+        if (moduleFile.open(QIODevice::ReadOnly))
+            nativeWalletConnectModule = moduleFile.readAll().toStdString();
+        if (nativeWalletConnectModule.empty()) {
+            qWarning() << "Native Mini App WalletConnect resource unavailable";
+        } else
+#endif
+        {
+            auto walletBridge = farcaster::provider::compatibility::browser_wallet::bridge::makeBridge({
+                .launch = (!nativeWalletConnectModule.empty() || walletLaunchTemplate.isEmpty())
+                    ? farcaster::provider::compatibility::browser_wallet::bridge::WalletLauncher{
+                        [host = QPointer<MiniAppHostController>{&miniAppHost}](const std::string& url)
+                            -> foundation::result::Status {
+                            if (!host) {
+                                return std::unexpected(foundation::error::Error::make(
+                                    foundation::error::ErrorCode::Unavailable,
+                                    "Mini App wallet picker is no longer available."));
+                            }
+                            const QString sessionUrl = QString::fromStdString(url);
+                            QMetaObject::invokeMethod(host, [host, sessionUrl] {
+                                if (host) host->requestWalletBrowser(sessionUrl);
+                            }, Qt::QueuedConnection);
+                            return {};
+                        }}
+                    : makeWalletApprovalLauncher(walletLaunchTemplate),
+                .supportedChains = genycaster::ui::bootstrap::miniAppEthereumChains(),
+                .nativeApprovalSettled = [host = QPointer<MiniAppHostController>{&miniAppHost}]
+                    (const std::string& url, bool successful) {
+                        if (host) QMetaObject::invokeMethod(host, [host, sessionUrl = QString::fromStdString(url), successful] {
+                            if (host) host->nativeWalletApprovalSettled(sessionUrl, successful);
                         }, Qt::QueuedConnection);
-                        return {};
-                    }}
-                : makeWalletApprovalLauncher(walletLaunchTemplate),
-            .supportedChains = genycaster::ui::bootstrap::miniAppEthereumChains(),
-        });
-        if (walletBridge) {
-            miniAppWalletBridgeOwner = std::move(*walletBridge);
-        } else {
-            qWarning().noquote() << "Mini App EIP-1193 wallet bridge unavailable:"
-                                 << QString::fromStdString(walletBridge.error().message);
+                    },
+                .walletConnectModule = std::move(nativeWalletConnectModule),
+            });
+            if (walletBridge) {
+                miniAppWalletBridgeOwner = std::move(*walletBridge);
+            } else {
+                qWarning().noquote() << "Mini App EIP-1193 wallet bridge unavailable:"
+                                     << QString::fromStdString(walletBridge.error().message);
+            }
         }
     }
 #endif

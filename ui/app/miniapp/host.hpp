@@ -16,17 +16,20 @@
 #pragma once
 
 #include <QObject>
+#include <memory>
 #include <QString>
 #include <QTimer>
 #include <QVariantMap>
 #include <QVariantList>
 
 class QSettings;
+namespace farcaster::platform::miniapp { class Browser; }
 
 /** @brief GUI-thread launch intents/status. Owns no browser, network, or account secrets. */
 class MiniAppHostController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool available READ available CONSTANT)
+    Q_PROPERTY(bool nativeSdkAvailable READ nativeSdkAvailable CONSTANT)
     Q_PROPERTY(bool active READ active NOTIFY stateChanged)
     Q_PROPERTY(int sessionLimit READ sessionLimit NOTIFY sessionLimitChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY stateChanged)
@@ -53,7 +56,10 @@ class MiniAppHostController final : public QObject {
 public:
     /** @brief Borrows GUI-thread settings, which must outlive this controller. */
     explicit MiniAppHostController(bool runtimeAvailable, QSettings& settings, QObject* parent = nullptr);
+    ~MiniAppHostController() override;
     [[nodiscard]] bool available() const noexcept;
+    [[nodiscard]] bool nativeSdkAvailable() const noexcept { return m_nativeSdkAvailable; }
+    void setNativeSdkAvailable(bool value) noexcept { m_nativeSdkAvailable = value; }
     [[nodiscard]] bool active() const noexcept;
     [[nodiscard]] int sessionLimit() const noexcept;
 
@@ -80,6 +86,7 @@ public:
 
     /** A wallet RPC settled; dismiss waiting and remember only a successful choice. */
     void walletBrowserRequestFinished(bool successful);
+    void nativeWalletApprovalSettled(const QString& url, bool successful);
     Q_INVOKABLE void chooseWalletBrowser(const QString& browserId);
     Q_INVOKABLE void cancelWalletBrowser();
 
@@ -202,6 +209,7 @@ private:
     QString m_presentationMode{QStringLiteral("window")};
     bool m_reduceMotion{};
     bool m_available{};
+    bool m_nativeSdkAvailable{};
     int m_sessionLimit{1};
     bool m_active{};
     QString m_error{};
@@ -214,6 +222,10 @@ private:
     QString m_walletBrowserSelectedName{};
     bool m_walletBrowserWaiting{};
     QVariantList m_walletBrowserOptions{};
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+    std::unique_ptr<farcaster::platform::miniapp::Browser> m_mobileWalletBrowser;
+    QString m_mobileWalletBrowserUrl;
+#endif
     QVariantMap m_user{};
     QVariantMap m_swapRequest{};
     QString m_swapRequestId{};

@@ -60,36 +60,46 @@ export function withWalletDeadline(promise, timeoutMs, signal, message){
     Promise.resolve(promise).then(value=>finish(null,value),error=>finish(error));
   });
 }
-const initialize=()=>{
+const initialize=(metadataOrigin=window.location.origin)=>{
   if(!initPromise){
     initPromise=UniversalProvider.init({
       projectId,
       metadata:{
         name:'GenyCaster',
         description:'Your Farcaster Mini Apps, securely connected to your wallet.',
-        url:window.location.origin,
-        icons:[new URL('/genycaster-192.png',window.location.origin).href]
+        url:metadataOrigin,
+        icons:[new URL('/genycaster-192.png',metadataOrigin).href]
       }
     }).catch(error=>{initPromise=null;throw error;});
   }
   return initPromise;
 };
+export async function disconnectWalletConnect(){
+  if(!initPromise)return;
+  const provider=await initPromise;
+  if(provider.session)await provider.disconnect();
+  else provider.abortPairingAttempt?.();
+}
 export const createQrImage=uri=>QRCode.toDataURL(uri,{
   errorCorrectionLevel:'M',margin:2,width:240,color:{dark:'#111116',light:'#ffffff'}
 });
-export async function connectWalletConnect({onUri,onStatus,signal}={}){
+export async function connectWalletConnect({onUri,onStatus,signal,freshSession=false,metadataOrigin=window.location.origin}={}){
   if(signal?.aborted)throw Object.assign(
     new Error('Wallet connection cancelled'),{code:4001});
   onStatus?.('initializing');
   let provider;
   try{
-    provider=await withWalletDeadline(initialize(),INITIALIZE_TIMEOUT_MS,
+    provider=await withWalletDeadline(initialize(metadataOrigin),INITIALIZE_TIMEOUT_MS,
       signal,'WalletConnect initialization timed out. Check the relay connection and try again.');
   }catch(error){
     // Initialization may be stuck on an unavailable network. Allow the user
     // to retry rather than reusing that permanently pending promise.
     initPromise=null;
     throw error;
+  }
+  if(freshSession && provider.session){
+    await withWalletDeadline(provider.disconnect(),INITIALIZE_TIMEOUT_MS,signal,
+      'Could not revoke the previous wallet session.');
   }
   const eip1193=facadeFor(provider);
   if(eip1193.session){
