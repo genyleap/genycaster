@@ -244,9 +244,32 @@ device transfer explicitly exclude app data. Apple and Linux retain their
 existing secure backend policy. Browser origin compromise, OS compromise
 and compromised keyboard/clipboard are outside the local seal's guarantees.
 
-**Remaining migration boundary:** the existing cloud account API can still
-issue a session from a network-authorized social signer. Replacing that
-legacy bootstrap with independently enrolled/revocable cloud device
-credentials requires a coordinated account-service schema and client rollout.
-Do not disable the existing endpoint until both Farcaster/OpenProof and
-HyperSnap custody enrollment and existing account migration are verified.
+### Independent private-cloud authorization
+
+The application-layer `AuthenticationCoordinator` decides when to restore a
+locked device or revalidate a signer, and applies bounded exponential backoff.
+Qt only translates lifecycle events and dispatches the selected operations.
+
+Cloud enrollment uses an independent Ed25519 key per exact protocol/account,
+separate from the local device identity seal and the social signer. Native
+vault namespaces are `org.genycaster.cloud-device.farcaster` and
+`org.genycaster.cloud-device.hypersnap`; the browser uses isolated key scopes.
+The account service requires a fresh verified OpenProof grant for Farcaster
+or EIP-191 custody proof plus authoritative HyperSnap registry ownership.
+It never accepts a social signer or old cookie as enrollment authority.
+Device proof restores the server cookie without a recovery phrase or KEY_ADD.
+Logout revokes the device record and associated server cookies when reachable,
+and erases the local credential. The server can enforce the new trust boundary
+with `GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS=0` after migration 017 and client
+rollout. Legacy mode intentionally remains available until the migration is
+verified; it is not the final strict security policy.
+
+### Reference comparison
+
+The official Farcaster mobile client's AuthTokenProvider, WalletProvider,
+SecureStorageUtils, and revalidationSignOutDecision separate wallet storage,
+token restoration and transient network failures. Genycaster follows those
+lifecycle principles without sharing Farcaster's proprietary authentication
+tokens or storing the root phrase. OpenProof remains the independent central
+identity authority. Genycaster additionally separates protocol social signing
+from private app-cloud device authorization across all supported platforms.

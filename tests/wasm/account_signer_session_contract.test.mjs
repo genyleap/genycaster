@@ -23,29 +23,28 @@ test('previously registered Farcaster signer automatically starts account owners
     /genycaster-account-session-v1/);
 });
 
-test('manual Pro and Streak session retries use the registered WASM browser signer',()=>{
+test('manual Pro and Streak retries prefer independent protocol-scoped cloud devices',()=>{
   const pre=file('ui/wasm/protocol-signer-pre.js');
   const controller=file('ui/app/identity/connections.cpp');
   const bridge=file('ui/app/browser/signer_bridge.hpp');
-  assert.match(pre,/function retryAccountSession\(fid\)/);
+  assert.match(pre,/function retryAccountSession\(fid, bearer = ''\)/);
   // A verified account session can be restored from the registered vault
   // even before Snapchain reports a protocol write-ready signer.
   assert.match(pre,/owner !== fid \|\| window\.location\.origin !== "https:\/\/genycaster\.xyz"/);
   assert.doesNotMatch(pre,/owner !== fid \|\| !client/);
-  assert.match(pre,/if \(existing && !native && epoch===thisEpoch && owner===fid\)/);
+  assert.match(pre,/if \(action==='restore' && epoch===thisEpoch && owner===fid\)/);
   assert.match(pre,/nativeClient=createBrowserProtocolSigner\(\{/);
-  // HyperSnap is deliberately excluded from the Farcaster-only account
-  // session retry; its independent signer is verified on HyperSnap.
-  assert.match(pre,/ownerProtocol === "hypersnap-v2"/);
+  assert.match(pre,/ensureBrowserCloudDeviceSession\(args\)/);
+  assert.match(pre,/ownerProtocol==='hypersnap-v2'\?'hypersnap':'farcaster'/);
   assert.doesNotMatch(pre,/https:\/\/app\.genycaster\.xyz/);
-  assert.match(pre,/if \(accountSessionPromise && accountSessionOwner === fid\)/);
-  assert.match(pre,/ensureBrowserAccountSession\(\{/);
+  assert.match(pre,/if \(accountSessionPromise && accountSessionOwner === fid && !bearer\)/);
+  assert.match(pre,/ensureBrowserAccountSession\(args\)/);
   assert.match(pre,/Object\.freeze\(\{start,retryAccountSession,events\}\)/);
   assert.match(controller,/window\.__genycasterBrowserSigning/);
   assert.match(controller,/bridge\.retryAccountSession\(UTF8ToString\(\$0,\$1\)\)/);
   assert.match(controller,/if \(browserStarted\)/);
   assert.match(controller,/else\s+retryAccountSession\(\);\s*}\s*void OpenProofConnectionsController::fetchProPlan/);
-  assert.match(bridge,/m_accountSessionObserver\(presentation->accountFid\(\),csrf\)/);
+  assert.match(bridge,/m_accountSessionObserver\(presentation->accountFid\(\),csrf,/);
 });
 
 test('canonical WASM host owns the HttpOnly cookie and rejects retired origins',async()=>{
@@ -184,7 +183,7 @@ test('native cookie acceptance checks protocol-scoped issuer and subject, not on
   assert.match(scoped,/bool matchesAccountSessionPrincipal\(/);
   assert.match(scoped,/subject == QStringLiteral\("farcaster:"\) \+ canonicalFid/);
   assert.match(scoped,/subject == QStringLiteral\("hypersnap:"\) \+ canonicalFid/);
-  assert.equal((source.match(/genycaster::identity::matchesAccountSessionPrincipal\(data, viewer, m_issuerUrl\)/g)||[]).length,2);
+  assert.equal((source.match(/genycaster::identity::matchesAccountSessionPrincipal\(data, viewer, m_issuerUrl, m_viewerNetwork\)/g)||[]).length,2);
   assert.doesNotMatch(source,/data\.value\(QStringLiteral\("fid"\)\)\.toString\(\)!=QString::number\(viewer\)/);
 });
 

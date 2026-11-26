@@ -40,44 +40,49 @@ int main()
                                  QStringLiteral("hypersnap:native-registry"),
                                  QStringLiteral("hypersnap:4294967296"));
     bool pass = true;
-    pass &= check(matchesAccountSessionPrincipal(farcaster, farcasterFid, issuer),
+    pass &= check(matchesAccountSessionPrincipal(farcaster, farcasterFid, issuer, QStringLiteral("farcaster")),
                   "verified Farcaster principal accepted");
-    pass &= check(matchesAccountSessionPrincipal(hypersnap, nativeFid, issuer),
+    pass &= check(matchesAccountSessionPrincipal(hypersnap, nativeFid, issuer, QStringLiteral("hypersnap")),
                   "verified protocol-only HyperSnap principal accepted");
-    pass &= check(!matchesAccountSessionPrincipal(farcaster, nativeFid, issuer),
+    pass &= check(!matchesAccountSessionPrincipal(farcaster, nativeFid, issuer, QStringLiteral("hypersnap")),
                   "different numeric FID cannot inherit Farcaster identity");
-    pass &= check(!matchesAccountSessionPrincipal(hypersnap, farcasterFid, issuer),
+    pass &= check(!matchesAccountSessionPrincipal(hypersnap, farcasterFid, issuer, QStringLiteral("farcaster")),
                   "different numeric FID cannot inherit HyperSnap identity");
     pass &= check(!matchesAccountSessionPrincipal(
                       owner(QString::number(farcasterFid),
                             QStringLiteral("hypersnap:native-registry"),
-                            QStringLiteral("hypersnap:321969")), farcasterFid, issuer),
+                            QStringLiteral("hypersnap:321969")), farcasterFid, issuer, QStringLiteral("farcaster")),
                   "native issuer cannot borrow a Farcaster-range numeric FID");
     pass &= check(!matchesAccountSessionPrincipal(
                       owner(QString::number(farcasterFid),
                             QStringLiteral("hypersnap:native-registry"),
-                            QStringLiteral("farcaster:321969")), farcasterFid, issuer),
+                            QStringLiteral("farcaster:321969")), farcasterFid, issuer, QStringLiteral("farcaster")),
                   "issuer and protocol subject cannot be mixed");
     pass &= check(!matchesAccountSessionPrincipal(
                       owner(QString::number(farcasterFid), verifiedIssuer,
-                            QStringLiteral("hypersnap:321969")), farcasterFid, issuer),
+                            QStringLiteral("hypersnap:321969")), farcasterFid, issuer, QStringLiteral("farcaster")),
                   "an OpenProof issuer never upgrades a native subject");
     pass &= check(!matchesAccountSessionPrincipal(
                       owner(QString::number(farcasterFid),
                             QStringLiteral("https://attacker.invalid"),
-                            QStringLiteral("farcaster:321969")), farcasterFid, issuer),
+                            QStringLiteral("farcaster:321969")), farcasterFid, issuer, QStringLiteral("farcaster")),
                   "untrusted issuer rejected");
     pass &= check(!matchesAccountSessionPrincipal(
                       owner(QStringLiteral("0321969"), verifiedIssuer,
-                            QStringLiteral("farcaster:321969")), farcasterFid, issuer),
+                            QStringLiteral("farcaster:321969")), farcasterFid, issuer, QStringLiteral("farcaster")),
                   "noncanonical FID encoding rejected");
-    pass &= check(!matchesAccountSessionPrincipal(farcaster, 0, issuer),
+    pass &= check(!matchesAccountSessionPrincipal(farcaster, 0, issuer, QStringLiteral("farcaster")),
                   "zero FID rejected");
     pass &= check(!matchesAccountSessionPrincipal(
                       {{QStringLiteral("fid"), 321969},
                        {QStringLiteral("issuer"), verifiedIssuer},
                        {QStringLiteral("subject"), QStringLiteral("farcaster:321969")}},
-                      farcasterFid, issuer),
+                      farcasterFid, issuer, QStringLiteral("farcaster")),
                   "lossy JSON-number FID cannot enter string-only identity contract");
+    pass &= check(!matchesAccountSessionPrincipal(hypersnap,nativeFid,issuer,QStringLiteral("farcaster")),
+                  "same numeric FID in different protocol cannot inherit private session");
+    pass &= check(!matchesAccountSessionPrincipal(owner(QString::number(nativeFid),verifiedIssuer,
+        QStringLiteral("farcaster:4294967296")),nativeFid,issuer,QStringLiteral("hypersnap")),
+        "Farcaster issuer cannot authenticate a native viewer");
     return pass ? 0 : 1;
 }

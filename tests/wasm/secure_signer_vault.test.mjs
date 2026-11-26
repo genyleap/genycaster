@@ -266,3 +266,29 @@ test('media signing accepts canonical Uint8Array bytes from a separate browser r
     await assert.rejects(vault.signMediaChallenge(fid,new Int8Array(canonical)),
         /invalid media challenge size/);
 });
+
+
+test('cloud device keys are isolated from social signers and exact protocol',async()=>{
+    const storage=new MemoryIndexedDB(),env=environment(storage),fid='4294967296';
+    const social=createBrowserSignerVault(env);
+    const cloud=createBrowserSignerVault(env,{scope:'cloud-device-farcaster'});
+    const native=createBrowserSignerVault(env,{scope:'cloud-device-hypersnap'});
+    const a=await social.ensure(fid),b=await cloud.ensure(fid),c=await native.ensure(fid);
+    assert.equal(new Set([a.publicKeyHex,b.publicKeyHex,c.publicKeyHex]).size,3);
+    const challenge={purpose:'restore',network:'farcaster',fid,
+        public_key:b.publicKeyHex,nonce:'a'.repeat(43)};
+    const proof=await cloud.signCloudDeviceChallenge(fid,challenge);
+    const key=await webcrypto.subtle.importKey('raw',Buffer.from(b.publicKeyHex,'hex'),
+        'Ed25519',true,['verify']);
+    const bytes=new TextEncoder().encode(['genycaster-cloud-device-v2','restore','farcaster',
+        fid,b.publicKeyHex,challenge.nonce].join('\n'));
+    assert.equal(await webcrypto.subtle.verify('Ed25519',key,Buffer.from(proof.signature,'hex'),bytes),true);
+    await assert.rejects(social.signCloudDeviceChallenge(fid,challenge),/invalid cloud device/);
+    await assert.rejects(native.signCloudDeviceChallenge(fid,challenge),/invalid cloud device/);
+    await assert.rejects(cloud.signHash(fid,new Uint8Array(20)),/cloud device key cannot/);
+    await assert.rejects(cloud.signAccountChallenge(fid,challenge.nonce),/cloud device key cannot/);
+    await cloud.erase(fid);
+    assert.equal(await cloud.load(fid),null);
+    assert.deepEqual(await social.load(fid),a);
+    assert.deepEqual(await native.load(fid),c);
+});

@@ -518,3 +518,27 @@ The voucher can be issued only by a trusted first-party component after
 actual payment verification or sponsorship approval; the API deliberately
 does not issue free reservations or declare a successful transaction from
 an HTTP 200 response.
+
+
+### Cloud device credentials (migration 017)
+
+The private cloud authority is independent of social signing. Apply
+`017_cloud_device_credentials.sql` with the database administrator, then restart
+the account API. The new device enrollment protocol uses an exact protocol/FID,
+public key, purpose and single-use challenge. Farcaster enrollment requires a
+fresh verified OpenProof grant; native HyperSnap requires a custody signature
+and a verified native registry mapping. Only public device keys are persisted.
+A successful device proof rotates the 30-day HttpOnly account cookie, and device
+proofs expire after 90 days of inactivity. Explicit logout deletes the enrolled
+credential and its device cookies. The client also erases its local cloud key.
+
+**Staged rollout:** existing clients may still use the legacy social-signer
+endpoint while `GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS` is unset or `1`.
+After migration 017 and native/browser end-to-end enrollment tests, update
+clients and have existing accounts enroll once with their original authority.
+Then set `GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS=0` and restart the account API.
+Strict mode rejects legacy challenge/proof and cookies without device or
+OpenProof provenance; it does not disable fresh verified OpenProof grants.
+Do not enable strict mode before this compatibility rollout. Offline logout
+cannot guarantee immediate server-side revocation; no root recovery words or
+social key are persisted by the cloud credential subsystem.
