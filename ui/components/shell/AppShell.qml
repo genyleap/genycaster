@@ -68,6 +68,8 @@ Item {
     // the content history. Reuse the same hierarchy on Android and future iOS
     // hosts; do not discard an in-progress Cast while a nested picker is open.
     function handlePlatformBack() {
+        if (androidMiniAppHostLoader.item && androidMiniAppHostLoader.item.handleBack())
+            return true
         if (interactionAuthorizationDialog.opened) {
             interactionAuthorizationDialog.close()
             root.pendingComposerIntent = null
@@ -4514,12 +4516,29 @@ Item {
         onFinishSetup: presentationBridge.completeInitialSetup()
     }
 
-    // Compiled only for Android. The Android resource imports QtWebView,
-    // so desktop/WASM do not acquire an unavailable platform dependency.
+    // Native mobile WebView only. Desktop and WASM keep their independent
+    // platform browser adapters and do not import QtWebView.
     Loader {
         id: androidMiniAppHostLoader
-        active: Qt.platform.os === "android"
+        active: Qt.platform.os === "android" || Qt.platform.os === "ios"
         source: active ? "qrc:/qt/qml/Farcaster/Client/components/AndroidMiniAppWebView.qml" : ""
+        onStatusChanged: {
+            if (status === Loader.Error) {
+                console.error("Native mobile Mini App WebView could not be loaded")
+                miniAppHost.setState(false, qsTrId("genycaster.miniapp.unavailable"))
+            }
+        }
+    }
+
+    // A packaging/runtime import failure must also reject a later launch;
+    // a failed Loader cannot receive the controller's launchRequested signal.
+    Connections {
+        target: miniAppHost
+        enabled: androidMiniAppHostLoader.active
+                 && androidMiniAppHostLoader.status !== Loader.Ready
+        function onLaunchRequested(url, title, iconSource) {
+            miniAppHost.setState(false, qsTrId("genycaster.miniapp.unavailable"))
+        }
     }
 
     // SDK swap requests never share the untrusted embedded browser surface.

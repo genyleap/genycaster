@@ -19,6 +19,10 @@ provider, JS bridge, or signer authority. The Android Release CMake
 configuration explicitly sets `GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only`.
 Any configuration claiming a full Android Mini App SDK fails at configure
 time; it cannot be accepted simply by setting `FARCASTER_ENABLE_MINIAPPS=ON`.
+The same unprivileged, full-viewport WebView is composed on iOS; iOS CI
+requires the QtWebView addon and remains an unsigned device-build check,
+not an installable public release. Android CI checks the compiled host
+marker and rejects APKs missing the native and QML WebView plugins.
 Desktop hosts and browser WASM provide their distinct, audited SDK/wallet
 paths, subject to real-device acceptance before public release.
 

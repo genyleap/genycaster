@@ -1253,6 +1253,7 @@ jobs:
           fi
           # Qt Network SSL feature was verified before OpenSSL packaging.
           cmake "${args[@]}"
+          grep -q '^GENYCASTER_MOBILE_MINIAPP_WEBVIEW_READY:INTERNAL=ON$' build/android/CMakeCache.txt
           bash ci/build_android_apk_with_retry.sh
           mkdir -p dist
           # Qt's deploy step may produce a native APK and a Gradle APK.
@@ -1337,7 +1338,7 @@ jobs:
           version: ${{ env.QT_VERSION }}
           target: ios
           arch: ios
-          modules: qtmultimedia
+          modules: qtmultimedia qtwebview
           cache: true
       - name: Build pinned static OpenSSL for iOS arm64
         shell: bash
@@ -1381,8 +1382,10 @@ jobs:
             -DCMAKE_OSX_DEPLOYMENT_TARGET=18.0 \
             -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
             "-DOPENSSL_ROOT_DIR=$PWD/build/ios-openssl/install" \
+            -DFARCASTER_ENABLE_MINIAPPS=OFF \
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
+          grep -q '^GENYCASTER_MOBILE_MINIAPP_WEBVIEW_READY:INTERNAL=ON$' build/ios/CMakeCache.txt
           cmake --build build/ios --target genycaster --parallel 2
           count="$(find build/ios -type d -name 'Genycaster.app' | wc -l | tr -d ' ')"
           test "$count" = 1

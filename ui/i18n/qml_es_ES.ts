@@ -2285,6 +2285,10 @@ Empresa | https://company.com</translation>
             <source>The app manifest is missing or invalid.</source>
             <translation>Falta el manifiesto de la aplicación o no es válido.</translation>
         </message>
+        <message id="genycaster.miniapp.navigation_blocked">
+            <source>This app tried to navigate outside its original site. Open it again to retry.</source>
+            <translation>Esta aplicación intentó salir de su sitio original. Ábrela de nuevo para reintentar.</translation>
+        </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
             <translation>No se pudo cargar la aplicación. Comprueba tu conexión e inténtalo de nuevo.</translation>

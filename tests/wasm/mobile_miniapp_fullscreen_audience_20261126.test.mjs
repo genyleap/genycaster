@@ -1,0 +1,35 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+test('audience selector shares compact theme metrics without fixed segment geometry',()=>{
+ const qml=read('ui/components/home/HomeFeedHeader.qml');
+ assert.match(qml,/segmentPadding: root\.compact \? Theme\.space1 : Theme\.space2/);
+ assert.match(qml,/Layout\.preferredHeight: Theme\.compactControlHeight - Theme\.space1/);
+ assert.match(qml,/Math\.max\(everyoneMetrics\.advanceWidth, followingMetrics\.advanceWidth\)/);
+ assert.match(qml,/Layout\.preferredWidth: audienceSelector\.availableSegmentWidth/);
+ assert.match(qml,/Accessible\.checked: scopeOption\.selected/);
+ assert.doesNotMatch(qml,/Math\.max\(44, Theme\.compactControlHeight\)/);
+});
+test('native mobile WebView is a mandatory built-in host with full viewport and back handling',()=>{
+ const qml=read('ui/components/apps/AndroidWebView.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
+ const cmake=read('ui/CMakeLists.txt');
+ const main=read('ui/app/main.cpp');
+ const workflow=read('.github/workflows/ci.yml');
+ const apk=read('ci/verify_platform_package.py');
+ assert.match(qml,/width: parent \? parent\.width : 0/);
+ assert.match(qml,/height: parent \? parent\.height : 0/);
+ assert.match(qml,/current\.goBack\(\)/);
+ assert.match(shell,/androidMiniAppHostLoader\.item\.handleBack\(\)/);
+ assert.match(shell,/active: Qt\.platform\.os === "android" \|\| Qt\.platform\.os === "ios"/);
+ assert.match(cmake,/find_package\(Qt6 6\.12 REQUIRED COMPONENTS WebView WebViewQuick\)/);
+ assert.match(cmake,/Qt6::QAndroidWebViewPlugin/);
+ assert.match(cmake,/Qt6::QDarwinWebViewPlugin/);
+ assert.match(main,/defined\(GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW\)/);
+ assert.match(workflow,/GENYCASTER_MOBILE_MINIAPP_WEBVIEW_READY:INTERNAL=ON.*build\/android\/CMakeCache\.txt/);
+ assert.match(workflow,/GENYCASTER_MOBILE_MINIAPP_WEBVIEW_READY:INTERNAL=ON.*build\/ios\/CMakeCache\.txt/);
+ assert.match(apk,/libplugins_webview_qtwebview_android_/);
+ assert.match(apk,/qtwebviewquickplugin_/);
+ assert.doesNotMatch(qml,/runJavaScript\s*\(|addJavascriptInterface|nativeWallet/);
+});

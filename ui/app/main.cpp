@@ -44,8 +44,10 @@
 #if defined(Q_OS_ANDROID)
 #include "media/android_icon.hpp"
 #include "media/android_document_picker.hpp"
-#include <QtWebView/QtWebView>
 #include <QtMultimedia/private/qplatformmediaintegration_p.h>
+#endif
+#if defined(GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW)
+#include <QtWebView/QtWebView>
 #endif
 #include <QProcess>
 #include <QSettings>
@@ -347,7 +349,9 @@ int main(int argc, char* argv[])
         if (!qEnvironmentVariableIsSet("QT_DISABLE_HW_TEXTURES_CONVERSION"))
             qputenv("QT_DISABLE_HW_TEXTURES_CONVERSION", "1");
     }
-    // Native Android WebView must be initialized before the GUI application.
+#endif
+#if defined(GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW)
+    // Initialize native mobile WebView before constructing the GUI application.
     QtWebView::initialize();
 #endif
     // Adaptive is the product default. Qt Quick's standard scene graph keeps
@@ -988,9 +992,9 @@ int main(int argc, char* argv[])
     dataStorageControllerOwner = std::make_unique<DataStorageController>(settings);
     DataStorageController& dataStorageController = *dataStorageControllerOwner;
 
-#if defined(Q_OS_WASM) || defined(Q_OS_ANDROID)
-    // Browser/WASM and Android host public web content without exposing
-    // signer or wallet permissions. macOS separately enables its SDK runtime.
+#if defined(Q_OS_WASM) || defined(GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW)
+    // Browser/WASM and native mobile host public web content. Mobile does
+    // not expose signer or wallet permissions through this public WebView.
     constexpr bool miniAppLaunchAvailable = true;
 #else
     constexpr bool miniAppLaunchAvailable = GENYCASTER_HAS_MINIAPP_HOST != 0;

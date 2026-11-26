@@ -2284,6 +2284,10 @@ Company | https://company.com</source>
             <source>The app manifest is missing or invalid.</source>
             <translation>ऐप मैनिफ़ेस्ट मौजूद नहीं है या अमान्य है।</translation>
         </message>
+        <message id="genycaster.miniapp.navigation_blocked">
+            <source>This app tried to navigate outside its original site. Open it again to retry.</source>
+            <translation>इस ऐप ने अपनी मूल साइट से बाहर जाने का प्रयास किया। फिर से कोशिश करने के लिए इसे दोबारा खोलें।</translation>
+        </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
             <translation>ऐप लोड नहीं हो सका। अपना कनेक्शन जाँचें और फिर प्रयास करें।</translation>

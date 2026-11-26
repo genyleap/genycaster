@@ -617,7 +617,7 @@ void MiniAppHostController::openWithMetadata(const QString& url,
         || numericHost.setAddress(host)
         || !destination.userName().isEmpty()
         || !destination.password().isEmpty()) {
-        setState(false, qtTrId("genycaster.miniapp.unavailable"));
+        setState(false, qtTrId("genycaster.miniapp.invalid_url"));
         return;
     }
     m_launchUrl = destination.toString(QUrl::FullyEncoded);
@@ -660,7 +660,7 @@ void MiniAppHostController::openWithMetadata(const QString& url,
         // browser, but must never be conflated with opening a Mini App.
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
         setState(false, qtTrId("genycaster.miniapp.unavailable"));
-#elif !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID)
+#elif !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
         if (QDesktopServices::openUrl(destination)) {
             emit externalLaunchSucceeded();
             setState(false);

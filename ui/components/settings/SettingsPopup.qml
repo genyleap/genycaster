@@ -1973,6 +1973,7 @@ GenyAdaptiveDialog {
                     ColumnLayout {
                         Layout.columnSpan: root.contentColumns
                         Layout.fillWidth: true
+                        visible: Qt.platform.os !== "android" && Qt.platform.os !== "ios"
                         spacing: Theme.space2
 
                         DirectionAwareLabel {

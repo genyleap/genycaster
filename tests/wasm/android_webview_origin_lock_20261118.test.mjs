@@ -15,7 +15,7 @@ function method(name, args) {
 }
 
 function fixture(launch='https://mini.example/path') {
-  const sessions = [{url:launch, title:'Mini App', blocked:false}];
+  const sessions = [{url:launch, title:'Mini App', blocked:false, error:''}];
   const miniAppSessions = {
     get count(){return sessions.length;},
     get(index){return sessions[index];},
@@ -27,6 +27,7 @@ function fixture(launch='https://mini.example/path') {
   const context=vm.createContext({
     root,miniAppSessions,miniAppHost,qsTrId:()=> 'Mini App unavailable',
   });
+  root.reportSessionError=vm.runInContext('('+method('reportSessionError')+')',context);
   root.publicOrigin=vm.runInContext('('+method('publicOrigin')+')',context);
   const block=vm.runInContext('('+method('blockForeignNavigation')+')',context);
   return {block,root,sessions,calls};
@@ -93,12 +94,39 @@ test('URL changes cannot bypass the document gate via subdomain, redirects or in
 });
 
 test('Android public WebView clears redirected documents and never leaks wallet/SDK privilege',()=>{
-  assert.match(qml,/onUrlChanged: function\(nextUrl\)/);
+  assert.match(qml,/onUrlChanged:\s*\{\s*const nextUrl = String\(web\.url \|\| ""\)/);
+  assert.doesNotMatch(qml,/onUrlChanged:\s*function\(\w+\)/);
   assert.match(qml,/if \(root\.blockForeignNavigation\(index, nextUrl\)\) stop\(\)/);
   assert.match(qml,/url: model\.blocked \? "" : String\(model\.url\)/);
   assert.match(qml,/visible: root\.opened && index === root\.activeSessionIndex\s*&& !Boolean\(model\.blocked\)/);
-  assert.match(qml,/if \(index !== root\.activeSessionIndex \|\| Boolean\(model\.blocked\)\)/);
-  assert.match(qml,/miniAppSessions\.append\(\{url:String\(url\), title:name, blocked:false\}\)/);
+  assert.match(qml,/const destination = String\(request\.url \|\| ""\)/);
+  assert.match(qml,/root\.blockForeignNavigation\(index, destination\)/);
+  assert.match(qml,/miniAppSessions\.append\(\{url:String\(url\), title:name, blocked:false, error:""\}\)/);
   assert.match(qml,/if \(Boolean\(miniAppSessions\.get\(i\)\.blocked\)\)/);
   assert.doesNotMatch(qml,/runJavaScript\(|addJavascriptInterface|nativeWallet|signOpenProofWalletChallenge/);
+});
+
+test('Qt WebView zero-argument URL notification reads the actual view URL',()=>{
+  const start=qml.indexOf('                    onUrlChanged: {')+'                    onUrlChanged: {'.length;
+  const end=qml.indexOf('\n                    }',start);
+  assert.ok(end>start);
+  const body=qml.slice(start,end);
+  const f=fixture();
+  let stopped=0;
+  const context=vm.createContext({
+    root:{blockForeignNavigation:f.block},
+    web:{url:'https://mini.example/start'},
+    model:f.sessions[0],index:0,stop:()=>++stopped
+  });
+  const notify=()=>vm.runInContext('(function(){'+body+'})()',context);
+  notify();
+  assert.equal(f.sessions[0].blocked,false);
+  assert.equal(stopped,0);
+  context.web.url='https://mini.example/next';
+  notify();
+  assert.equal(stopped,0);
+  context.web.url='https://other.example/';
+  notify();
+  assert.equal(f.sessions[0].blocked,true);
+  assert.equal(stopped,1);
 });

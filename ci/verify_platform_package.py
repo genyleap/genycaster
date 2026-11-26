@@ -250,9 +250,17 @@ def validate_android(path: Path) -> None:
             f"lib/{abi}/libcrypto_3.so",
             f"lib/{abi}/libplugins_tls_qopensslbackend_{abi}.so",
             f"lib/{abi}/libplugins_multimedia_ffmpegmediaplugin_{abi}.so",
+            f"lib/{abi}/libQt6WebView_{abi}.so",
+            f"lib/{abi}/libQt6WebViewQuick_{abi}.so",
+            f"lib/{abi}/libplugins_webview_qtwebview_android_{abi}.so",
         )
         for member in required:
             require(member in names, f"Android APK missing {member}")
+
+        require(any(member.startswith(f"lib/{abi}/")
+                    and member.endswith(f"qtwebviewquickplugin_{abi}.so")
+                    for member in names),
+                "Android APK missing QtWebView QML plugin")
 
         # Verify every native library, including provider DLL equivalents and
         # bundled OpenSSL; checking only Qt6Core misses real startup failures.
@@ -280,7 +288,11 @@ def validate_android(path: Path) -> None:
         require(permission.encode("utf-8") in manifest
                 or permission.encode("utf-16le") in manifest,
                 "Android APK missing INTERNET permission")
-        require(any(name.endswith(".dex") for name in names), "Android APK missing DEX")
+        dex_files = [name for name in names if name.endswith(".dex")]
+        require(bool(dex_files), "Android APK missing DEX")
+        require(any(b"Lorg/qtproject/qt/android/view/QtAndroidWebViewController;" in apk.read(name)
+                    for name in dex_files),
+                "Android APK missing QtAndroidWebViewController Java runtime")
         require(not any(name.startswith("lib/x86") for name in names),
                 "Unexpected x86 libraries in ARM-only APK")
 

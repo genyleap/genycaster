@@ -2284,6 +2284,10 @@ Company | https://company.com</source>
             <source>The app manifest is missing or invalid.</source>
             <translation>앱 매니페스트가 없거나 올바르지 않습니다.</translation>
         </message>
+        <message id="genycaster.miniapp.navigation_blocked">
+            <source>This app tried to navigate outside its original site. Open it again to retry.</source>
+            <translation>이 앱이 원래 사이트를 벗어나려고 했습니다. 다시 시도하려면 앱을 다시 여세요.</translation>
+        </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
             <translation>앱을 불러올 수 없습니다. 연결을 확인하고 다시 시도하세요.</translation>

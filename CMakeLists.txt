@@ -247,6 +247,9 @@ if(ANDROID)
             "Do not enable FARCASTER_ENABLE_MINIAPPS on this platform.")
     endif()
 endif()
+if(IOS AND FARCASTER_ENABLE_MINIAPPS)
+    message(FATAL_ERROR "iOS public WebView does not implement the privileged Mini App SDK host.")
+endif()
 option(FARCASTER_ENABLE_DERIVED_CAST_VIEWS
     "Enable optional public view-count analytics in the Qt client" ON)
 

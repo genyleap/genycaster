@@ -43,9 +43,12 @@ test('Mini App web presents in configured mode with independent fullscreen and n
  assert.doesNotMatch(web,/window\.open\(/);
  assert.match(host,/host\.setMode\(UTF8ToString\(\$0,\$1\)\)/);
  assert.match(host,/UTF8ToString\(\$6,\$7\)/);
- assert.match(android,/property bool miniAppFullscreen: false/);
- assert.match(android,/onClicked: root.miniAppFullscreen = true/);
- assert.match(android,/iconGlyph: Theme.iconCompress/);
+ assert.match(android,/width: parent \? parent\.width : 0/);
+ assert.match(android,/height: parent \? parent\.height : 0/);
+ assert.match(android,/x: 0\s+y: 0/);
+ assert.match(android,/iconGlyph: Theme.iconClose/);
+ assert.match(android,/function handleBack\(\)/);
+ assert.doesNotMatch(android,/activePresentation|miniAppFullscreen/);
  assert.match(macos,/toggleFullscreen:/);
  assert.match(macos,/m_drawer->m_fullscreen/);
  assert.match(macos,/NSWindowCollectionBehaviorFullScreenPrimary/);

@@ -167,7 +167,17 @@ def blockers() -> list[str]:
         and 'import QtWebView' in android_qml
         and "function publicOrigin(candidate)" in android_qml
         and "function blockForeignNavigation(index, destination)" in android_qml
+        and 'const nextUrl = String(web.url || "")' in android_qml
         and "if (root.blockForeignNavigation(index, nextUrl)) stop()" in android_qml
+        and "width: parent ? parent.width : 0" in android_qml
+        and "height: parent ? parent.height : 0" in android_qml
+        and "GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW=1" in ui
+        and "Qt6::QAndroidWebViewPlugin" in ui
+        and "Qt6::qtwebviewquickplugin" in ui
+        and "GENYCASTER_MOBILE_MINIAPP_WEBVIEW_READY:INTERNAL=ON" in android
+        and "libplugins_webview_qtwebview_android_" in read("ci/verify_platform_package.py")
+        and "qtwebviewquickplugin_" in read("ci/verify_platform_package.py")
+        and "QtAndroidWebViewController;" in read("ci/verify_platform_package.py")
         and 'url: model.blocked ? "" : String(model.url)' in android_qml
         and 'active: Qt.platform.os === "android"' in shell
         and "AndroidMiniAppWebView.qml" in shell

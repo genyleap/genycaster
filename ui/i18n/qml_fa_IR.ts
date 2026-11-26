@@ -2285,6 +2285,10 @@ Company | https://company.com</source>
             <source>The app manifest is missing or invalid.</source>
             <translation>اطلاعات معرفی برنامه موجود نیست یا معتبر نیست.</translation>
         </message>
+        <message id="genycaster.miniapp.navigation_blocked">
+            <source>This app tried to navigate outside its original site. Open it again to retry.</source>
+            <translation>این برنامه تلاش کرد از سایت اصلی خود خارج شود. برای تلاش مجدد، آن را دوباره باز کنید.</translation>
+        </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
             <translation>برنامه بارگذاری نشد. اتصال را بررسی کنید و دوباره تلاش کنید.</translation>

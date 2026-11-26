@@ -201,9 +201,9 @@ if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
     list(APPEND farcasterQmlFiles components/media/AnimatedEmojiLottie.qml)
 endif()
 
-# Android uses the platform WebView for public Mini App web content. No
-# privileged SDK / signer bridge is exposed to that untrusted web surface.
-if(ANDROID)
+# Android and iOS use their platform WebView for public Mini App content.
+# No privileged SDK / signer bridge is exposed to these mobile surfaces.
+if(ANDROID OR IOS)
     list(APPEND farcasterQmlFiles components/apps/AndroidWebView.qml)
 endif()
 
@@ -216,7 +216,7 @@ file(GLOB_RECURSE farcasterDiscoveredQmlFiles
 if(NOT Qt6Lottie_FOUND OR Qt6_VERSION VERSION_LESS 6.11)
     list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/media/AnimatedEmojiLottie.qml)
 endif()
-if(NOT ANDROID)
+if(NOT ANDROID AND NOT IOS)
     list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/apps/AndroidWebView.qml)
 endif()
 # The Linux-only WebEngine Quick host is loaded dynamically from a separate
@@ -1598,9 +1598,25 @@ qt_add_resources(genycaster genycaster_release_notes
     FILES "${GENYCASTER_RELEASE_NOTES_FILE}"
 )
 
-if(ANDROID)
-    find_package(Qt6 6.12 REQUIRED COMPONENTS WebView)
-    target_link_libraries(genycaster PRIVATE Qt6::WebView)
+if(ANDROID OR IOS)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS WebView WebViewQuick)
+    if(ANDROID)
+        set(_genycasterMobileWebViewPlugin Qt6::QAndroidWebViewPlugin)
+    else()
+        set(_genycasterMobileWebViewPlugin Qt6::QDarwinWebViewPlugin)
+    endif()
+    if(NOT TARGET ${_genycasterMobileWebViewPlugin} OR NOT TARGET Qt6::qtwebviewquickplugin)
+        message(FATAL_ERROR "Native mobile Mini Apps require both the platform WebView and QtWebView QML plugin")
+    endif()
+    set(genycaster_mobile_webview_plugins INCLUDE_BY_TYPE webview ${_genycasterMobileWebViewPlugin})
+    target_link_libraries(genycaster PRIVATE Qt6::WebView Qt6::WebViewQuick)
+    if(IOS)
+        # Static iOS QML plugin registration must not depend on runtime loading.
+        target_link_libraries(genycaster PRIVATE Qt6::qtwebviewquickplugin)
+    endif()
+    target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW=1)
+    set(GENYCASTER_MOBILE_MINIAPP_WEBVIEW_READY ON CACHE INTERNAL "Mobile public WebView host composed" FORCE)
+    message(STATUS "Native mobile Mini App host: public HTTPS QtWebView (no privileged SDK)")
 endif()
 
 set_source_files_properties("components/composer/ProCastPolicy.js" PROPERTIES QT_RESOURCE_ALIAS "components/ProCastPolicy.js")
@@ -1749,16 +1765,16 @@ if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
             Qt6::LottieVectorImageHelpersplugin)
         qt_import_plugins(genycaster
             INCLUDE Qt6::QLottieVectorImagePlugin
-            ${genycaster_android_media_plugins}
+            ${genycaster_android_media_plugins} ${genycaster_mobile_webview_plugins}
             EXCLUDE_BY_TYPE sqldrivers)
     else()
         qt_import_plugins(genycaster
             INCLUDE Qt6::QLottieVectorImagePlugin
-            ${genycaster_android_media_plugins}
+            ${genycaster_android_media_plugins} ${genycaster_mobile_webview_plugins}
             EXCLUDE_BY_TYPE sqldrivers)
     endif()
 else()
-    qt_import_plugins(genycaster ${genycaster_android_media_plugins} EXCLUDE_BY_TYPE sqldrivers)
+    qt_import_plugins(genycaster ${genycaster_android_media_plugins} ${genycaster_mobile_webview_plugins} EXCLUDE_BY_TYPE sqldrivers)
 endif()
 
 set(farcasterTranslationFiles
