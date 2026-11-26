@@ -71,12 +71,14 @@ Menu {
         browserInk = editor.color.a > 0 ? editor.color : Theme.ink
         browserPlaceholderInk = editor.placeholderTextColor.a > 0
             ? editor.placeholderTextColor : Theme.inkSubtle
-        // Qt's hidden IME must not compete with the visible browser input.
+        // Keep the Qt platform window active. Hiding the platform input
+        // context here can itself move focus during a browser gesture.
         openingBrowserEditor = true
-        Qt.inputMethod.hide()
         const token = pendingPaste
         const opened = presentationBridge.openBrowserTextEditor(token, plainText(), editorOptions())
         openingBrowserEditor = false
+        // The adapter returns true only for an actual focused, hit-testable
+        // DOM input inside the active Qt window.
         browserEditing = opened && pendingPaste === token
         if (!opened) {
             cancelPaste()
@@ -93,7 +95,7 @@ Menu {
     Timer {
         // Scene coordinates can change while an ancestor scrolls or the
         // visual viewport shrinks for the keyboard.
-        interval: 80
+        interval: 120
         repeat: true
         running: root.browserEditing
         onTriggered: root.syncBrowserEditor(true)
@@ -170,13 +172,18 @@ Menu {
             root.syncBrowserEditor()
         }
         function onActiveFocusChanged() {
-            if (root.editor.activeFocus && root.browser && root.usable())
-                root.requestSystemEditor()
-            else if (!root.editor.activeFocus && !root.applyingBrowserText
-                     && !root.browserEditing && !root.openingBrowserEditor)
+            if (root.editor.activeFocus && root.browser && root.usable()) {
+                // Let Qt finish its pointer/focus transaction first. A
+                // focused field should already be a real browser target
+                // before the next long press, not create it during that press.
+                Qt.callLater(function() {
+                    if (root.editor && root.editor.activeFocus && root.usable())
+                        root.requestSystemEditor()
+                })
+            } else if (!root.editor.activeFocus && !root.applyingBrowserText
+                       && !root.openingBrowserEditor) {
                 root.cancelPaste()
-            // Browser focus may temporarily deactivate the Qt window;
-            // the DOM blur/visibility lifecycle owns release in this case.
+            }
         }
         function onVisibleChanged() {
             if (!root.editor.visible) { root.cancelPaste(); root.pasteFailed = false }
