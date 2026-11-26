@@ -7069,9 +7069,13 @@ This notice describes the product's current intended data flows, not a guarantee
             <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
             <translation>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</translation>
         </message>
+        <message id="genycaster.setup.clipboard_paste_unavailable">
+            <source>Clipboard access is unavailable. Allow Paste in your browser or enter the text manually.</source>
+            <translation>Clipboard access is unavailable. Allow Paste in your browser or enter the text manually.</translation>
+        </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</translation>
+            <source>Use only your 12- or 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>Use only your 12- or 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</translation>
         </message>
         <message id="genycaster.setup.recovery_use_24_words">
             <source>Enter 24-word phrase</source>

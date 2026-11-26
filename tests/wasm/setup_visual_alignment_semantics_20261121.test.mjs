@@ -45,7 +45,7 @@ test('primary CTA reserves equal icon and arrow slots and centers its label', ()
   assert.match(setup,/anchors\.fill: parent[\s\S]*?anchors\.leftMargin: root\.phone \? Theme\.space4 : root\.setupGutter/);
   assert.match(setup,/id: setupActionFooter/);
   assert.match(setup,/anchors.bottom: setupActionFooter.top/);
-  assert.match(setup,/readonly property bool showsPrimaryCta: true/);
+  assert.match(setup,/readonly property bool showsPrimaryCta: \[0,1,2,6,7\]\.includes\(currentStep\)/);
   assert.match(setup,/layoutDirection: Theme\.uiDirection[\s\S]*?visible: nativeRegistrationPublisher\.pending/);
 });
 

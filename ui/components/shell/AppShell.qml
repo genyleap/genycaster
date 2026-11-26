@@ -191,10 +191,14 @@ Item {
         }
         function clearRecoveryWords() {
             distributingRecoveryWords = true
+            nativeSignerPhraseInput.cancelClipboardPaste()
             nativeSignerPhraseInput.text = ""
             for (let i = 0; i < 24; ++i) {
                 const input = nativeSignerWordGrid.itemAt(i)
-                if (input) input.word = ""
+                if (input) {
+                    input.cancelWordPaste()
+                    input.word = ""
+                }
             }
             distributingRecoveryWords = false
             force24Words = false
@@ -215,7 +219,7 @@ Item {
                 .replace(/[^a-z]+/g, " ").trim()
             if (!normalized) return
             const words = normalized.split(/\s+/)
-            if (words.length < 2 || words.length > 24) return
+            if (words.length < 1 || words.length > 24) return
             // A complete phrase always starts at 01, regardless of which
             // numbered field received the clipboard event.
             const complete = words.length === 24
@@ -247,6 +251,10 @@ Item {
             authorizationPrincipal = presentationBridge.accountIdentityIssuer + ":" + presentationBridge.accountFidText
             authorizationSubmitted = false
             recoveryValidationVisible = false
+            if (presentationBridge.writeReady) {
+                close()
+                return
+            }
             // Settings can open the recovery editor directly. Give the
             // newly mounted mobile input the focus after Popup relocation.
             if (enteringNativeWords && mobileRecoveryInput)
@@ -260,7 +268,7 @@ Item {
         onClosed: {
             if (enteringNativeWords && !presentationBridge.writeReady)
                 authorizationSubmitted = false
-            if (!authorizationSubmitted)
+            if (!authorizationSubmitted && !presentationBridge.writeReady)
                 root.pendingComposerIntent = null
             clearRecoveryWords()
             authorizationPrincipal = ""
@@ -428,6 +436,31 @@ Item {
                         interactionAuthorizationDialog.refreshRecoveryWordMode()
                 }
             }
+            ActionButton {
+                objectName: "signerPasteRecoveryWords"
+                visible: interactionAuthorizationDialog.enteringNativeWords
+                enabled: !interactionAuthorizationDialog.authorizationSubmitted && !presentationBridge.signerBusy
+                Layout.alignment: Qt.AlignRight
+                compact: true
+                quiet: true
+                text: qsTrId("genycaster.editor.paste")
+                onClicked: {
+                    if (interactionAuthorizationDialog.mobileRecoveryInput)
+                        nativeSignerPhraseInput.requestClipboardPaste()
+                    else
+                        nativeSignerWordGrid.itemAt(0)?.pasteWord()
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                visible: interactionAuthorizationDialog.enteringNativeWords
+                    && (nativeSignerPhraseInput.clipboardPasteFailed
+                        || nativeSignerWordGrid.itemAt(0)?.pasteFailed === true)
+                text: qsTrId("genycaster.setup.clipboard_paste_unavailable")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+            }
             Item {
                 id: nativeRecoveryScroll
                 objectName: "nativeSignerRecoveryGrid"
@@ -452,6 +485,9 @@ Item {
                             required property int index
                             property alias word: recoveryWordInput.text
                             function focusWord() { recoveryWordInput.forceActiveFocus() }
+                            function pasteWord() { recoveryWordInput.requestClipboardPaste() }
+                            function cancelWordPaste() { recoveryWordInput.cancelClipboardPaste() }
+                            readonly property bool pasteFailed: recoveryWordInput.clipboardPasteFailed
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
                             spacing: Theme.space1
@@ -479,6 +515,7 @@ Item {
                                 echoMode: interactionAuthorizationDialog && interactionAuthorizationDialog.showRecoveryWords
                                           ? TextInput.Normal : TextInput.Password
                                 maximumLength: 4095
+                                clipboardPasteHandler: value => interactionAuthorizationDialog.distributeRecoveryWords(index, value)
                                 inputMethodHints: Qt.ImhSensitiveData
                                                   | Qt.ImhNoPredictiveText
                                                   | Qt.ImhNoAutoUppercase
@@ -1251,8 +1288,7 @@ Item {
         target: presentationBridge
         function onStateChanged() {
             if (interactionAuthorizationDialog && interactionAuthorizationDialog.visible
-                && interactionAuthorizationDialog.enteringNativeWords
-                && interactionAuthorizationDialog.authorizationSubmitted && presentationBridge.writeReady)
+                && presentationBridge.writeReady)
                 interactionAuthorizationDialog.close()
             root.resolvePendingComposer()
         }

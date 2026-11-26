@@ -7045,9 +7045,13 @@ Se describen los flujos previstos, no las prácticas de terceros. Los cambios im
             <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
             <translation>Introduce tus palabras de recuperación de Farcaster durante la configuración. Genycaster verifica la titularidad en Optimism y autoriza una clave de firma para publicar.</translation>
         </message>
+        <message id="genycaster.setup.clipboard_paste_unavailable">
+            <source>Clipboard access is unavailable. Allow Paste in your browser or enter the text manually.</source>
+            <translation>No se puede acceder al portapapeles. Permite pegar en el navegador o introduce el texto manualmente.</translation>
+        </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>Usa solo tu frase de recuperación de Farcaster de 24 palabras en un dispositivo de confianza y en un sitio HTTPS. Nunca se sube ni almacena.</translation>
+            <source>Use only your 12- or 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>Usa tu frase de recuperación de Farcaster de 12 o 24 palabras solo en un dispositivo de confianza y un sitio HTTPS. La frase nunca se sube ni se almacena.</translation>
         </message>
         <message id="genycaster.setup.recovery_use_24_words">
             <source>Enter 24-word phrase</source>

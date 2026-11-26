@@ -7044,9 +7044,13 @@ Die Erklärung beschreibt vorgesehene Abläufe, nicht das Verhalten unabhängige
             <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
             <translation>Gib beim Einrichten deine Farcaster-Wiederherstellungswörter ein. Genycaster prüft das Eigentum auf Optimism und autorisiert einen Signaturschlüssel zum Veröffentlichen.</translation>
         </message>
+        <message id="genycaster.setup.clipboard_paste_unavailable">
+            <source>Clipboard access is unavailable. Allow Paste in your browser or enter the text manually.</source>
+            <translation>Kein Zugriff auf die Zwischenablage. Erlaube das Einfügen im Browser oder gib den Text manuell ein.</translation>
+        </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>Verwende nur deine 24-Wörter-Farcaster-Wiederherstellungsphrase auf einem vertrauenswürdigen Gerät und einer HTTPS-Seite. Die Phrase wird weder hochgeladen noch gespeichert.</translation>
+            <source>Use only your 12- or 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>Verwende deine Farcaster-Wiederherstellungsphrase mit 12 oder 24 Wörtern nur auf einem vertrauenswürdigen Gerät und einer HTTPS-Website. Die Phrase wird niemals hochgeladen oder gespeichert.</translation>
         </message>
         <message id="genycaster.setup.recovery_use_24_words">
             <source>Enter 24-word phrase</source>

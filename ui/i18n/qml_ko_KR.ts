@@ -7044,9 +7044,13 @@ Genycaster는 계정 ID/FID, 프로토콜, 확인 상태, Farcaster 및 Genyleap
             <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
             <translation>설정 중 Farcaster 복구 단어를 입력하세요. Genycaster가 Optimism에서 소유권을 확인하고 게시용 서명 키를 승인합니다.</translation>
         </message>
+        <message id="genycaster.setup.clipboard_paste_unavailable">
+            <source>Clipboard access is unavailable. Allow Paste in your browser or enter the text manually.</source>
+            <translation>클립보드에 접근할 수 없습니다. 브라우저에서 붙여넣기를 허용하거나 텍스트를 직접 입력하세요.</translation>
+        </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>신뢰할 수 있는 기기와 HTTPS 사이트에서 Farcaster 24단어 복구 구문만 사용하세요. 구문은 업로드하거나 저장하지 않습니다.</translation>
+            <source>Use only your 12- or 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>12개 또는 24개 단어로 된 Farcaster 복구 문구는 신뢰할 수 있는 기기와 HTTPS 사이트에서만 사용하세요. 복구 문구는 업로드되거나 저장되지 않습니다.</translation>
         </message>
         <message id="genycaster.setup.recovery_use_24_words">
             <source>Enter 24-word phrase</source>

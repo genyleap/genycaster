@@ -376,6 +376,7 @@ public:
 
     /** @brief Dispatch a clipboard copy; native platforms verify read-back. */
     Q_INVOKABLE bool copyText(const QString& text);
+    Q_INVOKABLE void requestClipboardText(const QString& requestId);
 
     /** @brief Active HTTPS base for deployment-independent public permalinks. */
     [[nodiscard]] Q_INVOKABLE QString publicShareBaseUrl() const;
@@ -644,6 +645,7 @@ signals:
 
     /** @brief First-run setup completion or authentication gate visibility changed. */
     void setupStateChanged();
+    void clipboardTextReceived(QString requestId, QString text, bool ok);
     void stateChanged();
 
     /** @brief Feed/profile row payload, order or identity changed (not just read status). */

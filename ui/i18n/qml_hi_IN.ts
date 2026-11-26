@@ -7044,9 +7044,13 @@ Genycaster खाता ID/FID, प्रोटोकॉल, सत्याप�
             <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
             <translation>सेटअप के दौरान Farcaster के रिकवरी शब्द दर्ज करें। Genycaster Optimism पर स्वामित्व सत्यापित करके पोस्ट करने की हस्ताक्षर कुंजी अधिकृत करता है।</translation>
         </message>
+        <message id="genycaster.setup.clipboard_paste_unavailable">
+            <source>Clipboard access is unavailable. Allow Paste in your browser or enter the text manually.</source>
+            <translation>क्लिपबोर्ड उपलब्ध नहीं है। ब्राउज़र में पेस्ट की अनुमति दें या टेक्स्ट स्वयं दर्ज करें।</translation>
+        </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>केवल भरोसेमंद डिवाइस और HTTPS साइट पर अपनी 24-शब्दों की Farcaster रिकवरी फ़्रेज़ उपयोग करें। यह फ़्रेज़ कभी अपलोड या सेव नहीं होती।</translation>
+            <source>Use only your 12- or 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>अपना 12 या 24 शब्दों वाला Farcaster रिकवरी वाक्यांश केवल विश्वसनीय डिवाइस और HTTPS साइट पर उपयोग करें। वाक्यांश कभी अपलोड या संग्रहीत नहीं किया जाता।</translation>
         </message>
         <message id="genycaster.setup.recovery_use_24_words">
             <source>Enter 24-word phrase</source>

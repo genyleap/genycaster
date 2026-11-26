@@ -8,6 +8,61 @@ Menu {
     id: root
     required property var editor
     property bool nativePresentation: false
+    property string pendingPaste: ""
+    property bool pasteFailed: false
+    property int pasteStart: 0
+    property int pasteEnd: 0
+    readonly property bool sensitive: editor !== null
+        && ((editor.inputMethodHints & Qt.ImhSensitiveData) !== 0
+            || (editor.echoMode !== undefined && editor.echoMode !== TextInput.Normal))
+
+    function requestPaste() {
+        if (!editor || !editor.enabled || !editor.visible || editor.readOnly) return
+        pasteFailed = false
+        if (Qt.platform.os !== "wasm" && typeof editor.clipboardPasteHandler !== "function") {
+            editor.paste()
+            return
+        }
+        pasteStart = editor.selectionStart
+        pasteEnd = editor.selectionEnd
+        pendingPaste = Date.now().toString(36) + ":" + Math.random().toString(36)
+        pasteTimeout.restart()
+        presentationBridge.requestClipboardText(pendingPaste)
+    }
+    function cancelPaste() { pendingPaste = ""; pasteTimeout.stop() }
+    Timer {
+        id: pasteTimeout
+        interval: 30000
+        repeat: false
+        onTriggered: {
+            root.cancelPaste()
+            root.pasteFailed = true
+        }
+    }
+    Connections {
+        target: root.editor
+        function onTextChanged() { root.cancelPaste() }
+        function onVisibleChanged() {
+            if (!root.editor.visible) { root.cancelPaste(); root.pasteFailed = false }
+        }
+        function onEnabledChanged() { if (!root.editor.enabled) root.cancelPaste() }
+    }
+    Connections {
+        target: presentationBridge
+        function onClipboardTextReceived(requestId, value, ok) {
+            if (requestId !== root.pendingPaste || !root.pendingPaste.length) return
+            root.cancelPaste()
+            if (!root.editor || !root.editor.visible || !root.editor.enabled || root.editor.readOnly) return
+            if (!ok) { root.pasteFailed = true; return }
+            if (!value.length) return
+            if (typeof root.editor.clipboardPasteHandler === "function") {
+                root.editor.clipboardPasteHandler(value)
+            } else {
+                root.editor.remove(root.pasteStart, root.pasteEnd)
+                root.editor.insert(root.pasteStart, value)
+            }
+        }
+    }
     popupType: nativePresentation ? Popup.Native : Popup.Item
     width: 220
     padding: Theme.space2
@@ -40,16 +95,16 @@ Menu {
     }
     EditorMenuItem {
         label: qsTrId("genycaster.editor.cut")
-        actionEnabled: root.editor !== null && root.editor.selectedText.length > 0
+        actionEnabled: root.editor !== null && !root.sensitive && !root.editor.readOnly && root.editor.selectedText.length > 0
         hostMenu: root
         onTriggered: {
             presentationBridge.copyText(root.editor.selectedText)
-            root.editor.cut()
+            root.editor.remove(root.editor.selectionStart, root.editor.selectionEnd)
         }
     }
     EditorMenuItem {
         label: qsTrId("genycaster.feedback.copy")
-        actionEnabled: root.editor !== null && root.editor.selectedText.length > 0
+        actionEnabled: root.editor !== null && !root.sensitive && root.editor.selectedText.length > 0
         hostMenu: root
         onTriggered: presentationBridge.copyText(root.editor.selectedText)
     }
@@ -57,7 +112,7 @@ Menu {
         label: qsTrId("genycaster.editor.paste")
         actionEnabled: root.editor !== null && !root.editor.readOnly
         hostMenu: root
-        onTriggered: root.editor.paste()
+        onTriggered: root.requestPaste()
     }
     EditorMenuItem {
         label: qsTrId("genycaster.editor.select_all")

@@ -7044,9 +7044,13 @@ Genycaster обрабатывает ID/FID, протокол, статус пр�
             <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
             <translation>Введите слова восстановления Farcaster при настройке. Genycaster проверит владение в сети Optimism и разрешит ключу подписи публиковать записи.</translation>
         </message>
+        <message id="genycaster.setup.clipboard_paste_unavailable">
+            <source>Clipboard access is unavailable. Allow Paste in your browser or enter the text manually.</source>
+            <translation>Нет доступа к буферу обмена. Разрешите вставку в браузере или введите текст вручную.</translation>
+        </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>Используйте только 24-словную фразу восстановления Farcaster на доверенном устройстве и сайте HTTPS. Фраза не отправляется и не сохраняется.</translation>
+            <source>Use only your 12- or 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>Используйте фразу восстановления Farcaster из 12 или 24 слов только на доверенном устройстве и HTTPS-сайте. Фраза никогда не отправляется и не сохраняется.</translation>
         </message>
         <message id="genycaster.setup.recovery_use_24_words">
             <source>Enter 24-word phrase</source>

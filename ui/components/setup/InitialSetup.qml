@@ -45,7 +45,7 @@ Item {
     property real stageOpacity: 1.0
     property real stageOffset: 0.0
     property int pendingStep: -1
-    readonly property bool showsPrimaryCta: true
+    readonly property bool showsPrimaryCta: [0,1,2,6,7].includes(currentStep)
     readonly property int progressCount: wizardSteps.length
     Timer {
         id: stageTransitionTimer
@@ -1690,7 +1690,8 @@ Item {
             anchors.bottom: parent.bottom
             // Compact welcome reserves two full-width controls; all other
             // stages and desktop welcome retain a single fixed action row.
-            height: (root.stackWelcomeActions
+            visible: root.showsPrimaryCta
+            height: !visible ? 0 : (root.stackWelcomeActions
                      ? stageAction.height + Theme.space2 + setupWelcomeNativeApps.height
                      : stageAction.height) + Theme.space3 * 2 + setupFooterContent.legalNoteSpace
             Rectangle {
@@ -1781,10 +1782,11 @@ Item {
                     width: Math.min(parent.width, Theme.scaleUi(560))
                     textFormat: Text.RichText
                     text: qsTrId("genycaster.setup.welcome_legal_note")
-                        .arg('<a href="terms">' + qsTrId("genycaster.setup.terms_title") + '</a>')
-                        .arg('<a href="privacy">' + qsTrId("genycaster.setup.privacy_title") + '</a>')
+                        .arg('<a href="terms" style="color:' + Theme.inkMuted.toString() + ';text-decoration:underline">' + qsTrId("genycaster.setup.terms_title") + '</a>')
+                        .arg('<a href="privacy" style="color:' + Theme.inkMuted.toString() + ';text-decoration:underline">' + qsTrId("genycaster.setup.privacy_title") + '</a>')
                     color: Theme.inkMuted
-                    linkColor: Theme.accent
+                    linkColor: Theme.inkMuted
+                    font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: Theme.typeCaptionSize
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
@@ -3428,6 +3430,23 @@ Item {
                         font.weight: Theme.weightMedium
                     }
                 }
+                ActionButton {
+                    objectName: "setupPasteRecoveryWords"
+                    Layout.alignment: Qt.AlignRight
+                    compact: true
+                    quiet: true
+                    enabled: !root.authenticationInProgress && !root.recoverySubmitPending
+                    text: qsTrId("genycaster.editor.paste")
+                    onClicked: recoveryWordRepeater.itemAt(0)?.requestClipboardPaste()
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: recoveryWordRepeater.itemAt(0)?.clipboardPasteFailed === true
+                    text: qsTrId("genycaster.setup.clipboard_paste_unavailable")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
                 Item {
                     id: nativeRecoveryGrid
                     objectName: "nativeRecoveryWordGrid"
@@ -3462,7 +3481,10 @@ Item {
                         distributing = true
                         for (let i = 0; i < 24; ++i) {
                             const field = recoveryWordRepeater.itemAt(i)
-                            if (field) field.clear()
+                            if (field) {
+                                field.cancelClipboardPaste()
+                                field.clear()
+                            }
                         }
                         distributing = false
                         userRequested24 = false
@@ -3540,6 +3562,7 @@ Item {
                                 Layout.minimumWidth: root.phone ? 100 : 112
                                 implicitHeight: root.phone ? 54 : 52
                                 maximumLength: 4095
+                                clipboardPasteHandler: value => nativeRecoveryGrid.distribute(value, index)
                                 echoMode: revealWords.checked ? TextInput.Normal : TextInput.Password
                                 inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
                                 enabled: index < nativeRecoveryGrid.activeWordCount

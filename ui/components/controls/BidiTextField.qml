@@ -6,7 +6,16 @@ TextField {
     id: root
 
     // Use the same accessible, theme-aware context menu as the rich editor.
-    ContextMenu.menu: EditorContextMenu { editor: root }
+    ContextMenu.menu: editorMenu
+    EditorContextMenu { id: editorMenu; editor: root }
+    property var clipboardPasteHandler: null
+    readonly property bool clipboardPasteFailed: editorMenu.pasteFailed
+    function requestClipboardPaste() { editorMenu.requestPaste() }
+    function cancelClipboardPaste() { editorMenu.cancelPaste() }
+    onPressAndHold: mouse => {
+        if (Qt.platform.os === "wasm" && enabled && !readOnly)
+            editorMenu.popup(root, mouse.x, mouse.y)
+    }
 
     property bool forceLeftToRight: false
     property bool forceRightToLeft: false

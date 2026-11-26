@@ -4763,7 +4763,11 @@ void connectRuntime(
                     QString::number(bridge.accountFid()));
             return;
 #endif
-            if (!runtime->signerService) { return; }
+            if (!runtime->signerService) {
+                bridge.applySignerState(QStringLiteral("unavailable"), false, false,
+                    qtTrId("genycaster.runtime.interaction_signing_is_temporarily_unavailable_reading_is_un"), {});
+                return;
+            }
             auto status = runtime->signerService->revoke(
                 runtime->currentSessionSnapshot(), signerObserver);
             if (!status) {

@@ -86,7 +86,7 @@ test('miniapp posters keep useful original artwork size with better inset spacin
 test('search text fields use the themed editor context menu', () => {
     const input = read('ui/components/controls/BidiTextField.qml');
     const search = read('ui/components/navigation/SearchPalette.qml');
-    assert.match(input, /ContextMenu\.menu: EditorContextMenu \{ editor: root \}/);
+    assert.match(input, /ContextMenu\.menu: editorMenu\s+EditorContextMenu \{ id: editorMenu; editor: root \}/);
     assert.match(search, /DirectionAwareTextField \{\s+id: searchField/);
 });
 

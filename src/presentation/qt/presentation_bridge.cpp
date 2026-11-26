@@ -4,6 +4,7 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QClipboard>
+#include <QPointer>
 #include <QGuiApplication>
 #if defined(Q_OS_ANDROID)
 #include <QJniObject>
@@ -2728,6 +2729,59 @@ bool PresentationBridge::copyText(const QString& text)
 #endif
 }
 
+#if defined(Q_OS_WASM)
+namespace {
+QPointer<PresentationBridge> clipboardReceiver;
+}
+extern "C" EMSCRIPTEN_KEEPALIVE void genycasterClipboardTextResult(
+    const char* request, const char* value, int length, int ok)
+{
+    if (!clipboardReceiver || !request || length < 0 || length > 1048576) return;
+    emit clipboardReceiver->clipboardTextReceived(QString::fromUtf8(request),
+        ok && value ? QString::fromUtf8(value, length) : QString{}, ok != 0);
+}
+#endif
+
+void PresentationBridge::requestClipboardText(const QString& requestId)
+{
+    if (requestId.isEmpty() || requestId.size() > 128) return;
+#if defined(Q_OS_WASM)
+    clipboardReceiver = this;
+    const auto request = requestId.toUtf8();
+    EM_ASM({
+        const token = UTF8ToString($0);
+        const reply = (value, ok) => {
+            const count = ok ? lengthBytesUTF8(value) : 0;
+            const idSize = lengthBytesUTF8(token) + 1;
+            const id = _malloc(idSize);
+            const ptr = count <= 1048576 && ok ? _malloc(count + 1) : 0;
+            try {
+                if (!id) return;
+                stringToUTF8(token,id,idSize);
+                if (ptr) stringToUTF8(value,ptr,count+1);
+                Module._genycasterClipboardTextResult(id,ptr,ptr ? count : 0,ptr ? 1 : 0);
+            } finally {
+                if (ptr) { HEAPU8.fill(0,ptr,ptr+count+1); _free(ptr); }
+                if (id) _free(id);
+            }
+        };
+        try {
+            if (!window.isSecureContext || !navigator.clipboard?.readText) {
+                reply("",false); return;
+            }
+            // Request synchronously inside the explicit user action, including
+            // Safari's transient activation. Never cache or log the payload.
+            navigator.clipboard.readText().then(text => reply(text,true),
+                                               () => reply("",false));
+        } catch (_) { reply("",false); }
+    }, request.constData());
+#else
+    const auto* clipboard = QGuiApplication::clipboard();
+    emit clipboardTextReceived(requestId, clipboard ? clipboard->text() : QString{},
+                               clipboard != nullptr);
+#endif
+}
+
 namespace {
 [[nodiscard]] QString shareHash(const QString& candidate)
 {
@@ -3389,7 +3443,14 @@ bool PresentationBridge::beginSignerRecovery(QString& recoveryWords)
 void PresentationBridge::revokeSigner()
 {
     if (!m_isAuthenticated || m_signerBusy || !m_writeReady) { return; }
+    // Block a second Enable interactions click until the registry has
+    // confirmed the revoke (or reported failure).
+    m_signerPhase = QStringLiteral("checking");
+    m_signerBusy = true;
+    m_writeReady = false;
+    m_signerStatusText = qtTrId("genycaster.shell.revoking");
     m_signerErrorText.clear();
+    emit stateChanged();
     emit signerRevokeRequested();
 }
 

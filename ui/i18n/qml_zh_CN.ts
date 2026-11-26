@@ -7044,9 +7044,13 @@ Genycaster 处理账户 ID/FID、协议、验证状态以及 Farcaster 与 Genyl
             <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
             <translation>在设置过程中输入 Farcaster 恢复词。Genycaster 会在 Optimism 上验证所有权，并授权用于发帖的签名密钥。</translation>
         </message>
+        <message id="genycaster.setup.clipboard_paste_unavailable">
+            <source>Clipboard access is unavailable. Allow Paste in your browser or enter the text manually.</source>
+            <translation>无法访问剪贴板。请在浏览器中允许粘贴，或手动输入文本。</translation>
+        </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>请仅在可信设备及 HTTPS 网站上使用您的 24 词 Farcaster 恢复短语。短语不会上传或保存。</translation>
+            <source>Use only your 12- or 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>请仅在可信设备和 HTTPS 网站上使用 12 或 24 个单词的 Farcaster 恢复短语。恢复短语绝不会上传或存储。</translation>
         </message>
         <message id="genycaster.setup.recovery_use_24_words">
             <source>Enter 24-word phrase</source>

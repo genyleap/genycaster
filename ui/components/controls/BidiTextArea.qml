@@ -93,7 +93,10 @@ TextArea {
         MenuItem {
             text: qsTrId("genycaster.editor.paste")
             enabled: !root.readOnly
-            onTriggered: root.paste()
+            onTriggered: {
+                if (Qt.platform.os === "wasm") canvasContextMenu.requestPaste()
+                else root.paste()
+            }
         }
         MenuItem {
             text: qsTrId("genycaster.editor.select_all")
@@ -174,7 +177,12 @@ TextArea {
         }
     }
     onPressAndHold: mouse => {
-        if (!root.customCanvasSelection || !root.text.length) return
+        if (!root.customCanvasSelection) return
+        if (!root.text.length) {
+            if (root.enabled && !root.readOnly)
+                canvasContextMenu.popup(root, mouse.x, mouse.y)
+            return
+        }
         root.selectionGestureActive = true
         if (!root.selectedText.length) {
             root.cursorPosition = root.positionAt(mouse.x, mouse.y)

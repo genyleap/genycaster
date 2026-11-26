@@ -63,7 +63,7 @@ const recentIds = [
 ];
 
 test('onboarding has one fixed bottom footer, with scrolling content above it',()=>{
-  assert.match(setup,/readonly property bool showsPrimaryCta: true/);
+  assert.match(setup,/readonly property bool showsPrimaryCta: \[0,1,2,6,7\]\.includes\(currentStep\)/);
   assert.match(setup,/objectName: "setupActionFooter"/);
   assert.match(setup,/anchors.bottom: setupActionFooter.top/);
   assert.match(setup,/anchors.bottom: parent.bottom/);
