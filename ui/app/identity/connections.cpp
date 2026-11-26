@@ -495,10 +495,10 @@ void OpenProofConnectionsController::flushCloudRevocations()
        m_cloudUrl.adjusted(QUrl::RemovePath|QUrl::RemoveQuery|QUrl::RemoveFragment)!=
           QUrl{QString::fromUtf8(genycaster::deployment::publicOrigin.data())})return;
     auto store=retirement::settings();
-    const auto slots=retirement::receipts(store);
-    if(slots.isEmpty())return;
-    auto it=std::upper_bound(slots.cbegin(),slots.cend(),m_cloudRevocationCursor);
-    if(it==slots.cend())it=slots.cbegin();
+    const auto receiptKeys=retirement::receipts(store);
+    if(receiptKeys.isEmpty())return;
+    auto it=std::upper_bound(receiptKeys.cbegin(),receiptKeys.cend(),m_cloudRevocationCursor);
+    if(it==receiptKeys.cend())it=receiptKeys.cbegin();
     const auto slot=*it;
     m_cloudRevocationCursor=slot;
     const auto body=store.value(slot).toByteArray();
@@ -522,8 +522,8 @@ void OpenProofConnectionsController::flushCloudRevocations()
         const auto data=reply->bytesAvailable()<=1024?readOpenReply(reply):QByteArray{};
         reply->deleteLater();
         if(status!=200||!QJsonDocument::fromJson(data).object().value(QStringLiteral("revoked")).toBool())return;
-        auto store=genycaster::identity::cloud_retirement::settings();
-        if(store.value(slot).toByteArray()==body){store.remove(slot);store.sync();}
+        auto receiptStore=genycaster::identity::cloud_retirement::settings();
+        if(receiptStore.value(slot).toByteArray()==body){receiptStore.remove(slot);receiptStore.sync();}
     });
 #endif
 }
