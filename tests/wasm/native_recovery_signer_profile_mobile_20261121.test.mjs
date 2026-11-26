@@ -25,10 +25,10 @@ test('recovery-created own profile stays pinned to authenticated protocol and no
   assert.doesNotMatch(open.slice(0, open.indexOf('rememberDetailLocation()')), /m_profileIsOwnAccount = false/);
   const auth = cpp.slice(cpp.indexOf('void PresentationBridge::applyAuthenticationState('),
                          cpp.indexOf('void PresentationBridge::applyAccountProfile('));
-  assert.match(auth, /const bool recoveredOwnProfile =/);
-  assert.match(auth, /m_authenticationRoute == QStringLiteral\("farcaster-native-recovery"\)/);
-  assert.match(auth, /m_authenticationRoute == QStringLiteral\("hypersnap-recovery"\)/);
-  assert.match(auth, /if \(recoveredOwnProfile\)\s+openMyProfile\(\)/);
+  assert.match(auth, /if \(accountRowsChanged\) \{\s*clearDetailHistory\(\);/);
+  assert.match(auth, /m_detail\.clear\(\);\s*m_profileFid = 0;/);
+  assert.match(auth, /m_activeView = QStringLiteral\("feed"\)/);
+  assert.doesNotMatch(auth, /if \(recoveredOwnProfile\)\s+openMyProfile\(\)/);
   assert.ok(source('tests/unit/presentation_icon_tests.cpp')
       .includes('testRecoveredProfileKeepsOwnAccountAffiliation()'));
 });

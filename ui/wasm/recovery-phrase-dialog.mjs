@@ -61,9 +61,8 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         verification:'تأیید مالکیت این حساب هایپراسنپ کامل نشد. کمی بعد دوباره تلاش کنید.'}
     };
     const s=native?{...strings[lang],...(nativeLabels[lang]||nativeLabels.en)}:strings[lang];
-    const light=browser.document?.documentElement?.dataset?.theme === 'light'
-        || (browser.document?.documentElement?.dataset?.theme !== 'dark'
-            && browser.matchMedia?.('(prefers-color-scheme: light)').matches===true);
+    const theme=browser.document?.documentElement?.getAttribute?.('data-chrome-theme')||browser.document?.documentElement?.dataset?.theme;
+    const light=theme==='light'||(!theme&&browser.matchMedia?.('(prefers-color-scheme: light)').matches===true);
     const foreground=light?'#17181c':'#f4f6ff';
     const muted=light?'#73757e':'#aaafbc';
     const surface=light?'#ffffff':'#101116';

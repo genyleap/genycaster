@@ -242,6 +242,25 @@ test('223 KiB Stats PNG completes a multipart upload using real browser vault si
     assert.ok(sizes[1]>900,'PUT multipart challenge reproduces old production error');
 });
 
+test('HyperSnap media proof uses only its protocol-scoped key', async () => {
+    const env = environment(new MemoryIndexedDB());
+    const farcaster = createBrowserSignerVault(env);
+    const hypersnap = createBrowserSignerVault(env,{scope:'hypersnap-v2'});
+    const fid = '4294967400';
+    const far = await farcaster.ensure(fid);
+    const hyper = await hypersnap.ensure(fid);
+    assert.notEqual(hyper.publicKeyHex,far.publicKeyHex);
+    const challenge = new TextEncoder().encode([
+        'genycaster-media-upload-v1','POST','/v1/uploads',fid,hyper.publicKeyHex,
+        '1795680000','ab'.repeat(16),'cd'.repeat(32)
+    ].join('\n'));
+    const proof = await hypersnap.signMediaChallenge(fid,challenge);
+    assert.equal(proof.publicKeyHex,hyper.publicKeyHex);
+    const key = await webcrypto.subtle.importKey('raw',Buffer.from(hyper.publicKeyHex,'hex'),'Ed25519',true,['verify']);
+    assert.equal(await webcrypto.subtle.verify('Ed25519',key,Buffer.from(proof.signature,'hex'),challenge),true);
+    await assert.rejects(farcaster.signMediaChallenge(fid,challenge),/signer key mismatch/);
+});
+
 test('media signing accepts canonical Uint8Array bytes from a separate browser realm', async () => {
     const vault = createBrowserSignerVault(environment(new MemoryIndexedDB()));
     const fid = '4294967297';

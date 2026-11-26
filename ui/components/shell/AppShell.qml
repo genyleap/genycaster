@@ -1920,7 +1920,7 @@ Item {
                 onAudienceRequested: audience => root.chooseExplorerAudience(audience)
                 explorerLayout: root.explorerDisplayLayout
                 onLayoutRequested: mode => root.explorerDisplayLayout = mode
-                displayName: presentationBridge.accountName.length > 0 ? presentationBridge.accountName : presentationBridge.identityName
+                displayName: presentationBridge.isAuthenticated ? presentationBridge.accountName : ""
                 avatarUrl: presentationBridge.accountAvatarUrl
                 // StoryStrip is an account-only Follow graph, never public Recent authors.
                 recentProfiles: presentationBridge.followingStoryProfiles
@@ -2555,18 +2555,17 @@ Item {
                                         }
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
-                                        // The dashboard contains its own Flickable. Never
-                                        // let its desktop intrinsic 790dp height force the
-                                        // phone reading viewport beyond the visible pane.
+                                        // The dashboard owns its scrollable content; the shell
+                                        // owns the viewport on both desktop and mobile.
                                         Layout.minimumHeight: 0
-                                        Layout.preferredHeight: root.mobile ? 0 : -1
+                                        Layout.preferredHeight: 0
                                         Layout.maximumWidth: 16777215
                                         Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
                                         Layout.leftMargin: root.compact ? Theme.mobileGutter
                                                            : root.homeStatsWorkspace ? 0 : Theme.space2
                                         Layout.rightMargin: root.compact ? Theme.mobileGutter
                                                             : root.homeStatsWorkspace ? 0 : Theme.space2
-                                        displayName: presentationBridge.accountName.length > 0 ? presentationBridge.accountName : presentationBridge.identityName
+                                        displayName: presentationBridge.isAuthenticated ? presentationBridge.accountName : ""
                                         username: presentationBridge.accountUsername
                                         avatarUrl: presentationBridge.accountAvatarUrl
                                         authenticated: presentationBridge.isAuthenticated
@@ -4535,7 +4534,18 @@ Item {
     Connections {
         target: presentationBridge
 
+        property string lastAuthenticatedPrincipal: ""
         function onAuthenticationStateChanged() {
+            const principal = presentationBridge.isAuthenticated
+                ? String(presentationBridge.accountIdentityIssuer) + ":" + String(presentationBridge.accountFid) : ""
+            if (principal !== lastAuthenticatedPrincipal) {
+                lastAuthenticatedPrincipal = principal
+                root.clearPendingShellReturn()
+                root.shellRoute = ""
+                root.primaryDestination = "home"
+                homeDashboard.draftText = ""
+                homeDashboard.scrollToBeginning()
+            }
             presentationBridge.refreshFollowingStories()
             if (!presentationBridge.isAuthenticated) {
                 root.confirmedReply = ({})

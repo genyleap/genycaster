@@ -166,6 +166,42 @@ test('registration signs native EIP712, submits exactly once and confirms only o
   assert.equal(calls.filter(x=>x.method==='POST').length,1);
   custody.dispose();
 });
+test('moving shard head preserves a still-valid mined anchor and posts only once',async()=>{
+  const custody=await deriveFarcasterCustody(phrase);
+  let reads=0,submits=0;
+  try{
+    const registry=createBrowserNativeRegistry({browser,maxAttempts:500,delay:async()=>{},
+      fetchImpl:async(url,options)=>{
+        if(url.endsWith('/v1/info'))return status(200,syncedInfo);
+        if(url.endsWith('/v1/nativeRegistration'))return status(200,++reads===1?challenge:
+          {...challenge,anchorBlockHash:'0x'+'e'.repeat(64),anchorBlockHeight:143,nextBlock:144});
+        if(url.includes('/v1/nativeAccount?'))return submits
+          ?status(200,native('4294967380',custody.address)):status(400,notFound);
+        if(url.endsWith('/v1/submitMessage')){assert.equal(options.method,'POST');submits++;return status(200,{ok:true});}
+        throw Error('unexpected URL');
+      }});
+    assert.equal((await registry.register(phrase,{confirmIrreversible:true})).fid,'4294967380');
+    assert.equal(submits,1);assert.equal(reads,2);
+  }finally{custody.dispose();}
+});
+test('expired anchor is replaced before submission, without duplicate POST',async()=>{
+  const custody=await deriveFarcasterCustody(phrase);
+  let reads=0,submits=0;
+  try{
+    const newer={...challenge,anchorBlockHash:'0x'+'e'.repeat(64),anchorBlockHeight:1200,nextBlock:1201};
+    const registry=createBrowserNativeRegistry({browser,maxAttempts:500,delay:async()=>{},
+      fetchImpl:async(url,options)=>{
+        if(url.endsWith('/v1/info'))return status(200,syncedInfo);
+        if(url.endsWith('/v1/nativeRegistration'))return status(200,++reads===1?challenge:newer);
+        if(url.includes('/v1/nativeAccount?'))return submits
+          ?status(200,native('4294967380',custody.address)):status(400,notFound);
+        if(url.endsWith('/v1/submitMessage')){submits++;return status(200,{ok:true});}
+        throw Error('unexpected URL');
+      }});
+    assert.equal((await registry.register(phrase,{confirmIrreversible:true})).fid,'4294967380');
+    assert.equal(submits,1);assert.equal(reads,3);
+  }finally{custody.dispose();}
+});
 test('no unsafe resend when native submission is ambiguous',async()=>{
   const custody=await deriveFarcasterCustody(phrase);
   let submits=0;

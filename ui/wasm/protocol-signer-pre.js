@@ -271,6 +271,7 @@
             const previousOwner=owner,previousProtocol=ownerProtocol;
             const pendingCloud=accountSessionPromise;
             cancelAccountSession();
+            cancelMedia();
             if(previousOwner){
                 const network=previousProtocol==='hypersnap-v2'?'hypersnap':'farcaster';
                 // Persist the retirement intent synchronously before the
@@ -332,6 +333,7 @@
         }
         if (action === "signed-out") {
             cancelAccountSession();
+            cancelMedia();
             ++epoch;
             recoveryController?.abort();
             recoveryController = null;
@@ -345,6 +347,7 @@
         }
         if (owner && owner !== fid) {
             cancelAccountSession();
+            cancelMedia();
             // Identity changes must invalidate any pending custody prompt.
             ++epoch;
             recoveryController?.abort();
@@ -646,7 +649,7 @@
                     const current=native?await createNativeClient():await createClient(base);
                     if(epoch!==thisEpoch || owner!==fid)return;
                     const nextProtocol=native?'hypersnap-v2':'farcaster-snapchain';
-                    if(ownerProtocol&&ownerProtocol!==nextProtocol)cancelAccountSession();
+                    if(ownerProtocol&&ownerProtocol!==nextProtocol){cancelAccountSession();cancelMedia();}
                     ownerProtocol=nextProtocol;
                     if (action === "restore" || action === "restore-for-setup") {
                     if(action==="restore" && payloadString){
@@ -778,15 +781,23 @@
         mediaAbort?.abort();
         mediaAbort=null;
     }
+    async function mediaVault(fid,protocol) {
+        if(owner!==fid||ownerProtocol!==protocol||!['hypersnap-v2','farcaster-snapchain'].includes(protocol))
+            throw new Error('Media account changed or is not authenticated.');
+        const {createBrowserSignerVault}=await import('./secure_signer_vault.mjs');
+        if(owner!==fid||ownerProtocol!==protocol)throw new Error('Media account changed.');
+        return createBrowserSignerVault(window,{scope:protocol==='hypersnap-v2'?'hypersnap-v2':''});
+    }
     function pickMedia(fid,afterIndex,maxImageBytes=2*1024*1024) {
-        if(typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid))return;
+        if(typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid)||owner!==fid)return;
+        const protocol=ownerProtocol;
         const picker=document.createElement('input');
         picker.type='file';picker.accept='image/jpeg,image/png,image/webp,image/gif,image/avif';
         picker.multiple=false;picker.style.display='none';
         picker.addEventListener('change',()=>{
             const file=picker.files?.[0];
             picker.remove();
-            if(!file)return;
+            if(!file||owner!==fid||ownerProtocol!==protocol)return;
             // Always report selection first so the Qt controller can show its
             // localized 2/5 MiB error. Never start a network request for a
             // rejected selection.
@@ -834,6 +845,7 @@
                     const {uploadBrowserImage}=await import('./browser_media_upload.mjs');
                     const result=await uploadBrowserImage({
                         file,fid,signal:controller.signal,maxImageBytes,
+                        vault:await mediaVault(fid,protocol),
                         onProgress:(phase,transferred,total)=>{
                             if(current===mediaEpoch)
                                 mediaReport({kind:'progress',fid,phase,transferred,total});
@@ -865,7 +877,8 @@
     // File, custody secret or signer key). Reuse the identical signed gateway
     // upload and lifecycle path as the manual image picker.
     function uploadGeneratedMedia(fid,afterIndex,bytes,maxImageBytes=2*1024*1024){
-        if(typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid))return;
+        if(typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid)||owner!==fid)return;
+        const protocol=ownerProtocol;
         if(!(bytes instanceof Uint8Array)||bytes.length<64
            ||bytes.length>(maxImageBytes===5*1024*1024?5*1024*1024:2*1024*1024)
            ||[137,80,78,71,13,10,26,10].some((byte,index)=>bytes[index]!==byte)){
@@ -882,6 +895,7 @@
                 const {uploadBrowserImage}=await import('./browser_media_upload.mjs');
                 const result=await uploadBrowserImage({
                     file,fid,signal:controller.signal,maxImageBytes,
+                    vault:await mediaVault(fid,protocol),
                     optimizationMode:'original',
                     onProgress:(phase,transferred,total)=>{
                         if(current===mediaEpoch)
@@ -912,7 +926,8 @@
         pendingRemovals.add(managementToken);
         try{
             const {deleteBrowserAsset}=await import('./browser_media_upload.mjs');
-            await deleteBrowserAsset({fid,managementToken});
+            const protocol=ownerProtocol;
+            await deleteBrowserAsset({fid,managementToken,vault:await mediaVault(fid,protocol)});
             mediaReport({kind:'cleanup-completed',fid,managementToken});
         }catch(error){
             mediaReport({kind:'cleanup-failed',fid,managementToken,

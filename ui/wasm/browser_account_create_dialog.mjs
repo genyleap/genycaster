@@ -502,11 +502,16 @@ export async function promptCreateBrowserWallet({
  const language=(browser.__genycasterPreferredLanguage||browser.navigator?.language||'en').split(/[-_]/)[0];
  const lang=translations[language]?language:'en',t=translations[lang];
  const isRtl=['fa','ar'].includes(lang);
- const light=document.documentElement?.dataset?.theme==='light'
-   ||(!document.documentElement?.dataset?.theme&&browser.matchMedia?.('(prefers-color-scheme:light)').matches);
+ const theme=document.documentElement?.getAttribute?.('data-chrome-theme')||document.documentElement?.dataset?.theme;
+ const light=theme==='light'||(!theme&&browser.matchMedia?.('(prefers-color-scheme:light)').matches);
+ const themeStyle=browser.getComputedStyle?.(document.documentElement);
+ const themeColor=(property,fallback)=>{const value=themeStyle?.getPropertyValue(property)?.trim();return /^#[a-f0-9]{6}$/i.test(value||'')?value:fallback;};
+ const accent=themeColor('--nd-accent',light?'#007aff':'#339dff');
+ const onAccent=themeColor('--nd-on-accent',light?'#ffffff':'#101116');
  const colors=light
-  ?{bg:'#fff',fg:'#17181c',muted:'#777b86',border:'#dedfe4',cell:'#f8f8fa'}
+  ?{bg:'#ffffff',fg:'#17181c',muted:'#626873',border:'#dedfe4',cell:'#f6f7f9'}
   :{bg:'#101116',fg:'#f4f6ff',muted:'#adb1bb',border:'#323640',cell:'#191c23'};
+ const visibilityLabels={en:['Show words','Hide words'],fa:['نمایش واژه‌ها','پنهان‌کردن واژه‌ها'],ar:['إظهار الكلمات','إخفاء الكلمات'],de:['Wörter anzeigen','Wörter ausblenden'],es:['Mostrar palabras','Ocultar palabras'],fr:['Afficher les mots','Masquer les mots'],hi:['शब्द दिखाएँ','शब्द छिपाएँ'],ja:['単語を表示','単語を隠す'],ko:['단어 표시','단어 숨기기'],pt:['Mostrar palavras','Ocultar palavras'],ru:['Показать слова','Скрыть слова'],zh:['显示助记词','隐藏助记词']}[lang]||['Show words','Hide words'];
  let phrase=await generatePhrase(browser),settled=false,processing=false;
  if(signal?.aborted){phrase='';throw new Error('Account creation cancelled');}
  const words=phrase.split(' ');
@@ -517,14 +522,21 @@ export async function promptCreateBrowserWallet({
  indices.push((rand[1]%23+indices[0]+1)%24);
  const layer=document.createElement('div'),form=document.createElement('section');
  layer.id='genycaster-browser-new-wallet';
+ layer.dir=isRtl?'rtl':'ltr';
  layer.style.cssText='position:fixed;inset:0;z-index:2147483647;background:'+colors.bg+';font:15px system-ui,sans-serif;color:'+colors.fg+';box-sizing:border-box;';
  // This browser-only custody surface must have the same complete interaction
  // states as Qt's product-owned controls. Scope everything to this overlay.
  const skin=document.createElement('style');
  skin.textContent=`
- #genycaster-browser-new-wallet {--wallet-accent:${light?'#315cf5':'#829aff'};--wallet-ink:${colors.fg};--wallet-bg:${colors.bg};--wallet-cell:${colors.cell};--wallet-border:${colors.border};--wallet-muted:${colors.muted};--wallet-focus:${light?'#315cf5':'#a4b5ff'};--wallet-accent-ink:${light?'#fff':'#101116'};}
+ #genycaster-browser-new-wallet {--wallet-accent:${accent};--wallet-ink:${colors.fg};--wallet-bg:${colors.bg};--wallet-cell:${colors.cell};--wallet-border:${colors.border};--wallet-muted:${colors.muted};--wallet-focus:${accent};--wallet-accent-ink:${onAccent};}
  #genycaster-browser-new-wallet *,#genycaster-browser-new-wallet *::before,#genycaster-browser-new-wallet *::after {box-sizing:border-box;}
- #genycaster-browser-new-wallet button,#genycaster-browser-new-wallet input {font-family:inherit;-webkit-tap-highlight-color:transparent;}
+ #genycaster-browser-new-wallet button,#genycaster-browser-new-wallet input {font-family:inherit;-webkit-tap-highlight-color:transparent;appearance:none;}
+ #genycaster-browser-new-wallet .wallet-action{border-radius:14px!important;}
+ #genycaster-browser-new-wallet .wallet-word {user-select:text;-webkit-user-select:text;cursor:text;min-width:0;overflow-wrap:anywhere;}
+ #genycaster-browser-new-wallet input[type=checkbox]{appearance:none;display:grid;place-content:center;border:1px solid var(--wallet-border);border-radius:5px;background:var(--wallet-cell);margin:2px 0 0;}
+ #genycaster-browser-new-wallet input[type=checkbox]:checked{background:var(--wallet-accent);border-color:var(--wallet-accent);}
+ #genycaster-browser-new-wallet input[type=checkbox]:checked::after{content:'';width:10px;height:6px;border-left:2px solid var(--wallet-accent-ink);border-bottom:2px solid var(--wallet-accent-ink);transform:translateY(-1px) rotate(-45deg);}
+ #genycaster-browser-new-wallet .wallet-backup-actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;}
  #genycaster-browser-new-wallet .wallet-verification-label {display:grid;grid-template-columns:auto minmax(0,1fr);min-width:0;align-items:center;gap:10px;}
  #genycaster-browser-new-wallet .wallet-verification-label input {width:100%;min-width:0;max-width:100%;padding:14px 15px;border:1px solid var(--wallet-border);border-radius:14px;corner-shape:superellipse(4);background:var(--wallet-cell);color:var(--wallet-ink);font-size:16px;outline:none;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease;}
  #genycaster-browser-new-wallet .wallet-verification-label input:hover {border-color:var(--wallet-muted);}
@@ -551,6 +563,7 @@ export async function promptCreateBrowserWallet({
  #genycaster-browser-new-wallet .wallet-consent:focus-within{background:color-mix(in srgb,var(--wallet-accent) 12%,transparent);}
  #genycaster-browser-new-wallet input[type="checkbox"]{accent-color:var(--wallet-accent);cursor:pointer;}
  #genycaster-browser-new-wallet input[type="checkbox"]:focus-visible{outline:2px solid var(--wallet-focus);outline-offset:4px;}
+ @media(min-width:980px){#genycaster-browser-new-wallet{left:min(28vw,400px)!important;}#genycaster-browser-new-wallet[dir=rtl]{left:0!important;right:min(28vw,400px)!important;}}
  @media(max-width:560px){#genycaster-browser-new-wallet .wallet-challenge{grid-template-columns:minmax(0,1fr)!important;}#genycaster-browser-new-wallet .wallet-footer{gap:8px;}#genycaster-browser-new-wallet .wallet-action{padding:11px 12px;min-height:48px;font-size:14px;}}
  @media(prefers-reduced-motion:reduce){#genycaster-browser-new-wallet .wallet-action,#genycaster-browser-new-wallet .wallet-verification-label input{transition:none;}#genycaster-browser-new-wallet .wallet-action:active{transform:none;}#genycaster-browser-new-wallet .wallet-progress-spinner,#genycaster-browser-new-wallet .wallet-action[data-busy="true"]::before{animation:none;}}
  @keyframes walletSpin{to{transform:rotate(360deg);}}
@@ -620,12 +633,22 @@ export async function promptCreateBrowserWallet({
   cell.style.cssText='display:flex;align-items:center;min-width:0;gap:12px;padding:11px;border:1px solid '+colors.border+';border-radius:12px;background:'+colors.cell;
   const index=document.createElement('span');index.textContent=String(i+1).padStart(2,'0');
   index.style.cssText='color:'+colors.muted+';font:600 12px ui-monospace,monospace;';
-  const value=document.createElement('strong');value.textContent=word;value.style.cssText='font-weight:600';
+  const value=document.createElement('strong');value.className='wallet-word';value.textContent='••••••';value.style.cssText='font-weight:600';
   cell.append(index,value);grid.appendChild(cell);cells.push(cell);
  });
  const backupAction=document.createElement('button');backupAction.type='button';backupAction.textContent=t.copy;
  backupAction.className='wallet-action';
- backupAction.style.cssText='margin:16px 0;';
+ const backupActions=document.createElement('div');backupActions.className='wallet-backup-actions';
+ const visibilityAction=document.createElement('button');visibilityAction.type='button';visibilityAction.className='wallet-action';
+ visibilityAction.textContent=visibilityLabels[0];visibilityAction.setAttribute('aria-pressed','false');
+ let revealed=false;
+ visibilityAction.onclick=()=>{
+  revealed=!revealed;
+  cells.forEach((cell,i)=>{cell.children[1].textContent=revealed?words[i]:'••••••';});
+  visibilityAction.textContent=visibilityLabels[revealed?1:0];
+  visibilityAction.setAttribute('aria-pressed',String(revealed));
+ };
+ backupActions.append(visibilityAction,backupAction);
  const challengeHeading=document.createElement('h2');challengeHeading.textContent=t.challenge;
  challengeHeading.style.cssText='font-size:17px;margin:14px 0 12px;font-weight:600';
  const challenge=document.createElement('div');
@@ -664,7 +687,7 @@ export async function promptCreateBrowserWallet({
   b.className='wallet-action'+(primary?' wallet-action--primary':'');
   buttons.appendChild(b);return b;
  };
- content.append(heading,subtitle,warning,grid,progressPanel,backupAction,challengeHeading,challenge);
+ content.append(heading,subtitle,warning,grid,progressPanel,backupActions,challengeHeading,challenge);
  const saved=confirmation(t.complete),consent=confirmation(t.consent);
  const credentialFields={};
  if(protocol==='farcaster-snapchain'){
@@ -775,7 +798,8 @@ export async function promptCreateBrowserWallet({
    // URLs, QML, or the proof worker. Cancellation stays available until POST.
    for(const cell of cells)clearNode(cell);
    words.fill(''); // The verified word array is not needed during PoW.
-   for(const element of [grid,backupAction,challengeHeading,challenge,warning])
+   for(const input of checks)input.value='';
+   for(const element of [grid,backupActions,challengeHeading,challenge,warning])
      element.style.display='none';
    saved.parentElement.style.display='none';
    consent.parentElement.style.display='none';

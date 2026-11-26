@@ -62,6 +62,18 @@ async function start(onRegister,other={}) {
   return {dialog,...ui};
 }
 
+test('backup words are masked, explicitly revealable and can be hidden again',async()=>{
+  const ui=await start(async()=>{throw Error('registration should not run')});
+  const words=ui.nodes.filter(n=>n.className==='wallet-word');
+  assert.equal(words.length,24);
+  assert.ok(words.every(n=>n.textContent==='••••••'));
+  ui.one('Show words').onclick();
+  assert.ok(words.every(n=>n.textContent==='abandon'));
+  ui.one('Hide words').onclick();
+  assert.ok(words.every(n=>n.textContent==='••••••'));
+  ui.one('Cancel').onclick();
+  await assert.rejects(ui.dialog,/cancelled/);
+});
 test('backup cards disappear in favor of interactive progress; cancellation before POST aborts without writing', async()=>{
   let abortObserved=false;
   const ui=await start((phrase,{signal,onProgress})=>{

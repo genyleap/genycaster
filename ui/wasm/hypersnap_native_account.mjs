@@ -466,15 +466,25 @@ export function createBrowserNativeRegistry({
         ?'this wallet already has a HyperSnap FID; use Existing account'
         :'cannot prove this wallet is unregistered');
       onProgress(0,1,'proof');
-      const nonce=await mineNativePowResponsive({browser,address,anchor:gate.hash,bits:gate.bits,
-        maxAttempts,signal,onProgress:(done,total)=>onProgress(done,total,'proof')});
-      if(signal?.aborted)throw new Error('Registration cancelled');
-      onProgress(0,1,'challenge');
-      const fresh=await challenge(signal);
-      if(gate.hash!==fresh.hash||gate.height!==fresh.height||
-          gate.bits!==fresh.bits||fresh.nextBlock-fresh.height>fresh.window)
-        fail('node challenge changed while preparing PoW; retry from a fresh anchor');
-      gate=fresh;
+      let nonce;
+      // A newer head is normal while mining. The signed anchor is valid
+      // within the node's advertised window; never replace its hash/height
+      // with the newer head. Re-mine only before the irreversible POST.
+      for(let attempt=0;attempt<4;attempt++){
+        nonce=await mineNativePowResponsive({browser,address,anchor:gate.hash,bits:gate.bits,
+          maxAttempts,signal,onProgress:(done,total)=>onProgress(done,total,'proof')});
+        if(signal?.aborted)throw new Error('Registration cancelled');
+        onProgress(0,1,'challenge');
+        const fresh=await challenge(signal);
+        const sameHeight=fresh.height===gate.height;
+        const valid=gate.bits===fresh.bits&&fresh.height>=gate.height&&
+          (!sameHeight||gate.hash===fresh.hash)&&
+          fresh.nextBlock-gate.height<=Math.min(gate.window,fresh.window);
+        if(valid)break;
+        nonce=undefined;gate=fresh;
+        onProgress(0,1,'proof');
+      }
+      if(nonce===undefined)fail('node challenge changed while preparing PoW; retry from a fresh anchor');
       // A fresh registry check is mandatory immediately before the write.
       onProgress(0,1,'lookup');
       const prior=await lookup(address,signal);

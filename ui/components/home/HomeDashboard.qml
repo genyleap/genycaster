@@ -61,6 +61,9 @@ Item {
         if (root.compact) {
             mobileFlick.cancelFlick()
             mobileFlick.contentY = 0
+        } else {
+            desktopFlick.cancelFlick()
+            desktopFlick.contentY = 0
         }
     }
     readonly property bool densePhone: root.compact && root.height < 840
@@ -125,9 +128,9 @@ Item {
     // One measured content rail for the greeting, composer, GENY banner and
     // workspace cards. No separate per-card desktop indentation.
     readonly property real homeContentMaxWidth: Theme.scaleUi(760)
-    // The desktop hub has a generous intrinsic height; on mobile the
-    // containing viewport must own the height so its Flickable can scroll.
-    implicitHeight: root.compact ? 0 : 790
+    // All viewport sizes are allocated by the shell, not by intrinsic content.
+    // The independent scroll surfaces own their measured content heights.
+    implicitHeight: 0
     property real bottomOverlayInset: 0
 
     Timer {
@@ -427,10 +430,22 @@ Item {
         spacing: Theme.space3
         layoutDirection: Theme.uiDirection
 
-        Item {
+        Flickable {
+            id: desktopFlick
+            objectName: "homeDesktopOverviewScroll"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumWidth: 560
+            Layout.minimumWidth: 0
+            Layout.minimumHeight: 0
+            contentWidth: width
+            contentHeight: root.activeTab === "stats" ? height
+                : Math.max(height, desktopHomeContent.implicitHeight + Theme.space3 * 2)
+            clip: true
+            interactive: root.activeTab === "overview"
+            flickableDirection: Flickable.VerticalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: GenyScrollBar { policy: root.activeTab === "overview" ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
+            onContentHeightChanged: returnToBounds()
 
             ColumnLayout {
                 id: desktopHomeContent
@@ -440,14 +455,13 @@ Item {
                 // Reflow charts against the real available width, including
                 // resized windows and large desktop monitors.
                 width: root.activeTab === "stats"
-                    ? Math.max(1, parent.width)
-                    : Math.max(1, Math.min(parent.width - Theme.space4 * 2,
+                    ? Math.max(1, desktopFlick.width)
+                    : Math.max(1, Math.min(desktopFlick.width - Theme.space4 * 2,
                                            root.homeContentMaxWidth))
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
-                anchors.bottom: parent.bottom
+                height: Math.max(0, desktopFlick.contentHeight - Theme.space3 * 2)
                 anchors.topMargin: Theme.space3
-                anchors.bottomMargin: Theme.space3
                 spacing: Theme.space3
 
                 HomeTabs {

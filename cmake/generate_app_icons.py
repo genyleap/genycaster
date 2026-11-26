@@ -178,8 +178,21 @@ def main():
     sizes = [16, 24, 32, 48, 64, 72, 96, 128, 144, 192, 256, 512, 1024]
     blobs = {size: encode_png(size, resize_rgba(source, w, h, size))
              for size in sizes}
+    # macOS Dock reserves transparent optical margins around app artwork.
+    # Only the Mac asset is inset; the canonical brand and other OS assets
+    # are unchanged. Approximately 82% of the square is the icon footprint.
+    mac_blobs = {}
+    for size in (16,32,64,128,256,512,1024):
+        inner = max(1, round(size * 0.82))
+        art = resize_rgba(source, w, h, inner)
+        canvas = bytearray(size * size * 4)
+        offset = (size - inner) // 2
+        for row in range(inner):
+            start = ((offset + row) * size + offset) * 4
+            canvas[start:start+inner*4] = art[row*inner*4:(row+1)*inner*4]
+        mac_blobs[size] = encode_png(size, bytes(canvas))
     outputs = {
-        "macOS/genycaster.icns": icns(blobs),
+        "macOS/genycaster.icns": icns(mac_blobs),
         "Windows/genycaster.ico": ico({size:blobs[size] for size in (16,24,32,48,64,128,256)}),
         "Linux/genycaster.png": blobs[512],
         "iOS/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png": encode_png(

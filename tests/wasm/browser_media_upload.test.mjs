@@ -339,7 +339,7 @@ test('unsupported formats and missing signer do not reach media gateway',async()
     }),/Choose|Unsupported/);
     await assert.rejects(uploadBrowserImage({
         file:photo(),fid,vault,crypto:webcrypto,fetchImpl,
-    }),/Authorize your Farcaster publishing signer/);
+    }),/Authorize the publishing signer for your current account/);
     assert.equal(calls,0);
 });
 test('mobile browser picker is synchronous and signing key stays in vault',async()=>{
@@ -391,7 +391,7 @@ test('managed media deletion is signed, owner-scoped and never accepts raw asset
     assert.equal(result.deleted,true);
     assert.equal(signed.length,1);
     await assert.rejects(deleteBrowserAsset({fid,managementToken:'https://x',vault,crypto:webcrypto,fetchImpl}),/Invalid managed/);
-    await assert.rejects(deleteBrowserAsset({fid,managementToken,vault:{load:async()=>null},crypto:webcrypto,fetchImpl}),/verified Farcaster signer/);
+    await assert.rejects(deleteBrowserAsset({fid,managementToken,vault:{load:async()=>null},crypto:webcrypto,fetchImpl}),/verified protocol signer/);
 });
 test('WASM cleanup is durable, signer-gated, and only triggered by confirmed deletion',async()=>{
     const {readFileSync}=await import('node:fs');

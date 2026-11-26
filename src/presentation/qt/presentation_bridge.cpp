@@ -3946,7 +3946,7 @@ void PresentationBridge::applyAuthenticationState(
     m_accountAvatarUrl = m_isAuthenticated ? std::move(avatarUrl) : QString{};
     m_authenticationApprovalUrl = std::move(approvalUrl);
     m_authenticationErrorText = std::move(errorText);
-    if (!m_isAuthenticated || (previousAccountFid != 0 && previousAccountFid != m_accountFid)) {
+    if (!m_isAuthenticated || accountRowsChanged) {
         if (!m_writeRows.isEmpty() && !m_rows.isEmpty()) {
             QVariantList retained{};
             retained.reserve(m_rows.size());
@@ -4020,24 +4020,28 @@ void PresentationBridge::applyAuthenticationState(
     } else {
         m_writeReady = m_signerPhase == QStringLiteral("ready");
     }
-    // Recovery can complete while the app is showing a public profile of
-    // precisely the recovered FID. This was painted as "Follow" until the
-    // user manually reopened their account from the mobile dock. Promote
-    // only an explicit custody/recovery sign-in to its authenticated route;
-    // do not equate colliding numeric FIDs across social read protocols.
-    const bool recoveredOwnProfile = m_isAuthenticated && m_profileFid == m_accountFid
-        && m_activeView == QStringLiteral("profile")
-        && !m_profileIsOwnAccount
-        && (m_authenticationRoute == QStringLiteral("farcaster-native-recovery")
-            || m_authenticationRoute == QStringLiteral("hypersnap-recovery")
-            || m_authenticationRoute == QStringLiteral("browser-protocol-recovery")
-            || m_authenticationRoute == QStringLiteral("recovery"));
+    // A newly established principal starts at Home, never a stale profile
+    // or detail stack owned by the preceding viewer.
+    if (accountRowsChanged) {
+        clearDetailHistory();
+        m_detail.clear();
+        m_profileFid = 0;
+        m_currentCastId.clear();
+        // FID-only caches are not valid across a changed protocol principal.
+        m_profileDetailCache.clear();
+        m_profileListCache.clear();
+        m_activeView = QStringLiteral("feed");
+        m_feedStarted = false;
+        m_pendingFeedRows.clear();
+        m_rows.clear();
+        m_next.clear();
+    }
     emit authenticationStateChanged();
     emit setupStateChanged();
     if (accountRowsChanged) emit rowsChanged();
     emit stateChanged();
-    if (recoveredOwnProfile)
-        openMyProfile();
+    if (accountRowsChanged && m_runtimeReady)
+        selectFeed(m_isAuthenticated ? QStringLiteral("following") : QStringLiteral("trending"));
 }
 
 void PresentationBridge::applyAccountProfile(

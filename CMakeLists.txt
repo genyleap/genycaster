@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.30)
 
 project(Genycaster
-    VERSION 1.0.256
+    VERSION 1.0.512
     DESCRIPTION "GenyCaster is a native, high-performance decentralized social client with Modern C++ and Qt."
     LANGUAGES CXX
 )

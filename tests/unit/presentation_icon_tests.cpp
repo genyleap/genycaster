@@ -1187,8 +1187,12 @@ void testRecoveredProfileKeepsOwnAccountAffiliation()
         QStringLiteral("owner"), QStringLiteral("Owner"), {},
         QStringLiteral("farcaster:optimism-id-registry"), {}, {});
 
-    assert(bridge.ownProfileNavigation());
+    assert(!bridge.ownProfileNavigation());
+    assert(bridge.activeView() == QStringLiteral("feed"));
+    assert(bridge.detail().isEmpty());
     assert(bridge.accountFid() == 42U);
+    bridge.openMyProfile();
+    assert(bridge.ownProfileNavigation());
     // Receiving the same profile ID again (from a delayed public read or an
     // activity card) must not turn the signed-in owner into a Follow target.
     bridge.openProfileFid(42);

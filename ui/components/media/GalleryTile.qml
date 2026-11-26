@@ -41,8 +41,16 @@ Item {
     }
     onFinalAspectReadyChanged: {
         if (finalAspectReady && root.awaitFinalAspect && root.preserveAspect
-                && root.reportedAspect > 0)
-            root.aspectCommitted = true
+                && root.reportedAspect > 0) {
+            const identity = root.reportedMediaIdentity
+            // Do not mutate a dependency of finalAspectReady while its
+            // binding is evaluating. Recheck identity after recycling.
+            Qt.callLater(() => {
+                if (root.reportedMediaIdentity === identity && root.finalAspectReady
+                        && root.reportedAspect > 0)
+                    root.aspectCommitted = true
+            })
+        }
     }
     // The performance-safe defaults avoid briefly constructing layer effects
     // before GalleryLayout applies its multi-image bindings. Single-image slots

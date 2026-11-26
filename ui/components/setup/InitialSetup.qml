@@ -1979,6 +1979,8 @@ Item {
                     ? Theme.iconCheck : Theme.iconUser
                 title: root.accountFidRegistered
                     ? qsTrId("genycaster.setup.account_verified")
+                    : nativeRegistrationPublisher.pending && root.registrationProviderId === "hypersnap-v2"
+                      ? qsTrId("genycaster.setup.checking_request")
                     : root.choosingRegistrationProvider
                       ? (root.registrationProviderId.length > 0
                           ? qsTrId("genycaster.setup.design_create_account")

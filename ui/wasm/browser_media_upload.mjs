@@ -67,9 +67,9 @@ export async function uploadBrowserImage({
     if(optimized)optimizationMode='original';
     if(!['auto','high','original'].includes(optimizationMode))
         throw new Error('Unsupported image optimization mode.');
-    if(!/^[1-9][0-9]{0,19}$/.test(fid))throw new Error('Sign in to your Farcaster account first.');
+    if(!/^[1-9][0-9]{0,19}$/.test(fid))throw new Error('Sign in to your protocol account first.');
     const key=await vault.load(fid);
-    if(!key)throw new Error('Authorize your Farcaster publishing signer before uploading an image.');
+    if(!key)throw new Error('Authorize the publishing signer for your current account before uploading an image.');
     const signAndFetch=async(method,path,bytes,contentType,requestSignal=signal)=>{
         if(requestSignal?.aborted)throw new Error('Upload cancelled');
         const stamp=Math.floor(Date.now()/1000);
@@ -171,7 +171,7 @@ export async function deleteBrowserAsset({
     if(typeof managementToken!=='string'||managementToken.length<16||managementToken.length>4096)
         throw new Error('Invalid managed media reference.');
     const key=await vault.load(fid);
-    if(!key)throw new Error('A verified Farcaster signer is required for media cleanup.');
+    if(!key)throw new Error('A verified protocol signer is required for media cleanup.');
     const method='DELETE',path='/v1/assets';
     const bytes=encoder.encode(JSON.stringify({managementToken}));
     const stamp=Math.floor(Date.now()/1000);

@@ -25,6 +25,8 @@ export const defaultBrowserImageHosts = [
   'quilcast.com',
   // Recaster's public immutable cast raster assets only.
   'cdn.recaster.org',
+  // Fixed public poster routes emitted by the first-party preview resolver.
+  'i.ytimg.com', 'opengraph.githubassets.com', 'github.com', 'raw.githubusercontent.com',
   // Cloudflare Stream exposes a deterministic raster poster for public video
   // manifests. Only the /thumbnails/thumbnail.jpg asset is admissible here.
   'videodelivery.net', 'cloudflarestream.com',
@@ -93,7 +95,7 @@ export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts,
   // under that CID. Reject directories, traversal and arbitrary publisher
   // paths; the downloaded bytes still undergo public-DNS, size and raster
   // signature validation.
-  const safePinataPath = /^\/ipfs\/(?:b[a-z2-7]{30,100}|Qm[1-9A-HJ-NP-Za-km-z]{44})(?:\/[A-Za-z0-9._~-]{1,100}\.(?:png|jpe?g|webp|gif|avif))?$/i.test(parsed.pathname);
+  const safePinataPath = /^\/ipfs\/(?:b[a-z2-7]{30,100}|Qm[1-9A-HJ-NP-Za-km-z]{44})(?:\/(?:[A-Za-z0-9._~-]|%20){1,100}\.(?:png|jpe?g|webp|gif|avif))?$/i.test(parsed.pathname);
   // Restricted gateway tokens are intentionally embedded in some public
   // Cast image URLs. Accept ONLY the named Pinata query on an exact CID
   // raster path, not general query strings or application API endpoints.
@@ -107,7 +109,18 @@ export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts,
       && !allowedHosts.some(host => hostname === host
           || (host !== managedMediaHost && host !== 'media-farcaster.genyleap.com'
               && host !== 'media1.tenor.com' && host !== 'quilcast.com' && host !== 'cdn.recaster.org'
+              && host !== 'i.ytimg.com' && host !== 'opengraph.githubassets.com'
+              && host !== 'github.com' && host !== 'raw.githubusercontent.com'
               && hostname.endsWith('.' + host)))) return null;
+  // Public GitHub blob artwork only; no arbitrary repository pages or API.
+  if (hostname === 'github.com' &&
+      (!/^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/blob\/[A-Za-z0-9_./-]+\.(?:png|jpe?g|webp|gif|avif)$/i.test(parsed.pathname)||parsed.search!=='?raw=true')) return null;
+  if (hostname === 'raw.githubusercontent.com' &&
+      (!/^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_./-]+\.(?:png|jpe?g|webp|gif|avif)$/i.test(parsed.pathname)||parsed.search)) return null;
+  if (hostname === 'i.ytimg.com' &&
+      (!/^\/vi\/[A-Za-z0-9_-]{11}\/(?:hqdefault|mqdefault|sddefault|maxresdefault|default)\.jpg$/.test(parsed.pathname)||parsed.search)) return null;
+  if (hostname === 'opengraph.githubassets.com' &&
+      (!/^\/(?:1|[a-f0-9]{32,64})\/[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/.test(parsed.pathname)||parsed.search)) return null;
   if (hostname === 'cdn.recaster.org'
       && (!/^\/cast\/[A-Za-z0-9_-]{16,128}\.(?:png|jpe?g|webp)$/i.test(parsed.pathname)
           || parsed.search)) return null;
@@ -280,7 +293,10 @@ export async function retrieveBrowserImage(rawUrl, {
           const arweaveRaster = !trustedStorageRedirect
             && isContentAddressedArweaveRedirect(url, next)
             && validImageUrl(next.href, allowedHosts, managedMediaHost) !== null;
-          if (!signedStorage && !sameOriginRaster && !arweaveRaster) {
+          const githubRawRaster = !trustedStorageRedirect && url.hostname === 'github.com'
+            && next.hostname === 'raw.githubusercontent.com'
+            && validImageUrl(next.href, allowedHosts, managedMediaHost) !== null;
+          if (!signedStorage && !sameOriginRaster && !arweaveRaster && !githubRawRaster) {
             finish({ status: 502, error: 'image_redirect_not_allowed' });
             return;
           }

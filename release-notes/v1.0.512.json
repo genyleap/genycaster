@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "type": "improvement",
+  "changes": [
+    {
+      "id": "auth-reliability",
+      "category": "security"
+    }
+  ],
+  "translations": {
+    "en-US": {
+      "title": "Genycaster 1.0.512 — Authentication and cross-platform reliability",
+      "summary": "Independent device authorization, safer session lifecycle and fixes for onboarding, media, desktop scrolling and account switching.",
+      "items": {
+        "auth-reliability": "Independent device authorization, safer session lifecycle and fixes for onboarding, media, desktop scrolling and account switching."
+      }
+    },
+    "fa-IR": {
+      "title": "Genycaster 1.0.512 — احراز هویت و پایداری چندپلتفرمی",
+      "summary": "مجوز مستقل دستگاه، چرخهٔ امن‌تر نشست و اصلاح ثبت‌نام، رسانه، اسکرول دسکتاپ و تغییر حساب.",
+      "items": {
+        "auth-reliability": "مجوز مستقل دستگاه، چرخهٔ امن‌تر نشست و اصلاح ثبت‌نام، رسانه، اسکرول دسکتاپ و تغییر حساب."
+      }
+    },
+    "ar-SA": {
+      "title": "Genycaster 1.0.512 — المصادقة والموثوقية عبر المنصات",
+      "summary": "تفويض مستقل للجهاز ودورة جلسة أكثر أمانًا وإصلاحات التسجيل والوسائط والتمرير وتبديل الحساب.",
+      "items": {
+        "auth-reliability": "تفويض مستقل للجهاز ودورة جلسة أكثر أمانًا وإصلاحات التسجيل والوسائط والتمرير وتبديل الحساب."
+      }
+    },
+    "de-DE": {
+      "title": "Genycaster 1.0.512 — Authentifizierung und plattformübergreifende Zuverlässigkeit",
+      "summary": "Unabhängige Geräteautorisierung, sicherere Sitzungen und Korrekturen bei Registrierung, Medien, Scrollen und Kontowechsel.",
+      "items": {
+        "auth-reliability": "Unabhängige Geräteautorisierung, sicherere Sitzungen und Korrekturen bei Registrierung, Medien, Scrollen und Kontowechsel."
+      }
+    },
+    "es-ES": {
+      "title": "Genycaster 1.0.512 — Autenticación y fiabilidad multiplataforma",
+      "summary": "Autorización independiente del dispositivo, sesiones más seguras y correcciones de registro, medios, desplazamiento y cambio de cuenta.",
+      "items": {
+        "auth-reliability": "Autorización independiente del dispositivo, sesiones más seguras y correcciones de registro, medios, desplazamiento y cambio de cuenta."
+      }
+    },
+    "fr-FR": {
+      "title": "Genycaster 1.0.512 — Authentification et fiabilité multiplateforme",
+      "summary": "Autorisation indépendante de l’appareil, sessions renforcées et corrections de l’inscription, des médias, du défilement et du changement de compte.",
+      "items": {
+        "auth-reliability": "Autorisation indépendante de l’appareil, sessions renforcées et corrections de l’inscription, des médias, du défilement et du changement de compte."
+      }
+    },
+    "hi-IN": {
+      "title": "Genycaster 1.0.512 — प्रमाणीकरण और क्रॉस-प्लेटफ़ॉर्म विश्वसनीयता",
+      "summary": "स्वतंत्र डिवाइस प्राधिकरण, सुरक्षित सत्र और पंजीकरण, मीडिया, स्क्रॉलिंग व खाता बदलने में सुधार।",
+      "items": {
+        "auth-reliability": "स्वतंत्र डिवाइस प्राधिकरण, सुरक्षित सत्र और पंजीकरण, मीडिया, स्क्रॉलिंग व खाता बदलने में सुधार।"
+      }
+    },
+    "ja-JP": {
+      "title": "Genycaster 1.0.512 — 認証とクロスプラットフォームの信頼性",
+      "summary": "独立したデバイス認可、安全なセッション管理、登録・メディア・スクロール・アカウント切替の修正。",
+      "items": {
+        "auth-reliability": "独立したデバイス認可、安全なセッション管理、登録・メディア・スクロール・アカウント切替の修正。"
+      }
+    },
+    "ko-KR": {
+      "title": "Genycaster 1.0.512 — 인증 및 크로스 플랫폼 안정성",
+      "summary": "독립적인 기기 인증, 안전한 세션 관리, 가입·미디어·스크롤·계정 전환 개선.",
+      "items": {
+        "auth-reliability": "독립적인 기기 인증, 안전한 세션 관리, 가입·미디어·스크롤·계정 전환 개선."
+      }
+    },
+    "pt-BR": {
+      "title": "Genycaster 1.0.512 — Autenticação e confiabilidade multiplataforma",
+      "summary": "Autorização independente do dispositivo, sessões mais seguras e correções de cadastro, mídia, rolagem e troca de conta.",
+      "items": {
+        "auth-reliability": "Autorização independente do dispositivo, sessões mais seguras e correções de cadastro, mídia, rolagem e troca de conta."
+      }
+    },
+    "ru-RU": {
+      "title": "Genycaster 1.0.512 — Аутентификация и кроссплатформенная надёжность",
+      "summary": "Независимая авторизация устройства, безопасные сессии и исправления регистрации, медиа, прокрутки и смены аккаунта.",
+      "items": {
+        "auth-reliability": "Независимая авторизация устройства, безопасные сессии и исправления регистрации, медиа, прокрутки и смены аккаунта."
+      }
+    },
+    "zh-CN": {
+      "title": "Genycaster 1.0.512 — 身份验证与跨平台稳定性",
+      "summary": "独立设备授权、更安全的会话管理，以及注册、媒体、滚动和账户切换修复。",
+      "items": {
+        "auth-reliability": "独立设备授权、更安全的会话管理，以及注册、媒体、滚动和账户切换修复。"
+      }
+    }
+  }
+}
