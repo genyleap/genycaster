@@ -21,132 +21,10 @@ Item {
     property bool selectionReady: false
     property bool selectionHandleDragging: false
     property bool preserveSelectionForGrip: false
-    readonly property bool usePlatformSelection: textSelectionSettings.systemSelectionEnabled
-    readonly property bool browserSelection: Qt.platform.os === "wasm" && usePlatformSelection
-    property string browserCastToken: ""
-    property bool browserCastMounted: false
-    property real browserCastHeight: 0
-    property string browserCastGeometryKey: ""
-    readonly property real castLayoutHeight: browserCastHeight > 0 ? browserCastHeight : platformText.implicitHeight
-    Item {
-        id: browserCastGeometry
-        visible: root.browserSelection && root.textBlock
-        width: root.width
-        height: root.castLayoutHeight
-        y: root.emojiVerticalInset
-    }
-    function browserCastOptions(geometry) {
-        return { geometry: geometry,
-            readOnlyCast: true, readOnly: true, multiline: true,
-            rtl: root.rtlContent, spans: root.flattenedInlines(),
-            fontFamily: platformText.font.family, fontSize: root.textSize,
-            fontWeight: root.fontBold ? 700 : 400,
-            ink: Theme.ink.toString(), accent: Theme.accent.toString(),
-            lineHeight: Theme.typeBodyLineHeight }
-    }
-    function releaseBrowserCast() {
-        const token = browserCastToken
-        browserCastToken = ""
-        browserCastMounted = false
-        browserCastGeometryKey = ""
-        if (token.length) presentationBridge.cancelBrowserTextEditor(token)
-    }
-    function syncBrowserCast(geometryOnly) {
-        if (!browserSelection || !root.visible || !textBlock || !browserCastGeometry.visible) {
-            releaseBrowserCast()
-            return
-        }
-        const geometry = presentationBridge.browserEditorGeometry(browserCastGeometry, root.Overlay.overlay)
-        if (!(geometry.clipWidth > 0 && geometry.clipHeight > 0)) {
-            releaseBrowserCast()
-            return
-        }
-        const geometryKey = JSON.stringify(geometry)
-        if (browserCastMounted && geometryOnly && geometryKey === browserCastGeometryKey)
-            return
-        browserCastGeometryKey = geometryKey
-        const value = String(root.safeBlockData.text || "")
-        if (!browserCastMounted) {
-            const options = browserCastOptions(geometry)
-            browserCastToken = "cast:" + Date.now().toString(36) + ":" + Math.random().toString(36)
-            browserCastMounted = presentationBridge.openBrowserTextEditor(browserCastToken, value, options)
-            if (!browserCastMounted) releaseBrowserCast()
-            return
-        }
-        // A geometry-only frame must not serialize or rebuild the rich spans.
-        const options = geometryOnly ? { geometry: geometry, geometryOnly: true, readOnlyCast: true }
-                                     : browserCastOptions(geometry)
-        if (!presentationBridge.syncBrowserTextEditor(browserCastToken, geometryOnly ? "" : value, options))
-            releaseBrowserCast()
-    }
-    // DOM text lives outside the Qt canvas. Synchronize scene coordinates
-    // on the GUI thread after animations advance, before the next frame is
-    // rendered. A polling timer leaves text behind during kinetic scrolling.
-    Connections {
-        target: root.Window.window
-        enabled: root.browserSelection && root.visible && root.textBlock
-        function onAfterAnimating() { root.syncBrowserCast(true) }
-    }
-    function scheduleBrowserCastSync() {
-        if (browserSelection && visible && textBlock)
-            Qt.callLater(root.refreshBrowserCast)
-    }
-    function refreshBrowserCast() { root.syncBrowserCast(false) }
-    Component.onCompleted: scheduleBrowserCastSync()
-    onWidthChanged: scheduleBrowserCastSync()
-    onTextSizeChanged: scheduleBrowserCastSync()
-    onFontBoldChanged: scheduleBrowserCastSync()
-    onRtlContentChanged: scheduleBrowserCastSync()
-    Connections {
-        target: Theme
-        enabled: root.browserSelection && root.visible
-        function onInkChanged() { root.scheduleBrowserCastSync() }
-        function onAccentChanged() { root.scheduleBrowserCastSync() }
-        function onTypeBodyLineHeightChanged() { root.scheduleBrowserCastSync() }
-    }
-    onBlockDataChanged: {
-        browserCastHeight = 0
-        scheduleBrowserCastSync()
-    }
-    onVisibleChanged: {
-        if (!visible) releaseBrowserCast()
-        else scheduleBrowserCastSync()
-    }
-    onBrowserSelectionChanged: {
-        if (!browserSelection) { releaseBrowserCast(); browserCastHeight = 0 }
-        else scheduleBrowserCastSync()
-    }
-    Component.onDestruction: releaseBrowserCast()
-    Connections {
-        target: presentationBridge
-        enabled: root.browserCastMounted
-        function onClipboardTextReceived(requestId, value, ok) {
-            if (requestId !== root.browserCastToken || !root.browserCastMounted) return
-            if (!ok) { root.releaseBrowserCast(); return }
-            let action
-            try { action = JSON.parse(value) } catch (_) { return }
-            if (action.type === "layout") {
-                const height = Number(action.height)
-                if (Number.isFinite(height) && height > 0 && height < 100000)
-                    root.browserCastHeight = height
-            } else if (action.type === "activate") root.bodyActivated()
-            else if (action.type === "link" && /^(?:https?:\/\/|@)/i.test(String(action.target || "")))
-                root.externalRequested(String(action.target))
-            else if (action.type === "scroll") {
-                for (let item = root.parent; item; item = item.parent) {
-                    if (item.contentY === undefined || item.contentHeight === undefined || !item.interactive) continue
-                    const delta = Number(action.delta)
-                    if (!Number.isFinite(delta)) return
-                    if (typeof item.cancelFlick === "function") item.cancelFlick()
-                    const origin = Number(item.originY || 0)
-                    item.contentY = Math.max(origin, Math.min(origin + Math.max(0, item.contentHeight - item.height),
-                        item.contentY + Math.max(-240, Math.min(240, delta))))
-                    root.syncBrowserCast(true)
-                    return
-                }
-            }
-        }
-    }
+    // Browser-native editors belong exclusively to editable controls.
+    // Published cast text must stay in the Qt scene graph on WASM.
+    readonly property bool usePlatformSelection: Qt.platform.os !== "wasm"
+                                                 && textSelectionSettings.systemSelectionEnabled
 
     // Required means the binding must exist; its value may still become null
     // briefly while a model delegate is being recycled.
@@ -163,7 +41,7 @@ Item {
     // and animated artwork; clipping a perfectly valid glyph is not allowed.
     readonly property real emojiVerticalInset: Math.max(2, Math.ceil(root.textSize * 0.15))
 
-    implicitHeight: (root.usePlatformSelection ? root.castLayoutHeight
+    implicitHeight: (root.usePlatformSelection ? platformText.implicitHeight
                                               : textLayout.contentHeight) + emojiVerticalInset * 2
     clip: false
 
@@ -237,7 +115,7 @@ Item {
     TextEdit {
         id: platformText
         objectName: "platformCastSelectableText"
-        visible: root.usePlatformSelection && root.textBlock && !root.browserCastMounted
+        visible: root.usePlatformSelection && root.textBlock
         width: parent.width
         height: implicitHeight
         y: root.emojiVerticalInset
@@ -245,7 +123,7 @@ Item {
         selectByMouse: true
         selectByKeyboard: true
         persistentSelection: true
-        activeFocusOnPress: !root.browserCastMounted
+        activeFocusOnPress: true
         textFormat: TextEdit.RichText
         // Only the selected renderer lays out the paragraph. A hidden
         // TextEdit otherwise duplicates shaping for every admitted cast.
@@ -263,7 +141,7 @@ Item {
         // Read-only TextEdit supports selection, but Qt does not always
         // expose context actions automatically with non-native UI styles.
         TapHandler {
-            enabled: !root.browserSelection && Qt.platform.os !== "ios" && Qt.platform.os !== "android"
+            enabled: Qt.platform.os !== "ios" && Qt.platform.os !== "android"
             acceptedButtons: Qt.RightButton
             gesturePolicy: TapHandler.ReleaseWithinBounds
             onTapped: platformSelectionMenu.popup()

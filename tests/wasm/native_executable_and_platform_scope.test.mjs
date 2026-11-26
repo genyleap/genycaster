@@ -60,9 +60,11 @@ test("WebAssembly text selection is described as a browser canvas boundary, not 
     const editor = source("ui/components/composer/EditorContextMenu.qml");
     assert.match(editor, /readonly property bool browser: Qt\.platform\.os === "wasm"/);
     const cast = source("ui/components/content/RichInlineText.qml");
-    assert.match(cast, /readonly property bool browserSelection: Qt\.platform\.os === "wasm" && usePlatformSelection/);
+    assert.match(cast, /readonly property bool usePlatformSelection: Qt\.platform\.os !== "wasm"/);
+    assert.doesNotMatch(cast, /openBrowserTextEditor|browserCast/);
     assert.doesNotMatch(cpp, /__EMSCRIPTEN__/);
-    assert.match(cpp, /Browser-native selection operates on DOM text/);
+    assert.match(cpp, /selection operates on DOM text/);
+    assert.match(cpp, /#if defined\(Q_OS_WASM\)\s*return false;/);
     assert.doesNotMatch(cpp, /Native iOS Safari selection/);
 
     const emoji = source("ui/app/browser/emoji_recovery.hpp");

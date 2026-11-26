@@ -13,9 +13,14 @@ TextSelectionSettings::TextSelectionSettings(QSettings& settings, QObject* paren
 QString TextSelectionSettings::mode() const { return m_mode; }
 bool TextSelectionSettings::nativeAvailable() const noexcept
 {
-    // Browser-native selection operates on DOM text, not Qt canvas pixels.
-    // RichInlineText supplies that DOM surface on WASM.
+    // This preference applies only to published casts. Browser-native
+    // selection operates on DOM text, not Qt canvas pixels; editable
+    // controls use their separate platform editor regardless of this setting.
+#if defined(Q_OS_WASM)
+    return false;
+#else
     return true;
+#endif
 }
 bool TextSelectionSettings::systemSelectionEnabled() const noexcept
 {

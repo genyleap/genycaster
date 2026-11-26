@@ -27,18 +27,16 @@ test('outside gestures finish before the viewport reflows and focus releases',()
  assert.match(js,/requestAnimationFrame\(\(\)=>\{if\(document.activeElement===active\)active.blur\(\)/);
  assert.match(composer,/initialComposerFocus.stop\(\)[\s\S]*?mobilePlainEditor.dismissSelectionActions\(\)[\s\S]*?root.close\(\)/);
 });
-test('cast text is a non-editable DOM article with native selection and structured spans',()=>{
- assert.match(js,/options.readOnlyCast\?'div'/);
- assert.match(js,/node.setAttribute\('role','article'\)/);
- assert.match(js,/node.textContent=/);
+test('published casts stay inside Qt while browser editors accept editable controls only',()=>{
+ assert.match(cast,/readonly property bool usePlatformSelection: Qt\.platform\.os !== "wasm"\s*&& textSelectionSettings\.systemSelectionEnabled/);
+ assert.doesNotMatch(cast,/openBrowserTextEditor|syncBrowserTextEditor|browserCast|browserSelection/);
+ assert.match(cast,/RichInlineTextItem\s*\{/);
+ assert.match(cast,/onPlainTextActivated: root\.bodyActivated\(\)/);
+ assert.match(cast,/presentationBridge\.copyText\(textLayout\.selectedText\)/);
+ assert.match(js,/if\(options\.readOnly \|\| options\.readOnlyCast\)return false/);
+ assert.match(js,/document\.createElement\(multiline\?'textarea':'input'\)/);
+ assert.doesNotMatch(js,/mountCast|renderCast|genycaster-native-cast|castSignature/);
  assert.doesNotMatch(js,/\.innerHTML\s*=/);
- assert.match(js,/window.getSelection\(\)/);
- assert.match(js,/send\('scroll',\{delta\}\)/);
- assert.match(cast,/readOnlyCast: true/);
- assert.match(cast,/browserEditorGeometry\(browserCastGeometry/);
- assert.match(cast,/root.browserCastHeight = height/);
- assert.match(cast,/!root.browserCastMounted/);
- assert.match(cast,/Component.onDestruction: releaseBrowserCast\(\)/);
 });
 
 test('persistent browser targets cannot paint or hit through shell chrome',()=>{
@@ -47,13 +45,4 @@ test('persistent browser targets cannot paint or hit through shell chrome',()=>{
  for(const f of ['navigation/BottomNavigation','navigation/FloatingComposeButton','feed/FeedSurface'])
   assert.match(read('ui/components/'+f+'.qml'),/readonly property bool browserEditorOccludes: true/);
  assert.match(read('ui/components/shell/AppShell.qml'),/onAboutToHide: \{[\s\S]*?nativeSignerPhraseInput.dismissSelectionActions\(\)/);
-});
-
-test('cast geometry follows the render frame rather than a polling timer',()=>{
- assert.match(cast,/target: root\.Window\.window[\s\S]*?function onAfterAnimating\(\) \{ root\.syncBrowserCast\(true\) \}/);
- assert.doesNotMatch(cast,/interval:\s*100[\s\S]{0,200}syncBrowserCast/);
- assert.match(cast,/geometryKey === browserCastGeometryKey/);
- assert.match(cast,/geometryOnly \? \{ geometry: geometry, geometryOnly: true, readOnlyCast: true \}/);
- assert.match(js,/options=\{\.\.\.f\.options,geometry:options\.geometry,geometryOnly:true\}/);
- assert.match(js,/!options\.geometryOnly&&f\.castSignature/);
 });

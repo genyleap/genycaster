@@ -15,7 +15,7 @@ test("WebAssembly text selection describes the browser DOM/Qt canvas boundary", 
     assert.ok(section, "text selection availability implementation must exist");
     assert.match(section, /return true;/);
     assert.doesNotMatch(section, /__EMSCRIPTEN__/);
-    assert.match(section, /Browser-native selection operates on DOM text/);
+    assert.match(section, /selection operates on DOM text/);
     assert.doesNotMatch(section, /\biOS\b|\bmacOS\b|\bSafari\b/);
     assert.match(read("ui/app/settings/selection.hpp"), /browser DOM selection/);
 });

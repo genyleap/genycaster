@@ -73,7 +73,7 @@
         // Keep the CSS input at the iOS non-auto-zoom threshold, then scale
         // its entire box back to the exact QML font and content geometry.
         const size=Math.max(1,(o.fontSize||16)*sx);
-        const scale=o.readOnlyCast?1:Math.min(1,size/16);
+        const scale=Math.min(1,size/16);
         const style={left:(b.left-origin.left+x*sx)+'px',top:(b.top-origin.top+y*sy)+'px',
             width:w*sx/scale+'px',height:h*sy/scale+'px',
             transform:scale===1?'none':'scale('+scale+')',transformOrigin:'top left',
@@ -86,19 +86,6 @@
             if(f.style[key]!==value){f.input.style[key]=value;f.style[key]=value;}
         }
         const i=f.input;
-        if(o.readOnlyCast){
-            i.dir=o.rtl?'rtl':'ltr';i.style.color=o.ink;
-            i.style.setProperty('--cast-accent',o.accent);
-            const content=i.firstElementChild;
-            if(content){
-                const measured=Math.ceil(content.getBoundingClientRect().height/sy);
-                if(measured>0&&measured!==f.measuredHeight){
-                    f.measuredHeight=measured;
-                    queueMicrotask(()=>{if(fields.get(f.token)===f)f.reply(f.token,JSON.stringify({type:'layout',height:measured}),true);});
-                }
-            }
-            return true;
-        }
         if(i.dir!==(o.rtl?'rtl':'ltr'))i.dir=o.rtl?'rtl':'ltr';
         if(i.placeholder!==(o.placeholder||''))i.placeholder=o.placeholder||'';
         if(i.tagName==='INPUT'&&i.type!==(o.masked?'password':'text'))i.type=o.masked?'password':'text';
@@ -108,70 +95,15 @@
         if(i.maxLength!==limit)i.maxLength=limit;
         return true;
     }
-    function renderCast(f,value){
-        const fragment=document.createDocumentFragment();
-        const o=f.options;
-        const spans=Array.isArray(o.spans)&&o.spans.length?o.spans:[{kind:'text',text:value}];
-        for(const span of spans){
-            if(!span)continue;
-            if(typeof span==='string'){fragment.append(document.createTextNode(span));continue;}
-            const kind=String(span.kind||'text');
-            const target=kind==='mention'&&span.username?'@'+String(span.username):
-                kind==='link'&&/^https?:\/\//i.test(String(span.target||''))?String(span.target):'';
-            const node=document.createElement(target?'a':kind==='strong'?'strong':kind==='emphasis'?'em':kind==='inline-code'?'code':'span');
-            node.textContent=kind==='mention'&&span.username?'@'+String(span.username):String(span.text||'');
-            if(target){node.dataset.castTarget=target;node.style.color='var(--cast-accent)';node.style.textDecoration='none';node.setAttribute('role','link');}
-            if(span.color&&CSS.supports('color',String(span.color)))node.style.color=String(span.color);
-            fragment.append(node);
-        }
-        const content=document.createElement('div');
-        content.style.cssText='display:block;margin:0;padding:0;white-space:pre-wrap;overflow-wrap:anywhere;';
-        content.append(fragment);
-        f.input.replaceChildren(content);
-        f.castSignature=JSON.stringify([value,o.spans]);
-    }
-    function mountCast(f,value){
-        const node=f.input;
-        node.className='genycaster-native-cast';
-        node.style.cssText='position:absolute;pointer-events:auto;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:pan-y;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;overflow:hidden;';
-        node.setAttribute('role','article');
-        renderCast(f,value);
-        const send=(type,extra={})=>{if(fields.get(f.token)===f)f.reply(f.token,JSON.stringify({type,...extra}),true);};
-        let gesture=null,suppressClickUntil=0;
-        const selected=()=>{const selection=window.getSelection();return selection&&!selection.isCollapsed&&(node.contains(selection.anchorNode)||node.contains(selection.focusNode));};
-        node.addEventListener('touchstart',e=>{if(e.touches.length===1)gesture={x:e.touches[0].clientX,y:e.touches[0].clientY,lastY:e.touches[0].clientY,at:performance.now(),scrolling:false};},{passive:true});
-        node.addEventListener('touchmove',e=>{
-            if(!gesture||e.touches.length!==1||selected())return;
-            const t=e.touches[0],dy=t.clientY-gesture.y;
-            if(!gesture.scrolling&&performance.now()-gesture.at<450&&Math.abs(dy)>10&&Math.abs(dy)>Math.abs(t.clientX-gesture.x))gesture.scrolling=true;
-            if(!gesture.scrolling)return;
-            if(e.cancelable)e.preventDefault();
-            const delta=gesture.lastY-t.clientY;gesture.lastY=t.clientY;
-            send('scroll',{delta});
-        },{passive:false});
-        const end=()=>{if(gesture&&(gesture.scrolling||performance.now()-gesture.at>450))suppressClickUntil=performance.now()+500;gesture=null;};
-        node.addEventListener('touchend',end);node.addEventListener('touchcancel',end);
-        node.addEventListener('wheel',e=>{if(e.cancelable)e.preventDefault();send('scroll',{delta:e.deltaY});},{passive:false});
-        node.addEventListener('click',e=>{
-            if(selected()||performance.now()<suppressClickUntil)return;
-            const target=e.target.closest('[data-cast-target]')?.dataset.castTarget;
-            send(target?'link':'activate',target?{target}:{});
-        });
-    }
     function open(token,value,options,reply,selectionReply){
         if(!isSecureContext||!host()||typeof token!=='string'||!token.length||token.length>128||
             typeof value!=='string'||value.length>262144||typeof reply!=='function')return false;
         if(fields.has(token))return sync(token,value,options);
         const multiline=!!options.multiline&&!options.masked;
-        const input=document.createElement(options.readOnlyCast?'div':multiline?'textarea':'input');
-        if(!multiline&&!options.readOnlyCast)input.type=options.masked?'password':'text';
-        if(options.readOnlyCast){
-            const f={token,input,options,reply,selectionReply,style:Object.create(null),composing:false};
-            fields.set(token,f);layer.append(input);
-            mountCast(f,value);
-            if(!layout(f)){remove(f);return false;}
-            return true;
-        }
+        // Never mount a browser editor for a read-only surface.
+        if(options.readOnly || options.readOnlyCast)return false;
+        const input=document.createElement(multiline?'textarea':'input');
+        if(!multiline)input.type=options.masked?'password':'text';
         input.className='genycaster-native-input';
         input.autocomplete='off';input.spellcheck=!options.sensitive;
         input.setAttribute('autocapitalize',options.sensitive?'none':'sentences');
@@ -224,18 +156,9 @@
     }
     function sync(token,value,options){
         const f=fields.get(token);if(!f)return false;
-        // Cast frame updates carry only geometry; retain formatting and spans.
-        if(f.options.readOnlyCast&&options.readOnlyCast&&options.geometryOnly)
-            options={...f.options,geometry:options.geometry,geometryOnly:true};
+        if(options.readOnlyCast)return false;
         f.options=options;
         if(!layout(f)){remove(f);return false;}
-        if(options.readOnlyCast){
-            if(!options.geometryOnly&&f.castSignature!==JSON.stringify([value,options.spans])){
-                renderCast(f,value);
-                layout(f);
-            }
-            return true;
-        }
         if(!options.geometryOnly&&!f.composing&&f.input.value!==value){
             const start=f.input.selectionStart,end=f.input.selectionEnd;
             f.input.value=value;

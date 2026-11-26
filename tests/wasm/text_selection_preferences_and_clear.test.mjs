@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = f => readFileSync(new URL('../../'+f,import.meta.url),'utf8');
 
-test('selection mode is persisted per device and defaults to native DOM on WASM',()=>{
+test('selection mode is persisted per device and uses Qt cast selection on WASM',()=>{
   const cpp=read('ui/app/settings/selection.cpp');
   const header=read('ui/app/settings/selection.hpp');
   const main=read('ui/app/main.cpp');
@@ -11,7 +11,7 @@ test('selection mode is persisted per device and defaults to native DOM on WASM'
   assert.match(header,/Q_PROPERTY\(QString mode READ mode NOTIFY modeChanged/);
   assert.match(header,/Q_PROPERTY\(bool nativeAvailable READ nativeAvailable CONSTANT/);
   assert.match(cpp,/accessibility\/platformTextSelectionMode/);
-  assert.match(cpp,/nativeAvailable\(\) const noexcept[\s\S]*?return true;/);
+  assert.match(cpp,/nativeAvailable\(\) const noexcept[\s\S]*?#if defined\(Q_OS_WASM\)\s*return false;\s*#else\s*return true;/);
   assert.match(cpp,/if \(requested == QStringLiteral\("system"\) && !nativeAvailable\(\)\) return;/);
   assert.match(main,/\{"textSelectionSettings", &textSelectionSettings\}/);
   assert.match(settings,/objectName: "textSelectionPreference"/);
@@ -38,8 +38,7 @@ test('cast selection exposes real document caret rectangles and draggable blue h
   assert.match(cpp,/line\.cursorToX\(local\)/);
   assert.match(cast,/objectName: "castTextSelectionHandles"/);
   assert.match(cast,/textLayout\.dragSelectionBoundary\(grip.leading, where.x, where.y\)/);
-  assert.match(cast,/#0A84FF/);
-  assert.match(cast,/#007AFF/);
+  assert.match(cast,/Theme\.nativeSelectionAccent/);
   assert.match(cast,/id: castSelectionGripLoader/);
   assert.match(cast,/parent: Overlay.overlay/);
 });
