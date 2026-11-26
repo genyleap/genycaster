@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG // Security regression assertions must remain active in Release.
+#endif
 #include "../../ui/app/identity/connections.hpp"
 
 #include <QCoreApplication>
@@ -13,6 +16,9 @@
 int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
+    QTemporaryDir temp;
+    assert(temp.isValid());
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, temp.path());
     const auto exact = OpenProofConnectionsController::parseProviderCatalog(R"JSON(
         {"providers":["github","x","github","google","bad provider","X","google"],
          "challenge_providers":["farcaster","ethereum-wallet","local","passkey"]}
@@ -36,7 +42,7 @@ int main(int argc, char** argv)
     assert(controller.providers().contains(QStringLiteral("x")));
     assert(!controller.providers().contains(QStringLiteral("farcaster")));
     assert(!controller.providers().contains(QStringLiteral("local")));
-    controller.setViewerFid(42);
+    controller.setViewerPrincipal(42, QStringLiteral("farcaster"));
     // Reading a selected topic while the existing account grant restores
     // is pending, not a request to sign a new protocol message.
     controller.selectCastTopic(QStringLiteral("art"), QStringLiteral("42"));
@@ -54,19 +60,17 @@ int main(int argc, char** argv)
         QStringLiteral("subject-42"), 999, 2700);
     assert(!controller.authorized());
     assert(controller.connections().isEmpty());
-    // Regression: setViewerFid() starts a GET for an existing cloud session.
-    // A successful local recovery grant immediately supersedes it with POST.
-    // Qt can emit the cancelled GET's finished() synchronously from
-    // abort(); previously this reset m_sessionRequest and then caused a null
-    // dereference at m_sessionRequest->deleteLater().
+    // A verified recovery grant supersedes any pending session request.
+    // Qt can emit finished() synchronously from abort(); a tracked reply
+    // must be detached before cancellation and never adopted by a new viewer.
     controller.acceptRecoveryGrant(
         QByteArrayLiteral("recovery.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         QStringLiteral("subject-42"), 42, 2700);
-    controller.setViewerFid(43); // Cancel POST while switching accounts.
+    controller.setViewerPrincipal(43, QStringLiteral("farcaster")); // Cancel POST while switching accounts.
     controller.acceptRecoveryGrant(
         QByteArrayLiteral("recovery.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
         QStringLiteral("subject-43"), 43, 2700);
-    controller.setViewerFid(42); // Cancel second POST and restore original FID.
+    controller.setViewerPrincipal(42, QStringLiteral("farcaster")); // Cancel second POST and restore original FID.
     assert(!controller.authorized());
     controller.connectProvider(QStringLiteral("unknown-provider"));
     assert(!controller.actionBusy());
@@ -75,8 +79,6 @@ int main(int argc, char** argv)
 
     // A bounded owner-local snapshot must survive reopening without making
     // cached data an account grant, and must never leak to a different FID.
-    QTemporaryDir temp;
-    assert(temp.isValid());
     QSettings settings(temp.filePath(QStringLiteral("social.ini")), QSettings::IniFormat);
     const QJsonArray entries{
         QJsonObject{
@@ -96,11 +98,11 @@ int main(int argc, char** argv)
         QString::fromUtf8(QJsonDocument(snapshot).toJson(QJsonDocument::Compact)));
     settings.sync();
     OpenProofConnectionsController restored(nullptr, &settings);
-    restored.setViewerFid(42);
+    restored.setViewerPrincipal(42, QStringLiteral("farcaster"));
     assert(restored.cachedSnapshot());
     assert(!restored.authorized());
     assert(restored.connections().size() == 2);
-    restored.setViewerFid(43);
+    restored.setViewerPrincipal(43, QStringLiteral("farcaster"));
     assert(!restored.cachedSnapshot());
     assert(restored.connections().isEmpty());
     return 0;

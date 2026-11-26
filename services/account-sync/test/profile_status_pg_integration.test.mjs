@@ -25,7 +25,7 @@ test('real PostgreSQL profile-status CAS supports updates after revision 1', {
       poolFactory:()=>({query:(sql,args)=>client.query(sql,args),end:async()=>{}})
     });
     const owner={issuer:'https://openproof.genyleap.com',
-      subject:'farcaster:42',fid:'42'};
+      subject:'farcaster:42',fid:'42',network:'farcaster'};
     const other={...owner,subject:'farcaster:99',fid:'99'};
     const write=(mood,revision,visible=true,note='')=>
       store.putProfileStatus(owner,{mood,revision,visible,note});
@@ -42,11 +42,11 @@ test('real PostgreSQL profile-status CAS supports updates after revision 1', {
     assert.equal(await write('away',1),null,'stale rev1 does not overwrite');
     const third=await write('none',2,false);
     assert.equal(third.revision,'3');
-    assert.equal(await store.getPublicProfileStatus('42',owner.issuer),null);
+    assert.equal(await store.getPublicProfileStatus(owner),null);
     const fourth=await write('available',3);
     assert.equal(fourth.revision,'4');
     assert.equal((await store.getOwnProfileStatus(owner)).mood,'available');
-    assert.equal((await store.getPublicProfileStatus('42',owner.issuer)).mood,'available');
+    assert.equal((await store.getPublicProfileStatus(owner)).mood,'available');
     assert.equal(await store.getOwnProfileStatus(other),null);
     await store.close();
   } finally {
