@@ -282,19 +282,33 @@ ColumnLayout {
                     padding: Theme.space1
                     Accessible.name: String(nodeRow.modelData.label) + ", "
                         + root.measuredStatus(nodeRow.result.status, nodeRow.result.latency)
+                        + (nodeRow.modelData.active ? ", " + qsTrId("genycaster.nodes.primary_reader") : "")
+                    Accessible.selected: !!nodeRow.modelData.active
                     onClicked: root.expandedNodeId = nodeRow.expanded ? "" : String(nodeRow.modelData.id)
                     background: Superellipse {
-                        fillColor: nodeToggle.down || nodeRow.expanded ? Theme.surfaceRaised : "transparent"
-                        borderWidth: Theme.keyboardFocusVisible(nodeToggle) ? Theme.strokeEmphasis : 0
-                        borderColor: Theme.accent
+                        fillColor: nodeRow.modelData.active
+                            ? Qt.rgba(Theme.positive.r, Theme.positive.g, Theme.positive.b, Theme.dark ? 0.07 : 0.045)
+                            : nodeToggle.down || nodeRow.expanded ? Theme.surfaceRaised : "transparent"
+                        borderWidth: nodeRow.modelData.active || Theme.keyboardFocusVisible(nodeToggle)
+                            ? Theme.strokeEmphasis : 0
+                        borderColor: nodeRow.modelData.active ? Theme.positive : Theme.accent
                         curveDepth: Theme.curveControl
+                        Superellipse {
+                            anchors.fill: parent
+                            anchors.margins: Theme.strokeEmphasis * 2
+                            visible: nodeRow.modelData.active && Theme.keyboardFocusVisible(nodeToggle)
+                            fillColor: "transparent"
+                            borderWidth: Theme.strokeHairline
+                            borderColor: Theme.accent
+                            curveDepth: Theme.curveControl
+                        }
                     }
                     contentItem: RowLayout {
                         layoutDirection: Theme.uiDirection
                         spacing: Theme.space2
                         Icon {
                             text: nodeRow.modelData.active ? Theme.iconCheck : Theme.iconCloud
-                            color: nodeRow.working ? Theme.positive
+                            color: nodeRow.modelData.active || nodeRow.working ? Theme.positive
                                 : nodeRow.result.status === "degraded" ? Theme.warning : Theme.inkMuted
                             preferredSize: Theme.iconSizeSmall
                         }

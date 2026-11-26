@@ -108,3 +108,11 @@ test('new status and self-host guide copy is translated for all built-in locales
   for(const id of ids)assert.ok(cat.includes('id="genycaster.nodes.'+id+'"'),loc+' '+id);
  }
 });
+
+test('configured primary has its own green outline independent of sorting and health',()=>{
+ const qml=read('ui/components/settings/NodeManagementPanel.qml');
+ assert.match(qml,/borderColor: nodeRow\.modelData\.active \? Theme\.positive : Theme\.accent/);
+ assert.match(qml,/borderWidth: nodeRow\.modelData\.active \|\| Theme\.keyboardFocusVisible/);
+ assert.match(qml,/Accessible\.selected: !!nodeRow\.modelData\.active/);
+ assert.match(qml,/active: !!match && match\.id === providerProfiles\.activeReadProviderId/);
+});

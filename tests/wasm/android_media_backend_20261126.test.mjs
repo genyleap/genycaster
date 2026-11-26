@@ -10,6 +10,13 @@ test('Android selects FFmpeg explicitly before media construction and requires d
  assert.match(main,/QT_DISABLE_HW_TEXTURES_CONVERSION", "1"/);
  assert.match(main,/QQuickWindow::setGraphicsApi\(QSGRendererInterface::Vulkan\)/);
  assert.match(cmake,/MultimediaPrivate/);
- assert.match(cmake,/INCLUDE_BY_TYPE multimedia Qt6::QFFmpegMediaPlugin/);
+ const policy=read('cmake/platform/Android/configure.cmake');
+ const workflow=read('.github/workflows/ci.yml');
+ assert.match(cmake,/genycaster_android_configure_media_backend\(genycaster\)/);
+ assert.match(policy,/INCLUDE_BY_TYPE multimedia Qt6::QFFmpegMediaPlugin/);
+ assert.match(policy,/elseif\(_binary\)/);
+ assert.match(policy,/QT_ANDROID_EXTRA_PLUGINS/);
+ assert.match(policy,/if\(GENYCASTER_REQUIRE_ANDROID_FFMPEG\)/);
+ assert.match(workflow,/-DGENYCASTER_REQUIRE_ANDROID_FFMPEG=ON/);
  assert.match(packageCheck,/libplugins_multimedia_ffmpegmediaplugin_/);
 });

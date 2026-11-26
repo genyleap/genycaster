@@ -1240,6 +1240,7 @@ jobs:
             # Android v1 deliberately supports PUBLIC Mini App pages only.
             # No origin receives Mini App SDK, wallet RPC or signing authority.
             -DGENYCASTER_ANDROID_MINIAPP_SCOPE=public-only
+            -DGENYCASTER_REQUIRE_ANDROID_FFMPEG=ON
             -DQT_ANDROID_DEPLOY_RELEASE=ON
           )
           if [[ "$SIGN_RELEASE" == true ]]; then

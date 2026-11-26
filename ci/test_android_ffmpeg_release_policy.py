@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 import struct
+import subprocess
+import tempfile
 import unittest
 
 from ci.verify_platform_package import validate_android_elf_alignment
@@ -29,6 +31,55 @@ class AndroidFFmpegReleasePolicyTests(unittest.TestCase):
         # The same mapping is safe when rebuilt with 16 KiB congruence.
         struct.pack_into("<Q", blob, 64 + 16, 0x2ACB90 + 0x4000)
         validate_android_elf_alignment("lib/arm64-v8a/libavformat.so", bytes(blob))
+
+    def test_sdk_plugin_discovery_without_imported_target(self):
+        # A host-only CMake fixture exercises the real Android deployment
+        # helper without pretending to cross-compile a Qt APK.
+        helper = ROOT / "cmake/platform/Android/configure.cmake"
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = Path(tmp)
+            sdk = fixture / "sdk"
+            plugins = sdk / "plugins/multimedia"
+            plugins.mkdir(parents=True)
+            config = sdk / "lib/cmake/Qt6Multimedia"
+            config.mkdir(parents=True)
+            name = "libplugins_multimedia_ffmpegmediaplugin_arm64-v8a.so"
+            plugin = plugins / name
+            plugin.write_bytes(b"fixture plugin")
+            (fixture / "CMakeLists.txt").write_text(f"""
+cmake_minimum_required(VERSION 3.22)
+project(AndroidPluginFixture NONE)
+include("{helper.as_posix()}")
+add_custom_target(app)
+set(Qt6Multimedia_DIR "{config.as_posix()}")
+set(ANDROID_ABI arm64-v8a)
+genycaster_android_configure_media_backend(app)
+get_target_property(extra app QT_ANDROID_EXTRA_PLUGINS)
+if(EXPECT_FILE)
+    if(NOT EXISTS "${{extra}}/multimedia/{name}")
+        message(FATAL_ERROR "No staged SDK plugin")
+    endif()
+elseif(extra)
+    message(FATAL_ERROR "Unexpected plugin staging")
+endif()
+""")
+            def configure(case, strict, expect_file):
+                return subprocess.run([
+                    "cmake", "-S", str(fixture), "-B", str(fixture / case),
+                    f"-DGENYCASTER_REQUIRE_ANDROID_FFMPEG={strict}",
+                    f"-DEXPECT_FILE={expect_file}",
+                ], capture_output=True, text=True, check=False)
+            result = configure("binary-only", "ON", "ON")
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            plugin.unlink()
+            # An incompatible ABI must never satisfy arm64 discovery.
+            (plugins / name.replace("arm64-v8a", "armeabi-v7a")).write_bytes(b"other ABI")
+            result = configure("local-missing", "OFF", "OFF")
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("unsafe native fallback is disabled", " ".join(result.stderr.split()))
+            result = configure("release-missing", "ON", "OFF")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Android FFmpeg plugin missing", result.stderr)
 
     def test_official_android_ffmpeg_source_is_pinned_and_rebuilt(self):
         script = (ROOT / "ci/build_android_ffmpeg_16k.sh").read_text()

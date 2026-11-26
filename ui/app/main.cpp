@@ -380,6 +380,8 @@ int main(int argc, char* argv[])
     // the incompatible native texture renderer. Must precede all media objects.
     QPlatformMediaIntegration::setBackend(QStringLiteral("ffmpeg"));
     qInfo() << "Genycaster: Android media backend requested: FFmpeg";
+    qInfo() << "Genycaster: Android discovered media backends:"
+            << QPlatformMediaIntegration::availableBackends();
 #if QT_CONFIG(vulkan)
     selectAndroidEmulatorRenderer();
 #endif
