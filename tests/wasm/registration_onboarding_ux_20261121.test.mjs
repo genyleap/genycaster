@@ -20,9 +20,9 @@ test('HyperSnap explains blockchain catch-up with identical stage names on nativ
  assert.ok(qml.includes('confirmation.http_status='));
  assert.ok(qml.includes('registration.max_block_delay_s=120'));
  assert.match(qml,/onClicked: root\.previousStep\(\)/);
- assert.match(qml,/qsTrId\("genycaster.setup.keep_recovery_words"\)/);
+ assert.match(qml,/qsTrId\("genycaster.setup.confirmation_pending_dont_retry"\)/);
  assert.match(qml,/root.requestAccepted/);
- assert.match(qml,/root.browserCeremony.phase === "outcome-unknown"/);
+ assert.match(qml,/browserCeremony.requestAccepted === true/);
 });
 
 test('WASM blocks irreversible HyperSnap registration when shard-0 lags, not read-only recoveries',()=>{

@@ -6212,6 +6212,10 @@ Company | https://company.com</source>
             <source>Prepare HyperSnap registration proof</source>
             <translation>HyperSnap पंजीकरण प्रमाण तैयार करें</translation>
         </message>
+        <message id="genycaster.setup.preparing_registration_short">
+            <source>Preparing your account…</source>
+            <translation>आपका खाता तैयार हो रहा है…</translation>
+        </message>
         <message id="genycaster.setup.native_proof_working">
             <source>Calculating the registration proof without exposing your wallet keys. This work runs outside the UI thread.</source>
             <translation>वॉलेट की कुंजियाँ साझा किए बिना UI थ्रेड से अलग पंजीकरण प्रमाण की गणना हो रही है।</translation>

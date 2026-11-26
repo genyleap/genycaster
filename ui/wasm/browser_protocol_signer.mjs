@@ -452,8 +452,8 @@ export function createBrowserProtocolSigner({
         });
     }
 
-    async function provisionFromRecovery(fid,phrase) {
-        return provision(fid,owner=>recoveryCustody(owner,phrase));
+    async function provisionFromRecovery(fid,phrase,stillCurrent=()=>true) {
+        return provision(fid,owner=>recoveryCustody(owner,phrase),stillCurrent);
     }
 
     async function signedWrite(fidValue,scope,encode){

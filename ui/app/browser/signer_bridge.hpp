@@ -122,6 +122,27 @@ public:
         start(QStringLiteral("signed-out"), {});
     }
 
+    // Explicit one-shot recovery input, never embedded in event JSON.
+    void authorizeRecovery(const QString& fid, bool native, QString words)
+    {
+        const QByteArray identity = fid.toUtf8();
+        const QByteArray base = m_snapchainOrigin.toUtf8();
+        QByteArray secret = words.toUtf8();
+        words.fill(QChar{});
+        const int accepted = EM_ASM_INT({
+            const controller = window.__genycasterBrowserSigning;
+            if (!controller) return 0;
+            return controller.authorizeRecovery(
+                UTF8ToString($0, $1), $2 !== 0,
+                UTF8ToString($3, $4), UTF8ToString($5, $6)) ? 1 : 0;
+        }, identity.constData(), identity.size(), native ? 1 : 0,
+           base.constData(), base.size(), secret.constData(), secret.size());
+        secret.fill('\0');
+        if (!accepted && m_presentation)
+            m_presentation->applySignerState(QStringLiteral("authorization-required"),
+                false, false, {}, qtTrId("genycaster.setup.recovery_failed_retry"));
+    }
+
     void start(const QString& operation, const QString& fid,
                const QJsonObject& payload = {})
     {

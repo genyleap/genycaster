@@ -23,22 +23,26 @@ test('HyperSnap WASM signer consent routes to browser native signer instead of u
     assert.match(handler,/runtime->signerService->provision/);
 });
 
-test('WASM sends recovery words only through the browser vault dialog, not QML',()=>{
+test('WASM signer reauthorization uses shared QML and a protocol-scoped one-shot adapter',()=>{
     const shell=read('ui/components/shell/AppShell.qml');
     const block=shell.slice(shell.indexOf('function requestInteractionAuthorization()'),
         shell.indexOf('GenyProDetailsDrawer {'));
-    assert.match(block,/Qt\.platform\.os !== "wasm"[\s\S]*?&& !presentationBridge\.nativeCustodySignerAvailable/);
-    assert.match(block,/objectName: "nativeSignerUseRecoveryWords"\s+visible: Qt\.platform\.os !== "wasm"/);
-    assert.match(block,/objectName: "nativeSignerRecoveryGrid"\s+visible: Qt\.platform\.os !== "wasm"/);
-    assert.match(block,/presentationBridge\.provisionSigner\(\)/);
+    assert.match(block,/Qt\.platform\.os === "wasm"\s*\|\|/);
+    assert.match(block,/objectName: "nativeSignerUseRecoveryWords"\s+visible: !interactionAuthorizationDialog.enteringNativeWords/);
+    assert.match(block,/objectName: "nativeSignerRecoveryGrid"\s+visible: !interactionAuthorizationDialog.mobileRecoveryInput/);
     assert.match(block,/presentationBridge\.authorizeNativeHyperSnapSigner\(/);
+    assert.match(block,/presentationBridge\.authorizeNativeFarcasterSigner\(/);
     const js=read('ui/wasm/protocol-signer-pre.js');
-    assert.match(js,/async function authorizeNativeRecovery\(current,fid,thisEpoch\)/);
-    assert.match(js,/phrase=>current\.provision\(fid,[\s\S]*?nativeCustodyForFid/);
+    assert.match(js,/function authorizeRecovery\(fid,native,base,words\)/);
+    assert.match(js,/owner!==fid\|\|ownerProtocol!==protocol\|\|inFlight/);
+    const provision=js.slice(js.indexOf('} else if (action === "provision")'),js.indexOf('} else if (action === "revoke")'));
+    assert.doesNotMatch(provision,/promptForFarcasterRecovery|openRecoveryDialog/);
+    assert.match(provision,/await current\.restore\(fid\)/);
+    assert.match(provision,/requestedFid=>nativeCustodyForFid\(requestedFid,recoveryWords\)/);
+    assert.match(provision,/current\.provisionFromRecovery\(fid,recoveryWords,stillCurrent\)/);
+    const bridge=read('ui/app/browser/signer_bridge.hpp');
+    assert.match(bridge,/secret\.fill\('\\0'\)/);
     assert.match(js,/vault:createBrowserSignerVault\(window,\{scope:'hypersnap-v2'\}\)/);
-    assert.match(js,/native\?await createNativeClient\(\):await createClient\(base\)/);
-    assert.match(js,/await current\.restore\(fid\)/);
-    assert.match(js,/if\(!existing && epoch===thisEpoch && owner===fid\)\s+await authorizeNativeRecovery\(current,fid,thisEpoch\)/);
 });
 
 test('HyperSnap browser writes still require verified signer readiness and cannot borrow Farcaster authority',()=>{

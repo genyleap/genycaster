@@ -275,32 +275,24 @@
             return await promptForFarcasterRecovery(window,signal,onAuthorize,options);
         }finally{layer.remove();}
     }
-    async function authorizeNativeRecovery(current,fid,thisEpoch) {
-        const controller=new AbortController();recoveryController=controller;
-        const {promptForFarcasterRecovery}=
-            await import('./recovery-phrase-dialog.mjs');
-        if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted)return;
-        return promptForFarcasterRecovery(window,controller.signal,
-            phrase=>current.provision(fid,
-                requestedFid=>nativeCustodyForFid(requestedFid,phrase),
-                ()=>epoch===thisEpoch && owner===fid && !controller.signal.aborted),
-            {presentation:'full',protocol:'hypersnap-v2'});
-    }
-    async function authorizeRecoveryInSetup(current, fid, thisEpoch) {
-        const controller = new AbortController();
-        recoveryController = controller;
-        const { promptForFarcasterRecovery } =
-            await import('./recovery-phrase-dialog.mjs');
-        if (controller.signal.aborted ||
-            epoch !== thisEpoch || owner !== fid) return;
-        // Re-provisioning from Account/Profile must cover the entire app,
-        // not reuse the onboarding split-pane layout over the live profile.
-        await promptForFarcasterRecovery(window,controller.signal,
-            phrase=>current.provisionFromRecovery(fid,phrase),
-            {presentation:'full'});
+    function authorizeRecovery(fid,native,base,words) {
+        const protocol=native?'hypersnap-v2':'farcaster-snapchain';
+        const count=typeof words==='string'?words.trim().split(/\s+/).length:0;
+        if(window.isSecureContext!==true||owner!==fid||ownerProtocol!==protocol||inFlight
+            ||typeof words!=='string'||words.length>512
+            ||(count!==24&&(native||count!==12)))return false;
+        start('provision',fid,base,JSON.stringify({protocol}),words);
+        return true;
     }
 
-    function start(action, fid, base, payloadString = "") {
+    function start(action, fid, base, payloadString = "", recoveryWords = "") {
+        if(recoveryWords){
+            // The explicit one-shot input must not be used to change the
+            // active identity, including a colliding FID across protocols.
+            const protocol=JSON.parse(payloadString).protocol;
+            if(action!=='provision'||window.isSecureContext!==true||inFlight
+                ||owner!==fid||ownerProtocol!==protocol)return;
+        }
         // Runtime identities are authoritative in Qt, never JS localStorage.
         // If the identity changes while a wallet is prompting, pending
         // requests are invalidated and cannot submit protocol messages.
@@ -707,29 +699,22 @@
                     // and exact owner FID; no local balance implies a tier.
                     if (action==='restore' && epoch===thisEpoch && owner===fid)
                         retryAccountSession(fid);
-                    if (action === "restore-for-setup" && !existing) {
-                        // Never collect a phrase on app reload or a restored session.
-                        // This command is scoped to a verified, explicit setup login.
-                        if (epoch !== thisEpoch || owner !== fid) return;
-                        if(native)
-                            await authorizeNativeRecovery(current,fid,thisEpoch);
-                        else
-                            await authorizeRecoveryInSetup(current,fid,thisEpoch);
-                    }
+                    // A missing signer is a read-only state. Only an
+                    // explicit QML consent with recovery input may add a key.
                 } else if (action === "provision") {
-                    // A previously registered, protocol-scoped HyperSnap key
-                    // may survive reload while the Qt signer state is stale.
-                    // Inspect that key BEFORE requesting custody words. Only
-                    // an authoritative "missing" response permits a new
-                    // explicit KEY_ADD ceremony. Network failures stay
-                    // failures; they must not trigger another phrase prompt.
-                    if(native) {
-                        const existing=await current.restore(fid);
-                        if(!existing && epoch===thisEpoch && owner===fid)
-                            await authorizeNativeRecovery(current,fid,thisEpoch);
-                    } else {
-                        await authorizeRecoveryInSetup(current,fid,thisEpoch);
-                    }
+                    const existing=await current.restore(fid);
+                    if(existing || epoch!==thisEpoch || owner!==fid
+                        || ownerProtocol!==nextProtocol)return;
+                    if(!recoveryWords)return;
+                    const controller=new AbortController();
+                    recoveryController=controller;
+                    const stillCurrent=()=>epoch===thisEpoch && owner===fid
+                        && ownerProtocol===nextProtocol && !controller.signal.aborted;
+                    if(!stillCurrent())return;
+                    if(native)await current.provision(fid,
+                        requestedFid=>nativeCustodyForFid(requestedFid,recoveryWords),
+                        stillCurrent);
+                    else await current.provisionFromRecovery(fid,recoveryWords,stillCurrent);
                 } else if (action === "revoke") {
                     await current.revoke(fid);
                 } else {
@@ -795,6 +780,7 @@
                     busy:false,ready:false,fid,
                     error:cancelled ? '' : String(error?.message || error).slice(0,700)});
             } finally {
+                recoveryWords='';
                 if (epoch === thisEpoch) {
                     recoveryController = null;
                     inFlight = false;
@@ -1003,5 +989,5 @@
         cancel:cancelMedia,remove:removeManagedMedia,
         events:mediaEvents
     });
-    window.__genycasterBrowserSigning = Object.freeze({start,retryAccountSession,events});
+    window.__genycasterBrowserSigning = Object.freeze({start,authorizeRecovery,retryAccountSession,events});
 }());

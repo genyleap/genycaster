@@ -6,7 +6,7 @@ import {createBrowserFarcasterRegistration} from './farcaster_new_account.mjs';
 
 const initial=()=>({hasWallet:false,revealed:false,verified:false,busy:false,
  locked:false,indexA:-1,indexB:-1,address:'',phase:'',done:0,total:0,error:'',
- paidPhase:'idle',hasVoucher:false,reservedFid:'',copied:false,resumeOnly:false,restored:false});
+ requestAccepted:false,paidPhase:'idle',hasVoucher:false,reservedFid:'',copied:false,resumeOnly:false,restored:false});
 const validProtocol=p=>['hypersnap-v2','farcaster-snapchain'].includes(p);
 export function createSetupWallet({browser=globalThis,generate=generateNativePhrase,
  derive=deriveFarcasterCustody,preflight=async()=>{},
@@ -100,7 +100,7 @@ export function createSetupWallet({browser=globalThis,generate=generateNativePhr
   if(paid){
    if(state.paidPhase!=='reserved'||!sponsor||!voucher||!state.locked||! /^[a-z0-9][a-z0-9-]{0,15}$/.test(username))return false;
   }else if(state.locked)return false;
-  request={username};patch({busy:true,phase:'network',done:0,total:0,error:''});return true;
+  request={username};patch({busy:true,phase:'network',done:0,total:0,error:'',requestAccepted:false});return true;
  }
  async function submit(p,signal,operation){
   const paid=p==='farcaster-snapchain';
@@ -112,15 +112,15 @@ export function createSetupWallet({browser=globalThis,generate=generateNativePhr
     signal,confirmIrreversible:true,resumeOnly:state.resumeOnly,restored:state.restored,address:state.address,
     onProgress:(done,total,phase)=>{
      if(g!==generation||signal?.aborted)throw Error('Registration cancelled');
-     const irreversible=['reserve','submit','submitting','checking','outcome-unknown','verify'].includes(phase);
+     const irreversible=['reserve','submit','submitting','accepted','checking','outcome-unknown','verify'].includes(phase);
      if(irreversible&&!state.locked){markPending();}
      const locked=state.locked||irreversible;
-     patch({phase,done:Number.isSafeInteger(done)?done:0,total:Number.isSafeInteger(total)?total:0,locked,
+     patch({phase,requestAccepted:state.requestAccepted||phase==='accepted',done:Number.isSafeInteger(done)?done:0,total:Number.isSafeInteger(total)?total:0,locked,
       paidPhase:paid&&phase!=='confirmed'?'pending':state.paidPhase});
    }});
    if(g!==generation)throw Error('Registration cancelled');
    clearMarker();phrase='';voucher='';sponsor=null;
-   patch({busy:false,locked:true,phase:'confirmed',paidPhase:paid?'confirmed':state.paidPhase,hasVoucher:false});return result;
+   patch({busy:false,locked:true,phase:'confirmed',requestAccepted:true,paidPhase:paid?'confirmed':state.paidPhase,hasVoucher:false});return result;
   }catch(error){
    if(g===generation){
     const locked=error?.definitelyRejected!==true&&(state.locked||state.resumeOnly||error?.outcomeUnknown===true);

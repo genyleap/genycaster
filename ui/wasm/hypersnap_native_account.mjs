@@ -533,7 +533,7 @@ export function createBrowserNativeRegistry({
         rejected.definitelyRejected=true;throw rejected;
       }
       if(response.status!==200)onProgress(0,1,'outcome-unknown');
-      else onProgress(0,1,'checking');
+      else onProgress(0,1,'accepted');
       for(let i=0;i<60;i++){
         if(signal?.aborted)throw new Error(
           'Registration submitted; check the native registry before retrying');

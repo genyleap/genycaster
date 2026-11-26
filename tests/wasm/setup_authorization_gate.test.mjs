@@ -164,33 +164,39 @@ test('first-run setup reuses a confirmed signer without prompting',async()=>{
     assert.deepEqual(h.calls,['restore:101']);
     assert.equal(h.events.some(e=>e.phase==='ready'),true);
 });
-test('first-run setup prompts once only after missing network signer',async()=>{
+const recoveryFixture=Array(24).fill('test').join(' ');
+test('first-run setup stays read-only after missing signer; explicit QML authorization is one-shot',async()=>{
     const h=harness(false);
     h.bridge.start('restore-for-setup','101','https://snapchain.example.test','');
     await tick();
-    assert.deepEqual(h.calls,['restore:101','phrase-dialog','authorize:101:test-vector-no-secrets']);
+    assert.deepEqual(h.calls,['restore:101']);
+    assert.equal(h.bridge.authorizeRecovery('202',false,'https://snapchain.example.test',recoveryFixture),false);
+    assert.equal(h.bridge.authorizeRecovery('101',true,'https://snapchain.example.test',recoveryFixture),false);
+    assert.equal(h.bridge.authorizeRecovery('101',false,'https://snapchain.example.test',recoveryFixture),true);
+    assert.equal(h.bridge.authorizeRecovery('101',false,'https://snapchain.example.test',recoveryFixture),false);
+    await tick();
+    assert.deepEqual(h.calls,['restore:101','restore:101','authorize:101:'+recoveryFixture]);
+    assert.ok(!JSON.stringify(h.events).includes(recoveryFixture));
 });
-test('sign-out during recovery closes prompt and prevents stale authorization',async()=>{
+test('sign-out before explicit QML authorization completes prevents stale signing',async()=>{
     const h=harness(false);
-    h.setDelayPrompt();
-    h.bridge.start('restore-for-setup','101','https://snapchain.example.test','');
+    h.bridge.start('restore','101','https://snapchain.example.test','');
     await tick();
-    assert.equal(h.calls.includes('phrase-dialog'),true);
+    assert.equal(h.bridge.authorizeRecovery('101',false,'https://snapchain.example.test',recoveryFixture),true);
     h.bridge.start('signed-out','','https://snapchain.example.test','');
     await tick();
     assert.equal(h.calls.some(c=>c.startsWith('authorize:')),false);
 });
-test('new account cancels earlier recovery and never authorizes old fid',async()=>{
+test('new account cancels earlier QML authorization and never authorizes old fid',async()=>{
     const h=harness(false);
-    h.setDelayPrompt();
-    h.bridge.start('restore-for-setup','101','https://snapchain.example.test','');
+    h.bridge.start('restore','101','https://snapchain.example.test','');
     await tick();
+    assert.equal(h.bridge.authorizeRecovery('101',false,'https://snapchain.example.test',recoveryFixture),true);
     h.bridge.start('restore','202','https://snapchain.example.test','');
     await tick();
-    assert.deepEqual(h.calls.filter(c=>c.startsWith('restore:')),['restore:101','restore:202']);
+    assert.ok(h.calls.includes('restore:202'));
     assert.equal(h.calls.some(c=>c.startsWith('authorize:')),false);
 });
-
 
 test('direct Setup recovery returns only a verified FID and the one-shot request ID',async()=>{
     const h=harness(false);
@@ -321,14 +327,17 @@ test('a repeated Setup recovery click produces a visible one-shot failure instea
     await tick();
 });
 
-test('native HyperSnap authorization requests the browser-only custody recovery flow and enables signer',async()=>{
+test('native HyperSnap explicit QML authorization enables only the same protocol signer',async()=>{
     const h=harness(false);
-    h.bridge.start('provision',nativeFid,'https://snapchain.example.test',
-        JSON.stringify({protocol:'hypersnap-v2'}));
+    const base='https://snapchain.example.test';
+    h.bridge.start('restore',nativeFid,base,JSON.stringify({protocol:'hypersnap-v2'}));
+    await tick();
+    assert.equal(h.bridge.authorizeRecovery(nativeFid,false,base,recoveryFixture),false);
+    assert.equal(h.bridge.authorizeRecovery(nativeFid,true,base,recoveryFixture),true);
     await tick();
     assert.deepEqual(h.calls,[
         'restore:'+nativeFid,
-        'phrase-dialog',
+        'restore:'+nativeFid,
         'authorize-native:'+nativeFid,
         'lookup-native-registry',
         'custody-disposed',
@@ -337,7 +346,7 @@ test('native HyperSnap authorization requests the browser-only custody recovery 
     assert.equal(ready?.protocol,'hypersnap-v2');
     assert.equal(ready?.fid,nativeFid);
     assert.equal(ready?.ready,true);
-    assert.ok(!JSON.stringify(h.events).includes('test-vector-no-secrets'));
+    assert.ok(!JSON.stringify(h.events).includes(recoveryFixture));
 });
 
 test('a native HyperSnap browser signer already authorized in the vault restores without a new recovery prompt',async()=>{

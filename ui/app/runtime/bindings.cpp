@@ -4621,6 +4621,19 @@ void connectRuntime(
                 return address ? QString::fromStdString(*address) : QString{};
             }));
         });
+#elif defined(Q_OS_WASM)
+    // The shared QML dialog uses the same explicit consent commands, but
+    // browser cryptography stays in the protocol-scoped JS signer adapter.
+    QObject::connect(&bridge, &PresentationBridge::nativeFarcasterSignerAuthorizationRequested,
+        &bridge, [browserSigner, &bridge](QString words) {
+            browserSigner->authorizeRecovery(QString::number(bridge.accountFid()),
+                false, std::move(words));
+        });
+    QObject::connect(&bridge, &PresentationBridge::nativeHyperSnapSignerAuthorizationRequested,
+        &bridge, [browserSigner, &bridge](QString words) {
+            browserSigner->authorizeRecovery(QString::number(bridge.accountFid()),
+                true, std::move(words));
+        });
 #else
     QObject::connect(&bridge, &PresentationBridge::nativeFarcasterSignerAuthorizationRequested, &bridge,
         [&bridge](QString words) {

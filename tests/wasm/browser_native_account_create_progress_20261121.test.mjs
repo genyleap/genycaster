@@ -101,3 +101,21 @@ test('missing persistent public submission guard fails closed',async()=>{
  await backup(wallet);wallet.prepare(hyper);
  await assert.rejects(wallet.submit(hyper,null,async(_,o)=>{o.onProgress(0,1,'submitting');assert.fail('must not POST');}),/journal/);
 });
+
+test('only explicit acceptance or verified registry confirmation completes the request step',async()=>{
+ const {wallet}=fixture();
+ await backup(wallet);assert.equal(wallet.prepare(hyper),true);
+ await wallet.submit(hyper,null,async(_,o)=>{
+  o.onProgress(0,1,'submitting');
+  assert.equal(wallet.snapshot().requestAccepted,false);
+  o.onProgress(0,1,'outcome-unknown');
+  o.onProgress(1,60,'checking');
+  assert.equal(wallet.snapshot().requestAccepted,false);
+  o.onProgress(0,1,'accepted');
+  assert.equal(wallet.snapshot().requestAccepted,true);
+  o.onProgress(2,60,'checking');
+  assert.equal(wallet.snapshot().requestAccepted,true);
+  return {fid:'4294967296',address};
+ });
+ assert.equal(wallet.snapshot().phase,'confirmed');
+});

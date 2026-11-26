@@ -16,7 +16,7 @@ test('native signers show all 24 slots with no nested scrolling on desktop',()=>
   assert.match(dialog,/width: fullScreen \? \(parent \? parent.width : root.width\)\s*: \(parent \? Math.min\(760,/);
   assert.match(dialog,/id: nativeRecoveryScroll\s*objectName: "nativeSignerRecoveryGrid"/);
   assert.match(dialog,/Layout\.preferredHeight: nativeSignerWordColumns\.implicitHeight/);
-  assert.match(dialog,/columns: !nativeRecoveryScroll \|\| nativeRecoveryScroll\.width < Theme\.scaleUi\(340\) \? 3 : 4/);
+  assert.match(dialog,/columns: !nativeRecoveryScroll \|\| nativeRecoveryScroll\.width < Theme\.scaleUi\(360\) \? 2\s*: nativeRecoveryScroll\.width < Theme\.scaleUi\(520\) \? 3 : 4/);
   assert.match(dialog,/model: 24/);
   const grid=dialog.slice(dialog.indexOf('id: nativeRecoveryScroll'),
     dialog.indexOf('ActionButton {\n                visible: (nativeRecoveryScroll'));
@@ -56,7 +56,7 @@ test('signer authorization always offers an action instead of disabling an empty
 test('closing a word editor cannot dereference a destroyed popup from delegate bindings',()=>{
   const grid=shell.slice(shell.indexOf('id: nativeRecoveryScroll'),
     shell.indexOf('objectName: "signerAuthorizationInlineError"'));
-  assert.match(grid,/enabled: !interactionAuthorizationDialog\s*\|\| !interactionAuthorizationDialog\.authorizationSubmitted/);
+  assert.match(grid,/enabled: !!interactionAuthorizationDialog\s*&& index < interactionAuthorizationDialog\.activeWordCount\s*&& !interactionAuthorizationDialog\.authorizationSubmitted/);
   assert.match(grid,/placeholderText: interactionAuthorizationDialog\s*&& interactionAuthorizationDialog\.authorizationSubmitted/);
   assert.match(grid,/if \(!interactionAuthorizationDialog\) return/);
   assert.match(grid,/if \(!interactionAuthorizationDialog\s*\|\| !interactionAuthorizationDialog\.opened/);

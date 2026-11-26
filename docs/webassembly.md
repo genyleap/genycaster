@@ -166,8 +166,12 @@ remain separate work.
 backup challenge, recovery fields, and registration progress on every target.
 The former browser-only HTML new-account form is no longer shipped. Native
 builds use the existing C++ custody controller; WebAssembly uses its Qt adapter
-and the ephemeral `browser_setup_wallet.mjs` ceremony. Browser-only signer
-reauthorization outside Setup remains a separate explicit dialog.
+and the ephemeral `browser_setup_wallet.mjs` ceremony. Signer
+reauthorization outside Setup uses the shared QML authorization modal, with
+a one-shot transient input to the protocol-scoped browser signer. The
+active issuer and exact FID must match; a missing signer on restore never
+opens a recovery form or submits a write. Legacy explicit recovery entry
+points outside the shared Setup still use the browser recovery fallback.
 
 Generated recovery words are not a QML property or persistent data model.
 They are painted using a bounded transient WASM buffer only while backup is

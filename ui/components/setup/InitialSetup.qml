@@ -328,7 +328,16 @@ Item {
     readonly property bool sponsorHasVoucher: browserReadOnly ? browserCeremony.hasVoucher === true : neynarRegistration.hasVoucher
     readonly property string sponsorReservedFid: browserReadOnly ? String(browserCeremony.reservedFid || "") : neynarRegistration.reservedFid
     readonly property bool registrationWorking: browserReadOnly ? browserCeremonyBusy && browserCeremony.verified === true : nativeCreationRequested || nativeRegistrationPreparation.busy || nativeRegistrationPublisher.busy
-    readonly property bool requestAccepted: browserReadOnly ? browserCeremony.phase === "checking" || browserCeremony.phase === "confirmed" : nativeRegistrationPublisher.pending && !nativeRegistrationPublisher.outcomeUnknown
+    readonly property bool registrationConfirmed: browserReadOnly
+        ? browserCeremony.phase === "confirmed" : nativeRegistrationPublisher.confirmed
+    readonly property bool requestAccepted: registrationConfirmed || (browserReadOnly
+        ? browserCeremony.requestAccepted === true : nativeRegistrationPublisher.pending && !nativeRegistrationPublisher.outcomeUnknown)
+    readonly property bool registrationPending: browserReadOnly ? browserCeremonyLocked && !registrationConfirmed
+        : nativeRegistrationPublisher.pending && !registrationConfirmed
+    readonly property bool registrationTimelineVisible: registrationWorking || registrationPending || registrationConfirmed
+    readonly property int registrationActiveStep: registrationConfirmed ? -1 : requestAccepted ? 2 : 1
+    readonly property bool registrationStepRunning: registrationWorking || (!browserReadOnly && nativeRegistrationPublisher.checkingConfirmation)
+
     function browserWalletError() {
         switch (browserCeremony.error) {
         case "backup_mismatch": return qsTrId("genycaster.setup.wallet_challenge_explanation")
@@ -2815,7 +2824,7 @@ Item {
                 ColumnLayout {
                     objectName: "nativeRegistrationBroadcastPanel"
                     visible: root.registrationProviderId === "hypersnap-v2"
-                             && (nativeCustodyWallet.backupVerified || !nativeRegistrationStatus.syncedForRegistration)
+                             && (nativeCustodyWallet.backupVerified || root.registrationTimelineVisible || !nativeRegistrationStatus.syncedForRegistration)
                     Layout.fillWidth: true
                     spacing: Theme.space2
 
@@ -2823,16 +2832,13 @@ Item {
                         objectName: "setupBeginRegistration"
                         Layout.fillWidth: true
                         prominent: true
-                        visible: nativeCustodyWallet.backupVerified && !nativeRegistrationPublisher.pending
+                        visible: nativeCustodyWallet.backupVerified && !root.registrationTimelineVisible && !nativeRegistrationPublisher.pending
                                  && !nativeRegistrationPublisher.confirmed
                                  && nativeRegistrationStatus.syncedForRegistration
                                  && nativeRegistrationStatus.existingNativeFid.length === 0
                                  && !root.browserCeremonyLocked
                         text: qsTrId("genycaster.setup.create_account")
-                        busy: root.browserCeremonyBusy || root.nativeCreationRequested
-                              || nativeRegistrationPreparation.busy
-                              || nativeRegistrationPublisher.busy
-                              || nativeRegistrationStatus.accountLookupBusy
+                        busy: nativeRegistrationStatus.accountLookupBusy
                         enabled: root.registrationNodeUsable
                                  && (root.browserReadOnly || nativeRegistrationStatus.accountLookupChecked)
                                  && !nativeRegistrationStatus.accountLookupFailed
@@ -2852,7 +2858,8 @@ Item {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        visible: !nativeRegistrationPublisher.pending
+                        visible: !root.registrationTimelineVisible
+                                 && !nativeRegistrationPublisher.pending
                                  && !nativeRegistrationPublisher.confirmed
                                  && nativeRegistrationStatus.existingNativeFid.length === 0
                                  && !root.nativeCreationRequested
@@ -2881,153 +2888,137 @@ Item {
                             root.maybeLookupNativeFid()
                         }
                     }
-                    // One identical QML status view on desktop and Android.
-                    // A pending write stays read-only; block synchronization
-                    // is external to the user and never starts another POST.
+                    // Shared, compact status timeline. Only verified registry
+                    // confirmation completes the final step. A transport timeout
+                    // must never look like a successfully accepted request.
                     NeonCard {
                         objectName: "setupNativeChainStatusCard"
                         Layout.fillWidth: true
-                        visible: nativeRegistrationPublisher.pending || root.registrationWorking || root.browserCeremonyLocked
+                        visible: root.registrationTimelineVisible
                                  || (!nativeRegistrationStatus.syncedForRegistration
                                      && nativeRegistrationStatus.existingNativeFid.length === 0)
-                        Layout.preferredHeight: nativeChainSteps.implicitHeight + Theme.space4 * 2
+                        Layout.preferredHeight: nativeChainSteps.implicitHeight + Theme.space3 * 2
                         interactive: false
                         deferredNeon: true
                         neonStrength: Theme.neonPanelStrength
-                        fillColor: nativeRegistrationPublisher.pending
-                                   || nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                   ? Theme.warningSurface : Theme.surface
-                        borderColor: nativeRegistrationPublisher.pending
-                                     || nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                     ? Qt.rgba(Theme.warning.r, Theme.warning.g,
-                                               Theme.warning.b, 0.35) : Theme.borderMuted
+                        fillColor: Theme.surface
+                        borderColor: Theme.borderMuted
                         borderWidth: Theme.strokeStandard
                         curveDepth: Theme.curveContainer
+
                         ColumnLayout {
                             id: nativeChainSteps
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.top: parent.top
-                            anchors.margins: Theme.space4
-                            spacing: Theme.space2
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space3
+
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 text: qsTrId("genycaster.setup.hypersnap_chain")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightDemiBold
-                            }
-                            RowLayout {
-                                Layout.fillWidth: true
-                                layoutDirection: Theme.uiDirection
-                                spacing: Theme.space2
-                                Icon {
-                                    visible: nativeRegistrationPublisher.pending
-                                             || nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                             || (!nativeRegistrationStatus.active
-                                                 && !nativeRegistrationStatus.checking)
-                                    text: Theme.iconWarning
-                                    color: Theme.warning
-                                    preferredSize: Theme.iconSize
-                                }
-                                DirectionAwareLabel {
-                                    objectName: "setupNativeAwaitingConfirmation"
-                                    Layout.fillWidth: true
-                                    text: root.browserCeremonyLocked
-                                          ? qsTrId("genycaster.setup.await_network_confirmation")
-                                          : root.registrationWorking
-                                            ? (root.browserReadOnly && root.browserCeremony.phase !== "proof"
-                                               ? qsTrId("genycaster.setup.network_checking")
-                                               : qsTrId("genycaster.setup.native_proof_working"))
-                                          : nativeRegistrationPublisher.pending
-                                          ? qsTrId("genycaster.setup.await_network_confirmation")
-                                          : nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                            ? qsTrId("genycaster.setup.registration_unavailable")
-                                            : (!nativeRegistrationStatus.active
-                                               && !nativeRegistrationStatus.checking)
-                                              ? qsTrId("genycaster.setup.hypersnap_unavailable")
-                                              : qsTrId("genycaster.setup.network_checking")
-                                    font.pixelSize: Theme.typeTitle3Size
-                                    font.weight: Theme.weightDemiBold
-                                    color: Theme.ink
-                                    wrapMode: Text.WordWrap
-                                }
+                                font.weight: Theme.weightMedium
                             }
                             DirectionAwareLabel {
-                                objectName: "setupNativePendingDescription"
+                                objectName: "setupNativeAwaitingConfirmation"
                                 Layout.fillWidth: true
-                                text: root.browserCeremonyLocked
-                                      ? qsTrId("genycaster.setup.confirmation_pending_dont_retry")
-                                      : root.browserCeremonyBusy
-                                        ? (root.browserCeremony.phase === "proof" && root.browserCeremony.total > 0
-                                            ? LocaleFormat.localizeDigits(root.browserCeremony.done + " / " + root.browserCeremony.total)
-                                            : qsTrId("genycaster.setup.network_checking"))
-                                      : nativeRegistrationPublisher.pending
-                                      ? qsTrId("genycaster.setup.confirmation_pending_dont_retry")
-                                      : nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                        ? qsTrId("genycaster.setup.hypersnap_nodes_syncing")
-                                        : (!nativeRegistrationStatus.active
-                                           && !nativeRegistrationStatus.checking)
-                                          ? qsTrId("genycaster.setup.account_creation_paused")
-                                          : qsTrId("genycaster.setup.hypersnap_checking_short")
-                                color: Theme.inkMuted
+                                text: root.registrationConfirmed
+                                      ? qsTrId("genycaster.setup.native_registration_confirmed")
+                                      : root.registrationPending
+                                        ? qsTrId("genycaster.setup.await_network_confirmation")
+                                        : root.registrationWorking
+                                          ? (root.browserReadOnly && root.browserCeremony.phase !== "proof"
+                                             ? qsTrId("genycaster.setup.network_checking")
+                                             : qsTrId("genycaster.setup.preparing_registration_short"))
+                                          : nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                            ? qsTrId("genycaster.setup.registration_unavailable")
+                                            : (!nativeRegistrationStatus.active && !nativeRegistrationStatus.checking)
+                                              ? qsTrId("genycaster.setup.hypersnap_unavailable")
+                                              : qsTrId("genycaster.setup.network_checking")
                                 font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightDemiBold
+                                color: root.registrationConfirmed ? Theme.success : Theme.ink
                                 wrapMode: Text.WordWrap
                             }
-                            GridLayout {
+
+                            ColumnLayout {
                                 Layout.fillWidth: true
-                                columns: root.phone ? 1 : 3
-                                layoutDirection: Theme.uiDirection
-                                rowSpacing: Theme.space2
-                                columnSpacing: Theme.space3
-                                visible: nativeRegistrationPublisher.pending || root.registrationWorking || root.browserCeremonyLocked
+                                spacing: Theme.space2
+                                visible: root.registrationTimelineVisible
                                 Repeater {
-                                    model: (nativeRegistrationPublisher.pending || root.registrationWorking || root.browserCeremonyLocked) ? [
+                                    model: root.registrationTimelineVisible ? [
                                         qsTrId("genycaster.setup.backup"),
-                                        (nativeRegistrationPublisher.outcomeUnknown || root.browserCeremony.phase === "outcome-unknown")
-                                            ? qsTrId("genycaster.setup.checking_request") : qsTrId("genycaster.setup.request"),
+                                        qsTrId("genycaster.setup.request"),
                                         qsTrId("genycaster.setup.confirmed")
                                     ] : []
                                     delegate: RowLayout {
                                         required property int index
                                         required property string modelData
+                                        readonly property bool completed: index === 0 || root.registrationConfirmed
+                                            || (index === 1 && root.requestAccepted)
+                                        readonly property bool activeStep: !completed && index === root.registrationActiveStep
+                                        readonly property bool spinning: activeStep && root.registrationStepRunning
                                         Layout.fillWidth: true
                                         layoutDirection: Theme.uiDirection
                                         spacing: Theme.space2
-                                        Superellipse {
-                                            width: Theme.scaleUi(22)
-                                            height: width
-                                            curveDepth: width / 2
-                                            exponent: 2
-                                            fillColor: index === 0
-                                                   || (index === 1
-                                                       && root.requestAccepted)
-                                                   ? Theme.success
-                                                   : index === 1 ? Theme.accent : Theme.borderMuted
-                                            DirectionAwareLabel {
+
+                                        Item {
+                                            Layout.preferredWidth: Theme.scaleUi(24)
+                                            Layout.preferredHeight: Theme.scaleUi(24)
+                                            Layout.alignment: Qt.AlignVCenter
+
+                                            Icon {
                                                 anchors.centerIn: parent
-                                                text: index === 0
-                                                      || (index === 1
-                                                          && root.requestAccepted)
-                                                      ? "✓" : String(index + 1)
-                                                color: Theme.ink
-                                                font.pixelSize: Theme.typeCaptionSize
+                                                visible: completed
+                                                text: Theme.iconCheck
+                                                color: Theme.success
+                                                preferredSize: Theme.iconSize
+                                            }
+                                            GenySpinner {
+                                                anchors.centerIn: parent
+                                                width: Theme.scaleUi(17)
+                                                height: width
+                                                color: Theme.accent
+                                                visible: spinning
+                                                running: spinning
+                                            }
+                                            Superellipse {
+                                                anchors.centerIn: parent
+                                                width: Theme.scaleUi(17)
+                                                height: width
+                                                visible: !completed && !spinning
+                                                curveDepth: width / 2
+                                                exponent: 2
+                                                fillColor: "transparent"
+                                                borderColor: activeStep ? Theme.warning : Theme.borderMuted
+                                                borderWidth: Theme.strokeStandard
                                             }
                                         }
                                         DirectionAwareLabel {
                                             Layout.fillWidth: true
                                             text: modelData
-                                            color: index === 2 ? Theme.inkMuted : Theme.ink
-                                            font.pixelSize: Theme.typeCaptionSize
+                                            color: completed ? Theme.success
+                                                : activeStep ? Theme.ink : Theme.inkMuted
+                                            font.pixelSize: Theme.typeLabelSize
+                                            font.weight: activeStep ? Theme.weightDemiBold : Theme.weightRegular
                                             wrapMode: Text.WordWrap
                                         }
                                     }
                                 }
                             }
                             DirectionAwareLabel {
+                                objectName: "setupNativePendingDescription"
                                 Layout.fillWidth: true
-                                visible: nativeRegistrationPublisher.pending
-                                text: qsTrId("genycaster.setup.keep_recovery_words")
+                                visible: root.registrationPending || !root.registrationTimelineVisible
+                                text: root.registrationPending
+                                      ? qsTrId("genycaster.setup.confirmation_pending_dont_retry")
+                                      : nativeRegistrationStatus.shardZeroBlockDelay > 120
+                                        ? qsTrId("genycaster.setup.hypersnap_nodes_syncing")
+                                        : (!nativeRegistrationStatus.active && !nativeRegistrationStatus.checking)
+                                          ? qsTrId("genycaster.setup.account_creation_paused")
+                                          : qsTrId("genycaster.setup.hypersnap_checking_short")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.WordWrap
@@ -3147,7 +3138,12 @@ Item {
                                 anchors.right: parent.right
                                 anchors.top: parent.top
                                 anchors.margins: Theme.space3
-                                text: root.nativeRegistrationDiagnostics()
+                                text: root.browserReadOnly
+                                    ? "phase: " + String(root.browserCeremony.phase || "") +
+                                      (root.browserCeremony.total > 1 ? "\nPoW / checks: " +
+                                       String(root.browserCeremony.done) + " / " + String(root.browserCeremony.total) : "") +
+                                      "\n" + root.nativeRegistrationDiagnostics()
+                                    : root.nativeRegistrationDiagnostics()
                                 color: Theme.inkMuted
                                 font.family: "monospace"
                                 font.pixelSize: Theme.typeCaptionSize

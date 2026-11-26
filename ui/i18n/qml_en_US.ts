@@ -6237,6 +6237,10 @@ Company | https://company.com</translation>
             <source>Prepare HyperSnap registration proof</source>
             <translation>Prepare HyperSnap registration proof</translation>
         </message>
+        <message id="genycaster.setup.preparing_registration_short">
+            <source>Preparing your account…</source>
+            <translation>Preparing your account…</translation>
+        </message>
         <message id="genycaster.setup.native_proof_working">
             <source>Calculating the registration proof without exposing your wallet keys. This work runs outside the UI thread.</source>
             <translation>Calculating the registration proof without exposing your wallet keys. This work runs outside the UI thread.</translation>

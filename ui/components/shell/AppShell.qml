@@ -49,12 +49,11 @@ Item {
             || presentationBridge.writeReady) return
         // Skip a doomed external approval attempt when this process no
         // longer holds the original local custody wallet.
-        // WASM must never copy a custody mnemonic through QML/C++.
-        // The browser signer opens its own ephemeral recovery dialog and
-        // verifies the native registry before enabling any write authority.
+        // The explicit recovery editor is shared with WASM. Its adapter
+        // verifies the same signed-in principal before granting authority.
         interactionAuthorizationDialog.enteringNativeWords =
-            Qt.platform.os !== "wasm"
-            && ((presentationBridge.nativeCustodyAccount
+            Qt.platform.os === "wasm"
+            || ((presentationBridge.nativeCustodyAccount
                  && !presentationBridge.nativeCustodySignerAvailable)
                 || presentationBridge.farcasterCustodyAccount
                 // OpenProof's Farcaster-linked login verifies identity, not
@@ -133,6 +132,7 @@ Item {
             presentationBridge.nativeCustodyAccount
         property bool enteringNativeWords: false
         property bool authorizationSubmitted: false
+        property string authorizationPrincipal: ""
         property bool recoveryValidationVisible: false
         readonly property bool mobileRecoveryInput: Qt.platform.os === "android"
                                                    || Qt.platform.os === "ios"
@@ -244,6 +244,7 @@ Item {
             refreshRecoveryWordMode()
         }
         onOpened: {
+            authorizationPrincipal = presentationBridge.accountIdentityIssuer + ":" + presentationBridge.accountFidText
             authorizationSubmitted = false
             recoveryValidationVisible = false
             // Settings can open the recovery editor directly. Give the
@@ -262,6 +263,7 @@ Item {
             if (!authorizationSubmitted)
                 root.pendingComposerIntent = null
             clearRecoveryWords()
+            authorizationPrincipal = ""
             recoveryValidationVisible = false
             enteringNativeWords = false
         }
@@ -373,8 +375,7 @@ Item {
             }
             ActionButton {
                 objectName: "nativeSignerUseRecoveryWords"
-                visible: Qt.platform.os !== "wasm"
-                         && !interactionAuthorizationDialog.enteringNativeWords
+                visible: !interactionAuthorizationDialog.enteringNativeWords
                 Layout.fillWidth: true
                 compact: true
                 text: qsTrId("genycaster.shell.native_signer_use_words")
@@ -396,8 +397,7 @@ Item {
                 }
             }
             DirectionAwareLabel {
-                visible: Qt.platform.os !== "wasm"
-                         && interactionAuthorizationDialog.enteringNativeWords
+                visible: interactionAuthorizationDialog.enteringNativeWords
                          && interactionAuthorizationDialog.nativeAccount
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.shell.native_signer_words_note")
@@ -431,8 +431,7 @@ Item {
             Item {
                 id: nativeRecoveryScroll
                 objectName: "nativeSignerRecoveryGrid"
-                visible: Qt.platform.os !== "wasm"
-                         && !interactionAuthorizationDialog.mobileRecoveryInput
+                visible: !interactionAuthorizationDialog.mobileRecoveryInput
                          && interactionAuthorizationDialog.enteringNativeWords
                 Layout.fillWidth: true
                 Layout.preferredHeight: nativeSignerWordColumns.implicitHeight
@@ -442,7 +441,8 @@ Item {
                     id: nativeSignerWordColumns
                     layoutDirection: Theme.uiDirection
                     width: nativeRecoveryScroll ? nativeRecoveryScroll.width : 0
-                    columns: !nativeRecoveryScroll || nativeRecoveryScroll.width < Theme.scaleUi(340) ? 3 : 4
+                    columns: !nativeRecoveryScroll || nativeRecoveryScroll.width < Theme.scaleUi(360) ? 2
+                             : nativeRecoveryScroll.width < Theme.scaleUi(520) ? 3 : 4
                     columnSpacing: Theme.space2
                     rowSpacing: Theme.space2
                     Repeater {
@@ -677,6 +677,12 @@ Item {
                     // state instead of silently replaying a rate-limited write.
                     enabled: !presentationBridge.signerBusy
                     onClicked: {
+                        if (!presentationBridge.isAuthenticated
+                            || interactionAuthorizationDialog.authorizationPrincipal !==
+                               presentationBridge.accountIdentityIssuer + ":" + presentationBridge.accountFidText) {
+                            interactionAuthorizationDialog.close()
+                            return
+                        }
                         if (presentationBridge.writeReady) {
                             interactionAuthorizationDialog.close()
                             return
@@ -693,8 +699,8 @@ Item {
                         interactionAuthorizationDialog.recoveryValidationVisible = false
                         interactionAuthorizationDialog.authorizationSubmitted = true
                         if (interactionAuthorizationDialog.enteringNativeWords) {
-                            // One-shot secret: forward directly to native C++,
-                            // then clear the form while verification is pending.
+                            // One-shot input to the platform adapter. Clear
+                            // the form while registry verification is pending.
                             if (interactionAuthorizationDialog.nativeAccount)
                                 presentationBridge.authorizeNativeHyperSnapSigner(
                                     interactionAuthorizationDialog.recoveryPhrase())
@@ -1250,7 +1256,14 @@ Item {
                 interactionAuthorizationDialog.close()
             root.resolvePendingComposer()
         }
-        function onAuthenticationStateChanged() { root.resolvePendingComposer() }
+        function onAuthenticationStateChanged() {
+            if (interactionAuthorizationDialog.opened
+                && (!presentationBridge.isAuthenticated
+                    || interactionAuthorizationDialog.authorizationPrincipal !==
+                       presentationBridge.accountIdentityIssuer + ":" + presentationBridge.accountFidText))
+                interactionAuthorizationDialog.close()
+            root.resolvePendingComposer()
+        }
     }
 
     property bool pendingSettingsOpen: false
@@ -3529,12 +3542,10 @@ Item {
                 // do not capture a hidden workspace for an invisible blur.
                 blurSourceItem: null
                 onRecoverySignerRequested: {
-                    if (Qt.platform.os === "wasm") {
-                        presentationBridge.provisionSigner()
-                    } else {
-                        interactionAuthorizationDialog.enteringNativeWords = true
-                        interactionAuthorizationDialog.open()
-                    }
+                    if (!presentationBridge.isAuthenticated || presentationBridge.signerBusy
+                        || presentationBridge.writeReady) return
+                    interactionAuthorizationDialog.enteringNativeWords = true
+                    interactionAuthorizationDialog.open()
                 }
                 onCustomAccentStudioRequested: color => accentColorStudio.openWith(color)
                 onDataStorageRequested: root.openDataStorageSettings()

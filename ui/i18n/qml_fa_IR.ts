@@ -6237,6 +6237,10 @@ Company | https://company.com</source>
             <source>Prepare HyperSnap registration proof</source>
             <translation>آماده‌سازی اثبات ثبت‌نام هایپراسنپ</translation>
         </message>
+        <message id="genycaster.setup.preparing_registration_short">
+            <source>Preparing your account…</source>
+            <translation>در حال آماده‌سازی حساب…</translation>
+        </message>
         <message id="genycaster.setup.native_proof_working">
             <source>Calculating the registration proof without exposing your wallet keys. This work runs outside the UI thread.</source>
             <translation>در حال محاسبهٔ اثبات ثبت‌نام بدون دسترسی Thread پردازش به کلیدهای کیف پول. رابط کاربری در این مدت آزاد می‌ماند.</translation>

@@ -6213,6 +6213,10 @@ Entreprise | https://company.com</translation>
             <source>Prepare HyperSnap registration proof</source>
             <translation>Préparer la preuve d’inscription HyperSnap</translation>
         </message>
+        <message id="genycaster.setup.preparing_registration_short">
+            <source>Preparing your account…</source>
+            <translation>Préparation de votre compte…</translation>
+        </message>
         <message id="genycaster.setup.native_proof_working">
             <source>Calculating the registration proof without exposing your wallet keys. This work runs outside the UI thread.</source>
             <translation>La preuve est calculée hors du thread d’interface, sans exposer les clés du portefeuille.</translation>
