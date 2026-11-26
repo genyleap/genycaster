@@ -89,9 +89,9 @@ public:
     }
     void startRecovery()
     {
-        startAccountFlow(QStringLiteral("farcaster-snapchain"), false);
+        startAccountFlow(QStringLiteral("farcaster-snapchain"), false, false);
     }
-    void startAccountFlow(const QString& protocol, const bool createAccount)
+    void startAccountFlow(const QString& protocol, const bool createAccount, const bool requireStagedRecovery = true)
     {
         // Correlation IDs and the requested protocol are kept in Qt. The
         // JavaScript result cannot switch a HyperSnap identity to Farcaster.
@@ -111,6 +111,7 @@ public:
         start(action, {}, QJsonObject{
             {QStringLiteral("requestId"), m_pendingRecoveryId},
             {QStringLiteral("protocol"), protocol},
+            {QStringLiteral("requireStagedRecovery"), requireStagedRecovery},
             {QStringLiteral("openProofGatewayOrigin"), m_recoveryGatewayOrigin}});
     }
     void cancelRecovery()

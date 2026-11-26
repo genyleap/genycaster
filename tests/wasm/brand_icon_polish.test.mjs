@@ -89,5 +89,5 @@ test("Browser tab and installed app icon use actual brand DNA and a clean versio
     const touchPre=readFileSync(new URL("../../ui/wasm/apple-touch-icon-precomposed.png",import.meta.url));
     assert.ok(touch.equals(touchPre));
     assert.equal(touch.subarray(1,4).toString(),"PNG");
-    assert.match(read("ui/wasm/genycaster-sw.js"),/genycaster-static-v13/);
+    assert.match(read("ui/wasm/genycaster-sw.js"),/genycaster-static-v17/);
 });

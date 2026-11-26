@@ -71,7 +71,7 @@ export function createBrowserFarcasterRegistration({
   const origin=acceptedOrigin(base);
   if(browser.location && browser.location.origin!==origin)
     error('paid enrollment must use the canonical first-party site');
-  let leaseId=null;
+  let leaseId=null,reservation=null;
   async function post(action,body,voucher,signal){
     const response=await fetchImpl(origin+'/api/v1/registration/farcaster/'+action,{
       method:'POST',mode:'same-origin',redirect:'error',
@@ -106,15 +106,13 @@ export function createBrowserFarcasterRegistration({
         :'paid Farcaster enrollment service is not available (HTTP '+response.status+')');
     return true;
   }
-  async function register(phrase,{voucher,username,signal,
-    confirmIrreversible=false,onProgress=()=>{}}={}) {
+  async function reserve(phrase,{voucher,signal,confirmIrreversible=false,onProgress=()=>{}}={}) {
     if(confirmIrreversible!==true)error('registration requires explicit consent');
     validateVoucher(voucher);
-    if(!isUsername(username))error('choose a valid Farcaster username');
     if(leaseId)error('a funded FID reservation is already pending; inspect status before another attempt');
     const custody=await deriveFarcasterCustody(phrase);
-    let irreversibleStarted=false;
     try{
+      if(signal?.aborted)error('registration cancelled before reservation');
       const address=custody.address.toLowerCase();
       leaseId=await stableReservationId(browser,voucher,address);
       if(!isUuid(leaseId))error('failed to derive registration idempotency key');
@@ -126,6 +124,24 @@ export function createBrowserFarcasterRegistration({
           ||!isId(reserved.fid))error('reservation identity mismatch');
       if(reserved.status!=='reserved')error('reservation is not active; inspect status before retrying');
       if(!isUint(reserved.id_registry_nonce))error('reservation nonce is unavailable');
+      reservation=Object.freeze({...reserved});
+      return {fid:reserved.fid,address};
+    }catch(cause){
+      if(leaseId)cause.outcomeUnknown=true;
+      throw cause;
+    }finally{custody.dispose();}
+  }
+  async function submitReserved(phrase,{voucher,username,signal,confirmIrreversible=false,onProgress=()=>{}}={}) {
+    if(confirmIrreversible!==true)error('registration requires explicit consent');
+    validateVoucher(voucher);
+    if(!isUsername(username))error('choose a valid Farcaster username');
+    if(!leaseId||!reservation)error('no verified funded reservation is available');
+    const custody=await deriveFarcasterCustody(phrase);
+    let irreversibleStarted=false;
+    try{
+      const address=custody.address.toLowerCase(),reserved=reservation;
+      if(address!==reserved.custody_address||await stableReservationId(browser,voucher,address)!==leaseId)
+        error('reservation identity mismatch');
       const unix=Math.floor(Date.now()/1000);
       const deadline=String(unix+300);
       const typed=transferTypedData(reserved.fid,address,reserved.id_registry_nonce,deadline);
@@ -155,7 +171,7 @@ export function createBrowserFarcasterRegistration({
            ||current.fid!==reserved.fid)
           error('registration status identity mismatch');
         if(current.status==='confirmed') {
-          leaseId=null;onProgress(4,4,'confirmed');
+          leaseId=null;reservation=null;onProgress(4,4,'confirmed');
           return {fid:reserved.fid,address};
         }
         if(['rejected','already_registered'].includes(current.status))
@@ -168,5 +184,10 @@ export function createBrowserFarcasterRegistration({
       throw cause;
     }finally{custody.dispose();}
   }
-  return Object.freeze({preflight,register});
+  async function register(phrase,options={}) {
+    if(!isUsername(options.username))error('choose a valid Farcaster username');
+    await reserve(phrase,options);
+    return submitReserved(phrase,options);
+  }
+  return Object.freeze({preflight,register,reserve,submitReserved});
 }

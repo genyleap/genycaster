@@ -200,12 +200,15 @@ test('recovery failures are not mislabeled Genyleap login errors',()=>{
     assert.match(cpp,/genycaster\.setup\.recovery_failed_retry/);
     assert.match(cpp,/event\.phase != BrowserOpenProofState::Phase::SignedOut/);
     const js=read(new URL('../../ui/wasm/protocol-signer-pre.js',import.meta.url),'utf8');
-    const open=js.indexOf("const recoveredFid=await openRecoveryDialog(");
+    const open=js.indexOf("const recoveredFid=await consumeRecovery(");
     const lookup=js.indexOf("await import('./farcaster_custody_recovery.mjs')",open);
     assert.ok(open>=0 && lookup>open,
         'recovery form opens before read-only identity lookup');
     const recovery=js.slice(open,js.indexOf("owner = recoveredFid;",open));
-    assert.doesNotMatch(recovery,/await createClient\(base\)|provisionFromRecovery\(/);
+    const verified=recovery.indexOf('onVerifiedCustody:async');
+    assert.ok(verified>0);
+    assert.doesNotMatch(recovery.slice(0,verified),/await createClient\(base\)|provisionFromRecovery\(/);
+    assert.match(recovery.slice(verified),/provisionFromRecovery\(verifiedFid,phrase\)/);
 });
 
 test('menu keeps hover label contrast independent of Qt MenuItem opacity',()=>{
@@ -305,7 +308,7 @@ test('service worker accepts more than 40 release assets and survives a blocked 
         return new Response('public content',{headers:{'cache-control':'public'}});
     };
     vm.runInNewContext(worker,runtime);
-    assert.match(worker,/genycaster-static-v13/);
+    assert.match(worker,/genycaster-static-v17/);
     let promise;
     registrations.install({waitUntil:task=>{promise=task;}});
     await assert.doesNotReject(promise);

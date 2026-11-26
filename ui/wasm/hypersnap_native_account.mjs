@@ -80,6 +80,30 @@ function uint64BE(v){
  * Synchronous per-hash work is deliberately small; minePow yields to the
  * event loop and checks cancellation between every bounded chunk.
  */
+// The first 64 bytes of the native PoW message never change. Share the
+// SHA-256 compression core with the generic hash; reuse the work schedule.
+function compressSha256(state,w){
+  for(let i=16;i<64;i++){
+    const a=w[i-15],b=w[i-2];
+    w[i]=(w[i-16]+(rotate(a,7)^rotate(a,18)^right(a,3))+w[i-7]
+      +(rotate(b,17)^rotate(b,19)^right(b,10)))>>>0;
+  }
+  let a=state[0],b=state[1],c=state[2],d=state[3],e=state[4],f=state[5],g=state[6],h=state[7];
+  for(let i=0;i<64;i++){
+    const t1=(h+(rotate(e,6)^rotate(e,11)^rotate(e,25))+((e&f)^(~e&g))+K[i]+w[i])>>>0;
+    const t2=((rotate(a,2)^rotate(a,13)^rotate(a,22))+((a&b)^(a&c)^(b&c)))>>>0;
+    h=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0;
+  }
+  state[0]=(state[0]+a)>>>0;state[1]=(state[1]+b)>>>0;
+  state[2]=(state[2]+c)>>>0;state[3]=(state[3]+d)>>>0;
+  state[4]=(state[4]+e)>>>0;state[5]=(state[5]+f)>>>0;
+  state[6]=(state[6]+g)>>>0;state[7]=(state[7]+h)>>>0;
+}
+function leadingZeroWords(state,bits){
+  const full=bits>>>5,rest=bits&31;
+  for(let i=0;i<full;i++)if(state[i]!==0)return false;
+  return !rest||(state[full]>>>(32-rest))===0;
+}
 export function sha256(bytes) {
   if(!(bytes instanceof Uint8Array)||bytes.length>8192)fail('invalid SHA-256 input');
   const length=bytes.length,padded=(length+9+63)&~63;
@@ -89,27 +113,10 @@ export function sha256(bytes) {
   const bits=BigInt(length)*8n;
   tail.setUint32(padded-8,Number(bits>>32n));
   tail.setUint32(padded-4,Number(bits&0xffffffffn));
-  const state=H0.slice(),w=new Uint32Array(64);
+  const state=Uint32Array.from(H0),w=new Uint32Array(64);
   for(let base=0;base<padded;base+=64) {
     for(let i=0;i<16;i++)w[i]=tail.getUint32(base+i*4);
-    for(let i=16;i<64;i++){
-      const a=w[i-15],b=w[i-2];
-      const s0=rotate(a,7)^rotate(a,18)^right(a,3);
-      const s1=rotate(b,17)^rotate(b,19)^right(b,10);
-      w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0;
-    }
-    let [a,b,c,d,e,f,g,h]=state;
-    for(let i=0;i<64;i++){
-      const S1=rotate(e,6)^rotate(e,11)^rotate(e,25);
-      const ch=(e&f)^(~e&g);
-      const t1=(h+S1+ch+K[i]+w[i])>>>0;
-      const S0=rotate(a,2)^rotate(a,13)^rotate(a,22);
-      const maj=(a&b)^(a&c)^(b&c);
-      const t2=(S0+maj)>>>0;
-      h=g;g=f;f=e;e=(d+t1)>>>0;
-      d=c;c=b;b=a;a=(t1+t2)>>>0;
-    }
-    for(const [i,x]of [a,b,c,d,e,f,g,h].entries())state[i]=(state[i]+x)>>>0;
+    compressSha256(state,w);
   }
   const output=new Uint8Array(32),out=new DataView(output.buffer);
   state.forEach((word,index)=>out.setUint32(index*4,word));
@@ -138,20 +145,33 @@ export async function mineNativePow({
     ||!Number.isInteger(bits)||bits<1||bits>256
     ||!Number.isSafeInteger(maxAttempts)||maxAttempts<1||maxAttempts>100_000_000
     ||!Number.isInteger(chunkSize)||chunkSize<1||chunkSize>65536)fail('invalid PoW challenge');
+  if(typeof starting!=='bigint'||starting<0n||starting+BigInt(maxAttempts-1)>0xffffffffffffffffn)
+    fail('PoW nonce overflow');
   const prefix=concat(POW_PREFIX,fromHex(address,20),fromHex(anchor,32));
-  const input=new Uint8Array(prefix.length+8);
-  input.set(prefix);prefix.fill(0);
+  const padded=new Uint8Array(128),view=new DataView(padded.buffer);
+  padded.set(prefix);padded[prefix.length+8]=128;
+  view.setUint32(124,(prefix.length+8)*8);
+  const mid=Uint32Array.from(H0),state=new Uint32Array(8),w=new Uint32Array(64);
+  for(let i=0;i<16;i++)w[i]=view.getUint32(i*4);
+  compressSha256(mid,w);
+  let hi=Number(starting>>32n),lo=Number(starting&0xffffffffn);
   for(let attempted=0;attempted<maxAttempts;attempted+=chunkSize){
     if(signal?.aborted)throw new Error('Native registration cancelled');
     const end=Math.min(maxAttempts,attempted+chunkSize);
     for(let i=attempted;i<end;i++){
-      const nonce=starting+BigInt(i);
-      if(nonce>0xffffffffffffffffn)fail('PoW nonce overflow');
-      input.set(uint64BE(nonce),input.length-8);
-      if(zeroBits(sha256(input),bits))return '0x'+hex(input.subarray(input.length-8));
+      view.setUint32(prefix.length,hi);view.setUint32(prefix.length+4,lo);
+      for(let j=0;j<16;j++)w[j]=view.getUint32(64+j*4);
+      state.set(mid);compressSha256(state,w);
+      if(leadingZeroWords(state,bits)){
+        const nonce='0x'+hi.toString(16).padStart(8,'0')+lo.toString(16).padStart(8,'0');
+        // Independent full SHA-256 validation before handing a nonce back.
+        if(!zeroBits(nativePowHash(address,anchor,nonce),bits))fail('invalid optimized PoW result');
+        return nonce;
+      }
+      lo=(lo+1)>>>0;if(lo===0)hi=(hi+1)>>>0;
     }
     onProgress(end,maxAttempts);
-    await yieldControl(); // never monopolize Qt's WebAssembly GUI thread
+    await yieldControl();
   }
   fail('PoW budget exhausted; refresh the node challenge, do not submit');
 }
@@ -201,7 +221,7 @@ export async function mineNativePowResponsive({
         if(Number.isSafeInteger(message.done)&&Number.isSafeInteger(message.total)
           && message.done>=0 && message.total===maxAttempts
           && message.done<=message.total)
-          onProgress(message.done,message.total);
+          try{onProgress(message.done,message.total);}catch(error){finish(error);}
       }else if(message?.type==='done'){
         const nonce=message.nonce;
         if(typeof nonce!=='string'||!/^0x[0-9a-f]{16}$/i.test(nonce)
@@ -371,7 +391,7 @@ export function createBrowserNativeRegistry({
       new Error('HyperSnap native registry request timed out')),requestTimeoutMs);
     try {
       const response=await fetchImpl(url,{method:'GET',mode:'cors',
-        credentials:'omit',redirect:'error',headers:{accept:'application/json'},
+        credentials:'omit',redirect:'error',cache:'no-store',headers:{accept:'application/json'},
         signal:controller.signal}).catch(connectionFailure);
       if(Number(response.headers?.get?.('content-length')||0)>32768)
         fail('oversized native registry response');
@@ -508,8 +528,10 @@ export function createBrowserNativeRegistry({
         method:'POST',mode:'cors',credentials:'omit',redirect:'error',
         headers:{'content-type':'application/octet-stream',accept:'application/json'},
         body:envelope,signal:AbortSignal.timeout(35000)});
-      if([400,403,422].includes(response.status))
-        fail('native registration was rejected (HTTP '+response.status+')');
+      if([400,403,422].includes(response.status)){
+        const rejected=Error('HyperSnap native registration was rejected (HTTP '+response.status+')');
+        rejected.definitelyRejected=true;throw rejected;
+      }
       if(response.status!==200)onProgress(0,1,'outcome-unknown');
       else onProgress(0,1,'checking');
       for(let i=0;i<60;i++){

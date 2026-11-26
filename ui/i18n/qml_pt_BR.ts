@@ -6172,6 +6172,14 @@ Company | https://company.com</source>
             <source>Clipboard contents may be read or saved by other apps. GenyCaster clears the current clipboard after 60 seconds if unchanged. Keep an offline backup.</source>
             <translation>Outros apps podem ler ou salvar a área de transferência. O GenyCaster a limpa após 60 segundos se não tiver mudado. Mantenha um backup offline.</translation>
         </message>
+        <message id="genycaster.setup.browser_wallet_copy_success">
+            <source>Copied. Clear the clipboard when finished.</source>
+            <translation>Copiado. Limpe a área de transferência ao terminar.</translation>
+        </message>
+        <message id="genycaster.setup.browser_wallet_copy_warning">
+            <source>Other apps may read or save the clipboard. Your browser may not allow automatic clearing. Keep an offline backup.</source>
+            <translation>Outros aplicativos podem ler ou salvar a área de transferência. O navegador pode impedir a limpeza automática. Mantenha uma cópia offline.</translation>
+        </message>
         <message id="genycaster.setup.wallet_backup_ack">
             <source>I have saved all 24 words in order, somewhere safe.</source>
             <translation>Salvei as 24 palavras na ordem certa e em local seguro.</translation>

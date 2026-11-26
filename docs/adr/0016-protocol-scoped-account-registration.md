@@ -21,7 +21,9 @@ Use the following ownership layers:
 
 | Component | Ownership |
 | --- | --- |
-| `NativeCustodyWalletController` | Shared, local-only EVM custody key generation and backup confirmation |
+| `InitialSetup.qml` | Shared onboarding view, controls, localization and explicit consent |
+| `NativeCustodyWalletController` | Platform adapter for local-only EVM custody generation and backup confirmation |
+| `browser_setup_wallet.mjs` | Ephemeral browser ceremony, public progress metadata and unresolved-write marker |
 | `farcaster.platform.custody_recovery` | Shared private-key derivation, domain-bound EIP-712 signatures, zeroization |
 | HyperSnap native registration | HyperSnap-only anchor, Hashcash, `NATIVE_ONBOARD`, shard-0 confirmation |
 | Farcaster onchain registration | Optimism-only `IdRegistry` nonce, transfer signature, onchain custody confirmation |
@@ -56,9 +58,10 @@ Protocol adapters and DTOs remain distinct.
 
 ## Safety invariants
 
-- A BIP39 phrase or derived key stays inside trusted native custody storage.
-  No seed/phrase/private key is serialized to QML, telemetry, QSettings, a
-  request body, or Neynar.
+- A generated BIP39 phrase stays inside the platform custody boundary,
+  except explicit backup rendering/copy. Recovery input is transient; no
+  generated phrase property, seed/private-key persistence, telemetry,
+  request body, or Neynar transmission is permitted. See [WebAssembly](../webassembly.md).
 - Neither a read-API success nor a 200 response from a registration API
   establishes a completed identity. Confirm the precise (network, fid,
   custody-address) tuple from **that network's authoritative registry**.

@@ -1,6 +1,6 @@
 /* Public application assets only. Never cache user API responses or credentials. */
 "use strict";
-const CACHE="genycaster-static-v16";
+const CACHE="genycaster-static-v17";
 const WASM_HASH=/^genycaster\.[0-9a-f]{20}\.wasm$/;
 // Explicit allowlist: a same-origin .json/.html URL might contain personal
 // account data. Never cache arbitrary paths based solely on file extension.
@@ -19,6 +19,7 @@ const PUBLIC_FILES=new Set([
     "browser_media_upload.mjs","client_image_optimizer.mjs",
     // Deployment authority is never stored in offline caches.
     "farcaster_recovery.mjs","recovery-phrase-dialog.mjs",
+    "browser_setup_wallet.mjs","hypersnap_native_account.mjs","hypersnap_native_pow_worker.mjs","farcaster_new_account.mjs","farcaster_custody_recovery.mjs","openproof_recovery.mjs",
     "vendor/noble-secp256k1.mjs","vendor/bip39-english.mjs",
     // Cached only as first-party static code; requests still need live
     // WalletConnect relay approval and per-origin wallet consent.
@@ -29,6 +30,10 @@ const allowed=(url)=>url.origin===self.location.origin &&
     url.pathname.startsWith(scopePath) &&
     (WASM_HASH.test(url.pathname.slice(scopePath.length)) ||
      PUBLIC_FILES.has(url.pathname.slice(scopePath.length)));
+// The account graph is immutable; only legacy flat auth module names
+// need network-only delivery. Mini App bundles retain their own cache policy.
+const flatAuthModule=(relative)=>relative.endsWith(".mjs") &&
+    relative!=="miniapp-host-bridge.mjs" && relative!=="genycaster-walletconnect.mjs";
 const withoutQuery=(url)=>new URL(url.origin+url.pathname);
 function cacheResponse(response){
     return response.ok && response.type!=="opaque" &&
@@ -55,7 +60,7 @@ self.addEventListener("install",event=>{
                     file.startsWith("/") || file.includes("..") ||
                     file.includes("?") || file.includes("#"))continue;
                 const url=new URL(file,requestUrl);
-                if(!allowed(url) || WASM_HASH.test(file) || seen.has(url.href))continue;
+                if(!allowed(url) || WASM_HASH.test(file) || flatAuthModule(file) || seen.has(url.href))continue;
                 seen.add(url.href);
                 urls.push(url);
             }
@@ -101,6 +106,8 @@ self.addEventListener("fetch",event=>{
         ? url.pathname.slice(scopePath.length) : "";
     if(relative==="genycaster.wasm" || WASM_HASH.test(relative))return;
     if(!allowed(url))return;
+    // Security-sensitive modules must never fall back to another release.
+    if(flatAuthModule(relative)){event.respondWith(fetch(request,{cache:"no-store"}));return;}
     const key=withoutQuery(url);
     let cacheWrite=Promise.resolve();
     const delivery=(async()=>{

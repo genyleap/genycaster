@@ -14,7 +14,7 @@ test('static WASM Lottie registers both runtime-generated QML dependencies',()=>
 test('WASM browser update revalidates security-critical JS instead of replaying stale signer',()=>{
     const worker=read('ui/wasm/genycaster-sw.js');
     const vault=read('ui/wasm/secure_signer_vault.mjs');
-    assert.match(worker,/const CACHE="genycaster-static-v16"/);
+    assert.match(worker,/const CACHE="genycaster-static-v17"/);
     assert.match(worker,/fetch\(request,\{cache:"no-cache"\}\)/);
     assert.match(vault,/ArrayBuffer\.isView\(challenge\)/);
     assert.match(vault,/size > 4096/);

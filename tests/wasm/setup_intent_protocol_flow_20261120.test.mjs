@@ -26,7 +26,7 @@ test('Existing protocol picker renders once and gates every subsequent action',(
   assert.match(existing,/visible: !root.authenticated && !root.existingProtocolSelected\s*&& !root.resumingRegistration/);
   assert.match(existing,/root.recoveryProtocol = "farcaster-snapchain"[\s\S]*?root.existingProtocolSelected = true/);
   assert.match(existing,/root.recoveryProtocol = "hypersnap-v2"[\s\S]*?root.existingProtocolSelected = true/);
-  assert.match(existing,/visible: !root.authenticated && root.existingProtocolSelected/);
+  assert.match(existing,/visible: !root.showRecovery && !root.authenticated\s*&& root.existingProtocolSelected/);
   assert.match(existing,/visible: root.recoveryProtocol === "hypersnap-v2"/);
   assert.match(existing,/visible: root.recoveryProtocol === "farcaster-snapchain"/);
 });
@@ -83,27 +83,15 @@ test('connection details start collapsed and a manual check stays available when
   }
 });
 
-test('browser registration prevents dead stub wallet while offering verified identity providers',()=>{
-  assert.match(account,/objectName: "setupBrowserRegistrationPath"/);
-  assert.match(account,/visible: root.browserReadOnly && root.registrationProviderId.length > 0/);
-  assert.match(account,/objectName: "setupBrowserExternalHyperSnap"/);
-  assert.match(account,/objectName: "setupBrowserExternalFarcaster"/);
-  assert.match(account,/objectName: "setupBrowserExternalHyperSnap"[\s\S]*?root.accountIntent = "existing"[\s\S]*?root.continueWithGenyleap\(\)/);
-  assert.match(account,/objectName: "setupBrowserExternalFarcaster"[\s\S]*?root.accountIntent = "existing"[\s\S]*?root.continueWithFarcaster\(\)/);
-  assert.match(account,/visible: !root.browserReadOnly && root.registrationProviderId.length > 0/);
-  for (const name of ['nativeRegistrationBroadcastPanel','setupNativeAwaitingConfirmation','setupNativeTechnicalDetailsToggle','neynarFarcasterRegistration']) {
+test('browser registration uses the shared QML wallet and provider flow',()=>{
+  assert.doesNotMatch(account,/setupBrowserRegistrationPath|setupBrowserCreateHyperSnap|setupBrowserCreateFarcaster/);
+  assert.match(account,/nativeCustodyWallet.beginBrowserWallet\(root.registrationProviderId, ""\)/);
+  assert.match(account,/objectName: "setupGenerateCustodyWallet"/);
+  assert.match(account,/objectName: "nativeRecoveryWordsDisplay"/);
+  for(const name of ['nativeRegistrationBroadcastPanel','setupNativeAwaitingConfirmation','setupNativeTechnicalDetailsToggle','neynarFarcasterRegistration']){
     assert.match(account,new RegExp('objectName: "'+name+'"'));
   }
-  assert.match(existing,/visible: !root.authenticated && root.existingProtocolSelected/);
-  assert.match(account,/objectName: "setupBrowserCreateHyperSnap"/);
-  assert.match(account,/objectName: "setupBrowserCreateFarcaster"/);
-  assert.match(account,/root.browserCreateAccount\("hypersnap-v2"\)/);
-  assert.match(account,/root.browserCreateAccount\("farcaster-snapchain"\)/);
+  assert.match(existing,/nativeCustodyWallet.stageBrowserRecovery\(root.recoveryProtocol, words\)/);
   assert.match(existing,/root.recoverAccount\(root.recoveryProtocol\)/);
   assert.doesNotMatch(existing,/objectName: "setupBrowserHyperSnapRecoveryNotice"/);
-  for(const locale of ['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR','hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
-    const translation=readFileSync(new URL('../../ui/i18n/qml_'+locale+'.ts',import.meta.url),'utf8');
-    assert.ok(translation.includes('id="genycaster.setup.browser_native_registration_notice"'),locale);
-    assert.ok(translation.includes('id="genycaster.setup.browser_hypersnap_recovery_notice"'),locale);
-  }
 });

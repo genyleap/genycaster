@@ -529,7 +529,7 @@ void NativeRecoveryWordsItem::paint(QPainter* painter)
         if (end == std::string::npos && i != 23) return;
         const auto token = std::string_view{phrase}.substr(
             start, end == std::string::npos ? end : end - start);
-        QString word = QString::fromLatin1(token.data(),
+        QString word = m_masked ? QStringLiteral("••••••") : QString::fromLatin1(token.data(),
                                           static_cast<qsizetype>(token.size()));
         QRectF cell{(i % columns) * cellWidth + 8,
                     (i / columns) * cellHeight + 2,

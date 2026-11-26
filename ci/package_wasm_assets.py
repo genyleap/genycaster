@@ -41,7 +41,7 @@ if args.source:
         "browser_device_session.mjs", "browser_account_session.mjs", "browser_media_upload.mjs", "client_image_optimizer.mjs", "farcaster_recovery.mjs", "farcaster_custody_recovery.mjs",
         "openproof_recovery.mjs", "recovery-phrase-dialog.mjs",
         "hypersnap_native_account.mjs", "hypersnap_native_pow_worker.mjs", "farcaster_new_account.mjs",
-        "browser_account_create_dialog.mjs",
+        "browser_setup_wallet.mjs",
         "vendor/noble-secp256k1.mjs", "vendor/bip39-english.mjs",
         "vendor/noble-secp256k1.LICENSE", "vendor/scure-bip39.LICENSE",
         "vendor/hls-1.6.15.min.js", "vendor/hls-1.6.15.LICENSE",
@@ -117,7 +117,7 @@ public = ["genycaster.html", "share.html", "qtloader.js", "genycaster.js",
         "og-genycaster-home-v2.png", "og-genycaster-download-v2.png",
           "recovery-phrase-dialog.mjs", "farcaster_recovery.mjs", "farcaster_custody_recovery.mjs",
           "hypersnap_native_account.mjs", "hypersnap_native_pow_worker.mjs", "farcaster_new_account.mjs",
-          "browser_account_create_dialog.mjs",
+          "browser_setup_wallet.mjs",
           "openproof_recovery.mjs", "browser_protocol_signer.mjs", "browser_device_session.mjs", "browser_account_session.mjs",
           "browser_media_upload.mjs", "client_image_optimizer.mjs", "deployment_config.mjs", "farcaster_protocol.mjs", "secure_signer_vault.mjs",
           "native-downloads.js", "native-downloads.css", "releases/native.json",
@@ -136,6 +136,46 @@ if (directory / "miniapp-host-bridge.mjs").is_file():
     if not wallet_bundle.is_file() or wallet_bundle.stat().st_size == 0:
         parser.error("Mini App host requires genycaster-walletconnect.mjs")
 public = [name for name in public if (directory / name).is_file()]
+# Keep the entire account module graph on one content-addressed path. A
+# previously opened tab must not dynamically import a new custody adapter
+# with an incompatible ABI. Relative imports and the PoW worker stay inside
+# the same graph. Flat files remain available to legacy boot scripts.
+auth_files = (
+    "browser_setup_wallet.mjs", "hypersnap_native_account.mjs",
+    "hypersnap_native_pow_worker.mjs", "farcaster_new_account.mjs",
+    "farcaster_recovery.mjs", "farcaster_custody_recovery.mjs",
+    "openproof_recovery.mjs", "browser_protocol_signer.mjs",
+    "browser_device_session.mjs", "browser_account_session.mjs",
+    "browser_media_upload.mjs", "client_image_optimizer.mjs",
+    "deployment_config.mjs", "farcaster_protocol.mjs", "secure_signer_vault.mjs",
+    "recovery-phrase-dialog.mjs", "vendor/noble-secp256k1.mjs",
+    "vendor/bip39-english.mjs",
+)
+boot_path = directory / "genycaster.js"
+boot = boot_path.read_text(encoding="utf-8")
+if "browser_setup_wallet.mjs" in boot:
+    if not all((directory / name).is_file() for name in auth_files):
+        parser.error("Incomplete browser account module graph")
+    auth_hash = hashlib.sha256(json.dumps(
+        {name: digest(directory / name) for name in auth_files},
+        sort_keys=True).encode()).hexdigest()[:20]
+    auth_root = f"auth-modules/{auth_hash}"
+    for name in auth_files:
+        dest = directory / auth_root / name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if dest.exists() and digest(dest) != digest(directory / name):
+            parser.error("Immutable account module collision")
+        if not dest.exists():
+            shutil.copy2(directory / name, dest)
+        public.append(f"{auth_root}/{name}")
+    pattern = re.compile(r"""(import\(\s*["'])\./(?:auth-modules/[a-f0-9]{20}/)?(""" +
+                         "|".join(re.escape(name) for name in auth_files) +
+                         r""")(["']\s*\))""")
+    boot = pattern.sub(lambda m: m[1] + "./" + auth_root + "/" + m[2] + m[3], boot)
+    if f"./{auth_root}/browser_setup_wallet.mjs" not in boot:
+        parser.error("Browser setup import not pinned")
+    boot_path.write_text(boot, encoding="utf-8")
+
 
 # Cloudflare may cache public .js for hours despite origin revalidation.
 # Version the four boot script requests in HTML with the deterministic

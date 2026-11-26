@@ -6197,6 +6197,14 @@ Company | https://company.com</source>
             <source>Clipboard contents may be read or saved by other apps. GenyCaster clears the current clipboard after 60 seconds if unchanged. Keep an offline backup.</source>
             <translation>برنامه‌های دیگر ممکن است محتوای کلیپ‌بورد را بخوانند یا ذخیره کنند. جنی‌کستر اگر محتوای کلیپ‌بورد تغییر نکرده باشد، آن را پس از ۶۰ ثانیه پاک می‌کند. نسخهٔ پشتیبان آفلاین نگه دارید.</translation>
         </message>
+        <message id="genycaster.setup.browser_wallet_copy_success">
+            <source>Copied. Clear the clipboard when finished.</source>
+            <translation>کپی شد. پس از پایان، کلیپ‌بورد را پاک کنید.</translation>
+        </message>
+        <message id="genycaster.setup.browser_wallet_copy_warning">
+            <source>Other apps may read or save the clipboard. Your browser may not allow automatic clearing. Keep an offline backup.</source>
+            <translation>برنامه‌های دیگر ممکن است کلیپ‌بورد را بخوانند یا ذخیره کنند. مرورگر ممکن است اجازهٔ پاک‌سازی خودکار ندهد. نسخهٔ پشتیبان آفلاین نگه دارید.</translation>
+        </message>
         <message id="genycaster.setup.wallet_backup_ack">
             <source>I have saved all 24 words in order, somewhere safe.</source>
             <translation>هر ۲۴ کلمه را به ترتیب و در جای امن ذخیره کرده‌ام.</translation>

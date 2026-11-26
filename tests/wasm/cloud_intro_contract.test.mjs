@@ -61,7 +61,7 @@ test('Intro uses the canonical OpenProof silhouette in white and refreshes cache
     assert.ok(logo.includes('id="'+id+'"'),'canonical OpenProof artwork missing '+id);
   assert.match(logo,/viewBox="0 0 1254 1254"/);
   assert.doesNotMatch(logo,/openproof-v3-source|id="wordmark"|id="background"/);
-  assert.match(sw,/const CACHE="genycaster-static-v15"/);
+  assert.match(sw,/const CACHE="genycaster-static-v17"/);
   assert.match(logo,/id="outer-shield" fill="none" stroke="#F7F8FA"/);
   assert.match(logo,/id="op-monogram" fill="#F7F8FA"/);
   assert.match(logo,/id="fingerprint" fill="none" stroke="#F7F8FA"/);

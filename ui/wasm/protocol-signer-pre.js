@@ -31,6 +31,43 @@
         },
     });
     const events = [];
+    // One QML-owned setup ceremony. No secret is included in the polled status.
+    let setupWallet=null, setupWalletLoad=null, setupLoadEpoch=0, stagedRecovery=null;
+    const setupWalletReady=()=>setupWalletLoad??=(import('./browser_setup_wallet.mjs').then(({createSetupWallet})=>setupWallet=createSetupWallet({browser:window,preflight:async protocol=>{
+        if(protocol==='hypersnap-v2'){
+            const {createBrowserNativeRegistry}=await import('./hypersnap_native_account.mjs');
+            if(!(await createBrowserNativeRegistry().networkHealth()).ready)throw Error('HyperSnap is syncing');
+        }else await (await import('./farcaster_new_account.mjs')).createBrowserFarcasterRegistration().preflight();
+    }})).catch(error=>{setupWalletLoad=null;throw error;}));
+    let setupLoading=false,setupLoadError='';
+    window.__genycasterSetupWallet=Object.freeze({
+        state:()=>setupWallet?.snapshot()??{busy:setupLoading,error:setupLoadError},
+        begin(protocol,phrase=''){
+            if(setupLoading)return false;
+            const current=++setupLoadEpoch;setupLoading=true;setupLoadError='';
+            void setupWalletReady().then(wallet=>{if(current===setupLoadEpoch)return wallet.begin(protocol,phrase);}).catch(()=>{if(current===setupLoadEpoch)setupLoadError='wallet_unavailable';}).finally(()=>{phrase='';if(current===setupLoadEpoch)setupLoading=false;});return true;
+        },
+        challenge:()=>setupWallet?.challenge()??false,
+        verify:(a,b)=>setupWallet?.verify(a,b)??false,
+        reveal:()=>setupWallet?.reveal(),copy:()=>setupWallet?.copy()??false,
+        paint(ptr,size){
+            if(!Number.isSafeInteger(ptr)||ptr<=0||size!==512||ptr+size>HEAPU8.length)return false;
+            return setupWallet?.displayWords(phrase=>{if(lengthBytesUTF8(phrase)+1<=size)stringToUTF8(phrase,ptr,size);})??false;
+        },
+        acceptVoucher:value=>setupWallet?.acceptVoucher(value)??false,
+        reserveSponsored(){if(!setupWallet)return false;void setupWallet.reserveSponsored();return true;},
+        leave:()=>setupWallet?.leave()??false,
+        prepare:(p,v,u)=>setupWallet?.prepare(p,v,u)??false,
+        stageRecovery(p,words){if(window.isSecureContext!==true||!['hypersnap-v2','farcaster-snapchain'].includes(p)||typeof words!=='string'||words.length>512||stagedRecovery)return false;
+            const entry={p,words};stagedRecovery=entry;window.setTimeout(()=>{if(stagedRecovery===entry){entry.words='';stagedRecovery=null;}},5000);return true;},
+        discard(){setupLoadEpoch++;setupLoading=false;if(stagedRecovery){stagedRecovery.words="";stagedRecovery=null;}return setupWallet?.discard()??true;},
+        cancel(){setupLoadEpoch++;setupLoading=false;if(stagedRecovery){stagedRecovery.words="";stagedRecovery=null;}return setupWallet?.cancel()??true;}
+    });
+    async function consumeRecovery(signal,callback,options={}){
+        if(stagedRecovery){let entry=stagedRecovery;stagedRecovery=null;try{if(signal?.aborted||entry.p!==(options.protocol||'farcaster-snapchain'))throw Error('Recovery cancelled');return await callback(entry.words);}finally{entry.words='';}}
+        if(options.requireStaged)throw Error('Recovery input expired. Re-enter the phrase in Setup.');
+        return openRecoveryDialog(signal,callback,options);
+    }
     let client = null, initializedBase = "", epoch = 0, owner = "";
     let nativeClient = null;
     let ownerProtocol = "";
@@ -268,6 +305,7 @@
         // If the identity changes while a wallet is prompting, pending
         // requests are invalidated and cannot submit protocol messages.
         if (action === "forget-account") {
+            window.__genycasterSetupWallet.cancel();
             const previousOwner=owner,previousProtocol=ownerProtocol;
             const pendingCloud=accountSessionPromise;
             cancelAccountSession();
@@ -332,6 +370,7 @@
             return;
         }
         if (action === "signed-out") {
+            window.__genycasterSetupWallet.cancel();
             cancelAccountSession();
             cancelMedia();
             ++epoch;
@@ -370,6 +409,8 @@
                     requestId=payload.requestId||"";
                     protocol=payload.protocol||"";
                 } catch { /* handled as an invalid request below */ }
+                if(action==='create-hypersnap'||action==='create-farcaster')setupWallet?.failPrepared();
+                if(stagedRecovery){stagedRecovery.words='';stagedRecovery=null;}
                 report({kind: "setup-account", phase: "failed",
                     requestId, protocol, fid: "",
                     error: "Another signer operation is in progress. Please retry."});
@@ -408,7 +449,7 @@
                     let confirmed=null;
                     let registeredOpenProof=null;
                     if(action==="recover-hypersnap"){
-                        confirmed=await openRecoveryDialog(controller.signal,
+                        confirmed=await consumeRecovery(controller.signal,
                             async phrase=>{
                                 if(!isCurrent())throw new Error('Recovery cancelled');
                                 const {createBrowserNativeRegistry}=
@@ -434,36 +475,29 @@
                                 try {await enrollNativeCloudDevice(recovered.fid,phrase,controller.signal);}
                                 catch {if(!isCurrent())throw Error('Recovery cancelled');}
                                 return recovered;
-                            },{presentation:'full',protocol:'hypersnap-v2'});
+                            },{presentation:'full',protocol:'hypersnap-v2',requireStaged:JSON.parse(payloadString).requireStagedRecovery===true});
                     }else {
                         const registryModule=action==="create-farcaster"
                             ?null:await import('./hypersnap_native_account.mjs');
-                        const {promptCreateBrowserWallet}=
-                            await import('./browser_account_create_dialog.mjs');
+                        const wallet=await setupWalletReady();
                         // Never solicit a new recovery phrase if the paid
                         // first-party Farcaster allocator is not deployed.
-                        const enrollment=action==="create-farcaster"
-                            ?(await import('./farcaster_new_account.mjs'))
-                                .createBrowserFarcasterRegistration()
-                            :null;
-                        if(enrollment)await enrollment.preflight();
+                        const enrollment=action==="create-farcaster";
+                        // Preflight completed before the shared backup ceremony.
                         const nativeRegistry=registryModule?.createBrowserNativeRegistry();
-                        if(nativeRegistry){
-                            // Check blockchain catch-up BEFORE generating any
-                            // new 24-word wallet or prompting an irreversible
-                            // request. Qt's onboarding card shows the same
-                            // readiness state and a safe Existing-account path.
-                            const health=await nativeRegistry.networkHealth(controller.signal);
-                            if(!health.ready)
-                                throw new Error('HyperSnap blockchain is catching up. New account creation will be available when shard-0 blocks are current. No registration was sent.');
-                        }
-                        confirmed=await promptCreateBrowserWallet({
-                            browser:window,signal:controller.signal,
-                            protocol,
-                            onRegister:async(phrase,options)=>{
+                        confirmed=await wallet.submit(protocol,controller.signal,async(phrase,options)=>{
                                 if(!isCurrent())throw new Error('Account creation cancelled');
                                 if(!enrollment) {
-                                    const established=await nativeRegistry.register(phrase,options);
+                                    let established;
+                                    if(options.restored||options.resumeOnly){
+                                        const previous=await nativeRegistry.lookup(options.address,controller.signal);
+                                        if(previous.state==='confirmed')established=previous;
+                                        else if(options.resumeOnly||previous.state!=='not-found'){
+                                            const pending=Error('Previous registration must be reconciled before another submission.');
+                                            pending.outcomeUnknown=options.resumeOnly;throw pending;
+                                        }
+                                    }
+                                    established??=await nativeRegistry.register(phrase,options);
                                     // The FID is now irreversible. If signer
                                     // activation fails, keep the FID and the
                                     // backup usable through Existing account.
@@ -479,7 +513,7 @@
                                     catch {if(!isCurrent())throw Error('Registration cancelled');}
                                     return established;
                                 }
-                                const established=await enrollment.register(phrase,options);
+                                const established=await options.sponsoredRegistration.submitReserved(phrase,options);
                                 // Enrollment is irreversible and already
                                 // verified. KEY_ADD authorization is a separate
                                 // step: its failure cannot erase that FID or
@@ -512,7 +546,6 @@
                                     }finally{custody.dispose();}
                                 }catch {if(!isCurrent())throw Error('Registration cancelled');}
                                 return established;
-                            },
                         });
                     }
                     if(!isCurrent())return;
@@ -563,7 +596,7 @@
                     if(epoch!==thisEpoch || owner!==fid) return;
                     const {openProofGatewayOrigin}=JSON.parse(payloadString);
                     let verifiedOpenProof=null;
-                    const recoveredFid=await openRecoveryDialog(
+                    const recoveredFid=await consumeRecovery(
                         controller.signal,async phrase=>{
                             if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted)
                                 throw new Error("Recovery was cancelled");
@@ -580,7 +613,7 @@
                                     // Setup's explicit "Import and authorize"
                                     // grants the device signer in the SAME
                                     // recovery transaction, while the phrase
-                                    // remains confined to the browser dialog.
+                                    // remains in the ephemeral recovery ceremony.
                                     // The signer checks the exact custody/FID
                                     // mapping again before submitting KEY_ADD.
                                     try {
@@ -611,7 +644,7 @@
                                             bearer:verifiedOpenProof.accountTicket,signal:controller.signal});
                                     }catch {if(controller.signal.aborted)throw Error('Recovery cancelled');}
                                 }});
-                        });
+                        },{protocol:'farcaster-snapchain',requireStaged:JSON.parse(payloadString).requireStagedRecovery===true});
                     if(epoch!==thisEpoch || owner!==fid) return;
                     rememberedWrite=rememberedWrite.catch(()=>{}).then(async()=>{
                         const device=await deviceSession();
@@ -744,6 +777,7 @@
                 if (action === "recover-account" || action === "recover-hypersnap"
                     || action === "create-hypersnap" || action === "create-farcaster") {
                     const {requestId,protocol}=JSON.parse(payloadString);
+                    if(action==='create-hypersnap'||action==='create-farcaster')setupWallet?.failPrepared();
                     report({kind:'setup-account',phase:cancelled?'cancelled':'failed',
                         requestId,protocol,fid:'',
                         error:cancelled?'':String(error?.message||error).slice(0,350)});

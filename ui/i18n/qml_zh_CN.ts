@@ -6172,6 +6172,14 @@ Company | https://company.com</source>
             <source>Clipboard contents may be read or saved by other apps. GenyCaster clears the current clipboard after 60 seconds if unchanged. Keep an offline backup.</source>
             <translation>其他应用可能读取或保存剪贴板内容。若内容未变化，GenyCaster 将在 60 秒后清空剪贴板。请保留离线备份。</translation>
         </message>
+        <message id="genycaster.setup.browser_wallet_copy_success">
+            <source>Copied. Clear the clipboard when finished.</source>
+            <translation>已复制。使用后请清除剪贴板。</translation>
+        </message>
+        <message id="genycaster.setup.browser_wallet_copy_warning">
+            <source>Other apps may read or save the clipboard. Your browser may not allow automatic clearing. Keep an offline backup.</source>
+            <translation>其他应用可能读取或保存剪贴板。浏览器可能不允许自动清除。请保留离线备份。</translation>
+        </message>
         <message id="genycaster.setup.wallet_backup_ack">
             <source>I have saved all 24 words in order, somewhere safe.</source>
             <translation>我已按顺序安全保存全部24个词。</translation>

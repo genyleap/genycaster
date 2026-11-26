@@ -160,6 +160,34 @@ a live Qt 6.12 WASM browser test, wallet approval and Snapchain-confirmed
 `KEY_ADD` are still needed. Media upload and Mini App wallet SDK parity
 remain separate work.
 
+## Shared account setup (native and WebAssembly)
+
+`InitialSetup.qml` owns the New/Existing account routes, protocol selection,
+backup challenge, recovery fields, and registration progress on every target.
+The former browser-only HTML new-account form is no longer shipped. Native
+builds use the existing C++ custody controller; WebAssembly uses its Qt adapter
+and the ephemeral `browser_setup_wallet.mjs` ceremony. Browser-only signer
+reauthorization outside Setup remains a separate explicit dialog.
+
+Generated recovery words are not a QML property or persistent data model.
+They are painted using a bounded transient WASM buffer only while backup is
+revealed; imported words and challenge answers are transient explicit inputs.
+The buffer and temporary C++ text are cleared after drawing. JavaScript strings
+and the browser/GPU cannot provide a guaranteed physical zeroization boundary.
+Clipboard copying is explicit; browsers may deny automatic clipboard clearing.
+No phrase, voucher or raw custody key is written to persistent web storage.
+A local journal stores only protocol/custody address and an unresolved submission
+marker, not identity authority. The same wallet must be reconciled against the
+authoritative registry before another attempt. Paid Farcaster registration is
+available only when the configured first-party sponsored relay is enabled.
+
+The HyperSnap proof worker sees only public inputs; SHA-256 reuses the immutable
+first block and independently validates the resulting nonce. Each release
+packages the account module dependency graph at an immutable hashed path so
+an already-open browser cannot import a different release's custody modules.
+Existing hashed assets are retained for old tabs. Actual browser and native
+visual parity, and live registration against each protocol, are release tests.
+
 ## Independent browser cloud-device sessions
 
 `browser_account_session.mjs` uses a separate IndexedDB key scope

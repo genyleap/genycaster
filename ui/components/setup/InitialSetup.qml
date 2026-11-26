@@ -101,7 +101,6 @@ Item {
         running: root.visible && root.currentStep === 3
                  && root.choosingRegistrationProvider
                  && root.registrationProviderId === "hypersnap-v2"
-                 && !root.browserReadOnly
         onTriggered: {
             if (!nativeRegistrationStatus.checking
                 && !root.nativeCreationRequested
@@ -129,7 +128,7 @@ Item {
     // The authoritative read is safe to perform automatically after wallet
     // backup. Users should not need to discover an extra lookup button.
     function maybeLookupNativeFid() {
-        if (registrationProviderId !== "hypersnap-v2"
+        if (browserReadOnly || registrationProviderId !== "hypersnap-v2"
             || !nativeCustodyWallet.backupVerified || !nativeRegistrationStatus.active
             || nativeRegistrationStatus.accountLookupChecked
             || nativeRegistrationStatus.accountLookupBusy
@@ -141,7 +140,7 @@ Item {
     // operation. Network checks are read-only until that click, and no proof
     // completion can submit anything without this in-memory consent token.
     function resumeNativePendingChecks() {
-        if (visible && currentStep === 3 && choosingRegistrationProvider
+        if (!browserReadOnly && visible && currentStep === 3 && choosingRegistrationProvider
             && registrationProviderId === "hypersnap-v2"
             && nativeCustodyWallet.backupVerified
             && nativeRegistrationPublisher.pending
@@ -188,7 +187,7 @@ Item {
         }
     }
     function resumeExistingNativeAccount(explicitRetry) {
-        if (nativeExistingResumeRequested || !nativeCustodyWallet.backupVerified
+        if (browserReadOnly || nativeExistingResumeRequested || !nativeCustodyWallet.backupVerified
             || registrationProviderId !== "hypersnap-v2"
             || nativeRegistrationPublisher.pending || nativeRegistrationPublisher.busy
             || nativeRegistrationPublisher.confirmed || authenticated
@@ -286,7 +285,7 @@ Item {
     readonly property bool registrationNodeUsable:
         registrationProviderId === "hypersnap-v2"
         && nativeRegistrationStatus.syncedForRegistration && runtimeReady
-        && nativeRegistrationPublisher.registrationSupported
+        && (browserReadOnly || nativeRegistrationPublisher.registrationSupported)
     property bool showRecovery: false
     property string legalDocument: ""
     property bool recoverySubmitPending: false
@@ -319,6 +318,37 @@ Item {
     readonly property bool wideStage: !phone && stagePanel.width >=
         Theme.scaleUi(520) * Math.max(1, Theme.fontScale)
     readonly property bool browserReadOnly: wasmReadOnly
+    readonly property var browserCeremony: nativeCustodyWallet.browserSetup || ({})
+    readonly property bool browserCeremonyBusy: browserReadOnly && browserCeremony.busy === true
+    readonly property bool browserCeremonyLocked: browserReadOnly && browserCeremony.locked === true
+    readonly property string sponsorPhase: browserReadOnly ? String(browserCeremony.paidPhase || "idle") : neynarRegistration.phase
+    readonly property bool sponsorBusy: browserReadOnly ? browserCeremonyBusy : neynarRegistration.busy
+    readonly property bool sponsorPending: browserReadOnly ? sponsorPhase === "pending" || sponsorPhase === "reserving" : neynarRegistration.pending
+    readonly property bool sponsorConfirmed: browserReadOnly ? sponsorPhase === "confirmed" : neynarRegistration.confirmed
+    readonly property bool sponsorHasVoucher: browserReadOnly ? browserCeremony.hasVoucher === true : neynarRegistration.hasVoucher
+    readonly property string sponsorReservedFid: browserReadOnly ? String(browserCeremony.reservedFid || "") : neynarRegistration.reservedFid
+    readonly property bool registrationWorking: browserReadOnly ? browserCeremonyBusy && browserCeremony.verified === true : nativeCreationRequested || nativeRegistrationPreparation.busy || nativeRegistrationPublisher.busy
+    readonly property bool requestAccepted: browserReadOnly ? browserCeremony.phase === "checking" || browserCeremony.phase === "confirmed" : nativeRegistrationPublisher.pending && !nativeRegistrationPublisher.outcomeUnknown
+    function browserWalletError() {
+        switch (browserCeremony.error) {
+        case "backup_mismatch": return qsTrId("genycaster.setup.wallet_challenge_explanation")
+        case "registration_pending": return qsTrId("genycaster.setup.confirmation_pending_dont_retry")
+        case "registration_failed": return qsTrId("genycaster.setup.recovery_failed_retry")
+        case "clipboard_denied": return qsTrId("genycaster.setup.browser_wallet_copy_warning")
+        default: return qsTrId("genycaster.setup.recovery_failed_retry")
+        }
+    }
+    function startBrowserRegistration(voucher, username) {
+        if (!browserReadOnly || !runtimeReady || !legalConsentAccepted || authenticationInProgress || browserCeremonyBusy || (browserCeremonyLocked && sponsorPhase !== "reserved") || !nativeCustodyWallet.backupVerified)
+            return false
+        if (!nativeCustodyWallet.prepareBrowserRegistration(registrationProviderId, voucher, username)) {
+            registrationError = qsTrId("genycaster.setup.recovery_failed_retry")
+            return false
+        }
+        registrationError = ""
+        browserCreateAccount(registrationProviderId)
+        return true
+    }
     readonly property bool authenticationInProgress:
         authenticationPhase === "starting" || authenticationPhase === "awaiting-approval"
         || authenticationPhase === "linking-farcaster"
@@ -671,6 +701,11 @@ Item {
     }
     function previousStep() {
         if (currentStep === 3 && choosingRegistrationProvider) {
+            if (browserReadOnly) {
+                if (browserCeremonyLocked) return
+                if (!nativeCustodyWallet.cancelBrowserSetup()) return
+                if (authenticationInProgress) cancelAuthentication()
+            }
             if (neynarRegistration.pending
                 || neynarRegistration.phase === "reserved") {
                 registrationError =
@@ -756,6 +791,8 @@ Item {
             // A paid FID reservation or irreversible network write remains
             // bound to the same backed-up custody wallet.
             neynarRegistration.stopPolling()
+            if (browserReadOnly && !browserCeremonyLocked && browserCeremonyBusy)
+                nativeCustodyWallet.cancelBrowserSetup()
             if (!nativeRegistrationPublisher.pending
                 && !neynarRegistration.pending
                 && neynarRegistration.phase !== "reserved")
@@ -796,13 +833,6 @@ Item {
         if (authenticationPhase === "failed" || authenticationPhase === "signed-out")
             recoverySubmitPending = false
         if (!visible || currentStep < 4 || currentStep > 5)
-            return
-        // The browser's recovery-word dialog lives in the current app page.
-        // Do not cover it with Verification while the words are being entered.
-        if (browserReadOnly && !authenticated
-            && (authenticationRoute === "recovery"
-                || authenticationRoute === "browser-protocol-recovery"
-                || authenticationRoute === "browser-protocol-create"))
             return
         if (authenticationInProgress)
             switchStep(5)
@@ -2130,7 +2160,8 @@ Item {
                                         : root.protocolConnectionText(false, connectionState)
                         latencyMs: root.protocolLatencyMs(false)
                         selected: root.registrationProviderId === "hypersnap-v2"
-                        enabled: !neynarRegistration.pending
+                        enabled: (!root.browserReadOnly || (!nativeCustodyWallet.hasWallet && !root.browserCeremonyBusy && !root.browserCeremonyLocked))
+                                 && !neynarRegistration.pending
                                  && neynarRegistration.phase !== "reserved"
                         onClicked: {
                             neynarRegistration.reset()
@@ -2157,7 +2188,8 @@ Item {
                         connectionText: root.protocolConnectionText(true, connectionState)
                         latencyMs: root.protocolLatencyMs(true)
                         selected: root.registrationProviderId === "farcaster-snapchain"
-                        enabled: !nativeRegistrationPublisher.pending
+                        enabled: (!root.browserReadOnly || (!nativeCustodyWallet.hasWallet && !root.browserCeremonyBusy && !root.browserCeremonyLocked))
+                                 && !nativeRegistrationPublisher.pending
                                  && !neynarRegistration.pending
                         onClicked: {
                             nativeRegistrationPublisher.clear()
@@ -2230,7 +2262,7 @@ Item {
                         compact: true
                         quiet: true
                         visible: neynarRegistration.available
-                                 && neynarRegistration.registrationSupported
+                                 && (root.browserReadOnly || neynarRegistration.registrationSupported)
                                  && !root.farcasterSponsoredEnrollmentChosen
                         text: qsTrId("genycaster.setup.sponsored_code_available")
                         onClicked: root.farcasterSponsoredEnrollmentChosen = true
@@ -2248,181 +2280,12 @@ Item {
                         wrapMode: Text.WordWrap
                     }
                 }
-                // Browser uses verified external identity paths until a
-                // WebCrypto custody signer and native chain registration
-                // have been implemented and tested. Do not solicit a seed
-                // phrase in a non-operational registration controller.
-                ColumnLayout {
-                    objectName: "setupBrowserRegistrationPath"
-                    visible: root.browserReadOnly && root.registrationProviderId.length > 0
-                    Layout.fillWidth: true
-                    spacing: Theme.space3
-                    NeonCard {
-                        objectName: "setupBrowserHyperSnapNetworkStatus"
-                        visible: root.registrationProviderId === "hypersnap-v2"
-                                 && !nativeRegistrationStatus.syncedForRegistration
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: browserChainNotice.implicitHeight + Theme.space4 * 2
-                        interactive: false
-                        deferredNeon: true
-                        neonStrength: Theme.neonPanelStrength
-                        fillColor: nativeRegistrationPublisher.pending
-                                   || nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                   ? Theme.warningSurface : Theme.surface
-                        borderColor: nativeRegistrationPublisher.pending
-                                     || nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                     ? Qt.rgba(Theme.warning.r, Theme.warning.g,
-                                               Theme.warning.b, 0.35)
-                                     : Theme.borderMuted
-                        borderWidth: Theme.strokeStandard
-                        curveDepth: Theme.curveContainer
-                        ColumnLayout {
-                            id: browserChainNotice
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.margins: Theme.space4
-                            spacing: Theme.space2
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.setup.hypersnap_chain")
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightDemiBold
-                            }
-                            RowLayout {
-                                Layout.fillWidth: true
-                                layoutDirection: Theme.uiDirection
-                                spacing: Theme.space2
-                                Icon {
-                                    visible: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                    text: Theme.iconWarning
-                                    color: Theme.warning
-                                    preferredSize: Theme.iconSize
-                                }
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    text: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                          ? qsTrId("genycaster.setup.registration_unavailable")
-                                          : qsTrId("genycaster.setup.network_checking")
-                                    color: Theme.ink
-                                    font.pixelSize: Theme.typeTitle3Size
-                                    font.weight: Theme.weightDemiBold
-                                    wrapMode: Text.WordWrap
-                                }
-                            }
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: nativeRegistrationStatus.shardZeroBlockDelay > 120
-                                      ? qsTrId("genycaster.setup.hypersnap_nodes_syncing")
-                                      : qsTrId("genycaster.setup.hypersnap_checking_short")
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeLabelSize
-                                wrapMode: Text.WordWrap
-                            }
-                            RowLayout {
-                                Layout.fillWidth: true
-                                layoutDirection: Theme.uiDirection
-                                spacing: Theme.space2
-                                ActionButton {
-                                    objectName: "setupBrowserRefreshPausedRegistration"
-                                    Layout.fillWidth: true
-                                    compact: true
-                                    quiet: true
-                                    busy: nativeRegistrationStatus.checking
-                                    enabled: !nativeRegistrationStatus.checking
-                                    text: qsTrId("genycaster.setup.check_network")
-                                    onClicked: nativeRegistrationStatus.refresh()
-                                }
-                                ActionButton {
-                                    objectName: "setupBrowserCancelPausedRegistration"
-                                    Layout.fillWidth: true
-                                    compact: true
-                                    quiet: true
-                                    text: qsTrId("genycaster.setup.cancel_registration")
-                                    onClicked: root.previousStep()
-                                }
-                            }
-                        }
-                    }
-                    SetupActionCard {
-                        objectName: "setupBrowserCreateHyperSnap"
-                        visible: root.registrationProviderId === "hypersnap-v2"
-                                 && nativeRegistrationStatus.syncedForRegistration
-                        Layout.fillWidth: true
-                        compactCard: true
-                        onboardingStyle: true
-                        iconGlyph: "quilibrium/hypersnap"
-                        title: qsTrId("genycaster.setup.design_create_account")
-                        enabled: root.runtimeReady && !root.authenticationInProgress
-                                 && nativeRegistrationStatus.syncedForRegistration
-                        onClicked: {
-                            root.browserCreateAccount("hypersnap-v2")
-                        }
-                    }
-                    SetupActionCard {
-                        objectName: "setupBrowserExternalHyperSnap"
-                        visible: root.registrationProviderId === "hypersnap-v2"
-                        Layout.fillWidth: true
-                        compactCard: true
-                        onboardingStyle: true
-                        title: qsTrId("genycaster.shell.continue_with_genyleap")
-                        brandImageSource: (Qt.platform.os === "android" ? "image://genycaster-brand/mark" : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg")
-                        enabled: root.runtimeReady && root.authenticationAvailable
-                                 && !root.authenticationInProgress
-                        onClicked: {
-                            // External identity authorization is an existing
-                            // account route. It cannot establish a new native
-                            // protocol FID or satisfy new-account signer gates.
-                            root.accountIntent = "existing"
-                            root.choosingRegistrationProvider = false
-                            root.existingProtocolSelected = true
-                            root.recoveryProtocol = "hypersnap-v2"
-                            root.continueWithGenyleap()
-                            root.switchStep(5)
-                        }
-                    }
-                    SetupActionCard {
-                        objectName: "setupBrowserCreateFarcaster"
-                        visible: root.registrationProviderId === "farcaster-snapchain"
-                                 && root.farcasterSponsoredEnrollmentChosen
-                                 && neynarRegistration.available
-                        Layout.fillWidth: true
-                        compactCard: true
-                        onboardingStyle: true
-                        iconGlyph: "brands/farcaster"
-                        title: qsTrId("genycaster.setup.continue_sponsored")
-                        enabled: root.runtimeReady && !root.authenticationInProgress
-                        onClicked: {
-                            root.browserCreateAccount("farcaster-snapchain")
-                        }
-                    }
-                    SetupActionCard {
-                        objectName: "setupBrowserExternalFarcaster"
-                        visible: root.registrationProviderId === "farcaster-snapchain"
-                        Layout.fillWidth: true
-                        compactCard: true
-                        onboardingStyle: true
-                        iconGlyph: "brands/farcaster"
-                        title: qsTrId("genycaster.shell.sign_in_with_farcaster")
-                        subtitle: qsTrId("genycaster.setup.farcaster_signin_browse")
-                        enabled: root.runtimeReady && root.authenticationAvailable
-                                 && !root.authenticationInProgress
-                        onClicked: {
-                            root.accountIntent = "existing"
-                            root.choosingRegistrationProvider = false
-                            root.existingProtocolSelected = true
-                            root.recoveryProtocol = "farcaster-snapchain"
-                            root.continueWithFarcaster()
-                            root.switchStep(5)
-                        }
-                    }
-                }
                 ColumnLayout {
                     objectName: "setupWalletReplacement"
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     visible: root.nativeDetailsExpanded
+                             && !root.browserCeremonyBusy && !root.browserCeremonyLocked
                              && !nativeRegistrationPublisher.pending
                              && nativeCustodyWallet.hasWallet
                              && nativeCustodyWallet.backupVerified
@@ -2469,7 +2332,9 @@ Item {
                                 // network and is recoverable with its old
                                 // phrase. This action changes only the wallet
                                 // held locally by the onboarding UI.
-                                if (!nativeRegistrationPublisher.detachWalletForNewRegistration())
+                                if (root.browserReadOnly) {
+                                    if (!nativeCustodyWallet.cancelBrowserSetup()) return
+                                } else if (!nativeRegistrationPublisher.detachWalletForNewRegistration())
                                     return
                                 nativeRegistrationPreparation.cancel()
                                 nativeRegistrationStatus.clearExistingLookup()
@@ -2482,7 +2347,7 @@ Item {
                     }
                 }
                 ColumnLayout {
-                    visible: !root.browserReadOnly && root.registrationProviderId.length > 0
+                    visible: root.registrationProviderId.length > 0
                              && (root.registrationProviderId === "hypersnap-v2"
                                  || (root.farcasterSponsoredEnrollmentChosen
                                      && neynarRegistration.available))
@@ -2495,6 +2360,7 @@ Item {
                                  && !neynarRegistration.pending
                                  && neynarRegistration.phase !== "reserved"
                                  && !nativeCustodyWallet.recoveryVisible
+                                 && !root.browserCeremonyBusy && !root.browserCeremonyLocked
                         Layout.fillWidth: true
                         compact: true
                         quiet: true
@@ -2511,7 +2377,7 @@ Item {
                     }
                     ActionButton {
                         objectName: "setupRestoreInterruptedWallet"
-                        visible: !nativeCustodyWallet.hasWallet
+                        visible: !nativeCustodyWallet.hasWallet && !root.browserCeremonyBusy && !root.browserCeremonyLocked
                         Layout.fillWidth: true
                         compact: true
                         text: qsTrId("genycaster.setup.resume_registration_with_phrase")
@@ -2528,9 +2394,14 @@ Item {
                         Layout.fillWidth: true
                         prominent: true
                         text: qsTrId("genycaster.setup.wallet_create_label")
+                        busy: root.browserCeremonyBusy
+                        enabled: !root.browserCeremonyBusy && !root.browserCeremonyLocked
+                                 && (root.registrationProviderId !== "hypersnap-v2" || nativeRegistrationStatus.syncedForRegistration)
                         onClicked: {
                             nativeRegistrationStatus.clearExistingLookup()
-                            nativeCustodyWallet.generate()
+                            if (root.browserReadOnly)
+                                nativeCustodyWallet.beginBrowserWallet(root.registrationProviderId, "")
+                            else nativeCustodyWallet.generate()
                         }
                     }
                     DirectionAwareLabel {
@@ -2569,20 +2440,32 @@ Item {
                             anchors.margins: Theme.space2
                             wallet: nativeCustodyWallet
                             inkColor: Theme.ink
+                            masked: !backupWordVisibility.checked
                             Accessible.name: qsTrId("genycaster.setup.wallet_recovery_title")
                             Accessible.description: qsTrId("genycaster.setup.wallet_recovery_warning")
                         }
+                    }
+                    GenyCheckRow {
+                        id: backupWordVisibility
+                        visible: nativeCustodyWallet.recoveryVisible
+                        Layout.fillWidth: true
+                        label: qsTrId("genycaster.setup.show_recovery_words")
+                        onVisibleChanged: checked = false
                     }
                     ActionButton {
                         objectName: "setupCopyRecoveryWords"
                         visible: nativeCustodyWallet.recoveryVisible
                         Layout.fillWidth: true
                         compact: true
-                        text: root.recoveryWordsCopied
+                        enabled: backupWordVisibility.checked
+                        text: root.browserReadOnly && root.browserCeremony.copied === true
+                            ? qsTrId("genycaster.setup.browser_wallet_copy_success")
+                            : root.recoveryWordsCopied && !root.browserReadOnly
                             ? qsTrId("genycaster.setup.wallet_copy_success")
                             : qsTrId("genycaster.setup.wallet_copy_label")
                         onClicked: {
-                            root.recoveryWordsCopied = nativeCustodyWallet.copyRecoveryWords()
+                            const requested = nativeCustodyWallet.copyRecoveryWords()
+                            root.recoveryWordsCopied = !root.browserReadOnly && requested
                             if (root.recoveryWordsCopied)
                                 recoveryCopyFeedbackTimer.restart()
                         }
@@ -2590,7 +2473,9 @@ Item {
                     DirectionAwareLabel {
                         visible: nativeCustodyWallet.recoveryVisible
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.wallet_copy_warning")
+                        text: root.browserReadOnly
+                            ? qsTrId("genycaster.setup.browser_wallet_copy_warning")
+                            : qsTrId("genycaster.setup.wallet_copy_warning")
                         color: Theme.warning
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2713,7 +2598,7 @@ Item {
                     DirectionAwareLabel {
                         visible: nativeCustodyWallet.error.length > 0
                         Layout.fillWidth: true
-                        text: nativeCustodyWallet.error
+                        text: root.browserReadOnly ? root.browserWalletError() : nativeCustodyWallet.error
                         font.pixelSize: Theme.typeCaptionSize
                         color: Theme.danger
                         wrapMode: Text.WordWrap
@@ -2756,8 +2641,7 @@ Item {
                 }
                 ColumnLayout {
                     objectName: "neynarFarcasterRegistration"
-                    visible: !root.browserReadOnly
-                             && root.registrationProviderId === "farcaster-snapchain"
+                    visible: root.registrationProviderId === "farcaster-snapchain"
                              && root.farcasterSponsoredEnrollmentChosen
                              && neynarRegistration.available
                              && nativeCustodyWallet.backupVerified
@@ -2766,7 +2650,7 @@ Item {
 
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        visible: !neynarRegistration.confirmed
+                        visible: !root.sponsorConfirmed
                         text: qsTrId("genycaster.setup.sponsor_code_explanation")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
@@ -2777,9 +2661,9 @@ Item {
                         forceLeftToRight: true
                         objectName: "setupNeynarVoucher"
                         Layout.fillWidth: true
-                        visible: !neynarRegistration.hasVoucher
-                                 && !neynarRegistration.pending
-                                 && !neynarRegistration.confirmed
+                        visible: !root.sponsorHasVoucher
+                                 && !root.sponsorPending
+                                 && !root.sponsorConfirmed
                         placeholderText: qsTrId("genycaster.setup.sponsor_code_paste")
                         echoMode: TextInput.Password
                         maximumLength: 1100
@@ -2790,22 +2674,22 @@ Item {
                         objectName: "setupUseNeynarVoucher"
                         Layout.fillWidth: true
                         compact: true
-                        visible: !neynarRegistration.hasVoucher
-                                 && !neynarRegistration.pending
-                                 && !neynarRegistration.confirmed
+                        visible: !root.sponsorHasVoucher
+                                 && !root.sponsorPending
+                                 && !root.sponsorConfirmed
                         text: qsTrId("genycaster.setup.neynar_voucher_accept")
                         enabled: neynarEnrollmentVoucher.text.length > 60
-                                 && !neynarRegistration.busy
+                                 && !root.sponsorBusy
                         onClicked: {
-                            neynarRegistration.useEnrollmentVoucher(
-                                neynarEnrollmentVoucher.text)
+                            if (root.browserReadOnly) nativeCustodyWallet.useBrowserVoucher(neynarEnrollmentVoucher.text)
+                            else neynarRegistration.useEnrollmentVoucher(neynarEnrollmentVoucher.text)
                             neynarEnrollmentVoucher.clear()
                         }
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        visible: neynarRegistration.hasVoucher
-                                 && neynarRegistration.phase === "ready"
+                        visible: root.sponsorHasVoucher
+                                 && root.sponsorPhase === "ready"
                         text: qsTrId("genycaster.setup.neynar_voucher_ready")
                         color: Theme.success
                         font.pixelSize: Theme.typeCaptionSize
@@ -2815,20 +2699,23 @@ Item {
                         objectName: "setupReserveNeynarFid"
                         Layout.fillWidth: true
                         prominent: false
-                        visible: neynarRegistration.phase === "ready"
+                        visible: root.sponsorPhase === "ready"
                         text: qsTrId("genycaster.setup.continue_username")
-                        busy: neynarRegistration.busy
+                        busy: root.sponsorBusy
                         enabled: root.runtimeReady && neynarRegistration.available
-                                 && neynarRegistration.registrationSupported
-                                 && !neynarRegistration.busy
+                                 && (root.browserReadOnly || neynarRegistration.registrationSupported)
+                                 && !root.sponsorBusy
                                  && nativeCustodyWallet.backupVerified
-                        onClicked: neynarRegistration.reserveFid()
+                        onClicked: {
+                            if (root.browserReadOnly) nativeCustodyWallet.reserveBrowserFid()
+                            else neynarRegistration.reserveFid()
+                        }
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        visible: neynarRegistration.phase === "reserved"
+                        visible: root.sponsorPhase === "reserved"
                         text: qsTrId("genycaster.setup.neynar_reserved_fid")
-                            .arg(neynarRegistration.reservedFid)
+                            .arg(root.sponsorReservedFid)
                         color: Theme.success
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2838,7 +2725,7 @@ Item {
                         forceLeftToRight: true
                         objectName: "setupNeynarUsername"
                         Layout.fillWidth: true
-                        visible: neynarRegistration.phase === "reserved"
+                        visible: root.sponsorPhase === "reserved"
                         maximumLength: 16
                         placeholderText: qsTrId("genycaster.setup.neynar_username_placeholder")
                         inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
@@ -2847,7 +2734,7 @@ Item {
                     GenyCheckRow {
                         id: neynarTransferConsent
                         objectName: "setupNeynarTransferConsent"
-                        visible: neynarRegistration.phase === "reserved"
+                        visible: root.sponsorPhase === "reserved"
                         Layout.fillWidth: true
                         label: qsTrId("genycaster.setup.neynar_transfer_consent")
                     }
@@ -2855,30 +2742,32 @@ Item {
                         objectName: "setupSubmitNeynarRegistration"
                         Layout.fillWidth: true
                         prominent: true
-                        visible: neynarRegistration.phase === "reserved"
+                        visible: root.sponsorPhase === "reserved"
                         text: qsTrId("genycaster.setup.create_farcaster")
                         enabled: root.runtimeReady && neynarTransferConsent.checked
-                                 && neynarRegistration.canSubmit
+                                 && (root.browserReadOnly ? !root.sponsorBusy : neynarRegistration.canSubmit)
                                  && /^[a-z0-9][a-z0-9-]{0,15}$/.test(
                                      neynarRequestedUsername.text.trim().toLowerCase())
-                        onClicked: neynarRegistration.submit(
-                            neynarRequestedUsername.text)
+                        onClicked: {
+                            if (root.browserReadOnly) root.startBrowserRegistration("", neynarRequestedUsername.text.trim().toLowerCase())
+                            else neynarRegistration.submit(neynarRequestedUsername.text)
+                        }
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        visible: neynarRegistration.pending
-                                 || neynarRegistration.confirmed
-                                 || neynarRegistration.phase === "rejected"
-                                 || neynarRegistration.phase === "reserved"
-                        text: neynarRegistration.confirmed
+                        visible: root.sponsorPending
+                                 || root.sponsorConfirmed
+                                 || root.sponsorPhase === "rejected"
+                                 || root.sponsorPhase === "reserved"
+                        text: root.sponsorConfirmed
                             ? qsTrId("genycaster.setup.neynar_fid_confirmed")
-                                .arg(neynarRegistration.reservedFid)
-                            : neynarRegistration.phase === "reserved"
+                                .arg(root.sponsorReservedFid)
+                            : root.sponsorPhase === "reserved"
                               ? qsTrId("genycaster.setup.neynar_reservation_time")
-                              : neynarRegistration.phase === "rejected"
+                              : root.sponsorPhase === "rejected"
                                 ? qsTrId("genycaster.setup.neynar_registration_rejected")
                                 : qsTrId("genycaster.setup.neynar_waiting_confirmation")
-                        color: neynarRegistration.confirmed
+                        color: root.sponsorConfirmed
                             ? Theme.success : Theme.warning
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2897,21 +2786,36 @@ Item {
                         objectName: "setupCheckNeynarRegistration"
                         Layout.fillWidth: true
                         compact: true
-                        visible: neynarRegistration.hasVoucher
-                                 && neynarRegistration.pending
-                                 && !neynarRegistration.confirmed
+                        visible: !root.browserReadOnly && root.sponsorHasVoucher
+                                 && root.sponsorPending
+                                 && !root.sponsorConfirmed
                         text: qsTrId("genycaster.setup.check_account_status")
-                        enabled: !neynarRegistration.busy
+                        enabled: !root.sponsorBusy
                         onClicked: neynarRegistration.checkConfirmation()
+                    }
+                }
+                ActionButton {
+                    visible: root.browserCeremonyLocked && !root.browserCeremonyBusy
+                             && root.browserCeremony.phase !== "reserved" && !root.authenticated
+                    Layout.fillWidth: true
+                    quiet: true
+                    text: qsTrId("genycaster.setup.leave_for_now")
+                    onClicked: {
+                        if (nativeCustodyWallet.leaveBrowserSetup()) {
+                            root.resumingRegistration = false
+                            root.existingProtocolSelected = true
+                            root.recoveryProtocol = root.registrationProviderId
+                            root.showRecovery = true
+                            root.switchStep(4)
+                        }
                     }
                 }
                 // ONE public action controls lookup -> proof -> submit -> FID.
                 // No protocol-specific engineering steps are exposed as CTAs.
                 ColumnLayout {
                     objectName: "nativeRegistrationBroadcastPanel"
-                    visible: !root.browserReadOnly
-                             && root.registrationProviderId === "hypersnap-v2"
-                             && nativeCustodyWallet.backupVerified
+                    visible: root.registrationProviderId === "hypersnap-v2"
+                             && (nativeCustodyWallet.backupVerified || !nativeRegistrationStatus.syncedForRegistration)
                     Layout.fillWidth: true
                     spacing: Theme.space2
 
@@ -2919,27 +2823,32 @@ Item {
                         objectName: "setupBeginRegistration"
                         Layout.fillWidth: true
                         prominent: true
-                        visible: !nativeRegistrationPublisher.pending
+                        visible: nativeCustodyWallet.backupVerified && !nativeRegistrationPublisher.pending
                                  && !nativeRegistrationPublisher.confirmed
                                  && nativeRegistrationStatus.syncedForRegistration
                                  && nativeRegistrationStatus.existingNativeFid.length === 0
+                                 && !root.browserCeremonyLocked
                         text: qsTrId("genycaster.setup.create_account")
-                        busy: root.nativeCreationRequested
+                        busy: root.browserCeremonyBusy || root.nativeCreationRequested
                               || nativeRegistrationPreparation.busy
                               || nativeRegistrationPublisher.busy
                               || nativeRegistrationStatus.accountLookupBusy
                         enabled: root.registrationNodeUsable
-                                 && nativeRegistrationStatus.accountLookupChecked
+                                 && (root.browserReadOnly || nativeRegistrationStatus.accountLookupChecked)
                                  && !nativeRegistrationStatus.accountLookupFailed
                                  && !nativeRegistrationStatus.accountLookupBusy
                                  && !root.nativeCreationRequested
                                  && !nativeRegistrationPreparation.busy
                                  && !nativeRegistrationPublisher.busy
                                  && !nativeRegistrationPublisher.pending
+                                 && !root.browserCeremonyBusy && !root.browserCeremonyLocked
                         // This single explicit click authorizes ONE irreversible
                         // registration. Async proof completion does not have
                         // permission to initiate a separate second request.
-                        onClicked: root.startNativeAccountCreation()
+                        onClicked: {
+                            if (root.browserReadOnly) root.startBrowserRegistration("", "")
+                            else root.startNativeAccountCreation()
+                        }
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -2978,7 +2887,7 @@ Item {
                     NeonCard {
                         objectName: "setupNativeChainStatusCard"
                         Layout.fillWidth: true
-                        visible: nativeRegistrationPublisher.pending
+                        visible: nativeRegistrationPublisher.pending || root.registrationWorking || root.browserCeremonyLocked
                                  || (!nativeRegistrationStatus.syncedForRegistration
                                      && nativeRegistrationStatus.existingNativeFid.length === 0)
                         Layout.preferredHeight: nativeChainSteps.implicitHeight + Theme.space4 * 2
@@ -3024,7 +2933,13 @@ Item {
                                 DirectionAwareLabel {
                                     objectName: "setupNativeAwaitingConfirmation"
                                     Layout.fillWidth: true
-                                    text: nativeRegistrationPublisher.pending
+                                    text: root.browserCeremonyLocked
+                                          ? qsTrId("genycaster.setup.await_network_confirmation")
+                                          : root.registrationWorking
+                                            ? (root.browserReadOnly && root.browserCeremony.phase !== "proof"
+                                               ? qsTrId("genycaster.setup.network_checking")
+                                               : qsTrId("genycaster.setup.native_proof_working"))
+                                          : nativeRegistrationPublisher.pending
                                           ? qsTrId("genycaster.setup.await_network_confirmation")
                                           : nativeRegistrationStatus.shardZeroBlockDelay > 120
                                             ? qsTrId("genycaster.setup.registration_unavailable")
@@ -3041,7 +2956,13 @@ Item {
                             DirectionAwareLabel {
                                 objectName: "setupNativePendingDescription"
                                 Layout.fillWidth: true
-                                text: nativeRegistrationPublisher.pending
+                                text: root.browserCeremonyLocked
+                                      ? qsTrId("genycaster.setup.confirmation_pending_dont_retry")
+                                      : root.browserCeremonyBusy
+                                        ? (root.browserCeremony.phase === "proof" && root.browserCeremony.total > 0
+                                            ? LocaleFormat.localizeDigits(root.browserCeremony.done + " / " + root.browserCeremony.total)
+                                            : qsTrId("genycaster.setup.network_checking"))
+                                      : nativeRegistrationPublisher.pending
                                       ? qsTrId("genycaster.setup.confirmation_pending_dont_retry")
                                       : nativeRegistrationStatus.shardZeroBlockDelay > 120
                                         ? qsTrId("genycaster.setup.hypersnap_nodes_syncing")
@@ -3059,11 +2980,11 @@ Item {
                                 layoutDirection: Theme.uiDirection
                                 rowSpacing: Theme.space2
                                 columnSpacing: Theme.space3
-                                visible: nativeRegistrationPublisher.pending
+                                visible: nativeRegistrationPublisher.pending || root.registrationWorking || root.browserCeremonyLocked
                                 Repeater {
-                                    model: nativeRegistrationPublisher.pending ? [
+                                    model: (nativeRegistrationPublisher.pending || root.registrationWorking || root.browserCeremonyLocked) ? [
                                         qsTrId("genycaster.setup.backup"),
-                                        nativeRegistrationPublisher.outcomeUnknown
+                                        (nativeRegistrationPublisher.outcomeUnknown || root.browserCeremony.phase === "outcome-unknown")
                                             ? qsTrId("genycaster.setup.checking_request") : qsTrId("genycaster.setup.request"),
                                         qsTrId("genycaster.setup.confirmed")
                                     ] : []
@@ -3080,14 +3001,14 @@ Item {
                                             exponent: 2
                                             fillColor: index === 0
                                                    || (index === 1
-                                                       && !nativeRegistrationPublisher.outcomeUnknown)
+                                                       && root.requestAccepted)
                                                    ? Theme.success
                                                    : index === 1 ? Theme.accent : Theme.borderMuted
                                             DirectionAwareLabel {
                                                 anchors.centerIn: parent
                                                 text: index === 0
                                                       || (index === 1
-                                                          && !nativeRegistrationPublisher.outcomeUnknown)
+                                                          && root.requestAccepted)
                                                       ? "✓" : String(index + 1)
                                                 color: Theme.ink
                                                 font.pixelSize: Theme.typeCaptionSize
@@ -3383,14 +3304,7 @@ Item {
                     title: qsTrId("genycaster.setup.design_recovery_title")
                     subtitle: qsTrId("genycaster.setup.recovery_phrase_sensitive")
                     enabled: !root.authenticationInProgress && !root.recoverySubmitPending
-                    onClicked: {
-                        if (root.browserReadOnly) {
-                            // Browser recovery is opt-in: never open a phrase field from sign-in.
-                            root.recoverAccount(root.recoveryProtocol)
-                        } else {
-                            root.showRecovery = !root.showRecovery
-                        }
-                    }
+                    onClicked: root.showRecovery = !root.showRecovery
                 }
                 SetupActionCard {
                     visible: root.recoveryProtocol === "hypersnap-v2" && !root.showRecovery
@@ -3416,7 +3330,7 @@ Item {
             }
             ColumnLayout {
                 visible: root.showRecovery && (root.existingProtocolSelected || root.resumingRegistration)
-                    && !root.browserReadOnly && !root.authenticated
+                    && !root.authenticated
                 Layout.fillWidth: true
                 Layout.topMargin: Theme.space2
                 spacing: Theme.space3
@@ -3758,23 +3672,31 @@ Item {
                         const authorizeDeviceSigner = true
                         nativeRecoveryGrid.clearAll()
                         if (root.resumingRegistration) {
-                            const restored =
-                                nativeCustodyWallet.restoreForRegistration(words)
+                            const restored = root.browserReadOnly
+                                ? nativeCustodyWallet.beginBrowserWallet(root.registrationProviderId, words)
+                                : nativeCustodyWallet.restoreForRegistration(words)
                             words = ""
                             if (restored) {
                                 root.resumingRegistration = false
                                 root.showRecovery = false
                                 root.registrationError = ""
-                                if (root.registrationProviderId === "hypersnap-v2")
+                                if (!root.browserReadOnly && root.registrationProviderId === "hypersnap-v2")
                                     nativeRegistrationPublisher.recoverInterruptedRegistration()
                                 root.switchStep(3)
                             } else {
-                                root.registrationError = nativeCustodyWallet.error
+                                root.registrationError = root.browserReadOnly ? qsTrId("genycaster.setup.recovery_failed_retry") : nativeCustodyWallet.error
                             }
                             return
                         }
                         root.recoverySubmitPending = true
-                        if (root.recoveryProtocol === "hypersnap-v2")
+                        if (root.browserReadOnly) {
+                            if (!nativeCustodyWallet.stageBrowserRecovery(root.recoveryProtocol, words)) {
+                                root.recoverySubmitPending = false
+                                words = ""
+                                return
+                            }
+                            root.recoverAccount(root.recoveryProtocol)
+                        } else if (root.recoveryProtocol === "hypersnap-v2")
                             root.nativeRecoverHyperSnapAccount(words, authorizeDeviceSigner)
                         else
                             root.nativeRecoverFarcasterAccount(words, authorizeDeviceSigner)

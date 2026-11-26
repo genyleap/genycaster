@@ -21,13 +21,16 @@ test('WebAssembly selects the isolated browser custody ABI, never the OpenSSL de
   assert.match(preparation, /solveNativeOnboardPow\(/);
 });
 
-test('browser-native wallet never generates, retains, exports or signs custody secrets', () => {
-  assert.match(browser, /bool NativeCustodyWalletController::hasWallet\(\) const noexcept \{ return false; \}/);
-  assert.match(browser, /bool NativeCustodyWalletController::backupVerified\(\) const noexcept \{ return false; \}/);
-  assert.match(browser, /bool NativeCustodyWalletController::generate\(\)[\s\S]*?return false;/);
-  assert.match(browser, /restoreForRegistration\(QString recoveryWords\)[\s\S]*?recoveryWords\.fill\(QChar\{\}\)/);
-  assert.match(browser, /verifyBackup\(QString first, QString second\)[\s\S]*?first\.fill\(QChar\{\}\);\s*second\.fill\(QChar\{\}\);\s*return false;/);
-  assert.match(browser, /bool NativeCustodyWalletController::copyRecoveryWords\(\) \{ return false; \}/);
+test('browser adapter reads metadata but native signature ports fail closed', () => {
+  assert.match(browser, /QVariantMap readState/);
+  assert.match(browser, /JSON\.stringify\(bridge\.state\(\)\)/);
+  assert.match(browser, /beginBrowserWallet/);
+  assert.match(browser, /dispatch\(QStringLiteral\("verify"\)/);
+  assert.match(browser, /dispatch\(QStringLiteral\("copy"\)/);
+  assert.match(browser, /x\.fill\('\\0'\); y\.fill/);
+  const adapter=source('ui/wasm/browser_setup_wallet.mjs');
+  assert.match(adapter,/const snapshot=\(\)=>\(\{\.\.\.state\}\)/);
+  assert.doesNotMatch(adapter,/setItem\([^,]+,\s*(phrase|voucher)/);
   assert.match(browser, /sealNativeOnboard\([\s\S]*?return std::nullopt;/);
   assert.match(browser, /signReservedFarcasterTransfer\([\s\S]*?return std::nullopt;/);
   assert.match(browser, /signOpenProofFarcasterChallenge\([\s\S]*?return unavailableSignature\(\);/);
@@ -37,8 +40,15 @@ test('browser-native wallet never generates, retains, exports or signs custody s
   assert.doesNotMatch(browser, /localStorage|sessionStorage|Math\.random|privateKey|seedPhrase|navigator\.clipboard/);
 });
 
-test('browser mnemonic paint remains empty while the separate browser wallet SDK stays packaged', () => {
-  assert.match(browser, /NativeRecoveryWordsItem::paint\(QPainter\*\)\s*\{\s*\/\/ No native mnemonic can exist or be painted on WebAssembly\.\s*\}/);
+test('browser mnemonic paint is bounded, transient and shared with native QML', () => {
+  assert.match(browser,/if\(!m_wallet\|\|!m_wallet->recoveryVisible\(\)\)return/);
+  assert.match(browser,/if\(!m_masked\)/);
+  assert.match(browser,/std::array<char,512>/);
+  assert.match(browser,/std::fill\(buffer.begin\(\),buffer.end\(\),'\\0'\)/);
+  const setup=source('ui/components/setup/InitialSetup.qml');
+  assert.match(setup,/NativeRecoveryWords \{/);
+  assert.match(setup,/masked: !backupWordVisibility.checked/);
+  assert.doesNotMatch(source('ui/app/identity/native_wallet.hpp'),/Q_PROPERTY\(QString (phrase|mnemonic|recoveryWords)/);
   const main = source('ui/app/main.cpp');
   assert.match(main, /qmlRegisterType<NativeRecoveryWordsItem>\(/);
   assert.match(cmake, /miniapp-wallet-provider\.mjs/);

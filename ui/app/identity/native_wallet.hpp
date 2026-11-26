@@ -21,6 +21,7 @@
 #include <QPointer>
 #include <QQuickPaintedItem>
 #include <QString>
+#include <QVariantMap>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -44,6 +45,7 @@ class NativeCustodyWalletController final : public QObject {
     Q_PROPERTY(int secondChallengeIndex READ secondChallengeIndex NOTIFY changed)
     Q_PROPERTY(QString address READ address NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    Q_PROPERTY(QVariantMap browserSetup READ browserSetup NOTIFY changed)
 public:
     explicit NativeCustodyWalletController(QObject* parent = nullptr);
     ~NativeCustodyWalletController() override;
@@ -56,6 +58,25 @@ public:
     [[nodiscard]] QString error() const;
 
     Q_INVOKABLE bool generate();
+#if defined(Q_OS_WASM)
+    [[nodiscard]] QVariantMap browserSetup() const;
+    Q_INVOKABLE bool beginBrowserWallet(QString protocol, QString words);
+    Q_INVOKABLE bool prepareBrowserRegistration(QString protocol, QString voucher, QString username);
+    Q_INVOKABLE bool stageBrowserRecovery(QString protocol, QString words);
+    Q_INVOKABLE bool cancelBrowserSetup();
+    Q_INVOKABLE bool useBrowserVoucher(QString voucher);
+    Q_INVOKABLE bool reserveBrowserFid();
+    Q_INVOKABLE bool leaveBrowserSetup();
+#else
+    [[nodiscard]] QVariantMap browserSetup() const { return {}; }
+    Q_INVOKABLE bool beginBrowserWallet(QString, QString) { return false; }
+    Q_INVOKABLE bool prepareBrowserRegistration(QString, QString, QString) { return false; }
+    Q_INVOKABLE bool stageBrowserRecovery(QString, QString) { return false; }
+    Q_INVOKABLE bool cancelBrowserSetup() { return false; }
+    Q_INVOKABLE bool useBrowserVoucher(QString) { return false; }
+    Q_INVOKABLE bool reserveBrowserFid() { return false; }
+    Q_INVOKABLE bool leaveBrowserSetup() { return false; }
+#endif
 
     /** Explicit recovery of a backed-up wallet for an interrupted registration. */
     Q_INVOKABLE bool restoreForRegistration(QString recoveryWords);
@@ -109,7 +130,7 @@ private:
 };
 
 /**
- * Native-only rendering surface for the mnemonic: no QML Text/text property
+ * Platform-shared rendering surface for the mnemonic: no QML Text/text property
  * or serializable data model exists for the recovery phrase.
  * The mnemonic is visible in pixels only while the backup ceremony permits it.
  */
@@ -118,6 +139,7 @@ class NativeRecoveryWordsItem : public QQuickPaintedItem {
     Q_PROPERTY(NativeCustodyWalletController* wallet READ wallet WRITE setWallet
                NOTIFY walletChanged)
     Q_PROPERTY(QColor inkColor READ inkColor WRITE setInkColor NOTIFY inkColorChanged)
+    Q_PROPERTY(bool masked READ masked WRITE setMasked NOTIFY maskedChanged)
 public:
     explicit NativeRecoveryWordsItem(QQuickItem* parent = nullptr);
     void paint(QPainter* painter) override;
@@ -125,11 +147,15 @@ public:
     void setWallet(NativeCustodyWalletController* wallet);
     [[nodiscard]] QColor inkColor() const { return m_inkColor; }
     void setInkColor(QColor color);
+    bool masked() const noexcept { return m_masked; }
+    void setMasked(bool value) { if (m_masked == value) return; m_masked = value; update(); emit maskedChanged(); }
 signals:
     void walletChanged();
     void inkColorChanged();
+    void maskedChanged();
 private:
     QPointer<NativeCustodyWalletController> m_wallet;
     QColor m_inkColor{Qt::black};
+    bool m_masked{false};
     QMetaObject::Connection m_connection;
 };
