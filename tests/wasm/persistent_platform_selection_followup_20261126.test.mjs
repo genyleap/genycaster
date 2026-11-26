@@ -48,3 +48,12 @@ test('persistent browser targets cannot paint or hit through shell chrome',()=>{
   assert.match(read('ui/components/'+f+'.qml'),/readonly property bool browserEditorOccludes: true/);
  assert.match(read('ui/components/shell/AppShell.qml'),/onAboutToHide: \{[\s\S]*?nativeSignerPhraseInput.dismissSelectionActions\(\)/);
 });
+
+test('cast geometry follows the render frame rather than a polling timer',()=>{
+ assert.match(cast,/target: root\.Window\.window[\s\S]*?function onAfterAnimating\(\) \{ root\.syncBrowserCast\(true\) \}/);
+ assert.doesNotMatch(cast,/interval:\s*100[\s\S]{0,200}syncBrowserCast/);
+ assert.match(cast,/geometryKey === browserCastGeometryKey/);
+ assert.match(cast,/geometryOnly \? \{ geometry: geometry, geometryOnly: true, readOnlyCast: true \}/);
+ assert.match(js,/options=\{\.\.\.f\.options,geometry:options\.geometry,geometryOnly:true\}/);
+ assert.match(js,/!options\.geometryOnly&&f\.castSignature/);
+});

@@ -26,6 +26,7 @@ Item {
     property string browserCastToken: ""
     property bool browserCastMounted: false
     property real browserCastHeight: 0
+    property string browserCastGeometryKey: ""
     readonly property real castLayoutHeight: browserCastHeight > 0 ? browserCastHeight : platformText.implicitHeight
     Item {
         id: browserCastGeometry
@@ -34,8 +35,8 @@ Item {
         height: root.castLayoutHeight
         y: root.emojiVerticalInset
     }
-    function browserCastOptions() {
-        return { geometry: presentationBridge.browserEditorGeometry(browserCastGeometry, root.Overlay.overlay),
+    function browserCastOptions(geometry) {
+        return { geometry: geometry,
             readOnlyCast: true, readOnly: true, multiline: true,
             rtl: root.rtlContent, spans: root.flattenedInlines(),
             fontFamily: platformText.font.family, fontSize: root.textSize,
@@ -47,6 +48,7 @@ Item {
         const token = browserCastToken
         browserCastToken = ""
         browserCastMounted = false
+        browserCastGeometryKey = ""
         if (token.length) presentationBridge.cancelBrowserTextEditor(token)
     }
     function syncBrowserCast(geometryOnly) {
@@ -54,35 +56,66 @@ Item {
             releaseBrowserCast()
             return
         }
-        const options = browserCastOptions()
-        if (!(options.geometry.clipWidth > 0 && options.geometry.clipHeight > 0)) {
+        const geometry = presentationBridge.browserEditorGeometry(browserCastGeometry, root.Overlay.overlay)
+        if (!(geometry.clipWidth > 0 && geometry.clipHeight > 0)) {
             releaseBrowserCast()
             return
         }
+        const geometryKey = JSON.stringify(geometry)
+        if (browserCastMounted && geometryOnly && geometryKey === browserCastGeometryKey)
+            return
+        browserCastGeometryKey = geometryKey
         const value = String(root.safeBlockData.text || "")
         if (!browserCastMounted) {
+            const options = browserCastOptions(geometry)
             browserCastToken = "cast:" + Date.now().toString(36) + ":" + Math.random().toString(36)
             browserCastMounted = presentationBridge.openBrowserTextEditor(browserCastToken, value, options)
             if (!browserCastMounted) releaseBrowserCast()
             return
         }
-        options.geometryOnly = geometryOnly === true
-        if (!presentationBridge.syncBrowserTextEditor(browserCastToken, options.geometryOnly ? "" : value, options))
+        // A geometry-only frame must not serialize or rebuild the rich spans.
+        const options = geometryOnly ? { geometry: geometry, geometryOnly: true, readOnlyCast: true }
+                                     : browserCastOptions(geometry)
+        if (!presentationBridge.syncBrowserTextEditor(browserCastToken, geometryOnly ? "" : value, options))
             releaseBrowserCast()
     }
-    Timer {
-        interval: 100
-        repeat: true
-        triggeredOnStart: true
-        running: root.browserSelection && root.visible && root.textBlock
-        onTriggered: root.syncBrowserCast(true)
+    // DOM text lives outside the Qt canvas. Synchronize scene coordinates
+    // on the GUI thread after animations advance, before the next frame is
+    // rendered. A polling timer leaves text behind during kinetic scrolling.
+    Connections {
+        target: root.Window.window
+        enabled: root.browserSelection && root.visible && root.textBlock
+        function onAfterAnimating() { root.syncBrowserCast(true) }
+    }
+    function scheduleBrowserCastSync() {
+        if (browserSelection && visible && textBlock)
+            Qt.callLater(root.refreshBrowserCast)
+    }
+    function refreshBrowserCast() { root.syncBrowserCast(false) }
+    Component.onCompleted: scheduleBrowserCastSync()
+    onWidthChanged: scheduleBrowserCastSync()
+    onTextSizeChanged: scheduleBrowserCastSync()
+    onFontBoldChanged: scheduleBrowserCastSync()
+    onRtlContentChanged: scheduleBrowserCastSync()
+    Connections {
+        target: Theme
+        enabled: root.browserSelection && root.visible
+        function onInkChanged() { root.scheduleBrowserCastSync() }
+        function onAccentChanged() { root.scheduleBrowserCastSync() }
+        function onTypeBodyLineHeightChanged() { root.scheduleBrowserCastSync() }
     }
     onBlockDataChanged: {
         browserCastHeight = 0
-        if (browserSelection) Qt.callLater(() => root.syncBrowserCast(false))
+        scheduleBrowserCastSync()
     }
-    onVisibleChanged: if (!visible) releaseBrowserCast()
-    onBrowserSelectionChanged: if (!browserSelection) { releaseBrowserCast(); browserCastHeight = 0 }
+    onVisibleChanged: {
+        if (!visible) releaseBrowserCast()
+        else scheduleBrowserCastSync()
+    }
+    onBrowserSelectionChanged: {
+        if (!browserSelection) { releaseBrowserCast(); browserCastHeight = 0 }
+        else scheduleBrowserCastSync()
+    }
     Component.onDestruction: releaseBrowserCast()
     Connections {
         target: presentationBridge

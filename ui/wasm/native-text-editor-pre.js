@@ -224,6 +224,9 @@
     }
     function sync(token,value,options){
         const f=fields.get(token);if(!f)return false;
+        // Cast frame updates carry only geometry; retain formatting and spans.
+        if(f.options.readOnlyCast&&options.readOnlyCast&&options.geometryOnly)
+            options={...f.options,geometry:options.geometry,geometryOnly:true};
         f.options=options;
         if(!layout(f)){remove(f);return false;}
         if(options.readOnlyCast){
