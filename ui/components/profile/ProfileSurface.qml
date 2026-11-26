@@ -4366,7 +4366,7 @@ Item {
                         Layout.fillWidth: true
                         maximumLength: 72
                         placeholderText: qsTrId("genycaster.status.placeholder")
-                        onActiveFocusChanged: if (activeFocus)
+                        onEditingFocusChanged: if (editingFocus)
                             profileStatusEditor.revealNoteEditor()
                         onTextChanged: if (profileStatusEditor.visible) {
                             profileStatusEditor.dirtySelection=true

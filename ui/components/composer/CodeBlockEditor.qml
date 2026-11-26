@@ -11,8 +11,8 @@ Superellipse {
     signal editorFocusChanged(int blockIndex, var editor, bool active)
 
     fillColor: Theme.codeSurface
-    borderWidth: codeEditor.activeFocus ? 2 : 1
-    borderColor: codeEditor.activeFocus ? Theme.focus : Theme.codeBorder
+    borderWidth: codeEditor.editingFocus ? 2 : 1
+    borderColor: codeEditor.editingFocus ? Theme.focus : Theme.codeBorder
     curveDepth: Theme.curveContainer
     implicitHeight: Math.max(260, codeEditor.contentHeight + 132)
 
@@ -162,10 +162,10 @@ Superellipse {
                     }
 
                     Component.onCompleted: richComposer.attachSyntaxDocument(textDocument, root.currentLanguage(), root.semanticPalette())
-                    onTextChanged: if (activeFocus) syntaxRefresh.restart()
-                    onActiveFocusChanged: {
-                        root.editorFocusChanged(root.blockIndex, codeEditor, activeFocus)
-                        if (activeFocus)
+                    onTextChanged: if (editingFocus) syntaxRefresh.restart()
+                    onEditingFocusChanged: {
+                        root.editorFocusChanged(root.blockIndex, codeEditor, editingFocus)
+                        if (editingFocus)
                             richComposer.attachSyntaxDocument(textDocument, root.currentLanguage(), root.semanticPalette())
                     }
                     Keys.onPressed: event => {

@@ -74,14 +74,14 @@ Drawer {
         resultRows.clear()
         root.resultPayloads = ({})
         root.suggestionsCleared()
-        searchField.forceActiveFocus()
+        searchField.focusEditing()
     }
 
     function useScope(prefix) {
         const value = String(searchField.text || "").trim()
         searchField.text = String(prefix || "") + value.replace(/^(@|#|channel:|cast:)\s*/i, "")
         searchField.cursorPosition = searchField.text.length
-        searchField.forceActiveFocus()
+        searchField.focusEditing()
     }
 
     parent: Overlay.overlay
@@ -172,7 +172,7 @@ Drawer {
     onOpened: {
         searchField.text = ""
         root.suggestionsCleared()
-        searchField.forceActiveFocus()
+        searchField.focusEditing()
     }
     onClosed: {
         searchDebounce.stop()

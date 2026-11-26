@@ -9,7 +9,7 @@ const apply=qml.slice(qml.indexOf('    function applyText('),qml.indexOf('    Co
 function exercise(before,value,kind,selection=[0,0],handler=null){
  const calls=[];
  const editor={forceActiveFocus(){},clipboardPasteHandler:handler,clear(){calls.push(['clear']);}};
- const context={editor,browserEditing:true,plainText:()=>before,pasteStart:selection[0],pasteEnd:selection[1],
+ const context={editor,browser:true,browserEditing:true,plainText:()=>before,pasteStart:selection[0],pasteEnd:selection[1],
     replaceRange:(start,end,text)=>calls.push([start,end,text]),value,kind};
  vm.runInNewContext(apply+'\napplyText(value,kind)',context);
  return calls;

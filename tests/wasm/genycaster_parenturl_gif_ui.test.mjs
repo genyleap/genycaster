@@ -71,7 +71,7 @@ test('mobile composer uses an eagerly created editable TextArea for iOS gesture 
  const composer=read('ui/components/composer/ComposerDrawer.qml');
  const shell=read('ui/components/shell/AppShell.qml');
  assert.match(composer,/id: mobilePlainEditor[\s\S]*?anchors.fill: parent/);
- assert.match(composer,/function focusVisualEditorNow\(\)[\s\S]*?mobilePlainEditor.forceActiveFocus\(\)/);
+ assert.match(composer,/function focusVisualEditorNow\(\)[\s\S]*?mobilePlainEditor.focusEditing\(\)/);
  assert.match(composer,/richComposer.setBlockText\(0, mobilePlainEditor.text\)/);
  assert.match(shell,/composerDrawer.open\(\)\s*composerDrawer.focusVisualEditorNow\(\)/);
 });
@@ -194,11 +194,11 @@ test('composer provides browser-native clipboard editing without a canvas select
  const editor=read('ui/components/controls/BidiTextArea.qml');
  const composer=read('ui/components/composer/ComposerDrawer.qml');
  const adapter=read('ui/wasm/native-text-editor-pre.js');
- assert.match(editor,/onLongPressed: \{[\s\S]*?editorMenu\.requestSystemEditor\(\)/);
+ assert.doesNotMatch(editor,/onLongPressed:|onTapped:/);
  assert.match(composer,/objectName: "mobileComposerSystemPaste"/);
  assert.match(adapter,/document.createElement\(multiline\?'textarea':'input'\)/);
  assert.doesNotMatch(adapter,/showModal|createElement\(.dialog./);
- assert.match(adapter,/input.id='genycaster-inline-text-editor'/);
+ assert.match(adapter,/input.className='genycaster-native-input'/);
  assert.doesNotMatch(editor,/editorSelectionActions/);
  assert.match(composer,/id: mobilePlainEditor/);
  assert.match(composer,/id: threadEditor/);

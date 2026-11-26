@@ -34,8 +34,8 @@ test('clipboard routing is one-shot, scoped to visible writable editor and guard
  assert.match(menu,/return !!editor && editor.enabled && editor.visible && !editor.readOnly/);
  assert.match(menu,/function onTextChanged\(\) \{[\s\S]*?root.directPaste = ""[\s\S]*?root.syncBrowserEditor\(\)/);
  assert.match(menu,/function onVisibleChanged\(\)/);
- assert.match(menu,/!root.sensitive/);
- assert.match(field,/onLongPressed: \{[\s\S]*?editorMenu\.requestSystemEditor\(\)/);
+ assert.match(menu,/sensitive: sensitive/);
+ assert.doesNotMatch(field,/onLongPressed:|onTapped:/);
  for(const [source,name] of [[setup,'setupPasteRecoveryWords'],[shell,'signerPasteRecoveryWords']]){
   assert.match(source,new RegExp('objectName: "'+name+'"'));
   assert.match(source,/clipboardPasteHandler: value =>/);

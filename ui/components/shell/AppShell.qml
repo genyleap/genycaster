@@ -261,8 +261,8 @@ Item {
                 Qt.callLater(function() {
                     if (!interactionAuthorizationDialog
                             || !interactionAuthorizationDialog.opened) return
-                    nativeSignerPhraseInput.forceActiveFocus()
-                    Qt.inputMethod.show()
+                    nativeSignerPhraseInput.focusEditing()
+                    if (Qt.platform.os !== "wasm") Qt.inputMethod.show()
                 })
         }
         onClosed: {
@@ -395,8 +395,8 @@ Item {
                     Qt.callLater(function() {
                         if (!interactionAuthorizationDialog.opened) return
                         if (interactionAuthorizationDialog.mobileRecoveryInput) {
-                            nativeSignerPhraseInput.forceActiveFocus()
-                            Qt.inputMethod.show()
+                            nativeSignerPhraseInput.focusEditing()
+                            if (Qt.platform.os !== "wasm") Qt.inputMethod.show()
                         } else {
                             const first = nativeSignerWordGrid.itemAt(0)
                             if (first) first.focusWord()
@@ -484,7 +484,7 @@ Item {
                         delegate: ColumnLayout {
                             required property int index
                             property alias word: recoveryWordInput.text
-                            function focusWord() { recoveryWordInput.forceActiveFocus() }
+                            function focusWord() { recoveryWordInput.focusEditing() }
                             function pasteWord() { recoveryWordInput.requestClipboardPaste() }
                             function cancelWordPaste() { recoveryWordInput.cancelClipboardPaste() }
                             readonly property bool pasteFailed: recoveryWordInput.clipboardPasteFailed
@@ -659,7 +659,7 @@ Item {
                         if (!interactionAuthorizationDialog || !interactionAuthorizationDialog.opened)
                             return
                         if (interactionAuthorizationDialog.mobileRecoveryInput)
-                            nativeSignerPhraseInput.forceActiveFocus()
+                            nativeSignerPhraseInput.focusEditing()
                         else {
                             const first = nativeSignerWordGrid.itemAt(0)
                             if (first) first.focusWord()

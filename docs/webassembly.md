@@ -399,3 +399,23 @@ Preview: https://doc.qt.io/qt-6.12/wasm.html
 Never call this a production-ready cross-platform build based solely on
 getting past the SQLite configure error. Browser smoke testing, end-to-end
 sign-in and secure writing require additional implementation and test hardware.
+
+
+### Persistent platform text input (candidate)
+
+Editable Qt Quick controls use their default editing menu on native builds.
+The browser candidate mounts one real DOM input per visible, enabled editor
+before any touch or long-press gesture. The overlay is outside Qt's canvas
+and its touch-action suppression. Qt owns data, validation and geometry;
+browser focus and selection own editing. Idle QML text remains painted,
+including formatted spans, and the native input paints while focused.
+An invalid/clipped/covered Qt geometry removes the browser target, and
+hidden or destroyed editors release their input. No additional dialog is used.
+
+The probe at `tests/wasm/fixtures/persistent-text-input-probe.html` is a
+disposable browser-only fixture; replace its ADAPTER marker with the
+candidate pre-js to run it. It is not an authentication page. Use dummy
+text only. Physical iOS Safari/Android menu tests and compiled Qt integration,
+including modal stacking, scroll, rich text, IME, and multiword recovery,
+are release gates. The read-only feed and label selection renderer is a
+separate migration; it must not be described as browser-native selection.

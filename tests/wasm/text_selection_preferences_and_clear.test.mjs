@@ -23,7 +23,7 @@ test('editing does not depend on read-only text selection preferences',()=>{
  const input=read('ui/components/controls/BidiTextArea.qml');
  const menu=read('ui/components/composer/EditorContextMenu.qml');
  assert.doesNotMatch(input,/textSelectionSettings|composerTextSelectionHandles/);
- assert.match(input,/onLongPressed: \{[\s\S]*?editorMenu\.requestSystemEditor\(\)/);
+ assert.doesNotMatch(input,/onLongPressed:|onTapped:/);
  assert.match(menu,/presentationBridge\.openBrowserTextEditor/);
 });
 
@@ -50,10 +50,10 @@ test('published cast selection preference is independent of native editing',()=>
  assert.match(cast,/objectName: "platformCastSelectableText"/);
  assert.match(cast,/readOnly: true/);
  assert.match(cast,/onLinkActivated: url => root.externalRequested\(url\)/);
- assert.match(input,/ContextMenu\.menu: editorMenu\.platformMobile \|\| editorMenu\.browser \? null : editorMenu/);
- assert.match(menu,/popupType: Popup\.Native/);
- assert.match(menu,/MenuItem \{/);
- assert.match(menu,/root\.editor\.copy\(\)/);
+ assert.doesNotMatch(input,/ContextMenu\.menu:/);
+ assert.doesNotMatch(menu,/popupType:|MenuItem \{/);
+ assert.match(menu,/function mountBrowserEditor\(\)/);
+ assert.doesNotMatch(menu,/root\.editor\.copy\(\)/);
  assert.doesNotMatch(input,/textSelectionSettings/);
 });
 

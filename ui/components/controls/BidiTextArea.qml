@@ -8,40 +8,40 @@ TextArea {
 
     property bool forceLeftToRight: false
     property bool forceRightToLeft: false
-    // Editing gestures belong to the platform, not the feed-selection preference.
-    ContextMenu.menu: editorMenu.platformMobile || editorMenu.browser ? null : editorMenu
+    // Keep Qt's default ContextMenu and IME on native platforms.
+    // DOM text ownership is isolated to the WASM adapter.
     EditorContextMenu { id: editorMenu; editor: root }
     function resetSelection() { deselect() }
-    function dismissSelectionActions() { if (editorMenu) editorMenu.cancelPaste() }
+    function dismissSelectionActions() { if (editorMenu) { editorMenu.browserSuspended = true; editorMenu.cancelPaste() } }
     function requestClipboardPaste() { editorMenu.requestPaste() }
     function requestSystemEditor() { editorMenu.requestSystemEditor() }
     onVisibleChanged: if (!visible) dismissSelectionActions()
     Component.onDestruction: dismissSelectionActions()
-    // Only the live DOM input paints glyphs while it owns editing. The
-    // original QML control still owns its geometry, border and data.
+    // A persistent DOM target receives the first touch. QML paints idle
+    // content (including rich spans); the browser paints only during focus.
     Binding {
         target: root
         property: "color"
         value: "transparent"
-        when: editorMenu.browserEditing
+        when: editorMenu.browserFocused
     }
     Binding {
         target: root
         property: "placeholderTextColor"
         value: "transparent"
-        when: editorMenu.browserEditing
+        when: editorMenu.browserFocused
     }
     Binding {
         target: root
         property: "selectionColor"
         value: "transparent"
-        when: editorMenu.browserEditing
+        when: editorMenu.browserFocused
     }
     Binding {
         target: root
         property: "selectedTextColor"
         value: "transparent"
-        when: editorMenu.browserEditing
+        when: editorMenu.browserFocused
     }
     Binding {
         target: root
@@ -49,19 +49,11 @@ TextArea {
         value: false
         when: editorMenu.browserEditing
     }
-    TapHandler {
-        enabled: editorMenu.browser && root.enabled && !root.readOnly
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        gesturePolicy: TapHandler.DragThreshold
-        onTapped: {
-            root.forceActiveFocus()
-            editorMenu.requestSystemEditor()
-        }
-        onLongPressed: {
-            root.forceActiveFocus()
-            editorMenu.requestSystemEditor()
-        }
+    function focusEditing() {
+        if (Qt.platform.os === "wasm") editorMenu.requestSystemEditor()
+        else forceActiveFocus()
     }
+    readonly property bool editingFocus: editorMenu.browserEditing ? editorMenu.browserFocused : activeFocus
 
     readonly property string analyzedText: text.length > 0 ? text : placeholderText
     readonly property int effectiveTextDirection: forceLeftToRight ? Qt.LeftToRight
@@ -73,6 +65,7 @@ TextArea {
 
     // Preserve a selected range when the floating Copy toolbar receives
     // a tap, including in secondary cast/thread editors.
+    activeFocusOnPress: !editorMenu.browserEditing
     selectByMouse: true
     persistentSelection: true
 
@@ -93,20 +86,20 @@ TextArea {
 
     background: NeonSurface {
         interactive: root.enabled && !root.readOnly
-        ambientNeon: root.activeFocus
-        focused: root.activeFocus
+        ambientNeon: root.editingFocus
+        focused: root.editingFocus
         neonStrength: Theme.neonControlStrength
-        neonColor: root.activeFocus
+        neonColor: root.editingFocus
             ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.28)
             : "transparent"
         fillColor: root.enabled
-                   ? (root.activeFocus ? Theme.surfaceElevated : root.hovered ? Theme.surfaceHover : Theme.surfaceRaised)
+                   ? (root.editingFocus ? Theme.surfaceElevated : root.hovered ? Theme.surfaceHover : Theme.surfaceRaised)
                    : Theme.surfaceMuted
-        borderWidth: root.activeFocus ? 2 : 1
-        borderColor: root.activeFocus ? Theme.focus : Theme.borderMuted
+        borderWidth: root.editingFocus ? 2 : 1
+        borderColor: root.editingFocus ? Theme.focus : Theme.borderMuted
         curveDepth: Theme.curveContainer
-        elevation: root.activeFocus ? Theme.elevationControl : Theme.elevationNone
-        shadowColor: root.activeFocus ? Theme.focusHalo : Theme.shadow
+        elevation: root.editingFocus ? Theme.elevationControl : Theme.elevationNone
+        shadowColor: root.editingFocus ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: 0.82
     }
 }

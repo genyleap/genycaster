@@ -3540,7 +3540,7 @@ Item {
                         if (complete && completeWordCount === activeWordCount)
                             revealWords.forceActiveFocus()
                         else recoveryWordRepeater.itemAt(
-                            Math.min(activeWordCount - 1, start + pastedCount))?.forceActiveFocus()
+                            Math.min(activeWordCount - 1, start + pastedCount))?.focusEditing()
                     }
                     onVisibleChanged: if (!visible) clearAll()
                     GridLayout {
@@ -3584,18 +3584,18 @@ Item {
                                 background: NeonSurface {
                                     interactive: wordField.enabled
                                     deferredNeon: true
-                                    ambientNeon: wordField.activeFocus
-                                    focused: wordField.activeFocus
+                                    ambientNeon: wordField.editingFocus
+                                    focused: wordField.editingFocus
                                     externalHovered: wordField.hovered
                                     externalPointerX: recoveryWordPointer.hovered
                                         ? recoveryWordPointer.point.position.x : width / 2
                                     externalPointerY: recoveryWordPointer.hovered
                                         ? recoveryWordPointer.point.position.y : height / 2
                                     neonStrength: Theme.neonControlStrength
-                                    fillColor: wordField.activeFocus
+                                    fillColor: wordField.editingFocus
                                                ? Theme.surfaceHover : Theme.surface
-                                    borderWidth: wordField.activeFocus ? 2 : Theme.strokeStandard
-                                    borderColor: wordField.activeFocus ? Theme.focus : Theme.borderMuted
+                                    borderWidth: wordField.editingFocus ? 2 : Theme.strokeStandard
+                                    borderColor: wordField.editingFocus ? Theme.focus : Theme.borderMuted
                                     curveDepth: Theme.curveControl
                                     // Unlike placeholder numbers, these remain visible
                                     // after entry and while the words are concealed.
@@ -3604,7 +3604,7 @@ Item {
                                         anchors.leftMargin: Theme.space3
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: String(wordField.index + 1).padStart(2, "0")
-                                        color: wordField.activeFocus ? Theme.ink : Theme.inkSubtle
+                                        color: wordField.editingFocus ? Theme.ink : Theme.inkSubtle
                                         font.pixelSize: Theme.typeCaptionSize
                                         font.weight: Theme.weightMedium
                                     }
@@ -3620,10 +3620,10 @@ Item {
                                 Keys.onPressed: function(event) {
                                     if ((event.key === Qt.Key_Space || event.key === Qt.Key_Return)
                                         && index < nativeRecoveryGrid.activeWordCount - 1) {
-                                        recoveryWordRepeater.itemAt(index + 1)?.forceActiveFocus()
+                                        recoveryWordRepeater.itemAt(index + 1)?.focusEditing()
                                         event.accepted = true
                                     } else if (event.key === Qt.Key_Backspace && !text && index > 0) {
-                                        recoveryWordRepeater.itemAt(index - 1)?.forceActiveFocus()
+                                        recoveryWordRepeater.itemAt(index - 1)?.focusEditing()
                                     }
                                 }
                             }
@@ -3641,7 +3641,7 @@ Item {
                     onClicked: {
                         nativeRecoveryGrid.userRequested24 = true
                         nativeRecoveryGrid.refreshCompletion()
-                        recoveryWordRepeater.itemAt(12)?.forceActiveFocus()
+                        recoveryWordRepeater.itemAt(12)?.focusEditing()
                     }
                 }
                 // Recovery choices form one aligned vertical control group.

@@ -185,9 +185,9 @@ test('shared text controls use native platform menus and browser edit adapter',(
  const qml=read(new URL('../../ui/components/composer/EditorContextMenu.qml',import.meta.url),'utf8');
  const areas=read(new URL('../../ui/components/controls/BidiTextArea.qml',import.meta.url),'utf8');
  const code=read(new URL('../../ui/components/composer/CodeBlockEditor.qml',import.meta.url),'utf8');
- assert.match(qml,/popupType: Popup\.Native/);
- assert.match(qml,/MenuItem \{/);
- assert.match(areas,/ContextMenu\.menu: editorMenu\.platformMobile \|\| editorMenu\.browser \? null : editorMenu/);
+ assert.doesNotMatch(qml,/popupType:|MenuItem \{/);
+ assert.match(qml,/function mountBrowserEditor\(\)/);
+ assert.doesNotMatch(areas,/ContextMenu\.menu:/);
  assert.match(code,/DirectionAwareTextArea \{\s+id: codeEditor/);
  assert.match(qml,/presentationBridge\.openBrowserTextEditor/);
 });
@@ -212,7 +212,7 @@ test('recovery failures are not mislabeled Genyleap login errors',()=>{
 
 test('browser-native editor uses accessible real DOM controls and never injects markup',()=>{
  const js=read(new URL('../../ui/wasm/native-text-editor-pre.js',import.meta.url),'utf8');
- assert.match(js,/genycaster-inline-text-editor/);
+ assert.match(js,/genycaster-native-input/);
  assert.match(js,/input.setAttribute\('aria-label'/);
  assert.doesNotMatch(js,/showModal|createElement\(.dialog./);
  assert.match(js,/input.value=value/);

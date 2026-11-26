@@ -10,21 +10,21 @@ test('closing a composer cancels its browser editing transaction',()=>{
  const menu=read('ui/components/composer/EditorContextMenu.qml');
  const composer=read('ui/components/composer/ComposerDrawer.qml');
  assert.match(editor,/onVisibleChanged: if \(!visible\) dismissSelectionActions\(\)/);
- assert.match(editor,/function dismissSelectionActions\(\) \{ if \(editorMenu\) editorMenu.cancelPaste\(\) \}/);
+ assert.match(editor,/function dismissSelectionActions\(\) \{ if \(editorMenu\) \{ editorMenu.browserSuspended = true; editorMenu.cancelPaste\(\)/);
  assert.match(menu,/presentationBridge.cancelBrowserTextEditor\(token\)/);
  assert.match(menu,/function onVisibleChanged\(\)/);
  assert.match(composer,/onClosed: \{[\s\S]*?mobilePlainEditor\.dismissSelectionActions\(\)/);
 });
 
-test('native mobile owns its editing toolbar and native desktop uses real MenuItems',()=>{
+test('native controls use Qt default editing menus on mobile and desktop',()=>{
  const menu=read('ui/components/composer/EditorContextMenu.qml');
  const editor=read('ui/components/controls/BidiTextArea.qml');
  assert.match(menu,/platformMobile: Qt.platform.os === "ios" \|\| Qt.platform.os === "android"/);
  assert.match(menu,/browser: Qt.platform.os === "wasm"/);
- assert.match(editor,/ContextMenu\.menu: editorMenu\.platformMobile \|\| editorMenu\.browser \? null : editorMenu/);
- assert.match(menu,/popupType: Popup\.Native/);
- assert.match(menu,/onTriggered: root\.editor\.copy\(\)/);
- assert.match(menu,/onTriggered: root\.editor\.cut\(\)/);
+ assert.doesNotMatch(editor,/ContextMenu\.menu:/);
+ assert.doesNotMatch(menu,/popupType:|MenuItem \{/);
+ assert.doesNotMatch(menu,/onTriggered: root\.editor\.copy\(\)/);
+ assert.doesNotMatch(menu,/onTriggered: root\.editor\.cut\(\)/);
  assert.match(menu,/editor\.paste\(\)/);
  assert.doesNotMatch(menu,/EditorMenuItem/);
 });

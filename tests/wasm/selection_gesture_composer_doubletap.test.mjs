@@ -4,13 +4,13 @@ import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
-test('editable fields delegate long press to the browser and retain standard platform selection',()=>{
+test('editable fields retain standard platform selection without gesture handlers',()=>{
  const field=read('ui/components/controls/BidiTextField.qml');
  const area=read('ui/components/controls/BidiTextArea.qml');
  for(const input of [field,area]){
-  assert.match(input,/ContextMenu\.menu: editorMenu\.platformMobile \|\| editorMenu\.browser \? null : editorMenu/);
-  assert.match(input,/onLongPressed: \{[\s\S]*?editorMenu\.requestSystemEditor\(\)/);
-  assert.match(input,/acceptedButtons: Qt.LeftButton \| Qt.RightButton/);
+  assert.doesNotMatch(input,/ContextMenu\.menu:/);
+  assert.doesNotMatch(input,/onLongPressed:|onTapped:/);
+  assert.match(input,/function focusEditing\(\)/);
   assert.doesNotMatch(input,/onDoubleTapped:|selectAllOnDoubleTap/);
  }
 });
@@ -71,9 +71,9 @@ test('cast text selection offers Copy, Select all and clear without deleting con
   assert.match(qml,/presentationBridge\.copyText\(textLayout\.selectedText\)/);
   assert.match(qml,/focusPolicy: Qt\.NoFocus/);
   assert.match(editor,/function resetSelection\(\) \{ deselect\(\) \}/);
-  assert.match(desktop,/text: qsTrId\("genycaster\.editor\.clear_selection"\)/);
-  assert.match(desktop,/onTriggered: root\.editor\.deselect\(\)/);
-  assert.match(desktop,/onTriggered: root\.editor\.copy\(\)/);
+  assert.doesNotMatch(desktop,/MenuItem \{/);
+  assert.match(desktop,/editor\.deselect\(\)/);
+  assert.doesNotMatch(desktop,/onTriggered: root\.editor\.copy\(\)/);
   assert.doesNotMatch(qml,/textLayout\.clear\(\)/);
 });
 

@@ -2,10 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import Farcaster.Client
 
-// Native editing is independent of the preference for selecting rendered casts.
-// WASM cannot expose OS selection on a canvas; it uses a real browser input
-// for the explicit text-edit transaction. No authentication logic lives here.
-Menu {
+// Nonvisual platform adapter. Native controls keep Qt's built-in menu.
+// WASM mounts a real DOM target before the first pointer gesture.
+Item {
     id: root
     required property var editor
     readonly property bool platformMobile: Qt.platform.os === "ios" || Qt.platform.os === "android"
@@ -18,9 +17,10 @@ Menu {
     readonly property bool sensitive: !!editor
         && ((editor.inputMethodHints & Qt.ImhSensitiveData) !== 0
             || (editor.echoMode !== undefined && editor.echoMode !== TextInput.Normal))
-    popupType: Popup.Native
-    modal: true
-    dim: false
+    width: 0
+    height: 0
+    property bool browserFocused: false
+    property bool browserSuspended: false
 
     function usable() {
         return !!editor && editor.enabled && editor.visible && !editor.readOnly
@@ -44,7 +44,7 @@ Menu {
 
     function editorOptions() {
         return {
-            geometry: presentationBridge.browserEditorGeometry(editor),
+            geometry: presentationBridge.browserEditorGeometry(editor, root.Overlay.overlay),
             placeholder: editor.placeholderText || "",
             sensitive: sensitive,
             masked: editor.echoMode !== undefined && editor.echoMode !== TextInput.Normal,
@@ -65,45 +65,50 @@ Menu {
             accent: Theme.accent.toString()
         }
     }
-    function requestSystemEditor() {
-        if (!browser || !usable() || browserEditing || openingBrowserEditor) return
+    function mountBrowserEditor() {
+        if (!browser || !usable() || browserEditing || openingBrowserEditor || browserSuspended) return
+        const options = editorOptions()
+        if (!(options.geometry.clipWidth > 0 && options.geometry.clipHeight > 0)) return
         beginRequest("browser-edit")
         browserInk = editor.color.a > 0 ? editor.color : Theme.ink
         browserPlaceholderInk = editor.placeholderTextColor.a > 0
             ? editor.placeholderTextColor : Theme.inkSubtle
-        // Keep the Qt platform window active. Hiding the platform input
-        // context here can itself move focus during a browser gesture.
         openingBrowserEditor = true
         const token = pendingPaste
         const opened = presentationBridge.openBrowserTextEditor(token, plainText(), editorOptions())
         openingBrowserEditor = false
-        // The adapter returns true only for an actual focused, hit-testable
-        // DOM input inside the active Qt window.
         browserEditing = opened && pendingPaste === token
-        if (!opened) {
+        if (!opened) cancelPaste()
+    }
+    function requestSystemEditor() {
+        browserSuspended = false
+        mountBrowserEditor()
+        if (!browserEditing) return
+        const options = editorOptions()
+        options.focusRequested = true
+        if (!presentationBridge.syncBrowserTextEditor(pendingPaste, plainText(), options))
             cancelPaste()
-            pasteFailed = true
-        }
     }
     function syncBrowserEditor(geometryOnly) {
-        if (!browserEditing || !usable() || applyingBrowserText) return
+        if (!browser || applyingBrowserText || browserSuspended) return
+        if (!usable()) { cancelPaste(); return }
+        if (!browserEditing) { mountBrowserEditor(); return }
         const options = editorOptions()
         options.geometryOnly = geometryOnly === true
-        presentationBridge.syncBrowserTextEditor(pendingPaste,
-            options.geometryOnly ? "" : plainText(), options)
+        if (!presentationBridge.syncBrowserTextEditor(pendingPaste,
+            options.geometryOnly ? "" : plainText(), options))
+            cancelPaste()
     }
     Timer {
-        // Scene coordinates can change while an ancestor scrolls or the
-        // visual viewport shrinks for the keyboard.
-        interval: 120
+        interval: 100
         repeat: true
-        running: root.browserEditing
+        running: root.browser && root.usable() && !root.browserSuspended
+        triggeredOnStart: true
         onTriggered: root.syncBrowserEditor(true)
     }
     function requestPaste() {
         if (!usable()) return
         if (browser) {
-            if (!editor.activeFocus) editor.forceActiveFocus()
             requestSystemEditor()
         } else if (typeof editor.clipboardPasteHandler !== "function") {
             editor.paste()
@@ -124,6 +129,7 @@ Menu {
         directPaste = ""
         operation = ""
         browserEditing = false
+        browserFocused = false
         if (token.length && browser)
             presentationBridge.cancelBrowserTextEditor(token)
     }
@@ -133,7 +139,7 @@ Menu {
         presentationBridge.commitBrowserEditorText(editor, value, end - start)
     }
     function applyText(value, kind) {
-        if (!browserEditing && !editor.activeFocus) editor.forceActiveFocus()
+        if (!browser && !editor.activeFocus) editor.forceActiveFocus()
         if (typeof editor.clipboardPasteHandler === "function" &&
             (kind !== "browser-edit" || /\s/.test(value))) {
             editor.clipboardPasteHandler(value)
@@ -171,28 +177,24 @@ Menu {
             if (!root.applyingBrowserText) root.directPaste = ""
             root.syncBrowserEditor()
         }
-        function onActiveFocusChanged() {
-            if (root.editor.activeFocus && root.browser && root.usable()) {
-                // Let Qt finish its pointer/focus transaction first. A
-                // focused field should already be a real browser target
-                // before the next long press, not create it during that press.
-                Qt.callLater(function() {
-                    if (root.editor && root.editor.activeFocus && root.usable())
-                        root.requestSystemEditor()
-                })
-            } else if (!root.editor.activeFocus && !root.applyingBrowserText
-                       && !root.openingBrowserEditor) {
-                root.cancelPaste()
-            }
-        }
         function onVisibleChanged() {
             if (!root.editor.visible) { root.cancelPaste(); root.pasteFailed = false }
+            else { root.browserSuspended = false; root.syncBrowserEditor(true) }
         }
         function onEnabledChanged() { if (!root.editor.enabled) root.cancelPaste() }
         function onReadOnlyChanged() { if (root.editor.readOnly) root.cancelPaste() }
     }
     Connections {
         target: presentationBridge
+        function onBrowserEditorFocusChanged(requestId, focused) {
+            if (requestId === root.pendingPaste && root.browserEditing)
+                root.browserFocused = focused
+        }
+        function onBrowserEditorAccepted(requestId) {
+            if (requestId === root.pendingPaste && root.usable()
+                && typeof root.editor.accepted === "function" && root.editor.acceptableInput)
+                root.editor.accepted()
+        }
         function onBrowserEditorSelectionChanged(requestId, start, end) {
             if (!root.browserEditing || requestId !== root.pendingPaste || !root.usable()
                 || end > root.editor.length) return
@@ -221,40 +223,4 @@ Menu {
     }
     Component.onDestruction: cancelPaste()
 
-    MenuItem {
-        text: qsTrId("genycaster.editor.undo")
-        enabled: !!root.editor && root.editor.canUndo && !root.editor.readOnly
-        onTriggered: root.editor.undo()
-    }
-    MenuItem {
-        text: qsTrId("genycaster.editor.redo")
-        enabled: !!root.editor && root.editor.canRedo && !root.editor.readOnly
-        onTriggered: root.editor.redo()
-    }
-    MenuSeparator {}
-    MenuItem {
-        text: qsTrId("genycaster.editor.cut")
-        enabled: root.usable() && !root.sensitive && root.editor.selectedText.length > 0
-        onTriggered: root.editor.cut()
-    }
-    MenuItem {
-        text: qsTrId("genycaster.feedback.copy")
-        enabled: !!root.editor && !root.sensitive && root.editor.selectedText.length > 0
-        onTriggered: root.editor.copy()
-    }
-    MenuItem {
-        text: qsTrId("genycaster.editor.paste")
-        enabled: root.usable()
-        onTriggered: root.requestPaste()
-    }
-    MenuItem {
-        text: qsTrId("genycaster.editor.select_all")
-        enabled: !!root.editor && root.editor.length > 0
-        onTriggered: root.editor.selectAll()
-    }
-    MenuItem {
-        text: qsTrId("genycaster.editor.clear_selection")
-        enabled: !!root.editor && root.editor.selectedText.length > 0
-        onTriggered: root.editor.deselect()
-    }
 }

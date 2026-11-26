@@ -231,7 +231,7 @@ GenyDrawer {
     // Add Cast independently forced contentY to the bottom. This
     // produced the large jumps visible in thread composition recordings.
     function ensureEditorVisible(editor) {
-        if (!root.opened || !editor || !editor.activeFocus
+        if (!root.opened || !editor || !editor.editingFocus
                 || root.mobileSelectorOpen)
             return
         root.focusedComposerEditor = editor
@@ -393,7 +393,7 @@ GenyDrawer {
         if (root.compact) {
             mobilePlainEditor.resetSelection()
             mobilePlainEditor.clear()
-            mobilePlainEditor.forceActiveFocus()
+            mobilePlainEditor.focusEditing()
         }
     }
 
@@ -459,7 +459,7 @@ GenyDrawer {
             return
         if (root.compact && root.editorMode === "visual") {
             mobilePlainEditor.insert(mobilePlainEditor.cursorPosition, emoji)
-            mobilePlainEditor.forceActiveFocus()
+            mobilePlainEditor.focusEditing()
             return
         }
         if (root.emojiThreadIndex >= 0 && root.emojiThreadIndex < threadTailModel.count) {
@@ -643,11 +643,12 @@ GenyDrawer {
         // Called synchronously from the originating tap: browser input activation
         // may be rejected if focus is deferred to a timer.
         if (root.compact) {
-            mobilePlainEditor.forceActiveFocus()
-            if (Qt.platform.os === "ios" || Qt.platform.os === "android" || Qt.platform.os === "wasm")
-                Qt.inputMethod.show()
             if (Qt.platform.os === "wasm")
                 mobilePlainEditor.requestSystemEditor()
+            else {
+                mobilePlainEditor.focusEditing()
+                if (Qt.platform.os === "ios" || Qt.platform.os === "android") Qt.inputMethod.show()
+            }
         }
     }
 
@@ -657,10 +658,12 @@ GenyDrawer {
         repeat: false
         onTriggered: {
             if (!root.opened || !root.compact || root.editorMode !== "visual") return
-            if (!mobilePlainEditor.activeFocus)
-                mobilePlainEditor.forceActiveFocus()
+            if (!mobilePlainEditor.editingFocus) {
+                if (Qt.platform.os === "wasm") mobilePlainEditor.requestSystemEditor()
+                else mobilePlainEditor.focusEditing()
+            }
             root.ensureEditorVisible(mobilePlainEditor)
-            if (!mobilePlainEditor.activeFocus && ++root.initialFocusAttempts < 3)
+            if (!mobilePlainEditor.editingFocus && ++root.initialFocusAttempts < 3)
                 initialComposerFocus.restart()
         }
     }
@@ -2182,12 +2185,12 @@ GenyDrawer {
                             if (preeditText.length === 0 && root.opened)
                                 mobileInputCommit.restart()
                         }
-                        onActiveFocusChanged: {
-                            if (activeFocus)
+                        onEditingFocusChanged: {
+                            if (editingFocus)
                                 root.ensureEditorVisible(mobilePlainEditor)
                         }
                         onCursorRectangleChanged: {
-                            if (activeFocus)
+                            if (editingFocus)
                                 root.ensureEditorVisible(mobilePlainEditor)
                         }
                     }
@@ -2223,9 +2226,9 @@ GenyDrawer {
                             persistentSelection: true
                             wrapMode: TextEdit.Wrap
                             font.pixelSize: Theme.typeBodySize
-                            onTextChanged: if (activeFocus) markdownSync.restart()
-                            onActiveFocusChanged: {
-                                if (activeFocus)
+                            onTextChanged: if (editingFocus) markdownSync.restart()
+                            onEditingFocusChanged: {
+                                if (editingFocus)
                                     root.ensureEditorVisible(markdownEditor)
                                 else if (text !== richComposer.markdownBodySource)
                                     richComposer.markdownBodySource = text
@@ -2327,7 +2330,7 @@ GenyDrawer {
                         required property int index
                         required property string text
                         function focusThreadEditor() {
-                            threadEditor.forceActiveFocus()
+                            threadEditor.focusEditing()
                             root.ensureEditorVisible(threadEditor)
                         }
                         Layout.fillWidth: true
@@ -2391,22 +2394,22 @@ GenyDrawer {
                         NeonSurface {
                             interactive: true
                             deferredNeon: true
-                            ambientNeon: threadEditor.activeFocus
+                            ambientNeon: threadEditor.editingFocus
                             neonStrength: Theme.neonControlStrength
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
                             Layout.preferredHeight: Math.max(118, Math.min(210, threadEditor.contentHeight + Theme.space5))
-                            fillColor: threadEditor.activeFocus ? Theme.editorFocusedSurface : Theme.editorSurface
-                            borderWidth: threadEditor.activeFocus ? Theme.strokeEmphasis : Theme.strokeHairline
-                            borderColor: threadEditor.activeFocus ? Theme.accent : Theme.borderSubtle
+                            fillColor: threadEditor.editingFocus ? Theme.editorFocusedSurface : Theme.editorSurface
+                            borderWidth: threadEditor.editingFocus ? Theme.strokeEmphasis : Theme.strokeHairline
+                            borderColor: threadEditor.editingFocus ? Theme.accent : Theme.borderSubtle
                             curveDepth: Theme.curveLarge
 
                             DirectionAwareTextArea {
                                 id: threadEditor
 
                                 objectName: "composerThreadEditor"
-                                onActiveFocusChanged: if (activeFocus) root.ensureEditorVisible(threadEditor)
-                                onCursorRectangleChanged: if (activeFocus) root.ensureEditorVisible(threadEditor)
+                                onEditingFocusChanged: if (editingFocus) root.ensureEditorVisible(threadEditor)
+                                onCursorRectangleChanged: if (editingFocus) root.ensureEditorVisible(threadEditor)
                                 anchors.fill: parent
                                 anchors.margins: Theme.space1
                                 text: threadRow.text
@@ -2414,7 +2417,7 @@ GenyDrawer {
                                                  .arg(LocaleFormat.formatInteger(threadRow.index + 2))
                                 background: null
                                 wrapMode: TextEdit.Wrap
-                                onTextChanged: if (activeFocus
+                                onTextChanged: if (editingFocus
                                                   && text !== threadTailModel.get(threadRow.index).text)
                                                    threadTailModel.setProperty(threadRow.index, "text", text)
                             }

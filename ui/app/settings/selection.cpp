@@ -6,7 +6,7 @@ namespace { constexpr auto key = "accessibility/textSelectionMode"; }
 TextSelectionSettings::TextSelectionSettings(QSettings& settings, QObject* parent)
     : QObject(parent), m_settings(settings)
 {
-    const QString saved = settings.value(QString::fromLatin1(key)).toString();
+    const QString saved = settings.value(QString::fromLatin1(key), QStringLiteral("system")).toString();
     m_mode = nativeAvailable() && saved == QStringLiteral("system")
         ? QStringLiteral("system") : QStringLiteral("genycaster");
 }

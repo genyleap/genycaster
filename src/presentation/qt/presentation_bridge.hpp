@@ -380,8 +380,8 @@ public:
     Q_INVOKABLE bool openBrowserTextEditor(const QString& requestId, QString text,
                                            const QVariantMap& options);
     Q_INVOKABLE void cancelBrowserTextEditor(const QString& requestId);
-    Q_INVOKABLE QVariantMap browserEditorGeometry(QObject* editor) const;
-    Q_INVOKABLE void syncBrowserTextEditor(const QString& requestId, QString text,
+    Q_INVOKABLE QVariantMap browserEditorGeometry(QObject* editor, QObject* overlay) const;
+    Q_INVOKABLE bool syncBrowserTextEditor(const QString& requestId, QString text,
                                            const QVariantMap& options);
     Q_INVOKABLE void commitBrowserEditorText(QObject* editor, const QString& text,
                                             int replaceLength);
@@ -655,6 +655,8 @@ signals:
     void setupStateChanged();
     void clipboardTextReceived(QString requestId, QString text, bool ok);
     void browserEditorSelectionChanged(QString requestId, int start, int end);
+    void browserEditorFocusChanged(QString requestId, bool focused);
+    void browserEditorAccepted(QString requestId);
     void stateChanged();
 
     /** @brief Feed/profile row payload, order or identity changed (not just read status). */

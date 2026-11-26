@@ -68,7 +68,7 @@ Item {
         root.activeEditor.insert(position, value)
         root.activeEditor.cursorPosition = position + value.length
         root.commitActiveEditor()
-        root.activeEditor.forceActiveFocus()
+        root.activeEditor.focusEditing()
         return true
     }
 
@@ -103,7 +103,7 @@ Item {
         if (blockIndex >= 0 && blockIndex < updatedBlocks.length) {
             editor.text = root.formattedMarkup(updatedBlocks[blockIndex])
             editor.select(start, end)
-            editor.forceActiveFocus()
+            editor.focusEditing()
         }
         root.blockModel = updatedBlocks
         return true
@@ -257,8 +257,8 @@ Item {
             readonly property bool ordered: String(parent.blockData.kind || "") === "ordered-list"
             readonly property bool rtlContent: localizationController.isRightToLeftText(String(parent.blockData.text || ""))
             implicitHeight: Math.max(104, listEditor.contentHeight + Theme.space6)
-            fillColor: listEditor.activeFocus ? Theme.editorFocusedSurface : Theme.surfaceMuted
-            borderWidth: listEditor.activeFocus ? 1 : 0
+            fillColor: listEditor.editingFocus ? Theme.editorFocusedSurface : Theme.surfaceMuted
+            borderWidth: listEditor.editingFocus ? 1 : 0
             borderColor: Theme.borderMuted
             curveDepth: Theme.curveControl
 
@@ -289,8 +289,8 @@ Item {
                     background: null
                     selectByMouse: true
                     wrapMode: TextEdit.Wrap
-                    onActiveFocusChanged: {
-                        if (activeFocus) {
+                    onEditingFocusChanged: {
+                        if (editingFocus) {
                             root.activeBlockIndex = listSurface.parent.blockIndex
                             root.activeEditor = listEditor
                             root.activeEditorKind = "plain"
@@ -502,8 +502,8 @@ Item {
                 }
                 font.pixelSize: String(blockSurface.parent.blockData.kind || "") === "heading" ? Theme.typeTitle3Size : Theme.typeBodySize
                 font.weight: String(blockSurface.parent.blockData.kind || "") === "heading" ? Theme.weightBold : Theme.weightRegular
-                onActiveFocusChanged: {
-                    if (activeFocus) {
+                onEditingFocusChanged: {
+                    if (editingFocus) {
                         root.activeBlockIndex = blockSurface.parent.blockIndex
                         root.activeEditor = editor
                         root.activeEditorKind = "formatted"

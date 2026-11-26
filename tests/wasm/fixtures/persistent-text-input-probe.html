@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>Genycaster — Text input test</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui;background:#0d0f14;color:#f0f2f6}*{box-sizing:border-box}body{margin:0}#qt-screen{position:relative;min-height:100vh;padding:24px 20px;touch-action:none}h1{font-size:24px;margin:0 0 12px}p{line-height:1.5;color:#b5bac4;margin:12px 0}label{display:block;font-size:14px;margin:20px 0 6px;color:#b5bac4}.slot{height:48px;border:1px solid #555b66;border-radius:10px;background:#191d25}.slot.multi{height:104px}button{margin:16px 0;background:#244c80;color:white;padding:12px 18px;border:0;border-radius:8px;font:inherit}#result{font-size:13px;color:#9dd9b3}small{color:#b5bac4}
+</style></head><body>
+<main id="qt-screen"><h1>Native text input test</h1><p>Touch and hold directly on each field. Your browser should display its own text selection or Paste controls. These are disposable test fields, not an account form.</p>
+<label>Single line — select and copy</label><div class="slot" id="slot-a"></div>
+<label>Multiline — select and paste</label><div class="slot multi" id="slot-b"></div>
+<label>Masked input — paste only</label><div class="slot" id="slot-c"></div>
+<button type="button" id="clear">Reset test</button><p id="result" role="status">Preparing test fields…</p><small>Use dummy text only. Never enter recovery words or passwords. No network submission or persistent storage is implemented.</small></main>
+<script>/*ADAPTER*/</script>
+<script>
+(() => {
+const values=new Map([["a","Hello world"],["b","Touch and hold this text to select it."],["c",""]]);
+const result=document.getElementById("result");let changes=0;
+const screen=document.getElementById("qt-screen");
+function opts(key){
+ const b=screen.getBoundingClientRect(),s=document.getElementById("slot-"+key).getBoundingClientRect();
+ const x=s.left-b.left,y=s.top-b.top;
+ return {geometry:{x,y,width:s.width,height:s.height,clipX:x,clipY:y,clipWidth:s.width,clipHeight:s.height,windowWidth:b.width,windowHeight:b.height},leftPadding:12,rightPadding:12,topPadding:8,bottomPadding:8,fontSize:16,fontFamily:"system-ui",ink:"#f0f2f6",placeholderInk:"#969ca7",accent:"#6aa9ff",placeholder:key==="c"?"Paste dummy text":"",multiline:key==="b",masked:key==="c",sensitive:key==="c",maxLength:500,paintIdle:true};
+}
+function mount(){for(const [key,value] of values){window.__genycasterSystemEditor.open(key,value,opts(key),(token,text,ok)=>{if(ok){values.set(token,text);result.textContent="Native input events received: "+(++changes);}},(token,start,end)=>{if(start>=0)result.textContent="Native selection event received.";});}result.textContent="Three browser inputs mounted before touch.";}
+function layout(){for(const [key,value] of values)window.__genycasterSystemEditor.sync(key,value,{...opts(key),geometryOnly:true});}
+window.addEventListener("resize",layout);window.addEventListener("scroll",layout,{passive:true});window.visualViewport?.addEventListener("resize",layout);
+document.getElementById("clear").addEventListener("click",()=>{for(const key of values.keys())window.__genycasterSystemEditor.cancel(key);values.set("a","Hello world");values.set("b","Touch and hold this text to select it.");values.set("c","");changes=0;mount();});
+mount();
+})();
+</script></body></html>

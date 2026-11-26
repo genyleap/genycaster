@@ -2748,8 +2748,14 @@ extern "C" EMSCRIPTEN_KEEPALIVE void genycasterClipboardTextResult(
 extern "C" EMSCRIPTEN_KEEPALIVE void genycasterBrowserEditorSelection(
     const char* request, int start, int end)
 {
-    if (clipboardReceiver && request && start >= 0 && end >= start && end <= 262144)
-        emit clipboardReceiver->browserEditorSelectionChanged(QString::fromUtf8(request), start, end);
+    if (!clipboardReceiver || !request) return;
+    const auto id = QString::fromUtf8(request);
+    if (start == -1 && (end == 0 || end == 1))
+        emit clipboardReceiver->browserEditorFocusChanged(id, end == 1);
+    else if (start == -2 && end == 0)
+        emit clipboardReceiver->browserEditorAccepted(id);
+    else if (start >= 0 && end >= start && end <= 262144)
+        emit clipboardReceiver->browserEditorSelectionChanged(id, start, end);
 }
 #endif
 
@@ -2842,18 +2848,38 @@ bool PresentationBridge::openBrowserTextEditor(const QString& requestId, QString
 #endif
 }
 
-QVariantMap PresentationBridge::browserEditorGeometry(QObject* editor) const
+QVariantMap PresentationBridge::browserEditorGeometry(QObject* editor, QObject* overlay) const
 {
     const auto* item = qobject_cast<QQuickItem*>(editor);
     if (!item || !item->window() || !item->isVisible() || !item->isEnabled())
         return {};
     const auto rect = item->mapRectToScene(item->boundingRect());
     QRectF clip(0, 0, item->window()->width(), item->window()->height());
+    if (item->opacity() < 0.99) return {};
     for (auto* parent = item->parentItem(); parent; parent = parent->parentItem()) {
+        if (parent->opacity() < 0.99) return {};
         if (parent->clip())
             clip = clip.intersected(parent->mapRectToScene(parent->boundingRect()));
     }
     clip = clip.intersected(rect);
+    if (clip.isEmpty()) return {};
+    // DOM fields cannot use Qt's popup stacking automatically. Suppress
+    // underlying input targets while a higher popup/dimmer covers them.
+    if (const auto* layer = qobject_cast<QQuickItem*>(overlay)) {
+        const QQuickItem* branch = item;
+        while (branch && branch->parentItem() != layer) branch = branch->parentItem();
+        const auto children = layer->childItems();
+        const qsizetype branchIndex = children.indexOf(const_cast<QQuickItem*>(branch));
+        for (qsizetype i = 0; i < children.size(); ++i) {
+            const auto* sibling = children.at(i);
+            if (sibling == branch || !sibling->isVisible() || sibling->opacity() <= 0)
+                continue;
+            if (branch && (sibling->z() < branch->z()
+                        || (sibling->z() == branch->z() && i < branchIndex))) continue;
+            if (sibling->mapRectToScene(sibling->boundingRect()).intersects(clip))
+                return {};
+        }
+    }
     return {{QStringLiteral("x"), rect.x()}, {QStringLiteral("y"), rect.y()},
         {QStringLiteral("width"), rect.width()}, {QStringLiteral("height"), rect.height()},
         {QStringLiteral("clipX"), clip.x()}, {QStringLiteral("clipY"), clip.y()},
@@ -2862,24 +2888,26 @@ QVariantMap PresentationBridge::browserEditorGeometry(QObject* editor) const
         {QStringLiteral("windowHeight"), item->window()->height()}};
 }
 
-void PresentationBridge::syncBrowserTextEditor(const QString& requestId, QString text,
+bool PresentationBridge::syncBrowserTextEditor(const QString& requestId, QString text,
                                                const QVariantMap& options)
 {
 #if defined(Q_OS_WASM)
-    if (requestId.isEmpty() || requestId.size() > 128 || text.size() > 262144) return;
+    if (requestId.isEmpty() || requestId.size() > 128 || text.size() > 262144) return false;
     const auto request=requestId.toUtf8();
     auto value=text.toUtf8();
     text.fill(QChar{});
     const auto config=QJsonDocument::fromVariant(options).toJson(QJsonDocument::Compact);
-    EM_ASM({
-        window.__genycasterSystemEditor?.sync(UTF8ToString($0),
-            UTF8ToString($1,$2),JSON.parse(UTF8ToString($3)));
-    },request.constData(),value.constData(),value.size(),config.constData());
+    const bool ready = EM_ASM_INT({
+        return window.__genycasterSystemEditor?.sync(UTF8ToString($0),
+            UTF8ToString($1,$2),JSON.parse(UTF8ToString($3))) ? 1 : 0;
+    },request.constData(),value.constData(),value.size(),config.constData()) != 0;
     value.fill('\0');
+    return ready;
 #else
     Q_UNUSED(requestId);
     Q_UNUSED(text);
     Q_UNUSED(options);
+    return false;
 #endif
 }
 

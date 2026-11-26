@@ -59,7 +59,7 @@ test('mobile recovery entry is focusable with keyboard or full-phrase paste', ()
   assert.match(shell, /mobileRecoveryInput\)\s+return String\(nativeSignerPhraseInput.text/);
   assert.match(shell, /words.length === 24/);
   assert.match(shell, /nativeSignerPhraseInput.text = ""/);
-  assert.match(shell, /nativeSignerPhraseInput.forceActiveFocus\(\)/);
+  assert.match(shell, /nativeSignerPhraseInput.focusEditing\(\)/);
   assert.match(shell, /Qt.inputMethod.show\(\)/);
   assert.match(shell, /!interactionAuthorizationDialog.mobileRecoveryInput/);
   assert.match(shell, /!root.overlayOpen/);

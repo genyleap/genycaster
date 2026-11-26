@@ -138,20 +138,11 @@ Item {
         // Read-only TextEdit supports selection, but Qt does not always
         // expose context actions automatically with non-native UI styles.
         TapHandler {
+            enabled: Qt.platform.os !== "ios" && Qt.platform.os !== "android"
             acceptedButtons: Qt.RightButton
             gesturePolicy: TapHandler.ReleaseWithinBounds
             onTapped: platformSelectionMenu.popup()
         }
-        TapHandler {
-            acceptedDevices: PointerDevice.TouchScreen
-            onLongPressed: {
-                // A first long press might precede Qt's selection update.
-                if (platformText.selectedText.length === 0)
-                    platformText.selectWord()
-                platformSelectionMenu.popup()
-            }
-        }
-
         Menu {
             id: platformSelectionMenu
             objectName: "systemCastSelectionMenu"
