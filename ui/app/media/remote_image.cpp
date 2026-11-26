@@ -55,7 +55,9 @@ namespace {
 // Keep recently visited feed media decoded across ListView delegate recycling.
 // Bound memory explicitly: WebAssembly has a smaller memory budget than native.
 #if defined(Q_OS_WASM)
-constexpr int imageCacheCapacityKiB = 96 * 1024;
+constexpr int imageCacheCapacityKiB = 48 * 1024;
+#elif defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+constexpr int imageCacheCapacityKiB = 64 * 1024;
 #else
 constexpr int imageCacheCapacityKiB = 128 * 1024;
 #endif

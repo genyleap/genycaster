@@ -571,9 +571,14 @@ Superellipse {
         }
 
         // Mini Apps keep their Farcaster 3:2 discovery artwork and explicit host action.
-        ColumnLayout {
-            visible: root.layoutMiniApp
+        Loader {
+            id: miniAppPreviewLoader
+            active: root.layoutMiniApp
+            visible: active
             Layout.fillWidth: true
+            sourceComponent: ColumnLayout {
+            property alias artworkItem: miniAppPoster
+            property alias artworkFrameItem: miniAppPosterFrame
             spacing: Theme.space2
 
             RowLayout {
@@ -681,13 +686,14 @@ Superellipse {
                     id: miniAppAnimation
                     z: 2
                     anchors.fill: parent
-                    source: root.animatedPosterUrl
-                    sourceSize: Qt.size(Math.max(1, Math.round(width)),
-                                        Math.max(1, Math.round(height)))
+                    MediaResourceScope { id: animationScope; owner: miniAppPosterFrame }
+                    source: animationScope.eligible && !Theme.powerSave ? root.animatedPosterUrl : ""
+                    sourceSize: Qt.size(Math.min(1024, Math.max(128, Math.ceil(width / 128) * 128)),
+                                        Math.min(1024, Math.max(128, Math.ceil(height / 128) * 128)))
                     fillMode: Image.PreserveAspectFit
                     cache: true
                     visible: root.animatedPosterUrl.length > 0 && status === AnimatedImage.Ready
-                    playing: visible && !Theme.powerSave
+                    playing: visible && animationScope.eligible && !root.scrollMoving && !Theme.powerSave
                     smooth: true
                 }
 
@@ -784,12 +790,14 @@ Superellipse {
             }
         }
 
+        }
         // Generic web links are grouped into cleaner feed cards. Rich media
         // destinations (YouTube, Spotify, etc.) get a poster-first treatment,
         // while ordinary links stay dense and scan-friendly.
         Loader {
             id: webPreviewLoader
-            visible: !root.layoutMiniApp
+            active: !root.layoutMiniApp
+            visible: active
             Layout.fillWidth: true
             // A second asynchronous incubation in each recycled link card
             // can outlive the parent delegate during rapid Back/scroll.
@@ -1375,7 +1383,9 @@ Superellipse {
         if (root.previewSource.length === 0)
             return false
         if (root.layoutMiniApp) {
-            return root.pointInsideItem(miniAppPosterFrame, point) && !miniAppPoster.ready
+            const loaded = miniAppPreviewLoader.item
+            return loaded && root.pointInsideItem(loaded.artworkFrameItem, point)
+                && !loaded.artworkItem.ready
         }
         const loaded = webPreviewLoader.item
         if (!loaded || !loaded.artworkFrameItem || !loaded.artworkItem)

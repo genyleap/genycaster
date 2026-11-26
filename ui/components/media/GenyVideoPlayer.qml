@@ -748,10 +748,11 @@ Item {
     }
 
     /** @brief Invoked by the coordinator when another video claims the session. */
+    signal resourceRevoked()
     function suspendFromPlaybackCoordinator() {
-        activation.resumeAfterLoad = false
-        if (player.playbackState === MediaPlayer.PlayingState)
-            player.pause()
+        // Revoke the entire session, not merely its audible transport state.
+        root.resetPlayback()
+        root.resourceRevoked()
     }
 
     function retryPlayback() {
@@ -834,7 +835,6 @@ Item {
     function enterFullscreen() {
         if (!root.fullscreenEnabled || !root.hasSource || root.fullscreen)
             return
-        player.videoOutput = fullscreenOutput
         fullscreenPopup.open()
     }
 
@@ -1180,9 +1180,8 @@ Item {
         Superellipse {
             id: backdrop
             anchors.fill: parent
-            // In fullscreen the underlying popup VideoOutput presents the media;
-            // an opaque inline backdrop would otherwise hide it.
-            visible: !root.fullscreen
+            // The same stage and sink move to the fullscreen host.
+            visible: true
             fillColor: Theme.mediaPlayerBackground
             curveDepth: root.curveDepth
             borderWidth: 0
@@ -1211,7 +1210,7 @@ Item {
         VideoOutput {
             id: stageOutput
             anchors.fill: parent
-            visible: root.userActivated && !root.failed && !root.fullscreen
+            visible: root.userActivated && !root.failed
             fillMode: VideoOutput.PreserveAspectFit
         }
 
@@ -2128,14 +2127,11 @@ Item {
         onOpened: {
             stage.parent = fullscreenHost
             stage.anchors.fill = fullscreenHost
-            fullscreenOutput.visible = true
             chromePinned = true
-            Qt.callLater(() => { if (stage && fullscreenOutput && fullscreenOutput.visible) stage.forceActiveFocus() })
+            stage.forceActiveFocus()
         }
 
         onClosed: {
-            player.videoOutput = stageOutput
-            fullscreenOutput.visible = false
             if (stage.parent !== root) {
                 stage.parent = root
                 stage.anchors.fill = root
@@ -2146,13 +2142,6 @@ Item {
         contentItem: Item {
             id: fullscreenHost
             anchors.fill: parent
-
-            VideoOutput {
-                id: fullscreenOutput
-                anchors.fill: parent
-                visible: false
-                fillMode: VideoOutput.PreserveAspectFit
-            }
 
             PlayerIconButton {
                 // Anchors require a QQuickAnchorLine, never null. Popup content

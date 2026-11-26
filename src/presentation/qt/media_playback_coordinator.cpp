@@ -115,10 +115,13 @@ bool MediaPlaybackCoordinator::claimPrimary(QObject* const player)
     if (m_activePlayer == player) {
         return true;
     }
-    if (m_activePlayer != nullptr) {
-        suspendPlayer(m_activePlayer);
-    }
+    // Publish ownership before revoking the previous session: its synchronous
+    // cleanup may call release() and must not clear the new owner's lease.
+    const QPointer<QObject> previous = m_activePlayer;
     m_activePlayer = player;
+    if (previous != nullptr) {
+        suspendPlayer(previous.data());
+    }
     emit activePlayerChanged();
     return true;
 }

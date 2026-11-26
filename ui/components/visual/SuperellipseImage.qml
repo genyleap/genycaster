@@ -51,6 +51,11 @@ Item {
     // creation are admitted over separate frames instead of one render burst.
     property int loadDelayMs: 0
     property var scrollHost: null
+    MediaResourceScope {
+        id: animationScope
+        owner: root
+        observeViewport: root.animatedGifUrl.length > 0
+    }
     property url activeSource: ""
     property bool componentReady: false
     property bool presentationReady: false
@@ -518,17 +523,18 @@ Item {
         // the single source of admission and is allowed to fail back cleanly
         // when the animation codec or network is unavailable.
         source: root.componentReady
+                && animationScope.eligible && !Theme.powerSave
+                && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
                 && root.automaticDownloadAllowed
                 && root.activeSource.toString().length > 0
             ? root.animatedGifUrl : ""
-        sourceSize: Qt.size(root.stableSourceWidth, root.stableSourceHeight)
+        sourceSize: Qt.size(Math.min(1024, root.stableSourceWidth), Math.min(1024, root.stableSourceHeight))
         fillMode: root.fillMode
         asynchronous: true
-        cache: true
+        cache: false
         visible: root.animatedGifUrl.length > 0 && status === AnimatedImage.Ready
-        // Scrolling does not pause an animated profile or image. The user
-        // controls animation explicitly in Power Save / Animated avatars.
-        playing: visible && root.visible && !Theme.powerSave
+        // Keep the still poster while motion or viewport admission suspends GIFs.
+        playing: visible && root.visible && animationScope.eligible && !root.scrollMoving && !Theme.powerSave
                  && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
         smooth: true
         // The shared mask texture exists only after the still-image layer is

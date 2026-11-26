@@ -16,6 +16,16 @@ Item {
     // enabled for every production feed delegate by default.
     property bool audioOutputEnabled: true
     property bool playbackRequested: false
+    MediaResourceScope {
+        id: resourceScope
+        owner: root
+        onEligibleChanged: if (!eligible) root.playbackRequested = false
+    }
+    Timer {
+        id: releaseTimer
+        interval: 0
+        onTriggered: root.playbackRequested = false
+    }
     property real reservedMediaAspect: 16 / 9
     readonly property bool playerReady: playerLoader.status === Loader.Ready
     readonly property bool hasSource: root.targetUrl.length > 0
@@ -54,7 +64,7 @@ Item {
     signal openRequested(string url)
 
     function requestPlayback() {
-        if (!root.hasSource || root.playbackRequested) return
+        if (!root.hasSource || root.playbackRequested || !resourceScope.eligible) return
         const candidate = root.adaptiveSource.length > 0 ? root.adaptiveSource : root.targetUrl
         // Browser Qt Multimedia has inconsistent adaptive HLS support.
         // Use the browser's native HLS support or local hls.js/MSE instead.
@@ -69,15 +79,8 @@ Item {
     }
 
     onVisibleChanged: {
-        // A reused ListView delegate can stay alive in the pool. Stop decoder,
-        // audio and presentation-clock work as soon as the row inherits
-        // invisible from its pooled parent; returning to the row leaves playback
-        // paused rather than silently consuming resources offscreen.
-        if (!root.visible && root.playerReady) {
-            const loadedPlayer = playerLoader.item as GenyVideoPlayer
-            if (loadedPlayer)
-                loadedPlayer.pausePlayback()
-        }
+        if (!root.visible)
+            root.playbackRequested = false
     }
 
     // A reused delegate must neither finish activating nor retain the previous
@@ -90,6 +93,8 @@ Item {
         root.playbackRequested = false
         aspectReservationTimer.restart()
     }
+
+    onVideoRenditionsChanged: root.playbackRequested = false
 
     function reserveMediaAspect() {
         root.reservedMediaAspect = root.mediaAspect > 0 ? root.mediaAspect : 16 / 9
@@ -242,17 +247,18 @@ Item {
         id: playerLoader
         objectName: "feedVideoPlayerLoader"
         anchors.fill: parent
-        active: root.playbackRequested
+        active: root.playbackRequested && resourceScope.eligible
         asynchronous: true
         visible: root.playerReady
         onLoaded: {
             const loadedPlayer = playerLoader.item as GenyVideoPlayer
-            if (loadedPlayer)
+            if (loadedPlayer && root.playbackRequested && resourceScope.eligible)
                 loadedPlayer.resumePlayback()
         }
 
         sourceComponent: Component {
             GenyVideoPlayer {
+                onResourceRevoked: releaseTimer.restart()
                 source: root.targetUrl
                 adaptiveSource: root.adaptiveSource
                 renditions: root.videoRenditions

@@ -60,6 +60,7 @@ set(farcasterQmlFiles
     components/settings/FeedbackDialog.qml
     components/composer/ComposerInsertPanel.qml
     components/composer/MediaUploadPanel.qml
+    components/media/MediaResourceScope.qml
     components/media/MediaPreview.qml
     components/navigation/FloatingComposeButton.qml
     components/media/FarcasterPreview.qml

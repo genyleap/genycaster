@@ -9,6 +9,25 @@ Superellipse {
 
     property var embed: ({})
     property bool activated: false
+    MediaResourceScope {
+        id: resourceScope
+        owner: root
+        onEligibleChanged: if (!eligible) root.activated = false
+    }
+    function coordinator() {
+        return typeof mediaPlayback !== "undefined" && mediaPlayback !== null ? mediaPlayback : null
+    }
+    function suspendFromPlaybackCoordinator() {
+        root.activated = false
+    }
+    onActivatedChanged: {
+        const session = root.coordinator()
+        if (!activated && session) session.release(root)
+    }
+    Component.onDestruction: {
+        const session = root.coordinator()
+        if (session) session.release(root)
+    }
     readonly property string targetUrl: String(root.embed.url || root.embed.value || "")
     readonly property string fileName: {
         const provided = String(root.embed.fileName || "")
@@ -33,6 +52,7 @@ Superellipse {
     signal openRequested(string url)
 
     function togglePlayback() {
+        if (!resourceScope.eligible) return
         if (!root.localPlaybackAvailable) {
             root.openRequested(root.targetUrl)
             return
@@ -48,8 +68,11 @@ Superellipse {
             return
         if (player.playbackState === MediaPlayer.PlayingState)
             player.pause()
-        else
+        else {
+            const session = root.coordinator()
+            if (session) session.claimPrimary(root)
             player.play()
+        }
     }
 
     function durationLabel(milliseconds) {
@@ -71,12 +94,15 @@ Superellipse {
     Loader {
         id: playbackLoader
         objectName: "audioPreviewPlaybackLoader"
-        active: root.activated && root.localPlaybackAvailable
+        active: root.activated && root.localPlaybackAvailable && resourceScope.eligible
                 && (typeof nativeAudioOutputEnabled === "undefined" || nativeAudioOutputEnabled)
         asynchronous: true
         onLoaded: {
-            if (item && item.player)
+            if (root.activated && resourceScope.eligible && item && item.player) {
+                const session = root.coordinator()
+                if (session) session.claimPrimary(root)
                 item.player.play()
+            }
         }
         sourceComponent: Item {
             property alias player: playback
