@@ -127,7 +127,7 @@ public:
     [[nodiscard]] int probeHttpStatus() const { return m_probeHttpStatus; }
     [[nodiscard]] QString clipboardText() const { return m_clipboardText; }
     Q_INVOKABLE bool probeReadProvider(const QString& id);
-    Q_INVOKABLE bool probeAllReadProviders();
+    Q_INVOKABLE bool probeAllReadProviders(bool includeDirectory = false);
     Q_INVOKABLE bool probeDraftNode(const QString& contract, const QString& endpoint,
                                     const QString& apiKey = {});
     Q_INVOKABLE bool setSessionReadApiKey(const QString& id, const QString& key);

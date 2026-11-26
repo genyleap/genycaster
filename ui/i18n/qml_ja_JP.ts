@@ -1737,12 +1737,32 @@ Company | https://company.com</source>
             <translation>ディレクトリ：キャッシュ（検証済み）</translation>
         </message>
         <message id="genycaster.nodes.directory_embedded">
-            <source>Directory: built-in fallback</source>
-            <translation>ディレクトリ：内蔵リスト</translation>
+            <source>Directory unavailable · configured nodes only</source>
+            <translation>ディレクトリ利用不可・設定済みノードのみ</translation>
         </message>
         <message id="genycaster.nodes.directory_server_health">
             <source>Node health reported by server</source>
             <translation>サーバーによるノード状態</translation>
+        </message>
+        <message id="genycaster.nodes.server_observation">
+            <source>Server: %1</source>
+            <translation>サーバー：%1</translation>
+        </message>
+        <message id="genycaster.nodes.device_observation">
+            <source>This device: %1</source>
+            <translation>このデバイス：%1</translation>
+        </message>
+        <message id="genycaster.nodes.monitor_only">
+            <source>Monitoring only · no compatible reader adapter</source>
+            <translation>監視のみ・互換読み取りアダプターなし</translation>
+        </message>
+        <message id="genycaster.nodes.configured_primary">
+            <source>Configured primary reader</source>
+            <translation>設定済みの主要読み取りノード</translation>
+        </message>
+        <message id="genycaster.nodes.primary_reader">
+            <source>Primary reader</source>
+            <translation>主要読み取りノード</translation>
         </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>

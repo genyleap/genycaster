@@ -1737,12 +1737,32 @@ Company | https://company.com</source>
             <translation>Каталог: кэш (проверен)</translation>
         </message>
         <message id="genycaster.nodes.directory_embedded">
-            <source>Directory: built-in fallback</source>
-            <translation>Каталог: встроенный список</translation>
+            <source>Directory unavailable · configured nodes only</source>
+            <translation>Каталог недоступен · только настроенные узлы</translation>
         </message>
         <message id="genycaster.nodes.directory_server_health">
             <source>Node health reported by server</source>
             <translation>Состояние узлов по данным сервера</translation>
+        </message>
+        <message id="genycaster.nodes.server_observation">
+            <source>Server: %1</source>
+            <translation>Сервер: %1</translation>
+        </message>
+        <message id="genycaster.nodes.device_observation">
+            <source>This device: %1</source>
+            <translation>Это устройство: %1</translation>
+        </message>
+        <message id="genycaster.nodes.monitor_only">
+            <source>Monitoring only · no compatible reader adapter</source>
+            <translation>Только мониторинг · нет совместимого адаптера чтения</translation>
+        </message>
+        <message id="genycaster.nodes.configured_primary">
+            <source>Configured primary reader</source>
+            <translation>Настроенный основной узел чтения</translation>
+        </message>
+        <message id="genycaster.nodes.primary_reader">
+            <source>Primary reader</source>
+            <translation>Основной узел чтения</translation>
         </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>

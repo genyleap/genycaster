@@ -498,14 +498,10 @@ int main(int argc, char* argv[])
     }
 
     const bool usePublicReadPool = enableHypersnapDefault
-        && (providerBaseUrlText.isEmpty() || providerBaseUrlText == QStringLiteral("https://haatz.quilibrium.com"))
-        && compiledHypersnapEndpoint == QStringLiteral("https://haatz.quilibrium.com")
+        && (providerBaseUrlText.isEmpty() || providerBaseUrlText == compiledHypersnapEndpoint)
         && settings.value(QStringLiteral("network/nodeSelectionMode"), QStringLiteral("auto")).toString() == QStringLiteral("auto")
         && configuredProfiles->preferredReadProviderId.value_or("") == "hypersnap-v2"
         && configuredProfiles->readProviderApiKeys.empty()
-        && std::none_of(additionalReadProviders.cbegin(), additionalReadProviders.cend(), [](const auto& p) {
-            return p.id == "directory-imgnai" && (p.endpoint != "https://hypersnap.imgnai.com" || p.selfHosted);
-        })
         && !qEnvironmentVariableIsSet("GENYCASTER_HYPERSNAP_BASE_URL")
         && !qEnvironmentVariableIsSet("GENYCASTER_PREFERRED_READ_PROVIDER_ID")
         && !std::any_of(arguments.cbegin(), arguments.cend(), [](const QString& arg) {
@@ -780,10 +776,6 @@ int main(int argc, char* argv[])
         ? appliedNodeEndpoint
         : providerProfilesController.activeReadContract() == QStringLiteral("hypersnap-v2")
             ? providerProfilesController.activeReadEndpoint() : compiledHypersnapEndpoint;
-    const QStringList publicRegistrationOrigins{
-        QStringLiteral("https://haatz.quilibrium.com"),
-        QStringLiteral("https://hypersnap.imgnai.com"),
-        QStringLiteral("https://hypersnap.castrader.xyz")};
     const QStringList nativeSettingsKeys = settings.allKeys();
     const bool hasPendingNativeRegistration = std::any_of(
         nativeSettingsKeys.cbegin(), nativeSettingsKeys.cend(), [](const QString& key) {
@@ -795,7 +787,11 @@ int main(int argc, char* argv[])
         const QString pinned = settings.value(
             QStringLiteral("nativeRegistration/lastRuntimeOrigin")).toString();
         // Legacy pending journals were created on the originally configured node.
-        if (publicRegistrationOrigins.contains(pinned)) nativeRegistrationEndpoint = pinned;
+        const QUrl pinnedUrl{pinned, QUrl::StrictMode};
+        if (pinnedUrl.isValid() && pinnedUrl.scheme() == QStringLiteral("https")
+            && !pinnedUrl.host().isEmpty() && pinnedUrl.userInfo().isEmpty()
+            && !pinnedUrl.hasQuery() && !pinnedUrl.hasFragment() && pinnedUrl.path().isEmpty())
+            nativeRegistrationEndpoint = pinned;
     }
     nativeRegistrationStatusOwner = std::make_unique<NativeRegistrationStatusController>(
         nativeRegistrationEndpoint);
@@ -1701,7 +1697,7 @@ int main(int argc, char* argv[])
                                  startupOptions = std::move(startupOptions),
                                  siwfDomain, siwfUri, startupIdentity,
                                  snapchainBaseUrl, authenticationAvailable,
-                                 openExploreForTest](const QString& selectedNativeOrigin, const QVariantList& directoryRows) mutable {
+                                 openExploreForTest, compiledHypersnapEndpoint](const QString& selectedNativeOrigin, const QVariantList& directoryRows) mutable {
             startupOptions.hyperSnapNativeNodeBaseUrl = selectedNativeOrigin.toStdString();
             if (startupOptions.publicReadPool) {
                 // Only this verified startup snapshot can admit public peers;
@@ -1712,7 +1708,7 @@ int main(int argc, char* argv[])
                     const auto endpoint = row.value(QStringLiteral("endpoint")).toString().toStdString();
                     if (!row.value(QStringLiteral("enabled")).toBool()
                         || row.value(QStringLiteral("contract")).toString() != QStringLiteral("hypersnap-v2")
-                        || endpoint == "https://haatz.quilibrium.com"
+                        || endpoint == compiledHypersnapEndpoint.toStdString()
                         || std::any_of(startupOptions.additionalReadProviders.cbegin(),
                             startupOptions.additionalReadProviders.cend(), [&](const auto& existing) {
                                 return existing.id == id || existing.endpoint == endpoint;

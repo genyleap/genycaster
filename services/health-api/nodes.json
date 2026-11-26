@@ -1,0 +1,115 @@
+{
+  "revision": 2,
+  "nodes": [
+    {
+      "id": "directory-haatz",
+      "name": "Quilibrium Haatz",
+      "endpoint": "https://haatz.quilibrium.com",
+      "network": "hypersnap",
+      "contract": "hypersnap-v2",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": true
+    },
+    {
+      "id": "directory-imgnai",
+      "name": "ImgNai",
+      "endpoint": "https://hypersnap.imgnai.com",
+      "network": "hypersnap",
+      "contract": "hypersnap-v2",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": true
+    },
+    {
+      "id": "directory-castrater",
+      "name": "Castrater",
+      "endpoint": "https://hypersnap.castrater.xyz",
+      "network": "hypersnap",
+      "contract": "hypersnap-v2",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": true
+    },
+    {
+      "id": "directory-rainonme",
+      "name": "Rainonme",
+      "endpoint": "https://hypersnap.rainonmeproductions.com",
+      "network": "hypersnap",
+      "contract": "hypersnap-v2",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": false
+    },
+    {
+      "id": "directory-sizzle",
+      "name": "Sizzle",
+      "endpoint": "https://sizzle.onchain.cooking",
+      "network": "hypersnap",
+      "contract": "hypersnap-v2",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": false
+    },
+    {
+      "id": "directory-qbase",
+      "name": "Qbase",
+      "endpoint": "https://hs1.qbase.tech",
+      "network": "hypersnap",
+      "contract": "hypersnap-v2",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": false
+    },
+    {
+      "id": "directory-homiehouse",
+      "name": "Homiehouse",
+      "endpoint": "https://rpc.homiehouse.xyz",
+      "network": "hypersnap",
+      "contract": "hypersnap-raw-v1",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": false
+    },
+    {
+      "id": "directory-ohsnap",
+      "name": "Ohsnap",
+      "endpoint": "https://ohsnap.schmidtiest.xyz",
+      "network": "hypersnap",
+      "contract": "hypersnap-raw-v1",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": false
+    },
+    {
+      "id": "directory-genyleap",
+      "name": "Genyleap Snapchain",
+      "endpoint": "https://snapchain.genyleap.com",
+      "network": "farcaster",
+      "contract": "snapchain-v1",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": false
+    },
+    {
+      "id": "directory-farcaster",
+      "name": "Farcaster Snapchain",
+      "endpoint": "https://snap.farcaster.xyz:3381",
+      "network": "farcaster",
+      "contract": "snapchain-v1",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": false
+    },
+    {
+      "id": "directory-crackle",
+      "name": "Crackle",
+      "endpoint": "https://crackle.farcaster.xyz:3381",
+      "network": "farcaster",
+      "contract": "snapchain-v1",
+      "priority": 100,
+      "enabled": true,
+      "registrationAllowed": false
+    }
+  ]
+}

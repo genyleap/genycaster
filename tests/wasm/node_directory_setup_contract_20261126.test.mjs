@@ -37,5 +37,18 @@ test('setup and settings consume the same directory and label the source',()=>{
  assert.match(controller,/EVP_DigestVerify\(/);
  assert.match(controller,/crypto\.subtle\.verify\("Ed25519"/);
  assert.match(controller,/verifyDirectory\(m_settings\.value\(settingKey\(kDirectoryCache\)\)\.toByteArray\(\), true\)/);
- assert.match(controller,/m_directoryNodes = seedDirectory\(\)/);
+ assert.match(controller,/m_directoryNodes\.clear\(\)/);
+});
+
+test('public node inventory comes from signed API, not a compiled duplicate',()=>{
+ const main=read('ui/app/main.cpp');
+ const controller=read('ui/app/settings/providers.cpp');
+ const qml=read('ui/components/settings/NodeManagementPanel.qml');
+ for(const code of [main,controller,qml]){
+   assert.doesNotMatch(code,/hypersnap\.(?:castrater|imgnai)\.|hs1\.qbase\.tech|sizzle\.onchain\.cooking/);
+ }
+ assert.match(controller,/registrationAllowed/);
+ assert.match(qml,/columns: root\.narrowPanel \? 1 : 2/);
+ assert.match(qml,/wrapMode: Text\.WrapAnywhere/);
+ assert.match(qml,/providerProfiles\.probeAllReadProviders\(true\)/);
 });

@@ -651,7 +651,7 @@ Item {
             }
             Repeater {
                 model: details.expanded ? providerProfiles.directoryNodes.filter(node =>
-                    !details.protocol || node.contract === details.protocol) : []
+                    !details.protocol || (details.protocol === "hypersnap-v2" ? node.network === "hypersnap" : node.network === "farcaster")) : []
                 delegate: RowLayout {
                     required property var modelData
                     Layout.fillWidth: true

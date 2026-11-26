@@ -3480,6 +3480,7 @@ GenyAdaptiveDialog {
 
                 NodeManagementPanel {
                     width: nodeSettingsScroll.availableWidth
+                    showPageTitle: !root.mobilePresentation
                 }
             }
                 }

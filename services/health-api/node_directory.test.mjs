@@ -8,7 +8,7 @@ test('directory retains all requested candidates, isolates networks and signs ex
  const handle=createNodeDirectory({privateKeyPem:privateKey.export({format:'pem',type:'pkcs8'}),now:()=>1700000000000});
  let output;const res={setHeader(){},writeHead(code){assert.equal(code,200);return this;},end(body){output=JSON.parse(body);}};
  assert(await handle({method:'GET'},res,new URL('https://genycaster.xyz/api/v1/nodes?network=hypersnap')));
- assert.equal(output.nodes.length,3);
+ assert.equal(output.nodes.length,6);
  assert(verify(null,Buffer.from(output.signature.payload,'base64url'),publicKey,Buffer.from(output.signature.value,'base64url')));
  assert.deepEqual(JSON.parse(Buffer.from(output.signature.payload,'base64url')).nodes,output.nodes);
 });
@@ -35,7 +35,7 @@ test('setup eligibility rejects lagging shard zero even if profile works',async(
 });
 test('unreachable and auth gated endpoints are not eligible',async()=>{
  assert.equal((await probeNode(nodes[1],{fetchImpl:async()=>{throw Error('DNS');}})).status,'unreachable');
- assert.equal((await probeNode(nodes[3],{fetchImpl:async()=>new Response('',{status:403})})).status,'auth_required');
+ assert.equal((await probeNode(nodes.find(n=>n.network==='farcaster'),{fetchImpl:async()=>new Response('',{status:403})})).status,'auth_required');
 });
 
 test('operator directory supports additional read-only nodes and signed revisions',async()=>{
@@ -43,8 +43,21 @@ test('operator directory supports additional read-only nodes and signed revision
  const directory={revision:2,nodes:[...nodes,{id:'directory-future',name:'Future',endpoint:'https://node.genycaster.xyz',network:'hypersnap',contract:'hypersnap-v2',enabled:true,priority:50}]};
  const handle=createNodeDirectory({directory,privateKeyPem:privateKey.export({format:'pem',type:'pkcs8'})});
  let output;const res={setHeader(){},writeHead(code){assert.equal(code,200);return this;},end(body){output=JSON.parse(body);}};
- await handle({method:'GET'},res,new URL('https://genycaster.xyz/api/v1/nodes'));
+ await handle({method:'GET'},res,new URL('https://genycaster.xyz/api/v1/nodes?format=2'));
  assert.equal(output.revision,2);
- assert.equal(output.nodes.length,5);
+ assert.equal(output.nodes.length,12);
  assert.deepEqual(output.nodes.at(-1).interfaces[0].access,['read']);
+});
+
+test('extended format includes all nodes; legacy clients receive compatible subset',async()=>{
+ const handle=createNodeDirectory();
+ let output;const res={setHeader(){},writeHead(code){assert.equal(code,200);return this;},end(body){output=JSON.parse(body);}};
+ await handle({method:'GET'},res,new URL('https://genycaster.xyz/api/v1/nodes?format=2'));
+ assert.equal(output.nodes.length,11);
+ assert.equal(output.nodes.filter(n=>n.network==='hypersnap').length,8);
+ assert.equal(output.nodes.filter(n=>n.registrationAllowed).length,3);
+ assert.equal(output.nodes.filter(n=>n.contract==='hypersnap-raw-v1').length,2);
+ await handle({method:'GET'},res,new URL('https://genycaster.xyz/api/v1/nodes'));
+ assert.equal(output.nodes.length,7);
+ assert.ok(output.nodes.every(n=>n.contract!=='hypersnap-raw-v1'&&!new URL(n.endpoint).port));
 });

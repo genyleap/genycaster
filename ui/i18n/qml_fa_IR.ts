@@ -1738,12 +1738,32 @@ Company | https://company.com</source>
             <translation>دایرکتوری: کش معتبر</translation>
         </message>
         <message id="genycaster.nodes.directory_embedded">
-            <source>Directory: built-in fallback</source>
-            <translation>دایرکتوری: فهرست داخلی</translation>
+            <source>Directory unavailable · configured nodes only</source>
+            <translation>دایرکتوری در دسترس نیست · فقط نودهای تنظیم‌شده</translation>
         </message>
         <message id="genycaster.nodes.directory_server_health">
             <source>Node health reported by server</source>
             <translation>سلامت نودها از دید سرور</translation>
+        </message>
+        <message id="genycaster.nodes.server_observation">
+            <source>Server: %1</source>
+            <translation>سرور: %1</translation>
+        </message>
+        <message id="genycaster.nodes.device_observation">
+            <source>This device: %1</source>
+            <translation>این دستگاه: %1</translation>
+        </message>
+        <message id="genycaster.nodes.monitor_only">
+            <source>Monitoring only · no compatible reader adapter</source>
+            <translation>فقط پایش · بدون آداپتور خواندن سازگار</translation>
+        </message>
+        <message id="genycaster.nodes.configured_primary">
+            <source>Configured primary reader</source>
+            <translation>نود اصلی تنظیم‌شده برای خواندن</translation>
+        </message>
+        <message id="genycaster.nodes.primary_reader">
+            <source>Primary reader</source>
+            <translation>نود اصلی خواندن</translation>
         </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>

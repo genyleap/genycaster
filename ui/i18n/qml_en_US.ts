@@ -1738,12 +1738,32 @@ Company | https://company.com</translation>
             <translation>Directory: cached (verified)</translation>
         </message>
         <message id="genycaster.nodes.directory_embedded">
-            <source>Directory: built-in fallback</source>
-            <translation>Directory: built-in fallback</translation>
+            <source>Directory unavailable · configured nodes only</source>
+            <translation>Directory unavailable · configured nodes only</translation>
         </message>
         <message id="genycaster.nodes.directory_server_health">
             <source>Node health reported by server</source>
             <translation>Node health reported by server</translation>
+        </message>
+        <message id="genycaster.nodes.server_observation">
+            <source>Server: %1</source>
+            <translation>Server: %1</translation>
+        </message>
+        <message id="genycaster.nodes.device_observation">
+            <source>This device: %1</source>
+            <translation>This device: %1</translation>
+        </message>
+        <message id="genycaster.nodes.monitor_only">
+            <source>Monitoring only · no compatible reader adapter</source>
+            <translation>Monitoring only · no compatible reader adapter</translation>
+        </message>
+        <message id="genycaster.nodes.configured_primary">
+            <source>Configured primary reader</source>
+            <translation>Configured primary reader</translation>
+        </message>
+        <message id="genycaster.nodes.primary_reader">
+            <source>Primary reader</source>
+            <translation>Primary reader</translation>
         </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>

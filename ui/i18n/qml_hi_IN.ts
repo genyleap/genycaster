@@ -1737,12 +1737,32 @@ Company | https://company.com</source>
             <translation>निर्देशिका: कैश (सत्यापित)</translation>
         </message>
         <message id="genycaster.nodes.directory_embedded">
-            <source>Directory: built-in fallback</source>
-            <translation>निर्देशिका: अंतर्निहित सूची</translation>
+            <source>Directory unavailable · configured nodes only</source>
+            <translation>निर्देशिका अनुपलब्ध · केवल कॉन्फ़िगर किए गए नोड</translation>
         </message>
         <message id="genycaster.nodes.directory_server_health">
             <source>Node health reported by server</source>
             <translation>सर्वर के अनुसार नोड स्थिति</translation>
+        </message>
+        <message id="genycaster.nodes.server_observation">
+            <source>Server: %1</source>
+            <translation>सर्वर: %1</translation>
+        </message>
+        <message id="genycaster.nodes.device_observation">
+            <source>This device: %1</source>
+            <translation>यह डिवाइस: %1</translation>
+        </message>
+        <message id="genycaster.nodes.monitor_only">
+            <source>Monitoring only · no compatible reader adapter</source>
+            <translation>केवल निगरानी · संगत रीड अडैप्टर नहीं</translation>
+        </message>
+        <message id="genycaster.nodes.configured_primary">
+            <source>Configured primary reader</source>
+            <translation>कॉन्फ़िगर किया गया मुख्य रीडर</translation>
+        </message>
+        <message id="genycaster.nodes.primary_reader">
+            <source>Primary reader</source>
+            <translation>मुख्य रीडर</translation>
         </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
