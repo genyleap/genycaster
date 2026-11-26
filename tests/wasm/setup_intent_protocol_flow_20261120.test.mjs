@@ -70,7 +70,7 @@ test('shared setup shows advisory recovery and sign-in checks on both account pa
 test('connection details start collapsed and a manual check stays available when expanded', () => {
   const panel = setup.slice(setup.indexOf('component SetupConnectionPanel:'), setup.indexOf('function greetingIndexForTag'));
   assert.match(panel, /property bool expanded: false/);
-  assert.match(panel, /onClicked: details.expanded = !details.expanded/);
+  assert.match(panel, /onClicked:\s*\{\s*details.expanded = !details.expanded\s*if \(details.expanded\) providerProfiles.refreshDirectory\(\)/);
   assert.match(panel, /model: details.expanded/);
   assert.match(panel, /SetupConnectionRefresh \{ visible: true \}/);
   assert.match(panel, /readonly property int latency: root\.protocolLatencyMs\(farcaster\)/);

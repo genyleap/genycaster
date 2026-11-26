@@ -1720,6 +1720,30 @@ Company | https://company.com</source>
             <source>Hide nodes</source>
             <translation>ノードを非表示</translation>
         </message>
+        <message id="genycaster.nodes.device_preflight">
+            <source>Device preflight: %1</source>
+            <translation>デバイス事前確認：%1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_registry">
+            <source>Selected registration registry: %1</source>
+            <translation>選択した登録レジストリ：%1</translation>
+        </message>
+        <message id="genycaster.nodes.directory_live">
+            <source>Directory: live (verified)</source>
+            <translation>ディレクトリ：ライブ（検証済み）</translation>
+        </message>
+        <message id="genycaster.nodes.directory_cached">
+            <source>Directory: cached (verified)</source>
+            <translation>ディレクトリ：キャッシュ（検証済み）</translation>
+        </message>
+        <message id="genycaster.nodes.directory_embedded">
+            <source>Directory: built-in fallback</source>
+            <translation>ディレクトリ：内蔵リスト</translation>
+        </message>
+        <message id="genycaster.nodes.directory_server_health">
+            <source>Node health reported by server</source>
+            <translation>サーバーによるノード状態</translation>
+        </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
             <translation>HyperSnapネットワーク一覧の参考例です。ここでは状態未確認です。接続には互換APIの登録が必要です。</translation>

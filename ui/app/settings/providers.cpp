@@ -14,10 +14,16 @@
 #include <QElapsedTimer>
 #include <QSettings>
 #include <QUrl>
+#include <QHostAddress>
 #include <QVariantMap>
 
 #include <algorithm>
 #include <utility>
+#include <memory>
+#include <QSet>
+#if defined(FARCASTER_HAS_PROTOCOL_SIGNING) && FARCASTER_HAS_PROTOCOL_SIGNING
+#include <openssl/evp.h>
+#endif
 
 #ifdef Q_OS_WASM
 #include <emscripten.h>
@@ -32,6 +38,31 @@ constexpr auto kReadSelection = "network/preferredReadProviderId";
 constexpr auto kReadFallback = "network/allowCompatibleReadFallback";
 constexpr auto kWriteSelection = "network/preferredWriteProviderId";
 constexpr int kMaximumProfiles = 16;
+constexpr auto kDirectoryCache = "network/signedNodeDirectoryV1";
+constexpr auto kDirectoryPublicKey = "4130e8282c395573f6d52dc3bb265730a05bb9d3e4e1557df99525f8aec4236f";
+#if defined(Q_OS_WASM)
+QPointer<ProviderProfilesController> verifyingDirectoryController;
+#endif
+
+[[nodiscard]] bool verifyDirectorySignature(const QByteArray& payload, const QByteArray& signature)
+{
+#if defined(FARCASTER_HAS_PROTOCOL_SIGNING) && FARCASTER_HAS_PROTOCOL_SIGNING
+    const auto keyBytes = QByteArray::fromHex(kDirectoryPublicKey);
+    using Key = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
+    using Context = std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>;
+    Key key{EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr,
+        reinterpret_cast<const unsigned char*>(keyBytes.constData()), static_cast<size_t>(keyBytes.size())), EVP_PKEY_free};
+    Context context{EVP_MD_CTX_new(), EVP_MD_CTX_free};
+    return key && context && signature.size() == 64
+        && EVP_DigestVerifyInit(context.get(), nullptr, nullptr, nullptr, key.get()) == 1
+        && EVP_DigestVerify(context.get(), reinterpret_cast<const unsigned char*>(signature.constData()),
+           static_cast<size_t>(signature.size()), reinterpret_cast<const unsigned char*>(payload.constData()),
+           static_cast<size_t>(payload.size())) == 1;
+#else
+    Q_UNUSED(payload); Q_UNUSED(signature);
+    return false;
+#endif
+}
 
 [[nodiscard]] QString settingKey(const char* key)
 {
@@ -134,9 +165,43 @@ constexpr int kMaximumProfiles = 16;
         });
     };
     append("directory-haatz", "Quilibrium Haatz", "https://haatz.quilibrium.com", "hypersnap", "hypersnap-v2");
-    append("directory-castrader", "Castrader", "https://hypersnap.castrader.xyz", "hypersnap", "hypersnap-v2");
     append("directory-imgnai", "ImgNai", "https://hypersnap.imgnai.com", "hypersnap", "hypersnap-v2");
+    append("directory-castrader", "Castrader", "https://hypersnap.castrader.xyz", "hypersnap", "hypersnap-v2");
     append("directory-genyleap", "Genyleap Snapchain", "https://snapchain.genyleap.com", "farcaster", "snapchain-v1");
+    return rows;
+}
+
+[[nodiscard]] QVariantList verifiedDirectoryRows(const QJsonObject& data)
+{
+    const auto now = QDateTime::currentDateTimeUtc();
+    const auto issued = QDateTime::fromString(data.value(QStringLiteral("issuedAt")).toString(), Qt::ISODate);
+    const auto expires = QDateTime::fromString(data.value(QStringLiteral("expiresAt")).toString(), Qt::ISODate);
+    const auto nodes = data.value(QStringLiteral("nodes")).toArray();
+    if (data.value(QStringLiteral("schemaVersion")).toInt() != 1
+        || data.value(QStringLiteral("revision")).toInt() < 1 || nodes.isEmpty() || nodes.size() > 32
+        || !issued.isValid() || !expires.isValid() || issued > now.addSecs(60)
+        || expires <= now || issued.secsTo(expires) <= 0 || issued.secsTo(expires) > 900) return {};
+    QVariantList rows;
+    QSet<QString> ids, origins;
+    for (const auto& item : nodes) {
+        const auto node = item.toObject();
+        const auto id = node.value(QStringLiteral("id")).toString();
+        const auto name = node.value(QStringLiteral("name")).toString();
+        const auto endpoint = node.value(QStringLiteral("endpoint")).toString();
+        const auto contract = node.value(QStringLiteral("contract")).toString();
+        const auto network = node.value(QStringLiteral("network")).toString();
+        const QUrl url{endpoint, QUrl::StrictMode};
+        const bool compatible = (network == QStringLiteral("hypersnap") && contract == QStringLiteral("hypersnap-v2"))
+            || (network == QStringLiteral("farcaster") && contract == QStringLiteral("snapchain-v1"));
+        if (!validId(id) || !id.startsWith(QStringLiteral("directory-")) || name.isEmpty() || name.size() > 100
+            || !compatible || normalizedOrigin(endpoint) != endpoint || url.scheme() != QStringLiteral("https")
+            || url.host().isEmpty() || !url.host().contains(QLatin1Char('.'))
+            || url.port(-1) != -1 || !url.path().isEmpty() || url.host().endsWith(QStringLiteral(".local"))
+            || QHostAddress{url.host()}.protocol() != QAbstractSocket::UnknownNetworkLayerProtocol
+            || ids.contains(id) || origins.contains(endpoint) || !node.value(QStringLiteral("enabled")).isBool()) return {};
+        ids.insert(id); origins.insert(endpoint);
+        rows.append(node.toVariantMap());
+    }
     return rows;
 }
 
@@ -184,6 +249,13 @@ QVariantList ProviderProfilesController::directoryNodes() const
         auto row = value.toMap();
         const auto id = row.value(QStringLiteral("id")).toString();
         const auto result = m_probeResults.value(id);
+        const auto server = m_directoryHealth.value(id);
+        const auto local = m_registrationPreflight.value(row.value(QStringLiteral("endpoint")).toString());
+        row.insert(QStringLiteral("registrationPreflight"), local.value(QStringLiteral("registrationPreflight"), QStringLiteral("unknown")));
+        row.insert(QStringLiteral("shardZeroBlockDelay"), local.value(QStringLiteral("shardZeroBlockDelay"), -1));
+        row.insert(QStringLiteral("serverStatus"), server.value(QStringLiteral("status"), QStringLiteral("unknown")));
+        row.insert(QStringLiteral("serverLatencyMs"), server.value(QStringLiteral("latencyMs"), -1));
+        row.insert(QStringLiteral("syncStatus"), server.value(QStringLiteral("syncStatus"), QStringLiteral("unknown")));
         row.insert(QStringLiteral("status"), result.value(QStringLiteral("status"), QStringLiteral("idle")));
         row.insert(QStringLiteral("latencyMs"), result.value(QStringLiteral("latencyMs"), -1));
         value = row;
@@ -191,15 +263,59 @@ QVariantList ProviderProfilesController::directoryNodes() const
     return rows;
 }
 
+void ProviderProfilesController::setRegistrationNode(QString origin)
+{
+    if (m_registrationNode == origin) return;
+    m_registrationNode = std::move(origin);
+    emit directoryChanged();
+}
+
+void ProviderProfilesController::setRegistrationPreflight(const QVariantList& rows)
+{
+    m_registrationPreflight.clear();
+    for (const auto& value : rows) {
+        const auto row = value.toMap();
+        m_registrationPreflight.insert(row.value(QStringLiteral("endpoint")).toString(),row);
+    }
+    m_registrationPreflightAt = QDateTime::currentDateTimeUtc();
+    emit directoryChanged();
+    QTimer::singleShot(60000,this,[this,checked=m_registrationPreflightAt]{
+        if (checked != m_registrationPreflightAt) return;
+        m_registrationPreflight.clear();
+        emit directoryChanged();
+    });
+}
+
+QStringList ProviderProfilesController::publicRegistrationCandidates() const
+{
+    // A read directory cannot confer new custody/validator authority. Limit
+    // automatic registration to the explicitly approved built-in origins.
+    QStringList candidates;
+    for (const auto& seed : seedDirectory()) {
+        const auto row = seed.toMap();
+        if (row.value(QStringLiteral("network")).toString() != QStringLiteral("hypersnap")) continue;
+        for (const auto& item : m_directoryNodes) {
+            const auto entry = item.toMap();
+            if (entry.value(QStringLiteral("endpoint")) == row.value(QStringLiteral("endpoint"))
+                && entry.value(QStringLiteral("network")) == row.value(QStringLiteral("network"))
+                && entry.value(QStringLiteral("enabled")).toBool())
+                candidates.append(row.value(QStringLiteral("endpoint")).toString());
+        }
+    }
+    return candidates;
+}
+
 void ProviderProfilesController::refreshDirectory()
 {
-    if (m_directoryReply) return;
-    // This is discovery metadata only. Until a pinned signing key is installed,
-    // remote endpoints cannot enter routing or even the automatic probe pool.
+    if (m_directoryBusy) return;
+    m_directoryBusy = true;
+    emit directoryChanged();
     QNetworkRequest request{QUrl{QStringLiteral("https://genycaster.xyz/api/v1/nodes")}};
     request.setRawHeader("Accept", "application/json");
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    request.setTransferTimeout(4000);
+    request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
+    request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
+    request.setTransferTimeout(3500);
     auto* reply = m_network.get(request);
     m_directoryReply = reply;
     reply->setReadBufferSize(65537);
@@ -209,41 +325,151 @@ void ProviderProfilesController::refreshDirectory()
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         if (m_directoryReply != reply) { reply->deleteLater(); return; }
         m_directoryReply.clear();
-        const auto data = reply->error() == QNetworkReply::NoError && reply->bytesAvailable() <= 65536
+        const auto bytes = reply->error() == QNetworkReply::NoError
+            && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200
+            && reply->bytesAvailable() <= 65536 ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        verifyDirectory(bytes, false);
+    });
+}
+
+void ProviderProfilesController::verifyDirectory(QByteArray envelope, const bool cached)
+{
+    m_verifyingCache = cached;
+    m_pendingDirectoryEnvelope = std::move(envelope);
+    m_pendingDirectoryPayload = {};
+    const quint32 generation = ++m_directoryGeneration;
+    if (m_pendingDirectoryEnvelope.size() > 65536) { finishDirectory(false); return; }
+    const auto signature = QJsonDocument::fromJson(m_pendingDirectoryEnvelope).object()
+        .value(QStringLiteral("signature")).toObject();
+    if (signature.value(QStringLiteral("algorithm")).toString() != QStringLiteral("Ed25519")
+        || signature.value(QStringLiteral("keyId")).toString() != QStringLiteral("directory-v1")) {
+        finishDirectory(false); return;
+    }
+    const auto encoded = signature.value(QStringLiteral("payload")).toString().toLatin1();
+    const auto sigEncoded = signature.value(QStringLiteral("value")).toString().toLatin1();
+    const auto payload = QByteArray::fromBase64(encoded, QByteArray::Base64UrlEncoding | QByteArray::AbortOnBase64DecodingErrors);
+    const auto sig = QByteArray::fromBase64(sigEncoded, QByteArray::Base64UrlEncoding | QByteArray::AbortOnBase64DecodingErrors);
+    if (payload.isEmpty() || payload.size() > 32768 || sig.size() != 64) { finishDirectory(false); return; }
+    m_pendingDirectoryPayload = QJsonDocument::fromJson(payload).object();
+#if defined(Q_OS_WASM)
+    verifyingDirectoryController = this;
+    // Copy all inputs before the async browser operation. Callback carries a
+    // generation, and a timeout fails closed on browsers without Ed25519.
+    EM_ASM({
+        const generation=$0;
+        const decode = s => Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c=>c.charCodeAt(0));
+        const payload=decode(UTF8ToString($1)), signature=decode(UTF8ToString($2));
+        const hex=UTF8ToString($3);
+        const key=Uint8Array.from(hex.match(/../g), x=>parseInt(x,16));
+        Promise.resolve().then(async()=>{
+            const publicKey=await crypto.subtle.importKey("raw",key,{name:"Ed25519"},false,["verify"]);
+            return crypto.subtle.verify("Ed25519",publicKey,signature,payload);
+        }).then(valid=>Module._genycasterDirectoryVerification(generation,valid?1:0))
+          .catch(()=>Module._genycasterDirectoryVerification(generation,0));
+    }, generation, encoded.constData(), sigEncoded.constData(), kDirectoryPublicKey);
+    QTimer::singleShot(2000, this, [this,generation]{ acceptDirectoryVerification(generation,false); });
+#else
+    acceptDirectoryVerification(generation, verifyDirectorySignature(payload,sig));
+#endif
+}
+
+#if defined(Q_OS_WASM)
+extern "C" EMSCRIPTEN_KEEPALIVE void genycasterDirectoryVerification(quint32 generation, int valid)
+{
+    if (verifyingDirectoryController)
+        verifyingDirectoryController->acceptDirectoryVerification(generation,valid != 0);
+}
+#endif
+
+void ProviderProfilesController::acceptDirectoryVerification(const quint32 generation, const bool valid)
+{
+    if (!m_directoryBusy || generation != m_directoryGeneration) return;
+    ++m_directoryGeneration; // reject late browser callbacks
+    finishDirectory(valid);
+}
+
+void ProviderProfilesController::finishDirectory(const bool accepted)
+{
+    auto rows = accepted ? verifiedDirectoryRows(m_pendingDirectoryPayload) : QVariantList{};
+    const auto revision = m_pendingDirectoryPayload.value(QStringLiteral("revision")).toInt();
+    const auto floor = m_settings.value(QStringLiteral("network/nodeDirectoryRevision"),1).toInt();
+    if (!rows.isEmpty() && revision >= floor) {
+        for (const auto& oldValue : m_directoryNodes) {
+            const auto old = oldValue.toMap();
+            const auto id = old.value(QStringLiteral("id")).toString();
+            const auto same = std::any_of(rows.cbegin(), rows.cend(), [&](const auto& value){
+                const auto next = value.toMap();
+                return next.value(QStringLiteral("id")) == old.value(QStringLiteral("id"))
+                    && next.value(QStringLiteral("endpoint")) == old.value(QStringLiteral("endpoint"))
+                    && next.value(QStringLiteral("contract")) == old.value(QStringLiteral("contract"));
+            });
+            if (!same) m_probeResults.remove(id);
+        }
+        m_directoryNodes = std::move(rows);
+        m_directorySource = m_verifyingCache ? QStringLiteral("cached") : QStringLiteral("live");
+        if (!m_verifyingCache) {
+            m_settings.setValue(settingKey(kDirectoryCache),m_pendingDirectoryEnvelope);
+            m_settings.setValue(QStringLiteral("network/nodeDirectoryRevision"),revision);
+            m_settings.sync();
+        }
+    } else if (!m_verifyingCache) {
+        verifyDirectory(m_settings.value(settingKey(kDirectoryCache)).toByteArray(), true);
+        return;
+    } else {
+        m_directoryNodes = seedDirectory();
+        m_probeResults.clear();
+        m_directorySource = QStringLiteral("embedded");
+    }
+    m_pendingDirectoryEnvelope.clear();
+    m_pendingDirectoryPayload = {};
+    m_directoryBusy = false;
+    m_directoryHealth.clear();
+    emit directoryChanged();
+    emit directoryRefreshFinished();
+    refreshDirectoryStatus();
+}
+
+void ProviderProfilesController::refreshDirectoryStatus()
+{
+    if (m_directoryStatusReply) return;
+    QNetworkRequest request{QUrl{QStringLiteral("https://genycaster.xyz/api/v1/nodes/status")}};
+    request.setRawHeader("Accept","application/json");
+    request.setTransferTimeout(10000);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,QNetworkRequest::ManualRedirectPolicy);
+    request.setAttribute(QNetworkRequest::CookieLoadControlAttribute,QNetworkRequest::Manual);
+    request.setAttribute(QNetworkRequest::CookieSaveControlAttribute,QNetworkRequest::Manual);
+    auto* reply=m_network.get(request);
+    m_directoryStatusReply=reply;
+    reply->setReadBufferSize(65537);
+    connect(reply,&QNetworkReply::readyRead,this,[reply]{if(reply->bytesAvailable()>65536)reply->abort();});
+    connect(reply,&QNetworkReply::finished,this,[this,reply]{
+        m_directoryStatusReply.clear();
+        const auto data=reply->error()==QNetworkReply::NoError && reply->bytesAvailable()<=65536
             ? QJsonDocument::fromJson(reply->readAll()).object() : QJsonObject{};
         reply->deleteLater();
-        if (data.value(QStringLiteral("schemaVersion")).toInt() == 1) {
-            const auto expires = QDateTime::fromString(data.value(QStringLiteral("expiresAt")).toString(), Qt::ISODate);
-            const auto incoming = data.value(QStringLiteral("nodes")).toArray();
-            if (expires > QDateTime::currentDateTimeUtc() && incoming.size() <= 64) {
-                // Never trust an unsigned remote host or capability. Existing
-                // compiled origins remain eligible for explicit local probes.
-                auto next = seedDirectory();
-                for (auto& value : next) {
-                    auto row = value.toMap();
-                    for (const auto& item : incoming) {
-                        const auto node = item.toObject();
-                        if (node.value(QStringLiteral("id")).toString() != row.value(QStringLiteral("id")).toString()
-                            || node.value(QStringLiteral("endpoint")).toString() != row.value(QStringLiteral("endpoint")).toString()
-                            || node.value(QStringLiteral("contract")).toString() != row.value(QStringLiteral("contract")).toString()) continue;
-                        row.insert(QStringLiteral("listed"), true);
-                        break;
-                    }
-                    value = row;
-                }
-                m_directoryNodes = std::move(next);
-            }
+        const auto checked=QDateTime::fromString(data.value(QStringLiteral("checkedAt")).toString(),Qt::ISODate);
+        const auto age=checked.secsTo(QDateTime::currentDateTimeUtc());
+        if(data.value(QStringLiteral("schemaVersion")).toInt()!=1 || !checked.isValid() || age< -60 || age>120) return;
+        m_directoryStatusCheckedAt=checked;
+        for(const auto& value:data.value(QStringLiteral("nodes")).toArray()){
+            const auto row=value.toObject().toVariantMap();
+            m_directoryHealth.insert(row.value(QStringLiteral("id")).toString(),row);
         }
         emit directoryChanged();
+        QTimer::singleShot(120000,this,[this,checked]{
+            if (m_directoryStatusCheckedAt != checked) return;
+            m_directoryHealth.clear();
+            emit directoryChanged();
+        });
     });
-    emit directoryChanged();
 }
 
 bool ProviderProfilesController::probeDirectoryNode(const QString& id)
 {
     for (const auto& item : m_directoryNodes) {
         const auto node = item.toMap();
-        if (node.value(QStringLiteral("id")).toString() == id)
+        if (node.value(QStringLiteral("id")).toString() == id && node.value(QStringLiteral("enabled")).toBool())
             return startProbe(id, node.value(QStringLiteral("contract")).toString(),
                               node.value(QStringLiteral("endpoint")).toString());
     }
@@ -254,7 +480,7 @@ bool ProviderProfilesController::addDirectoryReadProfile(const QString& id)
 {
     for (const auto& item : m_directoryNodes) {
         const auto node = item.toMap();
-        if (node.value(QStringLiteral("id")).toString() != id) continue;
+        if (node.value(QStringLiteral("id")).toString() != id || !node.value(QStringLiteral("enabled")).toBool()) continue;
         if (m_probeResults.value(id).value(QStringLiteral("status")).toString() != QStringLiteral("healthy"))
             return fail(QStringLiteral("unsupported_contract"));
         // Explicit consent only. The existing profile editor and local probe

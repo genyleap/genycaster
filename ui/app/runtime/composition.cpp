@@ -538,16 +538,16 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     if (made && configuration.publicReadPool && (*made)->router
         && application::configuration::configuredDeploymentProfile()
             != application::configuration::DeploymentProfile::StrictSelfHosted
-        && configuration.preferredReadProviderId.value_or("") == "hypersnap-v2"
-        && std::any_of(configuration.additionalReadProviders.cbegin(), configuration.additionalReadProviders.cend(),
-            [](const auto& profile) {
-                return profile.id == "directory-imgnai"
-                    && profile.endpoint == "https://hypersnap.imgnai.com"
-                    && profile.adapterContract == "hypersnap-v2" && !profile.selfHosted;
-            })) {
+        && configuration.preferredReadProviderId.value_or("") == "hypersnap-v2") {
+        std::vector<farcaster::provider::model::ProviderId> peers;
+        for (const auto& id : configuration.publicReadPeerIds) {
+            if (std::any_of(configuration.additionalReadProviders.cbegin(),
+                    configuration.additionalReadProviders.cend(), [&](const auto& profile) {
+                        return profile.id == id && profile.adapterContract == "hypersnap-v2" && !profile.selfHosted;
+                    })) peers.push_back(farcaster::provider::model::ProviderId{id});
+        }
         (*made)->router->setPublicReadPool(
-            farcaster::provider::model::ProviderId{"hypersnap-v2"},
-            {farcaster::provider::model::ProviderId{"directory-imgnai"}});
+            farcaster::provider::model::ProviderId{"hypersnap-v2"},std::move(peers));
     }
     return made;
 }

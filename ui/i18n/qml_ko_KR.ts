@@ -1720,6 +1720,30 @@ Company | https://company.com</source>
             <source>Hide nodes</source>
             <translation>노드 숨기기</translation>
         </message>
+        <message id="genycaster.nodes.device_preflight">
+            <source>Device preflight: %1</source>
+            <translation>기기 사전 검사: %1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_registry">
+            <source>Selected registration registry: %1</source>
+            <translation>선택된 등록 레지스트리: %1</translation>
+        </message>
+        <message id="genycaster.nodes.directory_live">
+            <source>Directory: live (verified)</source>
+            <translation>디렉터리: 실시간 (검증됨)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_cached">
+            <source>Directory: cached (verified)</source>
+            <translation>디렉터리: 캐시 (검증됨)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_embedded">
+            <source>Directory: built-in fallback</source>
+            <translation>디렉터리: 내장 목록</translation>
+        </message>
+        <message id="genycaster.nodes.directory_server_health">
+            <source>Node health reported by server</source>
+            <translation>서버에서 확인한 노드 상태</translation>
+        </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
             <translation>HyperSnap 네트워크 목록의 예시입니다. 현재 상태는 확인되지 않았습니다. 연결하려면 호환 API 주소를 추가하세요.</translation>

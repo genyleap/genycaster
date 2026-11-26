@@ -1721,6 +1721,30 @@ Company | https://company.com</source>
             <source>Hide nodes</source>
             <translation>بستن فهرست</translation>
         </message>
+        <message id="genycaster.nodes.device_preflight">
+            <source>Device preflight: %1</source>
+            <translation>بررسی اولیهٔ دستگاه: %1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_registry">
+            <source>Selected registration registry: %1</source>
+            <translation>رجیستری منتخب ثبت‌نام: %1</translation>
+        </message>
+        <message id="genycaster.nodes.directory_live">
+            <source>Directory: live (verified)</source>
+            <translation>دایرکتوری: آنلاین (تأییدشده)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_cached">
+            <source>Directory: cached (verified)</source>
+            <translation>دایرکتوری: کش معتبر</translation>
+        </message>
+        <message id="genycaster.nodes.directory_embedded">
+            <source>Directory: built-in fallback</source>
+            <translation>دایرکتوری: فهرست داخلی</translation>
+        </message>
+        <message id="genycaster.nodes.directory_server_health">
+            <source>Node health reported by server</source>
+            <translation>سلامت نودها از دید سرور</translation>
+        </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
             <translation>نمونه‌هایی از فهرست شبکهٔ HyperSnap؛ وضعیت فعلی اینجا تأیید نشده است. برای اتصال، آدرس API سازگار را اضافه کنید.</translation>

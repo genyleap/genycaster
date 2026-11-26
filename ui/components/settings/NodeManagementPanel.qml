@@ -371,12 +371,17 @@ ColumnLayout {
                     text: root.showOperatorDirectory
                           ? qsTrId("genycaster.nodes.directory_collapse")
                           : qsTrId("genycaster.nodes.directory_expand")
-                    onClicked: root.showOperatorDirectory = !root.showOperatorDirectory
+                    onClicked: {
+                        root.showOperatorDirectory = !root.showOperatorDirectory
+                        if (root.showOperatorDirectory) providerProfiles.refreshDirectory()
+                    }
                 }
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.nodes.directory_info")
+                text: providerProfiles.directorySource === "live" ? qsTrId("genycaster.nodes.directory_live")
+                    : providerProfiles.directorySource === "cached" ? qsTrId("genycaster.nodes.directory_cached")
+                    : qsTrId("genycaster.nodes.directory_embedded")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.Wrap
@@ -429,6 +434,14 @@ ColumnLayout {
                             }
                         }
                         DirectionAwareLabel {
+                            visible: String(modelData.serverStatus) !== "unknown"
+                            text: modelData.serverStatus === "degraded"
+                                  ? qsTrId("genycaster.setup.registration_sync_paused")
+                                  : root.healthLabel(modelData.serverStatus === "unreachable" ? "failed" : String(modelData.serverStatus))
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.inkMuted
+                        }
+                        DirectionAwareLabel {
                             text: root.healthLabel(String(modelData.status))
                             font.pixelSize: Theme.typeCaptionSize
                             color: String(modelData.status) === "healthy" ? Theme.positive : Theme.inkMuted
@@ -437,14 +450,14 @@ ColumnLayout {
                             compact: true
                             quiet: true
                             text: qsTrId("genycaster.nodes.test")
-                            enabled: !providerProfiles.probingAll
+                            enabled: modelData.enabled && !providerProfiles.probingAll
                             onClicked: providerProfiles.probeDirectoryNode(String(modelData.id))
                         }
                         ActionButton {
                             compact: true
                             quiet: true
                             text: qsTrId("genycaster.providers.add_read")
-                            enabled: String(modelData.status) === "healthy"
+                            enabled: modelData.enabled && String(modelData.status) === "healthy"
                                 && !providerProfiles.readProfiles.some(item => String(item.id) === String(modelData.id))
                             onClicked: providerProfiles.addDirectoryReadProfile(String(modelData.id))
                         }

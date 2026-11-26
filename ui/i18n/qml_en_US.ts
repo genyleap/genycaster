@@ -1721,6 +1721,30 @@ Company | https://company.com</translation>
             <source>Hide nodes</source>
             <translation>Hide nodes</translation>
         </message>
+        <message id="genycaster.nodes.device_preflight">
+            <source>Device preflight: %1</source>
+            <translation>Device preflight: %1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_registry">
+            <source>Selected registration registry: %1</source>
+            <translation>Selected registration registry: %1</translation>
+        </message>
+        <message id="genycaster.nodes.directory_live">
+            <source>Directory: live (verified)</source>
+            <translation>Directory: live (verified)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_cached">
+            <source>Directory: cached (verified)</source>
+            <translation>Directory: cached (verified)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_embedded">
+            <source>Directory: built-in fallback</source>
+            <translation>Directory: built-in fallback</translation>
+        </message>
+        <message id="genycaster.nodes.directory_server_health">
+            <source>Node health reported by server</source>
+            <translation>Node health reported by server</translation>
+        </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
             <translation>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</translation>

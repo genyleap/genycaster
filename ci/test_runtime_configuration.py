@@ -26,6 +26,7 @@ EXPECTED_FIELDS = (
     "preferredReadProviderId",
     "allowCompatibleReadFallback",
     "publicReadPool",
+    "publicReadPeerIds",
     "additionalWriteProviders",
     "preferredWriteProviderId",
     "authRelayUrl",
@@ -74,7 +75,7 @@ class RuntimeStartupPolicyTest(unittest.TestCase):
         body = self.implementation.split(marker, 1)[1].split("\n}\n", 1)[0]
         factory_body = body.split("std::move(configuration.approvalLauncher)", 1)[0] + "configuration.approvalLauncher"
         forwarded = tuple(re.findall(r"configuration\.([A-Za-z]\w*)", factory_body))
-        self.assertEqual(forwarded, tuple(field for field in EXPECTED_FIELDS if field != "publicReadPool"))
+        self.assertEqual(forwarded, tuple(field for field in EXPECTED_FIELDS if field not in ("publicReadPool", "publicReadPeerIds")))
         self.assertIn("configuration.publicReadPool", body)
         self.assertIn("std::move(configuration.approvalLauncher)", body)
         self.assertIn("auto made = makeRuntime(", body)
@@ -85,7 +86,8 @@ class RuntimeStartupPolicyTest(unittest.TestCase):
         self.assertEqual(self.entry.count(marker), 1)
         body = self.entry.split(marker, 1)[1].split("\n        };", 1)[0]
         named = tuple(re.findall(r"\.([A-Za-z]\w*)\s*=", body))
-        self.assertEqual(named, EXPECTED_FIELDS)
+        self.assertEqual(named, tuple(field for field in EXPECTED_FIELDS if field != "publicReadPeerIds"))
+        self.assertIn("startupOptions.publicReadPeerIds.push_back(id)", self.entry)
         self.assertIn(".approvalLauncher = makeWalletApprovalLauncher(", body)
         self.assertIn("makeRuntime(std::move(startupOptions))", self.entry)
         self.assertIn("startupOptions = std::move(startupOptions)", self.entry)

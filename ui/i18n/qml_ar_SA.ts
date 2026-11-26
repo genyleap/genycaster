@@ -1720,6 +1720,30 @@ Company | https://company.com</source>
             <source>Hide nodes</source>
             <translation>إخفاء العقد</translation>
         </message>
+        <message id="genycaster.nodes.device_preflight">
+            <source>Device preflight: %1</source>
+            <translation>الفحص الأولي للجهاز: %1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_registry">
+            <source>Selected registration registry: %1</source>
+            <translation>سجل التسجيل المحدد: %1</translation>
+        </message>
+        <message id="genycaster.nodes.directory_live">
+            <source>Directory: live (verified)</source>
+            <translation>الدليل: مباشر (موثّق)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_cached">
+            <source>Directory: cached (verified)</source>
+            <translation>الدليل: مخزّن (موثّق)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_embedded">
+            <source>Directory: built-in fallback</source>
+            <translation>الدليل: القائمة المدمجة</translation>
+        </message>
+        <message id="genycaster.nodes.directory_server_health">
+            <source>Node health reported by server</source>
+            <translation>حالة العقد وفقًا للخادم</translation>
+        </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
             <translation>أمثلة من دليل شبكة HyperSnap. الحالة غير مؤكدة هنا؛ أضف نقطة API متوافقة للاتصال.</translation>

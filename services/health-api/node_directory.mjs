@@ -1,4 +1,6 @@
 import {createPrivateKey, sign} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {isIP} from 'node:net';
 
 // Public directory is configuration, not an authorization or signer registry.
 export const nodes = Object.freeze([
@@ -7,6 +9,30 @@ export const nodes = Object.freeze([
   {id:'directory-imgnai',name:'ImgNai',endpoint:'https://hypersnap.imgnai.com',network:'hypersnap',contract:'hypersnap-v2',priority:100},
   {id:'directory-genyleap',name:'Genyleap Snapchain',endpoint:'https://snapchain.genyleap.com',network:'farcaster',contract:'snapchain-v1',priority:100},
 ].map(node=>Object.freeze({...node,enabled:true})));
+// Operator-owned configuration; never accept node records from HTTP input.
+export function loadDirectory(path=process.env.GENYCASTER_NODE_DIRECTORY_FILE) {
+  if(!path)return {revision:1,nodes};
+  const bytes=readFileSync(path);
+  if(bytes.length>65536)throw Error('directory config too large');
+  const config=JSON.parse(bytes);
+  if(!Number.isSafeInteger(config.revision)||config.revision<1||
+     !Array.isArray(config.nodes)||!config.nodes.length||config.nodes.length>32)throw Error('invalid directory config');
+  const ids=new Set(),origins=new Set();
+  const entries=config.nodes.map(node=>{
+    const {id,name,endpoint,network,contract,priority,enabled}=node;
+    const url=new URL(endpoint);
+    if(typeof id!=='string'||!/^directory-[a-zA-Z0-9_.-]{1,54}$/.test(id)||
+       typeof name!=='string'||!name.length||name.length>100||
+       !((network==='hypersnap'&&contract==='hypersnap-v2')||(network==='farcaster'&&contract==='snapchain-v1'))||
+       url.protocol!=='https:'||url.origin!==endpoint||url.username||url.password||url.port||
+       !url.hostname.includes('.')||url.hostname.endsWith('.local')||isIP(url.hostname)||
+       !Number.isSafeInteger(priority)||priority<0||priority>10000||typeof enabled!=='boolean'||
+       ids.has(id)||origins.has(endpoint))throw Error('invalid directory node');
+    ids.add(id);origins.add(endpoint);
+    return Object.freeze({id,name,endpoint,network,contract,priority,enabled});
+  });
+  return {revision:config.revision,nodes:Object.freeze(entries)};
+}
 const maxBody=128*1024;
 async function json(url,fetchImpl,timeoutMs) {
   const response=await fetchImpl(url,{method:'GET',redirect:'error',headers:{Accept:'application/json'},signal:AbortSignal.timeout(timeoutMs)});
@@ -61,20 +87,21 @@ export async function probeNode(node,{fetchImpl=globalThis.fetch,timeoutMs=4000,
   finally {result.checkedAt=new Date(now()).toISOString();}
   return result;
 }
-export function createNodeDirectory({fetchImpl=globalThis.fetch,now=Date.now,privateKeyPem=process.env.GENYCASTER_NODE_DIRECTORY_SIGNING_KEY,keyId=process.env.GENYCASTER_NODE_DIRECTORY_KEY_ID||'directory-v1'}={}) {
+export function createNodeDirectory({fetchImpl=globalThis.fetch,now=Date.now,privateKeyPem=process.env.GENYCASTER_NODE_DIRECTORY_SIGNING_KEY,keyId=process.env.GENYCASTER_NODE_DIRECTORY_KEY_ID||'directory-v1',directory=loadDirectory()}={}) {
+  const {revision,nodes}=directory;
   const privateKey=privateKeyPem?createPrivateKey(privateKeyPem):null;
   if(privateKey&&privateKey.asymmetricKeyType!=='ed25519')throw Error('Node directory requires Ed25519');
   let cached,pending;
   async function status(){
     if(cached&&now()<cached.expiry)return cached.body;
-    if(!pending)pending=Promise.all(nodes.map(node=>probeNode(node,{fetchImpl,now})))
+    if(!pending)pending=Promise.all(nodes.map(node=>node.enabled ? probeNode(node,{fetchImpl,now}) : {id:node.id,status:'maintenance',syncStatus:'unknown',latencyMs:null,checkedAt:new Date(now()).toISOString()}))
       .then(rows=>{const body={schemaVersion:1,ttlSeconds:30,checkedAt:new Date(now()).toISOString(),nodes:rows};cached={body,expiry:now()+30000};return body;})
       .finally(()=>{pending=null;});
     return pending;
   }
   function manifest(network){
     const issuedAt=new Date(now()).toISOString();
-    const payload={schemaVersion:1,revision:1,ttlSeconds:300,issuedAt,expiresAt:new Date(now()+300000).toISOString(),nodes:nodes.filter(n=>!network||n.network===network).map(n=>({...n,interfaces:[{network:n.network,contract:n.contract,access:['read'],verification:'required'}]}))};
+    const payload={schemaVersion:1,revision,ttlSeconds:300,issuedAt,expiresAt:new Date(now()+300000).toISOString(),nodes:nodes.filter(n=>!network||n.network===network).map(n=>({...n,interfaces:[{network:n.network,contract:n.contract,access:['read'],verification:'required'}]}))};
     const bytes=Buffer.from(JSON.stringify(payload),'utf8');
     return {...payload,signature:privateKey?{algorithm:'Ed25519',keyId,payload:bytes.toString('base64url'),value:sign(null,bytes,privateKey).toString('base64url')}:null};
   }

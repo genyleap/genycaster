@@ -9,6 +9,7 @@
 #include <QNetworkRequest>
 #include <QTimer>
 #include <QList>
+#include <QVariantMap>
 #include <utility>
 
 #include <cmath>
@@ -37,7 +38,8 @@ bool NativeRegistrationStatusController::setEndpointBeforeRuntime(const QUrl& en
 
 void NativeRegistrationStatusController::selectBeforeRuntime(
     const QStringList& candidates, QObject* context,
-    std::function<void(QString)> completion, const int timeoutMs)
+    std::function<void(QString)> completion, const int timeoutMs,
+    std::function<void(QVariantList)> observation)
 {
     if (candidates.isEmpty()) { completion({}); return; }
     auto* scope = new QObject(context);
@@ -47,11 +49,13 @@ void NativeRegistrationStatusController::selectBeforeRuntime(
         QStringList origins;
         QList<NativeRegistrationStatusController*> probes;
         std::function<void(QString)> completion;
+        std::function<void(QVariantList)> observation;
         bool done{false};
     };
     auto state = std::make_shared<State>();
     state->origins = candidates;
     state->completion = std::move(completion);
+    state->observation = std::move(observation);
     for (const auto& origin : candidates)
         state->probes.push_back(new NativeRegistrationStatusController(origin, scope));
     const auto finish = [scope, deadline, state](const bool timedOut) {
@@ -71,6 +75,21 @@ void NativeRegistrationStatusController::selectBeforeRuntime(
                 selected = state->origins.at(i);
                 break;
             }
+        }
+        if (state->observation) {
+            QVariantList rows;
+            for (qsizetype i = 0; i < state->probes.size(); ++i) {
+                const auto* probe = state->probes.at(i);
+                const QString status = eligible(probe) ? QStringLiteral("ready")
+                    : probe->shardZeroBlockDelay() > 120 ? QStringLiteral("lagging")
+                    : probe->checking() ? QStringLiteral("unknown")
+                    : QStringLiteral("not_ready");
+                rows.push_back(QVariantMap{
+                    {QStringLiteral("endpoint"),state->origins.at(i)},
+                    {QStringLiteral("registrationPreflight"),status},
+                    {QStringLiteral("shardZeroBlockDelay"),probe->shardZeroBlockDelay()}});
+            }
+            state->observation(std::move(rows));
         }
         auto done = std::move(state->completion);
         scope->deleteLater();

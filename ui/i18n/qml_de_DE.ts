@@ -1720,6 +1720,30 @@ Company | https://company.com</source>
             <source>Hide nodes</source>
             <translation>Knoten ausblenden</translation>
         </message>
+        <message id="genycaster.nodes.device_preflight">
+            <source>Device preflight: %1</source>
+            <translation>Geräteprüfung: %1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_registry">
+            <source>Selected registration registry: %1</source>
+            <translation>Ausgewählte Registrierungsstelle: %1</translation>
+        </message>
+        <message id="genycaster.nodes.directory_live">
+            <source>Directory: live (verified)</source>
+            <translation>Verzeichnis: live (verifiziert)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_cached">
+            <source>Directory: cached (verified)</source>
+            <translation>Verzeichnis: Cache (verifiziert)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_embedded">
+            <source>Directory: built-in fallback</source>
+            <translation>Verzeichnis: integrierte Liste</translation>
+        </message>
+        <message id="genycaster.nodes.directory_server_health">
+            <source>Node health reported by server</source>
+            <translation>Knotenstatus laut Server</translation>
+        </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
             <translation>Beispiele aus dem HyperSnap-Netzwerkverzeichnis. Status hier nicht verifiziert; zum Verbinden kompatiblen API-Endpunkt hinzufügen.</translation>

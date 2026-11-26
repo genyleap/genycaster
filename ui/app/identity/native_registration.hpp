@@ -20,6 +20,7 @@
 #include <QString>
 #include <QUrl>
 #include <QStringList>
+#include <QVariantList>
 #include <functional>
 
 #include <cstdint>
@@ -74,7 +75,8 @@ public:
     // Primary wins when eligible; otherwise the first eligible fallback wins.
     static void selectBeforeRuntime(const QStringList& candidates, QObject* context,
                                     std::function<void(QString)> completion,
-                                    int timeoutMs = 5000);
+                                    int timeoutMs = 5000,
+                                    std::function<void(QVariantList)> observation = {});
     [[nodiscard]] bool accountLookupBusy() const noexcept { return m_lookupBusy; }
     [[nodiscard]] bool accountLookupChecked() const noexcept { return m_lookupChecked; }
     [[nodiscard]] bool accountLookupFailed() const noexcept { return m_lookupFailed; }

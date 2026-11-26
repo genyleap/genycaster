@@ -121,6 +121,7 @@ struct RuntimeConfiguration final {
     std::optional<std::string> preferredReadProviderId{};
     bool allowCompatibleReadFallback{false};
     bool publicReadPool{false};
+    std::vector<std::string> publicReadPeerIds{};
     std::vector<WriteProviderProfile> additionalWriteProviders{};
     std::optional<std::string> preferredWriteProviderId{};
     std::optional<std::string> authRelayUrl{};

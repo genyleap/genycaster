@@ -512,14 +512,6 @@ int main(int argc, char* argv[])
             return arg.startsWith(QStringLiteral("--preferred-read-provider-id="))
                 || arg.startsWith(QStringLiteral("--hypersnap-base-url="));
         });
-    if (usePublicReadPool && std::none_of(additionalReadProviders.cbegin(), additionalReadProviders.cend(),
-            [](const auto& p) { return p.id == "directory-imgnai"; })) {
-        additionalReadProviders.push_back({
-            .id = "directory-imgnai", .displayName = "ImgNai",
-            .endpoint = "https://hypersnap.imgnai.com", .adapterContract = "hypersnap-v2",
-            .selfHosted = false,
-        });
-    }
     std::vector<genycaster::ui::runtime::WriteProviderProfile> additionalWriteProviders{};
     additionalWriteProviders.reserve(configuredProfiles->writeProviders.size());
     for (auto& profile : configuredProfiles->writeProviders) {
@@ -1709,8 +1701,29 @@ int main(int argc, char* argv[])
                                  startupOptions = std::move(startupOptions),
                                  siwfDomain, siwfUri, startupIdentity,
                                  snapchainBaseUrl, authenticationAvailable,
-                                 openExploreForTest](const QString& selectedNativeOrigin) mutable {
+                                 openExploreForTest](const QString& selectedNativeOrigin, const QVariantList& directoryRows) mutable {
             startupOptions.hyperSnapNativeNodeBaseUrl = selectedNativeOrigin.toStdString();
+            if (startupOptions.publicReadPool) {
+                // Only this verified startup snapshot can admit public peers;
+                // custom profiles can never become automatic fallback targets.
+                for (const auto& value : directoryRows) {
+                    const auto row = value.toMap();
+                    const auto id = row.value(QStringLiteral("id")).toString().toStdString();
+                    const auto endpoint = row.value(QStringLiteral("endpoint")).toString().toStdString();
+                    if (!row.value(QStringLiteral("enabled")).toBool()
+                        || row.value(QStringLiteral("contract")).toString() != QStringLiteral("hypersnap-v2")
+                        || endpoint == "https://haatz.quilibrium.com"
+                        || std::any_of(startupOptions.additionalReadProviders.cbegin(),
+                            startupOptions.additionalReadProviders.cend(), [&](const auto& existing) {
+                                return existing.id == id || existing.endpoint == endpoint;
+                            })) continue;
+                    startupOptions.additionalReadProviders.push_back({
+                        .id = id, .displayName = row.value(QStringLiteral("name")).toString().toStdString(),
+                        .endpoint = endpoint, .adapterContract = "hypersnap-v2", .selfHosted = false,
+                    });
+                    startupOptions.publicReadPeerIds.push_back(id);
+                }
+            }
             auto made = makeRuntime(std::move(startupOptions));
             if (!made) {
                 const QString message = QString::fromStdString(made.error().message);
@@ -1754,7 +1767,7 @@ int main(int argc, char* argv[])
         };
         auto launchRuntime = [&application, &settings, &nativeRegistrationStatus,
                               &nativeRegistrationPreparation, &nativeRegistrationPublisher,
-                              &nativeRegistrationEndpoint, automaticRegistration,
+                              &nativeRegistrationEndpoint, &providerProfilesController, automaticRegistration,
 #if !defined(Q_OS_WASM)
                               &bootstrap,
 #endif
@@ -1782,26 +1795,62 @@ int main(int argc, char* argv[])
                 }
             }
             nativeRegistrationEndpoint = selected;
+            providerProfilesController.setRegistrationNode(selected);
             auto start = [bootstrapRuntime = std::move(bootstrapRuntime),
-                          selected = std::move(selected)]() mutable { bootstrapRuntime(selected); };
+                          selected = std::move(selected), directoryRows = providerProfilesController.directoryNodes()]() mutable {
+                bootstrapRuntime(selected, directoryRows);
+            };
 #if defined(Q_OS_WASM)
             QTimer::singleShot(0, &application, std::move(start));
 #else
             bootstrap.start(std::move(start));
 #endif
         };
-        if (automaticRegistration && !hasPendingNativeRegistration) {
-            // Both native and WASM use Qt's event loop. No blocking startup
-            // network I/O, no QML HTTP calls, and no submission in this probe.
-            QTimer::singleShot(0, &application,
-                [&application, publicRegistrationOrigins, launch = std::move(launchRuntime)]() mutable {
+        if (automaticRegistration) {
+            // Wait for verified live/cached/embedded registry before Setup
+            // preflight. Do not transfer authority to newly listed read nodes.
+            QObject::connect(&providerProfilesController, &ProviderProfilesController::directoryRefreshFinished,
+                &application, [&application, &providerProfilesController, &nativeRegistrationEndpoint, hasPendingNativeRegistration,
+                               launch = std::move(launchRuntime)]() mutable {
+                    if (hasPendingNativeRegistration) { launch(nativeRegistrationEndpoint); return; }
+                    auto origins = providerProfilesController.publicRegistrationCandidates();
+                    if (origins.isEmpty()) { launch(nativeRegistrationEndpoint); return; }
                     NativeRegistrationStatusController::selectBeforeRuntime(
-                        publicRegistrationOrigins, &application, std::move(launch));
-                });
+                        origins, &application, std::move(launch), 5000,
+                        [&providerProfilesController](QVariantList rows) {
+                            providerProfilesController.setRegistrationPreflight(rows);
+                        });
+                }, Qt::SingleShotConnection);
+            QTimer::singleShot(0, &providerProfilesController, &ProviderProfilesController::refreshDirectory);
         } else {
             launchRuntime(nativeRegistrationEndpoint);
+            if (enableHypersnapDefault && !isRuntimeSmokeTest)
+                QTimer::singleShot(0, &providerProfilesController, &ProviderProfilesController::refreshDirectory);
         }
     }
+
+    if (automaticRegistration) {
+        QObject::connect(&providerProfilesController, &ProviderProfilesController::directoryRefreshFinished,
+            &application, [&application, &presentationBridge, &providerProfilesController] {
+                if (!presentationBridge.runtimeReady() || presentationBridge.isAuthenticated()) return;
+                const auto origins = providerProfilesController.publicRegistrationCandidates();
+                if (origins.isEmpty()) return;
+                NativeRegistrationStatusController::selectBeforeRuntime(
+                    origins, &application, [](QString) {}, 5000,
+                    [&providerProfilesController](QVariantList rows) {
+                        providerProfilesController.setRegistrationPreflight(rows);
+                    });
+            });
+    }
+    QTimer directoryRefreshTimer{&application};
+    directoryRefreshTimer.setInterval(240000);
+    QObject::connect(&directoryRefreshTimer, &QTimer::timeout, &providerProfilesController,
+        [&providerProfilesController] {
+            if (QGuiApplication::applicationState() == Qt::ApplicationActive)
+                providerProfilesController.refreshDirectory();
+        });
+    if (enableHypersnapDefault && !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest)
+        directoryRefreshTimer.start();
 
     const int smokeCheck = genycaster::ui::diagnostics::configureSmokeTests(
         application, engine, presentationBridge, isSmokeTest, isRuntimeSmokeTest);

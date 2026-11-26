@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,verify} from 'node:crypto';
-import {createNodeDirectory,nodes,probeNode} from './node_directory.mjs';
+import {createNodeDirectory,nodes,probeNode,loadDirectory} from './node_directory.mjs';
 const response=body=>new Response(JSON.stringify(body),{headers:{'content-type':'application/json'}});
 test('directory retains all requested candidates, isolates networks and signs exact bytes',async()=>{
  const {privateKey,publicKey}=generateKeyPairSync('ed25519');
@@ -36,4 +36,15 @@ test('setup eligibility rejects lagging shard zero even if profile works',async(
 test('unreachable and auth gated endpoints are not eligible',async()=>{
  assert.equal((await probeNode(nodes[1],{fetchImpl:async()=>{throw Error('DNS');}})).status,'unreachable');
  assert.equal((await probeNode(nodes[3],{fetchImpl:async()=>new Response('',{status:403})})).status,'auth_required');
+});
+
+test('operator directory supports additional read-only nodes and signed revisions',async()=>{
+ const {privateKey}=generateKeyPairSync('ed25519');
+ const directory={revision:2,nodes:[...nodes,{id:'directory-future',name:'Future',endpoint:'https://node.genycaster.xyz',network:'hypersnap',contract:'hypersnap-v2',enabled:true,priority:50}]};
+ const handle=createNodeDirectory({directory,privateKeyPem:privateKey.export({format:'pem',type:'pkcs8'})});
+ let output;const res={setHeader(){},writeHead(code){assert.equal(code,200);return this;},end(body){output=JSON.parse(body);}};
+ await handle({method:'GET'},res,new URL('https://genycaster.xyz/api/v1/nodes'));
+ assert.equal(output.revision,2);
+ assert.equal(output.nodes.length,5);
+ assert.deepEqual(output.nodes.at(-1).interfaces[0].access,['read']);
 });
