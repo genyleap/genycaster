@@ -278,7 +278,15 @@ export async function retrieveBrowserImage(rawUrl, {
         const location = response.headers.location;
         if (!location) { finish({ status: 502, error: 'image_redirect_missing' }); return; }
         try {
-          const next = new URL(location, target);
+          let next = new URL(location, target);
+          // GitHub may insert a /raw/refs/heads/ hop after a repository rename.
+          // Normalize only that exact public raster route to its raw CDN,
+          // retaining the existing redirect limit and DNS/MIME validation.
+          if (url.hostname === 'github.com' && next.origin === 'https://github.com'
+              && !next.username && !next.password && !next.search && !next.hash) {
+            const raw = next.pathname.match(/^\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/raw\/(refs\/heads\/[A-Za-z0-9_./-]+\.(?:png|jpe?g|webp|gif|avif))$/i);
+            if (raw) next = new URL('https://raw.githubusercontent.com/'+raw[1]+'/'+raw[2]);
+          }
           const signedStorage = !trustedStorageRedirect && redirects === 0
               && (url.hostname === managedMediaHost
                   || url.hostname === 'media-farcaster.genyleap.com')

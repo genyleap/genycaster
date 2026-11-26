@@ -226,6 +226,26 @@ test('same-origin Mini App GIF redirects remain bounded and re-check DNS', async
   });
   assert.equal(disallowed.status,502);
 });
+test('renamed GitHub raster repository redirects normalize only the raw file hop', async () => {
+  const {PassThrough}=await import('node:stream');
+  const seen=[];
+  const requester=(url,options,callback)=>{
+    seen.push(url.href);
+    const request=new PassThrough();request.end=()=>{
+      const response=new PassThrough();
+      if(seen.length===1){response.statusCode=301;response.headers={location:'https://github.com/new/Assets/blob/main/icon.png?raw=true'};}
+      else if(seen.length===2){response.statusCode=302;response.headers={location:'https://github.com/new/Assets/raw/refs/heads/main/icon.png'};}
+      else {response.statusCode=200;response.headers={};}
+      callback(response);response.end(seen.length===3?Buffer.from('89504e470d0a1a0a','hex'):undefined);
+    };return request;
+  };
+  const result=await retrieveBrowserImage('https://github.com/old/Assets/blob/main/icon.png?raw=true',{
+    requester,lookupHost:async()=>[{address:'8.8.8.8',family:4}],
+  });
+  assert.equal(result.status,200);
+  assert.equal(seen[2],'https://raw.githubusercontent.com/new/Assets/refs/heads/main/icon.png');
+});
+
 test('signed storage redirects reject unrelated keys, missing signatures, and unexpected origins', async () => {
   const { PassThrough } = await import('node:stream');
   const source='https://media-farcaster.genyleap.com/m/v1/2026/10/test.jpg';
