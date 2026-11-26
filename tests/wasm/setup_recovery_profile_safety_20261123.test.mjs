@@ -33,7 +33,7 @@ test('legal acknowledgment always starts empty and requires an explicit user cli
   assert.match(setup,/onVisibleChanged: \{\s*if \(visible\)\s*consentChecked = false/);
   assert.match(setup,/showRecovery = false\s*[\s\S]*?consentChecked = false/);
   assert.doesNotMatch(setup,/consentChecked = legalConsentAccepted/);
-  assert.match(setup,/if \(!reviewMode && !consentChecked && target > 2\)/);
+  assert.match(setup,/if \(!reviewMode && !accountAccessAllowed && target > 2\)/);
   assert.match(setup,/if \(currentStep === 2\) return consentChecked/);
   assert.match(setup,/if \(!consentChecked\) return/);
   assert.match(setup,/Accessible\.role: Accessible\.CheckBox/);

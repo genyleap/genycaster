@@ -6042,8 +6042,12 @@ Empresa | https://company.com</translation>
             <translation>OpenProof es la autoridad de identidad de tu cuenta; Farcaster es la identidad de protocolo vinculada obligatoria.</translation>
         </message>
         <message id="genycaster.setup.design_welcome_description">
-            <source>A native Farcaster client for the decentralized social web.</source>
-            <translation>Un mundo de conversaciones. En tu idioma.</translation>
+            <source>Explore the decentralized social web with Farcaster and HyperSnap.</source>
+            <translation>Explora la web social descentralizada con Farcaster y HyperSnap.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_legal_note">
+            <source>Before setting up your account, review our %1 and %2.</source>
+            <translation>Antes de configurar tu cuenta, consulta nuestros %1 y %2.</translation>
         </message>
         <message id="genycaster.setup.design_language_title">
             <source>Select your language</source>
@@ -6058,12 +6062,12 @@ Empresa | https://company.com</translation>
             <translation>Conoce cómo Genycaster utiliza la identidad, las publicaciones públicas, los archivos, las claves del dispositivo y los servicios externos.</translation>
         </message>
         <message id="genycaster.setup.design_account_title">
-            <source>Choose an account</source>
-            <translation>Cuenta</translation>
+            <source>Set up your account</source>
+            <translation>Configura tu cuenta</translation>
         </message>
         <message id="genycaster.setup.design_account_description">
-            <source>How do you want to continue with GenyCaster?</source>
-            <translation>Utiliza tu identidad de Farcaster o tu cuenta de Genyleap. Cada inicio de sesión se verifica de forma independiente; ninguno cambia su red de lectura.</translation>
+            <source>Create a new account or recover one you already own.</source>
+            <translation>Crea una cuenta nueva o recupera una que ya tienes.</translation>
         </message>
         <message id="genycaster.setup.browser_native_registration_notice">
             <source>Native wallet creation is not available in the browser. Use a verified identity provider or install the desktop app.</source>
@@ -6386,8 +6390,8 @@ Empresa | https://company.com</translation>
             <translation>Usar existente</translation>
         </message>
         <message id="genycaster.setup.design_existing_description">
-            <source>Connect your Genyleap or Farcaster identity.</source>
-            <translation>Conecta la identidad de Farcaster que ya posees.</translation>
+            <source>Recover your account or connect an existing supported identity.</source>
+            <translation>Recupera tu cuenta o conecta una identidad compatible existente.</translation>
         </message>
         <message id="genycaster.setup.design_signin_title">
             <source>Sign in</source>

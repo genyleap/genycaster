@@ -6041,8 +6041,12 @@ Company | https://company.com</source>
             <translation>OpenProof 是您的账户身份权威；Farcaster 是必须关联的协议身份。</translation>
         </message>
         <message id="genycaster.setup.design_welcome_description">
-            <source>A native Farcaster client for the decentralized social web.</source>
-            <translation>对话无界。用你的语言交流。</translation>
+            <source>Explore the decentralized social web with Farcaster and HyperSnap.</source>
+            <translation>通过 Farcaster 和 HyperSnap 探索去中心化社交网络。</translation>
+        </message>
+        <message id="genycaster.setup.welcome_legal_note">
+            <source>Before setting up your account, review our %1 and %2.</source>
+            <translation>设置账户前，请阅读我们的%1和%2。</translation>
         </message>
         <message id="genycaster.setup.design_language_title">
             <source>Select your language</source>
@@ -6057,12 +6061,12 @@ Company | https://company.com</source>
             <translation>了解 Genycaster 如何处理身份、公开帖子、媒体、设备密钥和关联服务。</translation>
         </message>
         <message id="genycaster.setup.design_account_title">
-            <source>Choose an account</source>
-            <translation>账户</translation>
+            <source>Set up your account</source>
+            <translation>设置你的账户</translation>
         </message>
         <message id="genycaster.setup.design_account_description">
-            <source>How do you want to continue with GenyCaster?</source>
-            <translation>使用 Farcaster 身份或 Genyleap 账户。每次登录都会独立验证，且不会改变读取网络。</translation>
+            <source>Create a new account or recover one you already own.</source>
+            <translation>创建新账户或恢复已有账户。</translation>
         </message>
         <message id="genycaster.setup.browser_native_registration_notice">
             <source>Native wallet creation is not available in the browser. Use a verified identity provider or install the desktop app.</source>
@@ -6385,8 +6389,8 @@ Company | https://company.com</source>
             <translation>使用现有资料</translation>
         </message>
         <message id="genycaster.setup.design_existing_description">
-            <source>Connect your Genyleap or Farcaster identity.</source>
-            <translation>连接你已有的 Farcaster 身份。</translation>
+            <source>Recover your account or connect an existing supported identity.</source>
+            <translation>恢复账户或关联现有的受支持身份。</translation>
         </message>
         <message id="genycaster.setup.design_signin_title">
             <source>Sign in</source>

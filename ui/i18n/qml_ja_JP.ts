@@ -6041,8 +6041,12 @@ Company | https://company.com</source>
             <translation>OpenProof がアカウント ID の基準です。Farcaster は必須のリンク済みプロトコル ID です。</translation>
         </message>
         <message id="genycaster.setup.design_welcome_description">
-            <source>A native Farcaster client for the decentralized social web.</source>
-            <translation>会話が広がる世界。あなたの言葉で。</translation>
+            <source>Explore the decentralized social web with Farcaster and HyperSnap.</source>
+            <translation>Farcaster と HyperSnap で分散型ソーシャルウェブを楽しみましょう。</translation>
+        </message>
+        <message id="genycaster.setup.welcome_legal_note">
+            <source>Before setting up your account, review our %1 and %2.</source>
+            <translation>アカウントの設定前に、%1 と %2 をご確認ください。</translation>
         </message>
         <message id="genycaster.setup.design_language_title">
             <source>Select your language</source>
@@ -6057,12 +6061,12 @@ Company | https://company.com</source>
             <translation>Genycaster が ID、公開投稿、メディア、端末の鍵、外部サービスをどう扱うか確認してください。</translation>
         </message>
         <message id="genycaster.setup.design_account_title">
-            <source>Choose an account</source>
-            <translation>アカウント</translation>
+            <source>Set up your account</source>
+            <translation>アカウントを設定</translation>
         </message>
         <message id="genycaster.setup.design_account_description">
-            <source>How do you want to continue with GenyCaster?</source>
-            <translation>Farcaster ID または Genyleap アカウントを使用してください。各サインインは個別に検証され、読み取りネットワークは変更されません。</translation>
+            <source>Create a new account or recover one you already own.</source>
+            <translation>新しいアカウントを作成するか、既存のアカウントを復元します。</translation>
         </message>
         <message id="genycaster.setup.browser_native_registration_notice">
             <source>Native wallet creation is not available in the browser. Use a verified identity provider or install the desktop app.</source>
@@ -6385,8 +6389,8 @@ Company | https://company.com</source>
             <translation>既存のものを使用</translation>
         </message>
         <message id="genycaster.setup.design_existing_description">
-            <source>Connect your Genyleap or Farcaster identity.</source>
-            <translation>所有している Farcaster ID を連携してください。</translation>
+            <source>Recover your account or connect an existing supported identity.</source>
+            <translation>アカウントを復元するか、対応する既存の ID を連携します。</translation>
         </message>
         <message id="genycaster.setup.design_signin_title">
             <source>Sign in</source>

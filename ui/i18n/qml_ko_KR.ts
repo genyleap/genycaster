@@ -6041,8 +6041,12 @@ Company | https://company.com</source>
             <translation>OpenProof가 계정 ID의 기준이며, Farcaster는 필수로 연결된 프로토콜 ID입니다.</translation>
         </message>
         <message id="genycaster.setup.design_welcome_description">
-            <source>A native Farcaster client for the decentralized social web.</source>
-            <translation>대화로 이어지는 세상. 당신의 언어로.</translation>
+            <source>Explore the decentralized social web with Farcaster and HyperSnap.</source>
+            <translation>Farcaster와 HyperSnap으로 탈중앙화 소셜 웹을 경험하세요.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_legal_note">
+            <source>Before setting up your account, review our %1 and %2.</source>
+            <translation>계정을 설정하기 전에 %1 및 %2를 확인하세요.</translation>
         </message>
         <message id="genycaster.setup.design_language_title">
             <source>Select your language</source>
@@ -6057,12 +6061,12 @@ Company | https://company.com</source>
             <translation>Genycaster가 신원, 공개 게시물, 미디어, 기기 키 및 연결 서비스를 처리하는 방법을 확인하세요.</translation>
         </message>
         <message id="genycaster.setup.design_account_title">
-            <source>Choose an account</source>
-            <translation>계정</translation>
+            <source>Set up your account</source>
+            <translation>계정 설정</translation>
         </message>
         <message id="genycaster.setup.design_account_description">
-            <source>How do you want to continue with GenyCaster?</source>
-            <translation>Farcaster 신원 또는 Genyleap 계정을 사용하세요. 각 로그인은 독립적으로 검증되며 읽기 네트워크는 변경되지 않습니다.</translation>
+            <source>Create a new account or recover one you already own.</source>
+            <translation>새 계정을 만들거나 기존 계정을 복구하세요.</translation>
         </message>
         <message id="genycaster.setup.browser_native_registration_notice">
             <source>Native wallet creation is not available in the browser. Use a verified identity provider or install the desktop app.</source>
@@ -6385,8 +6389,8 @@ Company | https://company.com</source>
             <translation>기존 프로필 사용</translation>
         </message>
         <message id="genycaster.setup.design_existing_description">
-            <source>Connect your Genyleap or Farcaster identity.</source>
-            <translation>이미 소유한 Farcaster 신원을 연결하세요.</translation>
+            <source>Recover your account or connect an existing supported identity.</source>
+            <translation>계정을 복구하거나 지원되는 기존 ID를 연결하세요.</translation>
         </message>
         <message id="genycaster.setup.design_signin_title">
             <source>Sign in</source>

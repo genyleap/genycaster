@@ -53,7 +53,8 @@ Item {
         repeat: false
         onTriggered: {
             if (root.pendingStep < 0) return
-            root.currentStep = root.pendingStep
+            root.currentStep = !root.reviewMode && !root.accountAccessAllowed && root.pendingStep > 2
+                ? 2 : root.pendingStep
             root.highestReachedStep = Math.max(root.highestReachedStep, root.currentStep)
             stageScroll.contentY = 0
             root.pendingStep = -1
@@ -151,7 +152,7 @@ Item {
     onCurrentStepChanged: Qt.callLater(root.resumeNativePendingChecks)
     onChoosingRegistrationProviderChanged: Qt.callLater(root.resumeNativePendingChecks)
     function startNativeAccountCreation() {
-        if (nativeCreationRequested || currentStep !== 3
+        if (!accountAccessAllowed || nativeCreationRequested || currentStep !== 3
             || !choosingRegistrationProvider || registrationProviderId !== "hypersnap-v2"
             || !nativeCustodyWallet.backupVerified || !registrationNodeUsable
             || nativeRegistrationStatus.accountLookupBusy
@@ -298,6 +299,9 @@ Item {
     }
     property bool showAdvanced: false
     property bool consentChecked: false
+    // Current ceremony acceptance AND the bridge's recorded acceptance.
+    // A stored acceptance alone never checks the box in a new ceremony.
+    readonly property bool accountAccessAllowed: consentChecked && legalConsentAccepted
     readonly property bool phone: Qt.platform.os === "android"
                                   || Qt.platform.os === "ios" || width < 680
     readonly property int setupGutter: phone ? 24 : Theme.scaleUi(32)
@@ -348,7 +352,7 @@ Item {
         }
     }
     function startBrowserRegistration(voucher, username) {
-        if (!browserReadOnly || !runtimeReady || !legalConsentAccepted || authenticationInProgress || browserCeremonyBusy || (browserCeremonyLocked && sponsorPhase !== "reserved") || !nativeCustodyWallet.backupVerified)
+        if (!browserReadOnly || !runtimeReady || !accountAccessAllowed || authenticationInProgress || browserCeremonyBusy || (browserCeremonyLocked && sponsorPhase !== "reserved") || !nativeCustodyWallet.backupVerified)
             return false
         if (!nativeCustodyWallet.prepareBrowserRegistration(registrationProviderId, voucher, username)) {
             registrationError = qsTrId("genycaster.setup.recovery_failed_retry")
@@ -648,7 +652,7 @@ Item {
     }
     function switchStep(step) {
         let target = Math.max(0, Math.min(7, step))
-        if (!reviewMode && !consentChecked && target > 2)
+        if (!reviewMode && !accountAccessAllowed && target > 2)
             target = 2
         if (!reviewMode && !authenticated && target > 5)
             target = 5
@@ -686,7 +690,14 @@ Item {
             if (!consentChecked) return
             if (!legalConsentAccepted) acceptLegalConsent(true, true, true)
             // Legal acknowledgement is persisted by the bridge before leaving.
-            Qt.callLater(() => switchStep(3))
+            Qt.callLater(() => {
+                if (accountAccessAllowed || reviewMode)
+                    switchStep(3)
+            })
+            return
+        }
+        if (currentStep > 2 && !reviewMode && !accountAccessAllowed) {
+            switchStep(2)
             return
         }
         if (currentStep === 3) {
@@ -780,6 +791,7 @@ Item {
                 && (recoverySubmitPending || authenticationInProgress))
             return false
         if (currentStep === 2) return consentChecked
+        if (currentStep > 2 && !reviewMode && !accountAccessAllowed) return false
         if (currentStep === 3) return accountIntent === "existing"
 
         if (currentStep === 4) return authenticated
@@ -1680,7 +1692,7 @@ Item {
             // stages and desktop welcome retain a single fixed action row.
             height: (root.stackWelcomeActions
                      ? stageAction.height + Theme.space2 + setupWelcomeNativeApps.height
-                     : stageAction.height) + Theme.space3 * 2
+                     : stageAction.height) + Theme.space3 * 2 + setupFooterContent.legalNoteSpace
             Rectangle {
                 anchors.fill: parent
                 color: Theme.background
@@ -1708,6 +1720,8 @@ Item {
                 anchors.bottomMargin: Theme.space3
                 readonly property real welcomeRowWidth: root.phone ? width
                     : Math.min(root.welcomeActionsWidth, width)
+                readonly property real legalNoteSpace: welcomeLegalNote.visible
+                    ? welcomeLegalNote.implicitHeight + Theme.space2 : 0
 
                 SetupPrimaryButton {
                     id: stageAction
@@ -1722,7 +1736,7 @@ Item {
                     height: root.welcomeNativeAppsVisible
                             ? Math.max(implicitHeight, setupWelcomeNativeApps.implicitHeight)
                             : implicitHeight
-                    y: root.stackWelcomeActions ? 0 : (setupFooterContent.height - height) / 2
+                    y: root.stackWelcomeActions ? 0 : (setupFooterContent.height - setupFooterContent.legalNoteSpace - height) / 2
                     text: root.actionText()
                     neutralPrimary: false
                     enabled: !root.stageTransitioning && root.actionEnabled()
@@ -1756,6 +1770,28 @@ Item {
                     elevated: false
                     focusPolicy: Qt.StrongFocus
                     onClicked: root.nativeAppDownloadsRequested()
+                }
+
+                Text {
+                    id: welcomeLegalNote
+                    objectName: "setupWelcomeLegalNote"
+                    visible: root.currentStep === 0 && !root.reviewMode
+                    anchors.bottom: parent.bottom
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Math.min(parent.width, Theme.scaleUi(560))
+                    textFormat: Text.RichText
+                    text: qsTrId("genycaster.setup.welcome_legal_note")
+                        .arg('<a href="terms">' + qsTrId("genycaster.setup.terms_title") + '</a>')
+                        .arg('<a href="privacy">' + qsTrId("genycaster.setup.privacy_title") + '</a>')
+                    color: Theme.inkMuted
+                    linkColor: Theme.accent
+                    font.pixelSize: Theme.typeCaptionSize
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    Accessible.name: qsTrId("genycaster.setup.welcome_legal_note")
+                        .arg(qsTrId("genycaster.setup.terms_title"))
+                        .arg(qsTrId("genycaster.setup.privacy_title"))
+                    onLinkActivated: link => root.openLegalDocument(link)
                 }
             }
         }
@@ -1996,6 +2032,7 @@ Item {
     Component {
         id: accountStage
         ColumnLayout {
+            enabled: root.accountAccessAllowed
             spacing: Theme.space3
             SetupPageHeader {
                 storyboardStyle: true
@@ -2076,12 +2113,15 @@ Item {
                     Layout.fillWidth: true
                     onboardingStyle: true
                     objectName: "setupCreateAccount"
-                    accountShowcase: true
+                    enabled: root.accountAccessAllowed
+                    accountShowcase: !root.phone
+                    wrapTitle: true
                     title: qsTrId("genycaster.setup.design_create_account")
                     subtitle: qsTrId("genycaster.setup.new_profile_body")
                     iconGlyph: Theme.iconUser
                     showChevron: true
                     onClicked: {
+                        if (!root.accountAccessAllowed) return
                         root.accountIntent = "new"
                         if (!nativeRegistrationPublisher.pending && !neynarRegistration.pending
                             && neynarRegistration.phase !== "reserved") {
@@ -2098,17 +2138,20 @@ Item {
                 SetupActionCard {
                     Layout.fillWidth: true
                     onboardingStyle: true
-                    accountShowcase: true
+                    accountShowcase: !root.phone
+                    wrapTitle: true
                     title: qsTrId("genycaster.setup.design_existing_account")
                     subtitle: qsTrId("genycaster.setup.design_existing_description")
                     iconGlyph: Theme.iconLink
                     showChevron: true
+                    objectName: "setupUseExistingAccount"
                     // Availability of new-identity registration (including
                     // HyperSnap shard synchronization) never gates recovery.
                     // A previously submitted write must retain its custody
                     // state and deduplication guard while the user signs in.
-                    enabled: true
+                    enabled: root.accountAccessAllowed
                     onClicked: {
+                        if (!root.accountAccessAllowed) return
                         if (!nativeRegistrationPublisher.pending
                                 && !neynarRegistration.pending
                                 && neynarRegistration.phase !== "reserved") {
@@ -3171,6 +3214,7 @@ Item {
     Component {
         id: signInStage
         ColumnLayout {
+            enabled: root.accountAccessAllowed
             spacing: Theme.space3
             SetupPageHeader {
                 storyboardStyle: true

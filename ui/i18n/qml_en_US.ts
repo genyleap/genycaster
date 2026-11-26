@@ -6066,8 +6066,12 @@ Company | https://company.com</translation>
             <translation>OpenProof owns your account identity; Farcaster is the required linked protocol identity.</translation>
         </message>
         <message id="genycaster.setup.design_welcome_description">
-            <source>A native Farcaster client for the decentralized social web.</source>
-            <translation>A native Farcaster client for the decentralized social web.</translation>
+            <source>Explore the decentralized social web with Farcaster and HyperSnap.</source>
+            <translation>Explore the decentralized social web with Farcaster and HyperSnap.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_legal_note">
+            <source>Before setting up your account, review our %1 and %2.</source>
+            <translation>Before setting up your account, review our %1 and %2.</translation>
         </message>
         <message id="genycaster.setup.design_language_title">
             <source>Select your language</source>
@@ -6082,12 +6086,12 @@ Company | https://company.com</translation>
             <translation>Review how Genycaster handles identity, public posts, media, on-device keys and connected services.</translation>
         </message>
         <message id="genycaster.setup.design_account_title">
-            <source>Choose an account</source>
-            <translation>Choose an account</translation>
+            <source>Set up your account</source>
+            <translation>Set up your account</translation>
         </message>
         <message id="genycaster.setup.design_account_description">
-            <source>How do you want to continue with GenyCaster?</source>
-            <translation>How do you want to continue with GenyCaster?</translation>
+            <source>Create a new account or recover one you already own.</source>
+            <translation>Create a new account or recover one you already own.</translation>
         </message>
         <message id="genycaster.setup.browser_native_registration_notice">
             <source>Native wallet creation is not available in the browser. Use a verified identity provider or install the desktop app.</source>
@@ -6410,8 +6414,8 @@ Company | https://company.com</translation>
             <translation>Use existing account</translation>
         </message>
         <message id="genycaster.setup.design_existing_description">
-            <source>Connect your Genyleap or Farcaster identity.</source>
-            <translation>Connect your Genyleap or Farcaster identity.</translation>
+            <source>Recover your account or connect an existing supported identity.</source>
+            <translation>Recover your account or connect an existing supported identity.</translation>
         </message>
         <message id="genycaster.setup.design_signin_title">
             <source>Sign in</source>

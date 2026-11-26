@@ -488,14 +488,14 @@ test('desktop account keeps editorial cards while enabling registration provider
   const s=source('ui/components/setup/InitialSetup.qml');
   const card=source('ui/components/setup/SetupActionCard.qml');
   const account=s.slice(s.indexOf('id: accountStage'),s.indexOf('id: signInStage'));
-  assert.match(account,/accountShowcase: true/);
+  assert.match(account,/accountShowcase: !root.phone/);
   assert.match(account,/objectName: "setupCreateAccount"/);
   assert.match(account,/iconGlyph: Theme\.iconUser/);
   assert.match(account,/root\.choosingRegistrationProvider = true/);
   assert.match(account,/objectName: "setupRegisterHyperSnap"/);
   assert.match(account,/objectName: "setupRegisterNeynar"/);
   assert.doesNotMatch(account,/setupEmphasis: true/);
-  assert.match(account,/enabled: true\s+onClicked: \{\s*if \(!nativeRegistrationPublisher\.pending/);
+  assert.match(account,/enabled: root\.accountAccessAllowed\s+onClicked: \{\s*if \(!root\.accountAccessAllowed\) return\s*if \(!nativeRegistrationPublisher\.pending/);
   assert.match(account,/!neynarRegistration\.pending/);
   assert.match(account,/nativeCustodyWallet\.discard\(\)[\s\S]*?root\.accountIntent = "existing"/);
   assert.match(account,/iconGlyph: Theme\.iconLink/);

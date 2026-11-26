@@ -1247,6 +1247,7 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.acknowledge_privacy");
     //% "I agree to the Genycaster Terms of Service and acknowledge the Privacy Policy."
     (void)qtTrId("genycaster.setup.single_legal_consent");
+    (void)qtTrId("genycaster.setup.welcome_legal_note");
     //% "Agree & Continue"
     (void)qtTrId("genycaster.setup.agree_continue");
     //% "Back"

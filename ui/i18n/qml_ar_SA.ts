@@ -6041,8 +6041,12 @@ Company | https://company.com</source>
             <translation>OpenProof هو المرجع لهوية حسابك؛ وFarcaster هو هوية البروتوكول المرتبطة المطلوبة.</translation>
         </message>
         <message id="genycaster.setup.design_welcome_description">
-            <source>A native Farcaster client for the decentralized social web.</source>
-            <translation>عميل فاركاستر أصلي للويب الاجتماعي اللامركزي.</translation>
+            <source>Explore the decentralized social web with Farcaster and HyperSnap.</source>
+            <translation>استكشف الويب الاجتماعي اللامركزي مع Farcaster وHyperSnap.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_legal_note">
+            <source>Before setting up your account, review our %1 and %2.</source>
+            <translation>قبل إعداد حسابك، راجع %1 و%2.</translation>
         </message>
         <message id="genycaster.setup.design_language_title">
             <source>Select your language</source>
@@ -6057,12 +6061,12 @@ Company | https://company.com</source>
             <translation>راجع كيف يتعامل Genycaster مع الهوية والمنشورات العامة والوسائط ومفاتيح الجهاز والخدمات المتصلة.</translation>
         </message>
         <message id="genycaster.setup.design_account_title">
-            <source>Choose an account</source>
-            <translation>اختر حسابًا</translation>
+            <source>Set up your account</source>
+            <translation>إعداد حسابك</translation>
         </message>
         <message id="genycaster.setup.design_account_description">
-            <source>How do you want to continue with GenyCaster?</source>
-            <translation>كيف تريد المتابعة مع جني‌كاستر؟</translation>
+            <source>Create a new account or recover one you already own.</source>
+            <translation>أنشئ حسابًا جديدًا أو استعد حسابًا تملكه بالفعل.</translation>
         </message>
         <message id="genycaster.setup.browser_native_registration_notice">
             <source>Native wallet creation is not available in the browser. Use a verified identity provider or install the desktop app.</source>
@@ -6385,8 +6389,8 @@ Company | https://company.com</source>
             <translation>استخدام حساب موجود</translation>
         </message>
         <message id="genycaster.setup.design_existing_description">
-            <source>Connect your Genyleap or Farcaster identity.</source>
-            <translation>اربط هويتك في جني‌ليب أو فاركاستر.</translation>
+            <source>Recover your account or connect an existing supported identity.</source>
+            <translation>استعد حسابك أو اربط هوية موجودة مدعومة.</translation>
         </message>
         <message id="genycaster.setup.design_signin_title">
             <source>Sign in</source>
