@@ -102,6 +102,7 @@ Popup {
         gallery.currentIndex = root.requestedIndex
         gallery.forceActiveFocus()
     }
+    onClosed: if (!root.visible) root.items = []
 
     contentItem: Item {
         focus: true
@@ -135,7 +136,7 @@ Popup {
                     Loader {
                         id: mediaPageLoader
                         anchors.fill: parent
-                        active: Math.abs(mediaPage.index - gallery.currentIndex) <= 1
+                        active: Math.abs(mediaPage.index - gallery.currentIndex) <= 1 && root.visible
 
                         sourceComponent: Component {
                             Item {
@@ -153,9 +154,18 @@ Popup {
                                         ? root.compatibilityStickerUrl(mediaPage.modelData)
                                         : dataStorage.remoteImageSource(root.sourceFor(mediaPage.modelData),
                                               String(mediaPage.modelData.mediaCategory || "photos"),true)
-                                    readonly property int decodeEdge: Math.max(1, Math.round(
-                                        Math.max(width, height) * Screen.devicePixelRatio
-                                        * renderingController.mediaDecodeScale))
+                                    readonly property int requestedDecodeEdge: Math.min(
+                                        Qt.platform.os === "android" || Qt.platform.os === "ios" || Qt.platform.os === "wasm" ? 2048 : 4096,
+                                        Math.max(256, Math.ceil(Math.max(width, height) * Screen.devicePixelRatio
+                                        * renderingController.mediaDecodeScale / 256) * 256))
+                                    property int decodeEdge: 256
+                                    Component.onCompleted: decodeEdge = requestedDecodeEdge
+                                    onRequestedDecodeEdgeChanged: resizeSettle.restart()
+                                    Timer {
+                                        id: resizeSettle
+                                        interval: 150
+                                        onTriggered: fullImage.decodeEdge = fullImage.requestedDecodeEdge
+                                    }
                                     // Bound the decoded texture to the physical viewport while
                                     // preserving source aspect in the provider. Qt documents images
                                     // as one of the largest QML memory consumers, so full-resolution

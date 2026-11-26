@@ -2093,6 +2093,14 @@ int main(int argc, char** argv)
         playControl->forceActiveFocus();
         QTest::keyClick(&window, Qt::Key_Space);
         expect(QTest::qWaitFor([&] { return flag(*video, "playerReady"); }), "new explicit Play recreates one session");
+        const qreal previousY = videoItem->y();
+        videoItem->setY(previousY + 100000);
+        expect(QTest::qWaitFor([&] { return video->findChildren<QMediaPlayer*>().empty(); }),
+            "off-viewport delegate releases its session even while Item.visible is true");
+        videoItem->setY(previousY);
+        playControl->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
+        expect(QTest::qWaitFor([&] { return flag(*video, "playerReady"); }), "returning into viewport supports explicit Play");
         video->setProperty("embed", QVariantMap{
             {QStringLiteral("url"), QStringLiteral("https://video.invalid/recycled.mp4")}});
         expect(!flag(*video, "playbackRequested"), "delegate reuse cancels previous playback intent");

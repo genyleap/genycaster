@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include <QDebug>
 #include <QImage>
+#include <QHash>
 #include <QImageReader>
 #include <QMetaObject>
 #include <QQuickTextureFactory>
@@ -682,7 +683,49 @@ class RemoteImageResponse;
 // URL failure merely because it arrived between a cancelled check and cache write.
 enum class FailureCommitState : std::uint8_t { Active, Cancelled, Committed };
 
+struct ResponseSubscriber final {
+    std::mutex mutex{};
+    RemoteImageResponse* response{};
+};
+
+void deliverSubscriber(const std::shared_ptr<ResponseSubscriber>& subscriber, QImage image);
+
+// One policy-compatible request can serve several QML consumers. The job owns
+// transport cancellation; individual subscribers own their response lifetime.
 struct ResponseControl final {
+    [[nodiscard]] bool attach(const std::shared_ptr<ResponseSubscriber>& subscriber)
+    {
+        const std::scoped_lock lock{mutex};
+        if (terminal || abandoned) return false;
+        subscribers.push_back(subscriber);
+        return true;
+    }
+
+    [[nodiscard]] bool detach(const std::shared_ptr<ResponseSubscriber>& subscriber)
+    {
+        const std::scoped_lock lock{mutex};
+        std::erase(subscribers, subscriber);
+        if (!terminal && !abandoned && subscribers.empty()) {
+            abandoned = true;
+            return true;
+        }
+        return false;
+    }
+
+    [[nodiscard]] bool joinable()
+    {
+        const std::scoped_lock lock{mutex};
+        return !terminal && !abandoned;
+    }
+
+    [[nodiscard]] std::vector<std::shared_ptr<ResponseSubscriber>> finish()
+    {
+        const std::scoped_lock lock{mutex};
+        if (terminal) return {};
+        terminal = true;
+        return std::exchange(subscribers, std::vector<std::shared_ptr<ResponseSubscriber>>{});
+    }
+
     [[nodiscard]] bool commitFailure() noexcept
     {
         FailureCommitState expected = FailureCommitState::Active;
@@ -712,11 +755,17 @@ struct ResponseControl final {
         operation.cancel();
     }
 
-    void setOperation(farcaster::transport::async_http::Operation operation)
+    [[nodiscard]] std::uint64_t beginOperation()
+    {
+        const std::scoped_lock lock{operationMutex};
+        return ++operationGeneration;
+    }
+
+    void setOperation(std::uint64_t generation, farcaster::transport::async_http::Operation operation)
     {
         {
             const std::scoped_lock lock{operationMutex};
-            if (!cancelled.load(std::memory_order_acquire)) {
+            if (generation == operationGeneration && !cancelled.load(std::memory_order_acquire)) {
                 activeOperation = std::move(operation);
                 return;
             }
@@ -725,11 +774,14 @@ struct ResponseControl final {
     }
 
     std::mutex operationMutex{};
+    std::uint64_t operationGeneration{};
     farcaster::transport::async_http::Operation activeOperation{};
     std::atomic_bool cancelled{false};
     std::atomic<FailureCommitState> failureState{FailureCommitState::Active};
     std::mutex mutex{};
-    RemoteImageResponse* response{};
+    bool terminal{false};
+    bool abandoned{false};
+    std::vector<std::shared_ptr<ResponseSubscriber>> subscribers{};
 };
 
 class RemoteImageProvider::Impl final : public std::enable_shared_from_this<RemoteImageProvider::Impl> {
@@ -768,12 +820,17 @@ public:
     Impl(const Impl&) = delete;
     auto operator=(const Impl&) -> Impl& = delete;
 
+    [[nodiscard]] std::shared_ptr<ResponseControl> subscribe(
+        const std::shared_ptr<ResponseSubscriber>& subscriber,
+        RemoteRequestDescriptor descriptor,
+        QSize requestedSize);
+
+private:
     void start(
         std::shared_ptr<ResponseControl> control,
         RemoteRequestDescriptor descriptor,
         QSize requestedSize);
 
-private:
     void startNetwork(
         std::shared_ptr<ResponseControl> control,
         QString urlText,
@@ -798,6 +855,8 @@ private:
         bool gatewayFallbackAttempt,
         unsigned int queueRetryAttempt = 0U);
 
+    std::mutex m_jobsMutex{};
+    QHash<QString, std::weak_ptr<ResponseControl>> m_jobs{};
     std::shared_ptr<storage_policy::RuntimeState> m_storageState{};
     std::unique_ptr<farcaster::transport::async_http::IAsyncHttpTransport> m_transport{};
     farcaster::execution::weighted_thread_pool::WeightedThreadPoolExecutor m_decodeExecutor;
@@ -810,13 +869,13 @@ public:
         QString id,
         QSize requestedSize)
         : m_impl(std::move(impl)),
-          m_control(std::make_shared<ResponseControl>())
+          m_subscriber(std::make_shared<ResponseSubscriber>())
     {
         {
-            const std::scoped_lock lock{m_control->mutex};
-            m_control->response = this;
+            const std::scoped_lock lock{m_subscriber->mutex};
+            m_subscriber->response = this;
         }
-        m_impl->start(m_control, decodeRemoteRequest(id), requestedSize);
+        m_control = m_impl->subscribe(m_subscriber, decodeRemoteRequest(id), requestedSize);
     }
 
     ~RemoteImageResponse() override
@@ -825,9 +884,9 @@ public:
         // transport. A worker may finish concurrently with destruction; once the
         // response is detached, deliverResponse() becomes a no-op for this request.
         {
-            const std::scoped_lock lock{m_control->mutex};
-            if (m_control->response == this) {
-                m_control->response = nullptr;
+            const std::scoped_lock lock{m_subscriber->mutex};
+            if (m_subscriber->response == this) {
+                m_subscriber->response = nullptr;
             }
         }
         cancel();
@@ -841,11 +900,11 @@ public:
 
     void cancel() override
     {
-        // This control owns one request/consumer. Stop abandoned network and
-        // queued decode work. An already-running successful decode may still
-        // warm the bounded cache; no stale response can publish a texture.
-        m_cancelled.store(true, std::memory_order_release);
-        m_control->cancel();
+        if (m_cancelled.exchange(true, std::memory_order_acq_rel)) return;
+        // Detaching one consumer must not cancel another visible consumer.
+        // Finish this response independently; only the last detach aborts I/O.
+        if (m_control && m_control->detach(m_subscriber)) m_control->cancel();
+        deliverSubscriber(m_subscriber, QImage{});
     }
 
     void complete(QImage image)
@@ -860,13 +919,14 @@ public:
                 m_image = transparentFailureImage(nullptr);
             }
         }
-        // Qt requires a cancelled QQuickImageResponse to finish only after the
-        // provider-side work is actually terminal so the engine can release it.
+        // Each subscriber is terminal independently. The shared job never
+        // retains or calls a detached QQuickImageResponse after completion.
         Q_EMIT finished();
     }
 
 private:
     std::shared_ptr<RemoteImageProvider::Impl> m_impl;
+    std::shared_ptr<ResponseSubscriber> m_subscriber;
     std::shared_ptr<ResponseControl> m_control;
     mutable std::mutex m_resultMutex{};
     std::atomic_bool m_cancelled{false};
@@ -874,15 +934,13 @@ private:
     QImage m_image{};
 };
 
-void deliverResponse(
-    const std::shared_ptr<ResponseControl>& control,
+void deliverSubscriber(
+    const std::shared_ptr<ResponseSubscriber>& subscriber,
     QImage image)
 {
-    if (!control) {
-        return;
-    }
-    const std::scoped_lock lock{control->mutex};
-    RemoteImageResponse* const response = control->response;
+    if (!subscriber) return;
+    const std::scoped_lock lock{subscriber->mutex};
+    RemoteImageResponse* const response = subscriber->response;
     if (response == nullptr) {
         return;
     }
@@ -894,15 +952,56 @@ void deliverResponse(
         Qt::QueuedConnection);
 }
 
+void deliverResponse(const std::shared_ptr<ResponseControl>& control, QImage image)
+{
+    if (!control) return;
+    // QImage is implicitly shared; subscribers do not get independent decode
+    // buffers. Their scene-graph texture ownership remains Qt's responsibility.
+    for (const auto& subscriber : control->finish())
+        deliverSubscriber(subscriber, image);
+}
+
 void setResponseOperation(
     const std::shared_ptr<ResponseControl>& control,
+    std::uint64_t generation,
     farcaster::transport::async_http::Operation operation)
 {
     if (!control) {
         operation.cancel();
         return;
     }
-    control->setOperation(std::move(operation));
+    control->setOperation(generation, std::move(operation));
+}
+
+std::shared_ptr<ResponseControl> RemoteImageProvider::Impl::subscribe(
+    const std::shared_ptr<ResponseSubscriber>& subscriber,
+    RemoteRequestDescriptor descriptor,
+    QSize requestedSize)
+{
+    // Never coalesce across category, manual/automatic policy or network class.
+    const auto policy = m_storageState ? m_storageState->snapshot() : storage_policy::PolicySnapshot{};
+    const QString jobKey = imageCacheKey(descriptor.urlText, canonicalRequestedSize(requestedSize))
+        + QLatin1Char{'/'} + QString::number(static_cast<int>(descriptor.category))
+        + QLatin1Char{'/'} + QString::number(static_cast<int>(policy.networkClass))
+        + (descriptor.manual ? QStringLiteral("/manual") : QStringLiteral("/auto"));
+    std::shared_ptr<ResponseControl> control;
+    {
+        const std::scoped_lock lock{m_jobsMutex};
+        if (m_jobs.size() >= 128) {
+            for (auto it = m_jobs.begin(); it != m_jobs.end();) {
+                const auto existing = it.value().lock();
+                if (!existing || !existing->joinable()) it = m_jobs.erase(it);
+                else ++it;
+            }
+        }
+        if (const auto existing = m_jobs.value(jobKey).lock(); existing && existing->attach(subscriber))
+            return existing;
+        control = std::make_shared<ResponseControl>();
+        static_cast<void>(control->attach(subscriber));
+        m_jobs.insert(jobKey, control);
+    }
+    start(control, std::move(descriptor), requestedSize);
+    return control;
 }
 
 void RemoteImageProvider::Impl::start(
@@ -1049,6 +1148,7 @@ void RemoteImageProvider::Impl::startNetwork(
     request.maximumAttempts = 2U;
 
     const auto self = shared_from_this();
+    const auto operationGeneration = control->beginOperation();
     auto operation = m_transport->start(
         std::move(request),
         [self, control, urlText, category, manual, networkAtStart, decodeRequest, cacheKey,
@@ -1145,7 +1245,7 @@ void RemoteImageProvider::Impl::startNetwork(
         deliverResponse(control, transparentFailureImage(nullptr));
         return;
     }
-    setResponseOperation(control, std::move(*operation));
+    setResponseOperation(control, operationGeneration, std::move(*operation));
 }
 
 void RemoteImageProvider::Impl::decodeNetworkResponse(

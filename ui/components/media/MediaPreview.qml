@@ -66,7 +66,7 @@ Item {
     clip: false
 
     function releasePlayback() {
-        resourceScope.releaseReservation()
+        if (resourceScope) resourceScope.releaseReservation()
         root.userPlayback = false
     }
     Component.onDestruction: root.releasePlayback()

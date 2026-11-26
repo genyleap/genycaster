@@ -46,5 +46,16 @@ test('abandoned image request cancels its transport without holding the response
     const image = read('ui/app/media/remote_image.cpp');
     assert.match(image,/m_control->cancel\(\)/);
     assert.match(image,/operation = std::move\(activeOperation\);\s*\}\s*operation\.cancel\(\)/);
-    assert.match(image,/control->setOperation\(std::move\(operation\)\)/);
+    assert.match(image,/control->setOperation\(generation, std::move\(operation\)\)/);
+    assert.match(image,/m_control->detach\(m_subscriber\)\) m_control->cancel\(\)/);
+    assert.match(image,/existing && existing->attach\(subscriber\)/);
+    assert.match(image,/generation == operationGeneration/);
+});
+
+test('closed gallery and non-GIF tiles release optional resources', () => {
+    const gallery = media('MediaGallery');
+    assert.match(gallery,/active: Math.abs\(mediaPage.index - gallery.currentIndex\) <= 1 && root.visible/);
+    assert.match(gallery,/onClosed: if \(!root.visible\) root.items = \[\]/);
+    const image = read('ui/components/visual/SuperellipseImage.qml');
+    assert.match(image,/id: gifLoader[\s\S]*?active: root.allowAnimation[\s\S]*?root.animatedGifUrl.length > 0/);
 });

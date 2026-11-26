@@ -655,6 +655,7 @@ Superellipse {
 
                 SuperellipseImage {
                     id: miniAppPoster
+                    allowAnimation: root.animatedPosterUrl.length === 0
                     onLoadFailedChanged: {
                         if (loadFailed && root.previewSource.length > 0)
                             root.miniAppArtworkUnavailable = true
@@ -682,9 +683,13 @@ Superellipse {
                 // Qt's ordinary image provider renders only the first GIF
                 // frame. Keep an actual AnimatedImage for the approved GIF
                 // splash, with the normal poster as a network fallback.
-                AnimatedImage {
+                Loader {
                     id: miniAppAnimation
                     z: 2
+                    anchors.fill: parent
+                    active: root.animatedPosterUrl.length > 0 && !Theme.powerSave
+                    visible: item !== null && item.status === AnimatedImage.Ready
+                    sourceComponent: AnimatedImage {
                     anchors.fill: parent
                     MediaResourceScope { id: animationScope; owner: miniAppPosterFrame }
                     source: animationScope.eligible && !Theme.powerSave ? root.animatedPosterUrl : ""
@@ -695,6 +700,7 @@ Superellipse {
                     visible: root.animatedPosterUrl.length > 0 && status === AnimatedImage.Ready
                     playing: visible && animationScope.eligible && !root.scrollMoving && !Theme.powerSave
                     smooth: true
+                    }
                 }
 
                 ColumnLayout {

@@ -66,12 +66,12 @@ Item {
     signal openRequested(string url)
 
     function releasePlayback() {
-        if (root.browserPlayback) {
+        if (root.browserPlayback && resourceScope) {
             root.browserPlayback = false
             const session = resourceScope.coordinator()
             if (session) session.closeBrowserHls()
         }
-        resourceScope.releaseReservation()
+        if (resourceScope) resourceScope.releaseReservation()
         root.playbackRequested = false
     }
     Component.onDestruction: root.releasePlayback()
@@ -114,8 +114,6 @@ Item {
         root.releasePlayback()
         aspectReservationTimer.restart()
     }
-
-    onVideoRenditionsChanged: root.releasePlayback()
 
     function reserveMediaAspect() {
         root.reservedMediaAspect = root.mediaAspect > 0 ? root.mediaAspect : 16 / 9

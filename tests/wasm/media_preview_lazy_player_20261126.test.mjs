@@ -11,7 +11,7 @@ test('still images and idle previews never construct a native video player',()=>
  assert.doesNotMatch(preview,/\bid: videoCore\b/);
 });
 test('video playback starts once after explicit interaction, then uses the existing player',()=>{
- assert.match(preview,/onLoaded: \{\s*if \(root.userPlayback && root.isVideo && root.hasSource && item\)\s*item.resumePlayback\(\)/);
+ assert.match(preview,/onLoaded: \{\s*if \(resourceScope.eligible && root.userPlayback && root.isVideo && root.hasSource && item\s*&& resourceScope.handoffPlayback\(\)\)\s*item.resumePlayback\(\)/);
  assert.match(preview,/if \(!videoLoader.item\) \{[\s\S]*?root.userPlayback = true\s*return/);
  assert.match(preview,/if \(videoLoader.item.playing\)\s*videoLoader.item.pausePlayback\(\)\s*else\s*videoLoader.item.resumePlayback\(\)/);
  assert.match(preview,/videoLoader.item !== null && videoLoader.item.playing/);

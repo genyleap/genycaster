@@ -51,11 +51,7 @@ Item {
     // creation are admitted over separate frames instead of one render burst.
     property int loadDelayMs: 0
     property var scrollHost: null
-    MediaResourceScope {
-        id: animationScope
-        owner: root
-        observeViewport: root.animatedGifUrl.length > 0
-    }
+    property bool allowAnimation: true
     property url activeSource: ""
     property bool componentReady: false
     property bool presentationReady: false
@@ -515,9 +511,16 @@ Item {
     // GIF animation must be decoded by QMovie/AnimatedImage, not QImageReader
     // (which supplies only the first frame). Keep the still image beneath as
     // a fallback, and never unload the running animation when scrolling.
-    AnimatedImage {
-        id: animatedGif
+    Loader {
+        id: gifLoader
         z: 1.5
+        anchors.fill: parent
+        active: root.allowAnimation && root.visible && root.componentReady
+            && root.animatedGifUrl.length > 0 && !Theme.powerSave
+            && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
+        sourceComponent: AnimatedImage {
+        id: animatedGif
+        MediaResourceScope { id: animationScope; owner: root }
         anchors.fill: parent
         // ImagePolicy applies to GIFs too. The still-image provider remains
         // the single source of admission and is allowed to fail back cleanly
@@ -541,6 +544,7 @@ Item {
         // ready. Never apply a missing mask to an otherwise valid GIF.
         layer.enabled: visible && root.maskActive
         layer.effect: layer.enabled ? maskEffectComponent : null
+        }
     }
 
     Component {
