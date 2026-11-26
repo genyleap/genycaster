@@ -72,6 +72,18 @@ test('language wheel separates adjacent selectable tiles without changing snap g
     assert.match(language, /preferredHighlightEnd: \(height \+ root\.rowHeight\) \/ 2/);
     assert.match(language, /anchors\.topMargin: Theme\.space1/);
     assert.match(language, /anchors\.bottomMargin: Theme\.space1/);
-    assert.match(language, /neonColor: languageRow\.selected \? Theme\.ink : "transparent"/);
+    assert.match(language, /neonColor: languageRow\.selected \? Theme\.accent : "transparent"/);
     assert.match(language, /onMovementEnded: root\.choose\(currentIndex\)/);
+});
+
+test('language selection uses accent semantics and readable stable rows',()=>{
+    const language=read('ui/components/setup/SetupLanguageSelector.qml');
+    assert.match(language,/Theme.primarySurfaceHover : Theme.primarySurface/);
+    assert.match(language,/curveDepth: Theme.curveContainer/);
+    assert.match(language,/visible: languageRow.selected\s+text: Theme.iconCheck\s+color: Theme.accent/);
+    assert.match(language,/font.pixelSize: Theme.typeTitle3Size/);
+    assert.match(language,/color: languageRow.selected \? Theme.ink : Theme.inkMuted/);
+    assert.doesNotMatch(language,/opacity: Math.max/);
+    assert.match(language,/rowHeight: Math.max\(Theme.touchTarget/);
+    assert.match(language,/width: Math.min\(parent.width, Theme.scaleUi\(440\)\)/);
 });

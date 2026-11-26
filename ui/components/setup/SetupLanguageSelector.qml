@@ -23,7 +23,9 @@ Item {
     readonly property var currentEntry: currentIndex >= 0 && currentIndex < itemCount
                                         ? model[currentIndex] : null
     readonly property bool narrow: width < 460
-    readonly property int rowHeight: narrow ? 56 : 60
+    readonly property int rowHeight: Math.max(Theme.touchTarget,
+        Theme.scaleUi(narrow ? 56 : 60), Theme.typeTitle3Size * 2 + Theme.space2)
+    readonly property real wheelHeight: rowHeight * 5 + Theme.space2 * 4
 
     function choose(index) {
         if (index < 0 || index >= itemCount)
@@ -63,7 +65,7 @@ Item {
             text: root.storyboard ? qsTrId("genycaster.setup.design_language_title") : qsTrId("genycaster.locale.language")
             color: Theme.ink
             font.family: Theme.fontFamilyForText(text)
-            font.pixelSize: root.storyboard ? (root.narrow ? 28 : 34) : (root.narrow ? 30 : 34)
+            font.pixelSize: root.narrow ? Theme.typeTitle1Size : Theme.typeTitle1Size + Theme.scaleUi(4)
             font.weight: Theme.weightBold
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
@@ -84,8 +86,8 @@ Item {
 
         Item {
             Layout.fillWidth: true
-            Layout.topMargin: root.storyboard ? Theme.space7 : root.narrow ? Theme.space5 : Theme.space7
-            Layout.preferredHeight: root.narrow ? 328 : 356
+            Layout.topMargin: root.storyboard ? Theme.space4 : root.narrow ? Theme.space5 : Theme.space7
+            Layout.preferredHeight: root.wheelHeight
             Layout.bottomMargin: root.narrow ? Theme.space3 : Theme.space4
 
             // Every language owns its own selectable NeonSurface. A separate
@@ -95,7 +97,7 @@ Item {
                 id: picker
                 objectName: "setupLanguageWheel"
                 anchors.centerIn: parent
-                width: Math.min(parent.width, root.narrow ? 340 : 400)
+                width: Math.min(parent.width, Theme.scaleUi(440))
                 height: parent.height
                 model: root.model
                 clip: true
@@ -126,14 +128,12 @@ Item {
                     id: languageRow
                     required property int index
                     required property var modelData
-                    readonly property int distance: Math.abs(index - picker.currentIndex)
                     readonly property bool selected: index === picker.currentIndex
                     readonly property bool nativeRtl: ["fa", "ar", "he", "ur", "ps"].indexOf(
                         String(modelData.tag || "").toLowerCase().split(/[-_]/)[0]) >= 0
 
                     width: picker.width
                     height: root.rowHeight
-                    opacity: Math.max(0.14, 1.0 - distance * 0.29)
                     activeFocusOnTab: false
                     Accessible.role: Accessible.RadioButton
                     Accessible.name: modelData.language
@@ -163,15 +163,20 @@ Item {
                             languageRow, languagePointer.point.position.x,
                             languagePointer.point.position.y).y
                         neonStrength: Theme.neonCardStrength
-                        // Language choices use a neutral luminous rim,
-                        // not an unrelated blue outline around the selected row.
-                        neonColor: languageRow.selected ? Theme.ink : "transparent"
-                        fillColor: languageRow.selected ? Theme.surfaceMuted
+                        // Match the semantic selection of SetupActionCard,
+                        // not a neutral input-field border.
+                        neonColor: languageRow.selected ? Theme.accent : "transparent"
+                        fillColor: languageRow.selected
+                                   ? (languagePointer.hovered ? Theme.primarySurfaceHover : Theme.primarySurface)
                                    : languagePointer.hovered ? Theme.surfaceHover : "transparent"
-                        borderWidth: languageRow.selected ? Theme.strokeStandard
-                                     : languagePointer.hovered ? Theme.strokeHairline : 0
-                        borderColor: languageRow.selected ? Theme.borderDefault : Theme.borderMuted
-                        curveDepth: Theme.curveControl
+                        borderWidth: languageRow.selected && Theme.keyboardFocusVisible(picker) ? 2
+                                     : languageRow.selected || languagePointer.hovered ? Theme.strokeHairline : 0
+                        borderColor: languageRow.selected && Theme.keyboardFocusVisible(picker) ? Theme.focus
+                                     : languageRow.selected
+                                       ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                                                 languagePointer.hovered ? 0.83 : 0.52)
+                                       : Theme.borderMuted
+                        curveDepth: Theme.curveContainer
                     }
 
                     RowLayout {
@@ -181,15 +186,38 @@ Item {
                         spacing: Theme.space2
                         layoutDirection: languageRow.nativeRtl ? Qt.RightToLeft : Qt.LeftToRight
 
+                        // Balanced slots keep the language centered as the
+                        // selected check moves from row to row.
+                        Item {
+                            visible: root.storyboard
+                            Layout.preferredWidth: Theme.iconSizeSmall
+                            Layout.preferredHeight: Theme.iconSizeSmall
+                        }
+
                         DirectionAwareLabel {
                             Layout.fillWidth: true
+                            Layout.minimumWidth: 0
                             text: languageRow.modelData.language
-                            color: Theme.ink
+                            color: languageRow.selected ? Theme.ink : Theme.inkMuted
                             font.family: Theme.fontFamilyForText(text)
-                            font.pixelSize: languageRow.selected ? 22 : 19
+                            font.pixelSize: Theme.typeTitle3Size
                             font.weight: languageRow.selected ? Theme.weightDemiBold : Theme.weightRegular
                             horizontalAlignment: root.storyboard ? Text.AlignHCenter : languageRow.nativeRtl ? Text.AlignRight : Text.AlignLeft
                             elide: Text.ElideRight
+                        }
+
+                        Item {
+                            visible: root.storyboard
+                            Layout.preferredWidth: Theme.iconSizeSmall
+                            Layout.preferredHeight: Theme.iconSizeSmall
+
+                            Icon {
+                                anchors.centerIn: parent
+                                visible: languageRow.selected
+                                text: Theme.iconCheck
+                                color: Theme.accent
+                                preferredSize: Theme.iconSizeSmall
+                            }
                         }
 
                         DirectionAwareLabel {
