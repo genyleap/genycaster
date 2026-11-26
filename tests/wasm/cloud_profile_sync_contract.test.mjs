@@ -57,7 +57,21 @@ test('canceling in-flight native cloud login cannot dereference a reentrantly cl
   assert.match(cancel,/if \(pending\) pending->deleteLater\(\)/);
   assert.doesNotMatch(cpp,/m_[A-Za-z]+(?:Request|Read)->(?:abort|deleteLater)\(\)/);
   assert.match(cpp,/if \(m_sessionRequest != reply\)/);
-  assert.equal((cpp.match(/    cancelAccountSessionRequest\(\);/g) || []).length, 2);
+  // All identity and enrollment transitions must invalidate in-flight proofs.
+  for(const [begin,end] of [
+    ['void OpenProofConnectionsController::enrollNativeCloudDevice(', 'bool OpenProofConnectionsController::beginCloudDeviceSession('],
+    ['void OpenProofConnectionsController::bootstrapAccountSession()', 'void OpenProofConnectionsController::acceptBrowserAccountSession('],
+    ['void OpenProofConnectionsController::setViewerPrincipal(', 'm_viewerFid = fid;'],
+  ]){
+    const start=cpp.indexOf(begin);
+    assert.ok(start>=0);
+    const body=cpp.slice(start,cpp.indexOf(end,start));
+    assert.match(body,/cancelAccountSessionRequest\(\);/);
+  }
+  assert.match(cpp,/QTimer::singleShot\(45'000,this,\[this,current\]\{[\s\S]*?if\(!current\(\)\|\|\(!m_accountProofSigning&&!m_accountProofRequest\)\)return;\s*cancelAccountSessionRequest\(\);/);
+  const cancellation=cpp.slice(cpp.indexOf('void OpenProofConnectionsController::cancelAccountSessionRequest()'),
+    cpp.indexOf('void OpenProofConnectionsController::bootstrapAccountSession()'));
+  assert.match(cancellation,/\+\+m_accountProofSignSerial/);
   assert.ok((cpp.match(/cancelNetworkReply\(m_[A-Za-z]+(?:Request|Read), this\)/g)||[]).length >= 10);
   assert.match(testSource,/Cancel POST while switching accounts/);
 });
@@ -170,7 +184,9 @@ test('native signed cloud-session bootstrap avoids anonymous 401 probes', () => 
             'missing-cookie native clients must not make a knowingly unauthorized GET');
   assert.match(restore, /status==200 && reply->isReadable\(\)/);
   assert.match(restore, /m_cloudSessionVerified=true/);
-  assert.match(restore, /genycaster::identity::matchesAccountSessionPrincipal\(data, viewer, m_issuerUrl\)/);
+  assert.match(restore, /genycaster::identity::matchesAccountSessionPrincipal\(data, viewer, m_issuerUrl, m_viewerNetwork\)/);
+  assert.match(restore, /if \(!hasAccountCookie\) \{\s*if \(beginCloudDeviceSession\(false\)\) return;/);
+  assert.match(restore, /generation!=m_grantGeneration \|\| viewer!=m_viewerFid/);
   assert.match(restore, /csrf.size\(\)!=43/);
   const cloud = read('services/account-sync/cloud_state.mjs');
   assert.match(cloud, /const SESSION_COOKIE='__Host-genycaster-account'/);
