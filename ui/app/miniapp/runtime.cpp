@@ -10,6 +10,7 @@ module;
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QDesktopServices>
 #include <QElapsedTimer>
 #include <QHash>
 #include <QHostAddress>
@@ -72,6 +73,7 @@ constexpr qint64 manifestCacheTtlMs = 5 * 60 * 1000;
     QJsonArray result{
         QStringLiteral("actions.ready"),
         QStringLiteral("actions.close"),
+        QStringLiteral("actions.openUrl"),
         QStringLiteral("actions.viewProfile"),
         QStringLiteral("actions.viewCast"),
         QStringLiteral("actions.openMiniApp"),
@@ -533,6 +535,7 @@ private:
         QString documentToken{};
         QString providerUuid{};
         QElapsedTimer rateWindow{};
+        QElapsedTimer externalLaunchWindow{};
         int messageCount{};
         int swapReadinessRetries{};
         quint64 documentGeneration{};
@@ -1455,6 +1458,7 @@ private:
             || method == QStringLiteral("swapToken")
             || method == QStringLiteral("viewProfile")
             || method == QStringLiteral("viewCast")
+            || method == QStringLiteral("openUrl")
             || method == QStringLiteral("openMiniApp")
             || method == QStringLiteral("composeCast");
         if (requiresForegroundAttention && !session.foreground) {
@@ -1539,6 +1543,26 @@ private:
             }
             session.browser->reply(rawResponse(id), document);
             QTimer::singleShot(0, this, [this, hash] { emit m_controller.castRequested(hash); });
+        } else if (method == QStringLiteral("openUrl")) {
+            const QString url = (argument.isString() ? argument.toString()
+                : argument.toObject().value(QStringLiteral("url")).toString()).trimmed();
+            const QUrl destination{url, QUrl::StrictMode};
+            if (url.size() > 4096 || !publicHttps(destination)) {
+                reject(QStringLiteral("Invalid external HTTPS URL"));
+                return;
+            }
+            // No arbitrary custom schemes, credentials, local IPs or
+            // background UI launches. Leave the native WebView origin intact.
+            if (session.externalLaunchWindow.isValid() && session.externalLaunchWindow.elapsed() < 1500) {
+                reject(QStringLiteral("External URL requests are rate limited"));
+                return;
+            }
+            session.externalLaunchWindow.start();
+            if (!QDesktopServices::openUrl(destination)) {
+                reject(QStringLiteral("System browser could not open the URL"));
+                return;
+            }
+            session.browser->reply(rawResponse(id), document);
         } else if (method == QStringLiteral("openMiniApp")) {
             const QString url = argument.toObject().value(QStringLiteral("url")).toString().trimmed();
             const QUrl nested{url, QUrl::StrictMode};

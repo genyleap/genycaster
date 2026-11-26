@@ -46,8 +46,15 @@ static UIWindow* hostWindow(void) {
     if(!self.closed && self.callbacks.event) self.callbacks.event(self.callbacks.context,event);
 }
 - (BOOL)allowed:(NSURL*)url main:(BOOL)mainFrame {
-    if(!url || !self.callbacks.allowed_url || !self.callbacks.allowed_url(self.callbacks.context,url.absoluteString.UTF8String)) return NO;
-    if(self.role==GENY_MAC_WALLET_APPROVAL) return mainFrame && [url isEqual:self.origin];
+    if(!url) return NO;
+    if(self.role==GENY_MAC_WALLET_APPROVAL) {
+        if(!mainFrame) return [url.scheme.lowercaseString isEqualToString:@"https"]
+            && [url.host.lowercaseString isEqualToString:@"verify.walletconnect.org"]
+            && !url.user.length && !url.password.length && (!url.port || url.port.integerValue==443);
+        return [url isEqual:self.origin] && self.callbacks.allowed_url
+            && self.callbacks.allowed_url(self.callbacks.context,url.absoluteString.UTF8String);
+    }
+    if(!self.callbacks.allowed_url || !self.callbacks.allowed_url(self.callbacks.context,url.absoluteString.UTF8String)) return NO;
     return !mainFrame || [url.host.lowercaseString isEqualToString:self.origin.host.lowercaseString];
 }
 - (void)fail:(const char*)key {
@@ -58,7 +65,12 @@ static UIWindow* hostWindow(void) {
 }
 - (UIButton*)button:(NSString*)title action:(SEL)action label:(const char*)label {
     UIButton* button=[UIButton buttonWithType:UIButtonTypeSystem];
-    [button setTitle:title forState:UIControlStateNormal];
+    UIImage* image=[UIImage systemImageNamed:title];
+    if(image) [button setImage:[image imageWithConfiguration:
+        [UIImageSymbolConfiguration configurationWithPointSize:18 weight:UIImageSymbolWeightMedium]]
+        forState:UIControlStateNormal];
+    else [button setTitle:title forState:UIControlStateNormal];
+    button.tintColor=UIColor.labelColor;
     button.accessibilityLabel=[self localized:label];
     [button addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
     [button.widthAnchor constraintGreaterThanOrEqualToConstant:44].active=YES;
@@ -82,18 +94,21 @@ static UIWindow* hostWindow(void) {
     self.web=[[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
     self.web.navigationDelegate=self;self.web.UIDelegate=self;
     self.web.allowsBackForwardNavigationGestures=NO;
-    self.back=[self button:@"‹" action:@selector(goBack) label:"genycaster.miniapp.back"];
+    self.back=[self button:@"chevron.left" action:@selector(goBack) label:"genycaster.profile.back"];
     UILabel* heading=[[UILabel alloc] init];
-    heading.text=title;heading.font=[UIFont preferredFontForTextStyle:UIFontTextStyleHeadline];
+    heading.text=title;heading.font=[UIFont preferredFontForTextStyle:UIFontTextStyleSubheadline];
+    heading.textAlignment=NSTextAlignmentCenter;
     heading.adjustsFontForContentSizeCategory=YES;heading.lineBreakMode=NSLineBreakByTruncatingTail;
     [heading setContentCompressionResistancePriority:UILayoutPriorityDefaultLow forAxis:UILayoutConstraintAxisHorizontal];
     UIStackView* bar=[[UIStackView alloc] initWithArrangedSubviews:@[self.back,heading,
-        [self button:@"↻" action:@selector(retry) label:"genycaster.miniapp.retry"],
-        [self button:@"−" action:@selector(minimize) label:"genycaster.miniapp.minimize"],
-        [self button:@"×" action:@selector(close) label:"genycaster.miniapp.close"]]];
-    if(self.role==GENY_MAC_WALLET_APPROVAL){bar.arrangedSubviews[2].hidden=YES;bar.arrangedSubviews[3].hidden=YES;}
+        [self button:@"arrow.clockwise" action:@selector(retry) label:"genycaster.feed_header.refresh"],
+        [self button:@"square.and.arrow.up" action:@selector(share) label:"genycaster.miniapp.share"],
+        [self button:@"chevron.down" action:@selector(minimize) label:"genycaster.miniapp.minimize"],
+        [self button:@"xmark" action:@selector(close) label:"genycaster.shell.close"]]];
+    if(self.role!=GENY_MAC_MINIAPP) bar.arrangedSubviews[3].hidden=YES;
+    if(self.role==GENY_MAC_WALLET_APPROVAL){bar.arrangedSubviews[2].hidden=YES;bar.arrangedSubviews[4].hidden=YES;}
     bar.axis=UILayoutConstraintAxisHorizontal;bar.alignment=UIStackViewAlignmentCenter;
-    [bar.heightAnchor constraintGreaterThanOrEqualToConstant:44].active=YES;
+    [bar.heightAnchor constraintGreaterThanOrEqualToConstant:52].active=YES;
     self.statusLabel=[[UILabel alloc] init];self.statusLabel.numberOfLines=0;
     self.statusLabel.font=[UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
     self.statusLabel.hidden=YES;
@@ -126,6 +141,7 @@ static UIWindow* hostWindow(void) {
     else [self event:GENY_MAC_CLOSED];
 }
 - (void)retry { [self event:GENY_MAC_RETRY]; }
+- (void)share { [self event:GENY_MAC_SHARE]; }
 - (void)minimize { [self event:GENY_MAC_MINIMIZE]; }
 - (void)close { [self event:GENY_MAC_CLOSED]; }
 - (void)dispose {

@@ -661,7 +661,7 @@ if(_genycasterMiniAppBrowserAvailable)
     set_property(TARGET farcaster_miniapp_runtime PROPERTY CXX_SCAN_FOR_MODULES ON)
     target_compile_features(farcaster_miniapp_runtime PUBLIC cxx_std_26)
     target_link_libraries(farcaster_miniapp_runtime PUBLIC Qt6::Core farcaster::capabilities
-        PRIVATE Qt6::Network farcaster_miniapp_browser)
+        PRIVATE Qt6::Gui Qt6::Network farcaster_miniapp_browser)
     # SIWF identity verification is a separate chain-backed authorization
     # operation. It does not select/change the Farcaster write/read provider.
     if(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS)

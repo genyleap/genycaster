@@ -1,5 +1,6 @@
 #include "media_playback_coordinator.hpp"
 
+#include <QDebug>
 #include <QMetaMethod>
 #include <QMetaObject>
 #include <QMediaPlayer>
@@ -241,11 +242,23 @@ qulonglong MediaPlaybackCoordinator::prepareSource(const QString& source)
                 return;
             }
             if (remote) {
+#if defined(Q_OS_ANDROID)
+                // A speculative HEAD on the application HTTP transport must
+                // never veto an otherwise valid FFmpeg media GET. The Qt
+                // backend owns redirects, TLS, ranges and decode errors.
+                if (!url.userInfo().isEmpty()) {
+                    emit guard->sourcePreparationFailed(requestId, source, QString{});
+                    return;
+                }
+                qInfo() << "Genycaster: Android media source delegated to FFmpeg";
+                emit guard->sourcePrepared(requestId, source);
+#else
                 if (guard->m_sourcePreparationBackend.start) {
                     guard->m_sourcePreparationBackend.start(requestId, source);
                 } else {
                     emit guard->sourcePreparationFailed(requestId, source, QString{});
                 }
+#endif
                 return;
             }
             emit guard->sourcePrepared(requestId, source);

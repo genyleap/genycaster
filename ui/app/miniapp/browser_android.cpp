@@ -9,6 +9,8 @@
 #include <QMetaObject>
 #include <QObject>
 #include <QPointer>
+#include <QSettings>
+#include <QStyleHints>
 #include <QtTranslation>
 #include <jni.h>
 #include <utility>
@@ -34,8 +36,14 @@ public:
         }
         const auto o = QJniObject::fromString(base.toString(QUrl::FullyEncoded));
         const auto script = QJniObject::fromString(QString::fromUtf8(GENY_MOBILE_BRIDGE_SCRIPT));
-        const QJsonArray labels{qtTrId("genycaster.miniapp.back"), qtTrId("genycaster.miniapp.retry"),
-            qtTrId("genycaster.miniapp.minimize"), qtTrId("genycaster.miniapp.close")};
+        const QString mode = QSettings{}.value(QStringLiteral("appearance/themeMode"),
+                                               QStringLiteral("system")).toString();
+        const bool dark = mode == QStringLiteral("dark")
+            || (mode != QStringLiteral("light")
+                && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+        const QJsonArray labels{qtTrId("genycaster.profile.back"), qtTrId("genycaster.feed_header.refresh"),
+            qtTrId("genycaster.miniapp.minimize"), qtTrId("genycaster.shell.close"),
+            qtTrId("genycaster.miniapp.share"), qtTrId("genycaster.miniapp.loading"), dark};
         const auto controls = QJniObject::fromString(QString::fromUtf8(QJsonDocument(labels).toJson(QJsonDocument::Compact)));
         QJniObject::callStaticMethod<void>(javaClass, "create",
             "(Landroid/content/Context;JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZI)V",

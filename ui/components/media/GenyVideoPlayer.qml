@@ -534,6 +534,7 @@ Item {
         const primary = String(root.source || "")
         if (!activation.fallbackAttempted && primary.length > 0
                 && primary !== activation.playbackUrl
+                && primary !== activation.pendingUrl
                 && root.isProgressiveVideoUrl(primary)) {
             activation.fallbackAttempted = true
             activation.recovering = true
@@ -594,14 +595,18 @@ Item {
             return
         }
         root.prepareBackendForSource(target)
-        if (String(player.source) !== String(target))
-            player.source = target
         activation.playbackUrl = String(target)
         activation.qualityId = activation.pendingQualityId
+        // Arm before assigning source: synchronous backend errors can stop it.
         startupWatchdog.restart()
+        if (Qt.platform.os === "android")
+            console.info("Genycaster: Android media source assigned")
+        if (String(player.source) !== String(target))
+            player.source = target
         Qt.callLater(() => {
             if (root && player && String(player.source) === String(target)
-                    && (root.userActivated || root.eager))
+                    && (root.userActivated || root.eager) && activation.resumeAfterLoad
+                    && !root.failed)
                 player.play()
         })
     }
@@ -916,6 +921,10 @@ Item {
         videoOutput: stageOutput
 
         onPlaybackStateChanged: {
+            if (playbackState === MediaPlayer.PlayingState) {
+                activation.starting = false
+                startupWatchdog.stop()
+            }
             if (root.primeFrame && activation.priming && !activation.primed
                     && playbackState === MediaPlayer.PlayingState) {
                 // MediaStatus can become Loaded before play() transitions to Playing.
@@ -966,8 +975,12 @@ Item {
             if (mediaStatus === MediaPlayer.LoadedMedia
                     || mediaStatus === MediaPlayer.BufferingMedia
                     || mediaStatus === MediaPlayer.BufferedMedia) {
-                activation.starting = false
-                startupWatchdog.stop()
+                // Loaded is not proof that the decoder has started. Keep
+                // the startup deadline until PlayingState or position changes.
+                if (!activation.resumeAfterLoad || playbackState === MediaPlayer.PlayingState) {
+                    activation.starting = false
+                    startupWatchdog.stop()
+                }
                 const hasPendingSource = activation.pendingUrl.length > 0
                 activation.playbackUrl = hasPendingSource ? activation.pendingUrl : String(player.source)
                 if (hasPendingSource)
@@ -1035,8 +1048,10 @@ Item {
                              "status", Number(player.mediaStatus))
             if (root.tryRecoverPlayback())
                 return
+            activation.starting = false
             activation.recovering = false
             chromePinned = true
+            root.releasePrimaryPlayback()
             root.playbackFailed(String(errorString))
         }
     }
@@ -1057,7 +1072,11 @@ Item {
                     || String(source) !== activation.pendingUrl)
                 return
             activation.preparationId = 0
+            if (Qt.platform.os === "android")
+                console.warn("Genycaster: Android media source preparation failed")
             activation.starting = false
+            if (root.tryRecoverPlayback())
+                return
             activation.stalled = true
             root.releasePrimaryPlayback()
             chromePinned = true
@@ -1089,6 +1108,9 @@ Item {
         onTriggered: {
             if (!root.userActivated || root.failed || !activation.starting)
                 return
+            if (Qt.platform.os === "android")
+                console.warn("Genycaster: Android media startup timeout",
+                             "status", Number(player.mediaStatus), "state", Number(player.playbackState))
             activation.starting = false
             if (root.tryRecoverPlayback())
                 return
@@ -1136,6 +1158,8 @@ Item {
                 return
             if (player.playbackState !== MediaPlayer.PlayingState)
                 return
+            if (Qt.platform.os === "android")
+                console.warn("Genycaster: Android media playback stalled", "position", player.position)
             activation.stalled = true
             player.pause()
             root.releasePrimaryPlayback()

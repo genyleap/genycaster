@@ -906,7 +906,9 @@ private:
                 connect + "; script-src 'nonce-" + std::string{nonce}
                     + (mobileWallet ? "' 'self'" : "'")
                     + "; style-src 'nonce-" + std::string{nonce}
-                    + "'; img-src data:; base-uri 'none'; frame-ancestors 'none'");
+                    + "'; img-src data:"
+                    + (mobileWallet ? "; frame-src https://verify.walletconnect.org" : "")
+                    + "; base-uri 'none'; frame-ancestors 'none'");
         }
     }
 

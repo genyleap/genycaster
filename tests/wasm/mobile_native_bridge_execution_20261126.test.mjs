@@ -42,7 +42,7 @@ test('mobile wallet approval is separate from the Mini App and uses scoped loopb
   const bridge=read('src/providers/compatibility/browser_wallet/bridge.cpp');
   assert.match(android,/if \(wallet\) return uri!=null && uri.toString\(\).equals\(origin\)/);
   assert.match(android,/wallet && request.hasGesture\(\)/);
-  assert.match(ios,/GENY_MAC_WALLET_APPROVAL.*mainFrame && \[url isEqual:self.origin\]/);
+  assert.match(ios,/return \[url isEqual:self.origin\] && self.callbacks.allowed_url/);
   assert.match(ios,/WKNavigationTypeLinkActivated/);
   assert.match(host,/BrowserRole::WalletApproval/);
   assert.match(host,/m_walletBrowserSessionUrl == url/);
