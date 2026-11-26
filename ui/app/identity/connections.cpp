@@ -1,6 +1,7 @@
 #include "genycaster_deployment.hpp"
 #include "connections.hpp"
 #include "account_session_principal.hpp"
+#include "cloud_device_retirement.hpp"
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -167,6 +168,14 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
     m_gatewayUrl = configuredUrl("GENYCASTER_OPENPROOF_CONNECTIONS_GATEWAY_URL",
         QStringLiteral("openproofConnectionsGatewayUrl"));
     QTimer::singleShot(0,this,[this] { refreshSwapAvailability(); });
+#if !defined(Q_OS_WASM)
+    // Revocation delivery does not depend on an authenticated viewer or cookie.
+    auto* retirementTimer=new QTimer(this);
+    retirementTimer->setInterval(30'000);
+    connect(retirementTimer,&QTimer::timeout,this,&OpenProofConnectionsController::flushCloudRevocations);
+    retirementTimer->start();
+    QTimer::singleShot(0,this,&OpenProofConnectionsController::flushCloudRevocations);
+#endif
     m_swapAvailabilityPoll.setInterval(120'000);
     connect(&m_swapAvailabilityPoll,&QTimer::timeout,this,
             &OpenProofConnectionsController::refreshSwapAvailability);
@@ -471,9 +480,52 @@ void OpenProofConnectionsController::setCloudDeviceSigner(CloudDeviceSigner sign
     m_cloudDeviceSigner = std::move(signer);
 }
 
-void OpenProofConnectionsController::setCloudDeviceEraser(CloudDeviceEraser eraser)
+void OpenProofConnectionsController::setCloudDeviceRetirer(CloudDeviceRetirer retire)
 {
-    m_cloudDeviceEraser=std::move(eraser);
+    m_cloudDeviceRetirer=std::move(retire);
+    flushCloudRevocations();
+}
+
+void OpenProofConnectionsController::flushCloudRevocations()
+{
+#if !defined(Q_OS_WASM)
+    namespace retirement=genycaster::identity::cloud_retirement;
+    if(m_cloudDeviceRetirer)m_cloudDeviceRetirer();
+    if(m_cloudRevocationRequest||!trustedHttpsEndpoint(m_cloudUrl)||
+       m_cloudUrl.adjusted(QUrl::RemovePath|QUrl::RemoveQuery|QUrl::RemoveFragment)!=
+          QUrl{QString::fromUtf8(genycaster::deployment::publicOrigin.data())})return;
+    auto store=retirement::settings();
+    const auto slots=retirement::receipts(store);
+    if(slots.isEmpty())return;
+    auto it=std::upper_bound(slots.cbegin(),slots.cend(),m_cloudRevocationCursor);
+    if(it==slots.cend())it=slots.cbegin();
+    const auto slot=*it;
+    m_cloudRevocationCursor=slot;
+    const auto body=store.value(slot).toByteArray();
+    if(body.isEmpty()||body.size()>1024)return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/session/device/revoke"));
+    url.setQuery(QString{});
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,QNetworkRequest::ManualRedirectPolicy);
+    request.setAttribute(QNetworkRequest::CookieLoadControlAttribute,QNetworkRequest::Manual);
+    request.setAttribute(QNetworkRequest::CookieSaveControlAttribute,QNetworkRequest::Manual);
+    request.setTransferTimeout(10'000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+    request.setRawHeader("Accept","application/json");
+    request.setRawHeader("Origin",QByteArray{genycaster::deployment::publicOrigin.data()});
+    auto* reply=m_network.post(request,body);
+    m_cloudRevocationRequest=reply;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,slot,body]{
+        m_cloudRevocationRequest.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto data=reply->bytesAvailable()<=1024?readOpenReply(reply):QByteArray{};
+        reply->deleteLater();
+        if(status!=200||!QJsonDocument::fromJson(data).object().value(QStringLiteral("revoked")).toBool())return;
+        auto store=genycaster::identity::cloud_retirement::settings();
+        if(store.value(slot).toByteArray()==body){store.remove(slot);store.sync();}
+    });
+#endif
 }
 
 void OpenProofConnectionsController::enrollNativeCloudDevice(
@@ -4602,8 +4654,13 @@ void OpenProofConnectionsController::setViewerPrincipal(const qulonglong fid,con
     if (m_viewerFid == fid && m_viewerNetwork==network) return;
     if(fid && network!=QStringLiteral("farcaster") && network!=QStringLiteral("hypersnap"))return;
     if(m_viewerFid) {
+#if !defined(Q_OS_WASM)
+        // Write intent before cancelling requests and switching the viewer.
+        if(!genycaster::identity::cloud_retirement::mark(m_viewerNetwork,m_viewerFid))
+            qWarning()<<"Cloud device retirement storage unavailable";
+        flushCloudRevocations();
+#endif
         revokeAccountSession();
-        if(m_cloudDeviceEraser)m_cloudDeviceEraser(m_viewerFid,m_viewerNetwork);
     }
     setViewerNetwork(network);
     cancelAccountSessionRequest();

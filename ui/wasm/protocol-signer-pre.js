@@ -80,12 +80,14 @@
         if (accountSessionPromise && accountSessionOwner === fid && !bearer) return true;
         if(bearer)cancelAccountSession();
         const controller=new AbortController();
+        const retirementBeforeRequest=cloudRetirement;
         accountSessionAbort=controller;
         accountSessionOwner = fid;
         const network=ownerProtocol==='hypersnap-v2'?'hypersnap':'farcaster';
         const operation = import('./browser_account_session.mjs')
             .then(async module => {
-                await cloudRetirement;
+                await retirementBeforeRequest;
+                if(controller.signal.aborted)throw Error('Account session cancelled');
                 await module.finishBrowserCloudRetirements({environment:window});
                 const args={fid,network,bearer,origin:window.location.origin,signal:controller.signal};
                 const device=await module.ensureBrowserCloudDeviceSession(args);

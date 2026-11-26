@@ -65,6 +65,7 @@
 
 #include "presentation_bridge.hpp"
 #include "../identity/connections.hpp"
+#include "../identity/cloud_device_retirement.hpp"
 #include "rendering_controller.hpp"
 #include "emoji_controller.hpp"
 #include "rich_inline_text_item.hpp"
@@ -6828,14 +6829,54 @@ void attachRuntime(RuntimeAttachment attachment,
     // signer remains in the OS-protected vault; only the domain-separated,
     // one-use proof leaves this process. This avoids launching Farcaster
     // solely to query a Pro membership.
+    // Vault operations and retirement use the same lock. The pending marker is
+    // durable before any key deletion; a re-login must finish it before using
+    // that principal's vault slot again.
+    const auto retireCloudDevice=[](Runtime& runtime,qulonglong fid,const QString& network) {
+        namespace retirement=genycaster::identity::cloud_retirement;
+        if(!retirement::validPrincipal(network,fid))return false;
+        auto store=retirement::settings();
+        store.sync();
+        const auto marker=retirement::marker(network,fid);
+        if(store.status()!=QSettings::NoError)return false;
+        if(!store.contains(marker))return true;
+        auto* vault=network==QStringLiteral("hypersnap")?runtime.hypersnapCloudVault.get():
+            runtime.farcasterCloudVault.get();
+        if(!vault)return false;
+        auto key=vault->load(domain::identity::Fid{fid});
+        if(!key)return false;
+        if(*key) {
+            const auto pub=(*key)->publicKey();
+            if(!pub||pub->hex.size()!=64U)return false;
+            const std::string nonce(43,'A');
+            const auto canonical=std::string{"genycaster-cloud-device-v2\nrevoke\n"}+
+                network.toStdString()+"\n"+std::to_string(fid)+"\n"+pub->hex+"\n"+nonce;
+            const auto signature=(*key)->sign(canonical);
+            if(!signature||signature->bytes.size()!=64U)return false;
+            const QByteArray raw{signature->bytes.data(),static_cast<qsizetype>(signature->bytes.size())};
+            const QString publicKey=QString::fromStdString(pub->hex);
+            const QJsonObject body{{QStringLiteral("purpose"),QStringLiteral("revoke")},
+                {QStringLiteral("network"),network},{QStringLiteral("fid"),QString::number(fid)},
+                {QStringLiteral("public_key"),publicKey},{QStringLiteral("nonce"),QString::fromStdString(nonce)},
+                {QStringLiteral("signature"),QString::fromLatin1(raw.toHex())}};
+            store.setValue(QStringLiteral("receipts/")+publicKey,QJsonDocument{body}.toJson(QJsonDocument::Compact));
+            store.sync();
+            if(store.status()!=QSettings::NoError)return false;
+            if(!vault->erase(domain::identity::Fid{fid}))return false;
+        }
+        store.remove(marker);
+        store.sync();
+        return store.status()==QSettings::NoError;
+    };
     attachment.openProofConnections.setCloudDeviceSigner(
-        [runtimeWeak=std::weak_ptr<Runtime>{attachment.runtime}](
+        [runtimeWeak=std::weak_ptr<Runtime>{attachment.runtime},retireCloudDevice](
             const qulonglong fid,const QString& network,const bool enroll,
             const QString& expectedKey,const QString& nonce)
             ->std::optional<OpenProofConnectionsController::AccountSignerProof> {
         const auto runtime=runtimeWeak.lock();
         if(!runtime||!fid)return std::nullopt;
         const std::scoped_lock lock{runtime->cloudDeviceVaultMutex};
+        if(!retireCloudDevice(*runtime,fid,network))return std::nullopt;
         const auto active=runtime->currentSessionSnapshot();
         if(!active||active->fid.value!=fid||
             (active->identityIssuer=="hypersnap:native-registry")!=(network==QStringLiteral("hypersnap")))
@@ -6863,19 +6904,28 @@ void attachRuntime(RuntimeAttachment attachment,
         const QByteArray raw{signedProof->bytes.data(),static_cast<qsizetype>(signedProof->bytes.size())};
         return OpenProofConnectionsController::AccountSignerProof{hex,QString::fromLatin1(raw.toHex())};
     });
-    attachment.openProofConnections.setCloudDeviceEraser(
-        [runtimeWeak=std::weak_ptr<Runtime>{attachment.runtime}](qulonglong fid,const QString& network) {
-            [[maybe_unused]] auto task=QtConcurrent::run([runtimeWeak,fid,network] {
+    auto retirementInFlight=std::make_shared<std::atomic_bool>(false);
+    attachment.openProofConnections.setCloudDeviceRetirer(
+        [runtimeWeak=std::weak_ptr<Runtime>{attachment.runtime},retirementInFlight,retireCloudDevice] {
+            if(retirementInFlight->exchange(true,std::memory_order_acq_rel))return;
+            [[maybe_unused]] auto task=QtConcurrent::run([runtimeWeak,retirementInFlight,retireCloudDevice] {
+                struct Completion final {
+                    std::shared_ptr<std::atomic_bool> flag;
+                    ~Completion(){flag->store(false,std::memory_order_release);}
+                } completion{retirementInFlight};
                 const auto runtime=runtimeWeak.lock();
-                if(!runtime||!fid)return;
-                const std::scoped_lock lock{runtime->cloudDeviceVaultMutex};
-                const auto active=runtime->currentSessionSnapshot();
-                if(active&&active->fid.value==fid&&
-                    ((active->identityIssuer=="hypersnap:native-registry")==
-                        (network==QStringLiteral("hypersnap"))))return;
-                auto* vault=network==QStringLiteral("hypersnap")?runtime->hypersnapCloudVault.get():
-                    runtime->farcasterCloudVault.get();
-                if(vault)(void)vault->erase(domain::identity::Fid{fid});
+                if(!runtime)return;
+                auto store=genycaster::identity::cloud_retirement::settings();
+                const auto markers=genycaster::identity::cloud_retirement::pending(store);
+                for(const auto& marker:markers){
+                    const auto parts=marker.split(QChar{'/'});
+                    if(parts.size()!=3)continue;
+                    bool ok=false;
+                    const auto fid=parts.at(2).toULongLong(&ok);
+                    if(!ok)continue;
+                    const std::scoped_lock lock{runtime->cloudDeviceVaultMutex};
+                    (void)retireCloudDevice(*runtime,fid,parts.at(1));
+                }
             });
         });
     attachment.openProofConnections.setAccountProofSigner(

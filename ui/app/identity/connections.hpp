@@ -189,8 +189,8 @@ public:
         qulonglong, const QString& network, bool enroll, const QString& publicKey, const QString& nonce)>;
     using CloudCustodyPermit = std::function<std::optional<QString>(const QString&, const QString&)>;
     void setCloudDeviceSigner(CloudDeviceSigner signer);
-    using CloudDeviceEraser=std::function<void(qulonglong,const QString&)>;
-    void setCloudDeviceEraser(CloudDeviceEraser eraser);
+    using CloudDeviceRetirer=std::function<void()>;
+    void setCloudDeviceRetirer(CloudDeviceRetirer retire);
     void enrollNativeCloudDevice(qulonglong fid, QString custody, CloudCustodyPermit permit);
     [[nodiscard]] bool cloudServiceAvailable() const noexcept { return m_cloudServiceAvailable; }
     [[nodiscard]] qulonglong activeAccountFid() const noexcept { return m_viewerFid; }
@@ -651,7 +651,10 @@ private:
     void beginSignedAccountSession();
     bool beginCloudDeviceSession(bool enroll, QString custody = {}, CloudCustodyPermit permit = {});
     CloudDeviceSigner m_cloudDeviceSigner{};
-    CloudDeviceEraser m_cloudDeviceEraser{};
+    CloudDeviceRetirer m_cloudDeviceRetirer{};
+    void flushCloudRevocations();
+    QPointer<QNetworkReply> m_cloudRevocationRequest{};
+    QString m_cloudRevocationCursor{};
     bool m_cloudDeviceAttempted{};
     bool m_cloudDeviceVerified{};
     bool m_cloudServiceAvailable{};
