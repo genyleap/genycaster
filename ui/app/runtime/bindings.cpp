@@ -1377,8 +1377,8 @@ void applySignerState(PresentationBridge& bridge, application::signer::SignerSta
 {
 #ifndef NDEBUG
     if (state.error && !isExpectedSignerConfigurationError(*state.error)) {
-        qDebug().noquote() << "Genycaster signer operation:"
-                           << QString::fromStdString(state.error->message);
+        qDebug() << "Genycaster signer operation category:"
+                 << static_cast<int>(state.error->code);
     }
 #endif
     const bool busy = state.phase == application::signer::SignerPhase::Checking ||
@@ -2259,8 +2259,8 @@ void applySessionState(
 {
 #ifndef NDEBUG
     if (state.error) {
-        qInfo().noquote() << "Genycaster authentication failure:"
-                          << QString::fromStdString(state.error->message);
+        qInfo() << "Genycaster authentication failure category:"
+                << static_cast<int>(state.error->code);
     }
 #endif
     qulonglong fid = 0;
@@ -2794,6 +2794,7 @@ void connectRuntime(
                            || current->fid.value != observedSession->fid.value
                            || current->identityIssuer != observedSession->identityIssuer
                            || current->identitySubject != observedSession->identitySubject
+                           || current->authenticatedAt != observedSession->authenticatedAt
                            || bridge.accountFid() != observedSession->fid.value
                            || bridge.accountIdentityIssuer() != (observedSession->identityIssuer
                                ? QString::fromStdString(*observedSession->identityIssuer) : QString{})
@@ -4373,8 +4374,8 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::signOutRequested, &bridge,
         [runtime, sessionObserver] {
-            // All native routes now share the authoritative persisted
-            // session store and exactly the same sign-out behavior.
+            // Lock immediately; do not wait for a queued secure-store deletion.
+            if (runtime->signerService) runtime->signerService->lockAuthority();
             (void)runtime->sessionService->signOut(sessionObserver);
         });
 #endif
@@ -4382,19 +4383,18 @@ void connectRuntime(
     // A restored account may lose registry reachability without losing its
     // keychain signer. Re-verification is read-only: it never opens the
     // recovery flow, signs KEY_ADD, or mutates the secure vault.
-    QObject::connect(&bridge, &PresentationBridge::signerRefreshRequested, &bridge,
-        [&bridge, runtime, signerObserver
+    const auto revalidateSigner = [&bridge, runtime, signerObserver
 #if defined(Q_OS_WASM)
         , browserSigner
 #endif
-        ] {
-            if (!bridge.isAuthenticated() || bridge.signerBusy() || bridge.writeReady())
+        ](const bool periodic) {
+            if (!bridge.isAuthenticated() || bridge.signerBusy() || bridge.writeBusy() || bridge.isOffline())
                 return;
+            if (periodic && !bridge.writeReady() &&
+                bridge.signerPhase() != QStringLiteral("unavailable") &&
+                bridge.signerPhase() != QStringLiteral("failed")) return;
 #if defined(Q_OS_WASM)
             if (bridge.accountFid() != 0) {
-                const auto session = runtime->currentSessionSnapshot();
-                const bool deviceLocalSession = session
-                    && session->identityIssuer == "genycaster:device-local";
                 const bool native = bridge.nativeCustodyAccount();
                 browserSigner->start(QStringLiteral("restore"),
                     QString::number(bridge.accountFid()),
@@ -4402,15 +4402,45 @@ void connectRuntime(
                         {QStringLiteral("protocol"), native
                             ? QStringLiteral("hypersnap-v2")
                             : QStringLiteral("farcaster-snapchain")},
-                        {QStringLiteral("rememberLocal"), !deviceLocalSession}});
+                        {QStringLiteral("rememberLocal"), false}});
             }
 #else
             if (!runtime->signerService) return;
             const auto session = runtime->currentSessionSnapshot();
             if (!session || session->fid.value != bridge.accountFid()) return;
-            (void)runtime->signerService->restore(session, signerObserver);
+            if (!domain::session::isProtocolSessionEligible(*session, foundation::time::now())) return;
+            applySignerState(bridge, application::signer::SignerState{
+                .phase = application::signer::SignerPhase::Checking});
+            auto restored = runtime->signerService->restore(session, signerObserver);
+            if (!restored) applySignerState(bridge, application::signer::SignerState{
+                .phase = application::signer::SignerPhase::Unavailable,
+                .error = std::move(restored.error())});
 #endif
+        };
+    QObject::connect(&bridge, &PresentationBridge::signerRefreshRequested, &bridge,
+        [revalidateSigner] { revalidateSigner(false); });
+    // Read-only revalidation: never prompt for recovery words on foreground,
+    // transient network errors, or a stale registry checkpoint.
+    auto* const authLifecycleTimer = new QTimer(&bridge);
+    authLifecycleTimer->setInterval(300'000);
+    QObject::connect(authLifecycleTimer, &QTimer::timeout, &bridge,
+        [&bridge, &connections, revalidateSigner] {
+            if (QGuiApplication::applicationState() != Qt::ApplicationActive) return;
+            revalidateSigner(true);
+            if (bridge.isAuthenticated() && !bridge.isOffline() &&
+                !connections.cloudAuthorizationReady()) connections.retryAccountSession();
         });
+    authLifecycleTimer->start();
+    if (auto* app = qobject_cast<QGuiApplication*>(QCoreApplication::instance())) {
+        QObject::connect(app, &QGuiApplication::applicationStateChanged, &bridge,
+            [authLifecycleTimer, &bridge, &connections, revalidateSigner](Qt::ApplicationState state) {
+                if (state != Qt::ApplicationActive) return;
+                authLifecycleTimer->start();
+                revalidateSigner(true);
+                if (bridge.isAuthenticated() && !bridge.isOffline() &&
+                    !connections.cloudAuthorizationReady()) connections.retryAccountSession();
+            });
+    }
 
     QObject::connect(&bridge, &PresentationBridge::networkReachabilityChanged, &bridge,
         [&bridge](bool known, bool online) {

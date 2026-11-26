@@ -393,6 +393,10 @@ void provisionUsesLeastPrivilegeTtlAndFreshNonce()
     assert(profileSignature && profileSignature->bytes.size() == 64U);
     auto denied = service.sign(session.fid, *key, domain::signer::Scope::UsernameProof, "canonical-message-bytes");
     assert(!denied && denied.error().code == foundation::error::ErrorCode::Unauthorized);
+    service.lockAuthority();
+    assert(!service.requireSigner(session.fid, domain::signer::Scope::ReactionAdd));
+    assert(!service.sign(session.fid, *key, domain::signer::Scope::ReactionAdd, "canonical-message-bytes"));
+    assert(service.state().phase == application::signer::SignerPhase::SignedOut);
 }
 
 void legacySessionWithoutCustodyAddressFailsBeforeWalletAuthorization()

@@ -157,7 +157,11 @@ void Runtime::setCurrentSession(std::optional<domain::session::ClientSession> se
         std::scoped_lock lock{sessionMutex};
         const std::uint64_t previous = currentSession ? currentSession->fid.value : 0U;
         const std::uint64_t next = session ? session->fid.value : 0U;
-        accountChanged = previous != next;
+        accountChanged = previous != next || (currentSession && session &&
+            (currentSession->identityIssuer != session->identityIssuer ||
+             currentSession->identitySubject != session->identitySubject ||
+             currentSession->authenticatedAt != session->authenticatedAt));
+        if (accountChanged && signerService) signerService->lockAuthority();
         currentSession = std::move(session);
     }
     if (accountChanged) {

@@ -1,6 +1,7 @@
 module;
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <expected>
 #include <limits>
@@ -188,6 +189,11 @@ struct SignerService::Impl final {
     // Media and social writes run on different executors. Serialize access
     // to the handle and registration; observers may query state reentrantly.
     std::recursive_mutex mutex{};
+    std::atomic_uint64_t generation{0U};
+    std::uint64_t activeGeneration{};
+
+    [[nodiscard]] bool currentGeneration(std::uint64_t value) const noexcept
+    { return generation.load(std::memory_order_acquire) == value; }
 };
 
 WriteGate evaluateWriteGate(
@@ -237,13 +243,24 @@ SignerService::SignerService(
 
 SignerService::~SignerService() = default;
 
+void SignerService::lockAuthority() noexcept
+{
+    m_impl->generation.fetch_add(1U, std::memory_order_acq_rel);
+}
+
 foundation::result::Status SignerService::restore(
     std::optional<domain::session::ClientSession> session,
     Observer observer)
 {
+    const auto generation = m_impl->generation.load(std::memory_order_acquire);
     return m_impl->executor.post(
-        [this, session = std::move(session), observer = std::move(observer)]() mutable {
+        [this, generation, session = std::move(session), callback = std::move(observer)]() mutable {
             const std::scoped_lock lock{m_impl->mutex};
+            if (!m_impl->currentGeneration(generation)) return;
+            const auto observer = [this, generation, &callback](SignerState state) {
+                if (m_impl->currentGeneration(generation)) callback(std::move(state));
+            };
+            m_impl->activeGeneration = generation;
             if (!session) {
                 m_impl->nativeSigner.reset();
                 m_impl->current = SignerState{.phase = SignerPhase::SignedOut,
@@ -335,6 +352,7 @@ foundation::result::Status SignerService::restore(
             // canonical App FID, otherwise Farcaster attributes casts to the user client.
             const auto requestFid = m_impl->policy.requestFid;
             auto inspected = m_impl->registry->inspect(session->fid, record.local.publicKey, requestFid);
+            if (!m_impl->currentGeneration(generation)) return;
             if (!inspected) {
                 m_impl->current = SignerState{.phase = SignerPhase::Unavailable,
                     .record = record, .requiredScopes = m_impl->policy.scopes,
@@ -372,10 +390,16 @@ foundation::result::Status SignerService::provision(
     Observer observer,
     std::shared_ptr<capability::signer::ICustodyAuthorizer> oneShotAuthorizer)
 {
+    const auto generation = m_impl->generation.load(std::memory_order_acquire);
     return m_impl->executor.post(
-        [this, session = std::move(session), observer = std::move(observer),
+        [this, generation, session = std::move(session), callback = std::move(observer),
          oneShotAuthorizer = std::move(oneShotAuthorizer)]() mutable {
             const std::scoped_lock lock{m_impl->mutex};
+            if (!m_impl->currentGeneration(generation)) return;
+            const auto observer = [this, generation, &callback](SignerState state) {
+                if (m_impl->currentGeneration(generation)) callback(std::move(state));
+            };
+            m_impl->activeGeneration = generation;
             if (!session) {
                 m_impl->current = SignerState{.phase = SignerPhase::SignedOut,
                     .requiredScopes = m_impl->policy.scopes};
@@ -461,6 +485,7 @@ foundation::result::Status SignerService::provision(
 
             const auto requestFid = m_impl->policy.requestFid.value_or(session->fid);
             auto inspected = m_impl->registry->inspect(session->fid, record.local.publicKey, requestFid);
+            if (!m_impl->currentGeneration(generation)) return;
             if (!inspected) {
                 m_impl->current = SignerState{.phase = SignerPhase::Unavailable,
                     .record = record, .requiredScopes = m_impl->policy.scopes,
@@ -573,10 +598,12 @@ foundation::result::Status SignerService::provision(
                 }
                 appAttestation = std::move(*attestation);
             }
+            if (!m_impl->currentGeneration(generation)) return;
             auto authorization = authorizer->authorize(request, std::move(appAttestation));
             // The one-shot custody key is no longer needed after signing;
             // release it before network registration and confirmation polling.
             oneShotAuthorizer.reset();
+            if (!m_impl->currentGeneration(generation)) return;
             if (!authorization) {
                 m_impl->current = SignerState{.phase = SignerPhase::AuthorizationRequired,
                     .record = record, .requiredScopes = m_impl->policy.scopes,
@@ -610,16 +637,21 @@ foundation::result::Status SignerService::revoke(
     std::optional<domain::session::ClientSession> session,
     Observer observer)
 {
+    const auto generation = m_impl->generation.load(std::memory_order_acquire);
     return m_impl->executor.post(
-        [this, session = std::move(session), observer = std::move(observer)]() mutable {
+        [this, generation, session = std::move(session), callback = std::move(observer)]() mutable {
             const std::scoped_lock lock{m_impl->mutex};
+            if (!m_impl->currentGeneration(generation)) return;
+            const auto observer = [this, generation, &callback](SignerState state) {
+                if (m_impl->currentGeneration(generation)) callback(std::move(state));
+            };
             if (!session) {
                 m_impl->current = SignerState{.phase = SignerPhase::SignedOut,
                     .requiredScopes = m_impl->policy.scopes};
                 observer(m_impl->current);
                 return;
             }
-            if (!m_impl->nativeSigner || !m_impl->current.record ||
+            if (m_impl->activeGeneration != generation || !m_impl->nativeSigner || !m_impl->current.record ||
                 !m_impl->current.record->lastVerifiedRegistration) {
                 m_impl->current = SignerState{.phase = SignerPhase::Missing,
                     .requiredScopes = m_impl->policy.scopes};
@@ -673,6 +705,7 @@ foundation::result::Status SignerService::revoke(
                 observer(m_impl->current);
                 return;
             }
+            if (!m_impl->currentGeneration(generation)) return;
             const auto deadline = foundation::time::now() + std::chrono::hours{1};
             auto revoked = m_impl->registry->selfRevoke(
                 session->fid,
@@ -715,7 +748,8 @@ foundation::result::Status SignerService::recordConfirmedWrite(
     const foundation::time::Timestamp confirmedAt)
 {
     const std::scoped_lock lock{m_impl->mutex};
-    if (fid.value == 0U || !m_impl->current.record ||
+    if (!m_impl->currentGeneration(m_impl->activeGeneration) ||
+        fid.value == 0U || !m_impl->current.record ||
         !m_impl->current.record->lastVerifiedRegistration) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::Unauthorized,
@@ -746,7 +780,7 @@ foundation::result::Result<domain::signer::PublicKey> SignerService::requireSign
     const domain::signer::Scope requiredScope) const
 {
     const std::scoped_lock lock{m_impl->mutex};
-    if (fid.value == 0U) {
+    if (!m_impl->currentGeneration(m_impl->activeGeneration) || fid.value == 0U) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::Unauthorized,
             "A signed-in Farcaster FID is required before resolving write authority."));
@@ -807,12 +841,19 @@ foundation::result::Result<domain::signer::Signature> SignerService::sign(
             foundation::error::ErrorCode::Unauthorized,
             "The active protocol signer is not authorized for this message type."));
     }
-    return m_impl->nativeSigner->sign(bytes);
+    auto signature = m_impl->nativeSigner->sign(bytes);
+    if (!m_impl->currentGeneration(m_impl->activeGeneration))
+        return std::unexpected(makeError(foundation::error::ErrorCode::Unauthorized,
+            "Signing authority was locked before completion."));
+    return signature;
 }
 
 SignerState SignerService::state() const
 {
     const std::scoped_lock lock{m_impl->mutex};
+    if (!m_impl->currentGeneration(m_impl->activeGeneration))
+        return SignerState{.phase = SignerPhase::SignedOut,
+            .requiredScopes = m_impl->policy.scopes};
     return m_impl->current;
 }
 

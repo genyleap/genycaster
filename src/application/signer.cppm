@@ -120,6 +120,10 @@ public:
     SignerService(SignerService&&) = delete;
     auto operator=(SignerService&&) -> SignerService& = delete;
 
+    /** Immediately invalidate signing authority on sign-out or principal change.
+     *  Does not perform I/O or wait for an executor/approval dialog. */
+    void lockAuthority() noexcept;
+
     /** @brief Restores local signer metadata and re-verifies network registration when possible. */
     [[nodiscard]] foundation::result::Status restore(
         std::optional<domain::session::ClientSession> session,
