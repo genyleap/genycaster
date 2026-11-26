@@ -557,7 +557,12 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       const cookie=sessionToken(request);
       if(!cookie || typeof store.getSession!=='function') return null;
       const session=await store.getSession(sessionDigest(cookie));
-      if(!allowLegacySignerSessions && !['device','openproof'].includes(session?.auth_source))return null;
+      if(!['device','openproof'].includes(session?.auth_source)) {
+        if(!allowLegacySignerSessions)return null;
+        // Once an account migrates, a legacy social cookie cannot bypass its
+        // new device boundary (including after all its devices are revoked).
+        if(session&&store.cloudDevicesReady?.()&&await store.hasCloudDeviceHistory(session))return null;
+      }
       // The signed account proof issues protocol-scoped sessions. HyperSnap
       // native FIDs use their own verified signer registry and issuer; never
       // mistake them for a linked OpenProof/Farcaster identity.
@@ -622,7 +627,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
       'muted_profiles','sticker_packs','feedback','buzz','buzz/preferences','buzz/inbox','buzz/ack',
       'pro/wallet/challenge','pro/wallet/verify','pro/wallets',
-      'session','session/challenge','session/proof','session/device/challenge','session/device/proof','swap/quote'].includes(entity)) {
+      'session','session/challenge','session/proof','session/device/challenge','session/device/proof','session/device/revoke','swap/quote'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
     // Internal signed, read-only entitlement check for the separate Media
@@ -734,7 +739,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         catch {respond(response,503,{error:'cloud_unavailable'});}
       return true;
     }
-    if(entity==='session/device/challenge'||entity==='session/device/proof') {
+    if(['session/device/challenge','session/device/proof','session/device/revoke'].includes(entity)) {
       if(request.method!=='POST'){respond(response,405,{error:'method_not_allowed'});return true;}
       if(!sameOriginRequest(request)){respond(response,403,{error:'origin_not_allowed'});return true;}
       if(!store.cloudDevicesReady?.()){respond(response,503,{error:'account_devices_not_ready'});return true;}
@@ -744,6 +749,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }
         const input=await readBody(request,2048);
         if(entity.endsWith('/challenge'))respond(response,200,deviceProof.issue(input));
+        else if(entity.endsWith('/revoke'))respond(response,200,await deviceProof.revoke(input));
         else {
           // A legacy cookie/social signer may NOT enroll a private device.
           const verified=input?.purpose==='enroll'&&input?.network==='farcaster'
@@ -774,6 +780,9 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           respond(response,200,signerProof.issue(data?.fid));return true;
         }
         const owner=await signerProof.prove(data);
+        if(store.cloudDevicesReady?.()&&await store.hasCloudDeviceHistory(owner)) {
+          respond(response,410,{error:'device_enrollment_required'});return true;
+        }
         await issueSession({...owner,authSource:'legacy'},response);
         return true;
       }catch(error) {

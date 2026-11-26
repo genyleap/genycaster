@@ -463,6 +463,7 @@
                                         if(!isCurrent()||custody.address.toLowerCase()!==established.address.toLowerCase())
                                             throw Error('Registration identity changed');
                                         const {verifyRecoveredFarcasterIdentity}=await import('./openproof_recovery.mjs');
+                                        const {deployment}=await import('./deployment_config.mjs');
                                         registeredOpenProof=await verifyRecoveredFarcasterIdentity({
                                             fid:established.fid,custody,gatewayOrigin:deployment.browserGateway,
                                             signal:controller.signal});

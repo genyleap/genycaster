@@ -38,7 +38,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13,14,15,16,17)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -57,7 +57,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const buzzReady=versions.has(14);
   const proWalletReady=versions.has(15);
   const proMultiProtocolQuoteReady=versions.has(16);
-  const cloudDevicesReady=sessionsReady&&versions.has(17);
+  const cloudDevicesReady=sessionsReady&&versions.has(17)&&versions.has(18);
   // Reserved singleton in the existing account-owned notifications table.
   // Schema v3+ already supports private JSONB settings and atomic revisions.
   const stickerPacksReady=versions.has(3);
@@ -636,15 +636,42 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
     cloudDevicesReady:()=>cloudDevicesReady,
     async enrollCloudDevice({issuer,subject},publicKey) {
       if(!cloudDevicesReady)throw new Error('account_devices_not_ready');
-      await pool.query(`INSERT INTO cloud_device_credentials(issuer,subject,public_key)
+      const result=await pool.query(`INSERT INTO cloud_device_credentials(issuer,subject,public_key)
         VALUES($1,$2,$3) ON CONFLICT(issuer,subject,public_key)
-        DO UPDATE SET last_used_at=now()`,[issuer,subject,publicKey]);
+        DO UPDATE SET last_used_at=now() WHERE cloud_device_credentials.revoked_at IS NULL`,[issuer,subject,publicKey]);
+      if(result.rowCount!==1)throw Object.assign(new Error('device_revoked'),{status:401});
+    },
+    async hasCloudDeviceHistory({issuer,subject}) {
+      if(!cloudDevicesReady)return false;
+      const result=await pool.query(`SELECT 1 FROM cloud_device_credentials
+        WHERE issuer=$1 AND subject=$2 LIMIT 1`,[issuer,subject]);
+      return result.rowCount>0;
+    },
+    async revokeCloudDevice({issuer,subject},publicKey) {
+      if(!cloudDevicesReady)throw new Error('account_devices_not_ready');
+      const client=await pool.connect();
+      try {
+        await client.query('BEGIN');
+        // Tombstone even an enrollment that is still in flight. A later
+        // enrollment with the retired public key must never recreate it.
+        const retired=await client.query(`INSERT INTO cloud_device_credentials
+          (issuer,subject,public_key,revoked_at) VALUES($1,$2,$3,now())
+          ON CONFLICT(public_key) DO UPDATE SET revoked_at=COALESCE(cloud_device_credentials.revoked_at,now())
+          WHERE cloud_device_credentials.issuer=EXCLUDED.issuer AND cloud_device_credentials.subject=EXCLUDED.subject`,
+          [issuer,subject,publicKey]);
+        if(retired.rowCount!==1){await client.query('ROLLBACK');return false;}
+        await client.query(`DELETE FROM account_sessions WHERE issuer=$1 AND subject=$2 AND device_key=$3`,
+          [issuer,subject,publicKey]);
+        await client.query('COMMIT');
+        return true;
+      }catch(error){await client.query('ROLLBACK');throw error;}
+      finally{client.release();}
     },
     async touchCloudDevice({issuer,subject},publicKey) {
       if(!cloudDevicesReady)return false;
       const result=await pool.query(`UPDATE cloud_device_credentials SET last_used_at=now()
         WHERE issuer=$1 AND subject=$2 AND public_key=$3
-          AND last_used_at>now()-interval '90 days'`,[issuer,subject,publicKey]);
+          AND revoked_at IS NULL AND last_used_at>now()-interval '90 days'`,[issuer,subject,publicKey]);
       return result.rowCount===1;
     },
     async createSession({issuer,subject,deviceKey,authSource='legacy'},tokenHash,csrfToken) {
@@ -657,7 +684,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
           await client.query('BEGIN');
           const device=await client.query(`SELECT public_key FROM cloud_device_credentials
             WHERE issuer=$1 AND subject=$2 AND public_key=$3
-              AND last_used_at>now()-interval '90 days' FOR UPDATE`,[issuer,subject,deviceKey]);
+              AND revoked_at IS NULL AND last_used_at>now()-interval '90 days' FOR UPDATE`,[issuer,subject,deviceKey]);
           if(device.rowCount!==1)throw new Error('device_not_enrolled');
           await client.query(`DELETE FROM account_sessions
             WHERE issuer=$1 AND subject=$2 AND device_key=$3`,[issuer,subject,deviceKey]);
@@ -682,7 +709,9 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       if(!sessionsReady)return null;
       const result=await pool.query(cloudDevicesReady
         ?`SELECT issuer,subject,csrf_token,auth_source,device_key
-          FROM account_sessions WHERE token_hash=$1 AND expires_at>now()`
+          FROM account_sessions s WHERE token_hash=$1 AND expires_at>now()
+            AND (device_key IS NULL OR EXISTS(SELECT 1 FROM cloud_device_credentials d
+              WHERE d.issuer=s.issuer AND d.subject=s.subject AND d.public_key=s.device_key AND d.revoked_at IS NULL))`
         :`SELECT issuer,subject,csrf_token
           FROM account_sessions WHERE token_hash=$1 AND expires_at>now()`,[tokenHash]);
       return result.rows[0]||null;
@@ -691,9 +720,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       if(!sessionsReady)return;
       if(cloudDevicesReady&&owner?.deviceKey&&owner.authSource==='device') {
         // A concurrent cookie rotation cannot make logout miss the device.
-        await pool.query(`DELETE FROM cloud_device_credentials
-          WHERE issuer=$1 AND subject=$2 AND public_key=$3`,
-          [owner.issuer,owner.subject,owner.deviceKey]);
+        await this.revokeCloudDevice(owner,owner.deviceKey);
       }
       await pool.query('DELETE FROM account_sessions WHERE token_hash=$1',[tokenHash]);
     },

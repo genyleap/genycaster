@@ -11,6 +11,9 @@ const DER=Buffer.from('302a300506032b6570032100','hex');
 const TTL=90_000;
 const LIMIT=1024;
 export const CLOUD_DEVICE_PREFIX='genycaster-cloud-device-v2';
+// A revocation receipt is deliberately replayable, not an authentication proof.
+// The server retains a permanent key tombstone so replay cannot revoke a new key.
+export const REVOCATION_NONCE='A'.repeat(43);
 const denied=(status=401,message='invalid_device_proof')=>Object.assign(new Error(message),{status});
 
 export function cloudDeviceMessage({purpose,network,fid,public_key,nonce}) {
@@ -89,5 +92,16 @@ export function createCloudDeviceProof({store,issuer,hypersnapOrigin,fetchImpl=g
     }else if(!await store.touchCloudDevice(owner,challenge.public_key))throw denied(401,'device_not_enrolled');
     return {...owner,deviceKey:challenge.public_key,authSource:'device'};
   }
-  return {issue,prove};
+  async function revoke(input) {
+    const {purpose,network,fid,public_key,nonce,signature}=input||{};
+    if(purpose!=='revoke'||nonce!==REVOCATION_NONCE||!validPrincipal(network,fid)||
+      typeof public_key!=='string'||!HEX32.test(public_key)||
+      typeof signature!=='string'||!HEX64.test(signature))throw denied();
+    const key=createPublicKey({key:Buffer.concat([DER,Buffer.from(public_key,'hex')]),
+      format:'der',type:'spki'});
+    if(!verify(null,Buffer.from(cloudDeviceMessage(input)),key,Buffer.from(signature,'hex')))throw denied();
+    if(!await store.revokeCloudDevice(ownerFor(network,fid,issuer),public_key))throw denied();
+    return {revoked:true};
+  }
+  return {issue,prove,revoke};
 }

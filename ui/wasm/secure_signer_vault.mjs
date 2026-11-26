@@ -221,9 +221,10 @@ export function createBrowserSignerVault(environment = globalThis, options = {})
             const fid=requireFid(fidValue);
             const {purpose,network,public_key,nonce}=challenge||{};
             if(!cloudNetwork||network!==cloudNetwork||challenge.fid!==fid||
-                !['enroll','restore'].includes(purpose)||
+                !['enroll','restore','revoke'].includes(purpose)||
                 typeof public_key!=='string'||!/^[0-9a-f]{64}$/.test(public_key)||
-                typeof nonce!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(nonce))
+                typeof nonce!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(nonce)||
+                (purpose==='revoke'&&nonce!=='A'.repeat(43)))
                 throw failure('invalid cloud device challenge');
             const record=await read(fid);
             if(!record||record.publicKeyHex!==public_key)
