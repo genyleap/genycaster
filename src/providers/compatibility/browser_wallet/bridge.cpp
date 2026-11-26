@@ -683,14 +683,16 @@ public:
     explicit Bridge(Config config, std::shared_ptr<asio::io_context> io, tcp::acceptor acceptor, std::string token, std::string nonce)
         : m_config(std::move(config)), m_io(std::move(io)), m_acceptor(std::move(acceptor)), m_token(std::move(token)),
           m_nonce(std::move(nonce)), m_port(m_acceptor.local_endpoint().port()),
-          m_worker([this](const std::stop_token stopToken) { run(stopToken); })
+          m_worker([this] { run(); })
     {
     }
 
     ~Bridge() override {
-        // Stop intake first. The nonblocking transport checks this token
-        // every poll, preventing shutdown from waiting on a partial request.
-        m_worker.request_stop();
+        // Android NDK r27 libc++ does not provide std::jthread/stop_token
+        // in its default configuration. Keep one portable, owned worker;
+        // stop and join before revoking pending callbacks or destroying state.
+        m_stopRequested.store(true, std::memory_order_release);
+        if (m_worker.joinable()) m_worker.join();
         endSession();
     }
 
@@ -918,10 +920,14 @@ private:
             || (suffix == "/walletconnect.mjs" && !m_config.walletConnectModule.empty());
     }
 
-    void run(const std::stop_token stopToken) {
+    [[nodiscard]] bool stopRequested() const noexcept {
+        return m_stopRequested.load(std::memory_order_acquire);
+    }
+
+    void run() {
         boost::system::error_code error{};
         m_acceptor.non_blocking(true, error);
-        while (!stopToken.stop_requested()) {
+        while (!stopRequested()) {
             expireRequests();
             tcp::socket socket{m_acceptor.get_executor()};
             m_acceptor.accept(socket, error);
@@ -935,7 +941,7 @@ private:
                 std::this_thread::sleep_for(PollDelay);
                 continue;
             }
-            handle(std::move(socket), stopToken);
+            handle(std::move(socket));
         }
     }
 
@@ -961,7 +967,7 @@ private:
         }
     }
 
-    void handle(tcp::socket socket, const std::stop_token stopToken) {
+    void handle(tcp::socket socket) {
         beast::flat_buffer buffer{};
         http::request_parser<http::string_body> parser{};
         parser.body_limit(m_config.maxRequestBytes);
@@ -973,7 +979,7 @@ private:
         // SO_RCVTIMEO is not sufficient. Incremental nonblocking reads keep
         // the parser state and let us honor both deadlines and shutdown.
         const auto deadline = Clock::now() + HttpTransportTimeout;
-        while (!stopToken.stop_requested() && !parser.is_done()
+        while (!stopRequested() && !parser.is_done()
                && Clock::now() < deadline) {
             error.clear();
             http::read_some(socket, buffer, parser, error);
@@ -984,7 +990,7 @@ private:
             }
             if (error) return;
         }
-        if (stopToken.stop_requested() || !parser.is_done()) return;
+        if (stopRequested() || !parser.is_done()) return;
         const auto request = parser.release();
         // URL capabilities alone do not protect a loopback listener from DNS
         // rebinding or cross-site requests. Only the browser document served
@@ -1310,7 +1316,7 @@ private:
     {
         http::response_serializer<Body> serializer{response};
         const auto deadline = Clock::now() + HttpTransportTimeout;
-        while (!serializer.is_done() && Clock::now() < deadline) {
+        while (!stopRequested() && !serializer.is_done() && Clock::now() < deadline) {
             boost::system::error_code error{};
             http::write_some(socket, serializer, error);
             if (error == asio::error::would_block
@@ -1360,7 +1366,8 @@ private:
     // Never persist private keys, signatures or wallet permissions to disk.
     std::map<std::string, std::string, std::less<>> m_grantedAccountByOrigin{};
     capability::wallet::EthereumWalletEventSink m_eventSink{};
-    std::jthread m_worker{};
+    std::atomic_bool m_stopRequested{false}; // initialized before the worker starts
+    std::thread m_worker{};
 };
 
 } // namespace

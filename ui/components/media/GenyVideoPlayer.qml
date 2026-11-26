@@ -1030,6 +1030,9 @@ Item {
             startupWatchdog.stop()
             if (!root.userActivated || error === MediaPlayer.NoError)
                 return
+            if (Qt.platform.os === "android")
+                console.warn("Genycaster: Android media playback error", Number(error),
+                             "status", Number(player.mediaStatus))
             if (root.tryRecoverPlayback())
                 return
             activation.recovering = false

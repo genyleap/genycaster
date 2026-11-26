@@ -550,11 +550,14 @@ void testClosingBridgeWithHalfOpenHttpConnectionIsBounded()
     std::this_thread::sleep_for(std::chrono::milliseconds{100});
 
     // A half-written browser request used to block http::read indefinitely
-    // and could keep the bridge's jthread from joining on application exit.
+    // and could keep the bridge's worker from joining on application exit.
     const auto shutdownStarted = std::chrono::steady_clock::now();
     bridge->reset();
     const auto elapsed = std::chrono::steady_clock::now() - shutdownStarted;
-    assert(elapsed < std::chrono::seconds{8});
+    assert(elapsed < std::chrono::seconds{2});
+    auto cancelled = pendingPromise.get_future();
+    assert(cancelled.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(cancelled.get().error->code == 4900);
 }
 
 void testBridgeRejectsUnsupportedChainBeforeWallet()
