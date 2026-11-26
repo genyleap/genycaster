@@ -62,7 +62,7 @@ test('Recovery uses focused, transient fields without changing phrase security',
     const check = read('ui/components/controls/GenyCheckRow.qml');
     assert.match(setup, /id: recoveryWordPointer/);
     assert.match(setup, /background: NeonSurface \{[\s\S]{0,300}deferredNeon: true/);
-    assert.match(setup, /ambientNeon: wordField\.activeFocus/);
+    assert.match(setup, /ambientNeon: wordField\.editingFocus/);
     assert.match(setup, /externalHovered: wordField\.hovered/);
     assert.match(setup, /inputMethodHints: Qt\.ImhSensitiveData/);
     assert.match(setup, /nativeRecoveryGrid\.clearAll\(\)/);
@@ -98,7 +98,7 @@ test('Composer keeps panel materials outside the editable text', () => {
     assert.match(tools, /^NeonSurface \{/m);
     assert.match(composer, /id: replyContextCard[\s\S]{0,150}ambientNeon: true/);
     assert.match(composer, /interactive: !root\.compact/);
-    assert.match(composer, /ambientNeon: threadEditor\.activeFocus/);
+    assert.match(composer, /ambientNeon: threadEditor\.editingFocus/);
     assert.match(composer, /id: channelSearch/);
     assert.match(composer, /background: PopupSurface \{/);
     assert.match(composer, /background: null/); // editor maintains native focus and IME.

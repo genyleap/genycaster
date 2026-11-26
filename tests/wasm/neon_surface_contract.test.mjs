@@ -126,7 +126,8 @@ test('Neon is present on visible common controls, selected tabs and dashboard ca
     assert.match(compose, /ambientNeon: true/);
     assert.match(mobileDock, /ambientNeon: destination\.active/);
     assert.match(desktopNav, /hovered: control\.hovered/);
-    assert.match(field, /ambientNeon: root\.activeFocus/);
+    assert.match(field, /ambientNeon: root\.editingFocus/);
+    assert.match(field, /readonly property bool editingFocus: editorMenu\.browserEditing \? editorMenu\.browserFocused : activeFocus/);
     assert.match(combo, /ambientNeon: control\.popupVisible/);
     assert.match(switchControl, /ambientNeon: control\.checked/);
     const halo = read('ui/components/visual/NeonHalo.qml');
