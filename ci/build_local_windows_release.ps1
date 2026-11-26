@@ -44,11 +44,14 @@ $qtTree = Join-Path $repo 'Qt'
 $qtConfigs = @(Get-ChildItem -Path $qtTree -Recurse -File -Filter 'Qt6Config.cmake' -ErrorAction SilentlyContinue)
 if ($qtConfigs.Count -ne 1) {
     & python ci/install_qt_windows.py --destination Qt --architecture $Architecture
-    CheckExit 'Qt 6.12.1 installation'
+    CheckExit 'Qt 6.12.0 installation'
     $qtConfigs = @(Get-ChildItem -Path $qtTree -Recurse -File -Filter 'Qt6Config.cmake')
 }
 if ($qtConfigs.Count -ne 1) { throw 'Exactly one Qt installation must exist in Qt/.' }
 $env:QT_ROOT_DIR = (Resolve-Path (Join-Path $qtConfigs[0].DirectoryName '../../..')).Path
+$qtVersion = (& (Join-Path $env:QT_ROOT_DIR 'bin/qmake.exe') -query QT_VERSION).Trim()
+CheckExit 'Installed Qt version'
+if ($qtVersion -ne '6.12.0') { throw "Qt $qtVersion is incompatible with the pinned WebEngine SDK. Move the existing Qt directory aside and install 6.12.0." }
 # Qt 6.140 WebEngine is an official standalone Extensions product. The
 # Qt 6.12 addon index cannot install it; use our verified pinned installer.
 if (-not (Test-Path (Join-Path $env:QT_ROOT_DIR 'lib/cmake/Qt6WebEngineQuick/Qt6WebEngineQuickConfig.cmake'))) {

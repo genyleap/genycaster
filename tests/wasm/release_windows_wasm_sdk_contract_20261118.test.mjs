@@ -57,7 +57,7 @@ test('Windows release installs and deploys an SDK host instead of a browser plac
   assert.match(windows,/Install separately versioned Qt WebEngine extension/);
   assert.match(windows,/ci\/install_qt_webengine_windows\.py --destination Qt --architecture/);
   assert.match(read('ci/install_qt_webengine_windows.py'),/WEBENGINE_STAMP = VERSION \+ "-0-"/);
-  assert.match(installer,/extensions\/qtwebengine\/6121\/61400/);
+  assert.match(installer,/extensions\/qtwebengine\/6120\/61400/);
   assert.match(windows,/Qt6WebEngineWidgets/);
   assert.match(windows,/Qt6WebEngineQuick/);
   assert.match(windows,/-DFARCASTER_ENABLE_MINIAPPS=ON/);

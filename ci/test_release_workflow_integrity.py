@@ -70,23 +70,23 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         ):
             with self.subTest(arch=arch):
                 base, groups, prefix = webengine_archive_layout(arch)
-                self.assertEqual(prefix, "6.12.1-0-")
+                self.assertEqual(prefix, "6.12.0-0-")
                 self.assertEqual(
                     base,
                     "https://download.qt.io/online/qtsdkrepository/"
-                    f"{platform}/extensions/qtwebengine/6121/61400/{folder}/",
+                    f"{platform}/extensions/qtwebengine/6120/61400/{folder}/",
                 )
-                self.assertEqual(list(groups), [f"extensions.qtwebengine.6121.61400.{suffix}"])
+                self.assertEqual(list(groups), [f"extensions.qtwebengine.6120.61400.{suffix}"])
                 stamp = prefix + "202611260000"  # synthetic index fixture
                 html = (
                     f'<a href="{stamp}qtwebengine-Windows-Release.7z"></a>'
                     f'<a href="{stamp}qtwebview_qtwebengine_plugin.7z"></a>'
-                    '<a href="6.12.0-0-202611110526qtwebengine-Windows-Release.7z"></a>'
+                    '<a href="6.12.1-0-202611110526qtwebengine-Windows-Release.7z"></a>'
                 )
                 self.assertEqual(archives_from_index(html, next(iter(groups.values())), stamp=prefix),
                     [f"{stamp}qtwebengine-Windows-Release.7z", f"{stamp}qtwebview_qtwebengine_plugin.7z"])
                 with self.assertRaises(ValueError):
-                    archives_from_index(html.replace(stamp, "6.12.0-0-202611110526"),
+                    archives_from_index(html.replace(stamp, "6.12.1-0-202611110526"),
                                         next(iter(groups.values())), stamp=prefix)
 
     def test_one_unified_dispatch_and_tag_release_dependency_graph(self) -> None:

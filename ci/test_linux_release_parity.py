@@ -125,6 +125,11 @@ class LinuxReleaseParityTests(unittest.TestCase):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         container = DOCKERFILE.read_text(encoding="utf-8")
         self.assertIn("QT_VERSION: '6.12.1'", workflow)
+        self.assertIn("QT_DESKTOP_WEBENGINE_VERSION: '6.12.0'", workflow)
+        linux = workflow.split("\n  linux:\n", 1)[1].split("\n  macos:\n", 1)[0]
+        self.assertEqual(linux.count("env.QT_DESKTOP_WEBENGINE_VERSION"), 2)
+        self.assertNotIn("env.QT_VERSION", linux)
+        self.assertIn("ci/preflight_desktop_qt.py", workflow)
         self.assertIn("CMAKE_VERSION: '4.4.4'", workflow)
         self.assertIn("FROM ubuntu:24.04", container)
         self.assertIn("'cmake==4.4.4'", container)

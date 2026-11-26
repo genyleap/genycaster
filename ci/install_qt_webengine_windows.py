@@ -74,7 +74,7 @@ def main() -> int:
     destination = args.destination.resolve()
     # ci/install_qt_windows.py extracts official Qt base archives directly
     # into --destination, and exports QT_ROOT_DIR=that exact directory.
-    # Do not invent a 6.12.1/msvc2022_* subdirectory: the hosted Windows
+    # Do not invent a 6.12.0/msvc2022_* subdirectory: the hosted Windows
     # runner verified the actual Qt6Config.cmake resides at Qt/lib/cmake.
     root = destination
     if not (root / "lib/cmake/Qt6/Qt6Config.cmake").is_file():

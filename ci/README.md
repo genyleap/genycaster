@@ -83,7 +83,7 @@ the app's language reselects the release content immediately.
 | iOS arm64 | macOS 15 + iOS SDK | CI-only unsigned .app archive (not a distributable IPA) |
 | NixOS x86_64 / arm64 | Native Nix GCC 16 + Qt on Linux x64 / ARM | Nix package build and closure manifest |
 
-Qt 6.12.1 and CMake 4.4.4 are pinned in the workflow. GitHub Ubuntu
+Qt 6.12.0 (Linux/Windows), Qt 6.12.1 (other Qt targets), and CMake 4.4.4 are pinned in the workflow. GitHub Ubuntu
 runners need GCC 16 from the Ubuntu toolchain PPA for GenyCaster's C++26
 module/standard-library support; stock Clang 18 with the default libstdc++
 failed on `std::expected` during the first hosted run. All Qt platforms
@@ -346,18 +346,20 @@ metadata permits HTTP Range/block reuse but does not bypass system trust
 or signature checks. No platform is authorized to overwrite a running,
 unverified executable.
 
-### Qt 6.12.1 release SDK baseline
+### Platform-specific Qt release SDK baseline
 
-CI pins Qt 6.12.1 on all platforms using Qt; the Android FFmpeg build
+CI pins Qt 6.12.1 on Android, macOS, iOS and WASM; the Android FFmpeg build
 pins 9.0.2 and verifies the source digest, ELF alignment and SONAMEs.
 A missing Android FFmpeg plugin triggers a matching Qt Multimedia source
 build before the application is configured. The final APK must contain
 the plugin and five required FFmpeg shared libraries.
 
-Qt WebEngine is a separately released extension. Windows resolves only
-official 6.12.1-targeted 6.140 archives with one matching build stamp and
-upstream checksums; Linux requests the 6.12.1 SDK through aqt. As of
-2026-11-26 the official Windows extension index only exposes 6.12.0;
-the 6.12.1 jobs must fail closed until matching archives are published
-and verified. Do not mix the older private Qt ABI into the new SDK.
-No full platform build or device smoke test is implied by this update.
+Qt WebEngine is a separately released extension. The official 6.140 packages
+available on 2026-11-26 target Qt 6.12.0, not 6.12.1. Linux and Windows
+therefore pin the entire SDK to 6.12.0 and use matching WebEngine archives.
+The cheap release gate checks the official desktop repository metadata before
+starting native builds. Windows archives must share one matching build stamp
+and pass upstream checksum verification. Never mix private Qt ABIs or disable
+Mini Apps to work around a missing package. Upgrade the desktop pin only after
+the official matching extension is verified for all four architectures.
+No full platform build or device smoke test is implied by the metadata check.

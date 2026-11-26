@@ -13,6 +13,38 @@ from ci.install_qt_webengine_windows import (
 from ci.install_qt_windows import archive_layout, archives_from_index, STAMP
 
 
+class DesktopQtPreflightTest(unittest.TestCase):
+    def test_linux_metadata_requires_matching_patch_and_both_archives(self):
+        from ci.preflight_desktop_qt import linux_package_archives
+        index = "https://download.qt.io/example/"
+        name = "extensions.qtwebengine.6120.61400.linux_gcc_64"
+        required = ("qtwebengine", "qtwebview_qtwebengine_plugin")
+        xml = (f"<Updates><PackageUpdate><Name>{name}</Name>"
+               "<Version>6.12.0-0-202611110526</Version>"
+               "<DownloadableArchives>qtwebengine-Linux-X86_64.7z, "
+               "qtwebview_qtwebengine_plugin.7z</DownloadableArchives>"
+               "</PackageUpdate></Updates>").encode()
+        self.assertEqual(linux_package_archives(index, xml, name, required), [
+            f"{index}{name}/6.12.0-0-202611110526qtwebengine-Linux-X86_64.7z",
+            f"{index}{name}/6.12.0-0-202611110526qtwebview_qtwebengine_plugin.7z",
+        ])
+        with self.assertRaisesRegex(ValueError, "Incompatible Qt package"):
+            linux_package_archives(index, xml.replace(b"6.12.0", b"6.12.1"), name, required)
+        with self.assertRaises(ValueError):
+            linux_package_archives(index, xml.replace(b", qtwebview_qtwebengine_plugin.7z", b""), name, required)
+
+    def test_preflight_rejects_invalid_checksum_sidecar(self):
+        from unittest.mock import patch
+        from ci.preflight_desktop_qt import require_checksum
+        url = "https://download.qt.io/example/archive.7z"
+        with patch("ci.preflight_desktop_qt.read_url", return_value=b"a" * 40) as read:
+            require_checksum(url)
+            read.assert_called_once_with(url + ".sha1")
+        with patch("ci.preflight_desktop_qt.read_url", return_value=b"not a digest"):
+            with self.assertRaises(ValueError):
+                require_checksum(url)
+
+
 class WindowsWebEngineExtensionTest(unittest.TestCase):
     def test_base_sdk_includes_official_qt_positioning_for_both_architectures(self):
         for architecture in ARCHITECTURES:
@@ -33,7 +65,7 @@ class WindowsWebEngineExtensionTest(unittest.TestCase):
         for architecture in ARCHITECTURES:
             with self.subTest(architecture=architecture):
                 base, components = extension_layout(architecture)
-                self.assertIn("/extensions/qtwebengine/6121/61400/", base)
+                self.assertIn("/extensions/qtwebengine/6120/61400/", base)
                 stamp = WEBENGINE_STAMP + "202611260000"  # synthetic fixture
                 archives = tuple(stamp + name + ".7z" for name in components)
                 html = "".join(f'<a href="{name}">archive</a>' for name in archives)
@@ -41,7 +73,7 @@ class WindowsWebEngineExtensionTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     checked_archives(f'<a href="{archives[1]}">only plugin</a>', components)
                 with self.assertRaises(ValueError):
-                    checked_archives(html.replace(WEBENGINE_STAMP, "6.12.0-0-"), components)
+                    checked_archives(html.replace(WEBENGINE_STAMP, "6.12.1-0-"), components)
                 with self.assertRaises(ValueError):
                     checked_archives(html.replace(archives[1], archives[1].replace("202611260000", "202611260001")), components)
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Install official Qt 6.12 Windows MSVC archives when aqt lacks Updates.xml.
 
-Qt 6.12.1's public Windows repository currently exposes version/arch-specific
+Qt 6.12.0's public Windows repository currently exposes version/arch-specific
 component directories, but not the top-level Updates.xml expected by aqtinstall.
-This installer downloads ONLY fixed official 6.12.1 MSVC 2022 components, checks
+This installer downloads ONLY fixed official 6.12.0 MSVC 2022 components, checks
 the upstream SHA1 sidecars, and extracts archives with 7-Zip. No Qt account,
 unofficial mirror, or downgraded Qt version is required.
 """
@@ -21,24 +21,24 @@ import sys
 from urllib.request import urlopen
 from urllib.parse import urljoin
 
-VERSION = "6.12.1"
-STAMP = "6.12.1-0-202611180427"
+VERSION = "6.12.0"
+STAMP = "6.12.0-0-202609280346"
 ARCHIVE_LAYOUTS = {
-    "x86_64": ("windows_x86", "qt6_6121_msvc2022_64", "win64_msvc2022_64"),
-    "arm64": ("windows_arm64", "qt6_6121", "win64_msvc2022_arm64"),
+    "x86_64": ("windows_x86", "qt6_6120_msvc2022_64", "win64_msvc2022_64"),
+    "arm64": ("windows_arm64", "qt6_6120", "win64_msvc2022_arm64"),
 }
 
 # WebEngine remains a separate Qt extension. Require archives explicitly
-# published for the same base patch release; do not mix 6.12.0 and 6.12.1.
+# published for the same base patch release; never mix Qt private ABIs.
 def webengine_archive_layout(
     architecture: str,
 ) -> tuple[str, dict[str, tuple[str, ...]], str]:
     platform, _, suffix = ARCHIVE_LAYOUTS[architecture]
     folder = {"x86_64": "msvc2022_64", "arm64": "msvc2022_arm64"}[architecture]
     base = ("https://download.qt.io/online/qtsdkrepository/"
-            f"{platform}/extensions/qtwebengine/6121/61400/{folder}/")
+            f"{platform}/extensions/qtwebengine/6120/61400/{folder}/")
     groups = {
-        f"extensions.qtwebengine.6121.61400.{suffix}":
+        f"extensions.qtwebengine.6120.61400.{suffix}":
             ("qtwebengine", "qtwebview_qtwebengine_plugin"),
     }
     return base, groups, VERSION + "-0-"
@@ -47,21 +47,21 @@ def webengine_archive_layout(
 def archive_layout(architecture: str) -> tuple[str, dict[str, tuple[str, ...]]]:
     platform, leaf, suffix = ARCHIVE_LAYOUTS[architecture]
     base = ("https://download.qt.io/online/qtsdkrepository/"
-            f"{platform}/desktop/qt6_6121/{leaf}/")
+            f"{platform}/desktop/qt6_6120/{leaf}/")
     packages = {
-        f"qt.qt6.6121.{suffix}": (
+        f"qt.qt6.6120.{suffix}": (
             "qtbase", "qtdeclarative", "qttools", "qtsvg"
         ),
-        f"qt.qt6.6121.addons.qtshadertools.{suffix}": ("qtshadertools",),
-        f"qt.qt6.6121.addons.qtmultimedia.{suffix}": ("qtmultimedia",),
-        f"qt.qt6.6121.addons.qtlottie.{suffix}": ("qtlottie",),
+        f"qt.qt6.6120.addons.qtshadertools.{suffix}": ("qtshadertools",),
+        f"qt.qt6.6120.addons.qtmultimedia.{suffix}": ("qtmultimedia",),
+        f"qt.qt6.6120.addons.qtlottie.{suffix}": ("qtlottie",),
         # Origin-bound Mini App SDK host: both the QWidget and Quick
         # WebEngine runtimes and their isolated WebChannel transport are
         # mandatory. A partial install must fail before compilation.
-        f"qt.qt6.6121.addons.qtwebchannel.{suffix}": ("qtwebchannel",),
+        f"qt.qt6.6120.addons.qtwebchannel.{suffix}": ("qtwebchannel",),
         # Qt WebEngine Core 6.140 requires Qt6Positioning. Its config can
         # exist while Qt6_FOUND is false if this official addon is omitted.
-        f"qt.qt6.6121.addons.qtpositioning.{suffix}": ("qtpositioning",),
+        f"qt.qt6.6120.addons.qtpositioning.{suffix}": ("qtpositioning",),
     }
     return base, packages
 
