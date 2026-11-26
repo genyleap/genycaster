@@ -13,6 +13,7 @@
 #include <openssl/rand.h>
 
 #include <array>
+#include <atomic>
 #include <algorithm>
 #include <optional>
 #include <limits>
@@ -421,6 +422,29 @@ void NativeCustodyWalletController::discard()
     m_private->secret.reset(); // GeneratedCustodyWallet zeroizes on destruction.
     m_private->error.clear();
     emit changed();
+}
+
+NativeCustodySignerAccess::CloudEnrollmentPermit
+NativeCustodySignerAccess::forCloudEnrollment(const NativeCustodyWalletController& wallet,
+    const std::uint64_t fid, const QString& custodyAddress)
+{
+    if (fid < (1ULL<<32) || !wallet.backupVerified() ||
+        wallet.address().toLower()!=custodyAddress.toLower()) return {};
+    const auto& words=wallet.m_private->secret->recoveryWords;
+    auto secret=std::shared_ptr<QByteArray>(
+        new QByteArray{words.data(),static_cast<qsizetype>(words.size())},
+        [](QByteArray* value){value->fill(char{0});delete value;});
+    auto consumed=std::make_shared<std::atomic_bool>(false);
+    return [secret=std::move(secret),consumed,fid,address=custodyAddress.toLower().toStdString()](
+        const QString& key,const QString& nonce)->std::optional<QString> {
+        if(consumed->exchange(true))return std::nullopt;
+        auto proof=custody::signCloudDeviceEnrollment(
+            {secret->constData(),static_cast<std::size_t>(secret->size())},fid,
+            address,key.toStdString(),nonce.toStdString());
+        secret->fill(char{0});
+        if(!proof)return std::nullopt;
+        return QString::fromStdString(proof->signature);
+    };
 }
 
 std::shared_ptr<farcaster::capability::signer::ICustodyAuthorizer>

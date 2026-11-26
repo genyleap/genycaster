@@ -679,6 +679,10 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         runtime->signerMetadataStore = std::move(*signerMetadataStore);
     }
 
+    auto farcasterCloudVault = farcaster::platform::signer_vault::open("org.genycaster.cloud-device.farcaster");
+    if (farcasterCloudVault) runtime->farcasterCloudVault = std::move(*farcasterCloudVault);
+    auto hypersnapCloudVault = farcaster::platform::signer_vault::open("org.genycaster.cloud-device.hypersnap");
+    if (hypersnapCloudVault) runtime->hypersnapCloudVault = std::move(*hypersnapCloudVault);
     auto signerVault = farcaster::platform::signer_vault::open("org.genycaster.protocol-signer");
     if (!signerVault) {
         if (!runtime->signerSetupError) {

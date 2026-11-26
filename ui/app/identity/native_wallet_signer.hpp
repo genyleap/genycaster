@@ -15,6 +15,8 @@
 #pragma once
 #include "native_wallet.hpp"
 #include <cstdint>
+#include <functional>
+#include <optional>
 #include <memory>
 #include <QString>
 
@@ -22,6 +24,9 @@
 // This is a trusted native implementation detail, never a QML method.
 class NativeCustodySignerAccess final {
 public:
+    using CloudEnrollmentPermit = std::function<std::optional<QString>(const QString&, const QString&)>;
+    [[nodiscard]] static CloudEnrollmentPermit forCloudEnrollment(
+        const NativeCustodyWalletController& wallet, std::uint64_t fid, const QString& custodyAddress);
     [[nodiscard]] static std::shared_ptr<
         farcaster::capability::signer::ICustodyAuthorizer>
     forConfirmedNativeFid(const NativeCustodyWalletController& wallet,

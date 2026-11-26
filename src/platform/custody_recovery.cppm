@@ -145,6 +145,11 @@ signOpenProofWalletChallenge(std::string_view phrase,
                              std::string_view expectedAddress,
                              std::string_view challenge);
 
+/** Sign only the exact HyperSnap cloud-device enrollment domain. */
+[[nodiscard]] std::expected<RecoveryProof, Error>
+signCloudDeviceEnrollment(std::string_view phrase, std::uint64_t fid,
+    std::string_view expectedAddress, std::string_view publicKey, std::string_view nonce);
+
 /**
  * Materialize one strictly ephemeral custody authorizer after the first-party
  * recovery challenge has proved the same address owns the user FID.

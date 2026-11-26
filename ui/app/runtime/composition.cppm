@@ -164,6 +164,8 @@ struct Runtime final {
     std::unique_ptr<farcaster::execution::serial::SerialExecutor> signerExecutor{};
     std::unique_ptr<farcaster::local::signer::ISignerMetadataStore> signerMetadataStore{};
     std::unique_ptr<farcaster::capability::signer::ISignerVault> signerVault{};
+    std::unique_ptr<farcaster::capability::signer::ISignerVault> farcasterCloudVault{};
+    std::unique_ptr<farcaster::capability::signer::ISignerVault> hypersnapCloudVault{};
     std::unique_ptr<farcaster::routing::signer::RoutedSignerRegistry> signerRegistry{};
     std::vector<std::unique_ptr<farcaster::capability::signer::ISignerRegistry>> signerRegistrySources{};
     std::unique_ptr<farcaster::capability::signer::ICustodyAuthorizer> custodyAuthorizer{};

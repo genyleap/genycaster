@@ -712,6 +712,38 @@ signOpenProofWalletChallenge(const std::string_view phrase,
     };
 }
 
+std::expected<RecoveryProof, Error>
+signCloudDeviceEnrollment(const std::string_view phrase, const std::uint64_t fid,
+    const std::string_view expectedAddress, const std::string_view publicKey,
+    const std::string_view nonce)
+{
+    const auto hex = [](char ch) { return (ch >= '0' && ch <= '9') ||
+                                        (ch >= 'a' && ch <= 'f'); };
+    const auto base64 = [](char ch) { return (ch >= '0' && ch <= '9') ||
+        (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '-' || ch == '_'; };
+    if (fid < (1ULL << 32) || expectedAddress.size() != 42U ||
+        !expectedAddress.starts_with("0x") ||
+        !std::all_of(expectedAddress.begin()+2, expectedAddress.end(), hex) ||
+        publicKey.size() != 64U || !std::all_of(publicKey.begin(),publicKey.end(),hex) ||
+        nonce.size() != 43U || !std::all_of(nonce.begin(),nonce.end(),base64))
+        return std::unexpected(Error::InvalidChallenge);
+    auto custody = deriveMaterial(phrase);
+    if (!custody) return std::unexpected(custody.error());
+    if (custody->address != expectedAddress) return std::unexpected(Error::InvalidChallenge);
+    // Explicit UTF-8 bytes match the server and WebCrypto enrollment domain.
+    const std::string challenge = std::string{"Genycaster \xe2\x80\x94 authorize private cloud device\n"
+        "This authorizes private Genycaster data on this device, not social signing or a transaction.\n"
+        "Origin: https://genycaster.xyz\ngenycaster-cloud-device-v2\nenroll\nhypersnap\n"}
+        + std::to_string(fid) + "\n" + std::string{publicKey} + "\n" +
+        std::string{nonce} + "\nCustody: " + std::string{expectedAddress};
+    const std::string payload = std::string{"\x19" "Ethereum Signed Message:\n"} +
+        std::to_string(challenge.size()) + challenge;
+    auto signature = signDigest(custody->privateKey, keccak256({
+        reinterpret_cast<const unsigned char*>(payload.data()),payload.size()}));
+    if (!signature) return std::unexpected(signature.error());
+    return RecoveryProof{.address=std::move(custody->address),.signature=std::move(*signature)};
+}
+
 // Strict, single-use EIP-712 signing for a network-approved device signer.
 // The typed-data hashes reproduce key_authorization::buildTypedData's domain,
 // field ordering and dynamic-array encoding; no JSON parser is trusted here.
