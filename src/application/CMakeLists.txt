@@ -59,6 +59,7 @@ target_sources(farcaster_application
             read_async_service.cppm
             read_service.cppm
             session.cppm
+            authentication.cppm
             signer.cppm
     PRIVATE
         "${configuredFeaturesSource}"

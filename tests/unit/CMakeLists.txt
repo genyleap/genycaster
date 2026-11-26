@@ -164,6 +164,14 @@ farcaster_enable_warnings(farcaster_read_pipeline_tests)
 add_test(NAME application.local_first_read COMMAND farcaster_read_pipeline_tests)
 set_tests_properties(application.local_first_read PROPERTIES LABELS "unit;integration")
 
+add_executable(farcaster_authentication_tests authentication_tests.cpp)
+target_link_libraries(farcaster_authentication_tests PRIVATE farcaster::application)
+target_compile_features(farcaster_authentication_tests PRIVATE cxx_std_26)
+set_property(TARGET farcaster_authentication_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+farcaster_enable_warnings(farcaster_authentication_tests)
+add_test(NAME application.authentication_lifecycle COMMAND farcaster_authentication_tests)
+set_tests_properties(application.authentication_lifecycle PROPERTIES LABELS "unit;security")
+
 add_executable(farcaster_session_tests session_tests.cpp)
 target_link_libraries(farcaster_session_tests
     PRIVATE

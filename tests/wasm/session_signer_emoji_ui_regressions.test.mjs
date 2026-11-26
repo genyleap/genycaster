@@ -38,7 +38,8 @@ test('saved signer verification never requires a new custody approval', () => {
   assert.match(retry, /signerService->restore\(session, signerObserver\)/);
   assert.match(retry, /browserSigner->start\(QStringLiteral\("restore"\)/);
   assert.doesNotMatch(retry, /signerService->provision|nativeRecoveryRequested|request\.requestFid/);
-  assert.match(runtime, /bridge\.refreshSigner\(\)/);
+  assert.match(runtime, /AuthTrigger::ConnectivityRestored/);
+  assert.match(runtime, /AuthenticationCoordinator/);
   assert.match(shell, /onClicked: canRetryVerification \? presentationBridge\.refreshSigner\(\)/);
 });
 
