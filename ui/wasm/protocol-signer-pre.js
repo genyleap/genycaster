@@ -73,6 +73,7 @@
                 const device=await module.ensureBrowserCloudDeviceSession(args);
                 if(device)return device;
                 if(network==='hypersnap')throw Error('Cloud device enrollment required');
+                if(bearer)return module.bootstrapBrowserOpenProofSession(args);
                 // Compatibility only; strict account API disables this endpoint.
                 return module.ensureBrowserAccountSession(args);
             })

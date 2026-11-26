@@ -3257,7 +3257,7 @@ void connectRuntime(
         });
 #endif
 
-    auto commitVerifiedIdentity = [runtime, &bridge, sessionObserver, signerObserver,
+    auto commitVerifiedIdentity = [runtime, &bridge, &connections, protectedWallet, sessionObserver, signerObserver,
                                    beginNativeOpenProofEnrollment,
                                    beginNativeWalletEnrollment](
         const std::uint64_t fid, const QString& custody,
@@ -3292,7 +3292,7 @@ void connectRuntime(
                         .authenticatedAt = time,
                         .expiresAt = time + std::chrono::hours{1}
                     };
-                    auto persisted = [runtime, &bridge, sessionObserver,
+                    auto persisted = [runtime, &bridge, &connections, protectedWallet, sessionObserver,
                         signerObserver, permit = std::move(permit),
                         fid, issuer, writer, farcaster, custody,
                         recoveredWords = std::move(recoveredWords),
@@ -3308,7 +3308,7 @@ void connectRuntime(
                         // Session and UI presentation are queued before signer
                         // provision; the one-shot key may authorize ONLY this FID.
                         QMetaObject::invokeMethod(&bridge,
-                            [&bridge, runtime, signerObserver, permit, fid,
+                            [&bridge, &connections, protectedWallet, runtime, signerObserver, permit, fid,
                              issuer, writer, farcaster, custody,
                              recoveredWords = std::move(recoveredWords),
                              beginNativeOpenProofEnrollment,
@@ -3354,8 +3354,25 @@ void connectRuntime(
                                 // repeat the IdRegistry transaction.
                                 if (farcaster && beginNativeOpenProofEnrollment)
                                     beginNativeOpenProofEnrollment(fid, custody, std::move(recoveredWords));
-                                else if (!farcaster && beginNativeWalletEnrollment)
-                                    beginNativeWalletEnrollment(fid, custody);
+                                else if (!farcaster) {
+                                    OpenProofConnectionsController::CloudCustodyPermit cloudPermit;
+                                    if(recoveredWords) {
+                                        auto consumed=std::make_shared<std::atomic_bool>(false);
+                                        cloudPermit=[words=std::move(recoveredWords),consumed,fid,address=custody.toLower().toStdString()](
+                                            const QString& key,const QString& nonce)->std::optional<QString>{
+                                            if(consumed->exchange(true))return std::nullopt;
+                                            auto proof=::farcaster::platform::custody_recovery::signCloudDeviceEnrollment(
+                                                {words->constData(),static_cast<std::size_t>(words->size())},
+                                                fid,address,key.toStdString(),nonce.toStdString());
+                                            words->fill(char{0});
+                                            if(!proof)return std::nullopt;
+                                            return QString::fromStdString(proof->signature);
+                                        };
+                                    }else if(protectedWallet)
+                                        cloudPermit=NativeCustodySignerAccess::forCloudEnrollment(*protectedWallet,fid,custody);
+                                    if(cloudPermit)connections.enrollNativeCloudDevice(fid,custody.toLower(),std::move(cloudPermit));
+                                    if(beginNativeWalletEnrollment)beginNativeWalletEnrollment(fid,custody);
+                                }
                             }, Qt::QueuedConnection);
                     };
                     auto result = farcaster
@@ -3784,7 +3801,7 @@ void connectRuntime(
                             // Registry-confirmed native account recovery is
                             // independent from OPTIONAL publishing permission.
                             commitVerifiedIdentity(result.fid, address,
-                                                   std::move(permit), false);
+                                                   std::move(permit), false, secret);
                         };
                     // A user-selected social read node need not implement the
                     // HyperSnap native account registry. Retry READ-ONLY on
@@ -6827,6 +6844,40 @@ void attachRuntime(RuntimeAttachment attachment,
     // signer remains in the OS-protected vault; only the domain-separated,
     // one-use proof leaves this process. This avoids launching Farcaster
     // solely to query a Pro membership.
+    attachment.openProofConnections.setCloudDeviceSigner(
+        [runtimeWeak=std::weak_ptr<Runtime>{attachment.runtime}](
+            const qulonglong fid,const QString& network,const bool enroll,
+            const QString& expectedKey,const QString& nonce)
+            ->std::optional<OpenProofConnectionsController::AccountSignerProof> {
+        const auto runtime=runtimeWeak.lock();
+        if(!runtime||!fid)return std::nullopt;
+        const auto active=runtime->currentSessionSnapshot();
+        if(!active||active->fid.value!=fid||
+            (active->identityIssuer=="hypersnap:native-registry")!=(network==QStringLiteral("hypersnap")))
+            return std::nullopt;
+        auto* vault=network==QStringLiteral("hypersnap")?runtime->hypersnapCloudVault.get():
+            runtime->farcasterCloudVault.get();
+        if(!vault)return std::nullopt;
+        auto key=enroll&&nonce.isEmpty()?vault->ensure(domain::identity::Fid{fid}):
+            vault->load(domain::identity::Fid{fid});
+        if(!key||!*key)return std::nullopt;
+        const auto publicKey=(*key)->publicKey();
+        if(!publicKey||publicKey->hex.size()!=64U)return std::nullopt;
+        const QString hex=QString::fromStdString(publicKey->hex);
+        if(nonce.isEmpty())return OpenProofConnectionsController::AccountSignerProof{hex,{}};
+        if(hex!=expectedKey)return std::nullopt;
+        const auto canonical=std::string{"genycaster-cloud-device-v2\n"}+
+            (enroll?"enroll":"restore")+"\n"+network.toStdString()+"\n"+
+            std::to_string(fid)+"\n"+publicKey->hex+"\n"+nonce.toStdString();
+        auto signedProof=(*key)->sign(canonical);
+        const auto after=runtime->currentSessionSnapshot();
+        if(!signedProof||signedProof->bytes.size()!=64U||!after||
+            after->fid.value!=fid||after->identityIssuer!=active->identityIssuer||
+            after->identitySubject!=active->identitySubject||
+            after->authenticatedAt!=active->authenticatedAt)return std::nullopt;
+        const QByteArray raw{signedProof->bytes.data(),static_cast<qsizetype>(signedProof->bytes.size())};
+        return OpenProofConnectionsController::AccountSignerProof{hex,QString::fromLatin1(raw.toHex())};
+    });
     attachment.openProofConnections.setAccountProofSigner(
         [runtimeWeak = std::weak_ptr<Runtime>{attachment.runtime}](
             const qulonglong fid, const QString& nonce)

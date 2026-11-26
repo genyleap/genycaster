@@ -134,3 +134,18 @@ export async function ensureBrowserCloudDeviceSession({
   if(!matches(confirmed)||confirmed.auth_source!=='device')throw Error('Cloud device cookie mismatch');
   return confirmed;
 }
+
+
+// During staged rollout a verified OpenProof grant can still mint a cookie
+// directly on older account servers. Never downgrade this path to social proof.
+export async function bootstrapBrowserOpenProofSession({fid,bearer,fetchImpl=globalThis.fetch,signal,
+  origin=globalThis.location?.origin}={}) {
+  if(origin!==deployment.publicOrigin||!validFid(fid)||typeof bearer!=='string'||!bearer)
+    throw Error('Invalid OpenProof bootstrap');
+  const principal=await request(fetchImpl,endpoint,{method:'POST',signal,
+    headers:{authorization:'Bearer '+bearer,accept:'application/json'}});
+  if(!isVerifiedFarcasterOwner(principal,fid))throw Error('OpenProof session principal mismatch');
+  const confirmed=await request(fetchImpl,endpoint,{method:'GET',signal});
+  if(!isVerifiedFarcasterOwner(confirmed,fid))throw Error('OpenProof cookie principal mismatch');
+  return confirmed;
+}
