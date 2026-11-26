@@ -4448,7 +4448,7 @@ void connectRuntime(
             .cloudBusy=connections.cloudSessionBusy()||connections.accountProofBusy()
         });
         if(actions.revalidateSigner)revalidateSigner();
-        if(actions.restoreCloud)connections.retryAccountSession();
+        if(actions.restoreCloud)connections.revalidateAccountSession();
     };
     using AuthTrigger=application::authentication::Trigger;
     QObject::connect(&bridge, &PresentationBridge::signerRefreshRequested, &bridge,

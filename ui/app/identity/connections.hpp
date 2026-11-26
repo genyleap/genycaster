@@ -233,6 +233,7 @@ public:
     /** Explicit retry after a protocol Signer becomes ready; keeps this
      * cloud identity distinct from OpenProof social connections. */
     Q_INVOKABLE void retryAccountSession();
+    void revalidateAccountSession();
     [[nodiscard]] QVariantMap proEntitlements() const {
         return m_proEntitlementsFid == m_viewerFid && m_viewerFid != 0
             ? m_proEntitlements : QVariantMap{};

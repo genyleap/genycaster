@@ -59,11 +59,10 @@ public:
             m_signerDue=now+(snapshot.signerReady?std::chrono::seconds{300}:m_signerDelay);
             if(!snapshot.signerReady)m_signerDelay=backoff(m_signerDelay);
         }
-        if(!manual&&!snapshot.cloudReady&&!snapshot.cloudBusy&&
-           (reconnect||now>=m_cloudDue)) {
+        if(!manual&&!snapshot.cloudBusy&&(reconnect||now>=m_cloudDue)) {
             result.restoreCloud=true;
-            m_cloudDue=now+m_cloudDelay;
-            m_cloudDelay=backoff(m_cloudDelay);
+            m_cloudDue=now+(snapshot.cloudReady?std::chrono::seconds{300}:m_cloudDelay);
+            if(!snapshot.cloudReady)m_cloudDelay=backoff(m_cloudDelay);
         }
         return result;
     }

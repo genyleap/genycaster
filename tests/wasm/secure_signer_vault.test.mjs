@@ -292,3 +292,49 @@ test('cloud device keys are isolated from social signers and exact protocol',asy
     assert.deepEqual(await social.load(fid),a);
     assert.deepEqual(await native.load(fid),c);
 });
+
+
+test('offline retirement persists a revocation-only receipt before erasing the cloud key',async()=>{
+    const {retireBrowserCloudDevice,flushBrowserCloudRevocations,finishBrowserCloudRetirements}
+        =await import('../../ui/wasm/browser_account_session.mjs');
+    const storage=new MemoryIndexedDB(),saved=new Map();
+    let failWrite=false;
+    const localStorage={get length(){return saved.size;},key:i=>[...saved.keys()][i]??null,
+        getItem:k=>saved.get(k)??null,removeItem:k=>saved.delete(k),
+        setItem(k,v){if(failWrite&&k.includes('cloud-revocation.'))throw Error('storage full');saved.set(k,v);}};
+    const env={...environment(storage),localStorage},fid='42',network='farcaster';
+    const vault=createBrowserSignerVault(env,{scope:'cloud-device-farcaster'});
+    const initial=await vault.ensure(fid);
+    failWrite=true;
+    await assert.rejects(retireBrowserCloudDevice({fid,network,environment:env,vault}),/storage full/);
+    assert.deepEqual(await vault.load(fid),initial);
+    assert.equal(saved.has('genycaster.cloud-retirement.farcaster.42'),true);
+    failWrite=false;
+    await finishBrowserCloudRetirements({environment:env});
+    assert.equal(await vault.load(fid),null);
+    const slot='genycaster.cloud-revocation.'+initial.publicKeyHex;
+    const receipt=JSON.parse(saved.get(slot));
+    assert.equal(receipt.purpose,'revoke');
+    const publicKey=await webcrypto.subtle.importKey('raw',Buffer.from(initial.publicKeyHex,'hex'),
+        'Ed25519',true,['verify']);
+    const bytes=new TextEncoder().encode(['genycaster-cloud-device-v2','revoke',network,
+        fid,initial.publicKeyHex,'A'.repeat(43)].join('\n'));
+    assert.equal(await webcrypto.subtle.verify('Ed25519',publicKey,Buffer.from(receipt.signature,'hex'),bytes),true);
+    await assert.rejects(flushBrowserCloudRevocations({environment:env,origin:'https://genycaster.xyz',
+        fetchImpl:async()=>{throw Error('offline');}}),/offline/);
+    assert.equal(saved.has(slot),true);
+    await flushBrowserCloudRevocations({environment:env,origin:'https://genycaster.xyz',
+        fetchImpl:async()=>new Response('{}',{status:409})});
+    assert.equal(saved.has(slot),true);
+    const next=await vault.ensure(fid);
+    assert.notEqual(next.publicKeyHex,initial.publicKeyHex);
+    await flushBrowserCloudRevocations({environment:env,origin:'https://genycaster.xyz',
+        fetchImpl:async(path,options)=>{
+            assert.equal(path,'/api/v1/cloud/session/device/revoke');
+            assert.equal(options.credentials,'omit');assert.equal(options.headers.authorization,undefined);
+            assert.deepEqual(JSON.parse(options.body),receipt);
+            return Response.json({revoked:true});
+        }});
+    assert.equal(saved.has(slot),false);
+    assert.deepEqual(await vault.load(fid),next);
+});

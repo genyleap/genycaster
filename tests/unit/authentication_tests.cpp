@@ -14,7 +14,8 @@ int main()
     AuthenticationCoordinator coordinator;
     const AuthenticationCoordinator::Time now{};
     Snapshot snapshot{.principal="farcaster:42",.signerReady=true,.cloudReady=true};
-    assert(coordinator.plan(Trigger::Foreground,snapshot,now).revalidateSigner);
+    const auto initial=coordinator.plan(Trigger::Foreground,snapshot,now);
+    assert(initial.revalidateSigner&&initial.restoreCloud);
     assert(!coordinator.plan(Trigger::Timer,snapshot,now+30s).revalidateSigner);
     assert(coordinator.plan(Trigger::Timer,snapshot,now+300s).revalidateSigner);
     snapshot.offline=true;

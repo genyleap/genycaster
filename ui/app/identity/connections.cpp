@@ -933,6 +933,18 @@ void OpenProofConnectionsController::restoreAccountSession()
         reply->deleteLater();
         if(generation!=m_grantGeneration || viewer!=m_viewerFid) return;
         if (status != 200) {
+            if(status==401&&m_cloudSessionVerified){
+                m_cloudSessionVerified=false;
+                m_cloudDeviceVerified=false;
+                m_cloudCsrf.fill('\0');
+                m_cloudCsrf.clear();
+                m_cloudDeviceAttempted=false;
+                m_accountProofAttempted=false;
+                emit stateChanged();
+#if defined(Q_OS_WASM)
+                retryAccountSession();return;
+#endif
+            }
             if (status == 401 && beginCloudDeviceSession(false)) return;
             if (status == 401 && m_accountProofSigner && !m_accountProofAttempted)
                 beginSignedAccountSession();
@@ -951,11 +963,17 @@ void OpenProofConnectionsController::restoreAccountSession()
         const auto data=doc.object();
         const auto csrf=data.value(QStringLiteral("csrf_token")).toString().toUtf8();
         if(!genycaster::identity::matchesAccountSessionPrincipal(data, viewer, m_issuerUrl, m_viewerNetwork)
-            || csrf.size()!=43)return;
+            || csrf.size()!=43){
+            m_cloudSessionVerified=false;m_cloudDeviceVerified=false;
+            m_cloudCsrf.fill('\0');m_cloudCsrf.clear();
+            m_accountProofError=QStringLiteral("account_session_unavailable");emit stateChanged();return;
+        }
+        const bool unchanged=m_cloudSessionVerified&&m_cloudCsrf==csrf;
         m_cloudSessionVerified=true;
         m_cloudDeviceVerified=data.value(QStringLiteral("auth_source")).toString()==QStringLiteral("device");
         m_cloudCsrf=csrf;
         m_accountProofError.clear();
+        if(unchanged){emit stateChanged();return;}
         fetchTopics();
         refreshBookmarkCollections();
         m_bookmarkPoll.start();
@@ -2587,6 +2605,12 @@ void OpenProofConnectionsController::setStreakPreferences(
         }
         emit streakChanged();
     });
+}
+
+void OpenProofConnectionsController::revalidateAccountSession()
+{
+    if(m_cloudSessionVerified)restoreAccountSession();
+    else retryAccountSession();
 }
 
 void OpenProofConnectionsController::retryAccountSession()

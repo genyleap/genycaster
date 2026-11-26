@@ -286,6 +286,8 @@ foundation::result::Status SignerService::restore(
                 .requiredScopes = m_impl->policy.scopes};
             observer(m_impl->current);
 
+            // A failed vault load must not retain the previous account's handle.
+            m_impl->nativeSigner.reset();
             auto signer = m_impl->vault.load(session->fid);
             if (!signer) {
                 m_impl->current = SignerState{.phase = SignerPhase::Unavailable,
