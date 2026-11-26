@@ -339,7 +339,10 @@ void ProviderProfilesController::verifyDirectory(QByteArray envelope, const bool
     EM_ASM({
         const generation=$0;
         const decode = s => Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c=>c.charCodeAt(0));
-        const payload=decode(UTF8ToString($1)), signature=decode(UTF8ToString($2));
+        // EM_ASM is a variadic C preprocessor macro: a comma between JS
+        // declarations would split its arguments before Emscripten sees them.
+        const payload=decode(UTF8ToString($1));
+        const signature=decode(UTF8ToString($2));
         const hex=UTF8ToString($3);
         const key=Uint8Array.from(hex.match(/../g), x=>parseInt(x,16));
         Promise.resolve().then(async()=>{
