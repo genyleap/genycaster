@@ -580,7 +580,13 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         return std::unexpected(std::move(store.error()));
     }
     runtime->store = std::move(*store);
+#if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING
+    auto deviceVault = farcaster::platform::signer_vault::open("org.genycaster.device-session");
+    auto sessionStore = farcaster::storage::session::openDeviceBoundSessionStore(
+        databasePath, deviceVault ? std::move(*deviceVault) : nullptr);
+#else
     auto sessionStore = farcaster::storage::session::openSessionStore(databasePath);
+#endif
     if (!sessionStore) {
         return std::unexpected(std::move(sessionStore.error()));
     }

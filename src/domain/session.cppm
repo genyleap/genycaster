@@ -57,6 +57,10 @@ struct ClientSession final {
     AuthenticationMethod method{AuthenticationMethod::Custody};
     foundation::time::Timestamp authenticatedAt{};
     foundation::time::Timestamp expiresAt{};
+
+    // Runtime-only local continuity assertion from the device-bound store.
+    // Never a bearer, a fresh protocol ownership proof, or cloud authority.
+    bool deviceBound{false};
 };
 
 /** @brief Returns true when the original authentication proof has expired. */

@@ -21,6 +21,7 @@ export module farcaster.storage.session;
 
 import farcaster.foundation.result;
 import farcaster.local.session;
+import farcaster.capability.signer;
 
 export namespace farcaster::storage::session {
 
@@ -31,5 +32,10 @@ export namespace farcaster::storage::session {
  */
 [[nodiscard]] foundation::result::Result<std::unique_ptr<local::session::IClientSessionStore>>
 openSessionStore(const std::filesystem::path& path);
+
+/** Production native store: no cached identity is trusted without an OS-vault seal. */
+[[nodiscard]] foundation::result::Result<std::unique_ptr<local::session::IClientSessionStore>>
+openDeviceBoundSessionStore(const std::filesystem::path& path,
+    std::unique_ptr<capability::signer::ISignerVault> deviceVault);
 
 }

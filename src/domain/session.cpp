@@ -53,8 +53,14 @@ bool isRegistryCustodyAccount(const ClientSession& session) noexcept
 bool isProtocolSessionEligible(const ClientSession& session,
                                const foundation::time::Timestamp now) noexcept
 {
-    return !isExpired(session, now)
-        || (session.authenticatedAt <= now && isRegistryCustodyAccount(session));
+    if (session.authenticatedAt > now || session.expiresAt <= session.authenticatedAt)
+        return false;
+    if (session.deviceBound) {
+        // Local device continuity is independent of the original provider proof.
+        // Bound the remembered identity; a live signer and cloud grant are separate.
+        return session.fid.value != 0U && now - session.authenticatedAt < std::chrono::days{30};
+    }
+    return !isExpired(session, now) || isRegistryCustodyAccount(session);
 }
 
 }

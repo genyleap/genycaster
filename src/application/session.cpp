@@ -255,6 +255,7 @@ foundation::result::Status SessionService::pollSignIn(
             observer(failedState(std::move(saved.error()), m_impl->current));
             return;
         }
+        polled->session->deviceBound = m_impl->store.isDeviceBound();
         m_impl->current = std::move(*polled->session);
         m_impl->attempt.reset();
         m_impl->approvalUrl.clear();
@@ -312,6 +313,7 @@ foundation::result::Status SessionService::acceptVerifiedRecovery(
                 observer(failedState(std::move(stored.error()), m_impl->current));
                 return;
             }
+            session.deviceBound = m_impl->store.isDeviceBound();
             m_impl->current = std::move(session);
             m_impl->attempt.reset();
             m_impl->approvalUrl.clear();
@@ -357,6 +359,7 @@ foundation::result::Status SessionService::acceptVerifiedNativeCustody(
                 observer(failedState(std::move(saved.error()), m_impl->current));
                 return;
             }
+            session.deviceBound = m_impl->store.isDeviceBound();
             m_impl->current = std::move(session);
             m_impl->attempt.reset();
             m_impl->approvalUrl.clear();
@@ -400,6 +403,7 @@ foundation::result::Status SessionService::acceptVerifiedFarcasterCustody(
                 observer(failedState(std::move(saved.error()), m_impl->current));
                 return;
             }
+            session.deviceBound = m_impl->store.isDeviceBound();
             m_impl->current = std::move(session);
             m_impl->attempt.reset();
             m_impl->approvalUrl.clear();
@@ -426,11 +430,12 @@ foundation::result::Status SessionService::signOut(Observer observer)
     return m_impl->executor.post([this, observer = std::move(observer)]() mutable {
         m_impl->attempt.reset();
         m_impl->approvalUrl.clear();
+        m_impl->current.reset();
         if (auto cleared = m_impl->store.clear(); !cleared) {
-            observer(failedState(std::move(cleared.error()), m_impl->current));
+            // A keychain failure must never keep the current process signed in.
+            observer(failedState(std::move(cleared.error())));
             return;
         }
-        m_impl->current.reset();
         observer(guestState());
     });
 }

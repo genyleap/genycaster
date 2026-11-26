@@ -29,6 +29,9 @@ public:
     /** @brief Destroys the store. */
     virtual ~IClientSessionStore() = default;
 
+    /** True only for a store that authenticates every persisted identity with a device key. */
+    [[nodiscard]] virtual bool isDeviceBound() const noexcept { return false; }
+
     /** @brief Loads the current normalized session, when one exists. */
     [[nodiscard]] virtual foundation::result::Result<std::optional<domain::session::ClientSession>>
     load() = 0;
