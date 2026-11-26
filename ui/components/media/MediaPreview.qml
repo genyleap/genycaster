@@ -42,19 +42,27 @@ Item {
     readonly property bool isImage: String(root.mediaType || "").startsWith("image/")
     readonly property bool isVideo: String(root.mediaType || "").startsWith("video/")
     readonly property bool hasSource: root.source.toString().length > 0
-    readonly property bool videoPlaying: videoCore.playing
+    readonly property bool videoPlaying: videoLoader.item !== null && videoLoader.item.playing
     readonly property bool failed: root.hasSource
                                    && (root.isImage
                                        ? (root.fullQualityImage
                                            ? fullImage.status === Image.Error && imagePreview.loadFailed
                                            : imagePreview.loadFailed)
-                                       : root.isVideo ? videoCore.failed : true)
+                                       : root.isVideo ? (videoLoader.status === Loader.Error
+                                           || (videoLoader.item !== null && videoLoader.item.failed)) : true)
 
     clip: false
 
     onSourceChanged: {
         root.userPlayback = false
         root.primedVideoFrame = false
+    }
+
+    onIsVideoChanged: {
+        if (!isVideo) {
+            root.userPlayback = false
+            root.primedVideoFrame = false
+        }
     }
 
     AmbientMediaBackdrop {
@@ -110,23 +118,31 @@ Item {
         mipmap: false
     }
 
-    GenyVideoPlayer {
-        id: videoCore
+    // A hidden/source-less Qt MediaPlayer still initializes native media
+    // resources. In particular an image upload must never construct a video
+    // sink or a QRhi on an Android multimedia worker thread.
+    Loader {
+        id: videoLoader
+        objectName: "mediaPreviewVideoLoader"
         anchors.fill: parent
         anchors.margins: root.showBorder ? 1 : 0
-        visible: root.isVideo && root.hasSource && !root.failed
-        source: root.isVideo ? root.source : ""
-        interactive: false
-        showChrome: false
-        fullscreenEnabled: false
-        forceMuted: true
-        // Never initialize the decoder just to manufacture a thumbnail.
-        // Playback remains user-initiated through the shared player path.
-        eager: false
-        primeFrame: false
-        curveDepth: root.curveDepth
-        cornerMaskColor: root.fillColor
-
+        active: root.isVideo && root.hasSource && root.userPlayback
+        visible: active && !root.failed
+        onLoaded: {
+            if (root.userPlayback && root.isVideo && root.hasSource && item)
+                item.resumePlayback()
+        }
+        sourceComponent: GenyVideoPlayer {
+            source: root.source
+            interactive: false
+            showChrome: false
+            fullscreenEnabled: false
+            forceMuted: true
+            eager: false
+            primeFrame: false
+            curveDepth: root.curveDepth
+            cornerMaskColor: root.fillColor
+        }
     }
 
     ColumnLayout {
@@ -179,18 +195,23 @@ Item {
         enabled: root.interactive && root.isVideo && root.hasSource && !root.failed
         gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: {
-            root.userPlayback = true
-            root.primedVideoFrame = true
-            if (videoCore.playing)
-                videoCore.pausePlayback()
+            if (!videoLoader.item) {
+                // First tap constructs the player; onLoaded owns activation.
+                root.primedVideoFrame = true
+                root.userPlayback = true
+                return
+            }
+            if (videoLoader.item.playing)
+                videoLoader.item.pausePlayback()
             else
-                videoCore.resumePlayback()
+                videoLoader.item.resumePlayback()
         }
     }
 
     GenySpinner {
         anchors.centerIn: parent
-        visible: root.isVideo && videoCore.userActivated && videoCore.loading
+        visible: root.isVideo && videoLoader.item !== null
+                 && videoLoader.item.userActivated && videoLoader.item.loading
                  && !root.videoPlaying
         running: visible
         Accessible.ignored: true
