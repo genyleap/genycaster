@@ -687,13 +687,13 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
           FROM account_sessions WHERE token_hash=$1 AND expires_at>now()`,[tokenHash]);
       return result.rows[0]||null;
     },
-    async revokeSession(tokenHash) {
+    async revokeSession(tokenHash,owner) {
       if(!sessionsReady)return;
-      if(cloudDevicesReady) {
-        // Explicit logout revokes the enrolled credential and its cookies.
-        await pool.query(`DELETE FROM cloud_device_credentials d USING account_sessions s
-          WHERE s.token_hash=$1 AND d.issuer=s.issuer AND d.subject=s.subject
-            AND d.public_key=s.device_key`,[tokenHash]);
+      if(cloudDevicesReady&&owner?.deviceKey&&owner.authSource==='device') {
+        // A concurrent cookie rotation cannot make logout miss the device.
+        await pool.query(`DELETE FROM cloud_device_credentials
+          WHERE issuer=$1 AND subject=$2 AND public_key=$3`,
+          [owner.issuer,owner.subject,owner.deviceKey]);
       }
       await pool.query('DELETE FROM account_sessions WHERE token_hash=$1',[tokenHash]);
     },

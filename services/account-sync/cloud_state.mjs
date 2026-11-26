@@ -579,7 +579,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         return null;
       return {issuer:session.issuer,subject:session.subject,
         fid:match[2],cookieAuth:true,
-        sessionToken:cookie,csrfToken:session.csrf_token,authSource:session.auth_source};
+        sessionToken:cookie,csrfToken:session.csrf_token,authSource:session.auth_source,
+        deviceKey:session.device_key};
     }
     if (!/^Bearer [A-Za-z0-9._~+/-]+={0,2}$/.test(header) || header.length>8192) return null;
     const recovery=header.startsWith('Bearer recovery.');
@@ -1183,7 +1184,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }
         if(request.method==='DELETE' && owner.cookieAuth
            && typeof store.revokeSession==='function') {
-          await store.revokeSession(sessionDigest(owner.sessionToken));
+          await store.revokeSession(sessionDigest(owner.sessionToken),owner);
           response.setHeader('Set-Cookie',SESSION_COOKIE+
             '=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict');
           respond(response,200,{revoked:true});return true;

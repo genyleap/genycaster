@@ -471,6 +471,11 @@ void OpenProofConnectionsController::setCloudDeviceSigner(CloudDeviceSigner sign
     m_cloudDeviceSigner = std::move(signer);
 }
 
+void OpenProofConnectionsController::setCloudDeviceEraser(CloudDeviceEraser eraser)
+{
+    m_cloudDeviceEraser=std::move(eraser);
+}
+
 void OpenProofConnectionsController::enrollNativeCloudDevice(
     const qulonglong fid, QString custody, CloudCustodyPermit permit)
 {
@@ -557,7 +562,11 @@ bool OpenProofConnectionsController::beginCloudDeviceSession(
             bool valid=code==200&&nonceFormat.match(nonce).hasMatch();
             for(auto it=fields.constBegin();it!=fields.constEnd();++it)
                 valid=valid&&object.value(it.key())==it.value();
-            if(!valid){fallback();return;}
+            if(!valid){
+                if(code==404||code==503)fallback();
+                else {m_accountProofError=QStringLiteral("account_session_unavailable");emit stateChanged();}
+                return;
+            }
             struct DeviceProof final {std::optional<AccountSignerProof> keyProof;std::optional<QString> custodyProof;};
             auto* watcher=new QFutureWatcher<DeviceProof>(this);
             m_accountProofSigning=true;
@@ -594,7 +603,12 @@ bool OpenProofConnectionsController::beginCloudDeviceSession(
                     const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
                     reply->deleteLater();
                     if(!current())return;
-                    if(status!=200){fallback();return;}
+                    if(status!=200){
+                        // Rejected device credentials never downgrade to social proof.
+                        m_accountProofError=status==401?QStringLiteral("account_session_unavailable"):
+                            QStringLiteral("account_service_unavailable");
+                        emit stateChanged();return;
+                    }
                     m_cloudSessionVerified=false;
                     m_cloudCsrf.clear();
                     restoreAccountSession();
@@ -884,7 +898,7 @@ void OpenProofConnectionsController::restoreAccountSession()
         if(!doc.isObject())return;
         const auto data=doc.object();
         const auto csrf=data.value(QStringLiteral("csrf_token")).toString().toUtf8();
-        if(!genycaster::identity::matchesAccountSessionPrincipal(data, viewer, m_issuerUrl)
+        if(!genycaster::identity::matchesAccountSessionPrincipal(data, viewer, m_issuerUrl, m_viewerNetwork)
             || csrf.size()!=43)return;
         m_cloudSessionVerified=true;
         m_cloudDeviceVerified=data.value(QStringLiteral("auth_source")).toString()==QStringLiteral("device");
@@ -985,7 +999,7 @@ void OpenProofConnectionsController::bootstrapAccountSession()
         if(!doc.isObject())return;
         const auto data=doc.object();
         const auto csrf=data.value(QStringLiteral("csrf_token")).toString().toUtf8();
-        if(!genycaster::identity::matchesAccountSessionPrincipal(data, viewer, m_issuerUrl)
+        if(!genycaster::identity::matchesAccountSessionPrincipal(data, viewer, m_issuerUrl, m_viewerNetwork)
             || csrf.size()!=43)return;
         // A successful Set-Cookie response is not proof that a browser
         // actually retained an HttpOnly cookie (privacy policy or storage
@@ -998,7 +1012,7 @@ void OpenProofConnectionsController::bootstrapAccountSession()
 }
 
 void OpenProofConnectionsController::acceptBrowserAccountSession(
-    const qulonglong fid, QByteArray csrf)
+    const qulonglong fid, QByteArray csrf, const bool deviceBound)
 {
     static const QRegularExpression csrfFormat{
         QStringLiteral("^[A-Za-z0-9_-]{43}$")};
@@ -1010,6 +1024,7 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
     // The browser only emits this after a verified signed challenge AND a
     // same-origin GET that proves the HttpOnly cookie was actually stored.
     m_cloudSessionVerified=true;
+    m_cloudDeviceVerified=deviceBound;
     m_cloudCsrf=std::move(csrf);
     m_accountProofError.clear();
     fetchTopics();
@@ -2729,6 +2744,8 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
             if (status == 401) {
                 if (m_cloudSessionVerified) {
                     m_cloudSessionVerified = false;
+                    m_cloudDeviceVerified = false;
+                    m_cloudDeviceAttempted = false;
                     m_cloudCsrf.clear();
                     emit stateChanged();
                 }
@@ -4577,8 +4594,18 @@ void OpenProofConnectionsController::setViewerNetwork(const QString& network)
 
 void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
 {
-    if (m_viewerFid == fid) return;
-    if(m_viewerFid)revokeAccountSession();
+    setViewerPrincipal(fid,fid?m_viewerNetwork:QString{});
+}
+
+void OpenProofConnectionsController::setViewerPrincipal(const qulonglong fid,const QString& network)
+{
+    if (m_viewerFid == fid && m_viewerNetwork==network) return;
+    if(fid && network!=QStringLiteral("farcaster") && network!=QStringLiteral("hypersnap"))return;
+    if(m_viewerFid) {
+        revokeAccountSession();
+        if(m_cloudDeviceEraser)m_cloudDeviceEraser(m_viewerFid,m_viewerNetwork);
+    }
+    setViewerNetwork(network);
     cancelAccountSessionRequest();
     m_cloudSessionVerified=false;
     m_cloudDeviceVerified=false;

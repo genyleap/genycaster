@@ -96,8 +96,8 @@ export async function ensureBrowserCloudDeviceSession({
   const existing=await fetchImpl(endpoint,{...options,method:'GET'});
   if(existing.status===200){
     const body=await jsonResponse(existing);
-    if(!matches(body))throw Error('Signed-in account differs from the existing browser session');
-    if(body.auth_source==='device'&&!enroll)return body;
+    if(!matches(body)&&!enroll)throw Error('Signed-in account differs from the existing browser session');
+    if(matches(body)&&body.auth_source==='device'&&!enroll)return body;
   }else if(existing.status!==401)throw Error('Account session unavailable');
   vault??=createBrowserSignerVault(environment,{scope:'cloud-device-'+network});
   const key=await (enroll?vault.ensure(fid):vault.load(fid));
@@ -127,7 +127,7 @@ export async function ensureBrowserCloudDeviceSession({
   if(signal?.aborted)throw Error('Account session cancelled');
   const reply=await fetchImpl(endpoint+'/device/proof',{
     ...options,method:'POST',headers,body:JSON.stringify(body)});
-  if(!enroll&&reply.status===401)return null;
+  if(!enroll&&reply.status===401)throw Error('Cloud device enrollment revoked or invalid');
   const granted=await jsonResponse(reply);
   if(!matches(granted)||granted.auth_source!=='device')throw Error('Cloud device principal mismatch');
   const confirmed=await request(fetchImpl,endpoint,{method:'GET',signal});

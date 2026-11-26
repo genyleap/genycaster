@@ -2655,8 +2655,8 @@ void connectRuntime(
         bridge, richComposer, browserSnapchainOrigin,
         connections.recoveryGatewayOrigin());
     browserSigner->setAccountSessionObserver(
-        [&connections](const qulonglong fid, QByteArray csrf) {
-            connections.acceptBrowserAccountSession(fid,std::move(csrf));
+        [&connections](const qulonglong fid, QByteArray csrf, bool deviceBound) {
+            connections.acceptBrowserAccountSession(fid,std::move(csrf),deviceBound);
         });
     browserSigner->setAccountSessionFailureObserver(
         [&connections](const qulonglong fid, const QString& error) {
@@ -6835,6 +6835,7 @@ void attachRuntime(RuntimeAttachment attachment,
             ->std::optional<OpenProofConnectionsController::AccountSignerProof> {
         const auto runtime=runtimeWeak.lock();
         if(!runtime||!fid)return std::nullopt;
+        const std::scoped_lock lock{runtime->cloudDeviceVaultMutex};
         const auto active=runtime->currentSessionSnapshot();
         if(!active||active->fid.value!=fid||
             (active->identityIssuer=="hypersnap:native-registry")!=(network==QStringLiteral("hypersnap")))
@@ -6862,6 +6863,21 @@ void attachRuntime(RuntimeAttachment attachment,
         const QByteArray raw{signedProof->bytes.data(),static_cast<qsizetype>(signedProof->bytes.size())};
         return OpenProofConnectionsController::AccountSignerProof{hex,QString::fromLatin1(raw.toHex())};
     });
+    attachment.openProofConnections.setCloudDeviceEraser(
+        [runtimeWeak=std::weak_ptr<Runtime>{attachment.runtime}](qulonglong fid,const QString& network) {
+            [[maybe_unused]] auto task=QtConcurrent::run([runtimeWeak,fid,network] {
+                const auto runtime=runtimeWeak.lock();
+                if(!runtime||!fid)return;
+                const std::scoped_lock lock{runtime->cloudDeviceVaultMutex};
+                const auto active=runtime->currentSessionSnapshot();
+                if(active&&active->fid.value==fid&&
+                    ((active->identityIssuer=="hypersnap:native-registry")==
+                        (network==QStringLiteral("hypersnap"))))return;
+                auto* vault=network==QStringLiteral("hypersnap")?runtime->hypersnapCloudVault.get():
+                    runtime->farcasterCloudVault.get();
+                if(vault)(void)vault->erase(domain::identity::Fid{fid});
+            });
+        });
     attachment.openProofConnections.setAccountProofSigner(
         [runtimeWeak = std::weak_ptr<Runtime>{attachment.runtime}](
             const qulonglong fid, const QString& nonce)

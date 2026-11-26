@@ -62,7 +62,6 @@
             return false;
         if (accountSessionPromise && accountSessionOwner === fid && !bearer) return true;
         if(bearer)cancelAccountSession();
-        const currentEpoch = epoch;
         const controller=new AbortController();
         accountSessionAbort=controller;
         accountSessionOwner = fid;
@@ -78,13 +77,15 @@
                 return module.ensureBrowserAccountSession(args);
             })
             .then(result => {
-                if (epoch === currentEpoch && owner === fid)
+                if (accountSessionAbort===controller && owner===fid &&
+                    (ownerProtocol==='hypersnap-v2')===(network==='hypersnap'))
                     report({kind:'account-session',phase:'ready',
                         fid,protocol:network==='hypersnap'?'hypersnap-v2':'farcaster-snapchain',
-                        csrfToken:result.csrf_token});
+                        csrfToken:result.csrf_token,deviceBound:result.auth_source==='device'});
             })
             .catch(error => {
-                if (epoch === currentEpoch && owner === fid)
+                if (accountSessionAbort===controller && owner===fid &&
+                    (ownerProtocol==='hypersnap-v2')===(network==='hypersnap'))
                     report({kind:'account-session',phase:'failed',fid,
                         protocol:network==='hypersnap'?'hypersnap-v2':'farcaster-snapchain',
                         error:'account_session_unavailable'});
@@ -240,7 +241,14 @@
         // If the identity changes while a wallet is prompting, pending
         // requests are invalidated and cannot submit protocol messages.
         if (action === "forget-account") {
+            const previousOwner=owner,previousProtocol=ownerProtocol;
+            const pendingCloud=accountSessionPromise;
             cancelAccountSession();
+            if(previousOwner)void Promise.resolve(pendingCloud).catch(()=>{}).then(async()=>{
+                const {createBrowserSignerVault}=await import('./secure_signer_vault.mjs');
+                const scope=previousProtocol==='hypersnap-v2'?'cloud-device-hypersnap':'cloud-device-farcaster';
+                await createBrowserSignerVault(window,{scope}).erase(previousOwner);
+            }).catch(()=>{});
             try{window.localStorage?.setItem(signOutKey,'1');}
             catch{/* IndexedDB erase still runs below */}
             ++epoch;

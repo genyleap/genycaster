@@ -60,7 +60,7 @@ public:
 
     using RecoveryObserver = std::function<void(
         QString, QString, bool, bool, QString, QString, QByteArray, int, QString)>;
-    using AccountSessionObserver = std::function<void(qulonglong, QByteArray)>;
+    using AccountSessionObserver = std::function<void(qulonglong, QByteArray, bool)>;
     using AccountSessionFailureObserver = std::function<void(qulonglong, QString)>;
     void setAccountSessionObserver(AccountSessionObserver observer)
     {
@@ -246,7 +246,8 @@ private:
                     const QByteArray csrf=event.value(QStringLiteral("csrfToken"))
                                                .toString().toUtf8();
                     if(csrf.size()==43)
-                        m_accountSessionObserver(presentation->accountFid(),csrf);
+                        m_accountSessionObserver(presentation->accountFid(),csrf,
+                            event.value(QStringLiteral("deviceBound")).toBool());
                 } else if(phase==QStringLiteral("failed") && m_accountSessionFailureObserver) {
                     // Never forward an unbounded or arbitrary JS exception to
                     // QML. The controller converts this to a fixed diagnostic.

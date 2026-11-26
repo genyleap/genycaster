@@ -189,6 +189,8 @@ public:
         qulonglong, const QString& network, bool enroll, const QString& publicKey, const QString& nonce)>;
     using CloudCustodyPermit = std::function<std::optional<QString>(const QString&, const QString&)>;
     void setCloudDeviceSigner(CloudDeviceSigner signer);
+    using CloudDeviceEraser=std::function<void(qulonglong,const QString&)>;
+    void setCloudDeviceEraser(CloudDeviceEraser eraser);
     void enrollNativeCloudDevice(qulonglong fid, QString custody, CloudCustodyPermit permit);
     [[nodiscard]] bool cloudServiceAvailable() const noexcept { return m_cloudServiceAvailable; }
     [[nodiscard]] qulonglong activeAccountFid() const noexcept { return m_viewerFid; }
@@ -405,6 +407,7 @@ public:
      * token and pending link work when FID changes or session signs out. */
     Q_INVOKABLE void setViewerFid(qulonglong fid);
     void setViewerNetwork(const QString& network);
+    void setViewerPrincipal(qulonglong fid,const QString& network);
 
     /** @brief Starts a short-lived OpenProof device approval scoped to a
      * verified matching Farcaster FID, even for local Farcaster sign-ins. */
@@ -428,7 +431,7 @@ public:
     /** An already registered Farcaster signer proved ownership to the
      * same-origin Genycaster API. Accept only the active account's CSRF
      * capability; the HttpOnly cookie itself never crosses into Qt. */
-    void acceptBrowserAccountSession(qulonglong fid, QByteArray csrf);
+    void acceptBrowserAccountSession(qulonglong fid, QByteArray csrf, bool deviceBound);
     void reportBrowserAccountSessionFailure(qulonglong fid, const QString& error);
 
     /** Fetch an authenticated, read-only Base Swap quote. No wallet secrets,
@@ -648,6 +651,7 @@ private:
     void beginSignedAccountSession();
     bool beginCloudDeviceSession(bool enroll, QString custody = {}, CloudCustodyPermit permit = {});
     CloudDeviceSigner m_cloudDeviceSigner{};
+    CloudDeviceEraser m_cloudDeviceEraser{};
     bool m_cloudDeviceAttempted{};
     bool m_cloudDeviceVerified{};
     bool m_cloudServiceAvailable{};

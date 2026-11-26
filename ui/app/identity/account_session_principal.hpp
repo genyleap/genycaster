@@ -28,7 +28,8 @@ inline constexpr std::uint64_t firstNativeHyperSnapFid =
     std::uint64_t{1} << 32;
 
 [[nodiscard]] inline bool matchesAccountSessionPrincipal(
-    const QJsonObject& data, const qulonglong fid, const QUrl& openProofIssuer)
+    const QJsonObject& data, const qulonglong fid, const QUrl& openProofIssuer,
+    const QString& expectedNetwork)
 {
     const QString canonicalFid = QString::number(fid);
     if (fid == 0 || data.value(QStringLiteral("fid")).toString() != canonicalFid)
@@ -42,7 +43,8 @@ inline constexpr std::uint64_t firstNativeHyperSnapFid =
         fid >= firstNativeHyperSnapFid
         && issuer == QStringLiteral("hypersnap:native-registry")
         && subject == QStringLiteral("hypersnap:") + canonicalFid;
-    return openProofFarcaster || nativeHyperSnap;
+    return expectedNetwork == QStringLiteral("farcaster") ? openProofFarcaster :
+        expectedNetwork == QStringLiteral("hypersnap") && nativeHyperSnap;
 }
 
 } // namespace genycaster::identity
