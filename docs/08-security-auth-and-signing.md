@@ -20,7 +20,7 @@ IFarcasterIdentityResolver
 ICompatibilityAuthentication
 ```
 
-For shipping Genycaster, [OpenProof](https://github.com/genyleap/openproof)
+For the OpenProof-backed Farcaster account path, [OpenProof](https://github.com/genyleap/openproof)
 (its separately deployed `opp` service at the configured
 `https://openproof.genyleap.com` origin) is the canonical account authority.
 See [Identity and Server Services](OPENPROOF_AND_SERVICES.md) for how its
@@ -149,6 +149,12 @@ The 24 words are transient input, cleared on cancel/submit or error; they must n
 
 ## Key isolation
 
+Three independent credential purposes are enforced: the local identity seal,
+the registered social signer and the private-cloud device key. A key's
+storage backend does not grant its authorization. The cloud account service
+stores only public device keys and server-side session state. See
+[ADR 0019](adr/0019-independent-authentication-authorities.md).
+
 Raw private keys must never be exposed to QML.
 
 Use signer handles/capabilities and platform-secure storage adapters.
@@ -157,10 +163,12 @@ The Phase 5B secure-vault boundary is cross-platform. Apple targets use the plat
 
 Current platform boundaries are:
 
-- macOS/iOS: Apple Keychain / Security.framework;
+- macOS/iOS: Apple Keychain / Security.framework and CoreFoundation;
 - Android: QtKeychain backed by Android Keystore;
 - Windows: QtKeychain backed by Windows Credential Store;
-- Linux: QtKeychain backed by Secret Service/KWallet.
+- Linux: QtKeychain backed by Secret Service/KWallet;
+- WebAssembly: origin-scoped non-extractable WebCrypto Ed25519 keys in IndexedDB;
+  not equivalent to an OS keychain and no plaintext fallback.
 
 Thin platform-native code is acceptable where required for secure platform integration.
 
@@ -203,11 +211,11 @@ proves the Farcaster FID; the transfer must originate from one of that FID's
 currently protocol-verified wallets. No Farcaster Cast signer, locally stored
 recovery phrase or browser session token is used to sign payments. Payment
 verification and privilege enforcement fail closed during missing migrations
-or outages. The restored native Farcaster/OpenProof application login is not
-itself an authenticated account-service cookie or a currently verified payment
-session. On Pro entry the client tries restoring that session without prompting;
-when it is absent, an explicit Farcaster proof for the **same active FID** is
-required. This must never route an already signed-in user back into ordinary
+or outages. The restored native application identity is not itself an authenticated
+account-service cookie or a currently verified payment session. On Pro entry
+the client tries restoring the enrolled cloud-device session without prompting;
+when enrollment is needed, fresh OpenProof authorization for Farcaster or native
+custody proof for HyperSnap must match the **same active principal**. This must never route an already signed-in user back into ordinary
 account login, imply that protocol signing is a payment authorization, or
 silently provision a session from a remembered FID. The approval URL is a
 short-lived challenge and never appears in logs, persistent settings or a
@@ -257,7 +265,9 @@ vault namespaces are `org.genycaster.cloud-device.farcaster` and
 The account service requires a fresh verified OpenProof grant for Farcaster
 or EIP-191 custody proof plus authoritative HyperSnap registry ownership.
 It never accepts a social signer or old cookie as enrollment authority.
-Device proof restores the server cookie without a recovery phrase or KEY_ADD.
+Device proof restores/rotates the 30-day server cookie without a recovery
+phrase or KEY_ADD; device credentials expire after 90 days of inactivity.
+Challenges are single-use and expire after 90 seconds.
 Logout durably records retirement intent, signs a revocation-only receipt,
 and erases the local credential. The outbox retries without requiring an active
 account or cookie. The server retires the public key permanently and revokes
@@ -265,7 +275,9 @@ all its cookies. An unknown receipt cannot allocate a database record or mark
 an unrelated account as migrated. Once a principal has enrolled a device, its
 legacy social-signer cookies and proofs are rejected. Unmigrated principals
 remain compatible until global strict mode is enabled with
-`GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS=0` after migrations 017–018 and client rollout.
+`GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS=0` after migrations 017–018 and client
+rollout (check any explicit API composition override). See the [Roadmap](12-roadmap.md)
+for dated deployment evidence and remaining acceptance gates.
 
 ### Local security acceptance
 

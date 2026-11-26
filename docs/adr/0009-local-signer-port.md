@@ -25,7 +25,8 @@ the message builder; signatures are deterministic test vectors in tests, not rea
 ## Consequences
 
 - raw private keys never enter Domain, QML, logs, provider config, or outbox tables;
-- platform-secure adapters (Keychain/Keystore/Secret Service) can implement the port later
-  without redesigning Application or Domain;
+- platform-secure adapters implement the port without redesigning Application or Domain;
+  see [ADR 0019](0019-independent-authentication-authorities.md) for current Apple,
+  QtKeychain and browser key separation;
 - tests use fixed deterministic signing vectors and never require real secrets;
 - signature verification is independent of the submit transport that carries it.

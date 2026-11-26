@@ -22,7 +22,7 @@
 
 **GenyCaster** brings Farcaster conversations, discovery, media, apps and personal context into one cross-platform client. Its **shared Modern C++ core** handles protocol operations, state, synchronization and routing. **Qt Quick** provides adaptive desktop, mobile and WebAssembly interfaces. **Internationalization and localization (i18n/l10n)** let people independently choose their interface language, regional conventions, calendar and time zone rather than tying every preference to one country.
 
-**Identity and account ownership:** GenyCaster uses [OpenProof](https://github.com/genyleap/openproof) (the independent `opp` identity service, configured at `https://openproof.genyleap.com`) for account authentication and verified Farcaster connections. GenyCaster's own authenticated service stores product data in its independently managed PostgreSQL database; neither database nor login service replaces canonical Farcaster messages or signer authorization. [Architecture and service dependencies](docs/OPENPROOF_AND_SERVICES.md).
+**Identity and account ownership:** GenyCaster uses [OpenProof](https://github.com/genyleap/openproof) (the independent `opp` identity service, configured at `https://openproof.genyleap.com`) for account authentication and verified Farcaster connections. HyperSnap-native identities are verified separately against the native custody registry. GenyCaster separates device-local identity continuity, protocol signing and private-cloud device authorization; its account service stores product data in an independent PostgreSQL database. Neither a remembered identity nor a social signer grants unrestricted cloud access. [Architecture and service dependencies](docs/OPENPROOF_AND_SERVICES.md).
 
 The product follows four principles:
 
@@ -45,8 +45,11 @@ flowchart TB
     HYPER["HyperSnap<br/>Preferred default"]
     SNAP["Snapchain<br/>Selectable"]
     OTHER["Compatible routes<br/>When supported"]
-    IDENTITY["OpenProof / opp<br/>Account identity · Linked FID"]
-    EXTRA["GenyCaster account service<br/>Bookmarks · Profile extras · GENY Pro"]
+    AUTH["Authentication lifecycle<br/>Protocol-scoped identity"]
+    IDENTITY["OpenProof / opp<br/>Verified Farcaster identity"]
+    NATIVE["HyperSnap native registry<br/>Custody ownership"]
+    VAULT["Platform secure storage<br/>Identity seal · Social signer · Cloud device"]
+    EXTRA["GenyCaster account service<br/>Device proof · Private product data"]
     ACCOUNTDB[("Independent PostgreSQL")]
 
     PEOPLE <--> CORE
@@ -55,10 +58,15 @@ flowchart TB
     ROUTER --> HYPER
     ROUTER --> SNAP
     ROUTER --> OTHER
-    CORE -. "Authenticated identity" .-> IDENTITY
-    CORE -. "Account-backed product features" .-> EXTRA
+    CORE --> AUTH
+    AUTH -->|"Verify Farcaster"| IDENTITY
+    AUTH -->|"Verify native custody"| NATIVE
+    AUTH <--> VAULT
+    VAULT -->|"Scoped social signature"| CORE
+    AUTH -->|"Independent cloud-device proof"| EXTRA
     EXTRA <--> ACCOUNTDB
-    EXTRA -. "Validate identity" .-> IDENTITY
+    EXTRA -. "Enrollment: verified grant" .-> IDENTITY
+    EXTRA -. "Enrollment: native custody" .-> NATIVE
 
     classDef main fill:#242424,color:#fff,stroke:#777;
     classDef neutral fill:#f1f1f1,color:#171717,stroke:#aaa;
@@ -116,7 +124,8 @@ See [OpenProof & Server Services](docs/OPENPROOF_AND_SERVICES.md) for a service-
 | Presentation | **Qt 6.12 / Qt Quick**, platform-adaptive QML |
 | Local state | SQLite, incremental snapshots and a durable signed-write outbox |
 | Protocol | Canonical Farcaster data with HyperSnap-first, configurable multi-node routing |
-| Account identity | OpenProof (`opp`, OAuth/device authorization and linked Farcaster FID) |
+| Account identity | OpenProof (`opp`, verified Farcaster identity); separate HyperSnap native custody registry |
+| Secure authorization | Independent identity seal, social signer and private-cloud device key; Apple Keychain, QtKeychain or origin-scoped WebCrypto/IndexedDB |
 | Server-side product data | GenyCaster account API and its independent PostgreSQL storage; media gateway integrations |
 | Targets | macOS, Windows, Linux, Android, iOS and **WebAssembly** build targets |
 | Optional extensions | Mini Apps, context widgets, GENY product services, account-backed extras |

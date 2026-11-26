@@ -14,7 +14,10 @@
 - A cryptographically verified, device-local viewer identity can be resumed
   after refresh without persisting an OAuth token or recovery phrase. It is
   not proof that the provider session was freshly renewed. Explicit logout
-  clears the device credential and disables further automatic restoration.
+  clears the local continuity credential and disables further automatic restoration.
+  The separate enrolled cloud-device key is retired with a durable signed
+  revocation receipt; the server's tombstone prevents reuse and removes its
+  cookies. A social signer is never used as cloud-device enrollment authority.
 - Regular sign-in is **viewing only unless a previously registered signer is
   independently restored and verified**. For missing signer permissions, a
   user-controlled "Enable publishing with recovery phrase" action remains
@@ -24,14 +27,14 @@
 ## Loading experience
 
 Qt 6.12 requires the application-specific Emscripten factory to be supplied
-explicitly to `qtLoad`: `qt.entryFunction: window.farcaster_client_entry`.
-Simply importing `farcaster_client.js` does not select the entry function.
+explicitly to `qtLoad`: `qt.entryFunction: window.genycaster_entry`.
+Simply importing `genycaster.js` does not select the entry function.
 The startup screen surfaces the underlying error if the factory is absent,
 rather than assuming every failure is a network outage.
 
-- \`ui/wasm/genycaster-shell.html\` is installed as \`farcaster_client.html\`
+- \`ui/wasm/genycaster-shell.html\` is installed as \`genycaster.html\`
   after the WASM binary links; it uses the supported \`qtLoad()\` API and
-  includes \`farcaster_client.js\` and \`qtloader.js\`.
+  includes \`genycaster.js\` and \`qtloader.js\`.
 - The boot loader uses a non-secret localStorage completion marker and release
   fingerprint to distinguish **first launch**, **normal refresh** and
   **new deployment**. These are UX hints, not proof of an installed PWA or
@@ -50,7 +53,9 @@ rather than assuming every failure is a network outage.
   response has a trustworthy uncompressed Content-Length. The response
   handed to Qt is still the original native stream; repeated refreshes do
   not track its bytes or clone it.
-  Qt's onLoaded marks Ready. The boot icon uses the same original Geny SVG
+  Ready requires Qt runtime load, successful QML root construction, settled
+  account restoration and completed startup UI gating; Qt's onLoaded alone
+  is insufficient. The boot icon uses the same original Geny SVG
   as the application's icon system, with a Powered by Genyleap footer.
   Startup failures show an actionable retry button.
 - A \`visualViewport\`-aware host resizes the Qt screen when mobile browser
@@ -58,8 +63,8 @@ rather than assuming every failure is a network outage.
 
 ## Deployment contract
 
-- Ship the generated \`farcaster_client.html\`, \`qtloader.js\`,
-  \`farcaster_client.js\`, \`genycaster-loader.js\`, \`farcaster_client.wasm\`
+- Ship the generated \`genycaster.html\`, \`qtloader.js\`,
+  \`genycaster.js\`, \`genycaster-loader.js\`, \`genycaster.wasm\`
   and the separately packaged browser recovery/crypto files **from the same
   build**. Do not deploy the new HTML without its matching binary and modules.
 - Serve \`.wasm\` as \`application/wasm\`, preferably with Brotli or gzip
@@ -68,9 +73,9 @@ rather than assuming every failure is a network outage.
   cannot reliably be inferred from decompressed bytes, so the loader does not
   fabricate them.
 - Use ETags and conditional revalidation for **stable filenames**,
-  especially HTML and \`farcaster_client.js\`. Cache unchanging content
+  especially HTML and \`genycaster.js\`. Cache unchanging content
   immutably **only after introducing content-hashed filenames**; never mark
-  a mutable \`farcaster_client.wasm\` URL as immutable across deployments.
+  a mutable \`genycaster.wasm\` URL as immutable across deployments.
 - Provide COOP and COEP headers if the Qt WASM build needs threads and
   SharedArrayBuffer; test deployed HTTPS, CORS and all worker/module responses.
 - Actual first-use and repeat load times depend on the WASM bundle size,

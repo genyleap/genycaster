@@ -15,8 +15,11 @@ flowchart TB
     H["HyperSnap<br/>Preferred"]
     S["Snapchain<br/>Selectable"]
     O["Compatible nodes"]
-    IDENTITY["OpenProof / opp<br/>Account authentication · Linked Farcaster FID"]
-    PRODUCT["GenyCaster account API<br/>Private product state · GENY"]
+    AUTH["AuthenticationCoordinator<br/>Identity continuity · Revalidation"]
+    IDENTITY["OpenProof / opp<br/>Verified Farcaster identity"]
+    NATIVE["HyperSnap native registry<br/>Custody ownership"]
+    VAULT["Secure key boundary<br/>Local seal · Social signer · Cloud device"]
+    PRODUCT["GenyCaster account API<br/>Device sessions · Private product state"]
     PG[("PostgreSQL database<br/>Independent PostgreSQL")]
 
     UI <--> CORE
@@ -25,10 +28,15 @@ flowchart TB
     ROUTER --> H
     ROUTER --> S
     ROUTER --> O
-    CORE -. "Authenticate account" .-> IDENTITY
-    CORE -. "Account-backed extras" .-> PRODUCT
+    CORE --> AUTH
+    AUTH -->|"Verify Farcaster identity"| IDENTITY
+    AUTH -->|"Verify native custody"| NATIVE
+    AUTH <--> VAULT
+    VAULT -->|"Authorized social signature"| CORE
+    AUTH -->|"Independent cloud-device proof"| PRODUCT
     PRODUCT <--> PG
-    PRODUCT -. "Validate session / linked FID" .-> IDENTITY
+    PRODUCT -. "Enrollment: verified grant" .-> IDENTITY
+    PRODUCT -. "Enrollment: registry ownership" .-> NATIVE
 ```
 
 | Boundary | Responsibility |
@@ -38,7 +46,10 @@ flowchart TB
 | **On-device state** | Cached snapshots, preferences and durable write queue |
 | **Capability router** | Select an eligible provider for each read or write |
 | **OpenProof identity** | Independent `opp` service: account authentication, verified connections and linked Farcaster FID; no permission to sign arbitrary protocol messages |
-| **GenyCaster product service** | Independent account database and API for private extras; media gateways and GENY-related benefits |
+| **HyperSnap native identity** | Separate custody registry; native FID does not imply a linked OpenProof identity |
+| **Authentication lifecycle** | Provider-neutral restore, bounded retry and cancellation; does not grant signing scopes |
+| **Secure storage** | Independent keys for local identity continuity, protocol signing and private-cloud device authorization |
+| **GenyCaster product service** | Independent account database, device sessions and API for private extras; media gateways and GENY-related benefits |
 
 **Capability routing** means profile reads, feed reads and signed message submissions may use different supported adapters. HyperSnap is the default preference, not a dependency of the domain.
 
@@ -181,7 +192,7 @@ The distinction between protocol operations and derived services is documented i
 
 ## OpenProof identity, server services and storage ownership
 
-[OpenProof](https://github.com/genyleap/openproof) is a separate self-hostable identity system; its server executable is [`opp`](https://github.com/genyleap/openproof/tree/main/apps/opp). GenyCaster currently composes account login against the configured [openproof.genyleap.com](https://openproof.genyleap.com) issuer. The C++ authentication integration lives in `src/providers/openproof_auth/`; direct Farcaster sign-in is also bound to a verified OpenProof-backed account/FID. Login and linked-account verification are distinct from custody authorization and Farcaster protocol signing.
+[OpenProof](https://github.com/genyleap/openproof) is a separate self-hostable identity system; its server executable is [`opp`](https://github.com/genyleap/openproof/tree/main/apps/opp). GenyCaster currently composes account login against the configured [openproof.genyleap.com](https://openproof.genyleap.com) issuer. The C++ authentication integration lives in `src/providers/openproof_auth/`; direct Farcaster sign-in is also bound to a verified OpenProof-backed account/FID. Login and linked-account verification are distinct from custody authorization and Farcaster protocol signing. HyperSnap-native sessions instead use the native custody registry; a wallet connection in OpenProof does not prove a native FID link.
 
 The GenyCaster-owned `services/account-sync/` service is a different server with its **own** PostgreSQL database, schema/migrations and restricted API role. It persists bookmarks, profile extras, drafts, topics, notification state and account-related product data; OpenProof remains the identity authority and **does not share its PostgreSQL database** with this application service. `services/media-gateway/` handles bounded media delivery and some browser-bound identity flows. Other optional services, including protocol Quick Auth and Snapchain gateway, do not replace the OpenProof account authority. Canonical Farcaster content is still read/written through the selected protocol route (HyperSnap preferred, Snapchain optional).
 
@@ -202,14 +213,37 @@ flowchart TD
     RECON --> VIEW["Canonical local projection"]
 ```
 
-**Separate trust authorities:** four distinct identities/privileges must not be conflated:
+**Separate trust authorities:** identity, local continuity, social signing, private cloud access, custody and Mini App grants must not be conflated:
 
 | Boundary | Responsibility | Must not imply |
 |---|---|---|
-| Account authentication | Session identity and a linked Farcaster FID | Permission to sign arbitrary protocol messages |
+| Account authentication | Verified Farcaster/OpenProof or HyperSnap-native principal | Permission to sign arbitrary protocol messages |
+| Local identity seal | Authenticate the cached identity snapshot on this device | A fresh provider token, server cookie or social-write permission |
+| Private-cloud device | Independent, enrolled device proof for app-owned product state | KEY_ADD, custody authority or arbitrary protocol writes |
 | Custody wallet | Approval of scoped signer registration where required | A reusable unscoped Mini App wallet grant |
-| Protocol signer | Canonical signed Farcaster messages with authorized scopes | Authority for unrelated networks or dApps |
+| Protocol signer | Canonical signed messages with authorized scopes on the pinned protocol | Authority for unrelated networks, cloud data or dApps |
 | Provider transport | Submit, read back and reconcile messages | Control of the private signer key |
+
+### Authentication lifecycle and key ownership
+
+```mermaid
+flowchart TB
+    G["Guest / public reads"] --> V{"Verify identity"}
+    V -->|Farcaster| F["OpenProof-backed grant / linked FID"]
+    V -->|HyperSnap native| H["Custody proof / native registry"]
+    F --> P["Exact issuer · subject · protocol · FID"]
+    H --> P
+    P --> L["Local identity seal<br/>30-day continuity"]
+    P --> S["Social signer<br/>Independent registration / scope / expiry"]
+    P --> C["Private-cloud device key<br/>Independent enrollment"]
+    L --> R["Restore viewer identity only"]
+    S --> W["Signed protocol writes"]
+    C --> D["Challenge / proof<br/>30-day account cookie"]
+    C --> X["Logout: durable revocation receipt"]
+    X --> T["Server tombstone / revoke device cookies"]
+```
+
+These are independent capabilities, not three interchangeable login tokens. A sealed viewer identity can restore without an available signer or cloud session. A social signer must pass its network's registry checks. A cloud device needs its own enrollment (fresh OpenProof authorization for Farcaster; custody proof and native registry verification for HyperSnap). Foreground/connectivity/timer events revalidate existing authority with bounded retry and cancel stale results after account changes; they do not silently provision a signer. See [security contract](08-security-auth-and-signing.md) and [ADR 0019](adr/0019-independent-authentication-authorities.md).
 
 Native signer material belongs in an OS-backed secure vault. Private key bytes must not enter QML or ordinary SQLite state. The WebAssembly target has a **different browser capability model**: compiled-out native vault capabilities cannot be inferred from the desktop implementation. Mini Apps require origin-scoped permission checks and browser-specific validation. Never substitute local storage or a persistent "approved" UI flag for cryptographic authorization.
 

@@ -26,10 +26,10 @@ Maintainers will triage privately, attempt to reproduce, and coordinate disclosu
 
 ### Identity and protocol writes
 
-- A signed-in session is **not** a protocol signer. Farcaster signer authorization has separate custody approval, scope and expiry semantics.
+- A signed-in session is **not** a protocol signer. A device-local sealed identity is not a freshly authenticated provider session or an app-cloud cookie. Private-cloud authorization uses an independently enrolled device key, not the social signer (except the bounded legacy compatibility path during migration). Farcaster signer authorization has separate custody approval, scope and expiry semantics.
 - Only an authorized signer may produce protocol writes. Retries must reconcile ambiguous network results to prevent duplicate/conflicting submissions.
 - Private signer material stays behind platform-specific secure-vault boundaries on supported native targets. It must not be logged or exposed to QML, Mini Apps or ordinary SQLite records.
-- Unsupported signer capabilities must fail closed, not substitute plaintext persistence.
+- Unsupported signer capabilities must fail closed, not substitute plaintext persistence. Validate the complete protocol-scoped principal, cancel stale results on account switch/logout, and revoke enrolled cloud devices via signed retirement receipts.
 - C++ code, JavaScript bridges and platform wallet integrations require independent review when changing signer scope or authority.
 
 ### Browser and Mini Apps

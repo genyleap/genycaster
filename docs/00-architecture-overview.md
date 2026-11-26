@@ -43,9 +43,14 @@ Hypersnap may be the preferred default provider for many protocol-native operati
 
 [OpenProof](https://github.com/genyleap/openproof), running as the separate
 `opp` identity service at the configured `https://openproof.genyleap.com`
-issuer, handles GenyCaster account authentication and linked Farcaster FID
-verification. The GenyCaster account API under `services/account-sync/` owns
-its own PostgreSQL storage for private product data.
+issuer, handles OpenProof-backed account authentication and linked Farcaster FID
+verification. HyperSnap native custody identity remains a separate registry-backed
+principal. The application authentication coordinator owns restoration and
+revalidation policy, distinct from Qt lifecycle dispatch. Local identity seals,
+protocol signers and private-cloud device keys are independent secure-vault
+capabilities. The GenyCaster account API under `services/account-sync/` owns
+its own PostgreSQL storage for private product data and enrolled public device keys.
+See [security contract](08-security-auth-and-signing.md) and [ADR 0019](adr/0019-independent-authentication-authorities.md).
 These are separate runtime services and databases, not dependencies of the
 canonical domain model or a substitute for HyperSnap/Snapchain protocol
 routes. See [OpenProof and Server Services](OPENPROOF_AND_SERVICES.md).

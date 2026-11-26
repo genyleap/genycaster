@@ -87,7 +87,7 @@ signed proof. Successful login alone never sets `writeReady`.
 
 The browser uses an asynchronous WebCrypto/IndexedDB signer path, separate from
 the synchronous native OS-keychain `SignerService` and `WriteService`:
-`ui/wasm/secure_signer_vault.mjs` creates a **non-extractable**, per-FID
+`ui/wasm/secure_signer_vault.mjs` creates a **non-extractable**, scope- and FID-bound
 Ed25519 private CryptoKey. Its key material is never transmitted and never
 exported as a plaintext seed. `farcaster_protocol.mjs` implements the exact
 native BLAKE3-20 and protobuf wire format for scoped `KEY_ADD`, Casts, replies,
@@ -160,6 +160,20 @@ a live Qt 6.12 WASM browser test, wallet approval and Snapchain-confirmed
 `KEY_ADD` are still needed. Media upload and Mini App wallet SDK parity
 remain separate work.
 
+## Independent browser cloud-device sessions
+
+`browser_account_session.mjs` uses a separate IndexedDB key scope
+(`cloud-device-farcaster` or `cloud-device-hypersnap`) for enrolled private
+product-service access. This is independent of the local continuity seal
+and social signer. Enrollment requires fresh verified OpenProof authorization
+or HyperSnap-native custody proof; subsequent device challenge/proof restores
+a host-only HttpOnly cookie. The exact protocol/FID/issuer/subject is checked
+on restore. Sign-out queues a signed revocation-only receipt before erasing
+the cloud key; delivery retries without an active account. No OAuth bearer,
+mnemonic or private key is persisted in ordinary web storage. An origin
+compromise can still invoke non-extractable keys, so browser storage is not
+an OS security boundary. See [security design](08-security-auth-and-signing.md).
+
 ## Browser OpenProof sign-in (read-only identity)
 
 The browser uses OpenProof's public `genycaster-native-v1` OAuth device
@@ -173,8 +187,9 @@ forwards **only** `GET /account/connections` under
 no cookies or configurable upstream. The response never includes the token.
 
 The access token is kept transiently in Qt memory and zeroed after
-verification; browser sessions are in-memory and expire, and are not saved
-as durable client credentials. Identity login is not a Farcaster protocol
+verification; OAuth credentials are not persisted. A separate non-extractable
+local continuity key seals the protocol-scoped viewer snapshot for up to
+30 days. This is not a renewed issuer token or account-service cookie. Identity login is not a Farcaster protocol
 signer. The separate browser writer above requires custody-wallet approval
 and on-chain Snapchain registration before enabling protocol actions.
 The Genyleap account must already have exactly one linked Farcaster identity;

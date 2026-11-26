@@ -529,8 +529,8 @@ public key, purpose and single-use challenge. Farcaster enrollment requires a
 fresh verified OpenProof grant; native HyperSnap requires a custody signature
 and a verified native registry mapping. Only public device keys are persisted.
 A successful device proof rotates the 30-day HttpOnly account cookie, and device
-proofs expire after 90 days of inactivity. Explicit logout deletes the enrolled
-credential and its device cookies. Public-key tombstones prevent re-enrollment
+proofs expire after 90 days of inactivity. Explicit logout retires the enrolled
+public key and deletes its device cookies. Public-key tombstones prevent re-enrollment
 of a retired key. The client durably queues a signed, one-way revocation receipt
 before erasing its local cloud key; offline delivery is retried at startup and
 while connected, even when no account is active.
@@ -539,7 +539,10 @@ while connected, even when no account is active.
 endpoint while `GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS` is unset or `1`.
 After migrations 017–018 and native/browser end-to-end enrollment tests, update
 clients and have existing accounts enroll once with their original authority.
-Then set `GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS=0` and restart the account API.
+Then set `GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS=0` in the effective service
+configuration (an explicit `allowLegacySignerSessions` option in the API
+composition takes precedence), restart the account API and verify legacy
+proof rejection. Never switch before verified client adoption.
 Once an account has enrolled any device, the legacy social-signer path and its
 cookies are denied for that principal, even in compatibility mode. Other
 accounts can migrate independently; older devices on a migrated account must
@@ -549,3 +552,12 @@ OpenProof provenance; it does not disable fresh verified OpenProof grants.
 Do not enable strict mode before this compatibility rollout. Offline logout
 cannot guarantee immediate server-side revocation; no root recovery words or
 social key are persisted by the cloud credential subsystem.
+
+The endpoints are `POST /api/v1/cloud/session/device/challenge`,
+`POST /api/v1/cloud/session/device/proof` and
+`POST /api/v1/cloud/session/device/revoke`. Challenge/proof requests bind the
+exact protocol, decimal-string FID, public key, purpose and single-use nonce
+(90 seconds). Successful device proofs return the verified principal and
+`auth_source=device`; issuing a challenge is not itself authorization.
+See [ADR 0019](../../docs/adr/0019-independent-authentication-authorities.md)
+and [security design](../../docs/08-security-auth-and-signing.md).

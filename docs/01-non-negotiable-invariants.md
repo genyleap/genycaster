@@ -51,6 +51,17 @@ These rules are stronger than implementation convenience. Violating one requires
 3. Write failover must account for ambiguous success and duplicate submission risk.
 4. Idempotency/reconciliation strategy must be explicit for every write capability.
 
+## Authentication and authorization invariants
+
+1. Bind authority to the exact issuer, subject, protocol and FID; a public or numeric FID alone is not authentication.
+2. Local identity continuity, protocol signer and private-cloud device authorization use independent keys and grants. Custody and Mini App permissions are separate again.
+3. No mnemonic, private-key seed or reusable provider bearer may be persisted in ordinary settings or SQLite, logged, or exposed as a reusable QML credential. Transient recovery input stays at the explicit custody boundary; provider bearers travel only through their intended authenticated transport.
+4. Missing or invalid secure storage fails closed; network failures must not silently replace custody approval or invalidate unrelated verified authority.
+5. Sign-out and account changes cancel stale async work; an enrolled cloud device must be retired through a durable revocation receipt without granting authority to unknown keys.
+6. Private local cache and outbox scoping must follow the verified principal; no cross-protocol or cross-account reuse. Treat this as a required invariant and verify existing persistence paths before claiming full isolation.
+
+See [ADR 0019](adr/0019-independent-authentication-authorities.md).
+
 ## Product-moat invariant
 
 > A product moat must never silently become an architectural dependency.

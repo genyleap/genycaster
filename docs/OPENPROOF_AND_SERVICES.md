@@ -1,9 +1,10 @@
 # Identity and server services: OpenProof + GenyCaster
 
-GenyCaster has **two separate data authorities**: OpenProof authenticates
-people and proves linked identities; GenyCaster owns its own application
-data. Neither is a replacement for the Farcaster protocol or the selected
-HyperSnap/Snapchain node.
+GenyCaster separates **identity, protocol writes and app-owned private data**.
+OpenProof authenticates people and proves linked Farcaster identities;
+HyperSnap native custody is verified by its own registry. GenyCaster owns
+its own application data and independently enrolled cloud-device credentials.
+None replaces the canonical social protocol or selected protocol transport.
 
 ## OpenProof: account identity and connection authority
 
@@ -135,11 +136,13 @@ client-submitted identity. Migrations and schema live in
 ### Protocol-scoped account-session rollout (security contract)
 
 The app-owned `GET /api/v1/cloud/session` and successful
-`POST /api/v1/cloud/session/proof` return the verified session tuple
-`{fid, issuer, subject, csrf_token}`. The `fid` is a **decimal string**,
-not a JavaScript numeric authority. Browser custody sign-in requires the
+`POST /api/v1/cloud/session/device/proof` return the verified session tuple
+`{fid, issuer, subject, csrf_token}` (with `auth_source=device` for an enrolled
+device). The compatibility-only `POST /api/v1/cloud/session/proof` returns
+the same principal fields. The `fid` is a **decimal string**,
+not a JavaScript numeric authority. Farcaster private-cloud authorization requires the
 configured OpenProof `issuer` and exact `subject=farcaster:<fid>`.
-Native Qt allows that Farcaster tuple or a separately verified
+Both native and browser cloud-device flows allow that tuple or a separately verified
 `issuer=hypersnap:native-registry` +
 `subject=hypersnap:<fid>` tuple with native FIDs beginning at `2^32`.
 A numeric FID match **alone** cannot establish an authenticated session
@@ -153,9 +156,13 @@ The server's response-field addition is backward compatible with
 existing clients. Do not silently relax client checks to compensate for
 a stale deployment. Verify fresh proof, cookie restore, sign-out and
 cross-protocol account switching in a restricted staging environment,
-then carry out a controlled backend-first rollout. Production service
-mutation or live paid onboarding was **not performed** by this source
-change. This cookie policy is not the missing OpenProof native-FID verifier
+then carry out a controlled backend-first rollout. Migrations 017–018 and the backend must precede the new device client.
+Fresh Farcaster enrollment requires a verified OpenProof grant; HyperSnap
+requires a custody proof and registry match. Subsequent restore uses the
+independent enrolled device key. Legacy signer proof is compatibility-only
+and is denied for principals with any device history; global strict mode
+follows client rollout. See [account API](../services/account-sync/README.md).
+This cookie policy is not the missing OpenProof native-FID verifier
 required by [GenyCaster #4](https://github.com/genyleap/genycaster/issues/4)
 and [OpenProof #52](https://github.com/genyleap/openproof/issues/52).
 
@@ -180,23 +187,31 @@ silently report remote writes as persisted.
 ```mermaid
 flowchart TB
     UI["GenyCaster client<br/>Qt native or WebAssembly"]
-    AUTH["OpenProof / opp<br/>Authentication and linked FID"]
-    ACCT["GenyCaster account API<br/>services/account-sync"]
-    PG[("Independent PostgreSQL<br/>Application-owned data")]
+    LIFE["Authentication lifecycle<br/>Exact protocol-scoped principal"]
+    AUTH["OpenProof / opp<br/>Verified Farcaster grant"]
+    NATIVE["HyperSnap native registry<br/>Verified custody ownership"]
+    VAULT["Platform secure key boundary<br/>Local seal · Social signer · Cloud device"]
+    ACCT["GenyCaster account API<br/>Device challenge / proof / revoke"]
+    PG[("Independent PostgreSQL<br/>Public device keys · Sessions · Product data")]
     GATE["Media / browser gateway"]
     ROUTE{"Protocol capability routing"}
     H["HyperSnap (default)"]
     S["Snapchain / compatible"]
     LOCAL[("On-device cache / outbox")]
 
-    UI -->|"OAuth / verified session"| AUTH
-    UI -->|"Authenticated app features"| ACCT
-    ACCT -->|"Validate identity when needed"| AUTH
+    UI --> LIFE
+    LIFE -->|"OAuth / verified Farcaster grant"| AUTH
+    LIFE -->|"Native identity"| NATIVE
+    LIFE <--> VAULT
+    LIFE -->|"Separate cloud-device proof"| ACCT
+    ACCT -->|"Enrollment: verify grant"| AUTH
+    ACCT -->|"Enrollment: verify native custody"| NATIVE
     ACCT <--> PG
     UI -.->|"Upload or browser-specific identity flow"| GATE
     GATE -->|"Bounded server-side verification"| AUTH
     UI <--> LOCAL
     UI --> ROUTE
+    VAULT -->|"Authorized social signing"| ROUTE
     ROUTE --> H
     ROUTE --> S
 ```

@@ -19,6 +19,11 @@ These features need consistent ownership and durability across devices. An exter
 7. **Services are optional adapters.** Guest reads and core protocol functions do not depend on the account-extension API. An outage may limit app-specific data or linking without redefining a Farcaster message.
 8. **Deployment is configurable.** Operators supply identity and account API origins, TLS configuration and server secrets. Public documentation uses placeholders such as `https://identity.example.com` and `https://api.example.com`; they are not real deployment endpoints.
 
+The subsequent [ADR 0019](0019-independent-authentication-authorities.md)
+extends this boundary with protocol-scoped native identity, independent
+cloud-device enrollment and revocation, without moving identity ownership
+from OpenProof or the HyperSnap native registry.
+
 ## Service contract
 
 - Authenticate the account principal for every private endpoint.

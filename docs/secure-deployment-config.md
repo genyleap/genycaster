@@ -91,14 +91,16 @@ canonical issuer. The earlier landing-only Nginx helper is
 the same proxy contract. Verify public HTTPS:
 `GET /api/v1/cloud/pro/plan` -> 200,
 unauthenticated `GET /api/v1/cloud/session` -> 401,
-a same-origin `POST /api/v1/cloud/session/challenge` -> 200,
+a same-origin `POST /api/v1/cloud/session/device/challenge` with valid
+protocol/FID/public-key/purpose fields -> 200 (challenge is not authorization),
 and `GET /` -> 200. The backend must already trust
 `Origin: https://genycaster.xyz` before applying the proxy.
 
 **Never rewrite origin-specific cookies.** The application account cookie
-is host-only, Secure and SameSite=Strict. Migrating the origin requires a
-new, signed account-session challenge from the existing registered device
-Signer; it does not require a new FID or change Pro/Streak ownership. Do not
+is host-only, Secure and SameSite=Strict. Migrating the origin requires a fresh verified enrollment for the new
+origin-scoped cloud-device key when the prior key is unavailable. An existing
+social signer is not enrollment authority; it does not require a new FID or
+change Pro/Streak ownership. Do not
 treat any old session on `caster.genyleap.com` as reusable on the new host.
 
 OpenProof remains the distinct identity issuer and OAuth broker; Snapchain,
