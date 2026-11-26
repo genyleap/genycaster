@@ -44,7 +44,7 @@ $qtTree = Join-Path $repo 'Qt'
 $qtConfigs = @(Get-ChildItem -Path $qtTree -Recurse -File -Filter 'Qt6Config.cmake' -ErrorAction SilentlyContinue)
 if ($qtConfigs.Count -ne 1) {
     & python ci/install_qt_windows.py --destination Qt --architecture $Architecture
-    CheckExit 'Qt 6.12.0 installation'
+    CheckExit 'Qt 6.12.1 installation'
     $qtConfigs = @(Get-ChildItem -Path $qtTree -Recurse -File -Filter 'Qt6Config.cmake')
 }
 if ($qtConfigs.Count -ne 1) { throw 'Exactly one Qt installation must exist in Qt/.' }

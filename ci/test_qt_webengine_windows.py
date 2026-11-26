@@ -32,21 +32,18 @@ class WindowsWebEngineExtensionTest(unittest.TestCase):
     def test_archives_are_pinned_and_architecture_specific(self):
         for architecture in ARCHITECTURES:
             with self.subTest(architecture=architecture):
-                base, archives = extension_layout(architecture)
-                self.assertEqual(len(archives), 2)
-                self.assertTrue(all(name.startswith(WEBENGINE_STAMP) for name in archives))
-                self.assertTrue(all(name.endswith(".7z") for name in archives))
-                self.assertIn("/extensions/qtwebengine/6120/61400/", base)
-                self.assertIn(ARCHITECTURES[architecture][3], archives[0])
-                self.assertEqual(checked_archives(
-                    "".join(f'<a href="{name}">archive</a>' for name in archives), archives),
-                    archives)
-                with self.assertRaisesRegex(ValueError, "Missing pinned"):
-                    checked_archives(f'<a href="{archives[1]}">only plugin</a>', archives)
-                with self.assertRaisesRegex(ValueError, "Missing pinned"):
-                    checked_archives(
-                        "".join(f'<a href="{name.replace(WEBENGINE_STAMP, "unreviewed-")}">'
-                                'archive</a>' for name in archives), archives)
+                base, components = extension_layout(architecture)
+                self.assertIn("/extensions/qtwebengine/6121/61400/", base)
+                stamp = WEBENGINE_STAMP + "202611260000"  # synthetic fixture
+                archives = tuple(stamp + name + ".7z" for name in components)
+                html = "".join(f'<a href="{name}">archive</a>' for name in archives)
+                self.assertEqual(checked_archives(html, components), archives)
+                with self.assertRaises(ValueError):
+                    checked_archives(f'<a href="{archives[1]}">only plugin</a>', components)
+                with self.assertRaises(ValueError):
+                    checked_archives(html.replace(WEBENGINE_STAMP, "6.12.0-0-"), components)
+                with self.assertRaises(ValueError):
+                    checked_archives(html.replace(archives[1], archives[1].replace("202611260000", "202611260001")), components)
 
     def test_webengine_uses_qt_base_installation_root_not_derived_version_folder(self):
         from unittest.mock import patch
@@ -59,7 +56,8 @@ class WindowsWebEngineExtensionTest(unittest.TestCase):
             config.write_text("# official base Qt marker")
             fake_7z = root / "7z.exe"
             fake_7z.write_bytes(b"fixture")
-            _, archives = extension_layout("x86_64")
+            _, components = extension_layout("x86_64")
+            archives = [WEBENGINE_STAMP + "202611260000" + name + ".7z" for name in components]
             listing = "".join(f'<a href="{name}"></a>' for name in archives)
             with patch.object(sys, "argv", [
                     "install_qt_webengine_windows.py",

@@ -64,38 +64,30 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         self.assertIn("ci/install_qt_webengine_windows.py --destination Qt --architecture "
                       "${{ matrix.arch }}", workflow)
         self.assertNotIn("python -m aqt install-qt windows desktop 6.12.0", workflow)
-        for arch, platform, folder, suffix, stamp in (
-            ("x86_64", "windows_x86", "msvc2022_64", "win64_msvc2022_64",
-             "6.12.0-0-202609281005"),
-            ("arm64", "windows_arm64", "msvc2022_arm64",
-             "win64_msvc2022_arm64", "6.12.0-0-202611110526"),
+        for arch, platform, folder, suffix in (
+            ("x86_64", "windows_x86", "msvc2022_64", "win64_msvc2022_64"),
+            ("arm64", "windows_arm64", "msvc2022_arm64", "win64_msvc2022_arm64"),
         ):
             with self.subTest(arch=arch):
-                base, groups, selected_stamp = webengine_archive_layout(arch)
-                self.assertEqual(selected_stamp, stamp)
+                base, groups, prefix = webengine_archive_layout(arch)
+                self.assertEqual(prefix, "6.12.1-0-")
                 self.assertEqual(
                     base,
                     "https://download.qt.io/online/qtsdkrepository/"
-                    f"{platform}/extensions/qtwebengine/6120/61400/{folder}/",
+                    f"{platform}/extensions/qtwebengine/6121/61400/{folder}/",
                 )
-                self.assertEqual(
-                    list(groups),
-                    [f"extensions.qtwebengine.6120.61400.{suffix}"],
-                )
+                self.assertEqual(list(groups), [f"extensions.qtwebengine.6121.61400.{suffix}"])
+                stamp = prefix + "202611260000"  # synthetic index fixture
                 html = (
                     f'<a href="{stamp}qtwebengine-Windows-Release.7z"></a>'
                     f'<a href="{stamp}qtwebview_qtwebengine_plugin.7z"></a>'
-                    '<a href="untrustedqtwebengine-Windows-Release.7z"></a>'
+                    '<a href="6.12.0-0-202611110526qtwebengine-Windows-Release.7z"></a>'
                 )
-                self.assertEqual(
-                    archives_from_index(html, groups[next(iter(groups))],
-                                        stamp=stamp),
-                    [f"{stamp}qtwebengine-Windows-Release.7z",
-                     f"{stamp}qtwebview_qtwebengine_plugin.7z"],
-                )
+                self.assertEqual(archives_from_index(html, next(iter(groups.values())), stamp=prefix),
+                    [f"{stamp}qtwebengine-Windows-Release.7z", f"{stamp}qtwebview_qtwebengine_plugin.7z"])
                 with self.assertRaises(ValueError):
-                    archives_from_index(html, ("qtwebengine",),
-                                        stamp="6.12.0-0-unknown")
+                    archives_from_index(html.replace(stamp, "6.12.0-0-202611110526"),
+                                        next(iter(groups.values())), stamp=prefix)
 
     def test_one_unified_dispatch_and_tag_release_dependency_graph(self) -> None:
         # GenyConnect-inspired orchestration: one invocation fan-outs to all

@@ -5,8 +5,8 @@ set -euo pipefail
 : "${QT_ROOT_DIR:?Qt WebAssembly SDK root missing}"
 : "${QT_HOST_PATH:?Matching native Qt host tools missing}"
 
-version=6.12.0
-expected=3143f53b64257ba2a0685c940f5dce476c75871ff86b516de45cfd54ea93a62d
+version=6.12.1
+expected=5a125bc2bede8c6512296e0f3204a9922741fd144fcae7d4a66b3c007bb125e3
 archive="${RUNNER_TEMP:-/tmp}/qtmultimedia-${version}.tar.xz"
 url="https://download.qt.io/official_releases/qt/6.12/${version}/submodules/qtmultimedia-everywhere-src-${version}.tar.xz"
 
@@ -24,7 +24,7 @@ tar -xJf "$archive" -C build/qt-wasm-multimedia-source --strip-components=1
 # 6.12 WebAssembly prebuilt SDK omits it; build the matching module first.
 shader_archive="${RUNNER_TEMP:-/tmp}/qtshadertools-${version}.tar.xz"
 shader_url="https://download.qt.io/official_releases/qt/6.12/${version}/submodules/qtshadertools-everywhere-src-${version}.tar.xz"
-shader_expected=c7d84f436e1aaef39fdcadebf2bd71bdf24dc69497e13f2e0198873cbbfea2ab
+shader_expected=f8c5b9c91eca0927198918c537d1b4d515f96dc9a3b178a88a1ff1d2f85c7877
 curl --fail --location --retry 3 --silent --show-error "$shader_url" --output "$shader_archive"
 shader_actual="$(sha256sum "$shader_archive" | awk '{print $1}')"
 if [[ "$shader_actual" != "$shader_expected" ]]; then

@@ -83,7 +83,7 @@ the app's language reselects the release content immediately.
 | iOS arm64 | macOS 15 + iOS SDK | CI-only unsigned .app archive (not a distributable IPA) |
 | NixOS x86_64 / arm64 | Native Nix GCC 16 + Qt on Linux x64 / ARM | Nix package build and closure manifest |
 
-Qt 6.12.0 and CMake 4.4.4 are pinned in the workflow. GitHub Ubuntu
+Qt 6.12.1 and CMake 4.4.4 are pinned in the workflow. GitHub Ubuntu
 runners need GCC 16 from the Ubuntu toolchain PPA for GenyCaster's C++26
 module/standard-library support; stock Clang 18 with the default libstdc++
 failed on `std::expected` during the first hosted run. All Qt platforms
@@ -98,7 +98,7 @@ binaries. Emscripten 5.0.5 matches the Qt 6.12 requirement. Linux, Windows
 and Android use the QtKeychain 0.17 source fallback if no suitable installed
 package exists. The official WebAssembly Qt 6.12 SDK does not provide the
 qtmultimedia addon in its aqt package index, so the Web job builds the matching
-Qt ShaderTools followed by the Qt Multimedia 6.12.0 technology-preview
+Qt ShaderTools followed by the Qt Multimedia 6.12.1 technology-preview
 module from official SHA-256-verified source archives; the standalone Web
 module build is still an acceptance gate. Linux/Windows set GENYCASTER_FETCH_QTKEYCHAIN=ON
 explicitly, so ordinary developer machines without libsecret do not become
@@ -224,7 +224,7 @@ then creates the tag and the public GitHub Release via `GITHUB_TOKEN` as
   The separately armed `publish_public_beta` run requires the persistent
   GitHub signing secrets. All Qt FFmpeg and first-party ELF PT_LOAD segments
   must satisfy 16 KiB alignment; vendor binaries are rebuilt from SHA-pinned
-  FFmpeg 9.0.1 sources rather than bypassing the release validator. Maven Central\'s shared GitHub\n  Actions egress may return HTTP 429; the Android runner preflights Google Cloud\'s officially\n  documented HTTPS mirror and injects it *before* Gradle buildscript resolution. Only\n  Maven 429/502/503/504 errors receive up to two incremental build retries; compiler\n  and signing errors never retry automatically. Device startup, TLS, signer vault,\n  network access and login must be verified before wider distribution.
+  FFmpeg 9.0.2 sources rather than bypassing the release validator. Maven Central\'s shared GitHub\n  Actions egress may return HTTP 429; the Android runner preflights Google Cloud\'s officially\n  documented HTTPS mirror and injects it *before* Gradle buildscript resolution. Only\n  Maven 429/502/503/504 errors receive up to two incremental build retries; compiler\n  and signing errors never retry automatically. Device startup, TLS, signer vault,\n  network access and login must be verified before wider distribution.
 * macOS: macOS 26 runners build a macOS 15+ target using SHA-256-pinned
   OpenSSL 3.5.9 source compiled for the deployment target, rather than
   linking Homebrew bottles that may require macOS 26. `macdeployqt
@@ -345,3 +345,19 @@ are not implemented for these platforms yet**. Linux's zsync AppImage
 metadata permits HTTP Range/block reuse but does not bypass system trust
 or signature checks. No platform is authorized to overwrite a running,
 unverified executable.
+
+### Qt 6.12.1 release SDK baseline
+
+CI pins Qt 6.12.1 on all platforms using Qt; the Android FFmpeg build
+pins 9.0.2 and verifies the source digest, ELF alignment and SONAMEs.
+A missing Android FFmpeg plugin triggers a matching Qt Multimedia source
+build before the application is configured. The final APK must contain
+the plugin and five required FFmpeg shared libraries.
+
+Qt WebEngine is a separately released extension. Windows resolves only
+official 6.12.1-targeted 6.140 archives with one matching build stamp and
+upstream checksums; Linux requests the 6.12.1 SDK through aqt. As of
+2026-11-26 the official Windows extension index only exposes 6.12.0;
+the 6.12.1 jobs must fail closed until matching archives are published
+and verified. Do not mix the older private Qt ABI into the new SDK.
+No full platform build or device smoke test is implied by this update.

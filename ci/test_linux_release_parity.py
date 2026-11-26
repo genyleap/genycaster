@@ -124,7 +124,7 @@ class LinuxReleaseParityTests(unittest.TestCase):
     def test_release_baseline_and_cmake_version_are_pinned(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         container = DOCKERFILE.read_text(encoding="utf-8")
-        self.assertIn("QT_VERSION: '6.12.0'", workflow)
+        self.assertIn("QT_VERSION: '6.12.1'", workflow)
         self.assertIn("CMAKE_VERSION: '4.4.4'", workflow)
         self.assertIn("FROM ubuntu:24.04", container)
         self.assertIn("'cmake==4.4.4'", container)

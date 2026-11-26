@@ -60,7 +60,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_public_beta != true && inputs.refresh_existing_release != true }}
 
 env:
-  QT_VERSION: '6.12.0'
+  QT_VERSION: '6.12.1'
   CMAKE_VERSION: '4.4.4'
   ANDROID_NDK_VERSION: '27.2.12479018'
   ANDROID_API: '28'
@@ -1081,9 +1081,9 @@ jobs:
           version: ${{ env.QT_VERSION }}
           target: android
           arch: ${{ matrix.qt_arch }}
-          modules: qtmultimedia
+          modules: qtmultimedia qtshadertools
           cache: true
-          # Qt SDK remains the official 6.12.0 distribution; only its
+          # Qt SDK remains the official 6.12.1 distribution; only its
           # system-dependency installer is bypassed.
       - name: Reject Android SDKs without Qt Network TLS
         shell: bash
@@ -1179,7 +1179,7 @@ jobs:
           }
           test -s build/android-deps/include/openssl/opensslv.h
           echo "Android ${{ matrix.abi }} OpenSSL ${version} verified for APK deployment"
-      - name: Rebuild Qt FFmpeg Android libraries for 16 KiB pages
+      - name: Rebuild Qt FFmpeg Android libraries for 16 KiB pages and provision missing backend
         shell: bash
         run: |
           set -euo pipefail
