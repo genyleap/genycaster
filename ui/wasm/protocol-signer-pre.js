@@ -46,6 +46,13 @@
         (await import('./browser_device_session.mjs')).createDeviceSession(window);
     let accountSessionPromise = null;
     let accountSessionOwner = "";
+    let accountSessionAbort = null;
+    function cancelAccountSession() {
+        accountSessionAbort?.abort();
+        accountSessionAbort=null;
+        accountSessionPromise=null;
+        accountSessionOwner="";
+    }
     // The Pro/Streak retry button must use the browser's registered signer,
     // not Qt's native-only vault signer. This is single-flight per identity.
     function retryAccountSession(fid) {
@@ -56,10 +63,12 @@
             return false;
         if (accountSessionPromise && accountSessionOwner === fid) return true;
         const currentEpoch = epoch;
+        const controller=new AbortController();
+        accountSessionAbort=controller;
         accountSessionOwner = fid;
         const operation = import('./browser_account_session.mjs')
             .then(module => module.ensureBrowserAccountSession({
-                fid, origin:window.location.origin,
+                fid, origin:window.location.origin, signal:controller.signal,
             }))
             .then(result => {
                 if (epoch === currentEpoch && owner === fid)
@@ -75,6 +84,7 @@
                 if (accountSessionPromise === operation) {
                     accountSessionPromise = null;
                     accountSessionOwner = "";
+                    accountSessionAbort = null;
                 }
             });
         accountSessionPromise = operation;
@@ -213,6 +223,7 @@
         // If the identity changes while a wallet is prompting, pending
         // requests are invalidated and cannot submit protocol messages.
         if (action === "forget-account") {
+            cancelAccountSession();
             try{window.localStorage?.setItem(signOutKey,'1');}
             catch{/* IndexedDB erase still runs below */}
             ++epoch;
@@ -261,6 +272,7 @@
             return;
         }
         if (action === "signed-out") {
+            cancelAccountSession();
             ++epoch;
             recoveryController?.abort();
             recoveryController = null;
@@ -273,6 +285,7 @@
             return;
         }
         if (owner && owner !== fid) {
+            cancelAccountSession();
             // Identity changes must invalidate any pending custody prompt.
             ++epoch;
             recoveryController?.abort();

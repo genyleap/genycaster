@@ -250,11 +250,11 @@ void SignerService::lockAuthority() noexcept
 
 foundation::result::Status SignerService::restore(
     std::optional<domain::session::ClientSession> session,
-    Observer observer)
+    Observer callback)
 {
     const auto generation = m_impl->generation.load(std::memory_order_acquire);
     return m_impl->executor.post(
-        [this, generation, session = std::move(session), callback = std::move(observer)]() mutable {
+        [this, generation, session = std::move(session), callback = std::move(callback)]() mutable {
             const std::scoped_lock lock{m_impl->mutex};
             if (!m_impl->currentGeneration(generation)) return;
             const auto observer = [this, generation, &callback](SignerState state) {
@@ -387,12 +387,12 @@ foundation::result::Status SignerService::restore(
 
 foundation::result::Status SignerService::provision(
     std::optional<domain::session::ClientSession> session,
-    Observer observer,
+    Observer callback,
     std::shared_ptr<capability::signer::ICustodyAuthorizer> oneShotAuthorizer)
 {
     const auto generation = m_impl->generation.load(std::memory_order_acquire);
     return m_impl->executor.post(
-        [this, generation, session = std::move(session), callback = std::move(observer),
+        [this, generation, session = std::move(session), callback = std::move(callback),
          oneShotAuthorizer = std::move(oneShotAuthorizer)]() mutable {
             const std::scoped_lock lock{m_impl->mutex};
             if (!m_impl->currentGeneration(generation)) return;
@@ -635,11 +635,11 @@ foundation::result::Status SignerService::provision(
 
 foundation::result::Status SignerService::revoke(
     std::optional<domain::session::ClientSession> session,
-    Observer observer)
+    Observer callback)
 {
     const auto generation = m_impl->generation.load(std::memory_order_acquire);
     return m_impl->executor.post(
-        [this, generation, session = std::move(session), callback = std::move(observer)]() mutable {
+        [this, generation, session = std::move(session), callback = std::move(callback)]() mutable {
             const std::scoped_lock lock{m_impl->mutex};
             if (!m_impl->currentGeneration(generation)) return;
             const auto observer = [this, generation, &callback](SignerState state) {

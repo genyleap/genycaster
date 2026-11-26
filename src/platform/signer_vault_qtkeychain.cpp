@@ -266,6 +266,13 @@ struct CredentialFree final {
             foundation::error::ErrorCode::StorageFailure,
             "Windows secure signer entry does not contain a valid Ed25519 seed."));
     }
+    if (stored->Persist == CRED_PERSIST_ENTERPRISE) {
+        // Downgrade legacy roaming credentials in place, retaining the key
+        // and its registered signer identity. This cannot undo earlier copies.
+        stored->Persist = CRED_PERSIST_LOCAL_MACHINE;
+        if (!CredWriteW(stored.get(), 0))
+            return std::unexpected(windowsCredentialError(GetLastError(), "restrict persistence"));
+    }
     Seed seed{};
     std::copy_n(stored->CredentialBlob, SeedSize, seed.bytes.begin());
     return std::optional<Seed>{std::move(seed)};

@@ -43,9 +43,41 @@ async function access(browser,mode,run) {
 function validFid(value) {
     return typeof value==='string'&&fidPattern.test(value)&&BigInt(value)<=18446744073709551615n;
 }
+function sealPayload(row) {
+    return new TextEncoder().encode(JSON.stringify([
+        'genycaster-browser-device-v2',row.fid,row.protocol,row.createdAt]));
+}
 export function createDeviceSession(browser=globalThis) {
     requireBrowser(browser);
     const crypto=browser.crypto;
+    async function readVerified() {
+        const row=await access(browser,'readonly',store=>store.get(entry));
+        if(!row || row.version===1)return null; // old metadata requires one verified login
+        if(!Number.isSafeInteger(row.createdAt) || row.createdAt<=0
+            || row.createdAt>Date.now()+5*60*1000)
+            throw new Error('Invalid local device session timestamp; sign in again');
+        if(Date.now()-row.createdAt>maxDeviceAgeMs) return null;
+        if(row.version!==2||!validFid(row.fid)
+            ||!['farcaster-snapchain','hypersnap-v2'].includes(row.protocol)
+            ||(row.protocol==='hypersnap-v2'&&BigInt(row.fid)<4294967296n)
+            ||row.privateKey?.type!=='private'
+            ||row.privateKey?.algorithm?.name!=='Ed25519'
+            ||row.privateKey?.extractable!==false
+            ||!row.privateKey?.usages?.includes('sign')
+            ||row.publicKey?.type!=='public'
+            ||row.publicKey?.algorithm?.name!=='Ed25519'
+            ||!row.publicKey?.usages?.includes('verify')
+            ||!(row.seal instanceof ArrayBuffer)||row.seal.byteLength!==64)
+            throw new Error('Invalid local device session; sign in again');
+        if(!await crypto.subtle.verify('Ed25519',row.publicKey,row.seal,sealPayload(row)))
+            throw new Error('Local device identity proof failed');
+        const challenge=new Uint8Array(32);
+        crypto.getRandomValues(challenge);
+        const proof=await crypto.subtle.sign('Ed25519',row.privateKey,challenge);
+        if(!await crypto.subtle.verify('Ed25519',row.publicKey,proof,challenge))
+            throw new Error('Local device identity proof failed');
+        return row;
+    }
     return Object.freeze({
         async remember(fid, protocol='farcaster-snapchain') {
             if(!validFid(fid))throw new Error('Invalid remembered protocol FID');
@@ -56,53 +88,24 @@ export function createDeviceSession(browser=globalThis) {
             // Every successful authentication rotates the local continuity key.
             const pair=await crypto.subtle.generateKey({name:'Ed25519'},false,['sign','verify']);
             if(pair.privateKey.extractable!==false)throw new Error('Device key is extractable');
-            await access(browser,'readwrite',store=>store.put({
-                fid,privateKey:pair.privateKey,publicKey:pair.publicKey,
-                createdAt:Date.now(),version:1,protocol,
-            },entry));
+            const row={fid,privateKey:pair.privateKey,publicKey:pair.publicKey,
+                createdAt:Date.now(),version:2,protocol};
+            row.seal=await crypto.subtle.sign('Ed25519',pair.privateKey,sealPayload(row));
+            await access(browser,'readwrite',store=>store.put(row,entry));
             return fid;
         },
         async restore() {
-            const row=await access(browser,'readonly',store=>store.get(entry));
-            if(!row)return null;
-            if(!Number.isSafeInteger(row.createdAt) || row.createdAt<=0
-                || row.createdAt>Date.now()+5*60*1000)
-                throw new Error('Invalid local device session timestamp; sign in again');
-            if(Date.now()-row.createdAt>maxDeviceAgeMs) {
-                // Remove an expired remembered FID without touching separate
-                // signer keys or user preferences; Setup will require sign-in.
-                await access(browser,'readwrite',store=>store.delete(entry));
-                return null;
-            }
-            if(row.version!==1||!validFid(row.fid)
-                ||row.privateKey?.type!=='private'
-                ||row.privateKey?.algorithm?.name!=='Ed25519'
-                ||row.privateKey?.extractable!==false
-                ||!row.privateKey?.usages?.includes('sign')
-                ||row.publicKey?.type!=='public'
-                ||row.publicKey?.algorithm?.name!=='Ed25519'
-                ||!row.publicKey?.usages?.includes('verify'))
-                throw new Error('Invalid local device session; sign in again');
-            const challenge=new Uint8Array(32);
-            crypto.getRandomValues(challenge);
-            const payload=new Uint8Array(32+row.fid.length);
-            payload.set(challenge);payload.set(new TextEncoder().encode(row.fid),32);
-            const proof=await crypto.subtle.sign('Ed25519',row.privateKey,payload);
-            if(!await crypto.subtle.verify('Ed25519',row.publicKey,proof,payload))
-                throw new Error('Local device identity proof failed');
-            return row.fid; // device-local viewer identity, not provider token
+            const row=await readVerified();
+            // Do not delete on a stale read: another tab may have just saved
+            // a new verified identity. Expired or legacy rows grant no access.
+            return row?.fid||null;
         },
         async protocolFor(fid) {
             if(!validFid(fid))throw new Error('Invalid local identity');
-            // This label alone grants no authority. Caller must first
-            // successfully verify restore() with a fresh challenge.
-            const row=await access(browser,'readonly',store=>store.get(entry));
+            const row=await readVerified();
             if(!row || row.fid!==fid)
                 throw new Error('Local protocol identity has changed');
-            const protocol=row.protocol||'farcaster-snapchain'; // v1 migration
-            if(!['farcaster-snapchain','hypersnap-v2'].includes(protocol))
-                throw new Error('Invalid remembered protocol');
-            return protocol;
+            return row.protocol;
         },
         async clear() {
             await access(browser,'readwrite',store=>store.delete(entry));

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -13,6 +14,8 @@
 import farcaster.application.executor;
 import farcaster.application.session;
 import farcaster.capability.auth;
+import farcaster.capability.signer;
+import farcaster.domain.signer;
 import farcaster.domain.identity;
 import farcaster.domain.session;
 import farcaster.foundation.error;
@@ -749,6 +752,87 @@ void verifiedOptimismFarcasterCustodyRemainsDistinctFromHyperSnap()
     reject(bad);
 }
 
+// A deterministic fake tests the store's trust boundary, NOT Ed25519.
+struct DeviceTestState { unsigned generation{}; bool exists{}; bool locked{}; };
+class DeviceTestSigner final : public capability::signer::INativeSigner {
+public:
+    explicit DeviceTestSigner(unsigned generation) : m_generation(generation) {}
+    domain::signer::SignerId signerId() const override { return {"test-device"}; }
+    foundation::result::Result<domain::signer::PublicKey> publicKey() const override {
+        return domain::signer::PublicKey{std::string(64U, 'a')};
+    }
+    foundation::result::Result<domain::signer::Signature> sign(const std::string& bytes) override {
+        auto value = std::to_string(std::hash<std::string>{}(bytes + std::to_string(m_generation)));
+        value.resize(64U, 'x');
+        return domain::signer::Signature{std::move(value)};
+    }
+private:
+    unsigned m_generation;
+};
+class DeviceTestVault final : public capability::signer::ISignerVault {
+public:
+    explicit DeviceTestVault(std::shared_ptr<DeviceTestState> state) : m_state(std::move(state)) {}
+    foundation::result::Result<std::unique_ptr<capability::signer::INativeSigner>> load(domain::identity::Fid) override {
+        if (m_state->locked) return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::Unavailable, "vault locked"));
+        std::unique_ptr<capability::signer::INativeSigner> key;
+        if (m_state->exists) key = std::make_unique<DeviceTestSigner>(m_state->generation);
+        return key;
+    }
+    foundation::result::Result<std::unique_ptr<capability::signer::INativeSigner>> ensure(domain::identity::Fid fid) override {
+        if (!m_state->exists) { ++m_state->generation; m_state->exists = true; }
+        return load(fid);
+    }
+    foundation::result::Status erase(domain::identity::Fid) override {
+        if (m_state->locked) return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::Unavailable, "vault locked"));
+        m_state->exists = false;
+        return {};
+    }
+private:
+    std::shared_ptr<DeviceTestState> m_state;
+};
+
+void deviceBoundSessionRejectsLegacyTamperingAndMissingKey()
+{
+    DatabaseFixture database{};
+    auto legacy = farcaster::storage::session::openSessionStore(database.path);
+    assert(legacy);
+    auto session = makeSession(42);
+    session.identityIssuer = "https://openproof.example";
+    session.identitySubject = "identity-42";
+    assert((*legacy)->save(session));
+    auto state = std::make_shared<DeviceTestState>();
+    auto store = farcaster::storage::session::openDeviceBoundSessionStore(database.path,
+        std::make_unique<DeviceTestVault>(state));
+    assert(store);
+    auto loaded = (*store)->load();
+    assert(loaded && !*loaded); // unsigned legacy metadata cannot authenticate
+    assert((*store)->save(session));
+    loaded = (*store)->load();
+    assert(loaded && *loaded && (**loaded).deviceBound);
+    state->locked = true;
+    assert(!(*store)->load()); // transient vault error never erases the record
+    state->locked = false;
+    assert((*store)->load() && *(*store)->load());
+    auto modified = session;
+    modified.fid = domain::identity::Fid{43};
+    assert((*legacy)->save(modified));
+    loaded = (*store)->load();
+    assert(loaded && !*loaded);
+    assert((*store)->save(session));
+    assert((*store)->clear());
+    assert(!state->exists);
+    assert((*legacy)->save(session));
+    loaded = (*store)->load();
+    assert(loaded && !*loaded);
+    session.deviceBound = true;
+    const auto now = session.authenticatedAt + std::chrono::hours{2};
+    assert(domain::session::isProtocolSessionEligible(session, now));
+    assert(!domain::session::isProtocolSessionEligible(session,
+        session.authenticatedAt + std::chrono::days{30}));
+}
+
 void sqliteSessionRoundTrip()
 {
     DatabaseFixture database{};
@@ -802,5 +886,6 @@ int main()
     verifiedHyperSnapCustodyUsesDistinctNativeSession();
     verifiedOptimismFarcasterCustodyRemainsDistinctFromHyperSnap();
     sqliteSessionRoundTrip();
+    deviceBoundSessionRejectsLegacyTamperingAndMissingKey();
     return 0;
 }

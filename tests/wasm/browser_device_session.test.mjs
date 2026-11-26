@@ -81,7 +81,8 @@ test('expired device continuity requires Setup again without retaining an expire
     await session.remember('42');
     table.set('current',{...table.get('current'),createdAt:Date.now()-31*24*60*60*1000});
     assert.equal(await session.restore(),null);
-    assert.equal(table.has('current'),false);
+    // A stale restore must not delete a concurrently replaced row.
+    assert.equal(table.has('current'),true);
 });
 test('future or invalid continuity timestamp is never trusted',async()=>{
     const {browser,table}=fakeBrowser();
@@ -109,5 +110,21 @@ test('trusted device continuity preserves the exact HyperSnap namespace across r
     assert.equal(await restored.protocolFor('42'),'farcaster-snapchain');
     const old=table.get('current');
     table.set('current',{...old,protocol:undefined});
-    assert.equal(await restored.protocolFor('42'),'farcaster-snapchain');
+    await assert.rejects(restored.protocolFor('42'),/Invalid local device session/);
+});
+
+test('device seal binds FID, protocol and authentication timestamp',async()=>{
+    const {browser,table}=fakeBrowser();
+    const session=createDeviceSession(browser);
+    await session.remember('4294967296','hypersnap-v2');
+    const original=table.get('current');
+    for(const changes of [{fid:'4294967297'},{protocol:'farcaster-snapchain'},
+        {createdAt:original.createdAt-1}]){
+        table.set('current',{...original,...changes});
+        await assert.rejects(session.restore(),/identity proof failed/);
+    }
+    table.set('current',{...original,version:1});
+    assert.equal(await session.restore(),null);
+    await session.remember('42');
+    assert.equal(await session.restore(),'42');
 });
