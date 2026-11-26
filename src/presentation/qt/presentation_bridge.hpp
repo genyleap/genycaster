@@ -377,6 +377,11 @@ public:
     /** @brief Dispatch a clipboard copy; native platforms verify read-back. */
     Q_INVOKABLE bool copyText(const QString& text);
     Q_INVOKABLE void requestClipboardText(const QString& requestId);
+    Q_INVOKABLE bool openBrowserTextEditor(const QString& requestId, QString text,
+                                           const QVariantMap& options);
+    Q_INVOKABLE void cancelBrowserTextEditor(const QString& requestId);
+    Q_INVOKABLE void commitBrowserEditorText(QObject* editor, const QString& text,
+                                            int replaceLength);
 
     /** @brief Active HTTPS base for deployment-independent public permalinks. */
     [[nodiscard]] Q_INVOKABLE QString publicShareBaseUrl() const;

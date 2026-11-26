@@ -5,17 +5,26 @@ import Farcaster.Client
 TextField {
     id: root
 
-    // Use the same accessible, theme-aware context menu as the rich editor.
-    ContextMenu.menu: editorMenu
+    // iOS/Android own their native editing toolbar. Desktop uses Qt's
+    // real MenuItems. Browser editing uses a DOM text input, not a canvas menu.
+    ContextMenu.menu: editorMenu.platformMobile || editorMenu.browser ? null : editorMenu
     EditorContextMenu { id: editorMenu; editor: root }
     property var clipboardPasteHandler: null
     readonly property bool clipboardPasteFailed: editorMenu.pasteFailed
     function requestClipboardPaste() { editorMenu.requestPaste() }
     function cancelClipboardPaste() { editorMenu.cancelPaste() }
-    onPressAndHold: mouse => {
-        if (Qt.platform.os === "wasm" && enabled && !readOnly)
-            editorMenu.popup(root, mouse.x, mouse.y)
+    TapHandler {
+        enabled: editorMenu.browser && root.enabled && !root.readOnly
+        acceptedButtons: Qt.LeftButton
+        gesturePolicy: TapHandler.DragThreshold
+        onLongPressed: editorMenu.requestSystemEditor(false)
     }
+    TapHandler {
+        enabled: editorMenu.browser && root.enabled && !root.readOnly
+        acceptedButtons: Qt.RightButton
+        onTapped: editorMenu.requestSystemEditor(false)
+    }
+    selectByMouse: true
 
     property bool forceLeftToRight: false
     property bool forceRightToLeft: false

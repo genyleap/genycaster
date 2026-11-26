@@ -19,18 +19,14 @@ test('selection mode is persisted per device and unavailable on WASM canvas',()=
   assert.match(settings,/textSelectionSettings\.setMode\("system"\)/);
   assert.match(settings,/enabled: textSelectionSettings.nativeAvailable/);
 });
-test('mobile composer selection has two unclipped draggable screen-space handles',()=>{
-  const input=read('ui/components/controls/BidiTextArea.qml');
-  assert.match(input,/objectName: "composerTextSelectionHandles"/);
-  assert.match(input,/parent: Overlay.overlay/);
-  assert.match(input,/root\.positionToRectangle\(root.selectionStart\)/);
-  assert.match(input,/root\.positionToRectangle\(root.selectionEnd\)/);
-  assert.match(input,/pressDeltaX/);
-  assert.match(input,/pressDeltaY/);
-  assert.match(input,/onPositionChanged: mouse => \{/);
-  assert.match(input,/root\.select\(bounded, oppositeEdge\)/);
-  assert.match(input,/!textSelectionSettings.systemSelectionEnabled/);
+test('editing does not depend on read-only text selection preferences',()=>{
+ const input=read('ui/components/controls/BidiTextArea.qml');
+ const menu=read('ui/components/composer/EditorContextMenu.qml');
+ assert.doesNotMatch(input,/textSelectionSettings|composerTextSelectionHandles/);
+ assert.match(input,/onLongPressed: editorMenu\.requestSystemEditor\(false\)/);
+ assert.match(menu,/presentationBridge\.openBrowserTextEditor/);
 });
+
 test('cast selection exposes real document caret rectangles and draggable blue handles',()=>{
   const cast=read('ui/components/content/RichInlineText.qml');
   const cpp=read('src/presentation/qt/rich_inline_text_item.cpp');
@@ -47,19 +43,20 @@ test('cast selection exposes real document caret rectangles and draggable blue h
   assert.match(cast,/id: castSelectionGripLoader/);
   assert.match(cast,/parent: Overlay.overlay/);
 });
-test('system mode uses Qt built-in native text selection and menus on native platforms',()=>{
-  const cast=read('ui/components/content/RichInlineText.qml');
-  const input=read('ui/components/controls/BidiTextArea.qml');
-  const menu=read('ui/components/composer/EditorContextMenu.qml');
-  assert.match(cast,/objectName: "platformCastSelectableText"/);
-  assert.match(cast,/readOnly: true/);
-  assert.match(cast,/onLinkActivated: url => root.externalRequested\(url\)/);
-  assert.match(input,/ContextMenu\.menu: root\.platformNativeMenu \? nativeContextMenu : canvasContextMenu/);
-  assert.match(input,/popupType: Popup\.Native/);
-  assert.match(input,/MenuItem \{/);
-  assert.match(input,/root\.copy\(\)/);
-  assert.match(menu,/Popup\.Native : Popup\.Item/);
+test('published cast selection preference is independent of native editing',()=>{
+ const cast=read('ui/components/content/RichInlineText.qml');
+ const input=read('ui/components/controls/BidiTextArea.qml');
+ const menu=read('ui/components/composer/EditorContextMenu.qml');
+ assert.match(cast,/objectName: "platformCastSelectableText"/);
+ assert.match(cast,/readOnly: true/);
+ assert.match(cast,/onLinkActivated: url => root.externalRequested\(url\)/);
+ assert.match(input,/ContextMenu\.menu: editorMenu\.platformMobile \|\| editorMenu\.browser \? null : editorMenu/);
+ assert.match(menu,/popupType: Popup\.Native/);
+ assert.match(menu,/MenuItem \{/);
+ assert.match(menu,/root\.editor\.copy\(\)/);
+ assert.doesNotMatch(input,/textSelectionSettings/);
 });
+
 test('Clear content destroys unsent content and media safely after confirmation',()=>{
   const composer=read('ui/components/composer/ComposerDrawer.qml');
   const engine=read('src/presentation/qt/rich_composer_controller.cpp');

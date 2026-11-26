@@ -1157,7 +1157,7 @@ GenyDrawer {
                         color: Theme.textSecondary
                         preferredSize: Theme.iconSizeSmall
                     }
-                    TextField {
+                    DirectionAwareTextField {
                         id: channelSearch
                         objectName: "composerChannelSearch"
                         LayoutMirroring.enabled: false
@@ -2155,7 +2155,7 @@ GenyDrawer {
 
                     DirectionAwareTextArea {
                         id: mobilePlainEditor
-                        selectAllOnDoubleTap: true
+
                         objectName: "composerPrimaryMobileEditor"
                         visible: root.compact && root.editorMode === "visual"
                         anchors.fill: parent
@@ -2213,7 +2213,7 @@ GenyDrawer {
                         }
                         DirectionAwareTextArea {
                             id: markdownEditor
-                        selectAllOnDoubleTap: true
+
                             anchors.fill: parent
                             text: richComposer.markdownBodySource
                             placeholderText: qsTrId("genycaster.composer.markdown_placeholder")
@@ -2402,7 +2402,7 @@ GenyDrawer {
 
                             DirectionAwareTextArea {
                                 id: threadEditor
-                        selectAllOnDoubleTap: true
+
                                 objectName: "composerThreadEditor"
                                 onActiveFocusChanged: if (activeFocus) root.ensureEditorVisible(threadEditor)
                                 onCursorRectangleChanged: if (activeFocus) root.ensureEditorVisible(threadEditor)
@@ -2736,6 +2736,19 @@ GenyDrawer {
                             // The same MIME-safe file picker accepts animated GIF.
                             root.pendingMediaBlockIndex = root.compact ? 0 : visualEditor.activeBlockIndex
                             root.openMediaPicker()
+                        }
+                    }
+                    ActionButton {
+                        objectName: "mobileComposerSystemPaste"
+                        visible: Qt.platform.os === "wasm"
+                        compact: true
+                        quiet: true
+                        text: qsTrId("genycaster.editor.paste")
+                        onClicked: {
+                            const target = root.focusedComposerEditor
+                            if (target && target.visible && typeof target.requestClipboardPaste === "function")
+                                target.requestClipboardPaste()
+                            else mobilePlainEditor.requestClipboardPaste()
                         }
                     }
                     Item { Layout.fillWidth: true }

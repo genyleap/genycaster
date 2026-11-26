@@ -134,9 +134,8 @@ Superellipse {
                     LayoutMirroring.enabled: false
                 }
 
-                TextArea {
+                DirectionAwareTextArea {
                     id: codeEditor
-                    ContextMenu.menu: EditorContextMenu { editor: codeEditor }
                     x: gutter.width + (gutter.visible ? Theme.space2 : 0)
                     width: Boolean(root.blockData.wrap)
                            ? Math.max(80, parent.width - x)

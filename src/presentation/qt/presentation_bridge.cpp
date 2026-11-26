@@ -4,6 +4,9 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QClipboard>
+#include <QJsonDocument>
+#include <QInputMethodEvent>
+#include <QCoreApplication>
 #include <QPointer>
 #include <QGuiApplication>
 #if defined(Q_OS_ANDROID)
@@ -2780,6 +2783,73 @@ void PresentationBridge::requestClipboardText(const QString& requestId)
     emit clipboardTextReceived(requestId, clipboard ? clipboard->text() : QString{},
                                clipboard != nullptr);
 #endif
+}
+
+bool PresentationBridge::openBrowserTextEditor(const QString& requestId, QString text,
+                                                const QVariantMap& options)
+{
+#if defined(Q_OS_WASM)
+    if (requestId.isEmpty() || requestId.size() > 128 || text.size() > 262144)
+        return false;
+    clipboardReceiver = this;
+    const auto request = requestId.toUtf8();
+    auto value = text.toUtf8();
+    text.fill(QChar{});
+    const auto config = QJsonDocument::fromVariant(options).toJson(QJsonDocument::Compact);
+    const bool opened = EM_ASM_INT({
+        const adapter = window.__genycasterSystemEditor;
+        if (!adapter) return 0;
+        return adapter.open(UTF8ToString($0),UTF8ToString($1,$2),
+            JSON.parse(UTF8ToString($3)),(token,value,ok)=>{
+                const count=ok?lengthBytesUTF8(value):0;
+                const idSize=lengthBytesUTF8(token)+1;
+                const id=_malloc(idSize);
+                const ptr=ok&&count<=1048576?_malloc(count+1):0;
+                try {
+                    if(!id)return;
+                    stringToUTF8(token,id,idSize);
+                    if(ptr)stringToUTF8(value,ptr,count+1);
+                    Module._genycasterClipboardTextResult(id,ptr,ptr?count:0,ptr?1:0);
+                } finally {
+                    if(ptr){HEAPU8.fill(0,ptr,ptr+count+1);_free(ptr);}
+                    if(id)_free(id);
+                }
+            })?1:0;
+    }, request.constData(),value.constData(),value.size(),config.constData()) != 0;
+    value.fill('\0');
+    return opened;
+#else
+    Q_UNUSED(requestId);
+    Q_UNUSED(text);
+    Q_UNUSED(options);
+    return false;
+#endif
+}
+
+void PresentationBridge::cancelBrowserTextEditor(const QString& requestId)
+{
+#if defined(Q_OS_WASM)
+    const auto request=requestId.toUtf8();
+    EM_ASM({window.__genycasterSystemEditor?.cancel(UTF8ToString($0));},request.constData());
+#else
+    Q_UNUSED(requestId);
+#endif
+}
+
+void PresentationBridge::commitBrowserEditorText(QObject* editor, const QString& text,
+                                                   const int replaceLength)
+{
+    if (!editor || !editor->property("activeFocus").toBool()
+        || !editor->property("enabled").toBool() || !editor->property("visible").toBool()
+        || editor->property("readOnly").toBool() || text.size() > 262144
+        || replaceLength < 0
+        || replaceLength > editor->property("length").toInt() - editor->property("cursorPosition").toInt())
+        return;
+    // Use the same native IME transaction as Qt's platform input context:
+    // one undoable plain-text change, with validators and textEdited intact.
+    QInputMethodEvent event;
+    event.setCommitString(text, 0, replaceLength);
+    QCoreApplication::sendEvent(editor, &event);
 }
 
 namespace {

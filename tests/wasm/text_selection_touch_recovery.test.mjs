@@ -4,66 +4,33 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
 const read = file => readFileSync(new URL('../../'+file, import.meta.url), 'utf8');
-const qml=read('ui/components/controls/BidiTextArea.qml');
-
-// Exercise the actual QML JavaScript handler instead of only checking source
-// strings. Qt's native selection API can update selectedText while a browser
-// forwards release to a different touch grabber.
-function handler(name, after) {
- const start=qml.indexOf(name+': {');
- assert.ok(start>=0,name);
- const s=start+name.length+3;
- const end=qml.indexOf('\n    }\n    '+after, s);
- assert.ok(end>s,name+' terminator');
- const body=qml.slice(s,end);
- return '(function(){'+(name==='onTriggered' ? body.replace(/\n        }\s*$/,'') : body)+'})()';
+const qml=read('ui/components/composer/EditorContextMenu.qml');
+const apply=qml.slice(qml.indexOf('    function applyText('),qml.indexOf('    Connections {'));
+function exercise(before,value,kind,selection=[0,0],handler=null){
+ const calls=[];
+ const editor={forceActiveFocus(){},clipboardPasteHandler:handler,clear(){calls.push(['clear']);}};
+ const context={editor,plainText:()=>before,pasteStart:selection[0],pasteEnd:selection[1],
+    replaceRange:(start,end,text)=>calls.push([start,end,text]),value,kind};
+ vm.runInNewContext(apply+'\napplyText(value,kind)',context);
+ return calls;
 }
-
-test('selected text opens the WASM toolbar despite transient IME focus loss',()=>{
- const code=handler('onTriggered','onSelectedTextChanged');
- let opens=0, restarts=0;
- const root={
-  customCanvasSelection:true, visible:true, activeFocus:false,
-  selectedText:'Hello, world!',selectionPressActive:false,selectionGestureActive:false,
-  selectionHandleDragging:false, selectionReleaseRetries:0,
-  showSelectionActions(){opens++;}
- };
- const selectionDelay={restart(){restarts++}};
- vm.runInNewContext(code,{root,selectionDelay});
- assert.equal(opens,1);
- assert.equal(restarts,0);
- root.visible=false;
- vm.runInNewContext(code,{root,selectionDelay});
- assert.equal(opens,1,'a closed drawer must not leak its menu onto Home');
+test('native paste preserves the captured selection and inserts only its payload',()=>{
+ assert.deepEqual(exercise('before','new','browser-paste',[1,4]),[[1,4,'new']]);
+ assert.deepEqual(exercise('before','','browser-paste',[1,4]),[]);
 });
-
-test('missing browser touch release cannot indefinitely suppress Copy',()=>{
- const code=handler('onTriggered','onSelectedTextChanged');
- const root={customCanvasSelection:true,visible:true,selectedText:'Hello',
-  selectionPressActive:true,selectionGestureActive:true,
-  selectionHandleDragging:false,selectionReleaseRetries:0,
-  showSelectionActions(){this.opens=(this.opens||0)+1;}};
- let restarts=0;
- const selectionDelay={restart(){restarts++}};
- for(let i=0;i<4;i++)vm.runInNewContext(code,{root,selectionDelay});
- assert.equal(restarts,3);
- assert.equal(root.opens,1);
- assert.equal(root.selectionPressActive,false);
- assert.equal(root.selectionGestureActive,false);
- assert.equal(root.selectionReleaseRetries,0);
+test('native edit preserves unchanged text and does not split surrogate pairs',()=>{
+ assert.deepEqual(exercise('hello world','hello Qt','browser-edit'),[[6,11,'Qt']]);
+ assert.deepEqual(exercise('a😀b','a😁b','browser-edit'),[[1,3,'😁']]);
+ assert.deepEqual(exercise('unchanged','unchanged','browser-edit'),[]);
 });
-
-test('selection change arms toolbar even while the original touch is pressed',()=>{
- const code=handler('onSelectedTextChanged','onPressAndHold');
- const root={customCanvasSelection:true,visible:true,selectionHandleDragging:false,
-  selectionReleaseRetries:3};
- let restarts=0,closes=0;
- const selectionDelay={restart(){restarts++},stop(){}};
- const selectionBar={close(){closes++}};
- vm.runInNewContext(code,{root,selectionDelay,selectionBar,selectedText:'Hello',selectionHandleDragging:false});
- assert.equal(restarts,1);
- assert.equal(root.selectionReleaseRetries,0);
- assert.equal(closes,0);
+test('recovery text adapter receives one explicit payload, with clear and cancel paths',()=>{
+ const received=[];
+ assert.deepEqual(exercise('','test fixture','browser-paste',[0,0],v=>received.push(v)),[]);
+ assert.deepEqual(received,['test fixture']);
+ assert.deepEqual(exercise('word','','browser-edit',[0,0],()=>{}),[['clear']]);
+ assert.match(qml,/requestId !== root.pendingPaste/);
+ assert.match(qml,/if \(!root.usable\(\)\) return/);
+ assert.match(qml,/if \(ok\) root.applyText\(value, kind\)/);
 });
 
 test('light installed-PWA chrome has a fixed top color surface, not a sampled gradient',()=>{

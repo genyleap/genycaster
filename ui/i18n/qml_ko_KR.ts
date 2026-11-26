@@ -5037,8 +5037,8 @@ Company | https://company.com</source>
             <translation>텍스트 선택</translation>
         </message>
         <message id="genycaster.settings.text_selection_description">
-            <source>Choose how you select and copy text in casts and the composer.</source>
-            <translation>게시물과 편집기에서 텍스트를 선택하고 복사하는 방법을 설정하세요.</translation>
+            <source>Choose how you select and copy text in published casts. Text editors always use platform editing.</source>
+            <translation>게시물에서 텍스트를 선택하고 복사하는 방식을 설정합니다. 입력란은 항상 플랫폼 편집 기능을 사용합니다.</translation>
         </message>
         <message id="genycaster.settings.selection_genycaster">
             <source>Genycaster</source>
@@ -5049,8 +5049,8 @@ Company | https://company.com</source>
             <translation>시스템</translation>
         </message>
         <message id="genycaster.settings.selection_browser_limit">
-            <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
-            <translation>Qt/WASM은 캔버스에 렌더링되므로 Safari나 브라우저의 기본 텍스트 선택 기능을 사용할 수 없습니다. GenyCaster의 텍스트 선택 기능은 계속 사용할 수 있습니다.</translation>
+            <source>Published casts use Genycaster selection on the browser canvas. Editable fields use the browser's own text editor for Copy and Paste.</source>
+            <translation>브라우저 캔버스의 게시물은 Genycaster 선택 기능을 사용합니다. 입력란은 브라우저 편집기로 복사하고 붙여넣습니다.</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>
@@ -7115,6 +7115,10 @@ Genycaster는 계정 ID/FID, 프로토콜, 확인 상태, Farcaster 및 Genyleap
         <message id="genycaster.editor.cut">
             <source>Cut</source>
             <translation>잘라내기</translation>
+        </message>
+        <message id="genycaster.editor.system_edit_hint">
+            <source>Touch and hold or use your device’s Copy and Paste commands.</source>
+            <translation>길게 누르거나 기기의 복사 및 붙여넣기 명령을 사용하세요.</translation>
         </message>
         <message id="genycaster.editor.paste">
             <source>Paste</source>

@@ -5037,8 +5037,8 @@ Company | https://company.com</source>
             <translation>文字选择</translation>
         </message>
         <message id="genycaster.settings.text_selection_description">
-            <source>Choose how you select and copy text in casts and the composer.</source>
-            <translation>选择如何在帖子和编辑器中选择及复制文字。</translation>
+            <source>Choose how you select and copy text in published casts. Text editors always use platform editing.</source>
+            <translation>选择已发布帖子中的文本选择和复制方式。编辑字段始终使用平台编辑功能。</translation>
         </message>
         <message id="genycaster.settings.selection_genycaster">
             <source>Genycaster</source>
@@ -5049,8 +5049,8 @@ Company | https://company.com</source>
             <translation>跟随系统</translation>
         </message>
         <message id="genycaster.settings.selection_browser_limit">
-            <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
-            <translation>Qt/WASM 渲染在画布中，因此这里无法使用 Safari 或浏览器的原生文字选择功能。GenyCaster 的文字选择功能仍然可用。</translation>
+            <source>Published casts use Genycaster selection on the browser canvas. Editable fields use the browser's own text editor for Copy and Paste.</source>
+            <translation>浏览器画布上的帖子使用 Genycaster 选择功能。编辑字段使用浏览器自身的编辑器进行复制和粘贴。</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>
@@ -7115,6 +7115,10 @@ Genycaster 处理账户 ID/FID、协议、验证状态以及 Farcaster 与 Genyl
         <message id="genycaster.editor.cut">
             <source>Cut</source>
             <translation>剪切</translation>
+        </message>
+        <message id="genycaster.editor.system_edit_hint">
+            <source>Touch and hold or use your device’s Copy and Paste commands.</source>
+            <translation>长按或使用设备自带的复制和粘贴命令。</translation>
         </message>
         <message id="genycaster.editor.paste">
             <source>Paste</source>

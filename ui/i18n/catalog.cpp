@@ -1303,6 +1303,7 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.editor.cut");
     //% "Paste"
     (void)qtTrId("genycaster.editor.paste");
+    (void)qtTrId("genycaster.editor.system_edit_hint");
     //% "Select All"
     (void)qtTrId("genycaster.editor.select_all");
     //% "Viewing only — publishing is locked"

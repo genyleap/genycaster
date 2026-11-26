@@ -763,6 +763,7 @@ if(EMSCRIPTEN)
         "-sFORCE_FILESYSTEM=1"
         "-lidbfs.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/persistence-pre.js"
+        "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/native-text-editor-pre.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-host-pre.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser-hls-pre.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/portrait-orientation-pre.js"
@@ -774,6 +775,7 @@ if(EMSCRIPTEN)
     # Trigger link + post-build asset hash regeneration on every such edit.
     set_property(TARGET genycaster APPEND PROPERTY LINK_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/persistence-pre.js"
+        "${CMAKE_CURRENT_SOURCE_DIR}/wasm/native-text-editor-pre.js"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-host-pre.js"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser-hls-pre.js"
         "${CMAKE_CURRENT_SOURCE_DIR}/wasm/portrait-orientation-pre.js"

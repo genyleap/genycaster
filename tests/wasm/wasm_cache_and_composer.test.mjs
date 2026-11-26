@@ -181,16 +181,15 @@ test('composer waits for confirmed cast hash before closing and keeps failed dra
     assert.doesNotMatch(main,/function onCastQueued\(\)[\s\S]{0,150}composerDrawer\.close\(\)/);
 });
 
-test('context menu is attached globally to all QML text areas and uses themed popup',()=>{
-    const qml=read(new URL('../../ui/components/composer/EditorContextMenu.qml',import.meta.url),'utf8');
-    const areas=read(new URL('../../ui/components/controls/BidiTextArea.qml',import.meta.url),'utf8');
-    const code=read(new URL('../../ui/components/composer/CodeBlockEditor.qml',import.meta.url),'utf8');
-    assert.match(qml,/popupType: nativePresentation \? Popup\.Native : Popup\.Item/);
-    assert.match(qml,/EditorMenuItem/);
-    assert.doesNotMatch(qml,/delegate: MenuItem/);
-    assert.match(qml,/background: Superellipse/);
-    assert.match(areas,/ContextMenu\.menu: root\.platformNativeMenu \? nativeContextMenu : canvasContextMenu/);
-    assert.match(code,/ContextMenu\.menu: EditorContextMenu/);
+test('shared text controls use native platform menus and browser edit adapter',()=>{
+ const qml=read(new URL('../../ui/components/composer/EditorContextMenu.qml',import.meta.url),'utf8');
+ const areas=read(new URL('../../ui/components/controls/BidiTextArea.qml',import.meta.url),'utf8');
+ const code=read(new URL('../../ui/components/composer/CodeBlockEditor.qml',import.meta.url),'utf8');
+ assert.match(qml,/popupType: Popup\.Native/);
+ assert.match(qml,/MenuItem \{/);
+ assert.match(areas,/ContextMenu\.menu: editorMenu\.platformMobile \|\| editorMenu\.browser \? null : editorMenu/);
+ assert.match(code,/DirectionAwareTextArea \{\s+id: codeEditor/);
+ assert.match(qml,/presentationBridge\.openBrowserTextEditor/);
 });
 
 test('recovery failures are not mislabeled Genyleap login errors',()=>{
@@ -211,20 +210,13 @@ test('recovery failures are not mislabeled Genyleap login errors',()=>{
     assert.match(recovery.slice(verified),/provisionFromRecovery\(verifiedFid,phrase\)/);
 });
 
-test('menu keeps hover label contrast independent of Qt MenuItem opacity',()=>{
-    const qml=read(new URL('../../ui/components/composer/EditorContextMenu.qml',import.meta.url),'utf8');
-    const item=read(new URL('../../ui/components/composer/EditorMenuItem.qml',import.meta.url),'utf8');
-    assert.match(item,/Item \{/);
-    assert.doesNotMatch(item,/^MenuItem \{/m);
-    assert.match(item,/text: root\.label/);
-    assert.match(item,/color: root\.actionEnabled \? Theme\.ink/);
-    assert.match(item,/onClicked: root\.activate\(\)/);
-    assert.match(item,/NeonStatePlate \{/);
-    assert.match(item,/hovered: hit\.containsMouse && root\.actionEnabled/);
-    assert.match(item,/focused: root\.activeFocus && root\.actionEnabled/);
-    assert.doesNotMatch(item,/radius: Theme\.space2/);
-    assert.match(qml,/EditorMenuItem/);
-    assert.doesNotMatch(qml,/delegate: MenuItem/);
+test('browser-native editor uses accessible real DOM controls and never injects markup',()=>{
+ const js=read(new URL('../../ui/wasm/native-text-editor-pre.js',import.meta.url),'utf8');
+ assert.match(js,/dialog.setAttribute\('aria-label'/);
+ assert.match(js,/input.setAttribute\('aria-label'/);
+ assert.match(js,/dialog.showModal\(\)/);
+ assert.match(js,/input.value=value/);
+ assert.doesNotMatch(js,/innerHTML|localStorage|sessionStorage|navigator.clipboard.readText/);
 });
 
 test('Safari touch icons and responsive stage indicators ship from one public root',()=>{

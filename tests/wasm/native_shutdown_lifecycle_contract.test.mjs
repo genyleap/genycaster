@@ -118,6 +118,6 @@ test("popup-host QML bindings stay null-safe during native scene destruction", (
     for (const qml of [combo, filter])
         assert.match(qml, /readonly property bool popupVisible: !!control\.popup && control\.popup\.visible/);
     assert.match(stats, /width: periodMenu \? periodMenu\.width/);
-    assert.match(edit, /if \(selectionBar\) selectionBar\.close\(\)/);
-    assert.doesNotMatch(edit, /(?<!\) )selectionBar\.close\(\)/);
+    assert.match(edit, /if \(editorMenu\) editorMenu\.cancelPaste\(\)/);
+    assert.doesNotMatch(edit, /selectionBar\.close\(\)/);
 });

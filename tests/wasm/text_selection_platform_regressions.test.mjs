@@ -5,32 +5,28 @@ import vm from 'node:vm';
 
 const read = p => readFileSync(new URL('../../'+p, import.meta.url), 'utf8');
 
-test('canvas-only selection actions never bind Popup.visible open on Home', () => {
+test('closing a composer cancels its browser editing transaction',()=>{
  const editor=read('ui/components/controls/BidiTextArea.qml');
+ const menu=read('ui/components/composer/EditorContextMenu.qml');
  const composer=read('ui/components/composer/ComposerDrawer.qml');
- const popup=editor.slice(editor.indexOf('id: selectionBar'));
- assert.doesNotMatch(popup,/visible:\s*!textSelectionSettings\.systemSelectionEnabled/);
- assert.match(editor,/if \(!root\.customCanvasSelection \|\| !root\.visible/);
  assert.match(editor,/onVisibleChanged: if \(!visible\) dismissSelectionActions\(\)/);
- assert.match(editor,/onActiveFocusChanged:[\s\S]*?selectionBar\.close\(\)/);
+ assert.match(editor,/function dismissSelectionActions\(\) \{ if \(editorMenu\) editorMenu.cancelPaste\(\) \}/);
+ assert.match(menu,/presentationBridge.cancelBrowserTextEditor\(token\)/);
+ assert.match(menu,/function onVisibleChanged\(\)/);
  assert.match(composer,/onClosed: \{[\s\S]*?mobilePlainEditor\.dismissSelectionActions\(\)/);
- assert.match(composer,/onClosed: \{[\s\S]*?markdownEditor\.dismissSelectionActions\(\)/);
- assert.match(editor,/selectionTop = Math\.min\(first\.y, last\.y\)/);
- assert.match(editor,/selectionBottom = Math\.max\(/);
 });
 
-test('native platform menus use actual MenuItems; custom Items remain canvas-only',()=>{
+test('native mobile owns its editing toolbar and native desktop uses real MenuItems',()=>{
+ const menu=read('ui/components/composer/EditorContextMenu.qml');
  const editor=read('ui/components/controls/BidiTextArea.qml');
- assert.match(editor,/Qt\.platform\.os === "ios"/);
- assert.match(editor,/Qt\.platform\.os === "android"/);
- assert.match(editor,/Qt\.platform\.os === "wasm"/);
- assert.match(editor,/ContextMenu\.menu: root\.platformNativeMenu \? nativeContextMenu : canvasContextMenu/);
- assert.match(editor,/id: nativeContextMenu[\s\S]*?popupType: Popup\.Native/);
- assert.match(editor,/id: canvasContextMenu[\s\S]*?nativePresentation: false/);
- assert.match(editor,/onTriggered: root\.copy\(\)/);
- assert.match(editor,/onTriggered: root\.cut\(\)/);
- assert.match(editor,/onTriggered: root\.paste\(\)/);
- assert.match(editor,/visible: root\.selectAllOnDoubleTap && root\.customCanvasSelection/);
+ assert.match(menu,/platformMobile: Qt.platform.os === "ios" \|\| Qt.platform.os === "android"/);
+ assert.match(menu,/browser: Qt.platform.os === "wasm"/);
+ assert.match(editor,/ContextMenu\.menu: editorMenu\.platformMobile \|\| editorMenu\.browser \? null : editorMenu/);
+ assert.match(menu,/popupType: Popup\.Native/);
+ assert.match(menu,/onTriggered: root\.editor\.copy\(\)/);
+ assert.match(menu,/onTriggered: root\.editor\.cut\(\)/);
+ assert.match(menu,/editor\.paste\(\)/);
+ assert.doesNotMatch(menu,/EditorMenuItem/);
 });
 
 test('iOS status style is install-time policy and page theme changes remain live',()=>{

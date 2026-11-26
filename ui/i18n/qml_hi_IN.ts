@@ -5037,8 +5037,8 @@ Company | https://company.com</source>
             <translation>टेक्स्ट चयन</translation>
         </message>
         <message id="genycaster.settings.text_selection_description">
-            <source>Choose how you select and copy text in casts and the composer.</source>
-            <translation>पोस्ट और एडिटर में टेक्स्ट चुनने और कॉपी करने का तरीका चुनें।</translation>
+            <source>Choose how you select and copy text in published casts. Text editors always use platform editing.</source>
+            <translation>प्रकाशित पोस्ट में टेक्स्ट चुनने और कॉपी करने का तरीका चुनें। संपादन फ़ील्ड हमेशा प्लेटफ़ॉर्म के संपादन का उपयोग करते हैं।</translation>
         </message>
         <message id="genycaster.settings.selection_genycaster">
             <source>Genycaster</source>
@@ -5049,8 +5049,8 @@ Company | https://company.com</source>
             <translation>सिस्टम</translation>
         </message>
         <message id="genycaster.settings.selection_browser_limit">
-            <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
-            <translation>Qt/WASM कैनवास में रेंडर होता है, इसलिए यहाँ Safari या ब्राउज़र का मूल टेक्स्ट चयन उपलब्ध नहीं है। GenyCaster का चयन सक्रिय रहता है।</translation>
+            <source>Published casts use Genycaster selection on the browser canvas. Editable fields use the browser's own text editor for Copy and Paste.</source>
+            <translation>ब्राउज़र कैनवास पर पोस्ट Genycaster चयन का उपयोग करती हैं। संपादन फ़ील्ड कॉपी और पेस्ट के लिए ब्राउज़र संपादक का उपयोग करते हैं।</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>
@@ -7115,6 +7115,10 @@ Genycaster खाता ID/FID, प्रोटोकॉल, सत्याप�
         <message id="genycaster.editor.cut">
             <source>Cut</source>
             <translation>काटें</translation>
+        </message>
+        <message id="genycaster.editor.system_edit_hint">
+            <source>Touch and hold or use your device’s Copy and Paste commands.</source>
+            <translation>देर तक दबाएँ या अपने डिवाइस के कॉपी और पेस्ट आदेशों का उपयोग करें।</translation>
         </message>
         <message id="genycaster.editor.paste">
             <source>Paste</source>

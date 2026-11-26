@@ -334,10 +334,10 @@ test('desktop quick draft keeps context menu; mobile opens the dedicated editor'
     const home = read('ui/components/home/HomeDashboard.qml');
     const composer = read('ui/components/composer/ComposerDrawer.qml');
     const menu = read('ui/components/composer/EditorContextMenu.qml');
-    assert.match(home, /ContextMenu\.menu: EditorContextMenu \{ editor: desktopDraftEditor \}/);
+    assert.match(home, /DirectionAwareTextArea \{\s+id: desktopDraftEditor/);
     assert.match(home, /objectName: "homeComposerLauncher"/);
     assert.match(home, /onClicked: root\.composeRequested\(root\.draftText\)/);
     assert.match(composer, /RichTextEditor \{/);
-    assert.match(menu, /popupType: nativePresentation \? Popup\.Native : Popup\.Item/);
-    assert.match(menu, /background: Superellipse/);
+    assert.match(menu, /popupType: Popup\.Native/);
+    assert.match(menu, /MenuItem \{/);
 });

@@ -539,9 +539,8 @@ Item {
                         anchors.margins: Theme.space3
                         spacing: Theme.space2
 
-                        TextArea {
+                        DirectionAwareTextArea {
                             id: desktopDraftEditor
-                            ContextMenu.menu: EditorContextMenu { editor: desktopDraftEditor }
                             Layout.fillWidth: true
                             implicitHeight: activeFocus || text.length > 0 ? 80 : 56
                             text: root.draftText
@@ -756,7 +755,7 @@ HomeActivityCard {
             }
             // Retain this invisible TextArea so legacy focus cleanup and draft
             // bindings stay harmless; there is no inline keyboard entry.
-            TextArea {
+            DirectionAwareTextArea {
                 id: mobileDraftEditor
                 visible: false
                 readOnly: true

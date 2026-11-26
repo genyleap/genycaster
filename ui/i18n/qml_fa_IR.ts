@@ -5042,8 +5042,8 @@ Company | https://company.com</source>
             <translation>انتخاب متن</translation>
         </message>
         <message id="genycaster.settings.text_selection_description">
-            <source>Choose how you select and copy text in casts and the composer.</source>
-            <translation>نحوهٔ انتخاب و کپی متن در نشرها و ویرایشگر را مشخص کنید.</translation>
+            <source>Choose how you select and copy text in published casts. Text editors always use platform editing.</source>
+            <translation>روش انتخاب و کپی متن در پست‌های منتشرشده را تعیین کنید. فیلدهای ویرایش همیشه از ویرایش استاندارد پلتفرم استفاده می‌کنند.</translation>
         </message>
         <message id="genycaster.settings.selection_genycaster">
             <source>Genycaster</source>
@@ -5054,8 +5054,8 @@ Company | https://company.com</source>
             <translation>سیستم‌عامل</translation>
         </message>
         <message id="genycaster.settings.selection_browser_limit">
-            <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
-            <translation>در نسخهٔ وبِ Qt/WASM، محتوا روی Canvas رسم می‌شود و انتخاب متن بومی Safari یا مرورگر قابل استفاده نیست. حالت جنی‌کستر فعال می‌ماند.</translation>
+            <source>Published casts use Genycaster selection on the browser canvas. Editable fields use the browser's own text editor for Copy and Paste.</source>
+            <translation>انتخاب متن پست‌های منتشرشده در وب با Genycaster انجام می‌شود. فیلدهای ویرایش برای کپی و جای‌گذاری از ورودی خود مرورگر استفاده می‌کنند.</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>
@@ -7140,6 +7140,10 @@ FID، نام کاربری و پروفایل عمومی، کست‌ها، پاس�
         <message id="genycaster.editor.cut">
             <source>Cut</source>
             <translation>بریدن</translation>
+        </message>
+        <message id="genycaster.editor.system_edit_hint">
+            <source>Touch and hold or use your device’s Copy and Paste commands.</source>
+            <translation>لمس طولانی کنید یا از فرمان‌های کپی و جای‌گذاری دستگاه استفاده کنید.</translation>
         </message>
         <message id="genycaster.editor.paste">
             <source>Paste</source>

@@ -190,18 +190,15 @@ test('channel selection emits a deferred C++ confirmation instead of invalidatin
  assert.doesNotMatch(composer,/const selection = channelDirectory.chooseChannel/);
 });
 
-test('composer editing shows compact clipboard actions beside the selection',()=>{
+test('composer provides browser-native clipboard editing without a canvas selection popup',()=>{
  const editor=read('ui/components/controls/BidiTextArea.qml');
  const composer=read('ui/components/composer/ComposerDrawer.qml');
- assert.match(editor,/objectName: "editorSelectionActions"/);
- assert.match(editor,/root.mapToItem\(selectionBar.parent, start.x, start.y\)/);
- assert.match(editor,/onPressAndHold:/);
- assert.match(editor,/onSelectedTextChanged:/);
- assert.match(editor,/presentationBridge.copyText\(root.selectedText\)/);
- assert.match(editor,/focusPolicy: Qt.NoFocus/);
- assert.doesNotMatch(editor,/onActiveFocusChanged: if \(!activeFocus\) selectionBar.close\(\)/);
- assert.match(editor,/root.cut\(\)/);
- assert.match(editor,/root.selectAll\(\)/);
+ const adapter=read('ui/wasm/native-text-editor-pre.js');
+ assert.match(editor,/onLongPressed: editorMenu\.requestSystemEditor\(false\)/);
+ assert.match(composer,/objectName: "mobileComposerSystemPaste"/);
+ assert.match(adapter,/document.createElement\(multiline\?'textarea':'input'\)/);
+ assert.match(adapter,/dialog.showModal\(\)/);
+ assert.doesNotMatch(editor,/editorSelectionActions/);
  assert.match(composer,/id: mobilePlainEditor/);
  assert.match(composer,/id: threadEditor/);
 });

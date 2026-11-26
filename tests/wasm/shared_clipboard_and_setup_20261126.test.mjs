@@ -31,11 +31,11 @@ test('browser paste uses an explicit read and zeros temporary UTF-8 bytes',async
 test('clipboard routing is one-shot, scoped to visible writable editor and guarded on dismissal',()=>{
  assert.match(menu,/requestId !== root.pendingPaste/);
  assert.match(menu,/root.cancelPaste\(\)/);
- assert.match(menu,/!root.editor.visible \|\| !root.editor.enabled \|\| root.editor.readOnly/);
+ assert.match(menu,/return !!editor && editor.enabled && editor.visible && !editor.readOnly/);
  assert.match(menu,/function onTextChanged\(\) \{ root.cancelPaste\(\) \}/);
  assert.match(menu,/function onVisibleChanged\(\)/);
  assert.match(menu,/!root.sensitive/);
- assert.match(field,/onPressAndHold:[\s\S]*?editorMenu.popup\(root, mouse.x, mouse.y\)/);
+ assert.match(field,/onLongPressed: editorMenu.requestSystemEditor\(false\)/);
  for(const [source,name] of [[setup,'setupPasteRecoveryWords'],[shell,'signerPasteRecoveryWords']]){
   assert.match(source,new RegExp('objectName: "'+name+'"'));
   assert.match(source,/clipboardPasteHandler: value =>/);

@@ -5037,8 +5037,8 @@ Company | https://company.com</source>
             <translation>تحديد النص</translation>
         </message>
         <message id="genycaster.settings.text_selection_description">
-            <source>Choose how you select and copy text in casts and the composer.</source>
-            <translation>اختر طريقة تحديد النص ونسخه في المنشورات والمحرر.</translation>
+            <source>Choose how you select and copy text in published casts. Text editors always use platform editing.</source>
+            <translation>اختر طريقة تحديد النص ونسخه في المنشورات. تستخدم حقول التحرير دائمًا تحرير النظام.</translation>
         </message>
         <message id="genycaster.settings.selection_genycaster">
             <source>Genycaster</source>
@@ -5049,8 +5049,8 @@ Company | https://company.com</source>
             <translation>النظام</translation>
         </message>
         <message id="genycaster.settings.selection_browser_limit">
-            <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
-            <translation>في إصدار Qt/WASM، يُرسم المحتوى داخل Canvas ولا تتوفر مقابض التحديد الأصلية للمتصفح؛ يستمر نمط جني‌كاستر.</translation>
+            <source>Published casts use Genycaster selection on the browser canvas. Editable fields use the browser's own text editor for Copy and Paste.</source>
+            <translation>تستخدم المنشورات تحديد Genycaster على لوحة المتصفح. تستخدم حقول التحرير محرر المتصفح للنسخ واللصق.</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>
@@ -7115,6 +7115,10 @@ This notice describes the product's current intended data flows, not a guarantee
         <message id="genycaster.editor.cut">
             <source>Cut</source>
             <translation>قص</translation>
+        </message>
+        <message id="genycaster.editor.system_edit_hint">
+            <source>Touch and hold or use your device’s Copy and Paste commands.</source>
+            <translation>اضغط مطولًا أو استخدم أوامر النسخ واللصق في جهازك.</translation>
         </message>
         <message id="genycaster.editor.paste">
             <source>Paste</source>

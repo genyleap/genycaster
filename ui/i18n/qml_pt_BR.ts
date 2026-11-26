@@ -5037,8 +5037,8 @@ Company | https://company.com</source>
             <translation>Seleção de texto</translation>
         </message>
         <message id="genycaster.settings.text_selection_description">
-            <source>Choose how you select and copy text in casts and the composer.</source>
-            <translation>Escolha como selecionar e copiar texto nas publicações e no editor.</translation>
+            <source>Choose how you select and copy text in published casts. Text editors always use platform editing.</source>
+            <translation>Escolha como selecionar e copiar texto em publicações. Os campos de edição sempre usam a edição da plataforma.</translation>
         </message>
         <message id="genycaster.settings.selection_genycaster">
             <source>Genycaster</source>
@@ -5049,8 +5049,8 @@ Company | https://company.com</source>
             <translation>Sistema</translation>
         </message>
         <message id="genycaster.settings.selection_browser_limit">
-            <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
-            <translation>O Qt/WASM é renderizado em uma tela de desenho, então a seleção de texto nativa do Safari ou navegador não está disponível aqui. A seleção do GenyCaster permanece ativa.</translation>
+            <source>Published casts use Genycaster selection on the browser canvas. Editable fields use the browser's own text editor for Copy and Paste.</source>
+            <translation>As publicações usam a seleção do Genycaster no canvas. Os campos usam o editor do navegador para copiar e colar.</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>
@@ -7115,6 +7115,10 @@ Esta política descreve os fluxos pretendidos atualmente, não o comportamento d
         <message id="genycaster.editor.cut">
             <source>Cut</source>
             <translation>Recortar</translation>
+        </message>
+        <message id="genycaster.editor.system_edit_hint">
+            <source>Touch and hold or use your device’s Copy and Paste commands.</source>
+            <translation>Toque e segure ou use os comandos de copiar e colar do dispositivo.</translation>
         </message>
         <message id="genycaster.editor.paste">
             <source>Paste</source>

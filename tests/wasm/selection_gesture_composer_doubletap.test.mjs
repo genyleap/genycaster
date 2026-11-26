@@ -4,16 +4,15 @@ import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
-test('double tap selects entire cast composer field, reply editor and rich block editor', () => {
-  const input=read('ui/components/controls/BidiTextArea.qml');
-  const composer=read('ui/components/composer/ComposerDrawer.qml');
-  const rich=read('ui/components/composer/RichTextEditor.qml');
-  assert.match(input,/property bool selectAllOnDoubleTap: false/);
-  assert.match(input,/TapHandler \{[\s\S]*?onDoubleTapped: \{[\s\S]*?root.selectAll\(\)/);
-  for (const id of ['mobilePlainEditor','threadEditor','markdownEditor'])
-    assert.match(composer, new RegExp('id: '+id+'\\s+selectAllOnDoubleTap: true'));
-  assert.match(rich,/selectAllOnDoubleTap: true/);
-  assert.match(input,/root.showSelectionActions\(\)/);
+test('editable fields delegate long press to the browser and retain standard platform selection',()=>{
+ const field=read('ui/components/controls/BidiTextField.qml');
+ const area=read('ui/components/controls/BidiTextArea.qml');
+ for(const input of [field,area]){
+  assert.match(input,/ContextMenu\.menu: editorMenu\.platformMobile \|\| editorMenu\.browser \? null : editorMenu/);
+  assert.match(input,/onLongPressed: editorMenu\.requestSystemEditor\(false\)/);
+  assert.match(input,/acceptedButtons: Qt.RightButton/);
+  assert.doesNotMatch(input,/onDoubleTapped:|selectAllOnDoubleTap/);
+ }
 });
 
 test('native cast selection reserves mouse and touch gestures from Flickable only after selection', () => {
@@ -47,29 +46,17 @@ test('Copy popup is lazy and anchored to selected text in the window overlay, no
   assert.doesNotMatch(qml,/anchors.right: parent.right[\s\S]*?id: selectionCopyAction/);
 });
 
-test('composer preserves mouse selection and offers touch drag grips across platforms', () => {
-  const input=read('ui/components/controls/BidiTextArea.qml');
-  const composer=read('ui/components/composer/ComposerDrawer.qml');
-  assert.match(input,/selectByMouse: true/);
-  assert.match(input,/persistentSelection: true/);
-  assert.match(input,/onPressAndHold: mouse =>/);
-  assert.match(input,/onReleased: mouse =>/);
-  assert.match(input,/id: selectionGrips/);
-  assert.match(input,/objectName: "composerTextSelectionHandles"/);
-  assert.match(input,/root\.positionToRectangle\(root\.selectionStart\)/);
-  assert.match(input,/root\.positionToRectangle\(root\.selectionEnd\)/);
-  assert.match(input,/width: 44\s+height: 44/);
-  assert.match(input,/preventStealing: true/);
-  assert.match(input,/root\.positionAt\([\s\S]*?point\.x - pressDeltaX, point\.y - pressDeltaY\)/);
-  assert.match(input,/root\.select\(bounded, oppositeEdge\)/);
-  assert.match(input,/parent: Overlay\.overlay/);
-  assert.match(input,/root\.mapToItem\(selectionGrips/);
-  assert.doesNotMatch(input,/visible:[^\n]+root\.activeFocus/);
-  assert.match(input,/selectionPressActive/);
-  for (const id of ['mobilePlainEditor','threadEditor','markdownEditor'])
-    assert.match(composer, new RegExp('id: '+id+'\\s+selectAllOnDoubleTap: true'));
-  assert.match(input,/Qt\.platform\.os === "wasm"/);
-  assert.match(input,/customCanvasSelection/);
+test('composer uses system editing and no synthetic drag grips',()=>{
+ const input=read('ui/components/controls/BidiTextArea.qml');
+ const composer=read('ui/components/composer/ComposerDrawer.qml');
+ assert.match(input,/selectByMouse: true/);
+ assert.match(input,/persistentSelection: true/);
+ assert.match(input,/function requestClipboardPaste\(\)/);
+ assert.match(input,/function dismissSelectionActions\(\)/);
+ assert.doesNotMatch(input,/selectionGrips|selectionBar|showSelectionActions/);
+ assert.match(composer,/objectName: "mobileComposerSystemPaste"/);
+ assert.match(composer,/target.requestClipboardPaste\(\)/);
+ for(const id of ['mobilePlainEditor','threadEditor','markdownEditor'])assert.match(composer,new RegExp('id: '+id));
 });
 
 test('cast text selection offers Copy, Select all and clear without deleting content', () => {
@@ -83,10 +70,10 @@ test('cast text selection offers Copy, Select all and clear without deleting con
   assert.match(qml,/textLayout\.clearSelection\(\)/);
   assert.match(qml,/presentationBridge\.copyText\(textLayout\.selectedText\)/);
   assert.match(qml,/focusPolicy: Qt\.NoFocus/);
-  assert.match(editor,/root\.deselect\(\)/);
-  assert.match(editor,/text: qsTrId\("genycaster\.editor\.clear_selection"\)/);
+  assert.match(editor,/function resetSelection\(\) \{ deselect\(\) \}/);
+  assert.match(desktop,/text: qsTrId\("genycaster\.editor\.clear_selection"\)/);
   assert.match(desktop,/onTriggered: root\.editor\.deselect\(\)/);
-  assert.match(desktop,/presentationBridge\.copyText\(root\.editor\.selectedText\)/);
+  assert.match(desktop,/onTriggered: root\.editor\.copy\(\)/);
   assert.doesNotMatch(qml,/textLayout\.clear\(\)/);
 });
 
