@@ -11,6 +11,7 @@ import Farcaster.Client
 Item {
     id: root
     objectName: "mobileActionDock"
+    readonly property bool browserEditorOccludes: true
 
     property string activeView: "feed"
     property string activeFeed: "trending"

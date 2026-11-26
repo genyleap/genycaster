@@ -2095,6 +2095,7 @@ Item {
 
     Item {
         id: newPostsBanner
+        readonly property bool browserEditorOccludes: true
         anchors.left: parent.left
         anchors.right: parent.right
         height: 52

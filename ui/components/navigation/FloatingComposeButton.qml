@@ -5,6 +5,7 @@ import Farcaster.Client
 
 Button {
     id: control
+    readonly property bool browserEditorOccludes: true
 
     property bool expanded: false
     property string labelText: qsTrId("genycaster.header.new_cast")

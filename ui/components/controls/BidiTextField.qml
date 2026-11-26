@@ -12,6 +12,10 @@ TextField {
     readonly property bool clipboardPasteFailed: editorMenu.pasteFailed
     function requestClipboardPaste() { editorMenu.requestPaste() }
     function cancelClipboardPaste() { editorMenu.cancelPaste() }
+    function dismissSelectionActions() {
+        editorMenu.browserSuspended = true
+        editorMenu.cancelPaste()
+    }
     // A persistent DOM target receives the first touch. QML paints idle
     // content (including rich spans); the browser paints only during focus.
     Binding {

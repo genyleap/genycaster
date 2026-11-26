@@ -260,6 +260,18 @@ int scheduleSnapshots(QGuiApplication& application,
                 return 3;
             }
         }
+        if (arguments.contains(QStringLiteral("--open-signer-recovery"))) {
+            presentationBridge.applyAuthenticationState(true, QStringLiteral("authenticated"),
+                6'841, QStringLiteral("protocolnotes"), QStringLiteral("Protocol Field Notes"),
+                {}, QStringLiteral("farcaster-snapchain"), {}, {});
+            presentationBridge.applySignerState(QStringLiteral("missing"), false, false, {}, {});
+            auto* const recovery = window->findChild<QObject*>(
+                QStringLiteral("interactionAuthorizationExplanation"));
+            if (!recovery || !recovery->setProperty("enteringNativeWords", true)
+                || !QMetaObject::invokeMethod(recovery, "open", Qt::DirectConnection)) {
+                return 3;
+            }
+        }
         if (arguments.contains(QStringLiteral("--open-initial-setup"))) {
             bool hasStep = false;
             const int step = optionValue(

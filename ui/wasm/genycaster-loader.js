@@ -508,7 +508,21 @@ window.fetch=async function(input,options) {
     return response;
 };
 const screen=$("qt-screen");
+let deferredCanvasFit=false;
+const canvasPointers=new Set();
+screen.addEventListener("pointerdown",event=>canvasPointers.add(event.pointerId),true);
+function finishCanvasGesture(event){
+    canvasPointers.delete(event.pointerId);
+    if(!canvasPointers.size&&deferredCanvasFit){
+        deferredCanvasFit=false;
+        requestAnimationFrame(fit);
+    }
+}
+window.addEventListener("pointerup",finishCanvasGesture,true);
+window.addEventListener("pointercancel",finishCanvasGesture,true);
+window.addEventListener("blur",()=>{canvasPointers.clear();if(deferredCanvasFit){deferredCanvasFit=false;fit();}});
 function fit() {
+    if(canvasPointers.size){deferredCanvasFit=true;return;}
     // A browser can pan the visual viewport to the focused text input without
     // scrolling the layout viewport. Keep the Qt canvas within that *visible*
     // rectangle, not at document y=0 behind the keyboard.
@@ -518,7 +532,9 @@ function fit() {
     const left=viewport?viewport.pageLeft:window.scrollX;
     screen.style.top=Math.round(top||0)+"px";
     screen.style.left=Math.round(left||0)+"px";
+    screen.style.width=Math.round(viewport?viewport.width:window.innerWidth)+"px";
     screen.style.height=Math.max(180,Math.round(height))+"px";
+    window.__genycasterSystemEditor?.refresh();
 }
 window.addEventListener("resize",fit);
 window.addEventListener("scroll",fit,{passive:true});

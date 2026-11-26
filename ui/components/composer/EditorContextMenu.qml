@@ -56,6 +56,7 @@ Item {
             fontFamily: editor.font.family,
             fontSize: editor.font.pixelSize > 0 ? editor.font.pixelSize : Theme.typeBodySize,
             fontWeight: editor.font.weight,
+            lineHeight: 1.25,
             leftPadding: editor.leftPadding,
             rightPadding: editor.rightPadding,
             topPadding: editor.topPadding,

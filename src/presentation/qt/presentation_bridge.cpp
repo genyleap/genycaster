@@ -2,6 +2,7 @@
 #include "presentation_bridge.hpp"
 
 #include <QByteArray>
+#include <QFile>
 #include <QDateTime>
 #include <QClipboard>
 #include <QJsonDocument>
@@ -2737,6 +2738,33 @@ bool PresentationBridge::copyText(const QString& text)
 #if defined(Q_OS_WASM)
 namespace {
 QPointer<PresentationBridge> clipboardReceiver;
+void registerBrowserEditorFonts()
+{
+    static bool registered = false;
+    if (registered) return;
+    registered = true;
+    struct Face { const char* family; const char* resource; int weight; };
+    constexpr Face faces[] = {
+        {"DejaVu Sans", ":/fonts/DejaVuSans.ttf", 400},
+        {"DejaVu Sans Mono", ":/fonts/DejaVuSansMono.ttf", 400},
+        {"Vazirmatn", ":/qt/qml/Farcaster/Client/assets/fonts/Vazirmatn-Regular.ttf", 400},
+        {"Vazirmatn", ":/qt/qml/Farcaster/Client/assets/fonts/Vazirmatn-Medium.ttf", 500},
+        {"Vazirmatn", ":/qt/qml/Farcaster/Client/assets/fonts/Vazirmatn-SemiBold.ttf", 600},
+        {"Vazirmatn", ":/qt/qml/Farcaster/Client/assets/fonts/Vazirmatn-Bold.ttf", 700},
+        {"Vazirmatn", ":/qt/qml/Farcaster/Client/assets/fonts/Vazirmatn-Black.ttf", 900},
+        {"Noto Sans Devanagari", ":/qt/qml/Farcaster/Client/assets/fonts/NotoSansDevanagari.ttf", 400}
+    };
+    for (const auto& face : faces) {
+        QFile file(QString::fromLatin1(face.resource));
+        if (!file.open(QIODevice::ReadOnly)) continue;
+        const QByteArray bytes = file.readAll();
+        if (bytes.isEmpty()) continue;
+        EM_ASM({
+            window.__genycasterSystemEditor?.registerFont(UTF8ToString($0),
+                HEAPU8.slice($1, $1 + $2), $3);
+        }, face.family, bytes.constData(), bytes.size(), face.weight);
+    }
+}
 }
 extern "C" EMSCRIPTEN_KEEPALIVE void genycasterClipboardTextResult(
     const char* request, const char* value, int length, int ok)
@@ -2805,6 +2833,7 @@ bool PresentationBridge::openBrowserTextEditor(const QString& requestId, QString
 #if defined(Q_OS_WASM)
     if (requestId.isEmpty() || requestId.size() > 128 || text.size() > 262144)
         return false;
+    registerBrowserEditorFonts();
     clipboardReceiver = this;
     const auto request = requestId.toUtf8();
     auto value = text.toUtf8();
@@ -2869,6 +2898,31 @@ QVariantMap PresentationBridge::browserEditorGeometry(QObject* editor, QObject* 
     }
     clip = clip.intersected(rect);
     if (clip.isEmpty()) return {};
+    // Shell chrome is not a popup, but still owns its stacking lane.
+    // A marked sibling above this item's branch may cover the DOM target.
+    // Clip edge-spanning chrome; use the Qt fallback for partial obstructions
+    // that cannot be represented by one rectangular hit target.
+    for (const QQuickItem* branch = item; branch && branch->parentItem();
+         branch = branch->parentItem()) {
+        bool afterBranch = false;
+        for (const auto* sibling : branch->parentItem()->childItems()) {
+            if (sibling == branch) { afterBranch = true; continue; }
+            if (!sibling->property("browserEditorOccludes").toBool()
+                || !sibling->isVisible() || sibling->opacity() <= 0
+                || sibling->z() < branch->z()
+                || (sibling->z() == branch->z() && !afterBranch)) continue;
+            const auto obstruction = layoutRect(sibling);
+            if (!obstruction.intersects(clip)) continue;
+            if (obstruction.left() <= clip.left() && obstruction.right() >= clip.right()) {
+                if (obstruction.top() <= clip.top()) clip.setTop(obstruction.bottom());
+                else if (obstruction.bottom() >= clip.bottom()) clip.setBottom(obstruction.top());
+                else return {};
+            } else {
+                return {};
+            }
+            if (clip.isEmpty()) return {};
+        }
+    }
     // DOM fields cannot use Qt's popup stacking automatically. Suppress
     // underlying input targets while a higher popup/dimmer covers them.
     if (const auto* layer = qobject_cast<QQuickItem*>(overlay)) {

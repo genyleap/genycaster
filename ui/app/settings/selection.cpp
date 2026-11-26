@@ -2,7 +2,7 @@
 #include <QSettings>
 #include <QtGlobal>
 
-namespace { constexpr auto key = "accessibility/textSelectionMode"; }
+namespace { constexpr auto key = "accessibility/platformTextSelectionMode"; }
 TextSelectionSettings::TextSelectionSettings(QSettings& settings, QObject* parent)
     : QObject(parent), m_settings(settings)
 {
@@ -13,12 +13,9 @@ TextSelectionSettings::TextSelectionSettings(QSettings& settings, QObject* paren
 QString TextSelectionSettings::mode() const { return m_mode; }
 bool TextSelectionSettings::nativeAvailable() const noexcept
 {
-#if defined(Q_OS_WASM)
-    // Browser-native selection operates on DOM text, not a Qt Quick canvas.
-    return false;
-#else
+    // Browser-native selection operates on DOM text, not Qt canvas pixels.
+    // RichInlineText supplies that DOM surface on WASM.
     return true;
-#endif
 }
 bool TextSelectionSettings::systemSelectionEnabled() const noexcept
 {

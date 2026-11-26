@@ -13,7 +13,7 @@ test("WebAssembly text selection describes the browser DOM/Qt canvas boundary", 
         /bool TextSelectionSettings::nativeAvailable\(\) const noexcept\s*\{([\s\S]*?)\n\}/,
     )?.[1];
     assert.ok(section, "text selection availability implementation must exist");
-    assert.match(section, /Q_OS_WASM/);
+    assert.match(section, /return true;/);
     assert.doesNotMatch(section, /__EMSCRIPTEN__/);
     assert.match(section, /Browser-native selection operates on DOM text/);
     assert.doesNotMatch(section, /\biOS\b|\bmacOS\b|\bSafari\b/);

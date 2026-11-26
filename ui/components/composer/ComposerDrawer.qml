@@ -657,7 +657,7 @@ GenyDrawer {
         interval: 80
         repeat: false
         onTriggered: {
-            if (!root.opened || !root.compact || root.editorMode !== "visual") return
+            if (!root.opened || !root.compact || root.editorMode !== "visual" || Qt.platform.os === "wasm") return
             if (!mobilePlainEditor.editingFocus) {
                 if (Qt.platform.os === "wasm") mobilePlainEditor.requestSystemEditor()
                 else mobilePlainEditor.focusEditing()
@@ -763,7 +763,7 @@ GenyDrawer {
         }
         if (root.compact) {
             mobilePlainEditor.text = richComposer.safeText
-            if (root.initialAction !== "media")
+            if (root.initialAction !== "media" && Qt.platform.os !== "wasm")
                 initialComposerFocus.restart()
         }
         // Opening an ordinary Cast pulls the latest account draft immediately.
@@ -1664,7 +1664,12 @@ GenyDrawer {
                     quiet: true
                     compact: true
                     text: qsTrId("genycaster.shell.cancel")
-                    onClicked: root.close()
+                    onClicked: {
+                        initialComposerFocus.stop()
+                        mobilePlainEditor.dismissSelectionActions()
+                        markdownEditor.dismissSelectionActions()
+                        root.close()
+                    }
                 }
                 Item { Layout.fillWidth: true }
                 ActionButton {

@@ -3,15 +3,15 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = f => readFileSync(new URL('../../'+f,import.meta.url),'utf8');
 
-test('selection mode is persisted per device and unavailable on WASM canvas',()=>{
+test('selection mode is persisted per device and defaults to native DOM on WASM',()=>{
   const cpp=read('ui/app/settings/selection.cpp');
   const header=read('ui/app/settings/selection.hpp');
   const main=read('ui/app/main.cpp');
   const settings=read('ui/components/settings/SettingsPopup.qml');
   assert.match(header,/Q_PROPERTY\(QString mode READ mode NOTIFY modeChanged/);
   assert.match(header,/Q_PROPERTY\(bool nativeAvailable READ nativeAvailable CONSTANT/);
-  assert.match(cpp,/accessibility\/textSelectionMode/);
-  assert.match(cpp,/#if defined\(Q_OS_WASM\).*return false;/s);
+  assert.match(cpp,/accessibility\/platformTextSelectionMode/);
+  assert.match(cpp,/nativeAvailable\(\) const noexcept[\s\S]*?return true;/);
   assert.match(cpp,/if \(requested == QStringLiteral\("system"\) && !nativeAvailable\(\)\) return;/);
   assert.match(main,/\{"textSelectionSettings", &textSelectionSettings\}/);
   assert.match(settings,/objectName: "textSelectionPreference"/);

@@ -265,6 +265,11 @@ Item {
                     if (Qt.platform.os !== "wasm") Qt.inputMethod.show()
                 })
         }
+        onAboutToHide: {
+            nativeSignerPhraseInput.dismissSelectionActions()
+            for (let i = 0; i < 24; ++i)
+                nativeSignerWordGrid.itemAt(i)?.dismissWordEditor()
+        }
         onClosed: {
             if (enteringNativeWords && !presentationBridge.writeReady)
                 authorizationSubmitted = false
@@ -487,6 +492,7 @@ Item {
                             function focusWord() { recoveryWordInput.focusEditing() }
                             function pasteWord() { recoveryWordInput.requestClipboardPaste() }
                             function cancelWordPaste() { recoveryWordInput.cancelClipboardPaste() }
+                            function dismissWordEditor() { recoveryWordInput.dismissSelectionActions() }
                             readonly property bool pasteFailed: recoveryWordInput.clipboardPasteFailed
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
@@ -678,7 +684,10 @@ Item {
                     text: presentationBridge.signerBusy
                           ? qsTrId("genycaster.shell.close")
                           : qsTrId("genycaster.shell.cancel")
-                    onClicked: interactionAuthorizationDialog.close()
+                    onClicked: {
+                        interactionAuthorizationDialog.clearRecoveryWords()
+                        interactionAuthorizationDialog.close()
+                    }
                 }
                 ActionButton {
                     Layout.fillWidth: true

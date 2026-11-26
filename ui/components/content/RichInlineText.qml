@@ -22,6 +22,98 @@ Item {
     property bool selectionHandleDragging: false
     property bool preserveSelectionForGrip: false
     readonly property bool usePlatformSelection: textSelectionSettings.systemSelectionEnabled
+    readonly property bool browserSelection: Qt.platform.os === "wasm" && usePlatformSelection
+    property string browserCastToken: ""
+    property bool browserCastMounted: false
+    property real browserCastHeight: 0
+    readonly property real castLayoutHeight: browserCastHeight > 0 ? browserCastHeight : platformText.implicitHeight
+    Item {
+        id: browserCastGeometry
+        visible: root.browserSelection && root.textBlock
+        width: root.width
+        height: root.castLayoutHeight
+        y: root.emojiVerticalInset
+    }
+    function browserCastOptions() {
+        return { geometry: presentationBridge.browserEditorGeometry(browserCastGeometry, root.Overlay.overlay),
+            readOnlyCast: true, readOnly: true, multiline: true,
+            rtl: root.rtlContent, spans: root.flattenedInlines(),
+            fontFamily: platformText.font.family, fontSize: root.textSize,
+            fontWeight: root.fontBold ? 700 : 400,
+            ink: Theme.ink.toString(), accent: Theme.accent.toString(),
+            lineHeight: Theme.typeBodyLineHeight }
+    }
+    function releaseBrowserCast() {
+        const token = browserCastToken
+        browserCastToken = ""
+        browserCastMounted = false
+        if (token.length) presentationBridge.cancelBrowserTextEditor(token)
+    }
+    function syncBrowserCast(geometryOnly) {
+        if (!browserSelection || !root.visible || !textBlock || !browserCastGeometry.visible) {
+            releaseBrowserCast()
+            return
+        }
+        const options = browserCastOptions()
+        if (!(options.geometry.clipWidth > 0 && options.geometry.clipHeight > 0)) {
+            releaseBrowserCast()
+            return
+        }
+        const value = String(root.safeBlockData.text || "")
+        if (!browserCastMounted) {
+            browserCastToken = "cast:" + Date.now().toString(36) + ":" + Math.random().toString(36)
+            browserCastMounted = presentationBridge.openBrowserTextEditor(browserCastToken, value, options)
+            if (!browserCastMounted) releaseBrowserCast()
+            return
+        }
+        options.geometryOnly = geometryOnly === true
+        if (!presentationBridge.syncBrowserTextEditor(browserCastToken, options.geometryOnly ? "" : value, options))
+            releaseBrowserCast()
+    }
+    Timer {
+        interval: 100
+        repeat: true
+        triggeredOnStart: true
+        running: root.browserSelection && root.visible && root.textBlock
+        onTriggered: root.syncBrowserCast(true)
+    }
+    onBlockDataChanged: {
+        browserCastHeight = 0
+        if (browserSelection) Qt.callLater(() => root.syncBrowserCast(false))
+    }
+    onVisibleChanged: if (!visible) releaseBrowserCast()
+    onBrowserSelectionChanged: if (!browserSelection) { releaseBrowserCast(); browserCastHeight = 0 }
+    Component.onDestruction: releaseBrowserCast()
+    Connections {
+        target: presentationBridge
+        enabled: root.browserCastMounted
+        function onClipboardTextReceived(requestId, value, ok) {
+            if (requestId !== root.browserCastToken || !root.browserCastMounted) return
+            if (!ok) { root.releaseBrowserCast(); return }
+            let action
+            try { action = JSON.parse(value) } catch (_) { return }
+            if (action.type === "layout") {
+                const height = Number(action.height)
+                if (Number.isFinite(height) && height > 0 && height < 100000)
+                    root.browserCastHeight = height
+            } else if (action.type === "activate") root.bodyActivated()
+            else if (action.type === "link" && /^(?:https?:\/\/|@)/i.test(String(action.target || "")))
+                root.externalRequested(String(action.target))
+            else if (action.type === "scroll") {
+                for (let item = root.parent; item; item = item.parent) {
+                    if (item.contentY === undefined || item.contentHeight === undefined || !item.interactive) continue
+                    const delta = Number(action.delta)
+                    if (!Number.isFinite(delta)) return
+                    if (typeof item.cancelFlick === "function") item.cancelFlick()
+                    const origin = Number(item.originY || 0)
+                    item.contentY = Math.max(origin, Math.min(origin + Math.max(0, item.contentHeight - item.height),
+                        item.contentY + Math.max(-240, Math.min(240, delta))))
+                    root.syncBrowserCast(true)
+                    return
+                }
+            }
+        }
+    }
 
     // Required means the binding must exist; its value may still become null
     // briefly while a model delegate is being recycled.
@@ -38,7 +130,7 @@ Item {
     // and animated artwork; clipping a perfectly valid glyph is not allowed.
     readonly property real emojiVerticalInset: Math.max(2, Math.ceil(root.textSize * 0.15))
 
-    implicitHeight: (root.usePlatformSelection ? platformText.implicitHeight
+    implicitHeight: (root.usePlatformSelection ? root.castLayoutHeight
                                               : textLayout.contentHeight) + emojiVerticalInset * 2
     clip: false
 
@@ -77,7 +169,7 @@ Item {
     function nativeMarkup() {
         // Qt TextEdit delegates selection to the platform's QInputMethod.
         // Keep safe bold/emphasis/code/link spans for this optional rendering
-        // mode. Genycaster's richer animated emoji renderer stays the default.
+        // mode. Genycaster's richer animated emoji renderer remains opt-in.
         const html = []
         const spans = root.flattenedInlines()
         for (const span of spans) {
@@ -112,7 +204,7 @@ Item {
     TextEdit {
         id: platformText
         objectName: "platformCastSelectableText"
-        visible: root.usePlatformSelection && root.textBlock
+        visible: root.usePlatformSelection && root.textBlock && !root.browserCastMounted
         width: parent.width
         height: implicitHeight
         y: root.emojiVerticalInset
@@ -120,7 +212,7 @@ Item {
         selectByMouse: true
         selectByKeyboard: true
         persistentSelection: true
-        activeFocusOnPress: true
+        activeFocusOnPress: !root.browserCastMounted
         textFormat: TextEdit.RichText
         // Only the selected renderer lays out the paragraph. A hidden
         // TextEdit otherwise duplicates shaping for every admitted cast.
@@ -138,7 +230,7 @@ Item {
         // Read-only TextEdit supports selection, but Qt does not always
         // expose context actions automatically with non-native UI styles.
         TapHandler {
-            enabled: Qt.platform.os !== "ios" && Qt.platform.os !== "android"
+            enabled: !root.browserSelection && Qt.platform.os !== "ios" && Qt.platform.os !== "android"
             acceptedButtons: Qt.RightButton
             gesturePolicy: TapHandler.ReleaseWithinBounds
             onTapped: platformSelectionMenu.popup()

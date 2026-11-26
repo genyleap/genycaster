@@ -17,7 +17,7 @@ test('browser inputs are persistent siblings of Qt canvas before pointer interac
 test('visible editors are isolated by token and covered controls release their browser nodes',()=>{
  assert.match(js,/fields.get\(token\)/);
  assert.match(js,/fields.delete\(field.token\)/);
- assert.match(js,/field.input.value='';\s*field.input.remove\(\)/);
+ assert.match(js,/field.input.value='';[\s\S]*?field.input.remove\(\)/);
  assert.match(js,/if\(!layout\(f\)\)\{remove\(f\);return false;\}/);
  assert.match(cpp,/sibling->property\("browserEditorOverlayHost"\).toBool\(\)/);
  for (const host of ['controls/GenyAdaptiveDialog','apps/TaskManagerPopup'])
@@ -31,7 +31,7 @@ test('visible editors are isolated by token and covered controls release their b
 test('geometry refresh preserves values and browser focus belongs to real input',()=>{
  assert.match(js,/f.style\[key\]!==value/);
  assert.match(js,/!options.geometryOnly&&!f.composing&&f.input.value!==value/);
- assert.match(js,/if\(options.focusRequested\)f.input.focus/);
+ assert.match(js,/if\(options.focusRequested&&document.activeElement!==f.input\)f.input.focus/);
  assert.match(adapter,/function onBrowserEditorFocusChanged/);
  assert.match(adapter,/root.browserFocused = focused/);
  assert.doesNotMatch(adapter,/onActiveFocusChanged|Qt.inputMethod.hide/);
