@@ -135,6 +135,17 @@ void MediaPlaybackCoordinator::release(QObject* const player)
     emit activePlayerChanged();
 }
 
+void MediaPlaybackCoordinator::releaseAll()
+{
+    const QPointer<QObject> previous = m_activePlayer;
+    m_activePlayer = nullptr;
+    if (previous) {
+        suspendPlayer(previous.data());
+        emit activePlayerChanged();
+    }
+    closeBrowserHls();
+}
+
 bool MediaPlaybackCoordinator::isPrimary(QObject* const player) const
 {
     return player != nullptr && m_activePlayer == player;

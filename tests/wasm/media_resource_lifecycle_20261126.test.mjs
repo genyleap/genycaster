@@ -59,3 +59,11 @@ test('closed gallery and non-GIF tiles release optional resources', () => {
     const image = read('ui/components/visual/SuperellipseImage.qml');
     assert.match(image,/id: gifLoader[\s\S]*?active: root.allowAnimation[\s\S]*?root.animatedGifUrl.length > 0/);
 });
+
+test('app suspension and account transitions revoke media leases and trim cache', () => {
+    const main = read('ui/app/main.cpp');
+    assert.match(main,/PresentationBridge::signOutRequested[\s\S]*?MediaPlaybackCoordinator::releaseAll/);
+    assert.match(main,/QGuiApplication::applicationStateChanged[\s\S]*?RemoteImageProvider::setForeground\(foreground\)/);
+    const provider = read('ui/app/media/remote_image.cpp');
+    assert.match(provider,/imageCache.setMaxCost\(foreground \? imageCacheCapacityKiB : imageCacheCapacityKiB \/ 4\)/);
+});

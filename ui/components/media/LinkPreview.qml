@@ -655,7 +655,6 @@ Superellipse {
 
                 SuperellipseImage {
                     id: miniAppPoster
-                    allowAnimation: root.animatedPosterUrl.length === 0
                     onLoadFailedChanged: {
                         if (loadFailed && root.previewSource.length > 0)
                             root.miniAppArtworkUnavailable = true
@@ -671,6 +670,7 @@ Superellipse {
                     // legible. Preserve the complete frame; the ambient backdrop
                     // fills any letterbox space without cropping the artwork.
                     fillMode: Image.PreserveAspectFit
+                    allowAnimation: root.animatedPosterUrl.length === 0
                     fillColor: Theme.backgroundSecondary
                     borderWidth: 0
                     clipToSuperellipse: true
@@ -696,7 +696,7 @@ Superellipse {
                     sourceSize: Qt.size(Math.min(1024, Math.max(128, Math.ceil(width / 128) * 128)),
                                         Math.min(1024, Math.max(128, Math.ceil(height / 128) * 128)))
                     fillMode: Image.PreserveAspectFit
-                    cache: true
+                    cache: false
                     visible: root.animatedPosterUrl.length > 0 && status === AnimatedImage.Ready
                     playing: visible && animationScope.eligible && !root.scrollMoving && !Theme.powerSave
                     smooth: true

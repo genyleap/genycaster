@@ -341,7 +341,7 @@ Item {
     readonly property bool failed: (activation.activated && !activation.recovering
                                     && player.error !== MediaPlayer.NoError)
                                    || activation.stalled
-    readonly property bool fullscreen: root.fullscreenEnabled && (fullscreenPopup && fullscreenPopup.opened)
+    readonly property bool fullscreen: root.fullscreenEnabled && (fullscreenPopup && fullscreenPopup.visible)
     readonly property int playbackState: player.playbackState
     readonly property int mediaStatus: player.mediaStatus
     readonly property real position: player.position
@@ -2125,15 +2125,16 @@ Item {
             }
         }
 
-        onOpened: {
+        onAboutToShow: {
+            if (!stage || !fullscreenHost) return
             stage.parent = fullscreenHost
             stage.anchors.fill = fullscreenHost
             chromePinned = true
-            stage.forceActiveFocus()
         }
+        onOpened: if (stage) stage.forceActiveFocus()
 
         onClosed: {
-            if (stage.parent !== root) {
+            if (stage && stage.parent !== root) {
                 stage.parent = root
                 stage.anchors.fill = root
             }
@@ -2169,7 +2170,7 @@ Item {
         if (adaptiveUpgrade) adaptiveUpgrade.stop()
         if ((qualityPopup && qualityPopup.opened))
             qualityPopup.close()
-        if ((fullscreenPopup && fullscreenPopup.opened))
+        if ((fullscreenPopup && fullscreenPopup.visible))
             fullscreenPopup.close()
         if (player) player.stop()
         if (activation) {

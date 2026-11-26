@@ -707,6 +707,9 @@ struct ResponseControl final {
         std::erase(subscribers, subscriber);
         if (!terminal && !abandoned && subscribers.empty()) {
             abandoned = true;
+            // Publish cancellation before unlocking: a terminal HTTP failure
+            // racing the last subscriber must not poison the negative cache.
+            markCancelled();
             return true;
         }
         return false;
@@ -736,7 +739,7 @@ struct ResponseControl final {
             std::memory_order_acquire);
     }
 
-    void cancel() noexcept
+    void markCancelled() noexcept
     {
         FailureCommitState expected = FailureCommitState::Active;
         static_cast<void>(failureState.compare_exchange_strong(
@@ -745,6 +748,11 @@ struct ResponseControl final {
             std::memory_order_acq_rel,
             std::memory_order_acquire));
         cancelled.store(true, std::memory_order_release);
+    }
+
+    void cancel() noexcept
+    {
+        markCancelled();
         // Never invoke the transport while holding a mutex: completion may
         // immediately attempt to deliver the terminal response.
         farcaster::transport::async_http::Operation operation;
@@ -1360,6 +1368,12 @@ RemoteImageProvider::RemoteImageProvider(
 }
 
 RemoteImageProvider::~RemoteImageProvider() = default;
+
+void RemoteImageProvider::setForeground(const bool foreground)
+{
+    const QMutexLocker lock{&imageCacheMutex};
+    imageCache.setMaxCost(foreground ? imageCacheCapacityKiB : imageCacheCapacityKiB / 4);
+}
 
 QQuickImageResponse* RemoteImageProvider::requestImageResponse(
     const QString& id,

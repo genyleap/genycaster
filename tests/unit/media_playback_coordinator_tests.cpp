@@ -146,6 +146,13 @@ int main(int argc, char** argv)
     assert(coordinator.claimPrimary(&first));
     assert(coordinator.activePlayer() == &first);
 
+    const int suspendedBeforeReset = first.suspendCount;
+    coordinator.releaseAll();
+    assert(coordinator.activePlayer() == nullptr);
+    assert(first.suspendCount == suspendedBeforeReset + 1);
+    coordinator.releaseAll();
+    assert(first.suspendCount == suspendedBeforeReset + 1);
+
     // Session mute preference is app-wide and signalled.
     bool sessionChanged = false;
     QObject::connect(&coordinator, &MediaPlaybackCoordinator::sessionChanged,

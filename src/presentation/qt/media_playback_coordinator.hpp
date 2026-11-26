@@ -26,7 +26,7 @@ class QSettings;
 /**
  * @brief App-wide coordination of primary media playback sessions.
  *
- * Ensures that only one audible video session is active at a time across
+ * Ensures that only one pending or active media session is admitted at a time across
  * recycled feed delegates, detail, profile and fullscreen surfaces. Feed
  * players claim the primary session on explicit play; a new primary suspends
  * the previous one. Session mute/volume preferences are owned here so every
@@ -34,7 +34,7 @@ class QSettings;
  *
  * The coordinator is intentionally small and QML-facing: real decoding stays
  * in the canonical GenyVideoPlayer component; this object only arbitrates
- * which player owns the audible session.
+ * which consumer owns the exclusive playback lease.
  */
 class MediaPlaybackCoordinator final : public QObject {
     Q_OBJECT
@@ -86,6 +86,9 @@ public:
      * Called on explicit pause, source replacement and delegate destruction.
      */
     Q_INVOKABLE void release(QObject* player);
+
+    /** Revokes pending or active playback, including the browser HLS overlay. */
+    Q_INVOKABLE void releaseAll();
 
     /** @brief Convenience QML helper returning whether a player owns the session. */
     Q_INVOKABLE bool isPrimary(QObject* player) const;

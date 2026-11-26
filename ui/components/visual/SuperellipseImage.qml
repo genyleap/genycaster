@@ -314,7 +314,8 @@ Item {
         const physical = Math.max(Number(requested || 0),
                                   Math.ceil(Math.max(1, logicalSize) * dpr * renderingController.mediaDecodeScale))
         const quantum = Math.max(32, Number(root.decodeQuantum || 128))
-        return Math.max(quantum, Math.ceil(physical / quantum) * quantum)
+        const cap = Qt.platform.os === "android" || Qt.platform.os === "ios" || Qt.platform.os === "wasm" ? 2048 : 4096
+        return Math.min(cap, Math.max(quantum, Math.ceil(physical / quantum) * quantum))
     }
 
     function syncRetainWhileLoading() {

@@ -158,9 +158,16 @@ Popup {
                                         Qt.platform.os === "android" || Qt.platform.os === "ios" || Qt.platform.os === "wasm" ? 2048 : 4096,
                                         Math.max(256, Math.ceil(Math.max(width, height) * Screen.devicePixelRatio
                                         * renderingController.mediaDecodeScale / 256) * 256))
-                                    property int decodeEdge: 256
-                                    Component.onCompleted: decodeEdge = requestedDecodeEdge
-                                    onRequestedDecodeEdgeChanged: resizeSettle.restart()
+                                    property int decodeEdge: requestedDecodeEdge
+                                    property bool presentedImage: false
+                                    Component.onCompleted: {
+                                        decodeEdge = requestedDecodeEdge
+                                        if (fullImage["retainWhileLoading"] !== undefined)
+                                            fullImage["retainWhileLoading"] = true
+                                    }
+                                    onRequestedDecodeEdgeChanged: if (resizeSettle) resizeSettle.restart()
+                                    onSourceChanged: presentedImage = false
+                                    onStatusChanged: if (status === Image.Ready) presentedImage = true
                                     Timer {
                                         id: resizeSettle
                                         interval: 150
@@ -184,7 +191,7 @@ Popup {
                                     cache: false
                                     smooth: true
                                     mipmap: false
-                                    opacity: status === Image.Ready ? 1 : 0
+                                    opacity: status === Image.Ready || (status === Image.Loading && presentedImage) ? 1 : 0
                                 }
 
                                 GenySpinner {

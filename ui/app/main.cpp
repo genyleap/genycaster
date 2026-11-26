@@ -1157,6 +1157,23 @@ int main(int argc, char* argv[])
     // Connections in GenyVideoPlayer retain this context object as a signal
     // target. Keep its lifetime unequivocally C++-owned across QML teardown.
     QQmlEngine::setObjectOwnership(&mediaPlayback, QQmlEngine::CppOwnership);
+    QObject::connect(&presentationBridge, &PresentationBridge::signOutRequested,
+                     &mediaPlayback, &MediaPlaybackCoordinator::releaseAll);
+    QObject::connect(&presentationBridge, &PresentationBridge::authenticationStateChanged,
+        &mediaPlayback, [&presentationBridge, &mediaPlayback,
+                         previousFid = presentationBridge.accountFid()]() mutable {
+            const auto currentFid = presentationBridge.isAuthenticated()
+                ? presentationBridge.accountFid() : decltype(presentationBridge.accountFid()){};
+            if (previousFid != 0 && currentFid != previousFid)
+                mediaPlayback.releaseAll();
+            previousFid = currentFid;
+        });
+    QObject::connect(qGuiApp, &QGuiApplication::applicationStateChanged,
+        &mediaPlayback, [&mediaPlayback](const Qt::ApplicationState state) {
+            const bool foreground = state != Qt::ApplicationHidden && state != Qt::ApplicationSuspended;
+            RemoteImageProvider::setForeground(foreground);
+            if (!foreground) mediaPlayback.releaseAll();
+        });
     QObject::connect(&localizationController, &LocalizationController::localeChanged,
         &presentationBridge, [&presentationBridge] {
             presentationBridge.retranslateTransientState();
