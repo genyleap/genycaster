@@ -285,6 +285,19 @@ void unsignedAndExpiredSessionsAreBlockedBeforeSigning()
     assert(expiredStates.size() == 1U);
     assert(expiredStates.back().phase == application::write::WritePhase::Blocked);
     assert(authority.signCalls == 0U);
+
+    auto remembered = expiredSession();
+    remembered.identityIssuer = "farcaster:optimism-id-registry";
+    remembered.identitySubject = "farcaster:42";
+    remembered.custodyAddress = "0x1111111111111111111111111111111111111111";
+    authority.allowed = false;
+    auto denied = publish(service, remembered);
+    assert(denied.back().phase == application::write::WritePhase::Blocked);
+    assert(authority.signCalls == 0U);
+    authority.allowed = true;
+    auto permitted = publish(service, remembered);
+    assert(!permitted.empty());
+    assert(authority.signCalls == 1U);
 }
 
 void offlinePublishIsDurableAndOptimistic()

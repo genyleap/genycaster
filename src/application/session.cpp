@@ -108,7 +108,9 @@ foundation::result::Status SessionService::restore(Observer observer)
             observer(guestState());
             return;
         }
-        if (domain::session::isExpired(**loaded, foundation::time::now())) {
+        // A registry-verified custody account is a remembered local identity,
+        // not a reusable custody proof. Its signer is restored and verified separately.
+        if (!domain::session::isProtocolSessionEligible(**loaded, foundation::time::now())) {
             auto cleared = m_impl->store.clear();
             m_impl->current.reset();
             if (!cleared) {

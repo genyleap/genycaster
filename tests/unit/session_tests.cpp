@@ -275,6 +275,40 @@ void expiredRestoreFallsBackToGuest()
     assert(store.clearCount == 1);
 }
 
+void expiredRegistryCustodyAccountRemainsRememberedUntilSignOut()
+{
+    for (const bool hyperSnap : {false, true}) {
+        ImmediateExecutor executor{};
+        MemorySessionStore store{};
+        auto expired = makeSession(hyperSnap ? (1ULL << 32) : 42U);
+        expired.authenticatedAt = foundation::time::now() - std::chrono::hours{2};
+        expired.expiresAt = expired.authenticatedAt + std::chrono::hours{1};
+        expired.identityIssuer = hyperSnap ? "hypersnap:native-registry" : "farcaster:optimism-id-registry";
+        expired.identitySubject = hyperSnap ? "native-fid:4294967296" : "farcaster:42";
+        store.value = expired;
+        application::session::SessionService service{executor, store, nullptr, nullptr};
+        std::vector<application::session::SessionState> states{};
+        auto observer = [&states](auto state) { states.push_back(std::move(state)); };
+        assert(service.restore(observer));
+        assert(states.back().phase == application::session::SessionPhase::Authenticated);
+        assert(states.back().session && states.back().session->fid.value == expired.fid.value);
+        assert(states.back().session->expiresAt == expired.expiresAt);
+        assert(domain::session::isExpired(*states.back().session, foundation::time::now()));
+        assert(store.clearCount == 0U);
+        assert(application::session::evaluateWriteAccess(states.back(), false)
+            == application::session::WriteAccess::SignerRequired);
+        assert(service.signOut(observer));
+        assert(!store.value);
+        assert(states.back().phase == application::session::SessionPhase::Guest);
+
+        expired.identitySubject = "mismatched-subject";
+        store.value = expired;
+        assert(service.restore(observer));
+        assert(states.back().phase == application::session::SessionPhase::Guest);
+        assert(!store.value);
+    }
+}
+
 void legacyRestoreRefreshesCustodyWithoutNewSignIn()
 {
     ImmediateExecutor executor{};
@@ -754,6 +788,7 @@ int main()
 {
     writeAccessRequiresBothSessionAndSigner();
     expiredRestoreFallsBackToGuest();
+    expiredRegistryCustodyAccountRemainsRememberedUntilSignOut();
     legacyRestoreRefreshesCustodyWithoutNewSignIn();
     signInPersistsOnlyAfterVerifiedCompletion();
     openProofSignInBlocksOnRequiredFarcasterLink();

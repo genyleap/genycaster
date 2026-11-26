@@ -97,7 +97,7 @@ public:
     SessionService(SessionService&&) = delete;
     auto operator=(SessionService&&) -> SessionService& = delete;
 
-    /** @brief Restores a non-expired persisted session or reports Guest. */
+    /** @brief Restores a current session or remembered registry custody identity, otherwise Guest. */
     [[nodiscard]] foundation::result::Status restore(Observer observer);
 
     /** @brief Starts the requested canonical identity sign-in flow. */

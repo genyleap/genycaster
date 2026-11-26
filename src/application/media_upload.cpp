@@ -81,7 +81,7 @@ foundation::result::Result<UploadHandle> MediaUploadService::start(
     Observer observer,
     const std::uint64_t maxImageBytes)
 {
-    if (!session || session->fid.value == 0U || domain::session::isExpired(*session, foundation::time::now())) {
+    if (!session || session->fid.value == 0U || !domain::session::isProtocolSessionEligible(*session, foundation::time::now())) {
         return std::unexpected(invalidSessionError());
     }
     if (localPath.empty()) {

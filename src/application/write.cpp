@@ -282,7 +282,7 @@ struct WriteService::Impl final {
                 foundation::error::ErrorCode::Unauthorized,
                 "A protocol write requires a verified account session."));
         }
-        if (domain::session::isExpired(*session, foundation::time::now())) {
+        if (!domain::session::isProtocolSessionEligible(*session, foundation::time::now())) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::Unauthorized,
                 "The verified account session has expired; reverify the account before writing."));
@@ -900,7 +900,7 @@ foundation::result::Status WriteService::resume(
     auto posted = m_impl->executor.post(
         [this, session = std::move(session), observer = std::move(observer)]() mutable {
             AtomicFlagReset reset{m_impl->isResumeScheduled};
-            if (!session || domain::session::isExpired(*session, foundation::time::now())) {
+            if (!session || !domain::session::isProtocolSessionEligible(*session, foundation::time::now())) {
                 observer(WriteState{
                     .phase = WritePhase::Blocked,
                     .error = makeError(
@@ -936,7 +936,7 @@ foundation::result::Status WriteService::invalidatePendingAuthority(
             foundation::error::ErrorCode::InvalidArgument,
             "Signer invalidation requires a write-state observer."));
     }
-    if (!session || domain::session::isExpired(*session, foundation::time::now())) {
+    if (!session || !domain::session::isProtocolSessionEligible(*session, foundation::time::now())) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::Unauthorized,
             "A current verified account session is required to invalidate queued writes."));

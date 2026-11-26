@@ -39,7 +39,7 @@ foundation::result::Status MediaLifecycleService::remove(
     std::string managementToken,
     Observer observer)
 {
-    if (!session || session->fid.value == 0U || domain::session::isExpired(*session, foundation::time::now())) {
+    if (!session || session->fid.value == 0U || !domain::session::isProtocolSessionEligible(*session, foundation::time::now())) {
         return std::unexpected(invalidSessionError());
     }
     if (managementToken.empty()) {

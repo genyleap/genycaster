@@ -59,8 +59,20 @@ struct ClientSession final {
     foundation::time::Timestamp expiresAt{};
 };
 
-/** @brief Returns true when the session may still represent an active local login. */
+/** @brief Returns true when the original authentication proof has expired. */
 [[nodiscard]] bool isExpired(
+    const ClientSession& session,
+    foundation::time::Timestamp now) noexcept;
+
+/** @brief Identifies a canonical, locally remembered registry-verified custody account. */
+[[nodiscard]] bool isRegistryCustodyAccount(const ClientSession& session) noexcept;
+
+/**
+ * @brief Eligibility for local account restore and independently signer-authorized operations.
+ * @details Does not extend the custody proof or confer signing or cloud authority.
+ *          A current scoped protocol signer remains mandatory for every write.
+ */
+[[nodiscard]] bool isProtocolSessionEligible(
     const ClientSession& session,
     foundation::time::Timestamp now) noexcept;
 
