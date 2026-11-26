@@ -32,6 +32,7 @@ if(APPLE)
     # Qt so the headless secure-signer profile remains useful as well.
     find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
     find_library(FARCASTER_SECURITY_FRAMEWORK Security REQUIRED)
+    find_library(FARCASTER_COREFOUNDATION_FRAMEWORK CoreFoundation REQUIRED)
     target_sources(farcaster_platform_signer
         PRIVATE
             signer_keychain_boundary.cpp
@@ -52,7 +53,9 @@ if(APPLE)
     endif()
     target_link_libraries(farcaster_platform_signer
         PUBLIC farcaster::capabilities farcaster::domain farcaster::foundation
-        PRIVATE OpenSSL::Crypto "${FARCASTER_SECURITY_FRAMEWORK}"
+        PRIVATE OpenSSL::Crypto
+            "${FARCASTER_SECURITY_FRAMEWORK}"
+            "${FARCASTER_COREFOUNDATION_FRAMEWORK}"
     )
     set(_farcasterSecureSignerVaultBackend "apple-keychain")
 elseif(FARCASTER_ENABLE_QTKEYCHAIN_SIGNER_VAULT)
