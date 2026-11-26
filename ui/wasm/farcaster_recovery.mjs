@@ -36,26 +36,35 @@ async function hmac512(key,data){
 }
 export async function validateRecoveryWords(phrase){
     invariant(typeof phrase==='string' && phrase.length>0 && phrase.length<4096,'invalid input size');
-    const normalized=phrase.normalize('NFKD').toLowerCase().trim();
-    const words=normalized.split(/\s+/u);
-    invariant(words.length===12||words.length===24,
-        'enter a 12- or 24-word Farcaster recovery phrase');
-    let bits='';
-    for(const word of words){
-        const index=wordToIndex.get(word);
-        invariant(index!==undefined,'unrecognized BIP39 recovery word');
-        bits+=index.toString(2).padStart(11,'0');
-    }
-    const entropySize=words.length/3*4; // 128 or 256 bits
-    const entropyBits=bits.slice(0,entropySize*8);
-    const checkBits=bits.slice(entropySize*8);
-    const entropy=Uint8Array.from({length:entropySize},(_,i)=>parseInt(entropyBits.slice(i*8,i*8+8),2));
+    const words=phrase.normalize('NFKD').toLowerCase().trim().split(/\s+/u);
+    let entropy,digest;
     try{
-        const digest=new Uint8Array(await cryptoWeb.subtle.digest('SHA-256',entropy));
-        const check=[...digest].map(x=>x.toString(2).padStart(8,'0')).join('').slice(0,checkBits.length);
-        invariant(check===checkBits,'BIP39 checksum is invalid');
-        return normalized;
-    }finally{entropy.fill(0);}
+        invariant(words.length===12||words.length===24,
+            'enter a 12- or 24-word Farcaster recovery phrase');
+        const entropyBits=words.length/3*32;
+        const checksumBits=words.length/3;
+        entropy=new Uint8Array(entropyBits/8);
+        let checksum=0;
+        for(let i=0;i<words.length;i++){
+            const index=wordToIndex.get(words[i]);
+            invariant(index!==undefined,'unrecognized BIP39 recovery word');
+            for(let b=0;b<11;b++){
+                const bit=(index>>>(10-b))&1;
+                const pos=i*11+b;
+                if(pos<entropyBits)entropy[pos>>>3]|=bit<<(7-(pos&7));
+                else checksum=(checksum<<1)|bit;
+            }
+        }
+        digest=new Uint8Array(await cryptoWeb.subtle.digest('SHA-256',entropy));
+        invariant((digest[0]>>>(8-checksumBits))===checksum,'BIP39 checksum is invalid');
+        // The checksum and PBKDF2 MUST use the same canonical word sequence.
+        // Repeated spaces/tabs/newlines must not derive a different wallet.
+        return words.join(' ');
+    }finally{
+        entropy?.fill(0);
+        digest?.fill(0);
+        words.fill('');
+    }
 }
 export async function deriveFarcasterCustody(phrase){
     invariant(cryptoWeb?.subtle,'WebCrypto must be enabled in a secure origin');
@@ -63,8 +72,10 @@ export async function deriveFarcasterCustody(phrase){
     // Use the standard empty BIP39 optional passphrase, matching Quorum Mobile.
     const normalizedBytes=encoder.encode(normalized);
     const salt=encoder.encode('mnemonic');
-    const pbkdfKey=await cryptoWeb.subtle.importKey('raw',normalizedBytes,'PBKDF2',false,['deriveBits']);
-    normalizedBytes.fill(0);
+    let pbkdfKey;
+    try{
+        pbkdfKey=await cryptoWeb.subtle.importKey('raw',normalizedBytes,'PBKDF2',false,['deriveBits']);
+    }finally{normalizedBytes.fill(0);}
     const seed=new Uint8Array(await cryptoWeb.subtle.deriveBits({
         name:'PBKDF2',hash:'SHA-512',salt,iterations:2048,
     },pbkdfKey,512));
@@ -77,21 +88,27 @@ export async function deriveFarcasterCustody(phrase){
             const data=index>=hard
                 ?concat(Uint8Array.of(0),key,word32(index))
                 :concat(getPublicKey(key,true),word32(index));
-            const result=await hmac512(chain,data);
-            data.fill(0);
-            const left=BigInt('0x'+hex(result.subarray(0,32)));
-            const right=BigInt('0x'+hex(key));
-            invariant(left<CURVE.n,'BIP32 invalid child derivation');
-            const child=(left+right)%CURVE.n;
-            invariant(child!==0n,'BIP32 zero child key');
-            const next=uint256(child);
-            key.fill(0);chain.fill(0);
-            key=next;
-            chain=result.slice(32);
-            result.fill(0);
+            let result;
+            try{
+                result=await hmac512(chain,data);
+                const left=BigInt('0x'+hex(result.subarray(0,32)));
+                const right=BigInt('0x'+hex(key));
+                invariant(left<CURVE.n,'BIP32 invalid child derivation');
+                const child=(left+right)%CURVE.n;
+                invariant(child!==0n,'BIP32 zero child key');
+                const next=uint256(child);
+                key.fill(0);chain.fill(0);
+                key=next;
+                chain=result.slice(32);
+            }finally{
+                data.fill(0);
+                result?.fill(0);
+            }
         }
         const publicKey=getPublicKey(key,false);
         const address='0x'+hex(keccak256(publicKey.subarray(1)).slice(-20));
+        let disposed=false;
+        const requireLive=()=>invariant(!disposed,'custody key was disposed');
         return Object.freeze({
             address,
             /**
@@ -100,6 +117,7 @@ export async function deriveFarcasterCustody(phrase){
              * OpenProof must bind the returned fresh challenge to this FID.
              */
             async signMessage(message){
+                requireLive();
                 invariant(typeof message==='string' && message.length>=40
                           && message.length<=8192 && !message.includes('\0'),
                           'invalid OpenProof challenge');
@@ -107,6 +125,7 @@ export async function deriveFarcasterCustody(phrase){
                 const prefix=encoder.encode('\x19Ethereum Signed Message:\n'+text.length);
                 const digest=keccak256(concat(prefix,text));
                 const signature=await signAsync(digest,key,{lowS:true,extraEntropy:true});
+                requireLive();
                 invariant(signature.recovery===0||signature.recovery===1,
                     'unexpected EIP-191 recovery bit');
                 const recoveredPublic=signature.recoverPublicKey(digest).toBytes(false);
@@ -122,8 +141,10 @@ export async function deriveFarcasterCustody(phrase){
              * The caller MUST dispose this custody key after proof.
              */
             async signTypedData(document){
+                requireLive();
                 const digest=eip712Digest(document);
                 const signature=await signAsync(digest,key,{lowS:true,extraEntropy:true});
+                requireLive();
                 invariant(signature.recovery===0||signature.recovery===1,
                     'unexpected secp256k1 recovery bit');
                 const recoveredPublic=signature.recoverPublicKey(digest).toBytes(false);
@@ -133,7 +154,7 @@ export async function deriveFarcasterCustody(phrase){
                 return '0x'+hex(concat(signature.toBytes(),
                     Uint8Array.of(signature.recovery+27)));
             },
-            dispose(){key.fill(0);chain.fill(0);}
+            dispose(){disposed=true;key.fill(0);chain.fill(0);}
         });
     }catch(error){key.fill(0);chain.fill(0);throw error;}
     finally{seed.fill(0);}

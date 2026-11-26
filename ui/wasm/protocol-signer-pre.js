@@ -353,8 +353,7 @@
                                         isCurrent);
                                 }catch(error){
                                     if(!isCurrent())throw error;
-                                    console.warn('HyperSnap signer activation is pending',
-                                        String(error?.message||error).slice(0,160));
+                                    console.warn('HyperSnap signer activation is pending');
                                 }
                                 return recovered;
                             },{presentation:'full',protocol:'hypersnap-v2'});
@@ -490,8 +489,7 @@
                                             || controller.signal.aborted)throw error;
                                         // Recovering a verified account does
                                         // not depend on Snapchain write health.
-                                        console.warn('Farcaster signer activation is pending',
-                                            String(error?.message||error).slice(0,160));
+                                        console.warn('Farcaster signer activation is pending');
                                     }
                                     if(!openProofGatewayOrigin) return;
                                     const {verifyRecoveredFarcasterIdentity}=

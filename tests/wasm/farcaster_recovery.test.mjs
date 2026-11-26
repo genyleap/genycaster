@@ -63,3 +63,23 @@ test('disposed ephemeral custody key can no longer authorize new messages',async
     wallet.dispose();
     await assert.rejects(wallet.signTypedData(document));
 });
+
+test('pasted whitespace and case never derive a second custody wallet',async()=>{
+    const vectors=[
+        ['test '.repeat(11)+'junk','0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'],
+        ['abandon '.repeat(23)+'art','0xf278cf59f82edcf871d630f28ecc8056f25c1cdb'],
+    ];
+    for(const [canonical,address] of vectors){
+        const pasted=' \n'+canonical.toUpperCase().split(' ').join(' \t\n ')+' \r\n';
+        assert.equal(await validateRecoveryWords(pasted),canonical);
+        const wallet=await deriveFarcasterCustody(pasted);
+        try{assert.equal(wallet.address,address);}
+        finally{wallet.dispose();}
+    }
+});
+
+test('disposed custody handle refuses EIP-191 as well as EIP-712',async()=>{
+    const wallet=await deriveFarcasterCustody(phrase);
+    wallet.dispose();
+    await assert.rejects(wallet.signMessage('public challenge '.repeat(4)),/disposed/);
+});
