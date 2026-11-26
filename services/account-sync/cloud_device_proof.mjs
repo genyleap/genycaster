@@ -65,7 +65,7 @@ export function createCloudDeviceProof({store,issuer,hypersnapOrigin,fetchImpl=g
       if(raw.length>32768)throw Error('registry');
       body=JSON.parse(raw);
     }catch {throw denied(503,'custody_registry_unavailable');}
-    if(body?.fid!==challenge.fid||body?.custodyAddress?.toLowerCase()!==address||
+    if(body?.fid!==challenge.fid||typeof body?.custodyAddress!=='string'||body.custodyAddress.toLowerCase()!==address||
        !body.message||typeof body.message!=='object'||Array.isArray(body.message)||
        !/^[1-9][0-9]*$/.test(String(body.blockNumber||'')))throw denied();
   }
@@ -84,6 +84,9 @@ export function createCloudDeviceProof({store,issuer,hypersnapOrigin,fetchImpl=g
     const owner=ownerFor(challenge.network,challenge.fid,issuer);
     if(challenge.purpose==='enroll') {
       if(challenge.network==='farcaster') {
+        // Authenticate only after the nonce and exact device signature are
+        // validated, not for arbitrary unauthenticated request bodies.
+        if(typeof authenticatedOwner==='function')authenticatedOwner=await authenticatedOwner();
         if(!authenticatedOwner||authenticatedOwner.cookieAuth||!authenticatedOwner.authorization||
            authenticatedOwner.issuer!==owner.issuer||authenticatedOwner.subject!==owner.subject)
           throw denied();

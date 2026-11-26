@@ -258,11 +258,14 @@ The account service requires a fresh verified OpenProof grant for Farcaster
 or EIP-191 custody proof plus authoritative HyperSnap registry ownership.
 It never accepts a social signer or old cookie as enrollment authority.
 Device proof restores the server cookie without a recovery phrase or KEY_ADD.
-Logout revokes the device record and associated server cookies when reachable,
-and erases the local credential. The server can enforce the new trust boundary
-with `GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS=0` after migration 017 and client
-rollout. Legacy mode intentionally remains available until the migration is
-verified; it is not the final strict security policy.
+Logout durably records retirement intent, signs a revocation-only receipt,
+and erases the local credential. The outbox retries without requiring an active
+account or cookie. The server retires the public key permanently and revokes
+all its cookies. An unknown receipt cannot allocate a database record or mark
+an unrelated account as migrated. Once a principal has enrolled a device, its
+legacy social-signer cookies and proofs are rejected. Unmigrated principals
+remain compatible until global strict mode is enabled with
+`GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS=0` after migrations 017–018 and client rollout.
 
 ### Reference comparison
 

@@ -63,12 +63,14 @@
         (await import('./browser_device_session.mjs')).createDeviceSession(window);
     let accountSessionPromise = null;
     let accountSessionOwner = "";
+    let accountSessionNetwork = "";
     let accountSessionAbort = null;
     function cancelAccountSession() {
         accountSessionAbort?.abort();
         accountSessionAbort=null;
         accountSessionPromise=null;
         accountSessionOwner="";
+        accountSessionNetwork="";
     }
     // The Pro/Streak retry button must use the browser's registered signer,
     // not Qt's native-only vault signer. This is single-flight per identity.
@@ -77,16 +79,17 @@
             || BigInt(fid)>18446744073709551615n
             || owner !== fid || window.location.origin !== "https://genycaster.xyz")
             return false;
-        if (accountSessionPromise && accountSessionOwner === fid && !bearer) return true;
-        if(bearer)cancelAccountSession();
+        const network=ownerProtocol==='hypersnap-v2'?'hypersnap':'farcaster';
+        if (accountSessionPromise && accountSessionOwner === fid && accountSessionNetwork===network && !bearer) return true;
+        if(accountSessionPromise)cancelAccountSession();
         const controller=new AbortController();
         const retirementBeforeRequest=cloudRetirement;
         accountSessionAbort=controller;
         accountSessionOwner = fid;
-        const network=ownerProtocol==='hypersnap-v2'?'hypersnap':'farcaster';
+        accountSessionNetwork=network;
         const operation = import('./browser_account_session.mjs')
             .then(async module => {
-                await retirementBeforeRequest;
+                await retirementBeforeRequest.catch(()=>{});
                 if(controller.signal.aborted)throw Error('Account session cancelled');
                 await module.finishBrowserCloudRetirements({environment:window});
                 const args={fid,network,bearer,origin:window.location.origin,signal:controller.signal};
@@ -115,6 +118,7 @@
                 if (accountSessionPromise === operation) {
                     accountSessionPromise = null;
                     accountSessionOwner = "";
+                    accountSessionNetwork = "";
                     accountSessionAbort = null;
                 }
             });
@@ -178,7 +182,7 @@
         const {deriveFarcasterCustody}=await import('./farcaster_recovery.mjs');
         const custody=await deriveFarcasterCustody(phrase);
         try {
-            await cloudRetirement;
+            await cloudRetirement.catch(()=>{});
             const {ensureBrowserCloudDeviceSession,finishBrowserCloudRetirements}=await import('./browser_account_session.mjs');
             await finishBrowserCloudRetirements({environment:window});
             await ensureBrowserCloudDeviceSession({fid,network:'hypersnap',custody,signal});
@@ -497,7 +501,7 @@
                                         registeredOpenProof=await verifyRecoveredFarcasterIdentity({
                                             fid:established.fid,custody,gatewayOrigin:deployment.browserGateway,
                                             signal:controller.signal});
-                                        await cloudRetirement;
+                                        await cloudRetirement.catch(()=>{});
                                         const {ensureBrowserCloudDeviceSession,finishBrowserCloudRetirements}=await import('./browser_account_session.mjs');
                                         await finishBrowserCloudRetirements({environment:window});
                                         await ensureBrowserCloudDeviceSession({fid:established.fid,
@@ -597,7 +601,7 @@
                                         signal:controller.signal,
                                     });
                                     try {
-                                        await cloudRetirement;
+                                        await cloudRetirement.catch(()=>{});
                                         const {ensureBrowserCloudDeviceSession,finishBrowserCloudRetirements}=await import('./browser_account_session.mjs');
                                         await finishBrowserCloudRetirements({environment:window});
                                         await ensureBrowserCloudDeviceSession({fid:verifiedFid,
@@ -641,7 +645,9 @@
                     const native=options.protocol==='hypersnap-v2';
                     const current=native?await createNativeClient():await createClient(base);
                     if(epoch!==thisEpoch || owner!==fid)return;
-                    ownerProtocol=native?'hypersnap-v2':'farcaster-snapchain';
+                    const nextProtocol=native?'hypersnap-v2':'farcaster-snapchain';
+                    if(ownerProtocol&&ownerProtocol!==nextProtocol)cancelAccountSession();
+                    ownerProtocol=nextProtocol;
                     if (action === "restore" || action === "restore-for-setup") {
                     if(action==="restore" && payloadString){
                         const options=JSON.parse(payloadString);

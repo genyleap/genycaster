@@ -498,6 +498,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
   const signerProof=createSignerSessionProof({
     fetchImpl,issuer:upstream,snapchainOrigin:trustedSnapchainOrigin,
     hypersnapOrigin:trustedHyperSnapOrigin});
+  if(!allowLegacySignerSessions&&!store.cloudDevicesReady?.())
+    throw new Error('Strict account-device policy requires database migrations 017 and 018');
   const deviceProof=createCloudDeviceProof({store,issuer:upstream,
     hypersnapOrigin:trustedHyperSnapOrigin,fetchImpl});
   const readGithubCalendar=createGithubCalendarReader({fetchImpl});
@@ -753,7 +755,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         else {
           // A legacy cookie/social signer may NOT enroll a private device.
           const verified=input?.purpose==='enroll'&&input?.network==='farcaster'
-            ?await authorize(request):null;
+            ?()=>authorize(request):null;
           await issueSession(await deviceProof.prove(input,verified),response);
         }
       }catch(error) {

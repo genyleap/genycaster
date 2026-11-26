@@ -520,24 +520,31 @@ does not issue free reservations or declare a successful transaction from
 an HTTP 200 response.
 
 
-### Cloud device credentials (migration 017)
+### Cloud device credentials (migrations 017–018)
 
 The private cloud authority is independent of social signing. Apply
-`017_cloud_device_credentials.sql` with the database administrator, then restart
-the account API. The new device enrollment protocol uses an exact protocol/FID,
+`017_cloud_device_credentials.sql` and `018_cloud_device_revocation.sql` with the
+database administrator, then restart the account API. The new device enrollment protocol uses an exact protocol/FID,
 public key, purpose and single-use challenge. Farcaster enrollment requires a
 fresh verified OpenProof grant; native HyperSnap requires a custody signature
 and a verified native registry mapping. Only public device keys are persisted.
 A successful device proof rotates the 30-day HttpOnly account cookie, and device
 proofs expire after 90 days of inactivity. Explicit logout deletes the enrolled
-credential and its device cookies. The client also erases its local cloud key.
+credential and its device cookies. Public-key tombstones prevent re-enrollment
+of a retired key. The client durably queues a signed, one-way revocation receipt
+before erasing its local cloud key; offline delivery is retried at startup and
+while connected, even when no account is active.
 
-**Staged rollout:** existing clients may still use the legacy social-signer
+**Staged rollout:** unmigrated accounts may still use the legacy social-signer
 endpoint while `GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS` is unset or `1`.
-After migration 017 and native/browser end-to-end enrollment tests, update
+After migrations 017–018 and native/browser end-to-end enrollment tests, update
 clients and have existing accounts enroll once with their original authority.
 Then set `GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS=0` and restart the account API.
-Strict mode rejects legacy challenge/proof and cookies without device or
+Once an account has enrolled any device, the legacy social-signer path and its
+cookies are denied for that principal, even in compatibility mode. Other
+accounts can migrate independently; older devices on a migrated account must
+complete fresh OpenProof or native custody authorization. Strict mode rejects
+legacy challenge/proof and cookies without device or
 OpenProof provenance; it does not disable fresh verified OpenProof grants.
 Do not enable strict mode before this compatibility rollout. Offline logout
 cannot guarantee immediate server-side revocation; no root recovery words or
