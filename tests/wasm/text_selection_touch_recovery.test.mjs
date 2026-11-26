@@ -9,7 +9,7 @@ const apply=qml.slice(qml.indexOf('    function applyText('),qml.indexOf('    Co
 function exercise(before,value,kind,selection=[0,0],handler=null){
  const calls=[];
  const editor={forceActiveFocus(){},clipboardPasteHandler:handler,clear(){calls.push(['clear']);}};
- const context={editor,plainText:()=>before,pasteStart:selection[0],pasteEnd:selection[1],
+ const context={editor,browserEditing:true,plainText:()=>before,pasteStart:selection[0],pasteEnd:selection[1],
     replaceRange:(start,end,text)=>calls.push([start,end,text]),value,kind};
  vm.runInNewContext(apply+'\napplyText(value,kind)',context);
  return calls;
@@ -27,10 +27,10 @@ test('recovery text adapter receives one explicit payload, with clear and cancel
  const received=[];
  assert.deepEqual(exercise('','test fixture','browser-paste',[0,0],v=>received.push(v)),[]);
  assert.deepEqual(received,['test fixture']);
- assert.deepEqual(exercise('word','','browser-edit',[0,0],()=>{}),[['clear']]);
+ assert.deepEqual(exercise('word','','browser-edit',[0,0],()=>{}),[[0,4,'']]);
  assert.match(qml,/requestId !== root.pendingPaste/);
  assert.match(qml,/if \(!root.usable\(\)\) return/);
- assert.match(qml,/if \(ok\) root.applyText\(value, kind\)/);
+ assert.match(qml,/root.applyText\(value, "browser-edit"\)/);
 });
 
 test('light installed-PWA chrome has a fixed top color surface, not a sampled gradient',()=>{

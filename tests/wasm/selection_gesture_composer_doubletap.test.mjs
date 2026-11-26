@@ -9,8 +9,8 @@ test('editable fields delegate long press to the browser and retain standard pla
  const area=read('ui/components/controls/BidiTextArea.qml');
  for(const input of [field,area]){
   assert.match(input,/ContextMenu\.menu: editorMenu\.platformMobile \|\| editorMenu\.browser \? null : editorMenu/);
-  assert.match(input,/onLongPressed: editorMenu\.requestSystemEditor\(false\)/);
-  assert.match(input,/acceptedButtons: Qt.RightButton/);
+  assert.match(input,/onLongPressed: \{[\s\S]*?editorMenu\.requestSystemEditor\(\)/);
+  assert.match(input,/acceptedButtons: Qt.LeftButton \| Qt.RightButton/);
   assert.doesNotMatch(input,/onDoubleTapped:|selectAllOnDoubleTap/);
  }
 });

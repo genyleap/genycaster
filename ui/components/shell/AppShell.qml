@@ -262,7 +262,7 @@ Item {
                     if (!interactionAuthorizationDialog
                             || !interactionAuthorizationDialog.opened) return
                     nativeSignerPhraseInput.forceActiveFocus()
-                    Qt.inputMethod.show()
+                    if (Qt.platform.os !== "wasm") Qt.inputMethod.show()
                 })
         }
         onClosed: {
@@ -396,7 +396,7 @@ Item {
                         if (!interactionAuthorizationDialog.opened) return
                         if (interactionAuthorizationDialog.mobileRecoveryInput) {
                             nativeSignerPhraseInput.forceActiveFocus()
-                            Qt.inputMethod.show()
+                            if (Qt.platform.os !== "wasm") Qt.inputMethod.show()
                         } else {
                             const first = nativeSignerWordGrid.itemAt(0)
                             if (first) first.focusWord()

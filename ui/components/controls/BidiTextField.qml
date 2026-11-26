@@ -13,17 +13,52 @@ TextField {
     readonly property bool clipboardPasteFailed: editorMenu.pasteFailed
     function requestClipboardPaste() { editorMenu.requestPaste() }
     function cancelClipboardPaste() { editorMenu.cancelPaste() }
+    // Only the live DOM input paints glyphs while it owns editing. The
+    // original QML control still owns its geometry, border and data.
+    Binding {
+        target: root
+        property: "color"
+        value: "transparent"
+        when: editorMenu.browserEditing
+    }
+    Binding {
+        target: root
+        property: "placeholderTextColor"
+        value: "transparent"
+        when: editorMenu.browserEditing
+    }
+    Binding {
+        target: root
+        property: "selectionColor"
+        value: "transparent"
+        when: editorMenu.browserEditing
+    }
+    Binding {
+        target: root
+        property: "selectedTextColor"
+        value: "transparent"
+        when: editorMenu.browserEditing
+    }
+    Binding {
+        target: root
+        property: "cursorVisible"
+        value: false
+        when: editorMenu.browserEditing
+    }
     TapHandler {
         enabled: editorMenu.browser && root.enabled && !root.readOnly
-        acceptedButtons: Qt.LeftButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         gesturePolicy: TapHandler.DragThreshold
-        onLongPressed: editorMenu.requestSystemEditor(false)
+        onTapped: {
+            root.forceActiveFocus()
+            editorMenu.requestSystemEditor()
+        }
+        onLongPressed: {
+            root.forceActiveFocus()
+            editorMenu.requestSystemEditor()
+        }
     }
-    TapHandler {
-        enabled: editorMenu.browser && root.enabled && !root.readOnly
-        acceptedButtons: Qt.RightButton
-        onTapped: editorMenu.requestSystemEditor(false)
-    }
+
     selectByMouse: true
 
     property bool forceLeftToRight: false

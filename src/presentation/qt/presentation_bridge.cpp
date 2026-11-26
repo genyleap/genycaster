@@ -6,6 +6,8 @@
 #include <QClipboard>
 #include <QJsonDocument>
 #include <QInputMethodEvent>
+#include <QQuickItem>
+#include <QQuickWindow>
 #include <QCoreApplication>
 #include <QPointer>
 #include <QGuiApplication>
@@ -2743,6 +2745,12 @@ extern "C" EMSCRIPTEN_KEEPALIVE void genycasterClipboardTextResult(
     emit clipboardReceiver->clipboardTextReceived(QString::fromUtf8(request),
         ok && value ? QString::fromUtf8(value, length) : QString{}, ok != 0);
 }
+extern "C" EMSCRIPTEN_KEEPALIVE void genycasterBrowserEditorSelection(
+    const char* request, int start, int end)
+{
+    if (clipboardReceiver && request && start >= 0 && end >= start && end <= 262144)
+        emit clipboardReceiver->browserEditorSelectionChanged(QString::fromUtf8(request), start, end);
+}
 #endif
 
 void PresentationBridge::requestClipboardText(const QString& requestId)
@@ -2814,6 +2822,14 @@ bool PresentationBridge::openBrowserTextEditor(const QString& requestId, QString
                     if(ptr){HEAPU8.fill(0,ptr,ptr+count+1);_free(ptr);}
                     if(id)_free(id);
                 }
+            },(token,start,end)=>{
+                const size=lengthBytesUTF8(token)+1;
+                const id=_malloc(size);
+                if(!id)return;
+                try {
+                    stringToUTF8(token,id,size);
+                    Module._genycasterBrowserEditorSelection(id,start,end);
+                } finally { _free(id); }
             })?1:0;
     }, request.constData(),value.constData(),value.size(),config.constData()) != 0;
     value.fill('\0');
@@ -2823,6 +2839,47 @@ bool PresentationBridge::openBrowserTextEditor(const QString& requestId, QString
     Q_UNUSED(text);
     Q_UNUSED(options);
     return false;
+#endif
+}
+
+QVariantMap PresentationBridge::browserEditorGeometry(QObject* editor) const
+{
+    const auto* item = qobject_cast<QQuickItem*>(editor);
+    if (!item || !item->window() || !item->isVisible() || !item->isEnabled())
+        return {};
+    const auto rect = item->mapRectToScene(item->boundingRect());
+    QRectF clip(0, 0, item->window()->width(), item->window()->height());
+    for (auto* parent = item->parentItem(); parent; parent = parent->parentItem()) {
+        if (parent->clip())
+            clip = clip.intersected(parent->mapRectToScene(parent->boundingRect()));
+    }
+    clip = clip.intersected(rect);
+    return {{QStringLiteral("x"), rect.x()}, {QStringLiteral("y"), rect.y()},
+        {QStringLiteral("width"), rect.width()}, {QStringLiteral("height"), rect.height()},
+        {QStringLiteral("clipX"), clip.x()}, {QStringLiteral("clipY"), clip.y()},
+        {QStringLiteral("clipWidth"), clip.width()}, {QStringLiteral("clipHeight"), clip.height()},
+        {QStringLiteral("windowWidth"), item->window()->width()},
+        {QStringLiteral("windowHeight"), item->window()->height()}};
+}
+
+void PresentationBridge::syncBrowserTextEditor(const QString& requestId, QString text,
+                                               const QVariantMap& options)
+{
+#if defined(Q_OS_WASM)
+    if (requestId.isEmpty() || requestId.size() > 128 || text.size() > 262144) return;
+    const auto request=requestId.toUtf8();
+    auto value=text.toUtf8();
+    text.fill(QChar{});
+    const auto config=QJsonDocument::fromVariant(options).toJson(QJsonDocument::Compact);
+    EM_ASM({
+        window.__genycasterSystemEditor?.sync(UTF8ToString($0),
+            UTF8ToString($1,$2),JSON.parse(UTF8ToString($3)));
+    },request.constData(),value.constData(),value.size(),config.constData());
+    value.fill('\0');
+#else
+    Q_UNUSED(requestId);
+    Q_UNUSED(text);
+    Q_UNUSED(options);
 #endif
 }
 
@@ -2839,7 +2896,10 @@ void PresentationBridge::cancelBrowserTextEditor(const QString& requestId)
 void PresentationBridge::commitBrowserEditorText(QObject* editor, const QString& text,
                                                    const int replaceLength)
 {
-    if (!editor || !editor->property("activeFocus").toBool()
+    if (!editor
+#if !defined(Q_OS_WASM)
+        || !editor->property("activeFocus").toBool()
+#endif
         || !editor->property("enabled").toBool() || !editor->property("visible").toBool()
         || editor->property("readOnly").toBool() || text.size() > 262144
         || replaceLength < 0

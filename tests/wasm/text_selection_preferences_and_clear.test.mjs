@@ -23,7 +23,7 @@ test('editing does not depend on read-only text selection preferences',()=>{
  const input=read('ui/components/controls/BidiTextArea.qml');
  const menu=read('ui/components/composer/EditorContextMenu.qml');
  assert.doesNotMatch(input,/textSelectionSettings|composerTextSelectionHandles/);
- assert.match(input,/onLongPressed: editorMenu\.requestSystemEditor\(false\)/);
+ assert.match(input,/onLongPressed: \{[\s\S]*?editorMenu\.requestSystemEditor\(\)/);
  assert.match(menu,/presentationBridge\.openBrowserTextEditor/);
 });
 

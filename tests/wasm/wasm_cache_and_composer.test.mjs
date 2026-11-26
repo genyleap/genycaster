@@ -212,9 +212,9 @@ test('recovery failures are not mislabeled Genyleap login errors',()=>{
 
 test('browser-native editor uses accessible real DOM controls and never injects markup',()=>{
  const js=read(new URL('../../ui/wasm/native-text-editor-pre.js',import.meta.url),'utf8');
- assert.match(js,/dialog.setAttribute\('aria-label'/);
+ assert.match(js,/genycaster-inline-text-editor/);
  assert.match(js,/input.setAttribute\('aria-label'/);
- assert.match(js,/dialog.showModal\(\)/);
+ assert.doesNotMatch(js,/showModal|createElement\(.dialog./);
  assert.match(js,/input.value=value/);
  assert.doesNotMatch(js,/innerHTML|localStorage|sessionStorage|navigator.clipboard.readText/);
 });

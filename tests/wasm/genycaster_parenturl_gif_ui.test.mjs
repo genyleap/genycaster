@@ -194,10 +194,11 @@ test('composer provides browser-native clipboard editing without a canvas select
  const editor=read('ui/components/controls/BidiTextArea.qml');
  const composer=read('ui/components/composer/ComposerDrawer.qml');
  const adapter=read('ui/wasm/native-text-editor-pre.js');
- assert.match(editor,/onLongPressed: editorMenu\.requestSystemEditor\(false\)/);
+ assert.match(editor,/onLongPressed: \{[\s\S]*?editorMenu\.requestSystemEditor\(\)/);
  assert.match(composer,/objectName: "mobileComposerSystemPaste"/);
  assert.match(adapter,/document.createElement\(multiline\?'textarea':'input'\)/);
- assert.match(adapter,/dialog.showModal\(\)/);
+ assert.doesNotMatch(adapter,/showModal|createElement\(.dialog./);
+ assert.match(adapter,/input.id='genycaster-inline-text-editor'/);
  assert.doesNotMatch(editor,/editorSelectionActions/);
  assert.match(composer,/id: mobilePlainEditor/);
  assert.match(composer,/id: threadEditor/);

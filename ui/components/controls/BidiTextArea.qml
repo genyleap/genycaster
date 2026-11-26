@@ -14,19 +14,53 @@ TextArea {
     function resetSelection() { deselect() }
     function dismissSelectionActions() { if (editorMenu) editorMenu.cancelPaste() }
     function requestClipboardPaste() { editorMenu.requestPaste() }
-    function requestSystemEditor() { editorMenu.requestSystemEditor(false) }
+    function requestSystemEditor() { editorMenu.requestSystemEditor() }
     onVisibleChanged: if (!visible) dismissSelectionActions()
     Component.onDestruction: dismissSelectionActions()
-    TapHandler {
-        enabled: editorMenu.browser && root.enabled && !root.readOnly
-        acceptedButtons: Qt.LeftButton
-        gesturePolicy: TapHandler.DragThreshold
-        onLongPressed: editorMenu.requestSystemEditor(false)
+    // Only the live DOM input paints glyphs while it owns editing. The
+    // original QML control still owns its geometry, border and data.
+    Binding {
+        target: root
+        property: "color"
+        value: "transparent"
+        when: editorMenu.browserEditing
+    }
+    Binding {
+        target: root
+        property: "placeholderTextColor"
+        value: "transparent"
+        when: editorMenu.browserEditing
+    }
+    Binding {
+        target: root
+        property: "selectionColor"
+        value: "transparent"
+        when: editorMenu.browserEditing
+    }
+    Binding {
+        target: root
+        property: "selectedTextColor"
+        value: "transparent"
+        when: editorMenu.browserEditing
+    }
+    Binding {
+        target: root
+        property: "cursorVisible"
+        value: false
+        when: editorMenu.browserEditing
     }
     TapHandler {
         enabled: editorMenu.browser && root.enabled && !root.readOnly
-        acceptedButtons: Qt.RightButton
-        onTapped: editorMenu.requestSystemEditor(false)
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        gesturePolicy: TapHandler.DragThreshold
+        onTapped: {
+            root.forceActiveFocus()
+            editorMenu.requestSystemEditor()
+        }
+        onLongPressed: {
+            root.forceActiveFocus()
+            editorMenu.requestSystemEditor()
+        }
     }
 
     readonly property string analyzedText: text.length > 0 ? text : placeholderText

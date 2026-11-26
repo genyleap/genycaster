@@ -644,8 +644,7 @@ GenyDrawer {
         // may be rejected if focus is deferred to a timer.
         if (root.compact) {
             mobilePlainEditor.forceActiveFocus()
-            if (Qt.platform.os === "ios" || Qt.platform.os === "android"
-                    || Qt.platform.os === "wasm")
+            if (Qt.platform.os === "ios" || Qt.platform.os === "android")
                 Qt.inputMethod.show()
         }
     }
