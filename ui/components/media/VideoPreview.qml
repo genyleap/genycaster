@@ -12,6 +12,7 @@ Item {
 
     property var embed: ({})
     property bool compact: false
+    property color cornerCoverColor: Theme.backgroundPrimary
     // Exposed for deterministic silent offscreen playback tests. Audio is
     // enabled for every production feed delegate by default.
     property bool audioOutputEnabled: true
@@ -295,7 +296,7 @@ Item {
                 openOriginalEnabled: true
                 openOriginalUrl: root.targetUrl
                 curveDepth: Theme.shapeMedia
-                cornerMaskColor: Theme.background
+                cornerMaskColor: root.cornerCoverColor
                 onOpenOriginalRequested: url => root.openRequested(url)
             }
         }

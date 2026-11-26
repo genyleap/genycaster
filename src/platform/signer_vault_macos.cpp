@@ -61,7 +61,8 @@ struct Seed final {
         message += ").";
     }
     return foundation::error::Error::make(
-        foundation::error::ErrorCode::StorageFailure,
+        failure.authorizationDenied ? foundation::error::ErrorCode::Unauthorized
+                                    : foundation::error::ErrorCode::StorageFailure,
         std::move(message));
 }
 
@@ -158,8 +159,10 @@ using MdContextPtr = std::unique_ptr<EVP_MD_CTX, MdContextDeleter>;
 
 class KeychainNativeSigner final : public capability::signer::INativeSigner {
 public:
-    KeychainNativeSigner(std::string service, const domain::identity::Fid fid)
-        : m_service(std::move(service)), m_fid(fid)
+    KeychainNativeSigner(std::string service, const domain::identity::Fid fid,
+                         PkeyPtr oneShotDeviceKey = {})
+        : m_service(std::move(service)), m_fid(fid),
+          m_oneShotDeviceKey(std::move(oneShotDeviceKey))
     {
     }
 
@@ -191,17 +194,24 @@ public:
     [[nodiscard]] foundation::result::Result<domain::signer::Signature>
     sign(const std::string& bytes) override
     {
-        auto loaded = loadSeed(m_service, m_fid);
-        if (!loaded) return std::unexpected(std::move(loaded.error()));
-        if (!*loaded) {
-            return std::unexpected(foundation::error::Error::make(
-                foundation::error::ErrorCode::NotFound,
-                "Protocol signer is no longer present in Apple Keychain."));
+        // Device-session sealing immediately follows the authorized vault read.
+        // Consume that key once; it dies on return even when signing fails.
+        // Ordinary protocol signers still check Keychain on every operation.
+        PkeyPtr key = std::move(m_oneShotDeviceKey);
+        if (!key) {
+            auto loaded = loadSeed(m_service, m_fid);
+            if (!loaded) return std::unexpected(std::move(loaded.error()));
+            if (!*loaded) {
+                return std::unexpected(foundation::error::Error::make(
+                    foundation::error::ErrorCode::NotFound,
+                    "Protocol signer is no longer present in Apple Keychain."));
+            }
+            auto derived = makePrivateKey(**loaded);
+            if (!derived) return std::unexpected(std::move(derived.error()));
+            key = std::move(*derived);
         }
-        auto key = makePrivateKey(**loaded);
-        if (!key) return std::unexpected(std::move(key.error()));
         MdContextPtr context{EVP_MD_CTX_new()};
-        if (!context || EVP_DigestSignInit(context.get(), nullptr, nullptr, nullptr, key->get()) != 1) {
+        if (!context || EVP_DigestSignInit(context.get(), nullptr, nullptr, nullptr, key.get()) != 1) {
             return std::unexpected(cryptoError("OpenSSL failed to initialize Ed25519 signing."));
         }
         std::array<unsigned char, SignatureSize> signature{};
@@ -221,6 +231,7 @@ public:
 private:
     std::string m_service;
     domain::identity::Fid m_fid{};
+    PkeyPtr m_oneShotDeviceKey{};
 };
 
 class KeychainSignerVault final : public capability::signer::ISignerVault {
@@ -238,8 +249,7 @@ public:
         auto seed = loadSeed(m_service, fid);
         if (!seed) return std::unexpected(std::move(seed.error()));
         if (!*seed) return std::unique_ptr<capability::signer::INativeSigner>{};
-        return std::unique_ptr<capability::signer::INativeSigner>{
-            std::make_unique<KeychainNativeSigner>(m_service, fid)};
+        return makeSigner(fid, **seed);
     }
 
     [[nodiscard]] foundation::result::Result<std::unique_ptr<capability::signer::INativeSigner>>
@@ -254,8 +264,7 @@ public:
         if (auto saved = saveSeed(m_service, fid, *seed); !saved) {
             return std::unexpected(std::move(saved.error()));
         }
-        return std::unique_ptr<capability::signer::INativeSigner>{
-            std::make_unique<KeychainNativeSigner>(m_service, fid)};
+        return makeSigner(fid, *seed);
     }
 
     [[nodiscard]] foundation::result::Status erase(const domain::identity::Fid fid) override
@@ -264,6 +273,20 @@ public:
     }
 
 private:
+    [[nodiscard]] foundation::result::Result<std::unique_ptr<capability::signer::INativeSigner>>
+    makeSigner(const domain::identity::Fid fid, const Seed& seed)
+    {
+        PkeyPtr oneShot{};
+        // The session seal store owns this handle only within load/save.
+        if (m_service == "org.genycaster.device-session" && fid.value == 1U) {
+            auto key = makePrivateKey(seed);
+            if (!key) return std::unexpected(std::move(key.error()));
+            oneShot = std::move(*key);
+        }
+        return std::unique_ptr<capability::signer::INativeSigner>{
+            std::make_unique<KeychainNativeSigner>(m_service, fid, std::move(oneShot))};
+    }
+
     std::string m_service;
 };
 

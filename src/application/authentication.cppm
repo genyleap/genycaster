@@ -93,7 +93,9 @@ public:
         using Code=foundation::error::ErrorCode;
         m_restoreAllowed=state.phase==session::SessionPhase::Failed&&state.error&&
             (state.error->code==Code::Unavailable||state.error->code==Code::StorageFailure||
-             state.error->code==Code::Unauthorized||state.error->code==Code::Timeout||
+             // Permission refusal is terminal for automatic restore. Explicit
+             // user sign-in/recovery remains available.
+             state.error->code==Code::Timeout||
              state.error->code==Code::TransportFailure);
         m_restoreDue=now+m_restoreDelay;
         m_restoreDelay=backoff(m_restoreDelay);

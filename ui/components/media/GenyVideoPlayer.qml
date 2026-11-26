@@ -1249,7 +1249,8 @@ Item {
         Shape {
             id: videoCornerMask
             anchors.fill: parent
-            z: 4
+            // Cover all rectangular overlays, including the bottom progress line.
+            z: 19
             visible: !root.fullscreen && root.curveDepth > 0
             preferredRendererType: Shape.CurveRenderer
             asynchronous: false
@@ -1261,64 +1262,62 @@ Item {
                 return Math.max(0.5522847498, Math.min(0.985, (8 * diagonal - 4) / 3))
             }
 
+            readonly property real innerControl: cornerRadius * (1 - cubicFactor)
+
             ShapePath {
                 fillColor: root.cornerMaskColor
-                fillRule: ShapePath.OddEvenFill
                 strokeColor: "transparent"
                 strokeWidth: -1
-
-                startX: 0
-                startY: 0
-                PathLine { x: videoCornerMask.width; y: 0 }
-                PathLine { x: videoCornerMask.width; y: videoCornerMask.height }
-                PathLine { x: 0; y: videoCornerMask.height }
+                startX: 0; startY: 0
+                PathLine { x: videoCornerMask.cornerRadius; y: 0 }
+                PathCubic {
+                    x: 0; y: videoCornerMask.cornerRadius
+                    control1X: videoCornerMask.innerControl; control1Y: 0
+                    control2X: 0; control2Y: videoCornerMask.innerControl
+                }
                 PathLine { x: 0; y: 0 }
+            }
 
-                PathMove { x: videoCornerMask.cornerRadius; y: 0 }
-                PathLine { x: videoCornerMask.width - videoCornerMask.cornerRadius; y: 0 }
+            ShapePath {
+                fillColor: root.cornerMaskColor
+                strokeColor: "transparent"
+                strokeWidth: -1
+                startX: videoCornerMask.width; startY: 0
+                PathLine { x: videoCornerMask.width; y: videoCornerMask.cornerRadius }
                 PathCubic {
-                    x: videoCornerMask.width
-                    y: videoCornerMask.cornerRadius
-                    control1X: videoCornerMask.width - videoCornerMask.cornerRadius
-                               + videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control1Y: 0
-                    control2X: videoCornerMask.width
-                    control2Y: videoCornerMask.cornerRadius
-                               - videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
+                    x: videoCornerMask.width - videoCornerMask.cornerRadius; y: 0
+                    control1X: videoCornerMask.width; control1Y: videoCornerMask.innerControl
+                    control2X: videoCornerMask.width - videoCornerMask.innerControl; control2Y: 0
                 }
-                PathLine { x: videoCornerMask.width; y: videoCornerMask.height - videoCornerMask.cornerRadius }
+                PathLine { x: videoCornerMask.width; y: 0 }
+            }
+
+            ShapePath {
+                fillColor: root.cornerMaskColor
+                strokeColor: "transparent"
+                strokeWidth: -1
+                startX: videoCornerMask.width; startY: videoCornerMask.height
+                PathLine { x: videoCornerMask.width - videoCornerMask.cornerRadius; y: videoCornerMask.height }
                 PathCubic {
-                    x: videoCornerMask.width - videoCornerMask.cornerRadius
-                    y: videoCornerMask.height
-                    control1X: videoCornerMask.width
-                    control1Y: videoCornerMask.height - videoCornerMask.cornerRadius
-                               + videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control2X: videoCornerMask.width - videoCornerMask.cornerRadius
-                               + videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control2Y: videoCornerMask.height
+                    x: videoCornerMask.width; y: videoCornerMask.height - videoCornerMask.cornerRadius
+                    control1X: videoCornerMask.width - videoCornerMask.innerControl; control1Y: videoCornerMask.height
+                    control2X: videoCornerMask.width; control2Y: videoCornerMask.height - videoCornerMask.innerControl
                 }
-                PathLine { x: videoCornerMask.cornerRadius; y: videoCornerMask.height }
+                PathLine { x: videoCornerMask.width; y: videoCornerMask.height }
+            }
+
+            ShapePath {
+                fillColor: root.cornerMaskColor
+                strokeColor: "transparent"
+                strokeWidth: -1
+                startX: 0; startY: videoCornerMask.height
+                PathLine { x: 0; y: videoCornerMask.height - videoCornerMask.cornerRadius }
                 PathCubic {
-                    x: 0
-                    y: videoCornerMask.height - videoCornerMask.cornerRadius
-                    control1X: videoCornerMask.cornerRadius
-                               - videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control1Y: videoCornerMask.height
-                    control2X: 0
-                    control2Y: videoCornerMask.height - videoCornerMask.cornerRadius
-                               + videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
+                    x: videoCornerMask.cornerRadius; y: videoCornerMask.height
+                    control1X: 0; control1Y: videoCornerMask.height - videoCornerMask.innerControl
+                    control2X: videoCornerMask.innerControl; control2Y: videoCornerMask.height
                 }
-                PathLine { x: 0; y: videoCornerMask.cornerRadius }
-                PathCubic {
-                    x: videoCornerMask.cornerRadius
-                    y: 0
-                    control1X: 0
-                    control1Y: videoCornerMask.cornerRadius
-                               - videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control2X: videoCornerMask.cornerRadius
-                               - videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control2Y: 0
-                }
+                PathLine { x: 0; y: videoCornerMask.height }
             }
         }
 
@@ -1644,7 +1643,9 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 0
+                anchors.leftMargin: root.fullscreen ? 0 : videoCornerMask.cornerRadius
+                anchors.rightMargin: root.fullscreen ? 0 : videoCornerMask.cornerRadius
+                anchors.bottomMargin: root.fullscreen ? 0 : Theme.strokeHairline
                 height: 3
                 opacity: 1 - chrome.reveal
                 visible: opacity > 0.001
@@ -1887,9 +1888,9 @@ Item {
         // One inset optical frame follows the exact same contour as the mask.
         Superellipse {
             anchors.fill: parent
-            anchors.margins: Theme.strokeHairline / 2
             visible: !root.fullscreen
             z: 20
+            highQualityEdges: true
             fillColor: "transparent"
             borderWidth: Theme.strokeHairline
             borderColor: Theme.mediaPlayerFrame

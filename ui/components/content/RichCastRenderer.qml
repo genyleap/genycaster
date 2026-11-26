@@ -14,6 +14,7 @@ ColumnLayout {
     property bool useRichSidecar: true
     property bool compact: false
     property bool magazineCard: false
+    property color mediaSurfaceColor: magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
     property var sharedMediaGeometry: null
     property int emojiSurface: 1
     // Protocol embeds are rendered by CastEmbedsPanel. Rich sidecar embed/media
@@ -224,6 +225,7 @@ ColumnLayout {
         EmbedPreview {
             compact: root.compact
             magazineCard: root.magazineCard
+            mediaSurfaceColor: root.mediaSurfaceColor
             sharedMediaGeometry: root.sharedMediaGeometry
             readonly property string richKind: String(parent.blockData.kind || "")
             readonly property string mediaType: String(parent.blockData.mediaType || "").toLowerCase()

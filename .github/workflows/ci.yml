@@ -112,7 +112,7 @@ jobs:
           node --test tests/wasm/neon_geometry_behavior.test.mjs tests/wasm/neon_surface_contract.test.mjs tests/wasm/neon_video_surface_coverage.test.mjs tests/wasm/neon_global_setup_coverage.test.mjs
           node --test tests/wasm/miniapp_swap_preflight_20261118.test.mjs tests/wasm/miniapp_swap_quote_contract_20261118.test.mjs tests/wasm/miniapp_swap_execution_20261118.test.mjs tests/wasm/miniapp_swap_qml_alias_20261118.test.mjs tests/wasm/miniapp_signin_diagnostics_20261118.test.mjs tests/wasm/miniapp_hosted_manifest_icon_contrast_20261118.test.mjs
           # Reject stale Mini App RPC results before installing any Qt SDK.
-          node --test tests/wasm/wallet_async_revocation_20261118.test.mjs tests/wasm/browser_native_custody_boundary_20261118.test.mjs tests/wasm/walletconnect_universal_adapter_20261118.test.mjs tests/wasm/mobile_native_bridge_execution_20261126.test.mjs tests/wasm/mobile_miniapp_fullscreen_audience_20261126.test.mjs tests/wasm/android_video_miniapp_regression_20261126.test.mjs
+          node --test tests/wasm/wallet_async_revocation_20261118.test.mjs tests/wasm/browser_native_custody_boundary_20261118.test.mjs tests/wasm/walletconnect_universal_adapter_20261118.test.mjs tests/wasm/mobile_native_bridge_execution_20261126.test.mjs tests/wasm/mobile_miniapp_fullscreen_audience_20261126.test.mjs tests/wasm/android_video_miniapp_regression_20261126.test.mjs tests/wasm/video_corner_keychain_regression_20261126.test.mjs
           node --test services/swap-quote/quote.test.mjs services/account-sync/test/cloud_state.test.mjs
           # FIDs are protocol-scoped; an OpenProof/Farcaster browser cookie
           # must not adopt a HyperSnap subject sharing the same numeric FID.

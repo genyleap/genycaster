@@ -41,4 +41,12 @@ int main()
     coordinator.cancelRestore();
     assert(!coordinator.completeRestore(*retry,session::SessionState{},now+30s));
     assert(!coordinator.beginRestore(now+600s));
+
+    AuthenticationCoordinator denied;
+    const auto deniedTicket=denied.beginRestore(now);
+    assert(deniedTicket);
+    assert(denied.completeRestore(*deniedTicket,session::SessionState{
+        .phase=session::SessionPhase::Failed,
+        .error=error::Error::make(error::ErrorCode::Unauthorized,"permission denied")},now));
+    assert(!denied.beginRestore(now+600s));
 }
