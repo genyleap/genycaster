@@ -249,6 +249,7 @@ def validate_android(path: Path) -> None:
             f"lib/{abi}/libssl_3.so",
             f"lib/{abi}/libcrypto_3.so",
             f"lib/{abi}/libplugins_tls_qopensslbackend_{abi}.so",
+            f"lib/{abi}/libplugins_multimedia_ffmpegmediaplugin_{abi}.so",
         )
         for member in required:
             require(member in names, f"Android APK missing {member}")

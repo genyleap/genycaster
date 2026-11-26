@@ -52,3 +52,27 @@ test('public node inventory comes from signed API, not a compiled duplicate',()=
  assert.match(qml,/wrapMode: Text\.WrapAnywhere/);
  assert.match(qml,/providerProfiles\.probeAllReadProviders\(true\)/);
 });
+
+test('compact rows sort by effective health and measured latency with unknowns last',()=>{
+ const qml=read('ui/components/settings/NodeManagementPanel.qml');
+ const functions=qml.slice(qml.indexOf('    function observation(node)'),qml.indexOf('    readonly property int eligibleNodes'));
+ const root={};
+ new Function('root',functions+';Object.assign(root,{observation,nodeRank,compareNodes});')(root);
+ const row=(label,status,latencyMs,serverStatus,serverLatencyMs,enabled=true)=>({id:label,label,status,latencyMs,serverStatus,serverLatencyMs,enabled});
+ const rows=[
+  row('offline','failed',10,'healthy',1),
+  row('server','idle',-1,'healthy',120),
+  row('local slow','healthy',350,'healthy',2),
+  row('local fast','healthy',60,'healthy',500),
+  row('unknown','idle',-1,'unknown',-1),
+  row('disabled','healthy',1,'healthy',1,false),
+  row('lagging','idle',-1,'degraded',10)
+ ];
+ assert.deepEqual(rows.sort(root.compareNodes).map(n=>n.label),
+    ['local fast','server','local slow','lagging','unknown','offline','disabled']);
+ assert.equal(root.observation(rows[0]).local,true);
+ assert.equal(root.observation(rows[1]).local,false);
+ assert.match(qml,/model: root.liveHealthRows/);
+ assert.match(qml,/visible: nodeRow.expanded/);
+ assert.match(qml,/ItemDelegate \{/);
+});

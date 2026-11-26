@@ -22,8 +22,8 @@
 #if QT_CONFIG(vulkan)
 #include <QVulkanFunctions>
 #include <QVulkanInstance>
-#include <sys/system_properties.h>
 #endif
+#include <sys/system_properties.h>
 #endif
 #include <QFile>
 #include <QFileInfo>
@@ -45,6 +45,7 @@
 #include "media/android_icon.hpp"
 #include "media/android_document_picker.hpp"
 #include <QtWebView/QtWebView>
+#include <QtMultimedia/private/qplatformmediaintegration_p.h>
 #endif
 #include <QProcess>
 #include <QSettings>
@@ -335,6 +336,17 @@ int main(int argc, char* argv[])
 #if defined(Q_OS_ANDROID)
     // Match the bundled OpenSSL 3 sonames before Qt initializes TLS/networking.
     qputenv("ANDROID_OPENSSL_SUFFIX", "_3");
+    // Qt 6.12 native Android video uses a separate GLES texture thread.
+    // Keep emulator Vulkan UI rendering, but decode its video on the CPU:
+    // no cross-API native texture sharing on the virtual GPU.
+    char emulatorMedia[PROP_VALUE_MAX]{};
+    if (__system_property_get("ro.boot.qemu", emulatorMedia) > 0
+        && QByteArrayView{emulatorMedia} == "1") {
+        if (!qEnvironmentVariableIsSet("QT_FFMPEG_DECODING_HW_DEVICE_TYPES"))
+            qputenv("QT_FFMPEG_DECODING_HW_DEVICE_TYPES", ",");
+        if (!qEnvironmentVariableIsSet("QT_DISABLE_HW_TEXTURES_CONVERSION"))
+            qputenv("QT_DISABLE_HW_TEXTURES_CONVERSION", "1");
+    }
     // Native Android WebView must be initialized before the GUI application.
     QtWebView::initialize();
 #endif
@@ -357,8 +369,16 @@ int main(int argc, char* argv[])
 #else
     QGuiApplication application(argc, argv);
 #endif
-#if defined(Q_OS_ANDROID) && QT_CONFIG(vulkan)
+#if defined(Q_OS_ANDROID)
+    // Qt 6.12 private API: unlike QT_MEDIA_BACKEND, setBackend() does NOT
+    // silently fall back to the Android native plugin if FFmpeg cannot load.
+    // In that case QMediaPlayer reports unavailable instead of initializing
+    // the incompatible native texture renderer. Must precede all media objects.
+    QPlatformMediaIntegration::setBackend(QStringLiteral("ffmpeg"));
+    qInfo() << "Genycaster: Android media backend requested: FFmpeg";
+#if QT_CONFIG(vulkan)
     selectAndroidEmulatorRenderer();
+#endif
 #endif
     QCoreApplication::setOrganizationName(QStringLiteral("Genycaster"));
     QCoreApplication::setApplicationName(QStringLiteral("Genycaster"));

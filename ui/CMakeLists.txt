@@ -710,9 +710,13 @@ target_compile_definitions(genycaster
 if(ANDROID)
     # QAndroidActivityResultReceiver opens scoped ACTION_OPEN_DOCUMENT
     # without asking for broad Android media or storage permissions.
-    find_package(Qt6 6.12 REQUIRED COMPONENTS Svg CorePrivate)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Svg CorePrivate MultimediaPrivate)
+    if(NOT TARGET Qt6::QFFmpegMediaPlugin)
+        message(FATAL_ERROR "Genycaster Android requires the Qt FFmpeg multimedia plugin in the Android Qt SDK")
+    endif()
+    set(genycaster_android_media_plugins INCLUDE_BY_TYPE multimedia Qt6::QFFmpegMediaPlugin)
     target_sources(genycaster PRIVATE app/media/android_document_picker.hpp)
-    target_link_libraries(genycaster PRIVATE Qt6::Svg Qt6::CorePrivate)
+    target_link_libraries(genycaster PRIVATE Qt6::Svg Qt6::CorePrivate Qt6::MultimediaPrivate)
 endif()
 
 if(ANDROID AND TARGET Qt6Keychain::Qt6Keychain)
@@ -1745,14 +1749,16 @@ if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
             Qt6::LottieVectorImageHelpersplugin)
         qt_import_plugins(genycaster
             INCLUDE Qt6::QLottieVectorImagePlugin
+            ${genycaster_android_media_plugins}
             EXCLUDE_BY_TYPE sqldrivers)
     else()
         qt_import_plugins(genycaster
             INCLUDE Qt6::QLottieVectorImagePlugin
+            ${genycaster_android_media_plugins}
             EXCLUDE_BY_TYPE sqldrivers)
     endif()
 else()
-    qt_import_plugins(genycaster EXCLUDE_BY_TYPE sqldrivers)
+    qt_import_plugins(genycaster ${genycaster_android_media_plugins} EXCLUDE_BY_TYPE sqldrivers)
 endif()
 
 set(farcasterTranslationFiles

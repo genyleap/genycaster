@@ -80,8 +80,8 @@ test('selected reader and measured latency remain distinct from actual API healt
  assert.match(qml,/Theme\.iconCheck/);
  assert.match(qml,/color: Theme\.positive/);
  assert.match(qml,/root\.measuredStatus\(/);
- assert.match(qml,/root\.checkedNodes \/ root\.eligibleNodes/);
- assert.match(qml,/duration: Theme\.reduceMotion \? 0 : Theme\.motionEmphasis/);
+ assert.match(qml,/health_progress"\)\.arg\(root\.checkedNodes\)\.arg\(root\.eligibleNodes\)/);
+ assert.match(qml,/root\.expandedNodeId = nodeRow\.expanded/);
  assert.match(qml,/genycaster\.nodes\.default_choice/);
  assert.match(qml,/https:\/\/genycaster\.xyz\/api\/v1\/nodes\?format=2/);
  assert.match(qml,/const directory = providerProfiles\.directoryNodes/);
