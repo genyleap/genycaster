@@ -146,6 +146,8 @@ public:
      * @return Signature or a structured authorization/signer failure.
      */
     [[nodiscard]] foundation::result::Result<domain::signer::Signature> sign(
+        domain::identity::Fid fid,
+        const domain::signer::PublicKey& expectedKey,
         domain::signer::Scope requiredScope,
         const std::string& bytes) override;
 

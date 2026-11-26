@@ -43,6 +43,8 @@ public:
 
     /** @brief Signs canonical bytes only when the current signer still permits the exact scope. */
     [[nodiscard]] virtual foundation::result::Result<domain::signer::Signature> sign(
+        domain::identity::Fid fid,
+        const domain::signer::PublicKey& expectedKey,
         domain::signer::Scope requiredScope,
         const std::string& bytes) = 0;
 

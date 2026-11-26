@@ -353,7 +353,7 @@ struct AsyncWaitState final {
     const QString nonce = QUuid::createUuid().toString(QUuid::WithoutBraces).remove(QLatin1Char('-'));
     const std::string challenge = uploadChallenge(
         method, path, fid.value, publicKey->hex, timestampSeconds, nonce, body);
-    auto signature = authority.sign(domain::signer::Scope::CastAdd, challenge);
+    auto signature = authority.sign(fid, *publicKey, domain::signer::Scope::CastAdd, challenge);
     if (!signature) {
         return std::unexpected(std::move(signature.error()));
     }

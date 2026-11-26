@@ -280,7 +280,7 @@ struct CredentialFree final {
     credential.TargetName = target.data();
     credential.CredentialBlob = const_cast<BYTE*>(seed.bytes.data());
     credential.CredentialBlobSize = static_cast<DWORD>(SeedSize);
-    credential.Persist = CRED_PERSIST_ENTERPRISE;
+    credential.Persist = CRED_PERSIST_LOCAL_MACHINE;
     if (!CredWriteW(&credential, 0))
         return std::unexpected(windowsCredentialError(GetLastError(), "store"));
     return {};

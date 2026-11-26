@@ -39,6 +39,7 @@ public:
     }
 
     [[nodiscard]] core::result::Result<domain::signer::Signature> sign(
+        domain::identity::Fid, const domain::signer::PublicKey&,
         domain::signer::Scope, const std::string&) override
     {
         return domain::signer::Signature{.bytes = std::string(64, 's')};

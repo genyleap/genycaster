@@ -5,6 +5,7 @@ module;
 #include <expected>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -166,6 +167,15 @@ namespace {
 }
 
 struct SignerService::Impl final {
+    Impl(executor::IExecutor& executorValue, capability::signer::ISignerVault& vaultValue,
+         local::signer::ISignerMetadataStore& storeValue,
+         capability::signer::ISignerRegistry* registryValue,
+         capability::signer::ICustodyAuthorizer* authorizerValue,
+         capability::signer_attestation::ISignedKeyRequestAttestor* attestorValue,
+         SignerPolicy policyValue)
+        : executor(executorValue), vault(vaultValue), metadataStore(storeValue),
+          registry(registryValue), authorizer(authorizerValue), attestor(attestorValue),
+          policy(std::move(policyValue)) {}
     executor::IExecutor& executor;
     capability::signer::ISignerVault& vault;
     local::signer::ISignerMetadataStore& metadataStore;
@@ -175,6 +185,9 @@ struct SignerService::Impl final {
     SignerPolicy policy{};
     std::unique_ptr<capability::signer::INativeSigner> nativeSigner{};
     SignerState current{};
+    // Media and social writes run on different executors. Serialize access
+    // to the handle and registration; observers may query state reentrantly.
+    std::recursive_mutex mutex{};
 };
 
 WriteGate evaluateWriteGate(
@@ -210,15 +223,8 @@ SignerService::SignerService(
     capability::signer::ICustodyAuthorizer* const authorizer,
     capability::signer_attestation::ISignedKeyRequestAttestor* const attestor,
     SignerPolicy policy)
-    : m_impl(std::make_unique<Impl>(Impl{
-          .executor = executor,
-          .vault = vault,
-          .metadataStore = metadataStore,
-          .registry = registry,
-          .authorizer = authorizer,
-          .attestor = attestor,
-          .policy = std::move(policy),
-      }))
+    : m_impl(std::make_unique<Impl>(executor, vault, metadataStore, registry,
+                                    authorizer, attestor, std::move(policy)))
 {
     if (auto valid = validatePolicy(m_impl->policy); !valid) {
         m_impl->current = SignerState{
@@ -237,6 +243,7 @@ foundation::result::Status SignerService::restore(
 {
     return m_impl->executor.post(
         [this, session = std::move(session), observer = std::move(observer)]() mutable {
+            const std::scoped_lock lock{m_impl->mutex};
             if (!session) {
                 m_impl->nativeSigner.reset();
                 m_impl->current = SignerState{.phase = SignerPhase::SignedOut,
@@ -368,6 +375,7 @@ foundation::result::Status SignerService::provision(
     return m_impl->executor.post(
         [this, session = std::move(session), observer = std::move(observer),
          oneShotAuthorizer = std::move(oneShotAuthorizer)]() mutable {
+            const std::scoped_lock lock{m_impl->mutex};
             if (!session) {
                 m_impl->current = SignerState{.phase = SignerPhase::SignedOut,
                     .requiredScopes = m_impl->policy.scopes};
@@ -604,6 +612,7 @@ foundation::result::Status SignerService::revoke(
 {
     return m_impl->executor.post(
         [this, session = std::move(session), observer = std::move(observer)]() mutable {
+            const std::scoped_lock lock{m_impl->mutex};
             if (!session) {
                 m_impl->current = SignerState{.phase = SignerPhase::SignedOut,
                     .requiredScopes = m_impl->policy.scopes};
@@ -618,6 +627,13 @@ foundation::result::Status SignerService::revoke(
                 return;
             }
             auto record = *m_impl->current.record;
+            if (record.local.fid.value != session->fid.value ||
+                record.lastVerifiedRegistration->fid.value != session->fid.value) {
+                observer(SignerState{.phase = SignerPhase::Failed,
+                    .error = makeError(foundation::error::ErrorCode::Unauthorized,
+                        "Cannot revoke another account's signer.")});
+                return;
+            }
             auto& registration = *record.lastVerifiedRegistration;
             if (registration.kind != domain::signer::RegistrationKind::Gasless ||
                 !registration.requestFid) {
@@ -698,6 +714,7 @@ foundation::result::Status SignerService::recordConfirmedWrite(
     const domain::identity::Fid fid,
     const foundation::time::Timestamp confirmedAt)
 {
+    const std::scoped_lock lock{m_impl->mutex};
     if (fid.value == 0U || !m_impl->current.record ||
         !m_impl->current.record->lastVerifiedRegistration) {
         return std::unexpected(makeError(
@@ -728,6 +745,7 @@ foundation::result::Result<domain::signer::PublicKey> SignerService::requireSign
     const domain::identity::Fid fid,
     const domain::signer::Scope requiredScope) const
 {
+    const std::scoped_lock lock{m_impl->mutex};
     if (fid.value == 0U) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::Unauthorized,
@@ -758,9 +776,18 @@ foundation::result::Result<domain::signer::PublicKey> SignerService::requireSign
 }
 
 foundation::result::Result<domain::signer::Signature> SignerService::sign(
+    const domain::identity::Fid fid,
+    const domain::signer::PublicKey& expectedKey,
     const domain::signer::Scope requiredScope,
     const std::string& bytes)
 {
+    const std::scoped_lock lock{m_impl->mutex};
+    const auto key = requireSigner(fid, requiredScope);
+    if (!key) return std::unexpected(key.error());
+    if (key->hex != expectedKey.hex) {
+        return std::unexpected(makeError(foundation::error::ErrorCode::Unauthorized,
+            "The signer changed after the operation was prepared."));
+    }
     if (bytes.empty()) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::InvalidArgument,
@@ -785,6 +812,7 @@ foundation::result::Result<domain::signer::Signature> SignerService::sign(
 
 SignerState SignerService::state() const
 {
+    const std::scoped_lock lock{m_impl->mutex};
     return m_impl->current;
 }
 

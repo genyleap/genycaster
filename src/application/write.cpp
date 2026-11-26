@@ -562,7 +562,8 @@ struct WriteService::Impl final {
         domain::write::PreparedOperation prepared,
         const Observer& observer)
     {
-        auto signature = authority.sign(domain::write::requiredScope(prepared.kind), prepared.hashBytes);
+        auto signature = authority.sign(prepared.author, prepared.signerPublicKey,
+            domain::write::requiredScope(prepared.kind), prepared.hashBytes);
         if (!signature) {
             observer(WriteState{.phase = WritePhase::Blocked, .error = std::move(signature.error())});
             return;

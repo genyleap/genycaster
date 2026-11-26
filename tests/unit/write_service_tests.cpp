@@ -114,10 +114,13 @@ public:
     }
 
     [[nodiscard]] foundation::result::Result<domain::signer::Signature> sign(
+        const domain::identity::Fid requestedFid,
+        const domain::signer::PublicKey& expectedKey,
         const domain::signer::Scope scope,
         const std::string& bytes) override
     {
-        if (!allowed || !permits(scope) || bytes.size() != 20U) {
+        if (!allowed || requestedFid.value != fid.value || expectedKey.hex != key.hex ||
+            !permits(scope) || bytes.size() != 20U) {
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::Unauthorized,
                 "Test write authority denied signing."));

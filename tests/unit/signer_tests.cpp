@@ -382,11 +382,16 @@ void provisionUsesLeastPrivilegeTtlAndFreshNonce()
     assert(registry.registrationCount == 1U);
     assert(metadata.record && metadata.record->lastVerifiedRegistration);
 
-    auto signature = service.sign(domain::signer::Scope::ReactionAdd, "canonical-message-bytes");
+    const auto key = service.requireSigner(session.fid, domain::signer::Scope::ReactionAdd);
+    assert(key);
+    assert(!service.sign(domain::identity::Fid{43U}, *key, domain::signer::Scope::ReactionAdd, "canonical-message-bytes"));
+    assert(!service.sign(session.fid, domain::signer::PublicKey{std::string(64U, 'f')},
+                         domain::signer::Scope::ReactionAdd, "canonical-message-bytes"));
+    auto signature = service.sign(session.fid, *key, domain::signer::Scope::ReactionAdd, "canonical-message-bytes");
     assert(signature && signature->bytes.size() == 64U);
-    auto profileSignature = service.sign(domain::signer::Scope::UserDataAdd, "canonical-message-bytes");
+    auto profileSignature = service.sign(session.fid, *key, domain::signer::Scope::UserDataAdd, "canonical-message-bytes");
     assert(profileSignature && profileSignature->bytes.size() == 64U);
-    auto denied = service.sign(domain::signer::Scope::UsernameProof, "canonical-message-bytes");
+    auto denied = service.sign(session.fid, *key, domain::signer::Scope::UsernameProof, "canonical-message-bytes");
     assert(!denied && denied.error().code == foundation::error::ErrorCode::Unauthorized);
 }
 
