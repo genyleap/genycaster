@@ -326,8 +326,8 @@ test('every stage uses a fixed bottom CTA footer and the desktop retains two-pan
   assert.match(setup, /id: setupActionFooter/);
   assert.match(setup, /anchors.bottom: setupActionFooter.top/);
   assert.match(setup, /anchors.verticalCenter: parent.verticalCenter/);
-  assert.match(setup, /x: root\.phone\s*\?\s*\(root\.welcomeNativeAppsVisible/);
-  assert.match(setup, /setupFooterContent\.welcomeRowWidth - width/);
+  assert.match(setup, /x: root\.phone \? 0 : Theme\.rtl/);
+  assert.match(setup, /y: root\.stackWelcomeActions\s*\? stageAction\.y \+ stageAction\.height \+ Theme\.space2/);
   assert.match(setup, /: Theme\.rtl \? 0 : setupFooterContent\.width - width/);
   assert.match(setup, /anchors\.leftMargin: root\.phone \? Theme\.space4 : root\.setupGutter/);
   assert.match(setup, /anchors\.rightMargin: root\.phone \? Theme\.space4 : root\.setupGutter/);

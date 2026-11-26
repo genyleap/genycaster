@@ -301,16 +301,16 @@ Item {
     readonly property bool phone: Qt.platform.os === "android"
                                   || Qt.platform.os === "ios" || width < 680
     readonly property int setupGutter: phone ? 24 : Theme.scaleUi(32)
-    // A compact secondary choice accompanies Get Started in the Web welcome
-    // step. Do not repeat download promotions during custody or recovery.
+    // Native-app discovery is secondary to Get Started. Stack both actions
+    // on compact screens; keep the desktop trailing action pair.
     // Offer the native edition selector on the actual welcome stage even
     // when an account has been restored but setup remains unfinished.
     // Requiring !authenticated hid this action for partially-onboarded
     // browser sessions, leaving only Get Started in the fixed footer.
     readonly property bool welcomeNativeAppsVisible: Qt.platform.os === "wasm"
         && currentStep === 0 && !reviewMode
-    // Desktop keeps its measured form width; mobile consumes the entire
-    // footer instead of subtracting the form gutter a second time.
+    readonly property bool stackWelcomeActions: phone && welcomeNativeAppsVisible
+    // Desktop keeps its measured form width; mobile uses the footer width.
     readonly property real welcomeActionsWidth: Math.max(0, Math.min(
         stagePanel.width, 560))
     // The action rail is fixed below the scrolling form on every platform.
@@ -1676,10 +1676,10 @@ Item {
             x: setupCanvas.formStart
             width: setupCanvas.formWidth
             anchors.bottom: parent.bottom
-            // A single horizontal action rail on phones and desktops. The
-            // row must reserve its tallest (potentially wrapped) button.
-            height: (root.welcomeNativeAppsVisible
-                     ? Math.max(stageAction.height, setupWelcomeNativeApps.implicitHeight)
+            // Compact welcome reserves two full-width controls; all other
+            // stages and desktop welcome retain a single fixed action row.
+            height: (root.stackWelcomeActions
+                     ? stageAction.height + Theme.space2 + setupWelcomeNativeApps.height
                      : stageAction.height) + Theme.space3 * 2
             Rectangle {
                 anchors.fill: parent
@@ -1713,30 +1713,16 @@ Item {
                     id: stageAction
                     objectName: "setupStageAction"
                     visible: root.showsPrimaryCta
-                    // Mobile: the primary action is centered in the footer.
-                    // Desktop: it occupies the logical trailing corner,
-                    // with equal insets in LTR and RTL.
-                    width: root.phone
-                           ? (root.welcomeNativeAppsVisible
-                              ? Math.max(0, (setupFooterContent.welcomeRowWidth
-                                             - Theme.space2) / 2)
-                              : setupFooterContent.width)
+                    width: root.phone ? setupFooterContent.width
                            : root.welcomeNativeAppsVisible
-                             ? Math.min(Theme.scaleUi(264),
-                                        (setupFooterContent.welcomeRowWidth - Theme.space2) * 0.48)
+                             ? Math.max(0, Math.min(Theme.scaleUi(264),
+                                        (setupFooterContent.welcomeRowWidth - Theme.space2) * 0.48))
                              : Math.min(Theme.scaleUi(340), setupFooterContent.width)
-                    // Keep the main action at the trailing edge of the shared
-                    // centered mobile pair; preserve the desktop trailing rail.
-                    x: root.phone
-                       ? (root.welcomeNativeAppsVisible
-                          ? (setupFooterContent.width - setupFooterContent.welcomeRowWidth) / 2
-                            + (Theme.rtl ? 0 : setupFooterContent.welcomeRowWidth - width)
-                          : 0)
-                       : Theme.rtl ? 0 : setupFooterContent.width - width
+                    x: root.phone ? 0 : Theme.rtl ? 0 : setupFooterContent.width - width
                     height: root.welcomeNativeAppsVisible
                             ? Math.max(implicitHeight, setupWelcomeNativeApps.implicitHeight)
                             : implicitHeight
-                    y: (setupFooterContent.height - height) / 2
+                    y: root.stackWelcomeActions ? 0 : (setupFooterContent.height - height) / 2
                     text: root.actionText()
                     neutralPrimary: false
                     enabled: !root.stageTransitioning && root.actionEnabled()
@@ -1750,17 +1736,20 @@ Item {
                     id: setupWelcomeNativeApps
                     objectName: "setupWelcomeNativeApps"
                     visible: root.welcomeNativeAppsVisible
-                    // Always adjacent to Get Started. On narrow screens the
-                    // localized label may wrap, but must never form a new row.
-                    width: root.phone
-                           ? stageAction.width
+                    // Primary action first, download second on compact
+                    // screens; keep logical leading position on desktop.
+                    width: root.stackWelcomeActions
+                           ? setupFooterContent.width
                            : Math.max(0, setupFooterContent.welcomeRowWidth
                                        - Theme.space2 - stageAction.width)
                     height: stageAction.height
-                    x: Theme.rtl
-                       ? stageAction.x + stageAction.width + Theme.space2
-                       : stageAction.x - Theme.space2 - width
-                    y: stageAction.y
+                    x: root.stackWelcomeActions ? 0
+                       : Theme.rtl
+                         ? stageAction.x + stageAction.width + Theme.space2
+                         : stageAction.x - Theme.space2 - width
+                    y: root.stackWelcomeActions
+                       ? stageAction.y + stageAction.height + Theme.space2
+                       : stageAction.y
                     text: qsTrId("genycaster.apps.download_cta_button")
                     iconGlyph: Theme.iconDownload
                     wrapText: true
@@ -1779,8 +1768,8 @@ Item {
             spacing: Theme.space3
             LayoutMirroring.enabled: Theme.rtl
 
-            // The icon, title, supporting copy and progress form one centered
-            // block. The CTA is placed directly beneath it by stageAction.
+            // The icon, title, copy and progress form one centered block.
+            // Actions stay in the fixed footer outside the scrolling content.
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.phone ? 62 : 70

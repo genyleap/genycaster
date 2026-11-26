@@ -20,38 +20,35 @@ test('mobile CTAs use balanced 16dp safe gutters and desktop preserves form inse
   assert.doesNotMatch(footer,/x: stagePanel\.x - setupActionFooter\.x/);
   for (const required of [
     'readonly property real welcomeRowWidth:',
-    'setupFooterContent.welcomeRowWidth - Theme.space2',
-    'setupFooterContent.welcomeRowWidth - width',
+    'width: root.phone ? setupFooterContent.width',
+    'x: root.phone ? 0 : Theme.rtl ? 0 : setupFooterContent.width - width',
     'stageAction.x + stageAction.width + Theme.space2',
     'stageAction.x - Theme.space2 - width',
-    'y: stageAction.y',
-    'Math.max(stageAction.height, setupWelcomeNativeApps.implicitHeight)'
+    'stageAction.y + stageAction.height + Theme.space2',
+    'stageAction.height + Theme.space2 + setupWelcomeNativeApps.height',
+    'Math.max(implicitHeight, setupWelcomeNativeApps.implicitHeight)'
   ]) assert.ok(footer.includes(required),required);
-  assert.ok(!footer.includes('stageAction.y + stageAction.height + Theme.space2'),
-    'mobile welcome must stay in one horizontal row');
   assert.match(footer,/anchors.bottom: parent.bottom/);
   assert.match(setup,/anchors.bottom: setupActionFooter.top/);
   assert.match(footer,/neutralPrimary: false/);
   assert.match(footer,/enabled: !root\.stageTransitioning && root\.actionEnabled\(\)/);
 });
 
-test('320–440dp mobile welcome buttons keep equal edge insets in both directions',()=>{
+test('320–440dp mobile welcome stacks full-width buttons with equal safe insets',()=>{
   const theme=read('ui/theme/Theme.qml');
   assert.match(theme,/readonly property int space4: scaleUi\(16\)/);
-  const gutter=16;
-  const gap=8; // Theme.space2, shared by widths and both x-position formulas
-  for (const viewport of [320, 375, 390, 440]) {
+  const gutter=16, gap=8;
+  for (const viewport of [320,375,390,440]) {
     const usable=viewport-2*gutter;
-    const button=(usable-gap)/2;
-    assert.ok(button>=140, 'welcome button must remain tappable at '+viewport);
     for (const rtl of [false,true]) {
-      const primaryX=rtl ? 0 : usable-button;
-      const secondaryX=rtl ? primaryX+button+gap : primaryX-gap-button;
-      const left=Math.min(primaryX,secondaryX)+gutter;
-      const right=viewport-gutter-Math.max(primaryX+button,secondaryX+button);
-      assert.equal(left,gutter);
-      assert.equal(right,gutter);
-      assert.equal(Math.abs(primaryX-secondaryX)-button,gap);
+      for (const buttonHeight of [58,76,96]) {
+        const primary={x:gutter,y:0,w:usable,h:buttonHeight};
+        const secondary={x:gutter,y:primary.h+gap,w:usable,h:buttonHeight};
+        assert.equal(viewport-primary.x-primary.w,gutter);
+        assert.equal(viewport-secondary.x-secondary.w,gutter);
+        assert.equal(secondary.y-primary.h,gap);
+        assert.equal(secondary.y+secondary.h,2*buttonHeight+gap);
+      }
     }
   }
 });

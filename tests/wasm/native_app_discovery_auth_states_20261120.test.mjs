@@ -27,7 +27,7 @@ test('guest Explore retains its account header without recurring native app prom
     assert.match(shell,/onAuthenticationRequested: root\.openAccountPopup\(\)/);
 });
 
-test('welcome places a secondary download button beside Get Started in the same action row', () => {
+test('welcome stacks native downloads below Get Started on compact screens and preserves desktop alignment', () => {
     assert.match(setup,/readonly property bool welcomeNativeAppsVisible:/);
     assert.match(setup,/Qt\.platform\.os === "wasm"/);
     assert.match(setup,/currentStep === 0 && !reviewMode/);
@@ -43,6 +43,8 @@ test('welcome places a secondary download button beside Get Started in the same 
     assert.match(setup,/anchors\.rightMargin: root\.phone \? Theme\.space4 : root\.setupGutter/);
     assert.match(setup,/stageAction\.x - Theme\.space2 - width/);
     assert.match(setup,/height: stageAction\.height/);
+    assert.match(setup,/readonly property bool stackWelcomeActions: phone && welcomeNativeAppsVisible/);
+    assert.match(setup,/width: root\.stackWelcomeActions\s*\? setupFooterContent\.width/);
     assert.match(setup,/wrapText: true/);
     assert.match(setup,/iconGlyph: Theme\.iconDownload/);
     assert.match(setup,/onClicked: root\.nativeAppDownloadsRequested\(\)/);

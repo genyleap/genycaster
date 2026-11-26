@@ -74,11 +74,9 @@ test('onboarding has one fixed bottom footer, with scrolling content above it',(
   assert.match(setup,/enabled: !root.stageTransitioning && root.actionEnabled\(\)/);
   assert.match(setup,/onClicked: root.nextStep\(\)/);
   assert.match(setup,/objectName: "setupWelcomeNativeApps"/);
-  assert.ok(setup.includes('y: stageAction.y'),
-    'mobile native-app CTA stays adjacent to Get Started');
-  assert.ok(!setup.includes('y: root.phone ? stageAction.y + stageAction.height + Theme.space2'));
-  assert.ok(setup.includes('setupFooterContent.width - setupFooterContent.welcomeRowWidth'),
-    'mobile action pair remains centered as a group');
+  assert.match(setup,/readonly property bool stackWelcomeActions: phone && welcomeNativeAppsVisible/);
+  assert.match(setup,/y: root\.stackWelcomeActions\s*\? stageAction\.y \+ stageAction\.height \+ Theme\.space2\s*: stageAction\.y/);
+  assert.match(setup,/height: \(root\.stackWelcomeActions\s*\? stageAction\.height \+ Theme\.space2 \+ setupWelcomeNativeApps\.height/);
   assert.doesNotMatch(setup,/anchors.top: stageLoader.bottom/);
   assert.match(setup,/implicitHeight: stageLoader.implicitHeight\s+height: implicitHeight/);
 });
