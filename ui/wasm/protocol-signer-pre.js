@@ -369,6 +369,7 @@
                     // are needed only AFTER the 24-word form has opened and
                     // the user has submitted a locally verified phrase.
                     let confirmed=null;
+                    let registeredOpenProof=null;
                     if(action==="recover-hypersnap"){
                         confirmed=await openRecoveryDialog(controller.signal,
                             async phrase=>{
@@ -452,6 +453,24 @@
                                 }catch(error){
                                     console.warn('Farcaster signer activation requires separate authorization');
                                 }
+                                // The verified registration already owns the FID. Enroll the
+                                // private-cloud key while custody material is still in the dialog.
+                                // A temporary OpenProof outage cannot undo paid registration.
+                                try {
+                                    const {deriveFarcasterCustody}=await import('./farcaster_recovery.mjs');
+                                    const custody=await deriveFarcasterCustody(phrase);
+                                    try {
+                                        if(!isCurrent()||custody.address.toLowerCase()!==established.address.toLowerCase())
+                                            throw Error('Registration identity changed');
+                                        const {verifyRecoveredFarcasterIdentity}=await import('./openproof_recovery.mjs');
+                                        registeredOpenProof=await verifyRecoveredFarcasterIdentity({
+                                            fid:established.fid,custody,gatewayOrigin:deployment.browserGateway,
+                                            signal:controller.signal});
+                                        const {ensureBrowserCloudDeviceSession}=await import('./browser_account_session.mjs');
+                                        await ensureBrowserCloudDeviceSession({fid:established.fid,
+                                            bearer:registeredOpenProof.accountTicket,signal:controller.signal});
+                                    }finally{custody.dispose();}
+                                }catch {if(!isCurrent())throw Error('Registration cancelled');}
                                 return established;
                             },
                         });
@@ -487,7 +506,11 @@
                     if(epoch!==thisEpoch || owner!==verifiedFid
                         || controller.signal.aborted)return;
                     report({kind:'setup-account',phase:'ready',
-                        protocol,fid:verifiedFid,requestId});
+                        protocol,fid:verifiedFid,requestId,
+                        identityIssuer:registeredOpenProof?.issuer||'',
+                        identitySubject:registeredOpenProof?.subject||'',
+                        accountTicket:registeredOpenProof?.accountTicket||'',
+                        accountExpiresSeconds:registeredOpenProof?.expiresSeconds||0});
                 } else if (action === "recover-account") {
                     // This event is accepted by Qt only for the current one-shot
                     // recovery request. No phrase or custody address is sent to Qt.

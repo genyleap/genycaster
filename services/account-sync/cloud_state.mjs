@@ -499,7 +499,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     fetchImpl,issuer:upstream,snapchainOrigin:trustedSnapchainOrigin,
     hypersnapOrigin:trustedHyperSnapOrigin});
   const deviceProof=createCloudDeviceProof({store,issuer:upstream,
-    hypersnapOrigin:trustedHyperSnap,fetchImpl});
+    hypersnapOrigin:trustedHyperSnapOrigin,fetchImpl});
   const readGithubCalendar=createGithubCalendarReader({fetchImpl});
   const leaderboardProfiles=createLeaderboardProfileReader({
     fetchImpl,hypersnapOrigin:trustedHyperSnapOrigin});

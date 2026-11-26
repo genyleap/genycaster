@@ -106,7 +106,11 @@ export async function ensureBrowserCloudDeviceSession({
   const headers={'content-type':'application/json',accept:'application/json'};
   const challengeReply=await fetchImpl(endpoint+'/device/challenge',{
     ...options,method:'POST',headers,body:JSON.stringify(expected)});
-  if(challengeReply.status===404||challengeReply.status===503)return null;
+  if(challengeReply.status===404||challengeReply.status===503){
+    if(enroll)return null; // older service can still accept the fresh OpenProof grant
+    // A persisted cloud key must never downgrade to the social signer on outage.
+    throw Error('Cloud device service unavailable');
+  }
   const challenge=await jsonResponse(challengeReply);
   if(Object.keys(expected).some(k=>challenge[k]!==expected[k])||
      !/^[A-Za-z0-9_-]{43}$/.test(challenge.nonce||''))throw Error('Invalid cloud device challenge');

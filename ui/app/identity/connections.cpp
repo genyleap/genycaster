@@ -563,7 +563,7 @@ bool OpenProofConnectionsController::beginCloudDeviceSession(
             for(auto it=fields.constBegin();it!=fields.constEnd();++it)
                 valid=valid&&object.value(it.key())==it.value();
             if(!valid){
-                if(code==404||code==503)fallback();
+                if(enroll&&(code==404||code==503))fallback();
                 else {m_accountProofError=QStringLiteral("account_session_unavailable");emit stateChanged();}
                 return;
             }
