@@ -466,6 +466,164 @@ void OpenProofConnectionsController::setAccountProofSigner(AccountProofSigner si
         restoreAccountSession();
 }
 
+void OpenProofConnectionsController::setCloudDeviceSigner(CloudDeviceSigner signer)
+{
+    m_cloudDeviceSigner = std::move(signer);
+}
+
+void OpenProofConnectionsController::enrollNativeCloudDevice(
+    const qulonglong fid, QString custody, CloudCustodyPermit permit)
+{
+    if (fid != m_viewerFid || m_viewerNetwork != QStringLiteral("hypersnap") || !permit) return;
+    cancelAccountSessionRequest();
+    m_cloudDeviceAttempted=false;
+    (void)beginCloudDeviceSession(true,std::move(custody),std::move(permit));
+}
+
+bool OpenProofConnectionsController::beginCloudDeviceSession(
+    const bool enroll, QString custody, CloudCustodyPermit permit)
+{
+#if defined(Q_OS_WASM)
+    Q_UNUSED(enroll); Q_UNUSED(custody); Q_UNUSED(permit);
+    return false;
+#else
+    if (!m_cloudDeviceSigner || !m_viewerFid || m_cloudDeviceAttempted ||
+        m_accountProofSigning || m_accountProofRequest || m_sessionRequest || m_sessionRevoking ||
+        !trustedHttpsEndpoint(m_cloudUrl) ||
+        m_cloudUrl.adjusted(QUrl::RemovePath|QUrl::RemoveQuery|QUrl::RemoveFragment) !=
+            QUrl{QString::fromUtf8(genycaster::deployment::publicOrigin.data())}) return false;
+    const auto viewer=m_viewerFid;
+    const auto network=m_viewerNetwork;
+    if(network!=QStringLiteral("farcaster")&&network!=QStringLiteral("hypersnap"))return false;
+    if(enroll && (network==QStringLiteral("farcaster")?m_accountBearer.isEmpty():!permit))return false;
+    m_cloudDeviceAttempted=true;
+    const auto generation=m_grantGeneration;
+    const auto serial=++m_accountProofSignSerial;
+    const auto current=[this,viewer,network,generation,serial] {
+        return viewer==m_viewerFid&&network==m_viewerNetwork&&generation==m_grantGeneration&&
+            serial==m_accountProofSignSerial&&!m_sessionRevoking;
+    };
+    const auto fallback=[this,current,enroll,network] {
+        if(!current())return;
+        m_accountProofSigning=false;
+        // Rollout compatibility. A strict server rejects the legacy social proof.
+        if(enroll&&network==QStringLiteral("farcaster")&&!m_accountBearer.isEmpty())
+            bootstrapAccountSession();
+        else if(!m_cloudSessionVerified&&!m_accountProofAttempted)beginSignedAccountSession();
+        emit stateChanged();
+    };
+    const auto request=[this](const QString& path) {
+        QUrl url=m_cloudUrl;url.setPath(path);url.setQuery(QString{});
+        QNetworkRequest result{url};
+        result.setAttribute(QNetworkRequest::RedirectPolicyAttribute,QNetworkRequest::ManualRedirectPolicy);
+        result.setTransferTimeout(10'000);
+        result.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+        result.setRawHeader("Accept","application/json");
+        result.setRawHeader("Origin",QByteArray{genycaster::deployment::publicOrigin.data()});
+        return result;
+    };
+    const auto signer=m_cloudDeviceSigner;
+    const auto purpose=enroll?QStringLiteral("enroll"):QStringLiteral("restore");
+    m_accountProofSigning=true;
+    emit stateChanged();
+    auto* prepareWatcher=new QFutureWatcher<std::optional<AccountSignerProof>>(this);
+    connect(prepareWatcher,&QFutureWatcher<std::optional<AccountSignerProof>>::finished,this,
+      [this,prepareWatcher,current,fallback,request,signer,viewer,network,purpose,enroll,
+       custody=std::move(custody),permit=std::move(permit)]() mutable {
+        const auto prepared=prepareWatcher->result();
+        prepareWatcher->deleteLater();
+        if(!current())return;
+        m_accountProofSigning=false;
+        static const QRegularExpression keyFormat{QStringLiteral("^[0-9a-f]{64}$")};
+        if(!prepared||!keyFormat.match(prepared->publicKeyHex).hasMatch()){fallback();return;}
+        const QString key=prepared->publicKeyHex;
+        const QJsonObject fields{{QStringLiteral("purpose"),purpose},{QStringLiteral("network"),network},
+            {QStringLiteral("fid"),QString::number(viewer)},{QStringLiteral("public_key"),key}};
+        auto* challenge=m_network.post(request(QStringLiteral("/api/v1/cloud/session/device/challenge")),
+            QJsonDocument{fields}.toJson(QJsonDocument::Compact));
+        m_accountProofRequest=challenge;
+        connect(challenge,&QNetworkReply::finished,this,
+          [this,challenge,current,fallback,request,signer,viewer,network,enroll,key,fields,
+           custody=std::move(custody),permit=std::move(permit)]() mutable {
+            if(m_accountProofRequest!=challenge){challenge->deleteLater();return;}
+            m_accountProofRequest.clear();
+            const int code=challenge->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            const auto data=challenge->bytesAvailable()<=2048?readOpenReply(challenge):QByteArray{};
+            challenge->deleteLater();
+            if(!current())return;
+            const auto object=QJsonDocument::fromJson(data).object();
+            const QString nonce=object.value(QStringLiteral("nonce")).toString();
+            static const QRegularExpression nonceFormat{QStringLiteral("^[A-Za-z0-9_-]{43}$")};
+            bool valid=code==200&&nonceFormat.match(nonce).hasMatch();
+            for(auto it=fields.constBegin();it!=fields.constEnd();++it)
+                valid=valid&&object.value(it.key())==it.value();
+            if(!valid){fallback();return;}
+            struct DeviceProof final {std::optional<AccountSignerProof> keyProof;std::optional<QString> custodyProof;};
+            auto* watcher=new QFutureWatcher<DeviceProof>(this);
+            m_accountProofSigning=true;
+            emit stateChanged();
+            connect(watcher,&QFutureWatcher<DeviceProof>::finished,this,
+              [this,watcher,current,fallback,request,fields,nonce,custody,enroll,network,key] {
+                const auto proof=watcher->result();
+                watcher->deleteLater();
+                if(!current())return;
+                m_accountProofSigning=false;
+                static const QRegularExpression sigFormat{QStringLiteral("^[0-9a-f]{128}$")};
+                if(!proof.keyProof||proof.keyProof->publicKeyHex!=key||
+                    !sigFormat.match(proof.keyProof->signatureHex).hasMatch()||
+                    (enroll&&network==QStringLiteral("hypersnap")&&!proof.custodyProof)){
+                    fallback();return;
+                }
+                QJsonObject body=fields;
+                body.insert(QStringLiteral("nonce"),nonce);
+                body.insert(QStringLiteral("signature"),proof.keyProof->signatureHex);
+                auto req=request(QStringLiteral("/api/v1/cloud/session/device/proof"));
+                if(enroll&&network==QStringLiteral("farcaster")){
+                    if(m_accountBearer.isEmpty()){fallback();return;}
+                    req.setRawHeader("Authorization","Bearer "+m_accountBearer);
+                }
+                if(proof.custodyProof){
+                    body.insert(QStringLiteral("custody_address"),custody);
+                    body.insert(QStringLiteral("custody_signature"),*proof.custodyProof);
+                }
+                auto* reply=m_network.post(req,QJsonDocument{body}.toJson(QJsonDocument::Compact));
+                m_accountProofRequest=reply;
+                connect(reply,&QNetworkReply::finished,this,[this,reply,current,fallback] {
+                    if(m_accountProofRequest!=reply){reply->deleteLater();return;}
+                    m_accountProofRequest.clear();
+                    const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+                    reply->deleteLater();
+                    if(!current())return;
+                    if(status!=200){fallback();return;}
+                    m_cloudSessionVerified=false;
+                    m_cloudCsrf.clear();
+                    restoreAccountSession();
+                });
+              });
+            watcher->setFuture(QtConcurrent::run(
+              [signer,viewer,network,enroll,key,nonce,permit=std::move(permit)]() mutable {
+                DeviceProof proof{};
+                proof.keyProof=signer(viewer,network,enroll,key,nonce);
+                if(proof.keyProof&&permit)proof.custodyProof=permit(key,nonce);
+                permit={};
+                return proof;
+              }));
+          });
+      });
+    prepareWatcher->setFuture(QtConcurrent::run([signer,viewer,network,enroll]{
+        return signer(viewer,network,enroll,QString{},QString{});
+    }));
+    QTimer::singleShot(45'000,this,[this,current]{
+        if(!current()||(!m_accountProofSigning&&!m_accountProofRequest))return;
+        cancelAccountSessionRequest();
+        m_cloudDeviceAttempted=true;
+        m_accountProofError=QStringLiteral("account_service_unavailable");
+        emit stateChanged();
+    });
+    return true;
+#endif
+}
+
 void OpenProofConnectionsController::beginSignedAccountSession()
 {
     // Account membership is not inferred from a local FID or vault key.
@@ -665,6 +823,7 @@ void OpenProofConnectionsController::restoreAccountSession()
             return cookie.name() == QByteArrayLiteral("__Host-genycaster-account");
         });
     if (!hasAccountCookie) {
+        if (beginCloudDeviceSession(false)) return;
         if (m_accountProofSigner && !m_accountProofAttempted
             && !m_accountProofRequest) {
             beginSignedAccountSession();
@@ -708,6 +867,7 @@ void OpenProofConnectionsController::restoreAccountSession()
         reply->deleteLater();
         if(generation!=m_grantGeneration || viewer!=m_viewerFid) return;
         if (status != 200) {
+            if (status == 401 && beginCloudDeviceSession(false)) return;
             if (status == 401 && m_accountProofSigner && !m_accountProofAttempted)
                 beginSignedAccountSession();
             else {
@@ -727,6 +887,7 @@ void OpenProofConnectionsController::restoreAccountSession()
         if(!genycaster::identity::matchesAccountSessionPrincipal(data, viewer, m_issuerUrl)
             || csrf.size()!=43)return;
         m_cloudSessionVerified=true;
+        m_cloudDeviceVerified=data.value(QStringLiteral("auth_source")).toString()==QStringLiteral("device");
         m_cloudCsrf=csrf;
         m_accountProofError.clear();
         fetchTopics();
@@ -762,9 +923,22 @@ void OpenProofConnectionsController::bootstrapAccountSession()
 {
     if(!m_viewerFid || m_accountBearer.isEmpty()
         || !(m_verified || m_accountBearer.startsWith("recovery."))
-        || m_sessionRevoking || m_cloudSessionVerified
+        || m_sessionRevoking || m_cloudDeviceVerified
         || !trustedHttpsEndpoint(m_cloudUrl))return;
     cancelAccountSessionRequest();
+    if (beginCloudDeviceSession(true)) return;
+#if defined(Q_OS_WASM)
+    if(!m_cloudDeviceAttempted&&m_viewerNetwork==QStringLiteral("farcaster")) {
+        const QByteArray fid=QString::number(m_viewerFid).toUtf8();
+        m_cloudDeviceAttempted=true;
+        const int started=EM_ASM_INT({
+            const bridge=window.__genycasterBrowserSigning;
+            return bridge&&bridge.retryAccountSession(UTF8ToString($0,$1),UTF8ToString($2,$3))?1:0;
+        },fid.constData(),fid.size(),m_accountBearer.constData(),m_accountBearer.size());
+        if(started)return;
+    }
+#endif
+    if(m_cloudSessionVerified)return;
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/session"));
     auto request=QNetworkRequest{url};
@@ -2377,6 +2551,7 @@ void OpenProofConnectionsController::retryAccountSession()
     // A failed earlier attempt (while KEY_ADD was still unconfirmed) must not
     // make a now-active native/Farcaster signer permanently ineligible.
     m_accountProofAttempted = false;
+    m_cloudDeviceAttempted = false;
     m_accountProofError.clear();
     if (!m_accountBearer.isEmpty()
         && (m_verified || m_accountBearer.startsWith("recovery.")))
@@ -2409,6 +2584,7 @@ void OpenProofConnectionsController::retryProEntitlements()
     if (m_sessionRequest || m_accountProofRequest || m_accountProofSigning)
         return;
     m_accountProofAttempted = false;
+    m_cloudDeviceAttempted = false;
     m_accountProofError.clear();
     if (!m_accountBearer.isEmpty()
         && (m_verified || m_accountBearer.startsWith("recovery.")))
@@ -4405,6 +4581,8 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     if(m_viewerFid)revokeAccountSession();
     cancelAccountSessionRequest();
     m_cloudSessionVerified=false;
+    m_cloudDeviceVerified=false;
+    m_cloudDeviceAttempted=false;
     m_cloudCsrf.clear();
     m_accountProofAttempted=false;
     m_proSessionRepairAttempted=false;
@@ -4545,6 +4723,7 @@ void OpenProofConnectionsController::acceptAuthenticatedGrant(
     // Authenticated observer. Do not invalidate that observer's generation
     // unless a previous authenticated grant really needs replacement.
     if (!m_accountBearer.isEmpty()) clearAccountGrant();
+    m_cloudDeviceAttempted=false;
     m_accountBearer = std::move(bearer);
     m_accountSubject = std::move(subject);
     m_grantExpiry.start(std::clamp(expiresSeconds - 10, 1, 3'590) * 1'000);
@@ -4572,6 +4751,7 @@ void OpenProofConnectionsController::acceptRecoveryGrant(
         return;
     }
     if (!m_accountBearer.isEmpty()) clearAccountGrant();
+    m_cloudDeviceAttempted=false;
     m_accountBearer = std::move(ticket);
     m_accountSubject = std::move(subject);
     m_grantExpiry.start(std::clamp(expiresSeconds - 10, 1, 3'590) * 1'000);
@@ -4793,7 +4973,7 @@ void OpenProofConnectionsController::refreshConnections()
             m_verified = true;
             m_cachedSnapshot = false;
             m_bookmarkPoll.start();
-            if(!m_cloudSessionVerified)bootstrapAccountSession();
+            if(!m_cloudDeviceVerified)bootstrapAccountSession();
             if (m_cloudServiceAvailable) {
                 reconcileLinkedIn();
                 pumpBookmarkChanges();

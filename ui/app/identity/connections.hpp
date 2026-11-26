@@ -185,6 +185,11 @@ public:
 
     /** @brief Local, OS-vault-backed account proof. Never exposes private keys. */
     void setAccountProofSigner(AccountProofSigner signer);
+    using CloudDeviceSigner = std::function<std::optional<AccountSignerProof>(
+        qulonglong, const QString& network, bool enroll, const QString& publicKey, const QString& nonce)>;
+    using CloudCustodyPermit = std::function<std::optional<QString>(const QString&, const QString&)>;
+    void setCloudDeviceSigner(CloudDeviceSigner signer);
+    void enrollNativeCloudDevice(qulonglong fid, QString custody, CloudCustodyPermit permit);
     [[nodiscard]] bool cloudServiceAvailable() const noexcept { return m_cloudServiceAvailable; }
     [[nodiscard]] qulonglong activeAccountFid() const noexcept { return m_viewerFid; }
 
@@ -641,6 +646,10 @@ private:
     std::uint64_t m_accountProofSignSerial{};
     QString m_accountProofError{};
     void beginSignedAccountSession();
+    bool beginCloudDeviceSession(bool enroll, QString custody = {}, CloudCustodyPermit permit = {});
+    CloudDeviceSigner m_cloudDeviceSigner{};
+    bool m_cloudDeviceAttempted{};
+    bool m_cloudDeviceVerified{};
     bool m_cloudServiceAvailable{};
     bool m_cloudSessionVerified{};
     bool m_sessionRevoking{};
