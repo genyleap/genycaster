@@ -318,22 +318,19 @@ Superellipse {
                 }
             }
 
-            GenyVideoPlayer {
-                visible: root.isVideo
+            // Quote, image and link cards must never construct a video sink.
+            // VideoPreview owns the poster and creates its player only on Play.
+            Loader {
+                id: embeddedVideoLoader
+                objectName: "embeddedCardVideoPreviewLoader"
                 anchors.fill: parent
-                source: root.isVideo ? (root.embed.url || "") : ""
-                adaptiveSource: root.isVideo ? (root.embed.adaptiveUrl || "") : ""
-                contentType: root.isVideo ? (root.embed.contentType || "") : ""
-                renditions: root.isVideo ? (root.embed.renditions || []) : []
-                posterSource: root.hasPreviewImage ? (root.embed.imageSource || "") : ""
-                mediaLabel: root.hostText.length > 0
-                            ? root.hostText : qsTrId("genycaster.embed.video")
-                curveDepth: Theme.shapeMedia
-                cornerMaskColor: root.fillColor
-                compact: true
-                openOriginalEnabled: true
-                openOriginalUrl: root.embed.url || ""
-                onOpenOriginalRequested: url => root.openRequested(url)
+                active: root.isExternal && root.isVideo
+                visible: active
+                sourceComponent: VideoPreview {
+                    embed: root.embed
+                    compact: true
+                    onOpenRequested: url => root.openRequested(url)
+                }
             }
         }
 
