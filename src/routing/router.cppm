@@ -18,6 +18,7 @@ module;
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 export module farcaster.routing.router;
 
@@ -95,6 +96,10 @@ public:
     /** @brief Changes affinity for future routes atomically; does not alter active requests or signer authority. */
     void setPreferredNetwork(policy::PreferredNetwork network) noexcept;
 
+    /** Same-network, public read pool. Never used for a write or custom pin. */
+    void setPublicReadPool(provider::model::ProviderId primary,
+                           std::vector<provider::model::ProviderId> alternatives);
+
     /**
      * @brief Selects an arbitrary registered provider for one access class.
      * @param access Read, Write, Realtime, or Historical operation access.
@@ -133,6 +138,8 @@ private:
     mutable std::shared_mutex m_preferencesMutex{};
     std::unordered_map<std::string, ProviderPreference> m_accessPreferences{};
     std::unordered_map<std::string, ProviderPreference> m_capabilityPreferences{};
+    provider::model::ProviderId m_publicReadPrimary{};
+    std::vector<provider::model::ProviderId> m_publicReadAlternatives{};
     policy::PolicyEngine m_policyEngine{};
 };
 

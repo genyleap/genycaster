@@ -84,9 +84,9 @@ test('selected reader and measured latency remain distinct from actual API healt
  assert.match(qml,/duration: Theme\.reduceMotion \? 0 : Theme\.motionEmphasis/);
  assert.match(qml,/genycaster\.nodes\.default_choice/);
  assert.match(qml,/https:\/\/hypersnap\.org\/network/);
- for(const name of ['Hypersnap Public','Ardea / Arca','Neynar Hub API','Pinata Hub','Standard Crypto Hub'])
-   assert.ok(qml.includes(name),name);
- assert.match(qml,/genycaster\.nodes\.directory_unverified/);
+ assert.match(qml,/model: providerProfiles\.directoryNodes/);
+ assert.match(qml,/providerProfiles\.probeDirectoryNode/);
+ assert.match(qml,/String\(modelData.status\) === "healthy"/);
 });
 test('self-host provisioning is only an honest, credentials-free future preview',()=>{
  const qml=read('ui/components/settings/NodeManagementPanel.qml');

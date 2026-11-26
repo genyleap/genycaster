@@ -381,18 +381,22 @@ ColumnLayout {
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.Wrap
             }
+            ActionButton {
+                visible: root.showOperatorDirectory
+                Layout.fillWidth: true
+                compact: true
+                quiet: true
+                busy: providerProfiles.directoryLoading
+                enabled: !providerProfiles.directoryLoading
+                text: qsTrId("genycaster.detail.refresh")
+                onClicked: providerProfiles.refreshDirectory()
+            }
             ColumnLayout {
                 visible: root.showOperatorDirectory
                 Layout.fillWidth: true
                 spacing: Theme.space1
                 Repeater {
-                    model: [
-                        { name: "Hypersnap Public", provider: "Hypersnap", host: "haatz.quilibrium.com" },
-                        { name: "Ardea / Arca", provider: "Arca", host: "ardea.arcabot.ai" },
-                        { name: "Neynar Hub API", provider: "Neynar", host: "neynar.com" },
-                        { name: "Pinata Hub", provider: "Pinata", host: "hub.pinata.cloud" },
-                        { name: "Standard Crypto Hub", provider: "Standard Crypto", host: "hub.farcaster.standardcrypto.vc" }
-                    ]
+                    model: providerProfiles.directoryNodes
                     delegate: RowLayout {
                         required property var modelData
                         Layout.fillWidth: true
@@ -417,7 +421,7 @@ ColumnLayout {
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: String(modelData.host)
+                                text: String(modelData.endpoint)
                                 alignToUi: true
                                 font.pixelSize: Theme.typeCaptionSize
                                 color: Theme.inkSubtle
@@ -425,9 +429,24 @@ ColumnLayout {
                             }
                         }
                         DirectionAwareLabel {
-                            text: qsTrId("genycaster.nodes.directory_unverified")
+                            text: root.healthLabel(String(modelData.status))
                             font.pixelSize: Theme.typeCaptionSize
-                            color: Theme.inkMuted
+                            color: String(modelData.status) === "healthy" ? Theme.positive : Theme.inkMuted
+                        }
+                        ActionButton {
+                            compact: true
+                            quiet: true
+                            text: qsTrId("genycaster.nodes.test")
+                            enabled: !providerProfiles.probingAll
+                            onClicked: providerProfiles.probeDirectoryNode(String(modelData.id))
+                        }
+                        ActionButton {
+                            compact: true
+                            quiet: true
+                            text: qsTrId("genycaster.providers.add_read")
+                            enabled: String(modelData.status) === "healthy"
+                                && !providerProfiles.readProfiles.some(item => String(item.id) === String(modelData.id))
+                            onClicked: providerProfiles.addDirectoryReadProfile(String(modelData.id))
                         }
                     }
                 }

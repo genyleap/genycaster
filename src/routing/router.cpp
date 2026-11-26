@@ -1,5 +1,6 @@
 module;
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -53,6 +54,14 @@ CapabilityRouter::CapabilityRouter(
 void CapabilityRouter::setPreferredNetwork(const policy::PreferredNetwork network) noexcept
 {
     m_preferredNetwork.store(network, std::memory_order_relaxed);
+}
+
+void CapabilityRouter::setPublicReadPool(provider::model::ProviderId primary,
+    std::vector<provider::model::ProviderId> alternatives)
+{
+    std::unique_lock lock{m_preferencesMutex};
+    m_publicReadPrimary = std::move(primary);
+    m_publicReadAlternatives = std::move(alternatives);
 }
 
 void CapabilityRouter::setPreferredProviderForAccess(
@@ -114,12 +123,18 @@ CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
 {
     const auto candidates = m_registry.candidatesFor(request.capabilityId);
     std::optional<ProviderPreference> explicitPreference{};
+    bool specificPreference{false};
+    provider::model::ProviderId publicReadPrimary{};
+    std::vector<provider::model::ProviderId> publicReadAlternatives{};
     {
         std::shared_lock lock{m_preferencesMutex};
+        publicReadPrimary = m_publicReadPrimary;
+        publicReadAlternatives = m_publicReadAlternatives;
         const auto specific = m_capabilityPreferences.find(
             capabilityKey(request.capabilityId, request.requiredAccess));
         if (specific != m_capabilityPreferences.end()) {
             explicitPreference = specific->second;
+            specificPreference = true;
         } else {
             const auto general = m_accessPreferences.find(accessKey(request.requiredAccess));
             if (general != m_accessPreferences.end()) {
@@ -133,6 +148,9 @@ CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
         : network == policy::PreferredNetwork::Independent
             ? m_preferredProviders.independent.value
             : m_preferredProviders.hosted.value;
+    const bool sameNetworkPool = request.requiredAccess == capability::model::CapabilityAccess::Read
+        && !specificPreference && explicitPreference && explicitPreference->require
+        && !publicReadPrimary.value.empty() && preferredId == publicReadPrimary.value;
     std::optional<ProviderRoute> best{};
     std::uint64_t bestScore{std::numeric_limits<std::uint64_t>::max()};
     bool bestMatchesPreference{false};
@@ -142,7 +160,10 @@ CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
     for (const registry::RouteCandidate& candidate : candidates) {
         if (explicitPreference && explicitPreference->require
             && candidate.provider.id.value != preferredId) {
-            continue;
+            if (!sameNetworkPool || std::none_of(publicReadAlternatives.cbegin(),
+                    publicReadAlternatives.cend(), [&](const auto& peer) {
+                        return peer.value == candidate.provider.id.value;
+                    })) continue;
         }
         const auto health = m_health.find(candidate.provider.id, request.capabilityId);
         const health::CapabilityHealth* const healthPointer = health ? &*health : nullptr;

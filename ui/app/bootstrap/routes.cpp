@@ -111,7 +111,14 @@ std::optional<ProviderRoutes> loadProviderRoutes(
         QString selectedProtocolOrigin{};
         if (*preferredReadProviderId == "hypersnap-v2") {
             selectedProtocolOrigin = appliedNodeEndpoint;
-        } else if (*preferredReadProviderId != "farcaster-snapchain") {
+        } else if (*preferredReadProviderId == "directory-haatz"
+                   || *preferredReadProviderId == "directory-imgnai"
+                   || *preferredReadProviderId == "directory-castrader") {
+            // Directory profiles are read-only. Preserve the independently
+            // configured canonical HyperSnap origin for signer and submit.
+            selectedProtocolOrigin = appliedNodeEndpoint;
+        } else if (*preferredReadProviderId != "farcaster-snapchain"
+                   && *preferredReadProviderId != "directory-genyleap") {
             const auto match = std::find_if(
                 additionalReadProviders.cbegin(), additionalReadProviders.cend(),
                 [&](const ReadProviderProfile& profile) {

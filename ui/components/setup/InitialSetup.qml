@@ -129,7 +129,7 @@ Item {
     // The authoritative read is safe to perform automatically after wallet
     // backup. Users should not need to discover an extra lookup button.
     function maybeLookupNativeFid() {
-        if (browserReadOnly || registrationProviderId !== "hypersnap-v2"
+        if (!runtimeReady || browserReadOnly || registrationProviderId !== "hypersnap-v2"
             || !nativeCustodyWallet.backupVerified || !nativeRegistrationStatus.active
             || nativeRegistrationStatus.accountLookupChecked
             || nativeRegistrationStatus.accountLookupBusy

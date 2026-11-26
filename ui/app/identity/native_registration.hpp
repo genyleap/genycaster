@@ -19,6 +19,8 @@
 #include <QPointer>
 #include <QString>
 #include <QUrl>
+#include <QStringList>
+#include <functional>
 
 #include <cstdint>
 #include <optional>
@@ -67,6 +69,12 @@ public:
     /** Unexpired, bound-to-this-node anchor information for C++ only. */
     [[nodiscard]] std::optional<Challenge> snapshot() const;
     Q_INVOKABLE void refresh();
+    bool setEndpointBeforeRuntime(const QUrl& endpoint);
+    // Runs parallel read-only probes and completes on the owning Qt thread.
+    // Primary wins when eligible; otherwise the first eligible fallback wins.
+    static void selectBeforeRuntime(const QStringList& candidates, QObject* context,
+                                    std::function<void(QString)> completion,
+                                    int timeoutMs = 5000);
     [[nodiscard]] bool accountLookupBusy() const noexcept { return m_lookupBusy; }
     [[nodiscard]] bool accountLookupChecked() const noexcept { return m_lookupChecked; }
     [[nodiscard]] bool accountLookupFailed() const noexcept { return m_lookupFailed; }

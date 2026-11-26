@@ -70,8 +70,11 @@ public:
 
     [[nodiscard]] bool endpointIsSafe() const noexcept;
     [[nodiscard]] QUrl nodeEndpoint() const { return m_base; }
+    // Startup only: no in-flight request or signed write can be redirected.
+    bool setEndpointBeforeUse(const QUrl& endpoint);
 
 private:
     QNetworkAccessManager m_network{};
     QUrl m_base{};
+    bool m_started{false};
 };

@@ -120,6 +120,7 @@ struct RuntimeConfiguration final {
     std::unordered_map<std::string, std::string> readProviderApiKeys{};
     std::optional<std::string> preferredReadProviderId{};
     bool allowCompatibleReadFallback{false};
+    bool publicReadPool{false};
     std::vector<WriteProviderProfile> additionalWriteProviders{};
     std::optional<std::string> preferredWriteProviderId{};
     std::optional<std::string> authRelayUrl{};

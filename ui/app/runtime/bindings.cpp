@@ -2587,12 +2587,15 @@ void connectSetupConnectionCheck(PresentationBridge& bridge,
             const std::string canonicalLookup =
                 std::string{genycaster::deployment::hypersnapOrigin} + registryPath;
 #if defined(Q_OS_WASM)
-            Q_UNUSED(publisher);
             const std::string gateway{genycaster::deployment::browserGateway};
             const std::string optimismRpc{"https://optimism-rpc.publicnode.com"};
-            const std::string selectedLookup = canonicalLookup;
-            const auto fallback = SetupProbe{SetupProbeKind::HyperSnapGateway,
-                gateway + "/v1/browser/hypersnap/native-account" + custodyQuery};
+            const auto selectedEndpoint = publisher ? publisher->nodeEndpoint() : QUrl{};
+            const std::string selectedLookup = selectedEndpoint.isEmpty() ? canonicalLookup
+                : selectedEndpoint.resolved(QUrl{QString::fromStdString(registryPath)}).toString().toStdString();
+            const std::optional<SetupProbe> fallback = selectedLookup == canonicalLookup
+                ? std::optional{SetupProbe{SetupProbeKind::HyperSnapGateway,
+                    gateway + "/v1/browser/hypersnap/native-account" + custodyQuery}}
+                : std::optional{SetupProbe{SetupProbeKind::HyperSnap, canonicalLookup}};
 #else
             const auto active = runtime.lock();
             const std::string optimismRpc = active ? active->optimismRpcUrl : std::string{};

@@ -510,7 +510,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
 {
     // Keep one validated provider factory. The named options are a lifetime
     // and readability boundary, not a second protocol/signing implementation.
-    return makeRuntime(
+    auto made = makeRuntime(
         configuration.databasePath,
         configuration.networkProxyPolicy,
         configuration.providerBaseUrl,
@@ -535,6 +535,21 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         configuration.appFid,
         configuration.signerAttestationUrl,
         std::move(configuration.approvalLauncher));
+    if (made && configuration.publicReadPool && (*made)->router
+        && application::configuration::configuredDeploymentProfile()
+            != application::configuration::DeploymentProfile::StrictSelfHosted
+        && configuration.preferredReadProviderId.value_or("") == "hypersnap-v2"
+        && std::any_of(configuration.additionalReadProviders.cbegin(), configuration.additionalReadProviders.cend(),
+            [](const auto& profile) {
+                return profile.id == "directory-imgnai"
+                    && profile.endpoint == "https://hypersnap.imgnai.com"
+                    && profile.adapterContract == "hypersnap-v2" && !profile.selfHosted;
+            })) {
+        (*made)->router->setPublicReadPool(
+            farcaster::provider::model::ProviderId{"hypersnap-v2"},
+            {farcaster::provider::model::ProviderId{"directory-imgnai"}});
+    }
+    return made;
 }
 
 foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
@@ -1274,6 +1289,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     }
 #endif
     runtime->requestedReadProviderId = preferredReadProviderId.value_or(std::string{});
+    // Directory peers are read-only; never infer a signer/write adapter from them.
     runtime->allowCompatibleReadFallback = allowCompatibleReadFallback;
     runtime->router = std::make_unique<routing::router::CapabilityRouter>(
         runtime->registry,

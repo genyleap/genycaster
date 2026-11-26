@@ -497,6 +497,29 @@ int main(int argc, char* argv[])
         });
     }
 
+    const bool usePublicReadPool = enableHypersnapDefault
+        && (providerBaseUrlText.isEmpty() || providerBaseUrlText == QStringLiteral("https://haatz.quilibrium.com"))
+        && compiledHypersnapEndpoint == QStringLiteral("https://haatz.quilibrium.com")
+        && settings.value(QStringLiteral("network/nodeSelectionMode"), QStringLiteral("auto")).toString() == QStringLiteral("auto")
+        && configuredProfiles->preferredReadProviderId.value_or("") == "hypersnap-v2"
+        && configuredProfiles->readProviderApiKeys.empty()
+        && std::none_of(additionalReadProviders.cbegin(), additionalReadProviders.cend(), [](const auto& p) {
+            return p.id == "directory-imgnai" && (p.endpoint != "https://hypersnap.imgnai.com" || p.selfHosted);
+        })
+        && !qEnvironmentVariableIsSet("GENYCASTER_HYPERSNAP_BASE_URL")
+        && !qEnvironmentVariableIsSet("GENYCASTER_PREFERRED_READ_PROVIDER_ID")
+        && !std::any_of(arguments.cbegin(), arguments.cend(), [](const QString& arg) {
+            return arg.startsWith(QStringLiteral("--preferred-read-provider-id="))
+                || arg.startsWith(QStringLiteral("--hypersnap-base-url="));
+        });
+    if (usePublicReadPool && std::none_of(additionalReadProviders.cbegin(), additionalReadProviders.cend(),
+            [](const auto& p) { return p.id == "directory-imgnai"; })) {
+        additionalReadProviders.push_back({
+            .id = "directory-imgnai", .displayName = "ImgNai",
+            .endpoint = "https://hypersnap.imgnai.com", .adapterContract = "hypersnap-v2",
+            .selfHosted = false,
+        });
+    }
     std::vector<genycaster::ui::runtime::WriteProviderProfile> additionalWriteProviders{};
     additionalWriteProviders.reserve(configuredProfiles->writeProviders.size());
     for (auto& profile : configuredProfiles->writeProviders) {
@@ -759,11 +782,29 @@ int main(int argc, char* argv[])
     // Use the actual applied HyperSnap node (including user-provided
     // command-line and node-profile overrides) rather than silently probing
     // the built-in public host when a different node was selected.
-    const QString nativeRegistrationEndpoint =
-        providerProfilesController.activeReadContract()
-            == QStringLiteral("hypersnap-v2")
-        ? providerProfilesController.activeReadEndpoint()
-        : compiledHypersnapEndpoint;
+    const bool directoryReadOnly = providerProfilesController.activeReadProviderId()
+        .startsWith(QStringLiteral("directory-"));
+    QString nativeRegistrationEndpoint = directoryReadOnly
+        ? appliedNodeEndpoint
+        : providerProfilesController.activeReadContract() == QStringLiteral("hypersnap-v2")
+            ? providerProfilesController.activeReadEndpoint() : compiledHypersnapEndpoint;
+    const QStringList publicRegistrationOrigins{
+        QStringLiteral("https://haatz.quilibrium.com"),
+        QStringLiteral("https://hypersnap.imgnai.com"),
+        QStringLiteral("https://hypersnap.castrader.xyz")};
+    const QStringList nativeSettingsKeys = settings.allKeys();
+    const bool hasPendingNativeRegistration = std::any_of(
+        nativeSettingsKeys.cbegin(), nativeSettingsKeys.cend(), [](const QString& key) {
+            return key.startsWith(QStringLiteral("nativeRegistration/expiry-v1/"));
+        });
+    const bool automaticRegistration = usePublicReadPool && !directoryReadOnly
+        && !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest;
+    if (automaticRegistration && hasPendingNativeRegistration) {
+        const QString pinned = settings.value(
+            QStringLiteral("nativeRegistration/lastRuntimeOrigin")).toString();
+        // Legacy pending journals were created on the originally configured node.
+        if (publicRegistrationOrigins.contains(pinned)) nativeRegistrationEndpoint = pinned;
+    }
     nativeRegistrationStatusOwner = std::make_unique<NativeRegistrationStatusController>(
         nativeRegistrationEndpoint);
     NativeRegistrationStatusController& nativeRegistrationStatus =
@@ -1644,6 +1685,7 @@ int main(int argc, char* argv[])
             .readProviderApiKeys = readProviderApiKeys,
             .preferredReadProviderId = preferredReadProviderId,
             .allowCompatibleReadFallback = allowCompatibleReadFallback,
+            .publicReadPool = usePublicReadPool,
             .additionalWriteProviders = additionalWriteProviders,
             .preferredWriteProviderId = preferredWriteProviderId,
             .authRelayUrl = authRelayUrl,
@@ -1667,7 +1709,8 @@ int main(int argc, char* argv[])
                                  startupOptions = std::move(startupOptions),
                                  siwfDomain, siwfUri, startupIdentity,
                                  snapchainBaseUrl, authenticationAvailable,
-                                 openExploreForTest]() mutable {
+                                 openExploreForTest](const QString& selectedNativeOrigin) mutable {
+            startupOptions.hyperSnapNativeNodeBaseUrl = selectedNativeOrigin.toStdString();
             auto made = makeRuntime(std::move(startupOptions));
             if (!made) {
                 const QString message = QString::fromStdString(made.error().message);
@@ -1709,13 +1752,55 @@ int main(int argc, char* argv[])
                     }, std::move(readyRuntime));
                 }, Qt::QueuedConnection);
         };
-#if defined(Q_OS_WASM)
-        // A worker thread cannot start in a single-threaded WASM browser runtime.
-        // Defer initialization until Qt's main event loop is active.
-        QTimer::singleShot(0, &application, std::move(bootstrapRuntime));
-#else
-        bootstrap.start(std::move(bootstrapRuntime));
+        auto launchRuntime = [&application, &settings, &nativeRegistrationStatus,
+                              &nativeRegistrationPreparation, &nativeRegistrationPublisher,
+                              &nativeRegistrationEndpoint, automaticRegistration,
+#if !defined(Q_OS_WASM)
+                              &bootstrap,
 #endif
+                              bootstrapRuntime = std::move(bootstrapRuntime)](QString selected) mutable {
+            const QString original = nativeRegistrationEndpoint;
+            if (selected != original) {
+                const QUrl candidate{selected};
+                nativeRegistrationPreparation.cancel();
+                if (!nativeRegistrationPublisher.setEndpointBeforeRuntime(candidate)
+                    || !nativeRegistrationStatus.setEndpointBeforeRuntime(candidate)) {
+                    (void)nativeRegistrationPublisher.setEndpointBeforeRuntime(QUrl{original});
+                    (void)nativeRegistrationStatus.setEndpointBeforeRuntime(QUrl{original});
+                    selected = original;
+                }
+            }
+            if (automaticRegistration) {
+                // Persist the origin before any native registration can submit.
+                // A pending journal then restores this exact origin after restart.
+                settings.setValue(QStringLiteral("nativeRegistration/lastRuntimeOrigin"), selected);
+                settings.sync();
+                if (settings.status() != QSettings::NoError && selected != original) {
+                    (void)nativeRegistrationPublisher.setEndpointBeforeRuntime(QUrl{original});
+                    (void)nativeRegistrationStatus.setEndpointBeforeRuntime(QUrl{original});
+                    selected = original;
+                }
+            }
+            nativeRegistrationEndpoint = selected;
+            auto start = [bootstrapRuntime = std::move(bootstrapRuntime),
+                          selected = std::move(selected)]() mutable { bootstrapRuntime(selected); };
+#if defined(Q_OS_WASM)
+            QTimer::singleShot(0, &application, std::move(start));
+#else
+            bootstrap.start(std::move(start));
+#endif
+        };
+        if (automaticRegistration && !hasPendingNativeRegistration) {
+            // Both native and WASM use Qt's event loop. No blocking startup
+            // network I/O, no QML HTTP calls, and no submission in this probe.
+            QTimer::singleShot(0, &application,
+                [&application, publicRegistrationOrigins, launch = std::move(launchRuntime)]() mutable {
+                    NativeRegistrationStatusController::selectBeforeRuntime(
+                        publicRegistrationOrigins, &application, std::move(launch));
+                });
+        } else {
+            launchRuntime(nativeRegistrationEndpoint);
+        }
     }
 
     const int smokeCheck = genycaster::ui::diagnostics::configureSmokeTests(
