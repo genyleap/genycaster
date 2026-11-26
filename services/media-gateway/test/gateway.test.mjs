@@ -42,9 +42,11 @@ function signerFetch(url) {
     signers: [{
       key: signerKey,
       fid: requestedFid,
+      keyType:1,
       source: 'SIGNER_SOURCE_OFFCHAIN',
       scopes: ['MESSAGE_TYPE_CAST_ADD'],
-      expiresAt: Math.floor(nowMs / 1000) + 3600,
+      ttl:3600,lastUsedAt:Math.floor(nowMs/1000)-1609459200,
+      expiresAt:Math.floor(nowMs/1000)-1609459200+3600,
     }],
     nextPageToken: '',
   }), {
@@ -1036,6 +1038,7 @@ test('native HyperSnap media uploader verifies signer only at its native node',a
       key:signerKey,fid:String(nativeFid),keyType:1,
       source:'SIGNER_SOURCE_OFFCHAIN',
       scopes:['MESSAGE_TYPE_CAST_ADD'],
+      ttl:600,lastUsedAt:Math.floor(nowMs/1000)-1609459200,
       expiresAt:Math.floor(nowMs/1000)-1609459200+600,
     }],nextPageToken:''}),{status:200,
       headers:{'content-type':'application/json'}});

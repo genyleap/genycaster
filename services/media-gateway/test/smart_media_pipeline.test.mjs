@@ -81,8 +81,10 @@ async function withGateway(action,{isPro=false}={}) {
     const parsed=new URL(target);
     assert.equal(parsed.pathname,'/v1/signersByFid');
     return new Response(JSON.stringify({
-      signers:[{key:signerKey,fid,source:'SIGNER_SOURCE_OFFCHAIN',
-        scopes:['MESSAGE_TYPE_CAST_ADD'],expiresAt:Math.floor(nowMs/1000)+3600}],
+      signers:[{key:signerKey,fid,keyType:1,source:'SIGNER_SOURCE_OFFCHAIN',
+        scopes:['MESSAGE_TYPE_CAST_ADD'],ttl:3600,
+        lastUsedAt:Math.floor(nowMs/1000)-1609459200,
+        expiresAt:Math.floor(nowMs/1000)-1609459200+3600}],
       nextPageToken:'',
     }),{status:200,headers:{'content-type':'application/json'}});
   };

@@ -15,6 +15,7 @@ const ownerKey=o=>o.issuer+'/'+o.subject;
 const nonceMessage=nonce=>Buffer.from('genycaster-account-session-v1\n'+fid+'\n'+nonce);
 const signerRow=(overrides={})=>({fid,key:'0x'+pub,keyType:1,
   source:'SIGNER_SOURCE_OFFCHAIN',scopes:['MESSAGE_TYPE_CAST_ADD'],
+  ttl:3600,lastUsedAt:Math.floor(Date.now()/1000)-1609459200,
   ...overrides});
 function storeStub() {
   const sessions=new Map(),profiles=new Map(),drafts=new Map();
@@ -136,6 +137,10 @@ test('unregistered, expired or wrong-scoped signer cannot create sessions',async
     null,signerRow({fid:'999'}),
     signerRow({scopes:['MESSAGE_TYPE_REACTION_ADD']}),
     signerRow({source:'SIGNER_SOURCE_OFFCHAIN',expiresAt:1}),
+    signerRow({ttl:undefined}),signerRow({lastUsedAt:undefined}),
+    signerRow({ttl:0}),signerRow({ttl:7776001}),
+    signerRow({lastUsedAt:1,ttl:60,expiresAt:undefined}),
+    signerRow({lastUsedAt:1,ttl:60,expiresAt:Math.floor(Date.now()/1000)-1609459200+3600}),
   ];
   for(const signer of variants){
     const ctx=await runCase(signer);

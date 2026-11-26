@@ -1,7 +1,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import { Readable } from 'node:stream';
-import {serverDeployment} from '../deployment_config.mjs';
+import {serverDeployment,isActiveGaslessSigner} from '../deployment_config.mjs';
 import { defaultBrowserImageHosts, rasterMimeFromBytes, retrieveBrowserImage, validImageUrl, validPublicFaviconUrl } from './browser_image_proxy.mjs';
 import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
 import { publicTokenSnapshot } from './browser_token_insights.mjs';
@@ -361,21 +361,12 @@ async function signerIsAuthorized(config, fid, signerKey, fetchImpl, nowSeconds)
     for (const signer of document.signers) {
       const key = String(signer?.key || '').toLowerCase().replace(/^0x/, '');
       if (key !== signerKey || Number(signer?.fid) !== fid
-          || (signer.keyType != null && Number(signer.keyType) !== 1)) continue;
+          || Number(signer.keyType) !== 1) continue;
       if (signer.source === 'SIGNER_SOURCE_ONCHAIN') return true;
       if (signer.source !== 'SIGNER_SOURCE_OFFCHAIN') continue;
       if (!Array.isArray(signer.scopes)
           || !signer.scopes.includes('MESSAGE_TYPE_CAST_ADD')) continue;
-      // Hub signer timestamps are Farcaster-epoch seconds (since 2021-01-01),
-      // not Unix seconds. Accept either explicit wire unit, but never an
-      // expired signer or a missing CAST_ADD scope.
-      if (signer.expiresAt != null) {
-        const expiration = Number(signer.expiresAt);
-        if (!Number.isSafeInteger(expiration) || expiration <= 0) continue;
-        const current = expiration >= 1_000_000_000
-          ? nowSeconds : nowSeconds - 1609459200;
-        if (expiration <= current) continue;
-      }
+      if (!isActiveGaslessSigner(signer,nowSeconds)) continue;
       return true;
     }
     pageToken = String(document.nextPageToken || '');

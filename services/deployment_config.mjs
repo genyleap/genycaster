@@ -63,3 +63,25 @@ export function serverDeployment(env = process.env) {
     throw new Error('The trusted issuer must be isolated from the public application origin');
   return deployment;
 }
+
+// Shared server-side signer registry trust policy. The Snapchain wire clock
+// uses seconds since 2021-01-01, not Unix seconds. Match the native and WASM
+// signer validators: missing TTL/last-use metadata is not proof of validity.
+function wireUint32(value) {
+  if(typeof value!=='number' &&
+     !(typeof value==='string' && /^(0|[1-9][0-9]{0,9})$/.test(value))) return null;
+  const number=Number(value);
+  return Number.isSafeInteger(number) && number>=0 && number<=0xffffffff ? number : null;
+}
+
+export function isActiveGaslessSigner(signer, nowUnixSeconds) {
+  const now=nowUnixSeconds-1609459200;
+  const ttl=wireUint32(signer?.ttl);
+  const lastUsed=wireUint32(signer?.lastUsedAt);
+  if(!Number.isSafeInteger(now) || now<0 ||
+     ttl===null || ttl===0 || ttl>7776000 ||
+     lastUsed===null || lastUsed>now+300) return false;
+  const expiry=lastUsed+ttl;
+  if(expiry>0xffffffff || expiry<=now) return false;
+  return signer.expiresAt==null || wireUint32(signer.expiresAt)===expiry;
+}

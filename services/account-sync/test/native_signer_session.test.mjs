@@ -20,6 +20,7 @@ function signer(originToTrust, signerScope=['MESSAGE_TYPE_CAST_ADD'], clockMs=no
     return new Response(JSON.stringify({signers:[{
       fid:actual.searchParams.get('fid'),key,keyType:1,
       source:'SIGNER_SOURCE_OFFCHAIN',scopes:signerScope,
+      ttl:600,lastUsedAt:Math.floor(clockMs/1000)-1609459200,
       expiresAt:Math.floor(clockMs/1000)-1609459200+600,
     }]}),{status:200,headers:{'content-type':'application/json'}});
   };
@@ -183,6 +184,7 @@ test('Native HyperSnap account cookie restores verified Streak and rejects cross
     return new Response(JSON.stringify({signers:[{
       fid:nativeFid,key,keyType:1,source:'SIGNER_SOURCE_OFFCHAIN',
       scopes:['MESSAGE_TYPE_CAST_ADD'],
+      ttl:600,lastUsedAt:Math.floor(Date.now()/1000)-1609459200,
       expiresAt:Math.floor(Date.now()/1000)-1609459200+600,
     }]}),{status:200});
   };

@@ -2,7 +2,7 @@
 // Farcaster Ed25519 signer remains on-device. The server independently checks
 // signer registration in Snapchain before issuing a Genycaster account cookie.
 import {createPublicKey,randomBytes,verify} from 'node:crypto';
-import {serverDeployment,trustedOrigin} from '../deployment_config.mjs';
+import {serverDeployment,trustedOrigin,isActiveGaslessSigner} from '../deployment_config.mjs';
 
 // Native HyperSnap uses uint64 FIDs. JavaScript Number silently rounds
 // registry identities above 2^53; keep every principal as canonical decimal
@@ -67,10 +67,7 @@ async function checkSigner(fid,key,fetchImpl,nowMs,snapchainOrigin) {
       if(signer.source!=='SIGNER_SOURCE_OFFCHAIN')continue;
       if(!Array.isArray(signer.scopes) ||
          !signer.scopes.includes('MESSAGE_TYPE_CAST_ADD'))continue;
-      if(signer.expiresAt!=null &&
-          (!Number.isFinite(Number(signer.expiresAt)) ||
-            Number(signer.expiresAt)<=Math.floor(nowMs/1000)-1609459200))
-        continue;
+      if(!isActiveGaslessSigner(signer,Math.floor(nowMs/1000)))continue;
       return true;
     }
     if(!body.nextPageToken)return false;
