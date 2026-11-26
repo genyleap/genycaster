@@ -2783,12 +2783,13 @@ void connectRuntime(
         const auto observedSession = runtime->currentSessionSnapshot();
         QMetaObject::invokeMethod(
             &bridge,
-            [&bridge, runtime, state = std::move(state), observedSession]() mutable {
+            [&bridge, &richComposer, runtime, writeObserver, resumeAuthorizedWrites,
+             ready, authorityTerminated, state = std::move(state), observedSession]() mutable {
                 const auto current = runtime->currentSessionSnapshot();
                 // A queued result from the prior account must not mark the
                 // new account write-ready or launch another custody request.
                 if (state.phase == application::signer::SignerPhase::SignedOut) {
-                    if (bridge.isAuthenticated()) return;
+                    if (current || bridge.isAuthenticated()) return;
                 } else if (!observedSession || !current || !bridge.isAuthenticated()
                            || current->fid.value != observedSession->fid.value
                            || current->identityIssuer != observedSession->identityIssuer
@@ -2801,22 +2802,20 @@ void connectRuntime(
                     return;
                 }
                 applySignerState(bridge, std::move(state));
+                // Never act on a stale authority event for a different account.
+                if (authorityTerminated && runtime->writeService) {
+                    (void)runtime->writeService->invalidatePendingAuthority(
+                        observedSession, writeObserver);
+                } else if (ready) {
+                    resumeAuthorizedWrites();
+#if FARCASTER_HAS_MEDIA_UPLOAD
+                    scheduleManagedMediaCleanup(richComposer, runtime);
+#else
+                    Q_UNUSED(richComposer);
+#endif
+                }
             },
             Qt::QueuedConnection);
-        if (authorityTerminated) {
-            if (runtime->writeService) {
-                (void)runtime->writeService->invalidatePendingAuthority(
-                    runtime->currentSessionSnapshot(), writeObserver);
-            }
-        } else if (ready) {
-            resumeAuthorizedWrites();
-#if FARCASTER_HAS_MEDIA_UPLOAD
-            QMetaObject::invokeMethod(
-                &richComposer,
-                [&richComposer, runtime] { scheduleManagedMediaCleanup(richComposer, runtime); },
-                Qt::QueuedConnection);
-#endif
-        }
     };
 
     // Backoff deadlines are persisted in SQLite, not in a Qt timer. The
@@ -2846,9 +2845,11 @@ void connectRuntime(
             resumeAuthorizedWrites();
         });
 
-    const auto sessionObserver = [&bridge, runtime, authenticationAvailable, signerObserver
+    const auto sessionObserver = [&bridge, runtime, authenticationAvailable
 #if defined(Q_OS_WASM)
         , browserSigner
+#else
+        , signerObserver
 #endif
         ] (application::session::SessionState state) {
             const auto signerSession = state.session;
@@ -2924,7 +2925,14 @@ void connectRuntime(
             // The browser bridge owns its WebCrypto signer lifecycle. A native
             // fallback must not overwrite the browser's ready state.
             if (runtime->signerService) {
-                (void)runtime->signerService->restore(signerSession, signerObserver);
+                auto restored = runtime->signerService->restore(signerSession, signerObserver);
+                if (!restored) {
+                    signerObserver(application::signer::SignerState{
+                        .phase = signerSession ? application::signer::SignerPhase::Unavailable
+                                               : application::signer::SignerPhase::SignedOut,
+                        .error = std::move(restored.error()),
+                    });
+                }
             } else if (signerSession) {
                 application::signer::SignerState signerState{
                     .phase = application::signer::SignerPhase::Unavailable,

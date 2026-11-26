@@ -34,7 +34,7 @@ test('native FID session renewal only after matching shard-zero registry and loc
   assert.ok(!runtime.includes('renewed.identityIssuer = "farcaster:optimism-id-registry"'));
 });
 
-test('native expired sessions do not continuously retry queued writes',()=>{
+test('expired non-registry sessions do not continuously retry queued writes',()=>{
   const runtime=read('ui/app/runtime/bindings.cpp');
   const writes=read('src/application/write.cpp');
   assert.match(runtime,/const auto resumeAuthorizedWrites = \[runtime, writeObserver\]/);
@@ -91,4 +91,14 @@ test('native connections identify separate OpenProof wallet links, never fake FI
   const profile=read('ui/components/profile/ProfileSurface.qml');
   assert.doesNotMatch(profile,/genycaster\.profile\.native_username_registration_pending/);
   assert.match(profile,/objectName: "profileProtocolUsername"[\s\S]*?visible: !root\.accountIsNativeCustody/);
+});
+
+test('signer readiness and pending writes are scoped to the currently authenticated identity',()=>{
+  const runtime=read('ui/app/runtime/bindings.cpp');
+  const bridge=read('src/presentation/qt/presentation_bridge.cpp');
+  assert.match(runtime,/current->identityIssuer != observedSession->identityIssuer/);
+  assert.match(runtime,/current->identitySubject != observedSession->identitySubject/);
+  assert.match(runtime,/applySignerState\(bridge, std::move\(state\)\);[\s\S]*?invalidatePendingAuthority\(\s*observedSession, writeObserver\)/);
+  assert.match(runtime,/#if !defined\(Q_OS_WASM\)\s*\/\/ The browser bridge owns its WebCrypto signer lifecycle/);
+  assert.match(bridge,/else if \(accountRowsChanged\) \{[\s\S]*?m_writeReady = false;[\s\S]*?m_signerPhase = QStringLiteral\("checking"\)/);
 });
