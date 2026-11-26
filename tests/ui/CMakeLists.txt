@@ -477,6 +477,20 @@ add_test(NAME ui.openproof_connections COMMAND farcaster_openproof_connections_t
 set_tests_properties(ui.openproof_connections PROPERTIES TIMEOUT 10
     LABELS "ui;openproof;connections;security")
 
+# Explicit opt-in: run against a real OS-backed keychain, never production keys.
+if(NOT EMSCRIPTEN AND NOT ANDROID AND TARGET farcaster_platform_signer)
+    find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+    add_executable(genycaster_secure_vault_tests secure_vault_tests.cpp)
+    target_link_libraries(genycaster_secure_vault_tests PRIVATE
+        Qt6::Core farcaster::platform_signer OpenSSL::Crypto)
+    target_compile_features(genycaster_secure_vault_tests PRIVATE cxx_std_26)
+    set_property(TARGET genycaster_secure_vault_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+    farcaster_enable_warnings(genycaster_secure_vault_tests)
+    add_test(NAME ui.secure_vault_live COMMAND genycaster_secure_vault_tests)
+    set_tests_properties(ui.secure_vault_live PROPERTIES SKIP_RETURN_CODE 77
+        TIMEOUT 90 LABELS "security;integration;secure-vault")
+endif()
+
 add_executable(farcaster_channel_picker_controller_tests
     channel_picker_controller_tests.cpp
     "${genycasterUiSourceDir}/app/social/channels.cpp"

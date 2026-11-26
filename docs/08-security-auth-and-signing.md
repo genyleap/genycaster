@@ -267,6 +267,24 @@ legacy social-signer cookies and proofs are rejected. Unmigrated principals
 remain compatible until global strict mode is enabled with
 `GENYCASTER_ALLOW_LEGACY_SIGNER_SESSIONS=0` after migrations 017–018 and client rollout.
 
+### Local security acceptance
+
+Run the application authentication/session/signer CTest targets and the
+OpenProof connections controller with assertions active. The opt-in
+`ui.secure_vault_live` test requires `GENYCASTER_TEST_SECURE_VAULT=1` and
+a real unlocked OS keychain; it creates uniquely named QA-only services,
+checks independent Ed25519 keys, reload, signature verification and erasure,
+then removes those test keys. It must not use an application credential namespace.
+
+For database acceptance, migrate a disposable PostgreSQL database named
+`genycaster_qa` on loopback through migrations 001–018, grant the API role
+its normal schema/table privileges, and set `GENYCASTER_QA_DATABASE_URL` to
+that restricted runtime connection before running
+`node --test test/cloud_device_pg_integration.test.mjs` in
+`services/account-sync`. This opt-in fixture exercises the real SQL store
+and must never point at production. Delete the disposable database after QA.
+Retain compatibility mode until verified clients are rolled out.
+
 ### Reference comparison
 
 The official Farcaster mobile client's AuthTokenProvider, WalletProvider,
