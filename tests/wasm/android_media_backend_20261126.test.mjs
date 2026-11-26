@@ -1,0 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+test('Android selects FFmpeg explicitly before media construction and requires deployed plugin',()=>{
+ const main=read('ui/app/main.cpp'),cmake=read('ui/CMakeLists.txt'),packageCheck=read('ci/verify_platform_package.py');
+ assert.match(main,/QPlatformMediaIntegration::setBackend\(QStringLiteral\("ffmpeg"\)\)/);
+ assert.ok(main.indexOf('QPlatformMediaIntegration::setBackend') < main.indexOf('QQmlApplicationEngine engine'));
+ assert.match(main,/ro\.boot\.qemu", emulatorMedia[\s\S]*?QT_FFMPEG_DECODING_HW_DEVICE_TYPES", ","/);
+ assert.match(main,/QT_DISABLE_HW_TEXTURES_CONVERSION", "1"/);
+ assert.match(main,/QQuickWindow::setGraphicsApi\(QSGRendererInterface::Vulkan\)/);
+ assert.match(cmake,/MultimediaPrivate/);
+ const policy=read('cmake/platform/Android/configure.cmake');
+ const workflow=read('.github/workflows/ci.yml');
+ assert.match(cmake,/genycaster_android_configure_media_backend\(genycaster\)/);
+ assert.match(policy,/INCLUDE_BY_TYPE multimedia Qt6::QFFmpegMediaPlugin/);
+ assert.match(policy,/elseif\(_binary\)/);
+ assert.match(policy,/QT_ANDROID_EXTRA_PLUGINS/);
+ assert.match(policy,/if\(GENYCASTER_REQUIRE_ANDROID_FFMPEG\)/);
+ assert.match(workflow,/-DGENYCASTER_REQUIRE_ANDROID_FFMPEG=ON/);
+ assert.match(packageCheck,/libplugins_multimedia_ffmpegmediaplugin_/);
+});

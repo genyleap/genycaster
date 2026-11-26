@@ -1,5 +1,6 @@
 #include "media_playback_coordinator.hpp"
 
+#include <QDebug>
 #include <QMetaMethod>
 #include <QMetaObject>
 #include <QMediaPlayer>
@@ -115,10 +116,13 @@ bool MediaPlaybackCoordinator::claimPrimary(QObject* const player)
     if (m_activePlayer == player) {
         return true;
     }
-    if (m_activePlayer != nullptr) {
-        suspendPlayer(m_activePlayer);
-    }
+    // Publish ownership before revoking the previous session: its synchronous
+    // cleanup may call release() and must not clear the new owner's lease.
+    const QPointer<QObject> previous = m_activePlayer;
     m_activePlayer = player;
+    if (previous != nullptr) {
+        suspendPlayer(previous.data());
+    }
     emit activePlayerChanged();
     return true;
 }
@@ -130,6 +134,17 @@ void MediaPlaybackCoordinator::release(QObject* const player)
     }
     m_activePlayer = nullptr;
     emit activePlayerChanged();
+}
+
+void MediaPlaybackCoordinator::releaseAll()
+{
+    const QPointer<QObject> previous = m_activePlayer;
+    m_activePlayer = nullptr;
+    if (previous) {
+        suspendPlayer(previous.data());
+        emit activePlayerChanged();
+    }
+    closeBrowserHls();
 }
 
 bool MediaPlaybackCoordinator::isPrimary(QObject* const player) const
@@ -197,6 +212,13 @@ bool MediaPlaybackCoordinator::openBrowserHls(const QString& source) const
 #endif
 }
 
+void MediaPlaybackCoordinator::closeBrowserHls() const
+{
+#ifdef Q_OS_WASM
+    EM_ASM({ window.__genycasterBrowserHls?.close(); });
+#endif
+}
+
 qulonglong MediaPlaybackCoordinator::prepareSource(const QString& source)
 {
     const qulonglong requestId = m_nextSourcePreparationId++;
@@ -220,11 +242,23 @@ qulonglong MediaPlaybackCoordinator::prepareSource(const QString& source)
                 return;
             }
             if (remote) {
+#if !defined(Q_OS_WASM)
+                // A speculative HEAD on the application HTTP transport must
+                // never veto an otherwise valid FFmpeg media GET. The Qt
+                // backend owns redirects, TLS, ranges and decode errors.
+                if (!url.userInfo().isEmpty()) {
+                    emit guard->sourcePreparationFailed(requestId, source, QString{});
+                    return;
+                }
+                qInfo() << "Genycaster: Native media source delegated to playback backend";
+                emit guard->sourcePrepared(requestId, source);
+#else
                 if (guard->m_sourcePreparationBackend.start) {
                     guard->m_sourcePreparationBackend.start(requestId, source);
                 } else {
                     emit guard->sourcePreparationFailed(requestId, source, QString{});
                 }
+#endif
                 return;
             }
             emit guard->sourcePrepared(requestId, source);

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Window
 import QtQuick.Layouts
 import Farcaster.Client
 
@@ -30,6 +31,17 @@ Item {
     property bool primeVideoFrame: false
     property bool showFailureText: width >= 180
     property bool userPlayback: false
+    MediaResourceScope {
+        id: resourceScope
+        owner: root
+        onEligibleChanged: if (!eligible) root.releasePlayback()
+        onRevoked: root.releasePlayback()
+    }
+    Timer {
+        id: releaseTimer
+        interval: 0
+        onTriggered: root.releasePlayback()
+    }
     property bool primedVideoFrame: false
 
     // Intrinsic raster ratio for Composer layouts. The preview must reserve
@@ -53,14 +65,22 @@ Item {
 
     clip: false
 
+    function releasePlayback() {
+        if (resourceScope) resourceScope.releaseReservation()
+        root.userPlayback = false
+    }
+    Component.onDestruction: root.releasePlayback()
+
     onSourceChanged: {
         root.userPlayback = false
+        root.releasePlayback()
         root.primedVideoFrame = false
     }
 
     onIsVideoChanged: {
         if (!isVideo) {
             root.userPlayback = false
+            root.releasePlayback()
             root.primedVideoFrame = false
         }
     }
@@ -101,11 +121,8 @@ Item {
         borderWidth: 0
     }
 
-    // Full-fidelity image for authored attachments. Deliberately omit
-    // sourceSize so Qt decodes the canonical image at its intrinsic pixels.
-    // No JPEG thumbnail, extra image recompression, blur or second texture
-    // masking pass. The shared bounded path above remains the default for
-    // feed cards, videos and other non-authoring surfaces.
+    // Full-fidelity image for authored attachments: decode the canonical source, but bound the
+    // display raster to the physical viewport. The uploaded bytes are unchanged.
     Image {
         id: fullImage
         anchors.fill: parent
@@ -113,7 +130,10 @@ Item {
         source: visible ? root.source : ""
         fillMode: Image.PreserveAspectFit
         asynchronous: true
-        cache: true
+        cache: false
+        readonly property int decodeEdge: Math.min(Qt.platform.os === "android" || Qt.platform.os === "ios" || Qt.platform.os === "wasm" ? 2048 : 4096,
+            Math.max(256, Math.ceil(Math.max(width, height) * Screen.devicePixelRatio / 256) * 256))
+        sourceSize: Qt.size(decodeEdge, decodeEdge)
         smooth: true
         mipmap: false
     }
@@ -126,13 +146,17 @@ Item {
         objectName: "mediaPreviewVideoLoader"
         anchors.fill: parent
         anchors.margins: root.showBorder ? 1 : 0
-        active: root.isVideo && root.hasSource && root.userPlayback
+        active: root.isVideo && root.hasSource && root.userPlayback && resourceScope.eligible
         visible: active && !root.failed
         onLoaded: {
-            if (root.userPlayback && root.isVideo && root.hasSource && item)
+            if (resourceScope.eligible && root.userPlayback && root.isVideo && root.hasSource && item
+                    && resourceScope.handoffPlayback())
                 item.resumePlayback()
+            else
+                releaseTimer.restart()
         }
         sourceComponent: GenyVideoPlayer {
+            onResourceRevoked: releaseTimer.restart()
             source: root.source
             interactive: false
             showChrome: false
@@ -195,7 +219,10 @@ Item {
         enabled: root.interactive && root.isVideo && root.hasSource && !root.failed
         gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: {
+            if (!resourceScope.eligible) return
             if (!videoLoader.item) {
+                releaseTimer.stop()
+                if (!resourceScope.reservePlayback()) return
                 // First tap constructs the player; onLoaded owns activation.
                 root.primedVideoFrame = true
                 root.userPlayback = true

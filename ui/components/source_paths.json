@@ -104,6 +104,7 @@
   "MarketTrend.qml": "home/MarketTrend.qml",
   "MediaGallery.qml": "media/MediaGallery.qml",
   "MediaPreview.qml": "media/MediaPreview.qml",
+  "MediaResourceScope.qml": "media/MediaResourceScope.qml",
   "MediaUploadPanel.qml": "composer/MediaUploadPanel.qml",
   "MiniAppArtPlaceholder.qml": "apps/ArtPlaceholder.qml",
   "MiniAppFeaturedCarousel.qml": "apps/FeaturedCarousel.qml",

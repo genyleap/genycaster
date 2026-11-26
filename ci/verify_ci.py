@@ -286,7 +286,9 @@ def main() -> None:
                 encoding="utf-8"), qt_source
 
     assert 'import genycaster.ui.bootstrap.worker;' in entry
-    assert "bootstrap.start(std::move(bootstrapRuntime));" in entry
+    assert "bootstrap.start(std::move(start));" in entry
+    assert "bootstrapRuntime(selected, directoryRows);" in entry
+    assert "QTimer::singleShot(0, &application, std::move(start));" in entry
     assert "bootstrap.join();" in entry
     assert 'import genycaster.ui.bootstrap.teardown;' in entry
     assert "bootstrap::releaseQmlRoots(engine, mainWindow);" in entry

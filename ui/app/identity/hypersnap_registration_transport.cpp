@@ -76,6 +76,17 @@ HyperSnapRegistrationTransport::HyperSnapRegistrationTransport(
     : QObject{parent}, m_base{std::move(base)}
 {}
 
+bool HyperSnapRegistrationTransport::setEndpointBeforeUse(const QUrl& endpoint)
+{
+    if (endpoint == m_base) return true;
+    if (m_started) return false;
+    const auto previous = m_base;
+    m_base = endpoint;
+    if (endpointIsSafe()) return true;
+    m_base = previous;
+    return false;
+}
+
 bool HyperSnapRegistrationTransport::endpointIsSafe() const noexcept
 {
     if (!m_base.isValid() || m_base.host().isEmpty()
@@ -95,6 +106,7 @@ bool HyperSnapRegistrationTransport::endpointIsSafe() const noexcept
 void HyperSnapRegistrationTransport::lookupByCustody(
     const QString& address, LookupCallback onResult)
 {
+    m_started = true;
     if (!endpointIsSafe() || !validCustodyAddress(address)) {
         onResult({LookupState::InvalidResponse});
         return;
@@ -164,6 +176,7 @@ void HyperSnapRegistrationTransport::lookupByCustody(
 void HyperSnapRegistrationTransport::submit(
     const QByteArray& protobufEnvelope, SubmitCallback onResult)
 {
+    m_started = true;
     if (!endpointIsSafe() || protobufEnvelope.isEmpty()
         || protobufEnvelope.size() > MaxPayloadBytes) {
         onResult({SubmitState::Rejected});

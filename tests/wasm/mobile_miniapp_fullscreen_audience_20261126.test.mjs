@@ -1,0 +1,34 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+test('audience selector shares compact theme metrics without fixed segment geometry',()=>{
+ const qml=read('ui/components/home/HomeFeedHeader.qml');
+ assert.match(qml,/segmentPadding: root\.compact \? Theme\.space1 : Theme\.space2/);
+ assert.match(qml,/Layout\.preferredHeight: Theme\.compactControlHeight - Theme\.space1/);
+ assert.match(qml,/Math\.max\(everyoneMetrics\.advanceWidth, followingMetrics\.advanceWidth\)/);
+ assert.match(qml,/Layout\.preferredWidth: audienceSelector\.availableSegmentWidth/);
+ assert.match(qml,/Accessible\.checked: scopeOption\.selected/);
+ assert.doesNotMatch(qml,/Math\.max\(44, Theme\.compactControlHeight\)/);
+});
+test('mobile uses native SDK adapters and a single visible host',()=>{
+ const android=read('properties/Android/src/com/genyleap/genycaster/MiniAppBrowser.java');
+ const ios=read('ui/app/miniapp/browser_ios.m');
+ const shell=read('ui/components/shell/AppShell.qml');
+ const cmake=read('ui/CMakeLists.txt');
+ const runtime=read('ui/app/miniapp/runtime.cpp');
+ const workflow=read('.github/workflows/ci.yml');
+ const apk=read('ci/verify_platform_package.py');
+ assert.match(android,/MATCH_PARENT,WindowManager.LayoutParams.MATCH_PARENT/);
+ assert.match(android,/onBackPressed\(\)/);
+ assert.match(ios,/self.surface.frame=window.bounds/);
+ assert.match(ios,/safeAreaLayoutGuide/);
+ assert.match(shell,/&& !miniAppHost.nativeSdkAvailable/);
+ assert.match(runtime,/#if defined\(Q_OS_ANDROID\) \|\| defined\(Q_OS_IOS\)\s+return false;/);
+ assert.match(cmake,/GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=1/);
+ assert.match(cmake,/GENYCASTER_HAS_IOS_MINIAPP_SDK_HOST=1/);
+ assert.match(workflow,/GENYCASTER_MOBILE_MINIAPP_SDK_READY:INTERNAL=ON.*build\/android\/CMakeCache\.txt/);
+ assert.match(workflow,/GENYCASTER_MOBILE_MINIAPP_SDK_READY:INTERNAL=ON.*build\/ios\/CMakeCache\.txt/);
+ assert.match(apk,/Lcom\/genyleap\/genycaster\/MiniAppBrowser;/);
+ assert.match(apk,/GenyIOSBrowser/);
+});

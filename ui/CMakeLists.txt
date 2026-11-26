@@ -60,6 +60,7 @@ set(farcasterQmlFiles
     components/settings/FeedbackDialog.qml
     components/composer/ComposerInsertPanel.qml
     components/composer/MediaUploadPanel.qml
+    components/media/MediaResourceScope.qml
     components/media/MediaPreview.qml
     components/navigation/FloatingComposeButton.qml
     components/media/FarcasterPreview.qml
@@ -200,9 +201,8 @@ if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
     list(APPEND farcasterQmlFiles components/media/AnimatedEmojiLottie.qml)
 endif()
 
-# Android uses the platform WebView for public Mini App web content. No
-# privileged SDK / signer bridge is exposed to that untrusted web surface.
-if(ANDROID)
+# The legacy public-only viewer is not compiled into native SDK builds.
+if((ANDROID OR IOS) AND NOT FARCASTER_ENABLE_MINIAPPS)
     list(APPEND farcasterQmlFiles components/apps/AndroidWebView.qml)
 endif()
 
@@ -215,7 +215,7 @@ file(GLOB_RECURSE farcasterDiscoveredQmlFiles
 if(NOT Qt6Lottie_FOUND OR Qt6_VERSION VERSION_LESS 6.11)
     list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/media/AnimatedEmojiLottie.qml)
 endif()
-if(NOT ANDROID)
+if((NOT ANDROID AND NOT IOS) OR FARCASTER_ENABLE_MINIAPPS)
     list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/apps/AndroidWebView.qml)
 endif()
 # The Linux-only WebEngine Quick host is loaded dynamically from a separate
@@ -571,7 +571,29 @@ endif()
 option(GENYCASTER_REQUIRE_LINUX_MINIAPP_HOST
     "Require Linux Qt WebEngine Mini App SDK host instead of an external-browser fallback" OFF)
 set(_genycasterMiniAppBrowserAvailable OFF)
-if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+if(FARCASTER_ENABLE_MINIAPPS AND ANDROID)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Svg)
+    add_library(farcaster_miniapp_browser STATIC app/miniapp/browser_android.cpp)
+    target_compile_features(farcaster_miniapp_browser PRIVATE cxx_std_26)
+    target_link_libraries(farcaster_miniapp_browser PRIVATE Qt6::Core Qt6::Gui Qt6::Svg)
+    farcaster_enable_warnings(farcaster_miniapp_browser)
+    set(_genycasterMiniAppBrowserAvailable ON)
+    target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=1)
+elseif(FARCASTER_ENABLE_MINIAPPS AND IOS)
+    enable_language(OBJC)
+    add_library(farcaster_miniapp_browser STATIC
+        app/miniapp/browser_macos.cpp app/miniapp/browser_ios.m)
+    target_compile_features(farcaster_miniapp_browser PRIVATE cxx_std_26)
+    set_source_files_properties(app/miniapp/browser_ios.m PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+    find_library(_genyUIKit UIKit REQUIRED)
+    find_library(_genyWebKit WebKit REQUIRED)
+    find_library(_genyFoundation Foundation REQUIRED)
+    target_link_libraries(farcaster_miniapp_browser PRIVATE
+        Qt6::Core Qt6::Gui Qt6::Network "${_genyUIKit}" "${_genyWebKit}" "${_genyFoundation}")
+    farcaster_enable_warnings(farcaster_miniapp_browser)
+    set(_genycasterMiniAppBrowserAvailable ON)
+    target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_IOS_MINIAPP_SDK_HOST=1)
+elseif(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     include("${CMAKE_SOURCE_DIR}/cmake/platform/macOS/configure.cmake")
     genycaster_macos_setup_browser()
     set(_genycasterMiniAppBrowserAvailable ON)
@@ -640,7 +662,7 @@ if(_genycasterMiniAppBrowserAvailable)
     set_property(TARGET farcaster_miniapp_runtime PROPERTY CXX_SCAN_FOR_MODULES ON)
     target_compile_features(farcaster_miniapp_runtime PUBLIC cxx_std_26)
     target_link_libraries(farcaster_miniapp_runtime PUBLIC Qt6::Core farcaster::capabilities
-        PRIVATE Qt6::Network farcaster_miniapp_browser)
+        PRIVATE Qt6::Gui Qt6::Network farcaster_miniapp_browser)
     # SIWF identity verification is a separate chain-backed authorization
     # operation. It does not select/change the Farcaster write/read provider.
     if(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS)
@@ -654,6 +676,10 @@ if(_genycasterMiniAppBrowserAvailable)
     farcaster_enable_warnings(farcaster_miniapp_runtime)
     target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_MINIAPP_HOST=1)
     target_link_libraries(genycaster PRIVATE farcaster_miniapp_runtime)
+    if(ANDROID OR IOS)
+        set(GENYCASTER_MOBILE_MINIAPP_SDK_READY ON CACHE INTERNAL "Native mobile Mini App SDK composed" FORCE)
+        message(STATUS "Native mobile Mini App SDK: shared runtime and isolated native browser")
+    endif()
 else()
     target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_MINIAPP_HOST=0)
 endif()
@@ -709,9 +735,10 @@ target_compile_definitions(genycaster
 if(ANDROID)
     # QAndroidActivityResultReceiver opens scoped ACTION_OPEN_DOCUMENT
     # without asking for broad Android media or storage permissions.
-    find_package(Qt6 6.12 REQUIRED COMPONENTS Svg CorePrivate)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Svg CorePrivate MultimediaPrivate)
+    genycaster_android_configure_media_backend(genycaster)
     target_sources(genycaster PRIVATE app/media/android_document_picker.hpp)
-    target_link_libraries(genycaster PRIVATE Qt6::Svg Qt6::CorePrivate)
+    target_link_libraries(genycaster PRIVATE Qt6::Svg Qt6::CorePrivate Qt6::MultimediaPrivate)
 endif()
 
 if(ANDROID AND TARGET Qt6Keychain::Qt6Keychain)
@@ -1091,6 +1118,35 @@ if(FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER)
     target_link_libraries(genycaster PRIVATE farcaster::provider_compatibility_browser_wallet)
 else()
     target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_BROWSER_WALLET_AUTHORIZER=0)
+endif()
+
+# Bundle the same pinned WalletConnect transport used by WASM into a
+# first-party native resource. The isolated loopback consent page is the
+# only consumer, never the Mini App's WebView.
+if((ANDROID OR IOS) AND FARCASTER_ENABLE_MINIAPPS)
+    find_program(GENYCASTER_NODE_EXECUTABLE node REQUIRED)
+    find_program(GENYCASTER_NPM_EXECUTABLE npm REQUIRED)
+    set(_walletSrc "${CMAKE_CURRENT_SOURCE_DIR}/wasm/host-sdk")
+    set(_walletStage "${CMAKE_CURRENT_BINARY_DIR}/native-wallet-sdk")
+    set(_walletBundle "${_walletStage}/genycaster-walletconnect.mjs")
+    set(_walletFiles package.json package-lock.json build.mjs walletconnect-entry.mjs walletconnect-eip1193.mjs)
+    set(_walletDependencies "")
+    foreach(_file IN LISTS _walletFiles)
+        list(APPEND _walletDependencies "${_walletSrc}/${_file}")
+    endforeach()
+    add_custom_command(OUTPUT "${_walletBundle}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${_walletStage}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${_walletDependencies} "${_walletStage}"
+        COMMAND ${GENYCASTER_NPM_EXECUTABLE} ci --prefix "${_walletStage}" --ignore-scripts --no-audit --no-fund
+        COMMAND ${GENYCASTER_NODE_EXECUTABLE} "${_walletStage}/build.mjs"
+            "${_walletStage}/walletconnect-entry.mjs" "${_walletBundle}"
+        DEPENDS ${_walletDependencies}
+        COMMENT "Bundling pinned native WalletConnect transport"
+        VERBATIM)
+    set_source_files_properties("${_walletBundle}" PROPERTIES GENERATED TRUE
+        QT_RESOURCE_ALIAS "genycaster-walletconnect.mjs")
+    qt_add_resources(genycaster genycaster_native_wallet_transport
+        PREFIX "/genycaster/miniapp" FILES "${_walletBundle}")
 endif()
 
 # First-party Pro checkout also requires the EIP-1193 bridge when Mini Apps
@@ -1593,9 +1649,33 @@ qt_add_resources(genycaster genycaster_release_notes
     FILES "${GENYCASTER_RELEASE_NOTES_FILE}"
 )
 
-if(ANDROID)
-    find_package(Qt6 6.12 REQUIRED COMPONENTS WebView)
-    target_link_libraries(genycaster PRIVATE Qt6::WebView)
+if((ANDROID OR IOS) AND NOT FARCASTER_ENABLE_MINIAPPS)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS WebView WebViewQuick)
+    if(ANDROID)
+        set(_genycasterMobileWebViewPlugin Qt6::QAndroidWebViewPlugin)
+    else()
+        set(_genycasterMobileWebViewPlugin Qt6::QDarwinWebViewPlugin)
+    endif()
+    if(TARGET ${_genycasterMobileWebViewPlugin})
+        set(genycaster_mobile_webview_plugins INCLUDE_BY_TYPE webview ${_genycasterMobileWebViewPlugin})
+    elseif(IOS)
+        message(FATAL_ERROR "Static iOS Mini Apps require the platform WebView plugin target")
+    else()
+        # Android deploys shared Qt plugins; the final APK verifier checks
+        # both the platform plugin and the QML plugin rather than target names.
+        message(STATUS "Android WebView: using Qt dynamic plugin deployment")
+    endif()
+    if(IOS AND NOT TARGET Qt6::qtwebviewquickplugin)
+        message(FATAL_ERROR "Static iOS Mini Apps require the QtWebView QML plugin target")
+    endif()
+    target_link_libraries(genycaster PRIVATE Qt6::WebView Qt6::WebViewQuick)
+    if(IOS)
+        # Static iOS QML plugin registration must not depend on runtime loading.
+        target_link_libraries(genycaster PRIVATE Qt6::qtwebviewquickplugin)
+    endif()
+    target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW=1)
+    set(GENYCASTER_MOBILE_MINIAPP_WEBVIEW_READY ON CACHE INTERNAL "Mobile public WebView host composed" FORCE)
+    message(STATUS "Native mobile Mini App host: public HTTPS QtWebView (no privileged SDK)")
 endif()
 
 set_source_files_properties("components/composer/ProCastPolicy.js" PROPERTIES QT_RESOURCE_ALIAS "components/ProCastPolicy.js")
@@ -1744,14 +1824,16 @@ if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
             Qt6::LottieVectorImageHelpersplugin)
         qt_import_plugins(genycaster
             INCLUDE Qt6::QLottieVectorImagePlugin
+            ${genycaster_android_media_plugins} ${genycaster_mobile_webview_plugins}
             EXCLUDE_BY_TYPE sqldrivers)
     else()
         qt_import_plugins(genycaster
             INCLUDE Qt6::QLottieVectorImagePlugin
+            ${genycaster_android_media_plugins} ${genycaster_mobile_webview_plugins}
             EXCLUDE_BY_TYPE sqldrivers)
     endif()
 else()
-    qt_import_plugins(genycaster EXCLUDE_BY_TYPE sqldrivers)
+    qt_import_plugins(genycaster ${genycaster_android_media_plugins} ${genycaster_mobile_webview_plugins} EXCLUDE_BY_TYPE sqldrivers)
 endif()
 
 set(farcasterTranslationFiles

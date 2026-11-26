@@ -1,0 +1,22 @@
+[Unit]
+Description=Genycaster public node directory
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+# Optional operator-managed JSON; increment revision for every change.
+# Environment=GENYCASTER_NODE_DIRECTORY_FILE=/opt/genycaster/node-directory-service/nodes.json
+LoadCredential=directory-key.pem:/opt/genycaster/node-directory-service/directory-key.pem
+ExecStart=/usr/bin/node /opt/genycaster/node-directory-service/node_directory_start.mjs
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

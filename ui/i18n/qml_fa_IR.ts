@@ -1721,6 +1721,50 @@ Company | https://company.com</source>
             <source>Hide nodes</source>
             <translation>بستن فهرست</translation>
         </message>
+        <message id="genycaster.nodes.device_preflight">
+            <source>Device preflight: %1</source>
+            <translation>بررسی اولیهٔ دستگاه: %1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_registry">
+            <source>Selected registration registry: %1</source>
+            <translation>رجیستری منتخب ثبت‌نام: %1</translation>
+        </message>
+        <message id="genycaster.nodes.directory_live">
+            <source>Directory: live (verified)</source>
+            <translation>دایرکتوری: آنلاین (تأییدشده)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_cached">
+            <source>Directory: cached (verified)</source>
+            <translation>دایرکتوری: کش معتبر</translation>
+        </message>
+        <message id="genycaster.nodes.directory_embedded">
+            <source>Directory unavailable · configured nodes only</source>
+            <translation>دایرکتوری در دسترس نیست · فقط نودهای تنظیم‌شده</translation>
+        </message>
+        <message id="genycaster.nodes.directory_server_health">
+            <source>Node health reported by server</source>
+            <translation>سلامت نودها از دید سرور</translation>
+        </message>
+        <message id="genycaster.nodes.server_observation">
+            <source>Server: %1</source>
+            <translation>سرور: %1</translation>
+        </message>
+        <message id="genycaster.nodes.device_observation">
+            <source>This device: %1</source>
+            <translation>این دستگاه: %1</translation>
+        </message>
+        <message id="genycaster.nodes.monitor_only">
+            <source>Monitoring only · no compatible reader adapter</source>
+            <translation>فقط پایش · بدون آداپتور خواندن سازگار</translation>
+        </message>
+        <message id="genycaster.nodes.configured_primary">
+            <source>Configured primary reader</source>
+            <translation>نود اصلی تنظیم‌شده برای خواندن</translation>
+        </message>
+        <message id="genycaster.nodes.primary_reader">
+            <source>Primary reader</source>
+            <translation>نود اصلی خواندن</translation>
+        </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
             <translation>نمونه‌هایی از فهرست شبکهٔ HyperSnap؛ وضعیت فعلی اینجا تأیید نشده است. برای اتصال، آدرس API سازگار را اضافه کنید.</translation>
@@ -2240,6 +2284,10 @@ Company | https://company.com</source>
         <message id="genycaster.miniapp.invalid_manifest">
             <source>The app manifest is missing or invalid.</source>
             <translation>اطلاعات معرفی برنامه موجود نیست یا معتبر نیست.</translation>
+        </message>
+        <message id="genycaster.miniapp.navigation_blocked">
+            <source>This app tried to navigate outside its original site. Open it again to retry.</source>
+            <translation>این برنامه تلاش کرد از سایت اصلی خود خارج شود. برای تلاش مجدد، آن را دوباره باز کنید.</translation>
         </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
@@ -7908,6 +7956,10 @@ FID، نام کاربری و پروفایل عمومی، کست‌ها، پاس�
         <message id="genycaster.setup.recovery_signer_consent">
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>اجازه می‌دهم برای این دستگاه کلید امضای مستقل ساخته شود تا پس از تأیید شبکه، انتشار و تعاملات بدون تأیید تکراری انجام شوند.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>۱۲ یا ۲۴ واژهٔ بازیابی را به‌ترتیب وارد کنید</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>

@@ -8,7 +8,7 @@ test('quoted cast and image cards do not construct a hidden video player',()=>{
     assert.match(preview,/id: castReferenceComponent\s+EmbedCard \{/);
     assert.doesNotMatch(card,/\b(?:GenyVideoPlayer|MediaPlayer|VideoOutput)\s*\{/);
     assert.match(card,/id: embeddedVideoLoader[\s\S]*?active: root.isExternal && root.isVideo[\s\S]*?sourceComponent: VideoPreview \{/);
-    assert.match(card,/sourceComponent: VideoPreview \{\s*embed: root.embed\s*compact: true\s*onOpenRequested: url => root.openRequested\(url\)/);
+    assert.match(card,/sourceComponent: VideoPreview \{\s*embed: root.embed\s*compact: true\s*cornerCoverColor: root\.fillColor\s*onOpenRequested: url => root.openRequested\(url\)/);
 });
 test('shared feed player is created only after explicit Play and unloaded on source reuse',()=>{
     const video=read('ui/components/media/VideoPreview.qml');
@@ -23,7 +23,7 @@ test('shared feed player is created only after explicit Play and unloaded on sou
 test('embedded video corners use the parent surface color without creating an eager player',()=>{
     const card=read('ui/components/media/EmbedCard.qml');
     const preview=read('ui/components/media/VideoPreview.qml');
-    assert.match(card,/sourceComponent: VideoPreview \{[\s\S]*?cornerMaskColor: root\.fillColor/);
-    assert.match(preview,/property color cornerMaskColor: Theme\.background/);
-    assert.match(preview,/cornerMaskColor: root\.cornerMaskColor/);
+    assert.match(card,/sourceComponent: VideoPreview \{[\s\S]*?cornerCoverColor: root\.fillColor/);
+    assert.match(preview,/property color cornerCoverColor: Theme\.backgroundPrimary/);
+    assert.match(preview,/cornerMaskColor: root\.cornerCoverColor/);
 });

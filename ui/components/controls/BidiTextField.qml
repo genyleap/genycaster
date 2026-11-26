@@ -77,7 +77,10 @@ TextField {
     placeholderTextColor: Theme.inkSubtle
     selectionColor: Theme.primarySurfaceHover
     selectedTextColor: Theme.ink
-    font.family: Theme.fontFamilyForText(analyzedText)
+    // Use a consistent filled password mask instead of the platform style glyph.
+    passwordCharacter: "\u2022"
+    passwordMaskDelay: 0
+    font.family: Theme.fontFamilyForText(echoMode === TextInput.Normal ? analyzedText : "abc")
     font.pixelSize: Theme.typeLabelSize
     hoverEnabled: true
     opacity: root.enabled ? 1.0 : 0.58

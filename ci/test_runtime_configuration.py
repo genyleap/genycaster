@@ -25,6 +25,8 @@ EXPECTED_FIELDS = (
     "readProviderApiKeys",
     "preferredReadProviderId",
     "allowCompatibleReadFallback",
+    "publicReadPool",
+    "publicReadPeerIds",
     "additionalWriteProviders",
     "preferredWriteProviderId",
     "authRelayUrl",
@@ -71,17 +73,21 @@ class RuntimeStartupPolicyTest(unittest.TestCase):
         marker = "makeRuntime(\n    RuntimeConfiguration configuration)\n{"
         self.assertEqual(self.implementation.count(marker), 1)
         body = self.implementation.split(marker, 1)[1].split("\n}\n", 1)[0]
-        forwarded = tuple(re.findall(r"configuration\.([A-Za-z]\w*)", body))
-        self.assertEqual(forwarded, EXPECTED_FIELDS)
+        factory_body = body.split("std::move(configuration.approvalLauncher)", 1)[0] + "configuration.approvalLauncher"
+        forwarded = tuple(re.findall(r"configuration\.([A-Za-z]\w*)", factory_body))
+        self.assertEqual(forwarded, tuple(field for field in EXPECTED_FIELDS if field not in ("publicReadPool", "publicReadPeerIds")))
+        self.assertIn("configuration.publicReadPool", body)
         self.assertIn("std::move(configuration.approvalLauncher)", body)
-        self.assertIn("return makeRuntime(", body)
+        self.assertIn("auto made = makeRuntime(", body)
+        self.assertIn("return made;", body)
 
     def test_application_owns_one_named_snapshot(self) -> None:
         marker = "auto startupOptions = genycaster::ui::runtime::RuntimeConfiguration{"
         self.assertEqual(self.entry.count(marker), 1)
         body = self.entry.split(marker, 1)[1].split("\n        };", 1)[0]
         named = tuple(re.findall(r"\.([A-Za-z]\w*)\s*=", body))
-        self.assertEqual(named, EXPECTED_FIELDS)
+        self.assertEqual(named, tuple(field for field in EXPECTED_FIELDS if field != "publicReadPeerIds"))
+        self.assertIn("startupOptions.publicReadPeerIds.push_back(id)", self.entry)
         self.assertIn(".approvalLauncher = makeWalletApprovalLauncher(", body)
         self.assertIn("makeRuntime(std::move(startupOptions))", self.entry)
         self.assertIn("startupOptions = std::move(startupOptions)", self.entry)

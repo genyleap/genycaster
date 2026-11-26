@@ -212,5 +212,9 @@
     return true;
   }
 
+  window.addEventListener("pagehide", close);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) close();
+  });
   window.__genycasterBrowserHls = {open, close};
 })();

@@ -150,37 +150,61 @@ def blockers() -> list[str]:
                 "QtWebEngineProcess.exe",
                 "qtwebenginequickplugin.dll")):
         errors.append("Windows: no verified origin-bound native Mini App SDK host")
-    # Android's v1 Mini App scope is an explicitly advertised public-only
-    # preview, not an EIP-1193 wallet host. This is a supported limitation,
-    # provided that every layer retains the unprivileged origin-lock boundary.
-    # A Release may never claim SDK support just because public pages render.
-    android_scope = "-DGENYCASTER_ANDROID_MINIAPP_SCOPE=public-only"
-    android_qml = read("ui/components/apps/AndroidWebView.qml")
-    shell = read("ui/components/shell/AppShell.qml")
-    cmake = read("CMakeLists.txt")
-    public_only = (
-        android_scope in android
-        and "set(GENYCASTER_ANDROID_MINIAPP_SCOPE \"public-only\" CACHE STRING" in cmake
-        and 'if(NOT GENYCASTER_ANDROID_MINIAPP_SCOPE STREQUAL "public-only")' in cmake
-        and 'if(FARCASTER_ENABLE_MINIAPPS)' in cmake
-        and "components/apps/AndroidWebView.qml" in ui
-        and 'import QtWebView' in android_qml
-        and "function publicOrigin(candidate)" in android_qml
-        and "function blockForeignNavigation(index, destination)" in android_qml
-        and "if (root.blockForeignNavigation(index, nextUrl)) stop()" in android_qml
-        and 'url: model.blocked ? "" : String(model.url)' in android_qml
-        and 'active: Qt.platform.os === "android"' in shell
-        and "AndroidMiniAppWebView.qml" in shell
-        and not re.search(
-            r"runJavaScript\s*\(|addJavascriptInterface|nativeWallet|"
-            r"signOpenProofWalletChallenge|GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST"
-            r"|WebChannel|WebEngine",
-            android_qml, re.IGNORECASE)
+    # Native mobile SDKs use the existing C++ runtime, not a public-only
+    # WebView. Verify the actual adapters and package gates on both platforms.
+    android_scope = "-DGENYCASTER_ANDROID_MINIAPP_SCOPE=native-sdk"
+    java = read("properties/Android/src/com/genyleap/genycaster/MiniAppBrowser.java")
+    apple = read("ui/app/miniapp/browser_ios.m")
+    wire = read("ui/app/miniapp/browser_mobile_bridge.h")
+    package = read("ci/verify_platform_package.py")
+    ios = workflow.split("  ios:\n", 1)[1].split("  web:\n", 1)[0]
+    common_sdk = (
+        "GENYCASTER_MOBILE_MINIAPP_SDK_READY" in ui
+        and "genycaster_native_wallet_transport" in ui
+        and "window !== window.top" in wire
+        and "documentToken===token" in wire
+        and "nativeSdkAvailable" in read("ui/components/shell/AppShell.qml")
+        and "walletConnectModule" in read("src/providers/compatibility/browser_wallet/bridge.cpp")
+        and "BrowserRole::WalletApproval" in read("ui/app/miniapp/host.cpp")
+        and "showNativeApproval && m_config.nativeApprovalSettled" in read("src/providers/compatibility/browser_wallet/bridge.cpp")
     )
-    if not public_only:
-        errors.append(
-            "Android: public-only Mini App scope is not explicitly declared "
-            "and verified; privileged SDK/wallet access remains unavailable")
+    android_sdk = (
+        common_sdk and android_scope in android
+        and "-DFARCASTER_ENABLE_MINIAPPS=ON" in android
+        and "-DFARCASTER_ENABLE_BROWSER_WALLET_BRIDGE=ON" in android
+        and "GENYCASTER_MOBILE_MINIAPP_SDK_READY:INTERNAL=ON" in android
+        and "GENYCASTER_HAS_ANDROID_MINIAPP_SDK_HOST=1" in ui
+        and "app/miniapp/browser_android.cpp" in ui
+        and "androidx.webkit:webkit:1.12.1" in read("properties/Android/Configure.cmake")
+        and "WebViewCompat.addDocumentStartJavaScript" in java
+        and "WebViewCompat.addWebMessageListener" in java
+        and "!isMainFrame || !allowed(sourceOrigin)" in java
+        and "epoch==generation" in java
+        and "WebViewCompat.setProfile(web,profile)" in java
+        and "handler.cancel()" in java
+        and "request.deny()" in java
+        and "addJavascriptInterface" not in java
+        and "Lcom/genyleap/genycaster/MiniAppBrowser;" in package
+        and "Landroidx/webkit/ProfileStore;" in package
+    )
+    if not android_sdk:
+        errors.append("Android: native Mini App SDK origin, runtime or package contract missing")
+    ios_sdk = (
+        common_sdk and "-DFARCASTER_ENABLE_MINIAPPS=ON" in ios
+        and "-DFARCASTER_ENABLE_BROWSER_WALLET_BRIDGE=ON" in ios
+        and "GENYCASTER_MOBILE_MINIAPP_SDK_READY:INTERNAL=ON" in ios
+        and "GENYCASTER_HAS_IOS_MINIAPP_SDK_HOST=1" in ui
+        and "app/miniapp/browser_ios.m" in ui
+        and "WKWebsiteDataStore.nonPersistentDataStore" in apple
+        and "WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES" in apple
+        and "!message.frameInfo.isMainFrame" in apple
+        and "message.frameInfo.securityOrigin" in apple
+        and "epoch!=owner.generation" in apple
+        and "WKPermissionDecisionDeny" in apple
+        and "GenyIOSBrowser" in package
+    )
+    if not ios_sdk:
+        errors.append("iOS: native Mini App SDK origin, runtime or package contract missing")
 
     # The browser uses its own origin-filtered Farcaster JS iframe host.
     # The native Qt Mini App *runtime* remains intentionally disabled in

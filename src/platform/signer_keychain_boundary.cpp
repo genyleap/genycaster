@@ -43,6 +43,7 @@ using CfPtr = std::unique_ptr<std::remove_pointer_t<T>, CfRelease>;
     return Failure{
         .context = std::move(context),
         .nativeStatus = static_cast<std::int64_t>(status),
+        .authorizationDenied = status == errSecUserCanceled || status == errSecAuthFailed,
     };
 }
 

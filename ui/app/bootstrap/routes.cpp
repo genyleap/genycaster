@@ -111,6 +111,14 @@ std::optional<ProviderRoutes> loadProviderRoutes(
         QString selectedProtocolOrigin{};
         if (*preferredReadProviderId == "hypersnap-v2") {
             selectedProtocolOrigin = appliedNodeEndpoint;
+        } else if (preferredReadProviderId->starts_with("directory-")) {
+            // A discovered reader does not designate a writer. For an
+            // indexed HyperSnap reader keep the canonical HyperSnap origin;
+            // for a raw Farcaster reader keep the independent writer.
+            const auto match = std::find_if(additionalReadProviders.cbegin(), additionalReadProviders.cend(),
+                [&](const ReadProviderProfile& profile) { return profile.id == *preferredReadProviderId; });
+            if (match != additionalReadProviders.cend() && match->adapterContract == "hypersnap-v2")
+                selectedProtocolOrigin = appliedNodeEndpoint;
         } else if (*preferredReadProviderId != "farcaster-snapchain") {
             const auto match = std::find_if(
                 additionalReadProviders.cbegin(), additionalReadProviders.cend(),

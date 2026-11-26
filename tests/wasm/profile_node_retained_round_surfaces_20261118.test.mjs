@@ -13,12 +13,12 @@ test('profile link chip and icon tile use retained semantic surfaces', () => {
   assert.match(qml, /fillColor: Theme\.primarySurface/);
 });
 
-test('node health progress retains animated width, colors and non-native rounding', () => {
+test('compact node health rows retain semantic rounding, progress counts and keyboard focus', () => {
   const qml = read('ui/components/settings/NodeManagementPanel.qml');
   assert.doesNotMatch(qml, /\bradius\s*:/);
-  assert.match(qml, /Superellipse\s*\{[\s\S]*?curveDepth: height \/ 2/);
-  assert.match(qml, /curveDepth: parent\.curveDepth/);
-  assert.match(qml, /fillColor: Theme\.positive/);
-  assert.match(qml, /Behavior on width\s*\{/);
-  assert.match(qml, /Behavior on fillColor\s*\{/);
+  assert.match(qml, /qsTrId\("genycaster\.nodes\.health_progress"\)\.arg\(root\.checkedNodes\)\.arg\(root\.eligibleNodes\)/);
+  assert.match(qml, /qsTrId\("genycaster\.nodes\.health_passed"\)\.arg\(root\.healthyNodes\)/);
+  assert.match(qml, /background: Superellipse \{[\s\S]*?borderColor: nodeRow\.modelData\.active \? Theme\.positive : Theme\.accent[\s\S]*?curveDepth: Theme\.curveControl/);
+  assert.match(qml, /Theme\.keyboardFocusVisible\(nodeToggle\)/);
+  assert.match(qml, /Accessible\.selected: !!nodeRow\.modelData\.active/);
 });

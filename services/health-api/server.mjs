@@ -1,11 +1,11 @@
 import http from 'node:http';
 import {stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {createNodeDirectory,nodes,probeNode} from './node_directory.mjs';
 
 const PUBLIC_ROOT = '/var/www/genycaster.xyz/public';
 const ACCOUNT_URL = 'http://127.0.0.1:8797/api/v1/connections/providers';
 const SNAPCHAIN_URL = 'http://127.0.0.1:8787/v1/signersByFid?fid=1';
-const HYPERSNAP_URL = 'https://haatz.quilibrium.com/v1/info';
 const MAX_JSON_BYTES = 64 * 1024;
 const PROBE_TIMEOUT_MS = 4_000;
 const CACHE_TTL_MS = 30_000;
@@ -78,9 +78,9 @@ export async function collectChecks({
       return Array.isArray(data?.signers) && data.signers.length > 0;
     }),
     asStatus(async () => {
-      const data = await readJson(HYPERSNAP_URL, fetchImpl, timeoutMs);
-      return Number.isInteger(data?.numShards) && data.numShards > 0
-        && Array.isArray(data.shardInfos) && data.shardInfos.length > 0;
+      const results=await Promise.all(nodes.filter(node=>node.network==='hypersnap')
+        .map(node=>probeNode(node,{fetchImpl,timeoutMs})));
+      return results.some(node=>node.status==='healthy'||node.status==='degraded');
     }),
   ]);
   return {web, backend, snapchain, hypersnap};
@@ -104,6 +104,7 @@ export function createHealthServer({
   now = Date.now,
   ttlMs = CACHE_TTL_MS,
 } = {}) {
+  const directory=createNodeDirectory({now});
   let cache = null;
   let pending = null;
   async function snapshot() {
@@ -123,11 +124,13 @@ export function createHealthServer({
     return pending;
   }
   return http.createServer(async (request, response) => {
-    const pathname = new URL(request.url || '/', 'http://localhost').pathname;
+    const url = new URL(request.url || '/', 'http://localhost');
+    const pathname = url.pathname;
     response.setHeader('Content-Type', 'application/json; charset=utf-8');
     response.setHeader('Cache-Control', 'no-store, max-age=0');
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Access-Control-Allow-Origin', '*');
+    if (await directory(request,response,url)) return;
     if (pathname !== '/api/health') {
       response.writeHead(404).end(JSON.stringify({error: 'not_found'}));
       return;

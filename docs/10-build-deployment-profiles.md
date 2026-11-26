@@ -13,14 +13,20 @@ wallet, protocol message signer, or already implemented external EIP-1193
 wallet integration used by supported Mini App runtimes. Both wallet security
 boundaries and per-origin consent continue to be mandatory where applicable.
 
-On Android the shipped Mini App capability is **public HTTPS WebView only**,
-locked to the original launch origin and with no privileged SDK, wallet
-provider, JS bridge, or signer authority. The Android Release CMake
-configuration explicitly sets `GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only`.
-Any configuration claiming a full Android Mini App SDK fails at configure
-time; it cannot be accepted simply by setting `FARCASTER_ENABLE_MINIAPPS=ON`.
-Desktop hosts and browser WASM provide their distinct, audited SDK/wallet
-paths, subject to real-device acceptance before public release.
+Android and iOS compose the shared C++ Mini App SDK runtime with native
+Android WebView (AndroidX WebKit) and iOS WKWebView/UIKit adapters. Both use
+the full application viewport, same-origin main-frame RPC, document-scoped
+responses, isolated storage, bounded message rates and native teardown.
+Android requires System WebView support for origin-scoped messaging,
+document-start scripts and multi-profile isolation; older engines fail closed.
+The native WalletConnect bundle is built from pinned dependencies and served
+only from the token-bound local wallet approval page. Wallet approval still
+requires a compatible external wallet and explicit consent. No recovery
+phrase or signer key is exposed to Mini Apps.
+CI enables the native SDK and verifies package contents. iOS CI remains an
+unsigned device build, not an installable public release. Physical Android
+and iOS launch, pairing, signing and lifecycle acceptance are required
+before declaring full mobile parity.
 
 ## Platform CMake ownership
 
@@ -333,3 +339,5 @@ If no eligible provider exists for an optional capability:
 - local cached state remains available;
 - UI shows unavailable/disabled state where applicable;
 - no hidden fallback to a managed backend is permitted.
+
+Native mobile WalletConnect approval is hosted in a separate full-screen native WebView, restricted to the exact tokenized loopback session. The application opens a wc: URI only on a user gesture from that trusted surface. Wallet pairing, app handoff and transaction approval still require a compatible external wallet. Android requires current System WebView with multi-profile and document-start support; iOS requires normal application signing and device acceptance. No private keys are passed to either WebView.

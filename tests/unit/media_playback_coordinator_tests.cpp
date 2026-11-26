@@ -107,9 +107,14 @@ int main(int argc, char** argv)
     assert(remoteRequestId != 0);
     assert(backendRequestId == 0);
     QCoreApplication::processEvents();
+#if defined(Q_OS_WASM)
     assert(backendRequestId == remoteRequestId);
     assert(backendSource == remoteSource);
     coordinator.completeSourcePreparation(remoteRequestId, remoteSource, true);
+#else
+    assert(backendRequestId == 0);
+    assert(backendSource.isEmpty());
+#endif
     assert(preparedRequestId == remoteRequestId);
     assert(preparedSource == remoteSource);
     assert(!preparationFailed);
@@ -140,11 +145,22 @@ int main(int argc, char** argv)
         });
     assert(unavailableCoordinator.prepareSource(remoteSource) != 0);
     QCoreApplication::processEvents();
+#if defined(Q_OS_WASM)
     assert(unavailableFailed);
+#else
+    assert(!unavailableFailed);
+#endif
 
     // Delegates can claim again after release.
     assert(coordinator.claimPrimary(&first));
     assert(coordinator.activePlayer() == &first);
+
+    const int suspendedBeforeReset = first.suspendCount;
+    coordinator.releaseAll();
+    assert(coordinator.activePlayer() == nullptr);
+    assert(first.suspendCount == suspendedBeforeReset + 1);
+    coordinator.releaseAll();
+    assert(first.suspendCount == suspendedBeforeReset + 1);
 
     // Session mute preference is app-wide and signalled.
     bool sessionChanged = false;

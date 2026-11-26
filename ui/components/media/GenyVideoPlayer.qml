@@ -341,7 +341,7 @@ Item {
     readonly property bool failed: (activation.activated && !activation.recovering
                                     && player.error !== MediaPlayer.NoError)
                                    || activation.stalled
-    readonly property bool fullscreen: root.fullscreenEnabled && (fullscreenPopup && fullscreenPopup.opened)
+    readonly property bool fullscreen: root.fullscreenEnabled && (fullscreenPopup && fullscreenPopup.visible)
     readonly property int playbackState: player.playbackState
     readonly property int mediaStatus: player.mediaStatus
     readonly property real position: player.position
@@ -534,6 +534,7 @@ Item {
         const primary = String(root.source || "")
         if (!activation.fallbackAttempted && primary.length > 0
                 && primary !== activation.playbackUrl
+                && primary !== activation.pendingUrl
                 && root.isProgressiveVideoUrl(primary)) {
             activation.fallbackAttempted = true
             activation.recovering = true
@@ -594,14 +595,18 @@ Item {
             return
         }
         root.prepareBackendForSource(target)
-        if (String(player.source) !== String(target))
-            player.source = target
         activation.playbackUrl = String(target)
         activation.qualityId = activation.pendingQualityId
+        // Arm before assigning source: synchronous backend errors can stop it.
         startupWatchdog.restart()
+        if (Qt.platform.os === "android")
+            console.info("Genycaster: Android media source assigned")
+        if (String(player.source) !== String(target))
+            player.source = target
         Qt.callLater(() => {
             if (root && player && String(player.source) === String(target)
-                    && (root.userActivated || root.eager))
+                    && (root.userActivated || root.eager) && activation.resumeAfterLoad
+                    && !root.failed)
                 player.play()
         })
     }
@@ -646,6 +651,7 @@ Item {
     function resetPlayback() {
         startupTimer.stop()
         startupWatchdog.stop()
+        activation.resumeAfterLoad = false
         adaptiveDownshift.stop()
         adaptiveUpgrade.stop()
         player.stop()
@@ -748,10 +754,11 @@ Item {
     }
 
     /** @brief Invoked by the coordinator when another video claims the session. */
+    signal resourceRevoked()
     function suspendFromPlaybackCoordinator() {
-        activation.resumeAfterLoad = false
-        if (player.playbackState === MediaPlayer.PlayingState)
-            player.pause()
+        // Revoke the entire session, not merely its audible transport state.
+        root.resetPlayback()
+        root.resourceRevoked()
     }
 
     function retryPlayback() {
@@ -834,7 +841,6 @@ Item {
     function enterFullscreen() {
         if (!root.fullscreenEnabled || !root.hasSource || root.fullscreen)
             return
-        player.videoOutput = fullscreenOutput
         fullscreenPopup.open()
     }
 
@@ -915,6 +921,10 @@ Item {
         videoOutput: stageOutput
 
         onPlaybackStateChanged: {
+            if (playbackState === MediaPlayer.PlayingState) {
+                activation.starting = false
+                startupWatchdog.stop()
+            }
             if (root.primeFrame && activation.priming && !activation.primed
                     && playbackState === MediaPlayer.PlayingState) {
                 // MediaStatus can become Loaded before play() transitions to Playing.
@@ -965,8 +975,12 @@ Item {
             if (mediaStatus === MediaPlayer.LoadedMedia
                     || mediaStatus === MediaPlayer.BufferingMedia
                     || mediaStatus === MediaPlayer.BufferedMedia) {
-                activation.starting = false
-                startupWatchdog.stop()
+                // Loaded is not proof that the decoder has started. Keep
+                // the startup deadline until PlayingState or position changes.
+                if (!activation.resumeAfterLoad || playbackState === MediaPlayer.PlayingState) {
+                    activation.starting = false
+                    startupWatchdog.stop()
+                }
                 const hasPendingSource = activation.pendingUrl.length > 0
                 activation.playbackUrl = hasPendingSource ? activation.pendingUrl : String(player.source)
                 if (hasPendingSource)
@@ -1029,10 +1043,15 @@ Item {
             startupWatchdog.stop()
             if (!root.userActivated || error === MediaPlayer.NoError)
                 return
+            if (Qt.platform.os === "android")
+                console.warn("Genycaster: Android media playback error", Number(error),
+                             "status", Number(player.mediaStatus))
             if (root.tryRecoverPlayback())
                 return
+            activation.starting = false
             activation.recovering = false
             chromePinned = true
+            root.releasePrimaryPlayback()
             root.playbackFailed(String(errorString))
         }
     }
@@ -1053,7 +1072,11 @@ Item {
                     || String(source) !== activation.pendingUrl)
                 return
             activation.preparationId = 0
+            if (Qt.platform.os === "android")
+                console.warn("Genycaster: Android media source preparation failed")
             activation.starting = false
+            if (root.tryRecoverPlayback())
+                return
             activation.stalled = true
             root.releasePrimaryPlayback()
             chromePinned = true
@@ -1085,6 +1108,9 @@ Item {
         onTriggered: {
             if (!root.userActivated || root.failed || !activation.starting)
                 return
+            if (Qt.platform.os === "android")
+                console.warn("Genycaster: Android media startup timeout",
+                             "status", Number(player.mediaStatus), "state", Number(player.playbackState))
             activation.starting = false
             if (root.tryRecoverPlayback())
                 return
@@ -1132,6 +1158,8 @@ Item {
                 return
             if (player.playbackState !== MediaPlayer.PlayingState)
                 return
+            if (Qt.platform.os === "android")
+                console.warn("Genycaster: Android media playback stalled", "position", player.position)
             activation.stalled = true
             player.pause()
             root.releasePrimaryPlayback()
@@ -1180,9 +1208,8 @@ Item {
         Superellipse {
             id: backdrop
             anchors.fill: parent
-            // In fullscreen the underlying popup VideoOutput presents the media;
-            // an opaque inline backdrop would otherwise hide it.
-            visible: !root.fullscreen
+            // The same stage and sink move to the fullscreen host.
+            visible: true
             fillColor: Theme.mediaPlayerBackground
             curveDepth: root.curveDepth
             borderWidth: 0
@@ -1211,7 +1238,7 @@ Item {
         VideoOutput {
             id: stageOutput
             anchors.fill: parent
-            visible: root.userActivated && !root.failed && !root.fullscreen
+            visible: root.userActivated && !root.failed
             fillMode: VideoOutput.PreserveAspectFit
         }
 
@@ -1222,7 +1249,8 @@ Item {
         Shape {
             id: videoCornerMask
             anchors.fill: parent
-            z: 4
+            // Cover all rectangular overlays, including the bottom progress line.
+            z: 19
             visible: !root.fullscreen && root.curveDepth > 0
             preferredRendererType: Shape.CurveRenderer
             asynchronous: false
@@ -1234,64 +1262,62 @@ Item {
                 return Math.max(0.5522847498, Math.min(0.985, (8 * diagonal - 4) / 3))
             }
 
+            readonly property real innerControl: cornerRadius * (1 - cubicFactor)
+
             ShapePath {
                 fillColor: root.cornerMaskColor
-                fillRule: ShapePath.OddEvenFill
                 strokeColor: "transparent"
                 strokeWidth: -1
-
-                startX: 0
-                startY: 0
-                PathLine { x: videoCornerMask.width; y: 0 }
-                PathLine { x: videoCornerMask.width; y: videoCornerMask.height }
-                PathLine { x: 0; y: videoCornerMask.height }
+                startX: 0; startY: 0
+                PathLine { x: videoCornerMask.cornerRadius; y: 0 }
+                PathCubic {
+                    x: 0; y: videoCornerMask.cornerRadius
+                    control1X: videoCornerMask.innerControl; control1Y: 0
+                    control2X: 0; control2Y: videoCornerMask.innerControl
+                }
                 PathLine { x: 0; y: 0 }
+            }
 
-                PathMove { x: videoCornerMask.cornerRadius; y: 0 }
-                PathLine { x: videoCornerMask.width - videoCornerMask.cornerRadius; y: 0 }
+            ShapePath {
+                fillColor: root.cornerMaskColor
+                strokeColor: "transparent"
+                strokeWidth: -1
+                startX: videoCornerMask.width; startY: 0
+                PathLine { x: videoCornerMask.width; y: videoCornerMask.cornerRadius }
                 PathCubic {
-                    x: videoCornerMask.width
-                    y: videoCornerMask.cornerRadius
-                    control1X: videoCornerMask.width - videoCornerMask.cornerRadius
-                               + videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control1Y: 0
-                    control2X: videoCornerMask.width
-                    control2Y: videoCornerMask.cornerRadius
-                               - videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
+                    x: videoCornerMask.width - videoCornerMask.cornerRadius; y: 0
+                    control1X: videoCornerMask.width; control1Y: videoCornerMask.innerControl
+                    control2X: videoCornerMask.width - videoCornerMask.innerControl; control2Y: 0
                 }
-                PathLine { x: videoCornerMask.width; y: videoCornerMask.height - videoCornerMask.cornerRadius }
+                PathLine { x: videoCornerMask.width; y: 0 }
+            }
+
+            ShapePath {
+                fillColor: root.cornerMaskColor
+                strokeColor: "transparent"
+                strokeWidth: -1
+                startX: videoCornerMask.width; startY: videoCornerMask.height
+                PathLine { x: videoCornerMask.width - videoCornerMask.cornerRadius; y: videoCornerMask.height }
                 PathCubic {
-                    x: videoCornerMask.width - videoCornerMask.cornerRadius
-                    y: videoCornerMask.height
-                    control1X: videoCornerMask.width
-                    control1Y: videoCornerMask.height - videoCornerMask.cornerRadius
-                               + videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control2X: videoCornerMask.width - videoCornerMask.cornerRadius
-                               + videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control2Y: videoCornerMask.height
+                    x: videoCornerMask.width; y: videoCornerMask.height - videoCornerMask.cornerRadius
+                    control1X: videoCornerMask.width - videoCornerMask.innerControl; control1Y: videoCornerMask.height
+                    control2X: videoCornerMask.width; control2Y: videoCornerMask.height - videoCornerMask.innerControl
                 }
-                PathLine { x: videoCornerMask.cornerRadius; y: videoCornerMask.height }
+                PathLine { x: videoCornerMask.width; y: videoCornerMask.height }
+            }
+
+            ShapePath {
+                fillColor: root.cornerMaskColor
+                strokeColor: "transparent"
+                strokeWidth: -1
+                startX: 0; startY: videoCornerMask.height
+                PathLine { x: 0; y: videoCornerMask.height - videoCornerMask.cornerRadius }
                 PathCubic {
-                    x: 0
-                    y: videoCornerMask.height - videoCornerMask.cornerRadius
-                    control1X: videoCornerMask.cornerRadius
-                               - videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control1Y: videoCornerMask.height
-                    control2X: 0
-                    control2Y: videoCornerMask.height - videoCornerMask.cornerRadius
-                               + videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
+                    x: videoCornerMask.cornerRadius; y: videoCornerMask.height
+                    control1X: 0; control1Y: videoCornerMask.height - videoCornerMask.innerControl
+                    control2X: videoCornerMask.innerControl; control2Y: videoCornerMask.height
                 }
-                PathLine { x: 0; y: videoCornerMask.cornerRadius }
-                PathCubic {
-                    x: videoCornerMask.cornerRadius
-                    y: 0
-                    control1X: 0
-                    control1Y: videoCornerMask.cornerRadius
-                               - videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control2X: videoCornerMask.cornerRadius
-                               - videoCornerMask.cubicFactor * videoCornerMask.cornerRadius
-                    control2Y: 0
-                }
+                PathLine { x: 0; y: videoCornerMask.height }
             }
         }
 
@@ -1617,7 +1643,9 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 0
+                anchors.leftMargin: root.fullscreen ? 0 : videoCornerMask.cornerRadius
+                anchors.rightMargin: root.fullscreen ? 0 : videoCornerMask.cornerRadius
+                anchors.bottomMargin: root.fullscreen ? 0 : Theme.strokeHairline
                 height: 3
                 opacity: 1 - chrome.reveal
                 visible: opacity > 0.001
@@ -1860,9 +1888,9 @@ Item {
         // One inset optical frame follows the exact same contour as the mask.
         Superellipse {
             anchors.fill: parent
-            anchors.margins: Theme.strokeHairline / 2
             visible: !root.fullscreen
             z: 20
+            highQualityEdges: true
             fillColor: "transparent"
             borderWidth: Theme.strokeHairline
             borderColor: Theme.mediaPlayerFrame
@@ -2125,18 +2153,16 @@ Item {
             }
         }
 
-        onOpened: {
+        onAboutToShow: {
+            if (!stage || !fullscreenHost) return
             stage.parent = fullscreenHost
             stage.anchors.fill = fullscreenHost
-            fullscreenOutput.visible = true
             chromePinned = true
-            Qt.callLater(() => { if (stage && fullscreenOutput && fullscreenOutput.visible) stage.forceActiveFocus() })
         }
+        onOpened: if (stage) stage.forceActiveFocus()
 
         onClosed: {
-            player.videoOutput = stageOutput
-            fullscreenOutput.visible = false
-            if (stage.parent !== root) {
+            if (stage && stage.parent !== root) {
                 stage.parent = root
                 stage.anchors.fill = root
             }
@@ -2146,13 +2172,6 @@ Item {
         contentItem: Item {
             id: fullscreenHost
             anchors.fill: parent
-
-            VideoOutput {
-                id: fullscreenOutput
-                anchors.fill: parent
-                visible: false
-                fillMode: VideoOutput.PreserveAspectFit
-            }
 
             PlayerIconButton {
                 // Anchors require a QQuickAnchorLine, never null. Popup content
@@ -2179,7 +2198,7 @@ Item {
         if (adaptiveUpgrade) adaptiveUpgrade.stop()
         if ((qualityPopup && qualityPopup.opened))
             qualityPopup.close()
-        if ((fullscreenPopup && fullscreenPopup.opened))
+        if ((fullscreenPopup && fullscreenPopup.visible))
             fullscreenPopup.close()
         if (player) player.stop()
         if (activation) {

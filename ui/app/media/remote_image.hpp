@@ -53,6 +53,9 @@ public:
     /** @brief Cancels outstanding work and releases provider resources. */
     ~RemoteImageProvider() override;
 
+    /** Shrinks decoded-memory cache while suspended; never invalidates active textures. */
+    static void setForeground(bool foreground);
+
     /**
      * @brief Starts one asynchronous image load.
      * @param id URL-safe base64-encoded HTTP(S) URL.

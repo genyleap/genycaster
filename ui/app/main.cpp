@@ -22,8 +22,8 @@
 #if QT_CONFIG(vulkan)
 #include <QVulkanFunctions>
 #include <QVulkanInstance>
-#include <sys/system_properties.h>
 #endif
+#include <sys/system_properties.h>
 #endif
 #include <QFile>
 #include <QFileInfo>
@@ -44,6 +44,9 @@
 #if defined(Q_OS_ANDROID)
 #include "media/android_icon.hpp"
 #include "media/android_document_picker.hpp"
+#include <QtMultimedia/private/qplatformmediaintegration_p.h>
+#endif
+#if defined(GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW)
 #include <QtWebView/QtWebView>
 #endif
 #include <QProcess>
@@ -335,7 +338,20 @@ int main(int argc, char* argv[])
 #if defined(Q_OS_ANDROID)
     // Match the bundled OpenSSL 3 sonames before Qt initializes TLS/networking.
     qputenv("ANDROID_OPENSSL_SUFFIX", "_3");
-    // Native Android WebView must be initialized before the GUI application.
+    // Qt 6.12 native Android video uses a separate GLES texture thread.
+    // Keep emulator Vulkan UI rendering, but decode its video on the CPU:
+    // no cross-API native texture sharing on the virtual GPU.
+    char emulatorMedia[PROP_VALUE_MAX]{};
+    if (__system_property_get("ro.boot.qemu", emulatorMedia) > 0
+        && QByteArrayView{emulatorMedia} == "1") {
+        if (!qEnvironmentVariableIsSet("QT_FFMPEG_DECODING_HW_DEVICE_TYPES"))
+            qputenv("QT_FFMPEG_DECODING_HW_DEVICE_TYPES", ",");
+        if (!qEnvironmentVariableIsSet("QT_DISABLE_HW_TEXTURES_CONVERSION"))
+            qputenv("QT_DISABLE_HW_TEXTURES_CONVERSION", "1");
+    }
+#endif
+#if defined(GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW)
+    // Initialize native mobile WebView before constructing the GUI application.
     QtWebView::initialize();
 #endif
     // Adaptive is the product default. Qt Quick's standard scene graph keeps
@@ -357,8 +373,22 @@ int main(int argc, char* argv[])
 #else
     QGuiApplication application(argc, argv);
 #endif
-#if defined(Q_OS_ANDROID) && QT_CONFIG(vulkan)
+#if defined(Q_OS_ANDROID)
+    // Qt 6.12 private API: unlike QT_MEDIA_BACKEND, setBackend() does NOT
+    // silently fall back to the Android native plugin if FFmpeg cannot load.
+    // In that case QMediaPlayer reports unavailable instead of initializing
+    // the incompatible native texture renderer. Must precede all media objects.
+    QPlatformMediaIntegration::setBackend(QStringLiteral("ffmpeg"));
+    qInfo() << "Genycaster: Android media backend requested: FFmpeg";
+    const auto mediaBackends = QPlatformMediaIntegration::availableBackends();
+    qInfo() << "Genycaster: Android discovered media backends:" << mediaBackends;
+    if (!mediaBackends.contains(QStringLiteral("ffmpeg"), Qt::CaseInsensitive))
+        qWarning() << "Genycaster: FFmpeg plugin not discovered; video/audio unavailable";
+    else
+        qInfo() << "Genycaster: FFmpeg plugin discovered; decoder initialization is lazy";
+#if QT_CONFIG(vulkan)
     selectAndroidEmulatorRenderer();
+#endif
 #endif
     QCoreApplication::setOrganizationName(QStringLiteral("Genycaster"));
     QCoreApplication::setApplicationName(QStringLiteral("Genycaster"));
@@ -497,6 +527,17 @@ int main(int argc, char* argv[])
         });
     }
 
+    const bool usePublicReadPool = enableHypersnapDefault
+        && (providerBaseUrlText.isEmpty() || providerBaseUrlText == compiledHypersnapEndpoint)
+        && settings.value(QStringLiteral("network/nodeSelectionMode"), QStringLiteral("auto")).toString() == QStringLiteral("auto")
+        && configuredProfiles->preferredReadProviderId.value_or("") == "hypersnap-v2"
+        && configuredProfiles->readProviderApiKeys.empty()
+        && !qEnvironmentVariableIsSet("GENYCASTER_HYPERSNAP_BASE_URL")
+        && !qEnvironmentVariableIsSet("GENYCASTER_PREFERRED_READ_PROVIDER_ID")
+        && !std::any_of(arguments.cbegin(), arguments.cend(), [](const QString& arg) {
+            return arg.startsWith(QStringLiteral("--preferred-read-provider-id="))
+                || arg.startsWith(QStringLiteral("--hypersnap-base-url="));
+        });
     std::vector<genycaster::ui::runtime::WriteProviderProfile> additionalWriteProviders{};
     additionalWriteProviders.reserve(configuredProfiles->writeProviders.size());
     for (auto& profile : configuredProfiles->writeProviders) {
@@ -759,11 +800,29 @@ int main(int argc, char* argv[])
     // Use the actual applied HyperSnap node (including user-provided
     // command-line and node-profile overrides) rather than silently probing
     // the built-in public host when a different node was selected.
-    const QString nativeRegistrationEndpoint =
-        providerProfilesController.activeReadContract()
-            == QStringLiteral("hypersnap-v2")
-        ? providerProfilesController.activeReadEndpoint()
-        : compiledHypersnapEndpoint;
+    const bool directoryReadOnly = providerProfilesController.activeReadProviderId()
+        .startsWith(QStringLiteral("directory-"));
+    QString nativeRegistrationEndpoint = directoryReadOnly
+        ? appliedNodeEndpoint
+        : providerProfilesController.activeReadContract() == QStringLiteral("hypersnap-v2")
+            ? providerProfilesController.activeReadEndpoint() : compiledHypersnapEndpoint;
+    const QStringList nativeSettingsKeys = settings.allKeys();
+    const bool hasPendingNativeRegistration = std::any_of(
+        nativeSettingsKeys.cbegin(), nativeSettingsKeys.cend(), [](const QString& key) {
+            return key.startsWith(QStringLiteral("nativeRegistration/expiry-v1/"));
+        });
+    const bool automaticRegistration = usePublicReadPool && !directoryReadOnly
+        && !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest;
+    if (automaticRegistration && hasPendingNativeRegistration) {
+        const QString pinned = settings.value(
+            QStringLiteral("nativeRegistration/lastRuntimeOrigin")).toString();
+        // Legacy pending journals were created on the originally configured node.
+        const QUrl pinnedUrl{pinned, QUrl::StrictMode};
+        if (pinnedUrl.isValid() && pinnedUrl.scheme() == QStringLiteral("https")
+            && !pinnedUrl.host().isEmpty() && pinnedUrl.userInfo().isEmpty()
+            && !pinnedUrl.hasQuery() && !pinnedUrl.hasFragment() && pinnedUrl.path().isEmpty())
+            nativeRegistrationEndpoint = pinned;
+    }
     nativeRegistrationStatusOwner = std::make_unique<NativeRegistrationStatusController>(
         nativeRegistrationEndpoint);
     NativeRegistrationStatusController& nativeRegistrationStatus =
@@ -939,9 +998,9 @@ int main(int argc, char* argv[])
     dataStorageControllerOwner = std::make_unique<DataStorageController>(settings);
     DataStorageController& dataStorageController = *dataStorageControllerOwner;
 
-#if defined(Q_OS_WASM) || defined(Q_OS_ANDROID)
-    // Browser/WASM and Android host public web content without exposing
-    // signer or wallet permissions. macOS separately enables its SDK runtime.
+#if defined(Q_OS_WASM) || defined(GENYCASTER_HAS_MOBILE_MINIAPP_WEBVIEW)
+    // Browser/WASM and native mobile host public web content. Mobile does
+    // not expose signer or wallet permissions through this public WebView.
     constexpr bool miniAppLaunchAvailable = true;
 #else
     constexpr bool miniAppLaunchAvailable = GENYCASTER_HAS_MINIAPP_HOST != 0;
@@ -949,6 +1008,7 @@ int main(int argc, char* argv[])
     miniAppHostControllerOwner = std::make_unique<MiniAppHostController>(
         miniAppLaunchAvailable, settings);
     MiniAppHostController& miniAppHost = *miniAppHostControllerOwner;
+    miniAppHost.setNativeSdkAvailable(GENYCASTER_HAS_MINIAPP_HOST != 0);
     proWalletHostOwner = std::make_unique<MiniAppHostController>(true, settings);
     MiniAppHostController& proWalletHost = *proWalletHostOwner;
     mediaWebHostControllerOwner = std::make_unique<MediaWebHostController>(
@@ -1069,30 +1129,48 @@ int main(int argc, char* argv[])
         });
 #if FARCASTER_HAS_MINIAPP_EVM_WALLET
     {
-        auto walletBridge = farcaster::provider::compatibility::browser_wallet::bridge::makeBridge({
-            .launch = walletLaunchTemplate.isEmpty()
-                ? farcaster::provider::compatibility::browser_wallet::bridge::WalletLauncher{
-                    [host = QPointer<MiniAppHostController>{&miniAppHost}](const std::string& url)
-                        -> foundation::result::Status {
-                        if (!host) {
-                            return std::unexpected(foundation::error::Error::make(
-                                foundation::error::ErrorCode::Unavailable,
-                                "Mini App wallet picker is no longer available."));
-                        }
-                        const QString sessionUrl = QString::fromStdString(url);
-                        QMetaObject::invokeMethod(host, [host, sessionUrl] {
-                            if (host) host->requestWalletBrowser(sessionUrl);
+        std::string nativeWalletConnectModule{};
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+        QFile moduleFile{QStringLiteral(":/genycaster/miniapp/genycaster-walletconnect.mjs")};
+        if (moduleFile.open(QIODevice::ReadOnly))
+            nativeWalletConnectModule = moduleFile.readAll().toStdString();
+        if (nativeWalletConnectModule.empty()) {
+            qWarning() << "Native Mini App WalletConnect resource unavailable";
+        } else
+#endif
+        {
+            auto walletBridge = farcaster::provider::compatibility::browser_wallet::bridge::makeBridge({
+                .launch = (!nativeWalletConnectModule.empty() || walletLaunchTemplate.isEmpty())
+                    ? farcaster::provider::compatibility::browser_wallet::bridge::WalletLauncher{
+                        [host = QPointer<MiniAppHostController>{&miniAppHost}](const std::string& url)
+                            -> foundation::result::Status {
+                            if (!host) {
+                                return std::unexpected(foundation::error::Error::make(
+                                    foundation::error::ErrorCode::Unavailable,
+                                    "Mini App wallet picker is no longer available."));
+                            }
+                            const QString sessionUrl = QString::fromStdString(url);
+                            QMetaObject::invokeMethod(host, [host, sessionUrl] {
+                                if (host) host->requestWalletBrowser(sessionUrl);
+                            }, Qt::QueuedConnection);
+                            return {};
+                        }}
+                    : makeWalletApprovalLauncher(walletLaunchTemplate),
+                .supportedChains = genycaster::ui::bootstrap::miniAppEthereumChains(),
+                .nativeApprovalSettled = [host = QPointer<MiniAppHostController>{&miniAppHost}]
+                    (const std::string& url, bool successful) {
+                        if (host) QMetaObject::invokeMethod(host, [host, sessionUrl = QString::fromStdString(url), successful] {
+                            if (host) host->nativeWalletApprovalSettled(sessionUrl, successful);
                         }, Qt::QueuedConnection);
-                        return {};
-                    }}
-                : makeWalletApprovalLauncher(walletLaunchTemplate),
-            .supportedChains = genycaster::ui::bootstrap::miniAppEthereumChains(),
-        });
-        if (walletBridge) {
-            miniAppWalletBridgeOwner = std::move(*walletBridge);
-        } else {
-            qWarning().noquote() << "Mini App EIP-1193 wallet bridge unavailable:"
-                                 << QString::fromStdString(walletBridge.error().message);
+                    },
+                .walletConnectModule = std::move(nativeWalletConnectModule),
+            });
+            if (walletBridge) {
+                miniAppWalletBridgeOwner = std::move(*walletBridge);
+            } else {
+                qWarning().noquote() << "Mini App EIP-1193 wallet bridge unavailable:"
+                                     << QString::fromStdString(walletBridge.error().message);
+            }
         }
     }
 #endif
@@ -1157,6 +1235,23 @@ int main(int argc, char* argv[])
     // Connections in GenyVideoPlayer retain this context object as a signal
     // target. Keep its lifetime unequivocally C++-owned across QML teardown.
     QQmlEngine::setObjectOwnership(&mediaPlayback, QQmlEngine::CppOwnership);
+    QObject::connect(&presentationBridge, &PresentationBridge::signOutRequested,
+                     &mediaPlayback, &MediaPlaybackCoordinator::releaseAll);
+    QObject::connect(&presentationBridge, &PresentationBridge::authenticationStateChanged,
+        &mediaPlayback, [&presentationBridge, &mediaPlayback,
+                         previousFid = presentationBridge.accountFid()]() mutable {
+            const auto currentFid = presentationBridge.isAuthenticated()
+                ? presentationBridge.accountFid() : decltype(presentationBridge.accountFid()){};
+            if (previousFid != 0 && currentFid != previousFid)
+                mediaPlayback.releaseAll();
+            previousFid = currentFid;
+        });
+    QObject::connect(qGuiApp, &QGuiApplication::applicationStateChanged,
+        &mediaPlayback, [&mediaPlayback](const Qt::ApplicationState state) {
+            const bool foreground = state != Qt::ApplicationHidden && state != Qt::ApplicationSuspended;
+            RemoteImageProvider::setForeground(foreground);
+            if (!foreground) mediaPlayback.releaseAll();
+        });
     QObject::connect(&localizationController, &LocalizationController::localeChanged,
         &presentationBridge, [&presentationBridge] {
             presentationBridge.retranslateTransientState();
@@ -1627,6 +1722,7 @@ int main(int argc, char* argv[])
             .readProviderApiKeys = readProviderApiKeys,
             .preferredReadProviderId = preferredReadProviderId,
             .allowCompatibleReadFallback = allowCompatibleReadFallback,
+            .publicReadPool = usePublicReadPool,
             .additionalWriteProviders = additionalWriteProviders,
             .preferredWriteProviderId = preferredWriteProviderId,
             .authRelayUrl = authRelayUrl,
@@ -1650,7 +1746,29 @@ int main(int argc, char* argv[])
                                  startupOptions = std::move(startupOptions),
                                  siwfDomain, siwfUri, startupIdentity,
                                  snapchainBaseUrl, authenticationAvailable,
-                                 openExploreForTest]() mutable {
+                                 openExploreForTest, compiledHypersnapEndpoint](const QString& selectedNativeOrigin, const QVariantList& directoryRows) mutable {
+            startupOptions.hyperSnapNativeNodeBaseUrl = selectedNativeOrigin.toStdString();
+            if (startupOptions.publicReadPool) {
+                // Only this verified startup snapshot can admit public peers;
+                // custom profiles can never become automatic fallback targets.
+                for (const auto& value : directoryRows) {
+                    const auto row = value.toMap();
+                    const auto id = row.value(QStringLiteral("id")).toString().toStdString();
+                    const auto endpoint = row.value(QStringLiteral("endpoint")).toString().toStdString();
+                    if (!row.value(QStringLiteral("enabled")).toBool()
+                        || row.value(QStringLiteral("contract")).toString() != QStringLiteral("hypersnap-v2")
+                        || endpoint == compiledHypersnapEndpoint.toStdString()
+                        || std::any_of(startupOptions.additionalReadProviders.cbegin(),
+                            startupOptions.additionalReadProviders.cend(), [&](const auto& existing) {
+                                return existing.id == id || existing.endpoint == endpoint;
+                            })) continue;
+                    startupOptions.additionalReadProviders.push_back({
+                        .id = id, .displayName = row.value(QStringLiteral("name")).toString().toStdString(),
+                        .endpoint = endpoint, .adapterContract = "hypersnap-v2", .selfHosted = false,
+                    });
+                    startupOptions.publicReadPeerIds.push_back(id);
+                }
+            }
             auto made = makeRuntime(std::move(startupOptions));
             if (!made) {
                 const QString message = QString::fromStdString(made.error().message);
@@ -1692,14 +1810,92 @@ int main(int argc, char* argv[])
                     }, std::move(readyRuntime));
                 }, Qt::QueuedConnection);
         };
-#if defined(Q_OS_WASM)
-        // A worker thread cannot start in a single-threaded WASM browser runtime.
-        // Defer initialization until Qt's main event loop is active.
-        QTimer::singleShot(0, &application, std::move(bootstrapRuntime));
-#else
-        bootstrap.start(std::move(bootstrapRuntime));
+        auto launchRuntime = [&application, &settings, &nativeRegistrationStatus,
+                              &nativeRegistrationPreparation, &nativeRegistrationPublisher,
+                              &nativeRegistrationEndpoint, &providerProfilesController, automaticRegistration,
+#if !defined(Q_OS_WASM)
+                              &bootstrap,
 #endif
+                              bootstrapRuntime = std::move(bootstrapRuntime)](QString selected) mutable {
+            const QString original = nativeRegistrationEndpoint;
+            if (selected != original) {
+                const QUrl candidate{selected};
+                nativeRegistrationPreparation.cancel();
+                if (!nativeRegistrationPublisher.setEndpointBeforeRuntime(candidate)
+                    || !nativeRegistrationStatus.setEndpointBeforeRuntime(candidate)) {
+                    (void)nativeRegistrationPublisher.setEndpointBeforeRuntime(QUrl{original});
+                    (void)nativeRegistrationStatus.setEndpointBeforeRuntime(QUrl{original});
+                    selected = original;
+                }
+            }
+            if (automaticRegistration) {
+                // Persist the origin before any native registration can submit.
+                // A pending journal then restores this exact origin after restart.
+                settings.setValue(QStringLiteral("nativeRegistration/lastRuntimeOrigin"), selected);
+                settings.sync();
+                if (settings.status() != QSettings::NoError && selected != original) {
+                    (void)nativeRegistrationPublisher.setEndpointBeforeRuntime(QUrl{original});
+                    (void)nativeRegistrationStatus.setEndpointBeforeRuntime(QUrl{original});
+                    selected = original;
+                }
+            }
+            nativeRegistrationEndpoint = selected;
+            providerProfilesController.setRegistrationNode(selected);
+            auto start = [bootstrapRuntime = std::move(bootstrapRuntime),
+                          selected = std::move(selected), directoryRows = providerProfilesController.directoryNodes()]() mutable {
+                bootstrapRuntime(selected, directoryRows);
+            };
+#if defined(Q_OS_WASM)
+            QTimer::singleShot(0, &application, std::move(start));
+#else
+            bootstrap.start(std::move(start));
+#endif
+        };
+        if (automaticRegistration) {
+            // Wait for verified live/cached/embedded registry before Setup
+            // preflight. Do not transfer authority to newly listed read nodes.
+            QObject::connect(&providerProfilesController, &ProviderProfilesController::directoryRefreshFinished,
+                &application, [&application, &providerProfilesController, &nativeRegistrationEndpoint, hasPendingNativeRegistration,
+                               launch = std::move(launchRuntime)]() mutable {
+                    if (hasPendingNativeRegistration) { launch(nativeRegistrationEndpoint); return; }
+                    auto origins = providerProfilesController.publicRegistrationCandidates();
+                    if (origins.isEmpty()) { launch(nativeRegistrationEndpoint); return; }
+                    NativeRegistrationStatusController::selectBeforeRuntime(
+                        origins, &application, std::move(launch), 5000,
+                        [&providerProfilesController](QVariantList rows) {
+                            providerProfilesController.setRegistrationPreflight(rows);
+                        });
+                }, Qt::SingleShotConnection);
+            QTimer::singleShot(0, &providerProfilesController, &ProviderProfilesController::refreshDirectory);
+        } else {
+            launchRuntime(nativeRegistrationEndpoint);
+            if (enableHypersnapDefault && !isRuntimeSmokeTest)
+                QTimer::singleShot(0, &providerProfilesController, &ProviderProfilesController::refreshDirectory);
+        }
     }
+
+    if (automaticRegistration) {
+        QObject::connect(&providerProfilesController, &ProviderProfilesController::directoryRefreshFinished,
+            &application, [&application, &presentationBridge, &providerProfilesController] {
+                if (!presentationBridge.runtimeReady() || presentationBridge.isAuthenticated()) return;
+                const auto origins = providerProfilesController.publicRegistrationCandidates();
+                if (origins.isEmpty()) return;
+                NativeRegistrationStatusController::selectBeforeRuntime(
+                    origins, &application, [](QString) {}, 5000,
+                    [&providerProfilesController](QVariantList rows) {
+                        providerProfilesController.setRegistrationPreflight(rows);
+                    });
+            });
+    }
+    QTimer directoryRefreshTimer{&application};
+    directoryRefreshTimer.setInterval(240000);
+    QObject::connect(&directoryRefreshTimer, &QTimer::timeout, &providerProfilesController,
+        [&providerProfilesController] {
+            if (QGuiApplication::applicationState() == Qt::ApplicationActive)
+                providerProfilesController.refreshDirectory();
+        });
+    if (enableHypersnapDefault && !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest)
+        directoryRefreshTimer.start();
 
     const int smokeCheck = genycaster::ui::diagnostics::configureSmokeTests(
         application, engine, presentationBridge, isSmokeTest, isRuntimeSmokeTest);

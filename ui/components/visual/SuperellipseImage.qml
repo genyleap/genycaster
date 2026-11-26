@@ -51,6 +51,7 @@ Item {
     // creation are admitted over separate frames instead of one render burst.
     property int loadDelayMs: 0
     property var scrollHost: null
+    property bool allowAnimation: true
     property url activeSource: ""
     property bool componentReady: false
     property bool presentationReady: false
@@ -313,7 +314,8 @@ Item {
         const physical = Math.max(Number(requested || 0),
                                   Math.ceil(Math.max(1, logicalSize) * dpr * renderingController.mediaDecodeScale))
         const quantum = Math.max(32, Number(root.decodeQuantum || 128))
-        return Math.max(quantum, Math.ceil(physical / quantum) * quantum)
+        const cap = Qt.platform.os === "android" || Qt.platform.os === "ios" || Qt.platform.os === "wasm" ? 2048 : 4096
+        return Math.min(cap, Math.max(quantum, Math.ceil(physical / quantum) * quantum))
     }
 
     function syncRetainWhileLoading() {
@@ -510,31 +512,40 @@ Item {
     // GIF animation must be decoded by QMovie/AnimatedImage, not QImageReader
     // (which supplies only the first frame). Keep the still image beneath as
     // a fallback, and never unload the running animation when scrolling.
-    AnimatedImage {
-        id: animatedGif
+    Loader {
+        id: gifLoader
         z: 1.5
+        anchors.fill: parent
+        active: root.allowAnimation && root.visible && root.componentReady
+            && root.animatedGifUrl.length > 0 && !Theme.powerSave
+            && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
+        sourceComponent: AnimatedImage {
+        id: animatedGif
+        MediaResourceScope { id: animationScope; owner: root }
         anchors.fill: parent
         // ImagePolicy applies to GIFs too. The still-image provider remains
         // the single source of admission and is allowed to fail back cleanly
         // when the animation codec or network is unavailable.
-        source: root.componentReady
+        source: root.componentReady && root.hasRenderableGeometry
+                && animationScope.eligible && !Theme.powerSave
+                && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
                 && root.automaticDownloadAllowed
                 && root.activeSource.toString().length > 0
             ? root.animatedGifUrl : ""
-        sourceSize: Qt.size(root.stableSourceWidth, root.stableSourceHeight)
+        sourceSize: Qt.size(Math.min(1024, root.stableSourceWidth), Math.min(1024, root.stableSourceHeight))
         fillMode: root.fillMode
         asynchronous: true
-        cache: true
+        cache: false
         visible: root.animatedGifUrl.length > 0 && status === AnimatedImage.Ready
-        // Scrolling does not pause an animated profile or image. The user
-        // controls animation explicitly in Power Save / Animated avatars.
-        playing: visible && root.visible && !Theme.powerSave
+        // Keep the still poster while motion or viewport admission suspends GIFs.
+        playing: visible && root.visible && animationScope.eligible && !root.scrollMoving && !Theme.powerSave
                  && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
         smooth: true
         // The shared mask texture exists only after the still-image layer is
         // ready. Never apply a missing mask to an otherwise valid GIF.
         layer.enabled: visible && root.maskActive
         layer.effect: layer.enabled ? maskEffectComponent : null
+        }
     }
 
     Component {

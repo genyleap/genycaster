@@ -1721,6 +1721,50 @@ Company | https://company.com</translation>
             <source>Hide nodes</source>
             <translation>Hide nodes</translation>
         </message>
+        <message id="genycaster.nodes.device_preflight">
+            <source>Device preflight: %1</source>
+            <translation>Device preflight: %1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_registry">
+            <source>Selected registration registry: %1</source>
+            <translation>Selected registration registry: %1</translation>
+        </message>
+        <message id="genycaster.nodes.directory_live">
+            <source>Directory: live (verified)</source>
+            <translation>Directory: live (verified)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_cached">
+            <source>Directory: cached (verified)</source>
+            <translation>Directory: cached (verified)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_embedded">
+            <source>Directory unavailable · configured nodes only</source>
+            <translation>Directory unavailable · configured nodes only</translation>
+        </message>
+        <message id="genycaster.nodes.directory_server_health">
+            <source>Node health reported by server</source>
+            <translation>Node health reported by server</translation>
+        </message>
+        <message id="genycaster.nodes.server_observation">
+            <source>Server: %1</source>
+            <translation>Server: %1</translation>
+        </message>
+        <message id="genycaster.nodes.device_observation">
+            <source>This device: %1</source>
+            <translation>This device: %1</translation>
+        </message>
+        <message id="genycaster.nodes.monitor_only">
+            <source>Monitoring only · no compatible reader adapter</source>
+            <translation>Monitoring only · no compatible reader adapter</translation>
+        </message>
+        <message id="genycaster.nodes.configured_primary">
+            <source>Configured primary reader</source>
+            <translation>Configured primary reader</translation>
+        </message>
+        <message id="genycaster.nodes.primary_reader">
+            <source>Primary reader</source>
+            <translation>Primary reader</translation>
+        </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
             <translation>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</translation>
@@ -2240,6 +2284,10 @@ Company | https://company.com</translation>
         <message id="genycaster.miniapp.invalid_manifest">
             <source>The app manifest is missing or invalid.</source>
             <translation>The app manifest is missing or invalid.</translation>
+        </message>
+        <message id="genycaster.miniapp.navigation_blocked">
+            <source>This app tried to navigate outside its original site. Open it again to retry.</source>
+            <translation>This app tried to navigate outside its original site. Open it again to retry.</translation>
         </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
@@ -7908,6 +7956,10 @@ This notice describes the product's current intended data flows, not a guarantee
         <message id="genycaster.setup.recovery_signer_consent">
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>Authorize a signer for this device to publish and interact after network verification.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>Enter 12 or 24 recovery words in order</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>

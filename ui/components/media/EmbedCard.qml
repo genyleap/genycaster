@@ -329,8 +329,8 @@ Superellipse {
                 sourceComponent: VideoPreview {
                     embed: root.embed
                     compact: true
+                    cornerCoverColor: root.fillColor
                     onOpenRequested: url => root.openRequested(url)
-                    cornerMaskColor: root.fillColor
                 }
             }
         }

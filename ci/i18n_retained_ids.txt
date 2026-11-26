@@ -262,3 +262,13 @@ genycaster.editor.system_edit_hint
 genycaster.editor.undo
 genycaster.setup.continue_sponsored
 genycaster.setup.keep_recovery_words
+
+# Compact node directory redesign supersedes these labels; preserve cached-client compatibility.
+genycaster.nodes.active
+genycaster.nodes.description
+genycaster.nodes.directory_collapse
+genycaster.nodes.directory_expand
+genycaster.nodes.directory_info
+genycaster.nodes.directory_unverified
+genycaster.nodes.health_title
+genycaster.nodes.raw_small

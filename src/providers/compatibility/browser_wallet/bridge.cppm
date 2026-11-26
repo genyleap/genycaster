@@ -36,6 +36,8 @@ struct Config final {
     std::vector<std::string> supportedChains{};
     std::chrono::milliseconds requestTimeout{std::chrono::minutes{5}};
     std::size_t maxRequestBytes{64U * 1024U};
+    std::function<void(const std::string&, bool)> nativeApprovalSettled{};
+    std::string walletConnectModule{}; // immutable bundled JS; never supplied by Mini Apps
 };
 
 /**

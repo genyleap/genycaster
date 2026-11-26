@@ -1,4 +1,5 @@
 #include "host.hpp"
+#include "browser.hpp"
 #include <QHostAddress>
 #include <QUrl>
 #include <QSettings>
@@ -74,7 +75,7 @@ struct WalletBrowserCandidate final {
         if (QFileInfo::exists(located) && QFileInfo(located).isFile())
             available.append({id, name, located});
     }
-#elif defined(Q_OS_LINUX)
+#elif defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
     for (const auto& [id, name, executable] : {
              std::tuple{QStringLiteral("brave"), QStringLiteral("Brave Browser"), QStringLiteral("brave-browser")},
              std::tuple{QStringLiteral("chrome"), QStringLiteral("Google Chrome"), QStringLiteral("google-chrome")},
@@ -180,6 +181,8 @@ MiniAppHostController::MiniAppHostController(bool runtimeAvailable, QSettings& s
     });
 #endif
 }
+MiniAppHostController::~MiniAppHostController() = default;
+
 bool MiniAppHostController::walletBrowserPickerActive() const noexcept
 {
     return !m_walletBrowserSessionUrl.isEmpty() && !m_walletBrowserWaiting;
@@ -214,6 +217,10 @@ void MiniAppHostController::setWalletBrowserContext(
 
 void MiniAppHostController::walletBrowserSessionEnded()
 {
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+    m_mobileWalletBrowser.reset();
+    m_mobileWalletBrowserUrl.clear();
+#endif
     const bool changed = !m_walletBrowserSessionUrl.isEmpty()
         || m_walletBrowserWaiting || !m_walletBrowserError.isEmpty();
     m_walletBrowserSessionUrl.clear();
@@ -226,9 +233,17 @@ void MiniAppHostController::walletBrowserSessionEnded()
     if (changed) emit walletBrowserPickerChanged();
 }
 
+void MiniAppHostController::nativeWalletApprovalSettled(const QString& url, bool successful)
+{
+    if (m_walletBrowserSessionUrl == url) walletBrowserRequestFinished(successful);
+}
+
 void MiniAppHostController::walletBrowserRequestFinished(const bool successful)
 {
     if (m_walletBrowserSessionUrl.isEmpty()) return;
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+    if(m_mobileWalletBrowser) m_mobileWalletBrowser->setVisible(false);
+#endif
     // Opening an executable is not proof that its wallet was usable:
     // remember the preference only after the real wallet replied successfully.
     if (successful && !m_walletBrowserSelectedId.isEmpty()
@@ -253,11 +268,28 @@ void MiniAppHostController::requestWalletBrowser(const QString& localSessionUrl)
     if (m_walletBrowserSessionUrl == localSessionUrl)
         return;
     m_walletBrowserSessionUrl = localSessionUrl;
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+    if(m_mobileWalletBrowser && m_mobileWalletBrowserUrl == localSessionUrl){
+        m_walletBrowserWaiting = true;
+        emit walletBrowserPickerChanged();
+        m_mobileWalletBrowser->setVisible(true);
+        return;
+    }
+#endif
     m_walletBrowserWaiting = false;
     m_walletBrowserError.clear();
     m_walletBrowserSelectedId.clear();
     m_walletBrowserSelectedName.clear();
     m_walletBrowserOptions.clear();
+#if (defined(Q_OS_ANDROID) || defined(Q_OS_IOS)) && GENYCASTER_HAS_MINIAPP_HOST
+    if (m_nativeSdkAvailable) {
+        // Mobile uses its isolated WalletConnect approval surface directly.
+        // Do not surface the desktop browser chooser even for one frame.
+        chooseWalletBrowser(QStringLiteral("system"));
+        if (!m_walletBrowserWaiting) cancelWalletBrowser();
+        return;
+    }
+#endif
     const auto candidates = installedWalletBrowsers();
     for (const auto& candidate : candidates) {
         m_walletBrowserOptions.append(QVariantMap{
@@ -268,7 +300,13 @@ void MiniAppHostController::requestWalletBrowser(const QString& localSessionUrl)
     }
     m_walletBrowserOptions.append(QVariantMap{
         {QStringLiteral("id"), QStringLiteral("system")},
-        {QStringLiteral("label"), QStringLiteral("Default browser")},
+        {QStringLiteral("label"),
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+            m_nativeSdkAvailable ? QStringLiteral("WalletConnect") : QStringLiteral("Default browser")
+#else
+            QStringLiteral("Default browser")
+#endif
+        },
         {QStringLiteral("icon"), QStringLiteral("system")},
     });
 
@@ -302,8 +340,38 @@ void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
     bool launched = false;
     QString selectedName{};
     if (browserId == QStringLiteral("system")) {
-        selectedName = QStringLiteral("default browser");
-        launched = QDesktopServices::openUrl(url);
+#if (defined(Q_OS_ANDROID) || defined(Q_OS_IOS)) && GENYCASTER_HAS_MINIAPP_HOST
+        if (m_nativeSdkAvailable) {
+            using namespace farcaster::platform::miniapp;
+            BrowserCallbacks callbacks{};
+            const QString approvalUrl = m_walletBrowserSessionUrl;
+            callbacks.closed = [this,approvalUrl]{
+                QTimer::singleShot(0,this,[this,approvalUrl]{
+                    if (m_walletBrowserSessionUrl == approvalUrl) cancelWalletBrowser();
+                });
+            };
+            callbacks.failed = [this,approvalUrl](const QString& error){
+                QTimer::singleShot(0,this,[this,approvalUrl,error]{
+                    if (m_walletBrowserSessionUrl != approvalUrl) return;
+                    cancelWalletBrowser();
+                    setState(m_active,error);
+                });
+            };
+            m_mobileWalletBrowser = createBrowser(QStringLiteral("WalletConnect"),url,
+                std::move(callbacks),PresentationMode::Window,m_reduceMotion,false,BrowserRole::WalletApproval);
+            launched = bool(m_mobileWalletBrowser);
+            if(launched){
+                m_mobileWalletBrowserUrl=m_walletBrowserSessionUrl;
+                selectedName=QStringLiteral("WalletConnect");
+                m_mobileWalletBrowser->load(url);
+                m_mobileWalletBrowser->setVisible(true);
+            }
+        } else
+#endif
+        {
+            selectedName = QStringLiteral("default browser");
+            launched = QDesktopServices::openUrl(url);
+        }
     } else {
         const auto selected = std::ranges::find_if(candidates, [&browserId](const auto& item) {
             return item.id == browserId;
@@ -320,6 +388,12 @@ void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
     }
     if (!launched) {
         m_walletBrowserError = qtTrId("genycaster.wallet.browser_open_failed");
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+        if (m_nativeSdkAvailable) {
+            cancelWalletBrowser();
+            return;
+        }
+#endif
         emit walletBrowserPickerChanged();
         return;
     }
@@ -336,6 +410,10 @@ void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
 void MiniAppHostController::cancelWalletBrowser()
 {
     if (m_walletBrowserSessionUrl.isEmpty()) return;
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+    m_mobileWalletBrowser.reset();
+    m_mobileWalletBrowserUrl.clear();
+#endif
     m_walletBrowserSessionUrl.clear();
     m_walletBrowserWaiting = false;
     m_walletBrowserError.clear();
@@ -617,7 +695,7 @@ void MiniAppHostController::openWithMetadata(const QString& url,
         || numericHost.setAddress(host)
         || !destination.userName().isEmpty()
         || !destination.password().isEmpty()) {
-        setState(false, qtTrId("genycaster.miniapp.unavailable"));
+        setState(false, qtTrId("genycaster.miniapp.invalid_url"));
         return;
     }
     m_launchUrl = destination.toString(QUrl::FullyEncoded);
@@ -660,7 +738,7 @@ void MiniAppHostController::openWithMetadata(const QString& url,
         // browser, but must never be conflated with opening a Mini App.
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
         setState(false, qtTrId("genycaster.miniapp.unavailable"));
-#elif !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID)
+#elif !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
         if (QDesktopServices::openUrl(destination)) {
             emit externalLaunchSucceeded();
             setState(false);

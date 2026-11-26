@@ -129,7 +129,7 @@ Item {
     // The authoritative read is safe to perform automatically after wallet
     // backup. Users should not need to discover an extra lookup button.
     function maybeLookupNativeFid() {
-        if (browserReadOnly || registrationProviderId !== "hypersnap-v2"
+        if (!runtimeReady || browserReadOnly || registrationProviderId !== "hypersnap-v2"
             || !nativeCustodyWallet.backupVerified || !nativeRegistrationStatus.active
             || nativeRegistrationStatus.accountLookupChecked
             || nativeRegistrationStatus.accountLookupBusy
@@ -476,7 +476,10 @@ Item {
         text: root.checkingSetupConnections ? qsTrId("genycaster.settings.checking")
                                            : qsTrId("genycaster.settings.check_now")
         enabled: root.runtimeReady && !root.checkingSetupConnections
-        onClicked: root.checkSetupConnections()
+        onClicked: {
+            root.checkSetupConnections()
+            providerProfiles.refreshDirectory()
+        }
     }
 
     function protocolConnectionState(farcaster) {
@@ -521,7 +524,10 @@ Item {
                 text: qsTrId("genycaster.setup.network_status")
                 Accessible.expandable: true
                 Accessible.expanded: details.expanded
-                onClicked: details.expanded = !details.expanded
+                onClicked: {
+                    details.expanded = !details.expanded
+                    if (details.expanded) providerProfiles.refreshDirectory()
+                }
             }
             Item { Layout.fillWidth: true }
             SetupConnectionRefresh { visible: true }
@@ -620,6 +626,84 @@ Item {
                         font.weight: Theme.weightDemiBold
                     }
                 }
+            }
+        }
+        ColumnLayout {
+            visible: details.expanded
+            Layout.fillWidth: true
+            spacing: Theme.space2
+            DirectionAwareLabel {
+                visible: details.protocol !== "farcaster-snapchain" && providerProfiles.registrationNode.length > 0
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.nodes.selected_registry").arg(providerProfiles.registrationNode)
+                font.pixelSize: Theme.typeCaptionSize
+                color: Theme.ink
+                wrapMode: Text.Wrap
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: providerProfiles.directorySource === "live" ? qsTrId("genycaster.nodes.directory_live")
+                    : providerProfiles.directorySource === "cached" ? qsTrId("genycaster.nodes.directory_cached")
+                    : qsTrId("genycaster.nodes.directory_embedded")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.Wrap
+            }
+            Repeater {
+                model: details.expanded ? providerProfiles.directoryNodes.filter(node =>
+                    !details.protocol || (details.protocol === "hypersnap-v2" ? node.network === "hypersnap" : node.network === "farcaster")) : []
+                delegate: RowLayout {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+                    Icon {
+                        text: modelData.endpoint === providerProfiles.registrationNode ? Theme.iconCheck : Theme.iconCloud
+                        preferredSize: Theme.iconSizeSmall
+                        color: modelData.endpoint === providerProfiles.registrationNode ? Theme.success : Theme.inkMuted
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: String(modelData.endpoint).replace(/^https:\/\//, "")
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.ink
+                            wrapMode: Text.Wrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: !modelData.enabled ? qsTrId("genycaster.setup.connection_disabled")
+                                : modelData.serverStatus === "degraded" ? qsTrId("genycaster.setup.registration_sync_paused")
+                                : modelData.serverStatus === "healthy" ? qsTrId("genycaster.nodes.health_ok")
+                                : modelData.serverStatus === "auth_required" ? qsTrId("genycaster.nodes.health_auth")
+                                : modelData.serverStatus === "unreachable" ? qsTrId("genycaster.nodes.health_failed")
+                                : qsTrId("genycaster.nodes.not_tested")
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.inkMuted
+                            wrapMode: Text.Wrap
+                        }
+                        DirectionAwareLabel {
+                            visible: modelData.registrationPreflight !== "unknown"
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.nodes.device_preflight").arg(
+                                modelData.registrationPreflight === "ready" ? qsTrId("genycaster.nodes.health_ok")
+                                : modelData.registrationPreflight === "lagging" ? qsTrId("genycaster.setup.registration_sync_paused")
+                                : qsTrId("genycaster.setup.temporarily_unavailable"))
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: modelData.registrationPreflight === "ready" ? Theme.success : Theme.warning
+                            wrapMode: Text.Wrap
+                        }
+                    }
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.nodes.directory_server_health")
+                font.pixelSize: Theme.typeCaptionSize
+                color: Theme.inkMuted
+                wrapMode: Text.Wrap
             }
         }
     }
@@ -3415,7 +3499,9 @@ Item {
                     layoutDirection: Theme.uiDirection
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.native_recovery_placeholder")
+                        text: root.recoveryProtocol === "farcaster-snapchain"
+                            ? qsTrId("genycaster.setup.farcaster_recovery_placeholder")
+                            : qsTrId("genycaster.setup.native_recovery_placeholder")
                         color: Theme.ink
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold

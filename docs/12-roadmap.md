@@ -61,9 +61,10 @@ This page tracks **implementation** independently from **qualification and relea
 external-wallet integrations exist in source. The **initial public release**
 defers standalone Chat and Wallet product modules but keeps native custody,
 signer authorization, external EIP-1193 and WalletConnect on supported hosts.
-Android v1 explicitly offers **public HTTPS Mini App pages only** through a
-non-privileged QtWebView, not the SDK or in-app wallet RPC. Privileged Android
-Mini Apps and standalone Chat/Wallet are subsequent-release work.
+Android and iOS now compose native WebView/WKWebView SDK transports and
+an isolated WalletConnect approval surface in source. Device qualification,
+external wallet compatibility and signed iOS distribution remain open.
+Standalone Chat/Wallet are subsequent-release work.
 
 **Remaining:** installed-host wallet approval and revoke testing, origin/session/account/chain isolation,
 consent expiry, navigation/disconnect revocation, hostile content handling and

@@ -550,11 +550,14 @@ void testClosingBridgeWithHalfOpenHttpConnectionIsBounded()
     std::this_thread::sleep_for(std::chrono::milliseconds{100});
 
     // A half-written browser request used to block http::read indefinitely
-    // and could keep the bridge's jthread from joining on application exit.
+    // and could keep the bridge's worker from joining on application exit.
     const auto shutdownStarted = std::chrono::steady_clock::now();
     bridge->reset();
     const auto elapsed = std::chrono::steady_clock::now() - shutdownStarted;
-    assert(elapsed < std::chrono::seconds{8});
+    assert(elapsed < std::chrono::seconds{2});
+    auto cancelled = pendingPromise.get_future();
+    assert(cancelled.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(cancelled.get().error->code == 4900);
 }
 
 void testBridgeRejectsUnsupportedChainBeforeWallet()
@@ -833,10 +836,67 @@ void testCanonicalWalletOriginIsEnforcedAtBridgeBoundary()
     assert(connected.get().error->code == 4900);
 }
 
+
+void testMobileApprovalModuleAndReopening()
+{
+    using provider::compatibility::browser_wallet::bridge::Config;
+    using provider::compatibility::browser_wallet::bridge::makeBridge;
+    std::string launchedUrl;
+    std::atomic<int> opens{0}, settled{0};
+    auto bridge = makeBridge(Config{
+        .launch = [&](const std::string& url) -> foundation::result::Status {
+            launchedUrl = url;
+            ++opens;
+            return {};
+        },
+        .supportedChains = {"eip155:1"},
+        .requestTimeout = std::chrono::seconds{3},
+        .nativeApprovalSettled = [&](const std::string& url, bool) {
+            assert(url == launchedUrl);
+            ++settled;
+        },
+        .walletConnectModule = "export const marker = 1;",
+    });
+    assert(bridge && (*bridge)->beginSession("Mobile", "https://mini.example"));
+    std::promise<capability::wallet::EthereumRpcResponse> connectPromise;
+    auto connected = connectPromise.get_future();
+    (*bridge)->request({.id=1, .method="eth_requestAccounts", .paramsJson="[]"},
+        [&](auto result){connectPromise.set_value(std::move(result));});
+    assert(opens == 1);
+    auto url = parseLoopbackUrl(launchedUrl);
+    const auto page = request(url, http::verb::get, url.target);
+    assert(page.result() == http::status::ok);
+    assert(page.body().find("wc-connect") != std::string::npos);
+    const auto module = request(url, http::verb::get, url.target + "/walletconnect.mjs");
+    assert(module.result() == http::status::ok && module.body() == "export const marker = 1;");
+    assert(request(url,http::verb::get,"/session/invalid/walletconnect.mjs").result() != http::status::ok);
+    auto next = request(url,http::verb::get,url.target+"/next");
+    auto queued=json::parse(next.body()).as_object();
+    auto response=json::serialize(json::object{{"transportId",queued.at("transportId")},{"result",json::array{"0x1111111111111111111111111111111111111111"}}});
+    assert(request(url,http::verb::post,url.target+"/result",response).result() == http::status::ok);
+    assert(connected.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(!connected.get().error && settled == 1);
+    std::promise<capability::wallet::EthereumRpcResponse> signPromise;
+    auto signedResult = signPromise.get_future();
+    (*bridge)->request({.id=2,.method="personal_sign",.paramsJson=R"(["0x1234","0x1111111111111111111111111111111111111111"])"},[&](auto result){signPromise.set_value(std::move(result));});
+    assert(opens == 2);
+    // A concurrent request cannot settle or hide the live approval.
+    std::promise<capability::wallet::EthereumRpcResponse> concurrentPromise;
+    auto concurrent = concurrentPromise.get_future();
+    (*bridge)->request({.id=3,.method="eth_chainId",.paramsJson="[]"},[&](auto result){concurrentPromise.set_value(std::move(result));});
+    assert(concurrent.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(concurrent.get().error && settled == 1);
+    (*bridge)->endSession();
+    assert(signedResult.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(signedResult.get().error && settled == 2);
+    assert(request(url,http::verb::get,url.target+"/walletconnect.mjs").result() != http::status::ok);
+}
+
 } // namespace
 
 int main()
 {
+    testMobileApprovalModuleAndReopening();
     testBridgeRoutesWalletRequestsAndEvents();
     testAccountAccessConsentIsRememberedPerOrigin();
     testAccountPrivacyUntilExplicitPermission();

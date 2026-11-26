@@ -21,12 +21,12 @@ test('node dashboard lists real per-instance API results without claiming contin
  const qml=read('ui/components/settings/NodeManagementPanel.qml');
  const cpp=read('ui/app/settings/providers.cpp');
  const hpp=read('ui/app/settings/providers.hpp');
- for(const pattern of [/providerProfiles\.connectionRows/,/providerProfiles\.probeAllReadProviders\(\)/,
-    /genycaster\.nodes\.health_short/,/modelData\.latencyMs/,/modelData\.httpStatus/,
+ for(const pattern of [/providerProfiles\.connectionRows/,/providerProfiles\.probeAllReadProviders\(true\)/,
+    /genycaster\.nodes\.health_short/,/modelData\.latencyMs/,/modelData\.serverLatencyMs/,
     /checked: providerProfiles\.compatibleReadFallback/,/readProfileCard\.showCredentials/])
    assert.match(qml,pattern);
  assert.match(hpp,/Q_PROPERTY\(QVariantList connectionRows READ connectionRows NOTIFY probeChanged\)/);
- assert.match(hpp,/Q_INVOKABLE bool probeAllReadProviders\(\)/);
+ assert.match(hpp,/Q_INVOKABLE bool probeAllReadProviders\(bool includeDirectory = false\)/);
  assert.match(cpp,/m_pendingBatch\.push_back/);
  assert.match(cpp,/m_batchProbing = true/);
  assert.match(cpp,/runProbeStep\(id, contract, origin, draftApiKey, 0\)/);
@@ -77,16 +77,16 @@ test('selected reader and measured latency remain distinct from actual API healt
  const qml=read('ui/components/settings/NodeManagementPanel.qml');
  assert.match(qml,/objectName: "publicProviderDirectory"/);
  assert.match(qml,/providerProfiles\.activeReadProviderId/);
- assert.match(qml,/text: Theme\.iconCheck/);
+ assert.match(qml,/Theme\.iconCheck/);
  assert.match(qml,/color: Theme\.positive/);
- assert.match(qml,/root\.responseBars\(Number\(modelData\.latencyMs\)\)/);
- assert.match(qml,/root\.checkedNodes \/ root\.liveHealthRows\.length/);
- assert.match(qml,/duration: Theme\.reduceMotion \? 0 : Theme\.motionEmphasis/);
+ assert.match(qml,/root\.measuredStatus\(/);
+ assert.match(qml,/health_progress"\)\.arg\(root\.checkedNodes\)\.arg\(root\.eligibleNodes\)/);
+ assert.match(qml,/root\.expandedNodeId = nodeRow\.expanded/);
  assert.match(qml,/genycaster\.nodes\.default_choice/);
- assert.match(qml,/https:\/\/hypersnap\.org\/network/);
- for(const name of ['Hypersnap Public','Ardea / Arca','Neynar Hub API','Pinata Hub','Standard Crypto Hub'])
-   assert.ok(qml.includes(name),name);
- assert.match(qml,/genycaster\.nodes\.directory_unverified/);
+ assert.match(qml,/https:\/\/genycaster\.xyz\/api\/v1\/nodes\?format=2/);
+ assert.match(qml,/const directory = providerProfiles\.directoryNodes/);
+ assert.match(qml,/providerProfiles\.probeDirectoryNode/);
+ assert.match(qml,/String\(nodeRow.modelData.status\) === "healthy"/);
 });
 test('self-host provisioning is only an honest, credentials-free future preview',()=>{
  const qml=read('ui/components/settings/NodeManagementPanel.qml');
@@ -107,4 +107,12 @@ test('new status and self-host guide copy is translated for all built-in locales
   const cat=read('ui/i18n/qml_'+loc+'.ts');
   for(const id of ids)assert.ok(cat.includes('id="genycaster.nodes.'+id+'"'),loc+' '+id);
  }
+});
+
+test('configured primary has its own green outline independent of sorting and health',()=>{
+ const qml=read('ui/components/settings/NodeManagementPanel.qml');
+ assert.match(qml,/borderColor: nodeRow\.modelData\.active \? Theme\.positive : Theme\.accent/);
+ assert.match(qml,/borderWidth: nodeRow\.modelData\.active \|\| Theme\.keyboardFocusVisible/);
+ assert.match(qml,/Accessible\.selected: !!nodeRow\.modelData\.active/);
+ assert.match(qml,/active: !!match && match\.id === providerProfiles\.activeReadProviderId/);
 });

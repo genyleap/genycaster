@@ -33,6 +33,7 @@ enum class LoadState { Found, NotFound };
 struct Failure final {
     std::string context{};
     std::optional<std::int64_t> nativeStatus{};
+    bool authorizationDenied{};
 };
 
 using Status = std::expected<void, Failure>;

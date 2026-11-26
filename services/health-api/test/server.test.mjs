@@ -28,7 +28,8 @@ test('collectChecks validates JSON shapes and the deployed WASM files', async t 
   const stub = async url => {
     if (url.includes('/connections/providers')) return json({providers: ['farcaster']});
     if (url.includes('/signersByFid')) return json({signers: [{fid: 1}]});
-    if (url.includes('/v1/info')) return json({numShards: 2, shardInfos: [{shardId: 1}]});
+    if (url.includes('/v1/info')) return json({version:'0.17.21',numShards: 2, shardInfos: [{shardId: 1}]});
+    if (url.includes('/v2/farcaster/user')) return json({user:{fid:3}});
     throw new Error('unexpected_probe');
   };
   assert.deepEqual(await collectChecks({webRoot, fetchImpl: stub}), healthy);

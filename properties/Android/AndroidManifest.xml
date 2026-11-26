@@ -21,6 +21,7 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:hardwareAccelerated="true"
+        android:networkSecurityConfig="@xml/miniapp_network_security"
         android:allowBackup="false"
         android:fullBackupContent="@xml/secure_backup_rules"
         android:dataExtractionRules="@xml/secure_data_extraction_rules"

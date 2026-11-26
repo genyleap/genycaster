@@ -693,11 +693,14 @@ if ('if (current !== requested)' not in superellipse_image
         or 'renderingController.requestMediaPresentation(root, root.presentationGeneration)' not in superellipse_image
         or 'root.activeSource = ""' not in superellipse_image):
     errors.append('SuperellipseImage must retain same-source inflight work across flicks, clear stale identities and frame-pace decode presentation')
-remote_cancel_block = remote_provider.split('void cancel() override', 1)[1].split('void setOperation', 1)[0]
-if ('m_cancelled.store(true' not in remote_cancel_block
-        or 'm_control->cancel()' in remote_cancel_block
-        or 'operation->cancel()' in remote_cancel_block):
-    errors.append('QML image cancellation must detach presentation without aborting already-admitted bounded provider work; post-fling reads should hit provider cache')
+remote_cancel_block = remote_provider.split('void cancel() override', 1)[1].split('void complete(', 1)[0]
+if ('m_cancelled.exchange(true' not in remote_cancel_block
+        or 'm_control->detach(m_subscriber)' not in remote_cancel_block
+        or 'deliverSubscriber(m_subscriber, QImage{})' not in remote_cancel_block
+        or 'subscribers.empty()' not in remote_provider
+        or 'existing->attach(subscriber)' not in remote_provider
+        or 'generation == operationGeneration' not in remote_provider):
+    errors.append('Image cancellation must detach one consumer, abort only an orphaned shared job and reject stale transport handles')
 embed_preview = (ui/'components'/'media'/'EmbedPreview.qml').read_text(encoding='utf-8')
 # Timeline previews incubate asynchronously; Magazine previews are created
 # synchronously only after the *outer* card's viewport admission to avoid

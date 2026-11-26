@@ -249,7 +249,7 @@ test('WASM package rejects a generated host with a missing lazy WalletConnect bu
   try{
     writeFileSync(join(dir,'genycaster.wasm'),Buffer.from([0,97,115,109,1,0,0,0]));
     writeFileSync(join(dir,'genycaster.html'),'<title>Genycaster</title>');
-    writeFileSync(join(dir,'genycaster.js'),'// Minimal generated boot fixture; no account module imports.');
+    writeFileSync(join(dir,'genycaster.js'),'/* generated boot fixture */');
     writeFileSync(join(dir,'miniapp-host-bridge.mjs'),'export const active=true;');
     const missing=spawnSync('python3',[script,'--dir',dir],{encoding:'utf8'});
     assert.notEqual(missing.status,0);

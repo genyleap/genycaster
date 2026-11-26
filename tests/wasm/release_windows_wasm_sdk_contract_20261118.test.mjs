@@ -56,8 +56,8 @@ test('Windows release installs and deploys an SDK host instead of a browser plac
   assert.doesNotMatch(installer,/addons\.qtwebengine/);
   assert.match(windows,/Install separately versioned Qt WebEngine extension/);
   assert.match(windows,/ci\/install_qt_webengine_windows\.py --destination Qt --architecture/);
-  assert.match(read('ci/install_qt_webengine_windows.py'),/WEBENGINE_STAMP = "6\.12\.0-0-202611110526"/);
-  assert.match(read('ci/install_qt_webengine_windows.py'),/extensions\/qtwebengine/);
+  assert.match(read('ci/install_qt_webengine_windows.py'),/WEBENGINE_STAMP = VERSION \+ "-0-"/);
+  assert.match(installer,/extensions\/qtwebengine\/6121\/61400/);
   assert.match(windows,/Qt6WebEngineWidgets/);
   assert.match(windows,/Qt6WebEngineQuick/);
   assert.match(windows,/-DFARCASTER_ENABLE_MINIAPPS=ON/);
@@ -89,14 +89,14 @@ test('WASM advertises the actual isolated JS mini app SDK without enabling nativ
   assert.match(sdk,/injected\.dispose\(\)/);
 });
 
-test('Android public-only scope must be explicit; unsupported privileged SDK claims stay blocked',()=>{
+test('Android native SDK scope requires an origin-bound adapter',()=>{
   const code=read('ci/verify_release_feature_contract.py');
-  assert.match(code,/public_only = \(/);
-  assert.match(code,/if not public_only:/);
-  assert.match(code,/GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only/);
-  assert.match(code,/Android: public-only Mini App scope is not explicitly declared/);
-  assert.match(code,/blockForeignNavigation/);
-  assert.match(code,/runJavaScript/);
+  assert.match(code,/android_sdk = \(/);
+  assert.match(code,/if not android_sdk:/);
+  assert.match(code,/GENYCASTER_ANDROID_MINIAPP_SCOPE=native-sdk/);
+  assert.match(code,/Android: native Mini App SDK origin, runtime or package contract missing/);
+  assert.match(code,/WebViewCompat.addWebMessageListener/);
+  assert.match(code,/!isMainFrame \|\| !allowed\(sourceOrigin\)/);
   assert.match(code,/if args\.strict:/);
   assert.match(code,/return 1/);
 });

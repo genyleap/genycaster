@@ -10,6 +10,7 @@ Item {
     property var modelData
     property bool compact: false
     property bool magazineCard: false
+    property color mediaSurfaceColor: magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
     property var sharedMediaGeometry: null
     property bool sharedNeonPointerActive: false
     property real sharedNeonPointerX: 0
@@ -1124,6 +1125,7 @@ Item {
                             plainText: root.displayText
                             compact: root.compact
                             magazineCard: root.magazineCard
+                            mediaSurfaceColor: root.mediaSurfaceColor
                             sharedMediaGeometry: root.sharedMediaGeometry
                             suppressedEmbedUrls: root.protocolEmbedUrls
                             onExternalRequested: url => root.externalRequested(url)
@@ -1181,6 +1183,7 @@ Item {
                     sourceComponent: Component {
                         CastEmbedsPanel {
                             magazineCard: root.magazineCard
+                            mediaSurfaceColor: root.mediaSurfaceColor
                             sharedMediaGeometry: root.sharedMediaGeometry
                             visualEmbeds: root.visualEmbeds
                             supportingEmbeds: []
@@ -1254,6 +1257,7 @@ Item {
                     sourceComponent: Component {
                         CastEmbedsPanel {
                             magazineCard: root.magazineCard
+                            mediaSurfaceColor: root.mediaSurfaceColor
                             sharedMediaGeometry: root.sharedMediaGeometry
                             visualEmbeds: []
                             supportingEmbeds: root.supportingEmbeds
@@ -1278,6 +1282,7 @@ Item {
                     sourceComponent: Component {
                         CastEmbedsPanel {
                             magazineCard: root.magazineCard
+                            mediaSurfaceColor: root.mediaSurfaceColor
                             sharedMediaGeometry: root.sharedMediaGeometry
                             visualEmbeds: []
                             supportingEmbeds: root.supportingEmbeds

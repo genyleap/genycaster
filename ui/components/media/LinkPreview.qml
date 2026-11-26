@@ -571,9 +571,14 @@ Superellipse {
         }
 
         // Mini Apps keep their Farcaster 3:2 discovery artwork and explicit host action.
-        ColumnLayout {
-            visible: root.layoutMiniApp
+        Loader {
+            id: miniAppPreviewLoader
+            active: root.layoutMiniApp
+            visible: active
             Layout.fillWidth: true
+            sourceComponent: ColumnLayout {
+            property alias artworkItem: miniAppPoster
+            property alias artworkFrameItem: miniAppPosterFrame
             spacing: Theme.space2
 
             RowLayout {
@@ -665,6 +670,7 @@ Superellipse {
                     // legible. Preserve the complete frame; the ambient backdrop
                     // fills any letterbox space without cropping the artwork.
                     fillMode: Image.PreserveAspectFit
+                    allowAnimation: root.animatedPosterUrl.length === 0
                     fillColor: Theme.backgroundSecondary
                     borderWidth: 0
                     clipToSuperellipse: true
@@ -677,18 +683,24 @@ Superellipse {
                 // Qt's ordinary image provider renders only the first GIF
                 // frame. Keep an actual AnimatedImage for the approved GIF
                 // splash, with the normal poster as a network fallback.
-                AnimatedImage {
+                Loader {
                     id: miniAppAnimation
                     z: 2
                     anchors.fill: parent
-                    source: root.animatedPosterUrl
-                    sourceSize: Qt.size(Math.max(1, Math.round(width)),
-                                        Math.max(1, Math.round(height)))
+                    active: root.animatedPosterUrl.length > 0 && !Theme.powerSave
+                    visible: item !== null && item.status === AnimatedImage.Ready
+                    sourceComponent: AnimatedImage {
+                    anchors.fill: parent
+                    MediaResourceScope { id: animationScope; owner: miniAppPosterFrame }
+                    source: animationScope.eligible && !Theme.powerSave ? root.animatedPosterUrl : ""
+                    sourceSize: Qt.size(Math.min(1024, Math.max(128, Math.ceil(width / 128) * 128)),
+                                        Math.min(1024, Math.max(128, Math.ceil(height / 128) * 128)))
                     fillMode: Image.PreserveAspectFit
-                    cache: true
+                    cache: false
                     visible: root.animatedPosterUrl.length > 0 && status === AnimatedImage.Ready
-                    playing: visible && !Theme.powerSave
+                    playing: visible && animationScope.eligible && !root.scrollMoving && !Theme.powerSave
                     smooth: true
+                    }
                 }
 
                 ColumnLayout {
@@ -784,12 +796,14 @@ Superellipse {
             }
         }
 
+        }
         // Generic web links are grouped into cleaner feed cards. Rich media
         // destinations (YouTube, Spotify, etc.) get a poster-first treatment,
         // while ordinary links stay dense and scan-friendly.
         Loader {
             id: webPreviewLoader
-            visible: !root.layoutMiniApp
+            active: !root.layoutMiniApp
+            visible: active
             Layout.fillWidth: true
             // A second asynchronous incubation in each recycled link card
             // can outlive the parent delegate during rapid Back/scroll.
@@ -1375,7 +1389,9 @@ Superellipse {
         if (root.previewSource.length === 0)
             return false
         if (root.layoutMiniApp) {
-            return root.pointInsideItem(miniAppPosterFrame, point) && !miniAppPoster.ready
+            const loaded = miniAppPreviewLoader.item
+            return loaded && root.pointInsideItem(loaded.artworkFrameItem, point)
+                && !loaded.artworkItem.ready
         }
         const loaded = webPreviewLoader.item
         if (!loaded || !loaded.artworkFrameItem || !loaded.artworkItem)

@@ -3,93 +3,205 @@
   "type": "improvement",
   "changes": [
     {
-      "id": "auth-reliability",
+      "id": "auth-security",
       "category": "security"
+    },
+    {
+      "id": "key-storage",
+      "category": "security"
+    },
+    {
+      "id": "macos-keychain",
+      "category": "fix"
+    },
+    {
+      "id": "android-ffmpeg",
+      "category": "improvement"
+    },
+    {
+      "id": "media-lifecycle",
+      "category": "improvement"
+    },
+    {
+      "id": "miniapps",
+      "category": "improvement"
+    },
+    {
+      "id": "setup-editor",
+      "category": "improvement"
+    },
+    {
+      "id": "node-routing",
+      "category": "improvement"
     }
   ],
   "translations": {
     "en-US": {
-      "title": "Genycaster 1.0.512 — Authentication and cross-platform reliability",
-      "summary": "Independent device authorization, safer session lifecycle and fixes for onboarding, media, desktop scrolling and account switching.",
+      "title": "Genycaster 1.0.512 — Security, media performance and cross-platform reliability",
+      "summary": "Stronger authentication and key protection, completed Android FFmpeg integration, more efficient media previews and improved mobile and desktop workflows.",
       "items": {
-        "auth-reliability": "Independent device authorization, safer session lifecycle and fixes for onboarding, media, desktop scrolling and account switching."
+        "auth-security": "Separate OpenProof identity, protocol signing and cloud-device authorization; strengthen session validation, account switching, cancellation and durable device revocation.",
+        "key-storage": "Protect signing keys through platform secure storage and isolated browser cryptography; reduce secret exposure and retire device keys safely.",
+        "macos-keychain": "Improve macOS Keychain integration with one-shot device-session sealing, fewer redundant reads and no automatic retry after denied authorization.",
+        "android-ffmpeg": "Complete Android FFmpeg 9.0.2 backend provisioning and native playback integration, including 16 KiB page compatibility and corrected media requests.",
+        "media-lifecycle": "Rework preview admission, lazy player creation, image request coalescing and offscreen resource release; improve video corners and scrolling responsiveness.",
+        "miniapps": "Improve native mobile Mini App hosting, navigation and explicit wallet consent, with origin-scoped permissions.",
+        "setup-editor": "Unify native and web onboarding, recovery and consent flows; improve native editing, browser input, clipboard and layout behavior.",
+        "node-routing": "Introduce a verified node directory with health-based read routing and clearer setup and node diagnostics."
       }
     },
     "fa-IR": {
-      "title": "Genycaster 1.0.512 — احراز هویت و پایداری چندپلتفرمی",
-      "summary": "مجوز مستقل دستگاه، چرخهٔ امن‌تر نشست و اصلاح ثبت‌نام، رسانه، اسکرول دسکتاپ و تغییر حساب.",
+      "title": "Genycaster 1.0.512 — امنیت، کارایی رسانه و پایداری چندپلتفرمی",
+      "summary": "احراز هویت و حفاظت از کلیدها، تکمیل FFmpeg اندروید، پیش‌نمایش‌های کم‌هزینه‌تر و بهبود تجربهٔ موبایل و دسکتاپ.",
       "items": {
-        "auth-reliability": "مجوز مستقل دستگاه، چرخهٔ امن‌تر نشست و اصلاح ثبت‌نام، رسانه، اسکرول دسکتاپ و تغییر حساب."
+        "auth-security": "تفکیک هویت OpenProof، امضای پروتکل و مجوز دستگاه ابری؛ تقویت اعتبارسنجی نشست، تغییر حساب، لغو عملیات و ابطال پایدار دستگاه.",
+        "key-storage": "حفاظت از کلیدهای امضا با ذخیره‌سازی امن سیستم‌عامل و رمزنگاری ایزولهٔ مرورگر؛ کاهش مواجهه با داده‌های محرمانه و حذف امن کلیدهای بازنشسته.",
+        "macos-keychain": "بهبود یکپارچگی Keychain مک با مهر نشست یک‌بارمصرف، کاهش خواندن‌های تکراری و جلوگیری از تلاش خودکار پس از رد مجوز.",
+        "android-ffmpeg": "تکمیل تأمین بک‌اند FFmpeg 9.0.2 اندروید و پخش بومی، با سازگاری صفحات ۱۶ کیبی‌بایتی و اصلاح درخواست‌های رسانه.",
+        "media-lifecycle": "بازطراحی معماری پیش‌نمایش، ساخت تنبل پلیر، ادغام درخواست‌های تصویر و آزادسازی منابع خارج از دید؛ بهبود گوشه‌های ویدیو و روانی اسکرول.",
+        "miniapps": "بهبود میزبانی بومی Mini App موبایل، ناوبری و تأیید صریح کیف پول با مجوزهای محدود به مبدأ.",
+        "setup-editor": "یکپارچه‌سازی مراحل شروع، بازیابی و پذیرش شرایط در نسخه‌های بومی و وب؛ بهبود ویرایش متن، ورودی مرورگر، کلیپ‌بورد و چیدمان.",
+        "node-routing": "معرفی فهرست تأییدشدهٔ نودها، مسیریابی خواندن بر اساس سلامت و تشخیص شفاف‌تر وضعیت نود در تنظیمات و شروع."
       }
     },
     "ar-SA": {
-      "title": "Genycaster 1.0.512 — المصادقة والموثوقية عبر المنصات",
-      "summary": "تفويض مستقل للجهاز ودورة جلسة أكثر أمانًا وإصلاحات التسجيل والوسائط والتمرير وتبديل الحساب.",
+      "title": "Genycaster 1.0.512 — الأمان وأداء الوسائط والموثوقية عبر المنصات",
+      "summary": "مصادقة وحماية مفاتيح أقوى، وتكامل FFmpeg على Android ومعاينات أكثر كفاءة وتجربة محسّنة.",
       "items": {
-        "auth-reliability": "تفويض مستقل للجهاز ودورة جلسة أكثر أمانًا وإصلاحات التسجيل والوسائط والتمرير وتبديل الحساب."
+        "auth-security": "فصل هوية OpenProof وتوقيع البروتوكول وتفويض الجهاز السحابي، وتعزيز التحقق من الجلسات والإلغاء وإبطال الأجهزة.",
+        "key-storage": "حماية مفاتيح التوقيع بالتخزين الآمن للنظام والتشفير المعزول في المتصفح، والتخلص الآمن من المفاتيح المتقاعدة.",
+        "macos-keychain": "تحسين Keychain في macOS بختم جلسة جهاز لمرة واحدة وتقليل القراءات المتكررة وعدم إعادة المحاولة تلقائيًا بعد رفض التفويض.",
+        "android-ffmpeg": "استكمال تكامل FFmpeg 9.0.2 على Android والتشغيل الأصلي، مع توافق صفحات 16 KiB وتصحيح طلبات الوسائط.",
+        "media-lifecycle": "إعادة تصميم المعاينات وإنشاء المشغل عند الطلب ودمج طلبات الصور وتحرير الموارد خارج الشاشة وتحسين زوايا الفيديو والتمرير.",
+        "miniapps": "تحسين استضافة Mini Apps على الأجهزة المحمولة والتنقل والموافقة الصريحة للمحفظة بأذونات محددة المصدر.",
+        "setup-editor": "توحيد الإعداد والاسترداد والموافقة بين الويب والتطبيقات الأصلية وتحسين التحرير والإدخال والحافظة والتخطيط.",
+        "node-routing": "دليل عقد موثّق وتوجيه القراءة حسب الصحة وتشخيص أوضح أثناء الإعداد وفي الإعدادات."
       }
     },
     "de-DE": {
-      "title": "Genycaster 1.0.512 — Authentifizierung und plattformübergreifende Zuverlässigkeit",
-      "summary": "Unabhängige Geräteautorisierung, sicherere Sitzungen und Korrekturen bei Registrierung, Medien, Scrollen und Kontowechsel.",
+      "title": "Genycaster 1.0.512 — Sicherheit, Medienleistung und plattformübergreifende Zuverlässigkeit",
+      "summary": "Stärkere Authentifizierung und Schlüsselsicherheit, vollständige Android-FFmpeg-Integration und effizientere Medienvorschauen.",
       "items": {
-        "auth-reliability": "Unabhängige Geräteautorisierung, sicherere Sitzungen und Korrekturen bei Registrierung, Medien, Scrollen und Kontowechsel."
+        "auth-security": "OpenProof-Identität, Protokollsignatur und Cloud-Geräteautorisierung trennen; Sitzungsprüfung, Kontowechsel, Abbruch und dauerhaften Gerätewiderruf stärken.",
+        "key-storage": "Signaturschlüssel durch sicheren Plattformspeicher und isolierte Browser-Kryptografie schützen; ausgediente Geräteschlüssel sicher entfernen.",
+        "macos-keychain": "macOS-Schlüsselbund mit einmaliger Gerätesitzungssignatur, weniger redundanten Zugriffen und ohne automatische Wiederholung nach verweigerter Autorisierung verbessern.",
+        "android-ffmpeg": "Android-FFmpeg-9.0.2-Backend und native Wiedergabe vervollständigen, einschließlich 16-KiB-Seitenkompatibilität und korrigierter Medienanfragen.",
+        "media-lifecycle": "Vorschauen, verzögerte Player-Erstellung, gemeinsame Bildanfragen und Freigabe unsichtbarer Ressourcen überarbeiten; Videoecken und Scrollen verbessern.",
+        "miniapps": "Native mobile Mini-App-Hosts, Navigation und ausdrückliche Wallet-Zustimmung mit ursprungsgebundenen Berechtigungen verbessern.",
+        "setup-editor": "Einrichtung, Wiederherstellung und Zustimmung für native Apps und Web vereinheitlichen; Texteingabe, Zwischenablage und Layout verbessern.",
+        "node-routing": "Verifiziertes Knotenverzeichnis, gesundheitsbasierte Leserouten und klarere Knotendiagnose einführen."
       }
     },
     "es-ES": {
-      "title": "Genycaster 1.0.512 — Autenticación y fiabilidad multiplataforma",
-      "summary": "Autorización independiente del dispositivo, sesiones más seguras y correcciones de registro, medios, desplazamiento y cambio de cuenta.",
+      "title": "Genycaster 1.0.512 — Seguridad, rendimiento multimedia y fiabilidad multiplataforma",
+      "summary": "Autenticación y protección de claves reforzadas, integración completa de FFmpeg en Android y vistas previas más eficientes.",
       "items": {
-        "auth-reliability": "Autorización independiente del dispositivo, sesiones más seguras y correcciones de registro, medios, desplazamiento y cambio de cuenta."
+        "auth-security": "Separación de identidad OpenProof, firma del protocolo y autorización de dispositivos en la nube; validación de sesión, cambios de cuenta, cancelación y revocación persistente reforzados.",
+        "key-storage": "Protección de claves de firma mediante almacenamiento seguro del sistema y criptografía aislada del navegador; retirada segura de claves de dispositivo.",
+        "macos-keychain": "Mejoras de Keychain en macOS con sellado de sesión de un solo uso, menos lecturas redundantes y sin reintentos automáticos tras una denegación.",
+        "android-ffmpeg": "Integración del backend FFmpeg 9.0.2 en Android y reproducción nativa, con compatibilidad de páginas de 16 KiB y solicitudes multimedia corregidas.",
+        "media-lifecycle": "Rediseño de vistas previas, creación diferida de reproductores, solicitudes de imágenes compartidas y liberación de recursos fuera de pantalla; mejores esquinas y desplazamiento.",
+        "miniapps": "Mejor alojamiento nativo de Mini Apps móviles, navegación y consentimiento explícito de cartera con permisos limitados al origen.",
+        "setup-editor": "Configuración, recuperación y consentimiento unificados en web y aplicaciones nativas; mejoras de edición, entrada, portapapeles y diseño.",
+        "node-routing": "Directorio de nodos verificado, rutas de lectura según el estado de salud y diagnóstico más claro."
       }
     },
     "fr-FR": {
-      "title": "Genycaster 1.0.512 — Authentification et fiabilité multiplateforme",
-      "summary": "Autorisation indépendante de l’appareil, sessions renforcées et corrections de l’inscription, des médias, du défilement et du changement de compte.",
+      "title": "Genycaster 1.0.512 — Sécurité, performances multimédias et fiabilité multiplateforme",
+      "summary": "Authentification et protection des clés renforcées, intégration complète de FFmpeg sur Android et aperçus plus efficaces.",
       "items": {
-        "auth-reliability": "Autorisation indépendante de l’appareil, sessions renforcées et corrections de l’inscription, des médias, du défilement et du changement de compte."
+        "auth-security": "Séparation de l’identité OpenProof, de la signature du protocole et de l’autorisation des appareils cloud ; validation des sessions, annulation et révocation persistante renforcées.",
+        "key-storage": "Protection des clés de signature par le stockage sécurisé du système et la cryptographie isolée du navigateur ; retrait sûr des clés d’appareil.",
+        "macos-keychain": "Amélioration du trousseau macOS avec scellement de session à usage unique, moins de lectures redondantes et aucun nouvel essai automatique après un refus.",
+        "android-ffmpeg": "Intégration du moteur FFmpeg 9.0.2 sur Android et lecture native, compatibilité avec les pages de 16 Kio et requêtes multimédias corrigées.",
+        "media-lifecycle": "Refonte des aperçus, création différée du lecteur, mutualisation des requêtes d’images et libération des ressources hors écran ; coins vidéo et défilement améliorés.",
+        "miniapps": "Amélioration de l’hébergement natif des Mini Apps mobiles, de la navigation et du consentement explicite du portefeuille, avec permissions liées à l’origine.",
+        "setup-editor": "Configuration, récupération et consentement unifiés sur le Web et en natif ; améliorations de la saisie, du presse-papiers et de la mise en page.",
+        "node-routing": "Annuaire de nœuds vérifié, routage de lecture selon leur état et diagnostics plus clairs."
       }
     },
     "hi-IN": {
-      "title": "Genycaster 1.0.512 — प्रमाणीकरण और क्रॉस-प्लेटफ़ॉर्म विश्वसनीयता",
-      "summary": "स्वतंत्र डिवाइस प्राधिकरण, सुरक्षित सत्र और पंजीकरण, मीडिया, स्क्रॉलिंग व खाता बदलने में सुधार।",
+      "title": "Genycaster 1.0.512 — सुरक्षा, मीडिया प्रदर्शन और क्रॉस-प्लेटफ़ॉर्म विश्वसनीयता",
+      "summary": "मजबूत प्रमाणीकरण और कुंजी सुरक्षा, Android पर पूर्ण FFmpeg एकीकरण और अधिक कुशल मीडिया पूर्वावलोकन।",
       "items": {
-        "auth-reliability": "स्वतंत्र डिवाइस प्राधिकरण, सुरक्षित सत्र और पंजीकरण, मीडिया, स्क्रॉलिंग व खाता बदलने में सुधार।"
+        "auth-security": "OpenProof पहचान, प्रोटोकॉल हस्ताक्षर और क्लाउड डिवाइस प्राधिकरण अलग किए; सत्र सत्यापन, खाता बदलने, रद्दीकरण और स्थायी डिवाइस निरस्तीकरण को मजबूत किया।",
+        "key-storage": "प्लेटफ़ॉर्म के सुरक्षित भंडारण और पृथक ब्राउज़र क्रिप्टोग्राफी से हस्ताक्षर कुंजियों की सुरक्षा और पुरानी डिवाइस कुंजियों का सुरक्षित निष्कासन।",
+        "macos-keychain": "एकबारगी डिवाइस सत्र सील, कम अनावश्यक रीड और अनुमति अस्वीकृत होने पर स्वतः पुनः प्रयास रोककर macOS Keychain में सुधार।",
+        "android-ffmpeg": "Android पर FFmpeg 9.0.2 बैकएंड और मूल प्लेबैक पूरा किया; 16 KiB पेज संगतता और मीडिया अनुरोध सुधारे।",
+        "media-lifecycle": "पूर्वावलोकन, माँग पर प्लेयर निर्माण, साझा छवि अनुरोध और स्क्रीन से बाहर के संसाधनों की मुक्ति में सुधार; वीडियो कोने और स्क्रॉलिंग बेहतर।",
+        "miniapps": "मूल मोबाइल Mini Apps होस्टिंग, नेविगेशन और ओरिजिन-सीमित स्पष्ट वॉलेट सहमति में सुधार।",
+        "setup-editor": "मूल ऐप और वेब पर सेटअप, रिकवरी और सहमति एकीकृत; संपादन, ब्राउज़र इनपुट, क्लिपबोर्ड और लेआउट सुधारे।",
+        "node-routing": "सत्यापित नोड निर्देशिका, स्वास्थ्य-आधारित रीड रूटिंग और स्पष्ट नोड निदान।"
       }
     },
     "ja-JP": {
-      "title": "Genycaster 1.0.512 — 認証とクロスプラットフォームの信頼性",
-      "summary": "独立したデバイス認可、安全なセッション管理、登録・メディア・スクロール・アカウント切替の修正。",
+      "title": "Genycaster 1.0.512 — セキュリティ、メディア性能、クロスプラットフォームの信頼性",
+      "summary": "認証と鍵保護の強化、AndroidのFFmpeg統合の完成、効率的なメディアプレビュー。",
       "items": {
-        "auth-reliability": "独立したデバイス認可、安全なセッション管理、登録・メディア・スクロール・アカウント切替の修正。"
+        "auth-security": "OpenProofのID、プロトコル署名、クラウド端末認可を分離し、セッション検証、アカウント切替、キャンセル、端末失効を強化。",
+        "key-storage": "OSの安全なストレージと分離されたブラウザー暗号処理で署名鍵を保護し、不要になった端末鍵を安全に廃棄。",
+        "macos-keychain": "macOS Keychainで端末セッションの一回限りの署名を導入し、重複読み取りと認可拒否後の自動再試行を削減。",
+        "android-ffmpeg": "AndroidでFFmpeg 9.0.2バックエンドとネイティブ再生を統合し、16 KiBページ対応とメディア要求を改善。",
+        "media-lifecycle": "プレビュー、プレイヤーの遅延生成、画像要求の統合、画面外リソース解放を再設計し、動画の角とスクロールを改善。",
+        "miniapps": "モバイルのネイティブMini Apps、ナビゲーション、オリジンに限定された明示的なウォレット同意を改善。",
+        "setup-editor": "ネイティブとWebの初期設定、復元、同意を統一し、編集、ブラウザー入力、クリップボード、レイアウトを改善。",
+        "node-routing": "検証済みノードディレクトリ、稼働状態に基づく読み取り経路、明確なノード診断を導入。"
       }
     },
     "ko-KR": {
-      "title": "Genycaster 1.0.512 — 인증 및 크로스 플랫폼 안정성",
-      "summary": "독립적인 기기 인증, 안전한 세션 관리, 가입·미디어·스크롤·계정 전환 개선.",
+      "title": "Genycaster 1.0.512 — 보안, 미디어 성능 및 크로스 플랫폼 안정성",
+      "summary": "인증 및 키 보호 강화, Android FFmpeg 통합 완료, 효율적인 미디어 미리보기.",
       "items": {
-        "auth-reliability": "독립적인 기기 인증, 안전한 세션 관리, 가입·미디어·스크롤·계정 전환 개선."
+        "auth-security": "OpenProof 신원, 프로토콜 서명, 클라우드 기기 인증을 분리하고 세션 검증, 계정 전환, 취소 및 지속적인 기기 권한 철회를 강화했습니다.",
+        "key-storage": "플랫폼의 안전한 저장소와 격리된 브라우저 암호화로 서명 키를 보호하고 사용이 끝난 기기 키를 안전하게 폐기합니다.",
+        "macos-keychain": "일회성 기기 세션 봉인, 중복 읽기 감소 및 인증 거부 후 자동 재시도 방지로 macOS Keychain을 개선했습니다.",
+        "android-ffmpeg": "Android FFmpeg 9.0.2 백엔드 및 네이티브 재생 통합을 완료하고 16 KiB 페이지 호환성과 미디어 요청을 개선했습니다.",
+        "media-lifecycle": "미리보기, 지연 플레이어 생성, 이미지 요청 통합, 화면 밖 리소스 해제를 재설계하고 영상 모서리와 스크롤을 개선했습니다.",
+        "miniapps": "모바일 네이티브 Mini Apps 호스팅, 탐색 및 출처별 명시적 지갑 동의를 개선했습니다.",
+        "setup-editor": "네이티브와 웹의 설정, 복구 및 동의를 통합하고 편집, 브라우저 입력, 클립보드, 레이아웃을 개선했습니다.",
+        "node-routing": "검증된 노드 디렉터리, 상태 기반 읽기 경로 및 명확한 노드 진단을 도입했습니다."
       }
     },
     "pt-BR": {
-      "title": "Genycaster 1.0.512 — Autenticação e confiabilidade multiplataforma",
-      "summary": "Autorização independente do dispositivo, sessões mais seguras e correções de cadastro, mídia, rolagem e troca de conta.",
+      "title": "Genycaster 1.0.512 — Segurança, desempenho de mídia e confiabilidade multiplataforma",
+      "summary": "Autenticação e proteção de chaves reforçadas, integração completa do FFmpeg no Android e prévias mais eficientes.",
       "items": {
-        "auth-reliability": "Autorização independente do dispositivo, sessões mais seguras e correções de cadastro, mídia, rolagem e troca de conta."
+        "auth-security": "Separação da identidade OpenProof, assinatura de protocolo e autorização de dispositivos na nuvem; validação de sessão, troca de conta, cancelamento e revogação persistente aprimorados.",
+        "key-storage": "Proteção das chaves de assinatura com armazenamento seguro da plataforma e criptografia isolada do navegador; descarte seguro de chaves de dispositivos.",
+        "macos-keychain": "Melhorias no Keychain do macOS com selagem de sessão de uso único, menos leituras redundantes e sem novas tentativas automáticas após recusa.",
+        "android-ffmpeg": "Integração do backend FFmpeg 9.0.2 e reprodução nativa no Android, com páginas de 16 KiB e solicitações de mídia corrigidas.",
+        "media-lifecycle": "Reformulação de prévias, criação tardia do player, compartilhamento de requisições de imagem e liberação de recursos fora da tela; cantos de vídeo e rolagem aprimorados.",
+        "miniapps": "Melhorias na hospedagem nativa de Mini Apps móveis, navegação e consentimento explícito da carteira com permissões limitadas à origem.",
+        "setup-editor": "Configuração, recuperação e consentimento unificados no Web e nativo; melhorias de edição, entrada, área de transferência e layout.",
+        "node-routing": "Diretório de nós verificado, roteamento de leitura baseado em saúde e diagnósticos mais claros."
       }
     },
     "ru-RU": {
-      "title": "Genycaster 1.0.512 — Аутентификация и кроссплатформенная надёжность",
-      "summary": "Независимая авторизация устройства, безопасные сессии и исправления регистрации, медиа, прокрутки и смены аккаунта.",
+      "title": "Genycaster 1.0.512 — Безопасность, производительность мультимедиа и кроссплатформенная надёжность",
+      "summary": "Усиленная аутентификация и защита ключей, завершённая интеграция FFmpeg на Android и более эффективные предпросмотры.",
       "items": {
-        "auth-reliability": "Независимая авторизация устройства, безопасные сессии и исправления регистрации, медиа, прокрутки и смены аккаунта."
+        "auth-security": "Разделение идентификации OpenProof, подписи протокола и авторизации облачного устройства; усиление проверки сессий, смены аккаунта, отмены и отзыва устройств.",
+        "key-storage": "Защита ключей подписи через системное безопасное хранилище и изолированную криптографию браузера; безопасное удаление выведенных из эксплуатации ключей.",
+        "macos-keychain": "Улучшение macOS Keychain: одноразовая подпись сессии устройства, меньше повторных чтений и отсутствие автоматических повторов после отказа.",
+        "android-ffmpeg": "Завершение интеграции FFmpeg 9.0.2 и нативного воспроизведения на Android, совместимость со страницами 16 КиБ и исправление медиазапросов.",
+        "media-lifecycle": "Переработка предпросмотров, отложенного создания проигрывателя, объединения запросов изображений и освобождения ресурсов вне экрана; улучшение углов видео и прокрутки.",
+        "miniapps": "Улучшение нативного хостинга мобильных Mini Apps, навигации и явного согласия кошелька с разрешениями для конкретного источника.",
+        "setup-editor": "Единые настройка, восстановление и согласие на вебе и в нативных приложениях; улучшение редактирования, ввода, буфера обмена и компоновки.",
+        "node-routing": "Проверенный каталог узлов, маршрутизация чтения по состоянию и более понятная диагностика."
       }
     },
     "zh-CN": {
-      "title": "Genycaster 1.0.512 — 身份验证与跨平台稳定性",
-      "summary": "独立设备授权、更安全的会话管理，以及注册、媒体、滚动和账户切换修复。",
+      "title": "Genycaster 1.0.512 — 安全性、媒体性能与跨平台稳定性",
+      "summary": "强化身份验证和密钥保护，完成 Android FFmpeg 集成，并提升媒体预览效率。",
       "items": {
-        "auth-reliability": "独立设备授权、更安全的会话管理，以及注册、媒体、滚动和账户切换修复。"
+        "auth-security": "分离 OpenProof 身份、协议签名及云设备授权，强化会话验证、账户切换、取消和持久设备撤销。",
+        "key-storage": "使用平台安全存储与隔离的浏览器加密保护签名密钥，减少敏感数据暴露并安全退役设备密钥。",
+        "macos-keychain": "改进 macOS Keychain 集成：一次性设备会话封印、减少重复读取，授权被拒后不自动重试。",
+        "android-ffmpeg": "完成 Android FFmpeg 9.0.2 后端和原生播放集成，支持 16 KiB 内存页并修正媒体请求。",
+        "media-lifecycle": "重构预览、播放器按需创建、图片请求合并和屏幕外资源释放，改善视频圆角和滚动流畅度。",
+        "miniapps": "改进移动端原生 Mini Apps 托管、导航和明确的钱包授权，权限限定于来源。",
+        "setup-editor": "统一原生端与网页端的设置、恢复及同意流程，改进编辑、浏览器输入、剪贴板和布局。",
+        "node-routing": "引入已验证的节点目录、基于健康状态的读取路由和更清晰的节点诊断。"
       }
     }
   }

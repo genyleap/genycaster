@@ -19,6 +19,7 @@ Item {
     // Magazine rows are already viewport-admitted; avoid canceling a nested
     // incubator when the parent card is recycled or the view switches.
     property bool magazineCard: false
+    property color mediaSurfaceColor: magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
     property var sharedMediaGeometry: null
     readonly property bool mobileViewport: root.compact && !root.magazineCard
     property bool flatLinkCard: false
@@ -411,7 +412,7 @@ Item {
             }]
             compact: root.compact
             mobilePresentation: root.mobileViewport
-            cornerCoverColor: root.magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
+            cornerCoverColor: root.mediaSurfaceColor
             asynchronousTiles: !root.magazineCard
             sharedMediaGeometry: root.sharedMediaGeometry
             dynamicAspectDiscovery: root.magazineCard || root.mobileViewport
@@ -426,6 +427,7 @@ Item {
             implicitHeight: root.promotedMediaHeight > 0 ? root.promotedMediaHeight : promotedVideo.preferredMediaHeight
             embed: root.embed
             compact: root.compact
+            cornerCoverColor: root.mediaSurfaceColor
             onOpenRequested: url => root.openRequested(url)
         }
     }

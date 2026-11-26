@@ -67,6 +67,13 @@ void HyperSnapRegistrationPublisher::eraseRetryJournal() const
     settings.sync();
 }
 
+bool HyperSnapRegistrationPublisher::setEndpointBeforeRuntime(const QUrl& endpoint)
+{
+    if (m_registrationSupported || m_busy || m_pending || m_submitted || confirmed())
+        return false;
+    return m_transport.setEndpointBeforeUse(endpoint);
+}
+
 void HyperSnapRegistrationPublisher::setIdentityRuntimeReady(const bool ready)
 {
     if (m_registrationSupported == ready) return;

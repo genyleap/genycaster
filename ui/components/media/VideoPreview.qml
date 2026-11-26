@@ -12,12 +12,23 @@ Item {
 
     property var embed: ({})
     property bool compact: false
-    // Match the embedding surface instead of painting the app canvas over it.
-    property color cornerMaskColor: Theme.background
+    property color cornerCoverColor: Theme.backgroundPrimary
     // Exposed for deterministic silent offscreen playback tests. Audio is
     // enabled for every production feed delegate by default.
     property bool audioOutputEnabled: true
     property bool playbackRequested: false
+    property bool browserPlayback: false
+    MediaResourceScope {
+        id: resourceScope
+        owner: root
+        onEligibleChanged: if (!eligible) root.releasePlayback()
+        onRevoked: root.releasePlayback()
+    }
+    Timer {
+        id: releaseTimer
+        interval: 0
+        onTriggered: root.releasePlayback()
+    }
     property real reservedMediaAspect: 16 / 9
     readonly property bool playerReady: playerLoader.status === Loader.Ready
     readonly property bool hasSource: root.targetUrl.length > 0
@@ -55,15 +66,32 @@ Item {
 
     signal openRequested(string url)
 
+    function releasePlayback() {
+        if (root.browserPlayback && resourceScope) {
+            root.browserPlayback = false
+            const session = resourceScope.coordinator()
+            if (session) session.closeBrowserHls()
+        }
+        if (resourceScope) resourceScope.releaseReservation()
+        root.playbackRequested = false
+    }
+    Component.onDestruction: root.releasePlayback()
+
     function requestPlayback() {
-        if (!root.hasSource || root.playbackRequested) return
+        if (!root.hasSource || root.playbackRequested || !resourceScope.eligible) return
+        releaseTimer.stop()
+        if (!resourceScope.reservePlayback()) return
         const candidate = root.adaptiveSource.length > 0 ? root.adaptiveSource : root.targetUrl
         // Browser Qt Multimedia has inconsistent adaptive HLS support.
         // Use the browser's native HLS support or local hls.js/MSE instead.
         if (Qt.platform.os === 'wasm' && /\.m3u8(?:[?#]|$)/i.test(candidate)) {
             if (typeof mediaPlayback !== 'undefined'
                     && mediaPlayback !== null
-                    && mediaPlayback.openBrowserHls(candidate)) return
+                    && mediaPlayback.openBrowserHls(candidate)) {
+                root.browserPlayback = true
+                return
+            }
+            resourceScope.releaseReservation()
             root.openRequested(candidate)
             return
         }
@@ -71,25 +99,20 @@ Item {
     }
 
     onVisibleChanged: {
-        // A reused ListView delegate can stay alive in the pool. Stop decoder,
-        // audio and presentation-clock work as soon as the row inherits
-        // invisible from its pooled parent; returning to the row leaves playback
-        // paused rather than silently consuming resources offscreen.
-        if (!root.visible && root.playerReady) {
-            const loadedPlayer = playerLoader.item as GenyVideoPlayer
-            if (loadedPlayer)
-                loadedPlayer.pausePlayback()
-        }
+        if (!root.visible)
+            root.releasePlayback()
     }
 
     // A reused delegate must neither finish activating nor retain the previous
     // Cast's media session. Loader owns and releases the complete player tree.
     onTargetUrlChanged: {
         root.playbackRequested = false
+        root.releasePlayback()
         aspectReservationTimer.restart()
     }
     onAdaptiveSourceChanged: {
         root.playbackRequested = false
+        root.releasePlayback()
         aspectReservationTimer.restart()
     }
 
@@ -244,17 +267,20 @@ Item {
         id: playerLoader
         objectName: "feedVideoPlayerLoader"
         anchors.fill: parent
-        active: root.playbackRequested
+        active: root.playbackRequested && resourceScope.eligible
         asynchronous: true
         visible: root.playerReady
         onLoaded: {
             const loadedPlayer = playerLoader.item as GenyVideoPlayer
-            if (loadedPlayer)
+            if (loadedPlayer && root.playbackRequested && resourceScope.eligible && resourceScope.handoffPlayback())
                 loadedPlayer.resumePlayback()
+            else
+                releaseTimer.restart()
         }
 
         sourceComponent: Component {
             GenyVideoPlayer {
+                onResourceRevoked: releaseTimer.restart()
                 source: root.targetUrl
                 adaptiveSource: root.adaptiveSource
                 renditions: root.videoRenditions
@@ -270,7 +296,7 @@ Item {
                 openOriginalEnabled: true
                 openOriginalUrl: root.targetUrl
                 curveDepth: Theme.shapeMedia
-                cornerMaskColor: root.cornerMaskColor
+                cornerMaskColor: root.cornerCoverColor
                 onOpenOriginalRequested: url => root.openRequested(url)
             }
         }

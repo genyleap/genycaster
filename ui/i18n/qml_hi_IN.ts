@@ -1720,6 +1720,50 @@ Company | https://company.com</source>
             <source>Hide nodes</source>
             <translation>नोड छिपाएँ</translation>
         </message>
+        <message id="genycaster.nodes.device_preflight">
+            <source>Device preflight: %1</source>
+            <translation>डिवाइस की प्रारंभिक जाँच: %1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_registry">
+            <source>Selected registration registry: %1</source>
+            <translation>चयनित पंजीकरण रजिस्ट्री: %1</translation>
+        </message>
+        <message id="genycaster.nodes.directory_live">
+            <source>Directory: live (verified)</source>
+            <translation>निर्देशिका: लाइव (सत्यापित)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_cached">
+            <source>Directory: cached (verified)</source>
+            <translation>निर्देशिका: कैश (सत्यापित)</translation>
+        </message>
+        <message id="genycaster.nodes.directory_embedded">
+            <source>Directory unavailable · configured nodes only</source>
+            <translation>निर्देशिका अनुपलब्ध · केवल कॉन्फ़िगर किए गए नोड</translation>
+        </message>
+        <message id="genycaster.nodes.directory_server_health">
+            <source>Node health reported by server</source>
+            <translation>सर्वर के अनुसार नोड स्थिति</translation>
+        </message>
+        <message id="genycaster.nodes.server_observation">
+            <source>Server: %1</source>
+            <translation>सर्वर: %1</translation>
+        </message>
+        <message id="genycaster.nodes.device_observation">
+            <source>This device: %1</source>
+            <translation>यह डिवाइस: %1</translation>
+        </message>
+        <message id="genycaster.nodes.monitor_only">
+            <source>Monitoring only · no compatible reader adapter</source>
+            <translation>केवल निगरानी · संगत रीड अडैप्टर नहीं</translation>
+        </message>
+        <message id="genycaster.nodes.configured_primary">
+            <source>Configured primary reader</source>
+            <translation>कॉन्फ़िगर किया गया मुख्य रीडर</translation>
+        </message>
+        <message id="genycaster.nodes.primary_reader">
+            <source>Primary reader</source>
+            <translation>मुख्य रीडर</translation>
+        </message>
         <message id="genycaster.nodes.directory_info">
             <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
             <translation>HyperSnap नेटवर्क सूची के उदाहरण। यहाँ स्थिति सत्यापित नहीं है; कनेक्ट करने के लिए संगत API पता जोड़ें।</translation>
@@ -2239,6 +2283,10 @@ Company | https://company.com</source>
         <message id="genycaster.miniapp.invalid_manifest">
             <source>The app manifest is missing or invalid.</source>
             <translation>ऐप मैनिफ़ेस्ट मौजूद नहीं है या अमान्य है।</translation>
+        </message>
+        <message id="genycaster.miniapp.navigation_blocked">
+            <source>This app tried to navigate outside its original site. Open it again to retry.</source>
+            <translation>इस ऐप ने अपनी मूल साइट से बाहर जाने का प्रयास किया। फिर से कोशिश करने के लिए इसे दोबारा खोलें।</translation>
         </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
@@ -7903,6 +7951,10 @@ Genycaster खाता ID/FID, प्रोटोकॉल, सत्याप�
         <message id="genycaster.setup.recovery_signer_consent">
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>नेटवर्क सत्यापन के बाद इस डिवाइस से पोस्ट और प्रतिक्रियाएँ करने के लिए साइनर कुंजी बनाने की अनुमति देता/देती हूँ।</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>12 या 24 पुनर्प्राप्ति शब्द क्रम से दर्ज करें</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>

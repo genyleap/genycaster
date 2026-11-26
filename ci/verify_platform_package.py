@@ -249,6 +249,9 @@ def validate_android(path: Path) -> None:
             f"lib/{abi}/libssl_3.so",
             f"lib/{abi}/libcrypto_3.so",
             f"lib/{abi}/libplugins_tls_qopensslbackend_{abi}.so",
+            f"lib/{abi}/libplugins_multimedia_ffmpegmediaplugin_{abi}.so",
+            *(f"lib/{abi}/lib{name}.so" for name in
+              ("avcodec", "avformat", "avutil", "swscale", "swresample")),
         )
         for member in required:
             require(member in names, f"Android APK missing {member}")
@@ -279,7 +282,13 @@ def validate_android(path: Path) -> None:
         require(permission.encode("utf-8") in manifest
                 or permission.encode("utf-16le") in manifest,
                 "Android APK missing INTERNET permission")
-        require(any(name.endswith(".dex") for name in names), "Android APK missing DEX")
+        dex_files = [name for name in names if name.endswith(".dex")]
+        require(bool(dex_files), "Android APK missing DEX")
+        for descriptor in (b"Lcom/genyleap/genycaster/MiniAppBrowser;",
+                           b"Landroidx/webkit/WebViewCompat;",
+                           b"Landroidx/webkit/ProfileStore;"):
+            require(any(descriptor in apk.read(name) for name in dex_files),
+                    f"Android APK missing native Mini App SDK class {descriptor.decode()}")
         require(not any(name.startswith("lib/x86") for name in names),
                 "Unexpected x86 libraries in ARM-only APK")
 
@@ -294,6 +303,9 @@ def validate_ios(path: Path) -> None:
         root = "Genycaster.app"
         require(root + "/Info.plist" in names, "iOS bundle missing Info.plist")
         require(root + "/Genycaster" in names, "iOS bundle missing executable")
+        executable = archive.extractfile(root + "/Genycaster")
+        require(executable is not None, "iOS bundle executable unreadable")
+        require(b"GenyIOSBrowser" in executable.read(), "iOS bundle missing native WKWebView Mini App adapter")
         require(all(not PurePosixPath(name).is_absolute()
                     and ".." not in PurePosixPath(name).parts
                     for name in names), "Unsafe iOS bundle path")

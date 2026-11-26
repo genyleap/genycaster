@@ -256,3 +256,12 @@ set_tests_properties(application.emoji_platform PROPERTIES
     LABELS "unit;emoji;unicode;serialization;cache;provider")
 target_compile_definitions(farcaster_emoji_tests PRIVATE
     EMOJI_ASSET_DIRECTORY="${CMAKE_SOURCE_DIR}/ui/assets/emoji/lottie")
+
+
+add_executable(farcaster_public_read_pool_tests public_read_pool_tests.cpp)
+target_link_libraries(farcaster_public_read_pool_tests PRIVATE farcaster::routing)
+target_compile_features(farcaster_public_read_pool_tests PRIVATE cxx_std_26)
+set_property(TARGET farcaster_public_read_pool_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+farcaster_enable_warnings(farcaster_public_read_pool_tests)
+add_test(NAME routing.public_read_pool COMMAND farcaster_public_read_pool_tests)
+set_tests_properties(routing.public_read_pool PROPERTIES LABELS "unit;routing")

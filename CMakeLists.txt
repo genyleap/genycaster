@@ -222,7 +222,7 @@ option(FARCASTER_ENABLE_SOCIAL "Enable social product composition" ON)
 option(FARCASTER_ENABLE_FEED "Enable feed product composition" ON)
 option(FARCASTER_ENABLE_CHANNELS "Enable channels product composition" OFF)
 set(_farcasterMiniAppsDefault OFF)
-if(FARCASTER_BUILD_UI AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+if(FARCASTER_BUILD_UI AND (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR ANDROID OR IOS))
     set(_farcasterMiniAppsDefault ON)
 endif()
 option(FARCASTER_ENABLE_MINIAPPS "Enable Mini Apps product composition" ${_farcasterMiniAppsDefault})
@@ -231,21 +231,24 @@ option(FARCASTER_ENABLE_CHAT "Enable chat product composition" OFF)
 option(FARCASTER_ENABLE_SEARCH "Enable search product composition" OFF)
 option(FARCASTER_ENABLE_NOTIFICATIONS "Enable notifications product composition" ON)
 option(FARCASTER_ENABLE_WALLET "Enable wallet product composition" OFF)
-# Android v1 has a public, origin-locked QtWebView, not the privileged
-# Farcaster Mini App SDK. Keep scope explicit and reject unsupported claims.
+# Full native mobile SDK is the product default. Migrate old public-only
+# developer caches so neither local nor release builds silently omit it.
 if(ANDROID)
-    set(GENYCASTER_ANDROID_MINIAPP_SCOPE "public-only" CACHE STRING
-        "Android Mini App capability: public HTTPS pages only; no SDK or wallet bridge")
-    if(NOT GENYCASTER_ANDROID_MINIAPP_SCOPE STREQUAL "public-only")
-        message(FATAL_ERROR
-            "Android Mini App SDK support is not implemented. "
-            "Use GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only.")
+    set(GENYCASTER_ANDROID_MINIAPP_SCOPE "native-sdk" CACHE STRING
+        "Android Mini App host: native-sdk or public-only")
+    set_property(CACHE GENYCASTER_ANDROID_MINIAPP_SCOPE PROPERTY STRINGS native-sdk public-only)
+    if(GENYCASTER_ANDROID_MINIAPP_SCOPE STREQUAL "native-sdk")
+        set(FARCASTER_ENABLE_MINIAPPS ON CACHE BOOL "Native Android SDK host" FORCE)
+    elseif(GENYCASTER_ANDROID_MINIAPP_SCOPE STREQUAL "public-only")
+        # Legacy cache migration: the product now requires native SDK.
+        message(STATUS "Migrating Android Mini App public-only configuration to native SDK")
+        set(GENYCASTER_ANDROID_MINIAPP_SCOPE "native-sdk" CACHE STRING "Android Mini App host" FORCE)
+        set(FARCASTER_ENABLE_MINIAPPS ON CACHE BOOL "Native Android SDK host" FORCE)
+    else()
+        message(FATAL_ERROR "Unknown Android Mini App scope")
     endif()
-    if(FARCASTER_ENABLE_MINIAPPS)
-        message(FATAL_ERROR
-            "Android has no privileged Mini App SDK host. "
-            "Do not enable FARCASTER_ENABLE_MINIAPPS on this platform.")
-    endif()
+elseif(IOS)
+    set(FARCASTER_ENABLE_MINIAPPS ON CACHE BOOL "Native iOS SDK host" FORCE)
 endif()
 option(FARCASTER_ENABLE_DERIVED_CAST_VIEWS
     "Enable optional public view-count analytics in the Qt client" ON)
@@ -379,6 +382,9 @@ option(
     ${_farcasterMiniAppWalletBridgeDefault}
 )
 unset(_farcasterMiniAppWalletBridgeDefault)
+if(FARCASTER_BUILD_UI AND (ANDROID OR IOS) AND FARCASTER_ENABLE_MINIAPPS)
+    set(FARCASTER_ENABLE_BROWSER_WALLET_BRIDGE ON CACHE BOOL "Mini App EIP-1193 transport" FORCE)
+endif()
 
 set(_farcasterSignerAttestationProviderDefault OFF)
 if(FARCASTER_BUILD_UI AND FARCASTER_ENABLE_PROTOCOL_SIGNING)

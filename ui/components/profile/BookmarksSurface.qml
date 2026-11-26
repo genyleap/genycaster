@@ -544,6 +544,7 @@ Flickable {
 
                     CastItem {
                         id: savedCast
+                        mediaSurfaceColor: bookmarkCard.fillColor
                         objectName: "bookmarkRichCast"
                         visible: root.compact && !Boolean(castSkeletonFallback.visible)
                         Layout.fillWidth: true

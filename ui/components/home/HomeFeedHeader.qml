@@ -215,15 +215,17 @@ Item {
                 objectName: "explorerAudienceSelector"
                 // One continuous superellipse with a matching interior rim,
                 // shared hover material and equal-sized localized segments.
-                readonly property real segmentInset: 3
-                readonly property real segmentGap: 4
-                readonly property real segmentWidth: Math.max(Theme.scaleUi(72),
-                    Math.ceil(Math.max(everyoneMetrics.advanceWidth, followingMetrics.advanceWidth)
-                              + Theme.space3 * 2))
+                readonly property real segmentInset: Theme.space1 / 2
+                readonly property real segmentGap: Theme.space1 / 2
+                readonly property real segmentPadding: root.compact ? Theme.space1 : Theme.space2
+                readonly property real segmentWidth: Math.ceil(
+                    Math.max(everyoneMetrics.advanceWidth, followingMetrics.advanceWidth)
+                    + segmentPadding * 2)
+                readonly property real availableSegmentWidth: Math.max(0,
+                    (width - segmentInset * 2 - segmentGap) / 2)
                 Layout.preferredWidth: segmentWidth * 2 + segmentInset * 2 + segmentGap
-                Layout.minimumWidth: Math.min(Layout.preferredWidth, Theme.scaleUi(144))
-                Layout.preferredHeight: root.compact ? Math.max(44, Theme.compactControlHeight)
-                                                     : Theme.compactControlHeight
+                Layout.minimumWidth: Math.min(Layout.preferredWidth, Theme.compactControlHeight * 2)
+                Layout.preferredHeight: Theme.compactControlHeight - Theme.space1
                 Layout.alignment: Qt.AlignVCenter
                 TextMetrics {
                     id: everyoneMetrics
@@ -248,11 +250,11 @@ Item {
 
                 NeonSurface {
                     id: audienceSelectionPill
-                    width: (audienceSelector.width - 10) / 2
-                    height: audienceSelector.height - 6
-                    y: 3
-                    x: 3 + ((root.audience === "following") !== Theme.rtl
-                            ? width + 4 : 0)
+                    width: audienceSelector.availableSegmentWidth
+                    height: audienceSelector.height - audienceSelector.segmentInset * 2
+                    y: audienceSelector.segmentInset
+                    x: audienceSelector.segmentInset + ((root.audience === "following") !== Theme.rtl
+                            ? width + audienceSelector.segmentGap : 0)
                     interactive: true
                     ambientNeon: true
                     neonColor: Theme.accent
@@ -274,8 +276,8 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: 3
-                    spacing: 4
+                    anchors.margins: audienceSelector.segmentInset
+                    spacing: audienceSelector.segmentGap
                     layoutDirection: Theme.uiDirection
 
                     Repeater {
@@ -291,7 +293,7 @@ Item {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             Layout.minimumWidth: 0
-                            Layout.preferredWidth: (audienceSelector.width - 10) / 2
+                            Layout.preferredWidth: audienceSelector.availableSegmentWidth
                             Layout.maximumWidth: Layout.preferredWidth
                             padding: 0
                             hoverEnabled: true
@@ -324,6 +326,8 @@ Item {
                             }
                             Accessible.role: Accessible.Button
                             Accessible.name: String(modelData.title)
+                            Accessible.checkable: true
+                            Accessible.checked: scopeOption.selected
                         }
                     }
                 }

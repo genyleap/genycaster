@@ -53,8 +53,8 @@ test('browser mnemonic paint is bounded, transient and shared with native QML', 
   assert.match(main, /qmlRegisterType<NativeRecoveryWordsItem>\(/);
   assert.match(cmake, /miniapp-wallet-provider\.mjs/);
   const releaseGate = source('ci/verify_release_feature_contract.py');
-  assert.match(releaseGate, /Android: public-only Mini App scope is not explicitly declared/);
+  assert.match(releaseGate, /Android: native Mini App SDK origin, runtime or package contract missing/);
   assert.match(releaseGate, /for feature in \("CHANNELS", "SEARCH"\)/);
   assert.match(releaseGate, /for feature in \("CHAT", "WALLET"\)/);
-  assert.match(releaseGate, /GENYCASTER_ANDROID_MINIAPP_SCOPE=public-only/);
+  assert.match(releaseGate, /GENYCASTER_ANDROID_MINIAPP_SCOPE=native-sdk/);
 });

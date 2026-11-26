@@ -177,6 +177,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.miniapp.invalid_url");
     //% "The app manifest is missing or invalid."
     (void)qtTrId("genycaster.miniapp.invalid_manifest");
+    //% "This app tried to navigate outside its original site. Open it again to retry."
+    (void)qtTrId("genycaster.miniapp.navigation_blocked");
     //% "Could not load the app. Check your connection and try again."
     (void)qtTrId("genycaster.miniapp.load_failed");
     //% "The app did not become ready. You can retry or close it."
@@ -1273,6 +1275,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_notice_title");
     //% "Confirming device authorization"
     (void)qtTrId("genycaster.setup.signer_verification_title");
+    //% "Enter 12 or 24 recovery words in order"
+    (void)qtTrId("genycaster.setup.farcaster_recovery_placeholder");
     //% "Enter all 24 recovery words before authorizing this device."
     (void)qtTrId("genycaster.setup.signer_enter_all_words");
     //% "Device signer enabled"

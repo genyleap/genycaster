@@ -27,7 +27,8 @@ typedef enum GenyMacBrowserMode {
 
 typedef enum GenyMacBrowserRole {
     GENY_MAC_MINIAPP = 0,
-    GENY_MAC_MEDIA = 1
+    GENY_MAC_MEDIA = 1,
+    GENY_MAC_WALLET_APPROVAL = 2
 } GenyMacBrowserRole;
 
 typedef enum GenyMacBrowserEvent {

@@ -7,6 +7,10 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QTimer>
+#include <QList>
+#include <QVariantMap>
+#include <utility>
 
 #include <cmath>
 #include <limits>
@@ -18,6 +22,95 @@ NativeRegistrationStatusController::NativeRegistrationStatusController(
 {}
 
 NativeRegistrationStatusController::~NativeRegistrationStatusController() = default;
+
+bool NativeRegistrationStatusController::setEndpointBeforeRuntime(const QUrl& endpoint)
+{
+    if (endpoint == m_base) return true;
+    auto candidate = std::make_unique<HyperSnapRegistrationTransport>(endpoint, this);
+    if (!candidate->endpointIsSafe()) return false;
+    // Invalidate lookup and challenge provenance before replacing transport.
+    clearExistingLookup();
+    m_base = endpoint;
+    m_transport = std::move(candidate);
+    refresh();
+    return true;
+}
+
+void NativeRegistrationStatusController::selectBeforeRuntime(
+    const QStringList& candidates, QObject* context,
+    std::function<void(QString)> completion, const int timeoutMs,
+    std::function<void(QVariantList)> observation)
+{
+    if (candidates.isEmpty()) { completion({}); return; }
+    auto* scope = new QObject(context);
+    auto* deadline = new QTimer(scope);
+    deadline->setSingleShot(true);
+    struct State final {
+        QStringList origins;
+        QList<NativeRegistrationStatusController*> probes;
+        std::function<void(QString)> completion;
+        std::function<void(QVariantList)> observation;
+        bool done{false};
+    };
+    auto state = std::make_shared<State>();
+    state->origins = candidates;
+    state->completion = std::move(completion);
+    state->observation = std::move(observation);
+    for (const auto& origin : candidates)
+        state->probes.push_back(new NativeRegistrationStatusController(origin, scope));
+    const auto finish = [scope, deadline, state](const bool timedOut) {
+        if (state->done) return;
+        // Do not abandon the preferred origin just because a peer's DNS was
+        // faster. At deadline choose a validated peer or retain the primary.
+        const auto eligible = [](const NativeRegistrationStatusController* probe) {
+            return probe->syncedForRegistration() && probe->accountLookupChecked()
+                && !probe->accountLookupBusy() && !probe->accountLookupFailed();
+        };
+        if (!timedOut && !eligible(state->probes.front())) return;
+        state->done = true;
+        deadline->stop();
+        QString selected = state->origins.front();
+        for (qsizetype i = 0; i < state->probes.size(); ++i) {
+            if (eligible(state->probes.at(i))) {
+                selected = state->origins.at(i);
+                break;
+            }
+        }
+        if (state->observation) {
+            QVariantList rows;
+            for (qsizetype i = 0; i < state->probes.size(); ++i) {
+                const auto* probe = state->probes.at(i);
+                const QString status = eligible(probe) ? QStringLiteral("ready")
+                    : probe->shardZeroBlockDelay() > 120 ? QStringLiteral("lagging")
+                    : probe->checking() ? QStringLiteral("unknown")
+                    : QStringLiteral("not_ready");
+                rows.push_back(QVariantMap{
+                    {QStringLiteral("endpoint"),state->origins.at(i)},
+                    {QStringLiteral("registrationPreflight"),status},
+                    {QStringLiteral("shardZeroBlockDelay"),probe->shardZeroBlockDelay()}});
+            }
+            state->observation(std::move(rows));
+        }
+        auto done = std::move(state->completion);
+        scope->deleteLater();
+        if (done) done(std::move(selected));
+    };
+    for (auto* probe : state->probes) {
+        QObject::connect(probe, &NativeRegistrationStatusController::changed,
+                         scope, [probe, finish, state] {
+            if (!state->done && probe->syncedForRegistration()
+                && !probe->accountLookupChecked() && !probe->accountLookupBusy())
+                probe->findExistingNativeAccount(QStringLiteral("0x0000000000000000000000000000000000000001"));
+            finish(false);
+        });
+        QObject::connect(probe, &NativeRegistrationStatusController::lookupChanged,
+                         scope, [finish] { finish(false); });
+    }
+    QObject::connect(deadline, &QTimer::timeout, scope, [finish] { finish(true); });
+    deadline->start(timeoutMs);
+    for (auto* probe : state->probes) probe->refresh();
+}
+
 
 // The upstream /v1/info contract reports blockDelay in seconds. A positive
 // nativeRegistration.active flag only tests protocol activation, NOT sync.

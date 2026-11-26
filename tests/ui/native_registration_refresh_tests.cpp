@@ -19,6 +19,8 @@ private slots:
     void refreshDuringPendingReply();
     void refreshReentrantlyFromChanged();
     void nativeAccountLookupHttpSemantics();
+    void setupPreflightSkipsLaggingPrimary();
+    void startupTransportCannotRetargetAfterUse();
 };
 
 void NativeRegistrationRefreshTests::refreshDuringPendingReply()
@@ -145,6 +147,68 @@ void NativeRegistrationRefreshTests::nativeAccountLookupHttpSemantics()
         QTRY_VERIFY_WITH_TIMEOUT(result.has_value(), 5000);
         QCOMPARE(static_cast<int>(result->state), static_cast<int>(expected));
     }
+}
+
+void NativeRegistrationRefreshTests::setupPreflightSkipsLaggingPrimary()
+{
+    QTcpServer lagging, healthy;
+    QVERIFY(lagging.listen(QHostAddress::LocalHost, 0));
+    QVERIFY(healthy.listen(QHostAddress::LocalHost, 0));
+    const auto serve = [](QTcpServer& server, int lag) {
+        QObject::connect(&server, &QTcpServer::newConnection, &server, [&server, lag] {
+            while (server.hasPendingConnections()) {
+                auto* socket = server.nextPendingConnection();
+                auto buffer = std::make_shared<QByteArray>();
+                QObject::connect(socket, &QTcpSocket::readyRead, socket, [socket, buffer, lag] {
+                    buffer->append(socket->readAll());
+                    if (!buffer->contains("\r\n\r\n")) return;
+                    int code = 200;
+                    QByteArray payload;
+                    if (buffer->startsWith("GET /v1/info ")) {
+                        payload = QByteArray{"{\"shardInfos\":[{\"shardId\":0,\"blockDelay\":"}
+                            + QByteArray::number(lag) + "}]}";
+                    } else if (buffer->startsWith("GET /v1/nativeAccount?")) {
+                        code = 400;
+                        payload = R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \"native account not found\", details: [], metadata: MetadataMap { headers: {} }"})json";
+                    } else {
+                        payload = R"json({"active":true,"minDifficultyBits":12,"firstNativeFid":"4294967296","anchorBlockHash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","anchorBlockHeight":43,"nextBlock":44,"anchorWindow":10})json";
+                    }
+                    socket->write(QByteArray{"HTTP/1.1 "} + QByteArray::number(code)
+                        + (code == 200 ? " OK" : " Bad Request")
+                        + "\r\nContent-Type: application/json\r\nContent-Length: "
+                        + QByteArray::number(payload.size()) + "\r\nConnection: close\r\n\r\n" + payload);
+                    socket->disconnectFromHost();
+                });
+                QObject::connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+            }
+        });
+    };
+    serve(lagging, 2198);
+    serve(healthy, 2);
+    const QString primary = QStringLiteral("http://127.0.0.1:%1").arg(lagging.serverPort());
+    const QString alternate = QStringLiteral("http://127.0.0.1:%1").arg(healthy.serverPort());
+    QObject scope;
+    QString selected;
+    NativeRegistrationStatusController::selectBeforeRuntime({primary, alternate}, &scope,
+        [&selected](QString value) { selected = std::move(value); }, 1500);
+    QTRY_VERIFY_WITH_TIMEOUT(!selected.isEmpty(), 3000);
+    QCOMPARE(selected, alternate);
+    selected.clear();
+    NativeRegistrationStatusController::selectBeforeRuntime({alternate, primary}, &scope,
+        [&selected](QString value) { selected = std::move(value); }, 1500);
+    QTRY_VERIFY_WITH_TIMEOUT(!selected.isEmpty(), 3000);
+    QCOMPARE(selected, alternate);
+}
+
+void NativeRegistrationRefreshTests::startupTransportCannotRetargetAfterUse()
+{
+    HyperSnapRegistrationTransport transport{QUrl{QStringLiteral("http://127.0.0.1:1")}};
+    const QUrl alternate{QStringLiteral("http://127.0.0.1:2")};
+    QVERIFY(transport.setEndpointBeforeUse(alternate));
+    QVERIFY(!transport.setEndpointBeforeUse(QUrl{QStringLiteral("https://user@example.test")}));
+    QCOMPARE(transport.nodeEndpoint(), alternate);
+    transport.lookupByCustody(QStringLiteral("invalid"), [](auto) {});
+    QVERIFY(!transport.setEndpointBeforeUse(QUrl{QStringLiteral("http://127.0.0.1:3")}));
 }
 
 QTEST_GUILESS_MAIN(NativeRegistrationRefreshTests)

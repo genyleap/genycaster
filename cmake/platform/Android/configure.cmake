@@ -323,3 +323,68 @@ function(genycaster_android_setup_boost_headers)
     message(STATUS
         "Genycaster Android portable Boost headers: ${GENYCASTER_ANDROID_BOOST_INCLUDE_DIR}")
 endfunction()
+
+# Shared Android SDKs do not always export an imported CMake target for a
+# dynamically loaded Qt plugin. Probe the selected target SDK, never the
+# desktop Qt installation or another ABI.
+function(genycaster_android_find_sdk_plugin output sdk_root type name abi)
+    set(_plugin "")
+    foreach(_candidate IN ITEMS
+        "${sdk_root}/plugins/${type}/libplugins_${type}_${name}_${abi}.so"
+        "${sdk_root}/plugins/${type}/lib${name}_${abi}.so"
+        # Qt 6.12's QFFmpegMediaPlugin declares this unsuffixed SDK name.
+        # Only search the selected target ABI kit, never another Qt kit.
+        "${sdk_root}/plugins/${type}/libplugins_${type}_${name}.so"
+        "${sdk_root}/plugins/${type}/lib${name}.so")
+        if(EXISTS "${_candidate}" AND NOT IS_DIRECTORY "${_candidate}")
+            set(_plugin "${_candidate}")
+            break()
+        endif()
+    endforeach()
+    set(${output} "${_plugin}" PARENT_SCOPE)
+endfunction()
+
+function(genycaster_android_configure_media_backend target)
+    option(GENYCASTER_REQUIRE_ANDROID_FFMPEG
+        "Require FFmpeg media plugin in Android SDK (mandatory in CI)" OFF)
+    # Qt6Multimedia_DIR belongs to the target kit, even during cross compile.
+    get_filename_component(_sdk "${Qt6Multimedia_DIR}/../../.." ABSOLUTE)
+    message(STATUS "Android FFmpeg: inspecting target Qt SDK ${_sdk} (${ANDROID_ABI})")
+    genycaster_android_find_sdk_plugin(_binary "${_sdk}" multimedia ffmpegmediaplugin "${ANDROID_ABI}")
+    if(NOT TARGET Qt6::QFFmpegMediaPlugin
+       AND EXISTS "${Qt6Multimedia_DIR}/Qt6QFFmpegMediaPluginConfig.cmake")
+        find_package(Qt6QFFmpegMediaPlugin QUIET CONFIG
+            PATHS "${Qt6Multimedia_DIR}" NO_DEFAULT_PATH)
+    endif()
+    if(TARGET Qt6::QFFmpegMediaPlugin)
+        set(genycaster_android_media_plugins INCLUDE_BY_TYPE multimedia Qt6::QFFmpegMediaPlugin PARENT_SCOPE)
+        message(STATUS "Android FFmpeg: Qt plugin target available")
+    elseif(_binary)
+        # Qt documents this deployment property for dynamically loaded plugins.
+        # Stage just this ABI's plugin with the Android naming convention.
+        set(_stage "${CMAKE_CURRENT_BINARY_DIR}/android-extra-plugins")
+        file(MAKE_DIRECTORY "${_stage}/multimedia")
+        configure_file("${_binary}"
+            "${_stage}/multimedia/libplugins_multimedia_ffmpegmediaplugin_${ANDROID_ABI}.so" COPYONLY)
+        set_property(TARGET ${target} APPEND PROPERTY QT_ANDROID_EXTRA_PLUGINS "${_stage}")
+        # The imported target normally provides QT_ANDROID_LIB_DEPENDENCIES.
+        # In binary-only kits explicitly stage the FFmpeg shared dependencies
+        # too, because the plugin's filename alone cannot prove it can load.
+        foreach(_name IN ITEMS avcodec avformat avutil swscale swresample avfilter avdevice)
+            set(_library "${_sdk}/lib/lib${_name}.so")
+            if(EXISTS "${_library}")
+                set_property(TARGET ${target} APPEND PROPERTY QT_ANDROID_EXTRA_LIBS "${_library}")
+            endif()
+        endforeach()
+        file(GLOB _stubs CONFIGURE_DEPENDS "${_sdk}/lib/libQt6FFmpegStub-*.so")
+        if(_stubs)
+            set_property(TARGET ${target} APPEND PROPERTY QT_ANDROID_EXTRA_LIBS ${_stubs})
+        endif()
+        message(STATUS "Android FFmpeg: using SDK plugin file ${_binary}")
+    else()
+        if(GENYCASTER_REQUIRE_ANDROID_FFMPEG)
+            message(FATAL_ERROR "Android FFmpeg plugin missing from target Qt SDK: ${_sdk}. Install a Qt Multimedia SDK with FFmpeg support.")
+        endif()
+        message(WARNING "Android Qt SDK has no discoverable FFmpeg plugin. Local build may continue, but media playback will remain unavailable unless FFmpeg can load; unsafe native fallback is disabled. Searched target kit: ${_sdk}/plugins/multimedia (ABI ${ANDROID_ABI}). Install/repair Qt Multimedia for this exact Android kit; use -DGENYCASTER_REQUIRE_ANDROID_FFMPEG=ON to enforce playback support.")
+    endif()
+endfunction()

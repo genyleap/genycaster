@@ -90,6 +90,7 @@ public:
     [[nodiscard]] bool outcomeUnknown() const noexcept { return m_unknown; }
     [[nodiscard]] QString registeredFid() const { return m_fid; }
     [[nodiscard]] QUrl nodeEndpoint() const { return m_transport.nodeEndpoint(); }
+    bool setEndpointBeforeRuntime(const QUrl& endpoint);
 
     /** Read-only shard-0 custody ownership confirmation used for renewing a
      * device's short-lived native session; never publishes or signs. */

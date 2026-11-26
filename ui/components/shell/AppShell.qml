@@ -68,6 +68,8 @@ Item {
     // the content history. Reuse the same hierarchy on Android and future iOS
     // hosts; do not discard an in-progress Cast while a nested picker is open.
     function handlePlatformBack() {
+        if (androidMiniAppHostLoader.item && androidMiniAppHostLoader.item.handleBack())
+            return true
         if (interactionAuthorizationDialog.opened) {
             interactionAuthorizationDialog.close()
             root.pendingComposerIntent = null
@@ -172,6 +174,20 @@ Item {
             for (let i = 0; i < activeWordCount; ++i) words.push(recoveryWord(i))
             return words.join(" ")
         }
+        readonly property int enteredWordCount: {
+            const revision = recoveryRevision
+            if (mobileRecoveryInput) {
+                const phrase = recoveryPhrase()
+                return phrase.length ? phrase.split(" ").length : 0
+            }
+            let count = 0
+            for (let i = 0; i < 24; ++i)
+                if (recoveryWord(i).length > 0) ++count
+            return count
+        }
+        readonly property string recoveryInstruction: acceptsLegacy12
+            ? qsTrId("genycaster.setup.farcaster_recovery_placeholder")
+            : qsTrId("genycaster.setup.native_recovery_placeholder")
         function recoveryReady() {
             // Bind the button to each field or the single secure mobile
             // phrase entry; never submit a partial recovery phrase.
@@ -418,6 +434,28 @@ Item {
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap
             }
+            RowLayout {
+                visible: interactionAuthorizationDialog.enteringNativeWords
+                         && !interactionAuthorizationDialog.authorizationSubmitted
+                layoutDirection: Theme.uiDirection
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: interactionAuthorizationDialog.recoveryInstruction
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
+                DirectionAwareLabel {
+                    objectName: "signerRecoveryWordCount"
+                    text: LocaleFormat.localizeDigits(interactionAuthorizationDialog.enteredWordCount
+                          + " / " + interactionAuthorizationDialog.activeWordCount)
+                    color: interactionAuthorizationDialog.recoveryReady() ? Theme.accent : Theme.textSecondary
+                    font.pixelSize: Theme.typeCaptionSize
+                    font.weight: Theme.weightDemiBold
+                }
+            }
             // On phones a single, real TextInput accepts either keyboard
             // entry or pasting all 24 words. Nested ScrollViews containing 24
             // Password fields could steal the pointer/IME focus on Android.
@@ -430,30 +468,52 @@ Item {
                 enabled: !interactionAuthorizationDialog.authorizationSubmitted
                 forceLeftToRight: true
                 placeholderText: interactionAuthorizationDialog.authorizationSubmitted
-                    ? "••••• ••••• •••••" : qsTrId("genycaster.setup.native_recovery_placeholder")
+                    ? "" : interactionAuthorizationDialog.recoveryInstruction
+                Layout.preferredHeight: Theme.scaleUi(44)
+                font.pixelSize: Theme.typeCaptionSize
                 echoMode: interactionAuthorizationDialog.showRecoveryWords
                     ? TextInput.Normal : TextInput.Password
                 maximumLength: 512
                 inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
-                                  | Qt.ImhNoAutoUppercase
+                                  | Qt.ImhNoAutoUppercase | Qt.ImhHiddenText
                 onTextChanged: {
                     if (interactionAuthorizationDialog)
                         interactionAuthorizationDialog.refreshRecoveryWordMode()
                 }
             }
-            ActionButton {
-                objectName: "signerPasteRecoveryWords"
+            GridLayout {
                 visible: interactionAuthorizationDialog.enteringNativeWords
-                enabled: !interactionAuthorizationDialog.authorizationSubmitted && !presentationBridge.signerBusy
-                Layout.alignment: Qt.AlignRight
-                compact: true
-                quiet: true
-                text: qsTrId("genycaster.editor.paste")
-                onClicked: {
-                    if (interactionAuthorizationDialog.mobileRecoveryInput)
-                        nativeSignerPhraseInput.requestClipboardPaste()
-                    else
-                        nativeSignerWordGrid.itemAt(0)?.pasteWord()
+                         && !interactionAuthorizationDialog.authorizationSubmitted
+                layoutDirection: Theme.uiDirection
+                Layout.fillWidth: true
+                columns: width >= Theme.scaleUi(300) ? 2 : 1
+                columnSpacing: Theme.space2
+                rowSpacing: Theme.space1
+                ActionButton {
+                    objectName: "signerPasteRecoveryWords"
+                    Layout.fillWidth: true
+                    enabled: !interactionAuthorizationDialog.authorizationSubmitted && !presentationBridge.signerBusy
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.editor.paste")
+                    onClicked: {
+                        if (interactionAuthorizationDialog.mobileRecoveryInput)
+                            nativeSignerPhraseInput.requestClipboardPaste()
+                        else
+                            nativeSignerWordGrid.itemAt(0)?.pasteWord()
+                    }
+                }
+                ActionButton {
+                    objectName: "signerToggleRecoveryVisibility"
+                    Layout.fillWidth: true
+                    enabled: !interactionAuthorizationDialog.authorizationSubmitted && !presentationBridge.signerBusy
+                    compact: true
+                    quiet: true
+                    text: interactionAuthorizationDialog.showRecoveryWords
+                          ? qsTrId("genycaster.shell.hide_recovery_words")
+                          : qsTrId("genycaster.setup.show_recovery_words")
+                    onClicked: interactionAuthorizationDialog.showRecoveryWords =
+                        !interactionAuthorizationDialog.showRecoveryWords
                 }
             }
             DirectionAwareLabel {
@@ -581,19 +641,6 @@ Item {
                     nativeSignerWordGrid.itemAt(12)?.focusWord()
                 }
             }
-            ActionButton {
-                visible: (nativeRecoveryScroll && nativeRecoveryScroll.visible)
-                         || nativeSignerPhraseInput.visible
-                enabled: !interactionAuthorizationDialog.authorizationSubmitted
-                Layout.alignment: Qt.AlignRight
-                compact: true
-                quiet: true
-                text: interactionAuthorizationDialog.showRecoveryWords
-                      ? qsTrId("genycaster.shell.hide_recovery_words")
-                      : qsTrId("genycaster.setup.show_recovery_words")
-                onClicked: interactionAuthorizationDialog.showRecoveryWords =
-                    !interactionAuthorizationDialog.showRecoveryWords
-            }
                     }
                 }
             RowLayout {
@@ -638,8 +685,11 @@ Item {
                 objectName: "signerRecoveryValidationHint"
                 visible: interactionAuthorizationDialog.recoveryValidationVisible
                          && !interactionAuthorizationDialog.authorizationSubmitted
+                         && !interactionAuthorizationDialog.recoveryReady()
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.setup.signer_enter_all_words")
+                text: interactionAuthorizationDialog.acceptsLegacy12
+                    ? interactionAuthorizationDialog.recoveryInstruction
+                    : qsTrId("genycaster.setup.signer_enter_all_words")
                 color: Theme.warning
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap
@@ -4466,12 +4516,30 @@ Item {
         onFinishSetup: presentationBridge.completeInitialSetup()
     }
 
-    // Compiled only for Android. The Android resource imports QtWebView,
-    // so desktop/WASM do not acquire an unavailable platform dependency.
+    // Native mobile WebView only. Desktop and WASM keep their independent
+    // platform browser adapters and do not import QtWebView.
     Loader {
         id: androidMiniAppHostLoader
-        active: Qt.platform.os === "android"
+        active: (Qt.platform.os === "android" || Qt.platform.os === "ios")
+                && !miniAppHost.nativeSdkAvailable
         source: active ? "qrc:/qt/qml/Farcaster/Client/components/AndroidMiniAppWebView.qml" : ""
+        onStatusChanged: {
+            if (status === Loader.Error) {
+                console.error("Native mobile Mini App WebView could not be loaded")
+                miniAppHost.setState(false, qsTrId("genycaster.miniapp.unavailable"))
+            }
+        }
+    }
+
+    // A packaging/runtime import failure must also reject a later launch;
+    // a failed Loader cannot receive the controller's launchRequested signal.
+    Connections {
+        target: miniAppHost
+        enabled: androidMiniAppHostLoader.active
+                 && androidMiniAppHostLoader.status !== Loader.Ready
+        function onLaunchRequested(url, title, iconSource) {
+            miniAppHost.setState(false, qsTrId("genycaster.miniapp.unavailable"))
+        }
     }
 
     // SDK swap requests never share the untrusted embedded browser surface.

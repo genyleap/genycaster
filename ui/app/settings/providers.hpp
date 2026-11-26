@@ -16,6 +16,9 @@
 
 #include <QElapsedTimer>
 #include <QHash>
+#include <QByteArray>
+#include <QJsonObject>
+#include <QDateTime>
 #include <QNetworkAccessManager>
 #include <QPointer>
 #include <QObject>
@@ -58,6 +61,10 @@ class ProviderProfilesController final : public QObject {
     Q_PROPERTY(QString activeReadContract READ activeReadContract CONSTANT)
     Q_PROPERTY(QString activeReadProviderLabel READ activeReadProviderLabel CONSTANT)
     Q_PROPERTY(QVariantList connectionRows READ connectionRows NOTIFY probeChanged)
+    Q_PROPERTY(QVariantList directoryNodes READ directoryNodes NOTIFY directoryChanged)
+    Q_PROPERTY(bool directoryLoading READ directoryLoading NOTIFY directoryChanged)
+    Q_PROPERTY(QString directorySource READ directorySource NOTIFY directoryChanged)
+    Q_PROPERTY(QString registrationNode READ registrationNode NOTIFY directoryChanged)
     Q_PROPERTY(bool probingAll READ probingAll NOTIFY probeChanged)
     Q_PROPERTY(QString probeState READ probeState NOTIFY probeChanged)
     Q_PROPERTY(QString probeMessage READ probeMessage NOTIFY probeChanged)
@@ -100,6 +107,18 @@ public:
     [[nodiscard]] QString activeReadProviderLabel() const;
     [[nodiscard]] QString probeState() const { return m_probeState; }
     [[nodiscard]] QVariantList connectionRows() const;
+    [[nodiscard]] QVariantList directoryNodes() const;
+    [[nodiscard]] bool directoryLoading() const { return m_directoryBusy; }
+    [[nodiscard]] QString directorySource() const { return m_directorySource; }
+    [[nodiscard]] QString registrationNode() const { return m_registrationNode; }
+    void setRegistrationNode(QString origin);
+    void setRegistrationPreflight(const QVariantList& rows);
+    // Only verified manifest payloads can replace the embedded registry.
+    void acceptDirectoryVerification(quint32 generation, bool valid);
+    [[nodiscard]] QStringList publicRegistrationCandidates() const;
+    Q_INVOKABLE void refreshDirectory();
+    Q_INVOKABLE bool probeDirectoryNode(const QString& id);
+    Q_INVOKABLE bool addDirectoryReadProfile(const QString& id);
     [[nodiscard]] bool probingAll() const noexcept { return m_batchProbing; }
     [[nodiscard]] QString probeMessage() const { return m_probeMessage; }
     [[nodiscard]] QString probeSuggestedContract() const { return m_probeSuggestedContract; }
@@ -108,7 +127,7 @@ public:
     [[nodiscard]] int probeHttpStatus() const { return m_probeHttpStatus; }
     [[nodiscard]] QString clipboardText() const { return m_clipboardText; }
     Q_INVOKABLE bool probeReadProvider(const QString& id);
-    Q_INVOKABLE bool probeAllReadProviders();
+    Q_INVOKABLE bool probeAllReadProviders(bool includeDirectory = false);
     Q_INVOKABLE bool probeDraftNode(const QString& contract, const QString& endpoint,
                                     const QString& apiKey = {});
     Q_INVOKABLE bool setSessionReadApiKey(const QString& id, const QString& key);
@@ -150,6 +169,8 @@ signals:
     void errorChanged();
     void probeChanged();
     void clipboardChanged();
+    void directoryChanged();
+    void directoryRefreshFinished();
 
 private:
     bool addProfile(const QString& key, bool writer, const QString& id,
@@ -174,6 +195,23 @@ private:
     QString m_lastError;
     QNetworkAccessManager m_network{this};
     QPointer<QNetworkReply> m_probeReply{};
+    QPointer<QNetworkReply> m_directoryReply{};
+    QVariantList m_directoryNodes{};
+    QString m_directorySource{QStringLiteral("embedded")};
+    QString m_registrationNode{};
+    QHash<QString,QVariantMap> m_registrationPreflight{};
+    QDateTime m_registrationPreflightAt{};
+    QHash<QString,QVariantMap> m_directoryHealth{};
+    QDateTime m_directoryStatusCheckedAt{};
+    QPointer<QNetworkReply> m_directoryStatusReply{};
+    bool m_directoryBusy{false};
+    bool m_verifyingCache{false};
+    quint32 m_directoryGeneration{0};
+    QByteArray m_pendingDirectoryEnvelope{};
+    QJsonObject m_pendingDirectoryPayload{};
+    void verifyDirectory(QByteArray envelope, bool cached);
+    void finishDirectory(bool accepted);
+    void refreshDirectoryStatus();
     QElapsedTimer m_probeTimer{};
     QHash<QString, QVariantMap> m_probeResults{};
     QStringList m_pendingBatch{};

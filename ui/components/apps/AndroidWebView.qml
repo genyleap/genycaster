@@ -4,35 +4,28 @@ import QtQuick.Layouts
 import QtWebView
 import Farcaster.Client
 
-// Android's public system WebViews are isolated from Farcaster signer/wallet
+// Mobile public system WebViews are isolated from Farcaster signer/wallet
 // authority. They are kept alive in separate native surfaces, with exactly
 // one visible tab; server-verified GENY Pro lifts the local tab cap to four.
 Popup {
     id: root
     objectName: "androidMiniAppWebView"
     parent: Overlay.overlay
-    readonly property string activePresentation: miniAppHost.presentationMode
-    property bool miniAppFullscreen: false
-    readonly property bool wideSurface: activePresentation === "window"
-    x: miniAppFullscreen || !parent ? 0
-        : activePresentation === "right" ? parent.width - width
-        : activePresentation === "window" || activePresentation === "bottom"
-          ? (parent.width - width) / 2 : 0
-    y: miniAppFullscreen || !parent ? 0
-        : activePresentation === "bottom" ? parent.height - height
-        : activePresentation === "window" ? (parent.height - height) / 2 : 0
-    width: parent ? (miniAppFullscreen ? parent.width
-        : activePresentation === "window" ? Math.min(parent.width - Theme.space4 * 2, 600)
-        : activePresentation === "bottom" ? parent.width
-        : Math.min(parent.width * 0.9, 530)) : 360
-    height: parent ? (miniAppFullscreen ? parent.height
-        : activePresentation === "window" ? Math.min(parent.height - Theme.space4 * 2, 780)
-        : activePresentation === "bottom" ? parent.height * 0.86
-        : parent.height) : 640
+    // Mobile always uses the entire application viewport, not desktop
+    // drawer geometry saved in settings. System bars remain OS-owned.
+    x: 0
+    y: 0
+    width: parent ? parent.width : 0
+    height: parent ? parent.height : 0
+    popupType: Popup.Item
+    dim: false
     modal: true
     focus: true
     padding: 0
-    closePolicy: Popup.CloseOnEscape
+    bottomPadding: parent ? parent.SafeArea.margins.bottom : 0
+    closePolicy: Popup.NoAutoClose
+    enter: Transition {}
+    exit: Transition {}
 
     property string launchUrl: ""
     property string launchTitle: ""
@@ -67,18 +60,15 @@ Popup {
         // Hide and clear the navigated WebView, rather than resetting the
         // URL to the launch page and accidentally entering a redirect loop.
         miniAppSessions.setProperty(index, "blocked", true)
-        if (index === root.activeSessionIndex) {
-            root.loadError = qsTrId("genycaster.miniapp.unavailable")
-            miniAppHost.setState(true, root.loadError)
-        }
+        root.reportSessionError(index, qsTrId("genycaster.miniapp.navigation_blocked"))
         return true
     }
 
     background: Superellipse {
         fillColor: Theme.surface
-        curveDepth: root.miniAppFullscreen ? 0 : Theme.scaleUi(18)
+        curveDepth: 0
         exponent: 2
-        borderWidth: root.miniAppFullscreen ? 0 : 1
+        borderWidth: 0
         borderColor: Theme.borderMuted
     }
 
@@ -89,8 +79,27 @@ Popup {
         root.launchUrl = item.url
         root.launchTitle = item.title
         root.loadError = Boolean(item.blocked)
-            ? qsTrId("genycaster.miniapp.unavailable") : ""
+            ? qsTrId("genycaster.miniapp.navigation_blocked") : String(item.error || "")
         miniAppHost.setState(true, root.loadError)
+    }
+
+    function reportSessionError(index, message) {
+        if (index < 0 || index >= miniAppSessions.count) return
+        miniAppSessions.setProperty(index, "error", message)
+        if (index === root.activeSessionIndex) {
+            root.loadError = message
+            miniAppHost.setState(true, message)
+        }
+    }
+
+    function handleBack() {
+        if (!root.opened) return false
+        const current = liveWebViews.itemAt(root.activeSessionIndex)
+        if (current && current.canGoBack && !Boolean(miniAppSessions.get(root.activeSessionIndex).blocked))
+            current.goBack()
+        else
+            root.dismiss()
+        return true
     }
 
     function removeSession(index) {
@@ -118,7 +127,6 @@ Popup {
         launchUrl = ""
         loadError = ""
         miniAppHost.setState(false)
-        miniAppFullscreen = false
     }
 
     Connections {
@@ -143,7 +151,7 @@ Popup {
                 miniAppHost.setState(root.opened,root.loadError)
                 return
             }
-            miniAppSessions.append({url:String(url), title:name, blocked:false})
+            miniAppSessions.append({url:String(url), title:name, blocked:false, error:""})
             root.open()
             root.activate(miniAppSessions.count-1)
         }
@@ -162,25 +170,22 @@ Popup {
     Shortcut {
         sequence: "Escape"
         enabled: root.opened
-        onActivated: {
-            if (root.miniAppFullscreen) root.miniAppFullscreen = false
-            else root.dismiss()
-        }
+        onActivated: root.handleBack()
     }
 
     contentItem: ColumnLayout {
         spacing: 0
         Rectangle {
-            visible: !root.miniAppFullscreen
             Layout.fillWidth: true
-            Layout.preferredHeight: visible ? Math.max(52, 44 + (root.parent ? root.parent.SafeArea.margins.top : 0)) : 0
+            Layout.preferredHeight: Theme.controlHeight
+                + (root.parent ? root.parent.SafeArea.margins.top : 0)
             color: Theme.surface
             RowLayout {
                 layoutDirection: Theme.uiDirection
                 anchors.fill: parent
                 anchors.topMargin: root.parent ? root.parent.SafeArea.margins.top : 0
-                anchors.leftMargin: Theme.space3
-                anchors.rightMargin: Theme.space3
+                anchors.leftMargin: Theme.space3 + (root.parent ? root.parent.SafeArea.margins.left : 0)
+                anchors.rightMargin: Theme.space3 + (root.parent ? root.parent.SafeArea.margins.right : 0)
                 spacing: Theme.space2
                 ActionButton {
                     iconOnly: true; compact: true; quiet: true
@@ -198,12 +203,6 @@ Popup {
                 }
                 ActionButton {
                     iconOnly: true; compact: true; quiet: true
-                    iconGlyph: Theme.iconExpand
-                    text: qsTrId("genycaster.player.fullscreen")
-                    onClicked: root.miniAppFullscreen = true
-                }
-                ActionButton {
-                    iconOnly: true; compact: true; quiet: true
                     iconGlyph: Theme.iconRefresh
                     text: qsTrId("genycaster.feed_header.refresh")
                     onClicked: {
@@ -216,12 +215,12 @@ Popup {
                 }
             }
         }
-        Rectangle { visible: !root.miniAppFullscreen; Layout.fillWidth: true; Layout.preferredHeight: visible ? 1 : 0; color: Theme.divider }
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Theme.strokeHairline; color: Theme.divider }
 
         Flickable {
             Layout.fillWidth: true
-            Layout.preferredHeight: miniAppSessions.count > 1 ? Theme.scaleUi(43) : 0
-            visible: miniAppSessions.count > 1 && !root.miniAppFullscreen
+            Layout.preferredHeight: miniAppSessions.count > 1 ? Theme.controlHeight : 0
+            visible: miniAppSessions.count > 1
             contentWidth: tabRow.implicitWidth
             contentHeight: height
             clip: true
@@ -268,40 +267,37 @@ Popup {
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            ActionButton {
-                z: 5
-                visible: root.miniAppFullscreen
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.margins: Theme.space3
-                iconOnly: true; compact: true
-                iconGlyph: Theme.iconCompress
-                text: qsTrId("genycaster.player.exit_fullscreen")
-                onClicked: root.miniAppFullscreen = false
-            }
             Repeater {
                 id: liveWebViews
                 model: miniAppSessions
                 WebView {
+                    id: web
                     anchors.fill: parent
                     visible: root.opened && index === root.activeSessionIndex
                              && !Boolean(model.blocked)
                     url: model.blocked ? "" : String(model.url)
-                    onUrlChanged: function(nextUrl) {
-                        if (Boolean(model.blocked) || String(nextUrl).length === 0)
+                    // Qt 6.12 WebView.urlChanged() is a zero-argument
+                    // NOTIFY signal. Read the actual property, not a
+                    // nonexistent parameter that becomes undefined.
+                    onUrlChanged: {
+                        const nextUrl = String(web.url || "")
+                        if (Boolean(model.blocked) || nextUrl.length === 0)
                             return
                         if (root.blockForeignNavigation(index, nextUrl)) stop()
                     }
                     onLoadingChanged: function(request) {
-                        if (index !== root.activeSessionIndex || Boolean(model.blocked))
+                        if (Boolean(model.blocked)) return
+                        const destination = String(request.url || "")
+                        if (destination.length && root.blockForeignNavigation(index, destination)) {
+                            stop()
                             return
+                        }
                         if (request.status === WebView.LoadFailedStatus) {
-                            root.loadError = request.errorString ||
-                                qsTrId("genycaster.miniapp.unavailable")
-                            miniAppHost.setState(true, root.loadError)
-                        } else if (request.status === WebView.LoadSucceededStatus) {
-                            root.loadError = ""
-                            miniAppHost.setState(true)
+                            root.reportSessionError(index, request.errorString ||
+                                qsTrId("genycaster.miniapp.load_failed"))
+                        } else if (request.status === WebView.LoadSucceededStatus
+                                   || request.status === WebView.LoadStartedStatus) {
+                            root.reportSessionError(index, "")
                         }
                     }
                 }
