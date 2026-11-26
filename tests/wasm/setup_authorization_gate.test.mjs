@@ -14,7 +14,8 @@ const source = original
   .replaceAll("await import('./farcaster_recovery.mjs')", "await window.__testImportDerivation()")
   .replace("await import('./deployment_config.mjs')", "await window.__testImportDeployment()")
   .replace("await import('./secure_signer_vault.mjs')", "await window.__testImportVault()")
-  .replace("import('./browser_device_session.mjs')", "window.__testImportDevice()");
+  .replace("import('./browser_device_session.mjs')", "window.__testImportDevice()")
+  .replaceAll("import('./browser_account_session.mjs')", "window.__testImportCloud()");
 assert.notEqual(source, original);
 assert.ok(source.includes('window.__testImportPhrase()'));
 
@@ -24,6 +25,9 @@ function harness(registered = false, initialRemembered = null) {
     const events = [];
     const calls = [];
     const storage=new Map();
+    const lifecycleListeners=new Map();
+    const cloudCalls=[];
+    let periodicFlush;
     let remembered=initialRemembered;
     let releasePrompt;
     let delayPrompt = false;
@@ -39,6 +43,18 @@ function harness(registered = false, initialRemembered = null) {
     };
     const fakeWindow = {
         document:fakeDocument,
+        addEventListener(name,callback){lifecycleListeners.set(name,callback);},
+        setInterval(callback,interval){
+            assert.equal(interval,60_000);
+            periodicFlush=callback;
+            return 1;
+        },
+        __testImportCloud:async()=>({
+            finishBrowserCloudRetirements:async()=>{cloudCalls.push('finish');},
+            flushBrowserCloudRevocations:async()=>{cloudCalls.push('flush');},
+            ensureBrowserCloudDeviceSession:async()=>null,
+            retireBrowserCloudDevice:async({fid,network})=>{cloudCalls.push('retire:'+network+':'+fid);},
+        }),
         requestAnimationFrame:fn=>{fn();return 1;},
         localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},
         __testImportDevice: async()=>({createDeviceSession:()=>({
@@ -109,11 +125,13 @@ function harness(registered = false, initialRemembered = null) {
         }),
     };
     const context = vm.createContext({
-        window:fakeWindow,document:fakeDocument,console,URL,AbortController,
+        window:fakeWindow,document:fakeDocument,console,URL,AbortController,AbortSignal,
     });
     vm.runInContext(source, context, {filename:'protocol-signer-pre.js'});
     const bridge=fakeWindow.__genycasterBrowserSigning;
-    return {bridge,calls,events:bridge.events,storage,
+    return {bridge,calls,events:bridge.events,storage,cloudCalls,
+        dispatchLifecycle(name){return lifecycleListeners.get(name)?.();},
+        periodicFlush(){return periodicFlush?.();},
         get remembered(){return remembered;},
         setDelayPrompt(){delayPrompt=true;},
         failSignerInit(){fakeWindow.__testImportSigner=async()=>{
@@ -121,6 +139,18 @@ function harness(registered = false, initialRemembered = null) {
         };},
         get releasePrompt(){return releasePrompt;}};
 }
+test('durable cloud revocation retries at startup, connectivity, foreground and periodic checks',async()=>{
+    const h=harness();
+    await tick();
+    assert.deepEqual(h.cloudCalls,['finish','flush']);
+    for(const event of ['online','pageshow','focus']){
+        await h.dispatchLifecycle(event);
+    }
+    await h.periodicFlush();
+    assert.deepEqual(h.cloudCalls,Array.from({length:5},()=>['finish','flush']).flat());
+    assert.deepEqual(h.calls,[]);
+});
+
 test('ordinary session restore never collects a recovery phrase',async()=>{
     const h=harness(false);
     h.bridge.start('restore','101','https://snapchain.example.test','');

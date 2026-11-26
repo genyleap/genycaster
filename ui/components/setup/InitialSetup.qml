@@ -960,6 +960,7 @@ Item {
                         ReadableMarkdown {
                             id: legalBody
                             width: parent.width
+                            allowExternalLinks: false
                             markdownSource: root.legalDocument === "terms"
                                 ? qsTrId("genycaster.setup.terms_body")
                                 : qsTrId("genycaster.setup.privacy_body")

@@ -13,7 +13,7 @@ int main()
     namespace error=farcaster::foundation::error;
     AuthenticationCoordinator coordinator;
     const AuthenticationCoordinator::Time now{};
-    Snapshot snapshot{.principal="farcaster:42",.signerReady=true,.cloudReady=true};
+    Snapshot snapshot{.principal="protocol-a:42",.signerReady=true,.cloudReady=true};
     const auto initial=coordinator.plan(Trigger::Foreground,snapshot,now);
     assert(initial.revalidateSigner&&initial.restoreCloud);
     assert(!coordinator.plan(Trigger::Timer,snapshot,now+30s).revalidateSigner);
@@ -29,7 +29,7 @@ int main()
     assert(coordinator.plan(Trigger::Timer,snapshot,now+630s).restoreCloud);
     snapshot.signerBusy=true;
     assert(!coordinator.plan(Trigger::ManualSigner,snapshot,now+631s).revalidateSigner);
-    snapshot.principal="hypersnap:42";snapshot.signerBusy=false;
+    snapshot.principal="protocol-b:42";snapshot.signerBusy=false;
     assert(coordinator.plan(Trigger::Foreground,snapshot,now+632s).revalidateSigner);
     const auto ticket=coordinator.beginRestore(now);
     assert(ticket&&!coordinator.beginRestore(now));

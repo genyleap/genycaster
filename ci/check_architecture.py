@@ -80,6 +80,10 @@ PROVIDER_AWARE_BOOTSTRAP = {
     # cannot delegate authorization solely to a UI-provided protocol choice.
     "src/application/session.cpp",
     "src/application/signer.cpp",
+    # Canonical persisted protocol identities are a domain trust boundary,
+    # not a provider selection or transport dependency. Audit both issuers,
+    # the exact subject and FID validation below.
+    "src/domain/session.cpp",
     # Named custody ceremony regression fixtures deliberately assert both
     # provider behavior and issuer mismatch rejection.
     "tests/custody_recovery/hypersnap_transport.cpp",
@@ -92,6 +96,15 @@ PROVIDER_AWARE_BOOTSTRAP = {
 # ownership contracts. This is not a blanket bypass of the lexical boundary:
 # removing issuer validation or the destination allowlist must fail CI too.
 VERIFIED_PROVIDER_BOUNDARY_INVARIANTS = {
+    "src/domain/session.cpp": (
+        "bool isRegistryCustodyAccount(",
+        '*session.identityIssuer == "farcaster:optimism-id-registry"',
+        '*session.identityIssuer == "hypersnap:native-registry"',
+        "session.fid.value >= (1ULL << 32)",
+        "session.fid.value <= 9'007'199'254'740'991ULL",
+        "subject.starts_with(prefix)",
+        "fid == session.fid.value",
+    ),
     "src/application/session.cpp": (
         "acceptVerifiedNativeCustody(",
         "session.identityIssuer != NativeIssuer",

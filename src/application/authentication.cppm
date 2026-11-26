@@ -1,6 +1,15 @@
 /*!
- * Provider-neutral authentication lifecycle policy. Qt supplies events and
- * dispatches decisions; neither network I/O nor secrets belong here.
+ * @file        src/application/authentication.cppm
+ * @brief       Provider-neutral authentication lifecycle policy.
+ *
+ * @details
+ * Coordinates account-scoped signer and cloud revalidation, retry backoff
+ * and cancellation of stale local session restoration without network I/O.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       26 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
  */
 module;
 #include <algorithm>

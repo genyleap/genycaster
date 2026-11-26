@@ -16,14 +16,18 @@ test('Farcaster custody recovery also requests a signer without a separate check
 
 test('Farcaster Android signer timeout has a read-only recovery-status action',()=>{
  const qml=read('ui/components/shell/AppShell.qml');
- const start=qml.indexOf('objectName: "checkDeviceSignerAfterTimeout"');
+ const start=qml.indexOf('readonly property bool canRetryVerification:');
  assert.ok(start>0);
- const control=qml.slice(start,start+1050);
+ const control=qml.slice(qml.lastIndexOf('ActionButton {',start),
+                         qml.indexOf('ActionButton {',start));
  assert.match(control,/presentationBridge\.isAuthenticated/);
  assert.match(control,/!presentationBridge\.signerBusy/);
  assert.match(control,/!presentationBridge\.writeReady/);
- assert.match(control,/presentationBridge\.refreshSigner\(\)/);
- assert.doesNotMatch(control,/authorizeNativeFarcasterSigner|provisionSigner|startRecovery/);
+ assert.match(control,/signerPhase === "unavailable"/);
+ assert.match(control,/signerPhase === "failed"/);
+ assert.match(control,/onClicked: canRetryVerification \? presentationBridge\.refreshSigner\(\)\s*:\s*root\.requestInteractionAuthorization\(\)/);
+ const dialog=qml.slice(qml.indexOf('objectName: "authorizeSelectedProtocolSigner"'));
+ assert.match(dialog,/if \(interactionAuthorizationDialog\.authorizationSubmitted\) \{\s*presentationBridge\.refreshSigner\(\)\s*return\s*\}/);
  const signer=read('src/application/signer.cpp');
  assert.match(signer,/auto inspected = m_impl->registry->inspect/);
  assert.match(signer,/auto registered = m_impl->registry->registerGasless/);

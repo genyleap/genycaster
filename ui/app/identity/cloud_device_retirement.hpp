@@ -1,3 +1,16 @@
+/*!
+ * @file        ui/app/identity/cloud_device_retirement.hpp
+ * @brief       Durable cloud-device retirement records for native Qt adapters.
+ *
+ * @details
+ * Shares public retirement markers and one-way signed revocation receipts
+ * at the textual Qt settings boundary, separately from private key storage.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       26 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
 #pragma once
 #include <QSettings>
 #include <QRegularExpression>

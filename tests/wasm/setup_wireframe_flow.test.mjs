@@ -373,7 +373,11 @@ test('terms and privacy open internal scrollable reader with reliable whole-row 
     + setup.slice(setup.indexOf('id: termsStage'), setup.indexOf('id: accountStage'));
   assert.match(legal,/objectName: "setupPublishedLegalDocument"/);
   assert.match(legal,/contentHeight: legalDocumentContent\.implicitHeight/);
-  assert.match(legal,/textFormat: Text\.MarkdownText/);
+  assert.match(legal,/ReadableMarkdown\s*\{/);
+  assert.match(legal,/allowExternalLinks: false/);
+  const markdown=source('ui/components/content/ReadableMarkdown.qml');
+  assert.match(markdown,/textFormat: Text\.MarkdownText/);
+  assert.match(markdown,/if \(!root\.allowExternalLinks\) return/);
   assert.doesNotMatch(legal,/setupOpenPublishedLegalDocument|Qt\.openUrlExternally/);
 });
 

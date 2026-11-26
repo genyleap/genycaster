@@ -23,6 +23,8 @@ function runPreJs(origin) {
             page.hostname === 'localhost' || page.protocol === 'https:',
         crypto: webcrypto,
         indexedDB: { open() {} },
+        addEventListener() {},
+        setInterval() { return 1; },
     };
     vm.runInNewContext(source, { window, URL, console });
     return { window, redirected };
