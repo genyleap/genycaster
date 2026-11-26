@@ -34,7 +34,8 @@ target_sources(swap_runtime_compile
     PRIVATE ../../ui/app/miniapp/runtime.cpp)
 set_property(TARGET swap_runtime_compile PROPERTY CXX_SCAN_FOR_MODULES ON)
 target_compile_definitions(swap_runtime_compile PRIVATE GENYCASTER_MINIAPP_SIWF=0)
-target_link_libraries(swap_runtime_compile PRIVATE Qt6::Core Qt6::Network)
+# QDesktopServices is used by the production runtime for external navigation.
+target_link_libraries(swap_runtime_compile PRIVATE Qt6::Core Qt6::Gui Qt6::Network)
 target_compile_features(swap_runtime_compile PRIVATE cxx_std_26)
 # This is a syntax/type/linkage smoke target, not an optimized app binary.
 # Avoid GCC 16 module debug/optimizer memory spikes on CI runners.
