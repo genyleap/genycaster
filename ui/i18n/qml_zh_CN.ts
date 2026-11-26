@@ -7904,6 +7904,10 @@ Genycaster 处理账户 ID/FID、协议、验证状态以及 Farcaster 与 Genyl
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>授权为此设备创建签名密钥，以便通过网络验证后发布内容和互动。</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>按顺序输入 12 或 24 个恢复词</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>按顺序输入您的 24 个恢复词</translation>

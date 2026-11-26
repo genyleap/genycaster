@@ -7904,6 +7904,10 @@ Genycaster खाता ID/FID, प्रोटोकॉल, सत्याप�
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>नेटवर्क सत्यापन के बाद इस डिवाइस से पोस्ट और प्रतिक्रियाएँ करने के लिए साइनर कुंजी बनाने की अनुमति देता/देती हूँ।</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>12 या 24 पुनर्प्राप्ति शब्द क्रम से दर्ज करें</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>अपने 24 रिकवरी शब्द क्रम से दर्ज करें</translation>

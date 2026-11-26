@@ -7904,6 +7904,10 @@ Genycaster는 계정 ID/FID, 프로토콜, 확인 상태, Farcaster 및 Genyleap
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>네트워크 확인 후 이 기기에서 게시 및 상호작용할 서명 키 생성을 허용합니다.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>복구 단어 12개 또는 24개를 순서대로 입력하세요</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>24개의 복구 단어를 순서대로 입력하세요</translation>

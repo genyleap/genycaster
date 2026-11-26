@@ -1273,6 +1273,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_notice_title");
     //% "Confirming device authorization"
     (void)qtTrId("genycaster.setup.signer_verification_title");
+    //% "Enter 12 or 24 recovery words in order"
+    (void)qtTrId("genycaster.setup.farcaster_recovery_placeholder");
     //% "Enter all 24 recovery words before authorizing this device."
     (void)qtTrId("genycaster.setup.signer_enter_all_words");
     //% "Device signer enabled"

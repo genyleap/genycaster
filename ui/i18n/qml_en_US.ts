@@ -7909,6 +7909,10 @@ This notice describes the product's current intended data flows, not a guarantee
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>Authorize a signer for this device to publish and interact after network verification.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>Enter 12 or 24 recovery words in order</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>Enter your 24 recovery words in order</translation>

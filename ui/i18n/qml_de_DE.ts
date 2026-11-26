@@ -7904,6 +7904,10 @@ Die Erklärung beschreibt vorgesehene Abläufe, nicht das Verhalten unabhängige
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>Ich erlaube einen Signaturschlüssel für dieses Gerät, um nach der Netzwerkbestätigung Beiträge und Interaktionen zu signieren.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>12 oder 24 Wiederherstellungswörter in der richtigen Reihenfolge eingeben</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>Gib deine 24 Wiederherstellungswörter ein</translation>

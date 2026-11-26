@@ -7904,6 +7904,10 @@ Esta política descreve os fluxos pretendidos atualmente, não o comportamento d
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>Autorizo uma chave de assinatura neste dispositivo para publicar e interagir após a verificação da rede.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>Digite 12 ou 24 palavras de recuperação na ordem correta</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>Digite suas 24 palavras de recuperação na ordem</translation>

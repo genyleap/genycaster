@@ -7909,6 +7909,10 @@ FID، نام کاربری و پروفایل عمومی، کست‌ها، پاس�
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>اجازه می‌دهم برای این دستگاه کلید امضای مستقل ساخته شود تا پس از تأیید شبکه، انتشار و تعاملات بدون تأیید تکراری انجام شوند.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>۱۲ یا ۲۴ واژهٔ بازیابی را به‌ترتیب وارد کنید</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>۲۴ واژهٔ بازیابی را به‌ترتیب وارد کنید</translation>

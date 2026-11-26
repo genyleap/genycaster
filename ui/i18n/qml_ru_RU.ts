@@ -7904,6 +7904,10 @@ Genycaster обрабатывает ID/FID, протокол, статус пр�
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>Разрешаю создать ключ подписи для этого устройства, чтобы публиковать и взаимодействовать после проверки сетью.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>Введите 12 или 24 слова восстановления по порядку</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>Введите ваши 24 слова восстановления по порядку</translation>

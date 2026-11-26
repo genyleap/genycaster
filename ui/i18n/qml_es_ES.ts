@@ -7905,6 +7905,10 @@ Se describen los flujos previstos, no las prácticas de terceros. Los cambios im
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>Autorizo una clave de firma para este dispositivo para publicar e interactuar tras la verificación de la red.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>Introduce 12 o 24 palabras de recuperación en orden</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>Introduce tus 24 palabras de recuperación en orden</translation>

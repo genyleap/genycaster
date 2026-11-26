@@ -3415,7 +3415,9 @@ Item {
                     layoutDirection: Theme.uiDirection
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.native_recovery_placeholder")
+                        text: root.recoveryProtocol === "farcaster-snapchain"
+                            ? qsTrId("genycaster.setup.farcaster_recovery_placeholder")
+                            : qsTrId("genycaster.setup.native_recovery_placeholder")
                         color: Theme.ink
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold

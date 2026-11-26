@@ -7905,6 +7905,10 @@ Cette politique décrit le fonctionnement prévu, sans promettre les pratiques d
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>J’autorise une clé de signature pour cet appareil afin de publier et interagir après vérification réseau.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>Saisissez 12 ou 24 mots de récupération dans l’ordre</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>Saisissez vos 24 mots de récupération dans l’ordre</translation>

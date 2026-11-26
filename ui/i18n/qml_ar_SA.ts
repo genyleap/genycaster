@@ -7904,6 +7904,10 @@ This notice describes the product's current intended data flows, not a guarantee
             <source>Authorize a signer for this device to publish and interact after network verification.</source>
             <translation>أوافق على إنشاء مفتاح توقيع لهذا الجهاز والسماح بالنشر والتفاعل بعد التحقق من الشبكة.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_recovery_placeholder">
+            <source>Enter 12 or 24 recovery words in order</source>
+            <translation>أدخل 12 أو 24 كلمة استرداد بالترتيب</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>أدخل كلمات الاسترداد الـ24 بالترتيب</translation>
