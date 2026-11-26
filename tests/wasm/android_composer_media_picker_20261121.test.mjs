@@ -31,6 +31,9 @@ test('Android native SAF bridge imports content URI safely before normal upload'
     'QThread::create', 'QIODevice::ReadOnly', 'QUrl::fromLocalFile(output)',
     'm_media->beginUpload', '25LL * 1024 * 1024', '512LL * 1024 * 1024'
   ]) assert.ok(picker.includes(token), token);
+  assert.ok(!picker.includes('jni->DeleteLocalRef(stringClass)'),
+    'Qt findClass returns a borrowed global reference, never a local reference');
+  assert.ok(picker.includes('const bool allocationFailed = jni.checkAndClearExceptions()'));
   assert.ok(main.includes('androidMediaPickerOwner = std::make_unique<AndroidComposerMediaPicker>'));
   assert.ok(main.includes('browserImagePickRequested'));
   assert.ok(controller.includes('!localFile.isLocalFile()'),

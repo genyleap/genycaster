@@ -113,23 +113,37 @@ public:
             "image/jpg"
         };
         QJniEnvironment jni;
+        // Qt owns the cached global class reference returned by findClass().
+        // Never pass it to DeleteLocalRef (ART aborts with CheckJNI enabled).
         jclass stringClass = jni.findClass("java/lang/String");
-        if (stringClass == nullptr) {
+        const bool classFailed = jni.checkAndClearExceptions();
+        if (classFailed || stringClass == nullptr) {
             fail(QStringLiteral("Android document picker is unavailable."));
             return;
         }
         jobjectArray filters = jni->NewObjectArray(
             static_cast<jsize>(types.size()), stringClass, nullptr);
-        jni->DeleteLocalRef(stringClass);
-        if (filters == nullptr) {
+        const bool allocationFailed = jni.checkAndClearExceptions();
+        if (allocationFailed || filters == nullptr) {
+            if (filters != nullptr) jni->DeleteLocalRef(filters);
             fail(QStringLiteral("Android document picker could not allocate media filters."));
             return;
         }
         for (qsizetype index = 0; index < static_cast<qsizetype>(types.size()); ++index) {
             const QJniObject mime = QJniObject::fromString(
                 QString::fromLatin1(types[static_cast<std::size_t>(index)]));
+            if (!mime.isValid()) {
+                jni->DeleteLocalRef(filters);
+                fail(QStringLiteral("Android document picker could not prepare a media filter."));
+                return;
+            }
             jni->SetObjectArrayElement(filters, static_cast<jsize>(index),
                                        mime.object<jstring>());
+            if (jni.checkAndClearExceptions()) {
+                jni->DeleteLocalRef(filters);
+                fail(QStringLiteral("Android document picker could not set a media filter."));
+                return;
+            }
         }
         const QJniObject extra = QJniObject::fromString(
             QStringLiteral("android.intent.extra.MIME_TYPES"));
