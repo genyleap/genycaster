@@ -19,3 +19,11 @@ test('shared feed player is created only after explicit Play and unloaded on sou
     assert.match(video,/onAdaptiveSourceChanged: \{\s*root.playbackRequested = false/);
     assert.match(video,/primeFrame: false\s*eager: false/);
 });
+
+test('embedded video corners use the parent surface color without creating an eager player',()=>{
+    const card=read('ui/components/media/EmbedCard.qml');
+    const preview=read('ui/components/media/VideoPreview.qml');
+    assert.match(card,/sourceComponent: VideoPreview \{[\s\S]*?cornerMaskColor: root\.fillColor/);
+    assert.match(preview,/property color cornerMaskColor: Theme\.background/);
+    assert.match(preview,/cornerMaskColor: root\.cornerMaskColor/);
+});

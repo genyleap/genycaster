@@ -12,6 +12,8 @@ Item {
 
     property var embed: ({})
     property bool compact: false
+    // Match the embedding surface instead of painting the app canvas over it.
+    property color cornerMaskColor: Theme.background
     // Exposed for deterministic silent offscreen playback tests. Audio is
     // enabled for every production feed delegate by default.
     property bool audioOutputEnabled: true
@@ -268,7 +270,7 @@ Item {
                 openOriginalEnabled: true
                 openOriginalUrl: root.targetUrl
                 curveDepth: Theme.shapeMedia
-                cornerMaskColor: Theme.background
+                cornerMaskColor: root.cornerMaskColor
                 onOpenOriginalRequested: url => root.openRequested(url)
             }
         }

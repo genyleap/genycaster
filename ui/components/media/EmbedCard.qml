@@ -330,6 +330,7 @@ Superellipse {
                     embed: root.embed
                     compact: true
                     onOpenRequested: url => root.openRequested(url)
+                    cornerMaskColor: root.fillColor
                 }
             }
         }
