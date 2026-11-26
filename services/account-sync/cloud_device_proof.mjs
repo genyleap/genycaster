@@ -100,7 +100,8 @@ export function createCloudDeviceProof({store,issuer,hypersnapOrigin,fetchImpl=g
     const key=createPublicKey({key:Buffer.concat([DER,Buffer.from(public_key,'hex')]),
       format:'der',type:'spki'});
     if(!verify(null,Buffer.from(cloudDeviceMessage(input)),key,Buffer.from(signature,'hex')))throw denied();
-    if(!await store.revokeCloudDevice(ownerFor(network,fid,issuer),public_key))throw denied();
+    if(!await store.revokeCloudDevice(ownerFor(network,fid,issuer),public_key))
+      throw denied(409,'device_enrollment_pending');
     return {revoked:true};
   }
   return {issue,prove,revoke};

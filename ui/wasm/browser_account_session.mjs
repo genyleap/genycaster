@@ -153,3 +153,65 @@ export async function bootstrapBrowserOpenProofSession({fid,bearer,fetchImpl=glo
   if(!isVerifiedFarcasterOwner(confirmed,fid))throw Error('OpenProof cookie principal mismatch');
   return confirmed;
 }
+
+
+// The only persisted logout material is a signed, replay-safe revocation
+// receipt. It cannot authorize a session or a social operation.
+const retirementPrefix='genycaster.cloud-retirement.';
+const revokePrefix='genycaster.cloud-revocation.';
+function validRetirement(network,fid) {
+  return ['farcaster','hypersnap'].includes(network)&&typeof fid==='string'&&
+    /^[1-9][0-9]{0,19}$/.test(fid)&&
+    (network==='farcaster'?validFid(fid):BigInt(fid)>=4294967296n&&BigInt(fid)<=18446744073709551615n);
+}
+function retirementSlot(network,fid){return retirementPrefix+network+'.'+fid;}
+export async function retireBrowserCloudDevice({fid,network,environment=globalThis,vault}={}) {
+  if(!validRetirement(network,fid))throw Error('Invalid cloud device retirement');
+  const storage=environment.localStorage;
+  const marker=retirementSlot(network,fid);
+  // Mark before any asynchronous vault access; a reload must finish retirement
+  // before the same account can reuse its previous credential.
+  storage.setItem(marker,'1');
+  vault??=createBrowserSignerVault(environment,{scope:'cloud-device-'+network});
+  const key=await vault.load(fid);
+  if(key){
+    const receipt={purpose:'revoke',network,fid,public_key:key.publicKeyHex,nonce:'A'.repeat(43)};
+    const proof=await vault.signCloudDeviceChallenge(fid,receipt);
+    storage.setItem(revokePrefix+key.publicKeyHex,JSON.stringify({...receipt,signature:proof.signature}));
+    await vault.erase(fid);
+  }
+  storage.removeItem(marker);
+}
+export async function finishBrowserCloudRetirements({environment=globalThis}={}) {
+  const storage=environment.localStorage;
+  const slots=Array.from({length:storage.length},(_,i)=>storage.key(i))
+    .filter(key=>key?.startsWith(retirementPrefix));
+  for(const slot of slots){
+    const [network,fid]=slot.slice(retirementPrefix.length).split('.');
+    if(validRetirement(network,fid))await retireBrowserCloudDevice({network,fid,environment});
+  }
+}
+export async function flushBrowserCloudRevocations({environment=globalThis,fetchImpl=globalThis.fetch,
+  origin=globalThis.location?.origin,signal}={}) {
+  if(origin!==deployment.publicOrigin)return;
+  const storage=environment.localStorage;
+  const slots=Array.from({length:storage.length},(_,i)=>storage.key(i))
+    .filter(key=>key?.startsWith(revokePrefix)).slice(0,64);
+  for(const slot of slots){
+    if(signal?.aborted)return;
+    const raw=storage.getItem(slot);
+    if(typeof raw!=='string'||raw.length>1024)continue;
+    let data;
+    try{data=JSON.parse(raw);}catch{continue;}
+    if(!validRetirement(data.network,data.fid)||data.purpose!=='revoke'||
+      data.nonce!=='A'.repeat(43)||!(/^[0-9a-f]{64}$/).test(data.public_key||'')||
+      !(/^[0-9a-f]{128}$/).test(data.signature||'')||slot!==revokePrefix+data.public_key)continue;
+    const response=await fetchImpl(endpoint+'/device/revoke',{
+      method:'POST',credentials:'omit',cache:'no-store',redirect:'error',signal,
+      headers:{'content-type':'application/json',accept:'application/json'},body:raw});
+    if(response.status===200){
+      const result=await jsonResponse(response);
+      if(result.revoked===true&&storage.getItem(slot)===raw)storage.removeItem(slot);
+    }else if(response.status!==409)return; // transient: keep receipts, no silent discard
+  }
+}

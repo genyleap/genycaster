@@ -757,9 +757,10 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           await issueSession(await deviceProof.prove(input,verified),response);
         }
       }catch(error) {
-        const status=[400,401,413,429,503].includes(error?.status)?error.status:503;
+        const status=[400,401,409,413,429,503].includes(error?.status)?error.status:503;
         respond(response,status,{error:status===503?'device_service_unavailable':
-          status===401?'invalid_device_proof':status===429?'challenge_limit':'invalid_device_request'});
+          status===401?'invalid_device_proof':status===409?'device_enrollment_pending':
+          status===429?'challenge_limit':'invalid_device_request'});
       }
       return true;
     }

@@ -37,6 +37,23 @@
     let inFlight = false;
     let recoveryController = null;
     let rememberedWrite = Promise.resolve();
+    let cloudRetirement=Promise.resolve();
+    let revocationFlush=null;
+    function flushCloudRevocations(){
+        if(revocationFlush)return revocationFlush;
+        revocationFlush=cloudRetirement.then(async()=>{
+            const module=await import('./browser_account_session.mjs');
+            await module.finishBrowserCloudRetirements({environment:window});
+            await module.flushBrowserCloudRevocations({environment:window,
+                signal:AbortSignal.timeout(15_000)});
+        }).catch(()=>{}).finally(()=>{revocationFlush=null;});
+        return revocationFlush;
+    }
+    window.addEventListener('online',flushCloudRevocations);
+    window.addEventListener('pageshow',flushCloudRevocations);
+    window.addEventListener('focus',flushCloudRevocations);
+    window.setInterval(flushCloudRevocations,60_000);
+    void flushCloudRevocations();
     const signOutKey = 'genycaster.device-session.signed-out';
     const signedOutLocally=()=>{
         try{return window.localStorage?.getItem(signOutKey)==='1';}
@@ -68,6 +85,8 @@
         const network=ownerProtocol==='hypersnap-v2'?'hypersnap':'farcaster';
         const operation = import('./browser_account_session.mjs')
             .then(async module => {
+                await cloudRetirement;
+                await module.finishBrowserCloudRetirements({environment:window});
                 const args={fid,network,bearer,origin:window.location.origin,signal:controller.signal};
                 const device=await module.ensureBrowserCloudDeviceSession(args);
                 if(device)return device;
@@ -157,7 +176,9 @@
         const {deriveFarcasterCustody}=await import('./farcaster_recovery.mjs');
         const custody=await deriveFarcasterCustody(phrase);
         try {
-            const {ensureBrowserCloudDeviceSession}=await import('./browser_account_session.mjs');
+            await cloudRetirement;
+            const {ensureBrowserCloudDeviceSession,finishBrowserCloudRetirements}=await import('./browser_account_session.mjs');
+            await finishBrowserCloudRetirements({environment:window});
             await ensureBrowserCloudDeviceSession({fid,network:'hypersnap',custody,signal});
         } finally {custody.dispose();}
     }
@@ -244,11 +265,18 @@
             const previousOwner=owner,previousProtocol=ownerProtocol;
             const pendingCloud=accountSessionPromise;
             cancelAccountSession();
-            if(previousOwner)void Promise.resolve(pendingCloud).catch(()=>{}).then(async()=>{
-                const {createBrowserSignerVault}=await import('./secure_signer_vault.mjs');
-                const scope=previousProtocol==='hypersnap-v2'?'cloud-device-hypersnap':'cloud-device-farcaster';
-                await createBrowserSignerVault(window,{scope}).erase(previousOwner);
-            }).catch(()=>{});
+            if(previousOwner){
+                const network=previousProtocol==='hypersnap-v2'?'hypersnap':'farcaster';
+                // Persist the retirement intent synchronously before the
+                // old owner is cleared, even if the browser closes now.
+                try{window.localStorage.setItem('genycaster.cloud-retirement.'+network+'.'+previousOwner,'1');}catch{}
+                cloudRetirement=cloudRetirement.catch(()=>{}).then(()=>pendingCloud?.catch(()=>{}))
+                    .then(async()=>{
+                        const module=await import('./browser_account_session.mjs');
+                        await module.retireBrowserCloudDevice({fid:previousOwner,network,environment:window});
+                    });
+                void cloudRetirement.then(flushCloudRevocations).catch(()=>{});
+            }
             try{window.localStorage?.setItem(signOutKey,'1');}
             catch{/* IndexedDB erase still runs below */}
             ++epoch;
@@ -467,7 +495,9 @@
                                         registeredOpenProof=await verifyRecoveredFarcasterIdentity({
                                             fid:established.fid,custody,gatewayOrigin:deployment.browserGateway,
                                             signal:controller.signal});
-                                        const {ensureBrowserCloudDeviceSession}=await import('./browser_account_session.mjs');
+                                        await cloudRetirement;
+                                        const {ensureBrowserCloudDeviceSession,finishBrowserCloudRetirements}=await import('./browser_account_session.mjs');
+                                        await finishBrowserCloudRetirements({environment:window});
                                         await ensureBrowserCloudDeviceSession({fid:established.fid,
                                             bearer:registeredOpenProof.accountTicket,signal:controller.signal});
                                     }finally{custody.dispose();}
@@ -565,7 +595,9 @@
                                         signal:controller.signal,
                                     });
                                     try {
-                                        const {ensureBrowserCloudDeviceSession}=await import('./browser_account_session.mjs');
+                                        await cloudRetirement;
+                                        const {ensureBrowserCloudDeviceSession,finishBrowserCloudRetirements}=await import('./browser_account_session.mjs');
+                                        await finishBrowserCloudRetirements({environment:window});
                                         await ensureBrowserCloudDeviceSession({fid:verifiedFid,
                                             bearer:verifiedOpenProof.accountTicket,signal:controller.signal});
                                     }catch {if(controller.signal.aborted)throw Error('Recovery cancelled');}

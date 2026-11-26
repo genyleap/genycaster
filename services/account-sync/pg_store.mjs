@@ -652,12 +652,12 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       const client=await pool.connect();
       try {
         await client.query('BEGIN');
-        // Tombstone even an enrollment that is still in flight. A later
-        // enrollment with the retired public key must never recreate it.
-        const retired=await client.query(`INSERT INTO cloud_device_credentials
-          (issuer,subject,public_key,revoked_at) VALUES($1,$2,$3,now())
-          ON CONFLICT(public_key) DO UPDATE SET revoked_at=COALESCE(cloud_device_credentials.revoked_at,now())
-          WHERE cloud_device_credentials.issuer=EXCLUDED.issuer AND cloud_device_credentials.subject=EXCLUDED.subject`,
+        // Never let an unauthenticated, self-generated key mark an arbitrary
+        // principal as migrated or allocate database rows. If enrollment is
+        // still in flight, the receipt remains in the client's durable outbox.
+        const retired=await client.query(`UPDATE cloud_device_credentials
+          SET revoked_at=COALESCE(revoked_at,now())
+          WHERE issuer=$1 AND subject=$2 AND public_key=$3`,
           [issuer,subject,publicKey]);
         if(retired.rowCount!==1){await client.query('ROLLBACK');return false;}
         await client.query(`DELETE FROM account_sessions WHERE issuer=$1 AND subject=$2 AND device_key=$3`,
