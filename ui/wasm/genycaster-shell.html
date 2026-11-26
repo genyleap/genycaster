@@ -67,6 +67,7 @@
 #qt-screen canvas{touch-action:none;-webkit-touch-callout:none}
 #genycaster-boot{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:#0b0c0f;color:#f7f8fa;transition:opacity .26s ease}
 #genycaster-boot.finished{opacity:0;pointer-events:none}
+#genycaster-boot[hidden]{display:none}
 /* A running WASM tab does not update when its deployment changes. Present an
    explicit, non-destructive refresh affordance above Qt, never auto-reload an
    editor or discard a locally stored identity. */
@@ -322,13 +323,14 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
 <!-- Official Farcaster host SDK, bundled and served from this origin. -->
 <script type="module" src="miniapp-host-bridge.mjs"></script>
 <script>
-// Show the first studio credit before the large Qt loader scripts evaluate,
-// not after a flash of the loading UI. Never read account or protocol data.
+// Show the studio credit before the large Qt loader scripts evaluate only
+// if this browser has never completed startup. Never read account data.
 (function () {
     try {
         const intro=document.getElementById("genycaster-studio-intro");
         const boot=document.getElementById("genycaster-boot");
         if (!intro || !boot) return;
+        if (localStorage.getItem("genycaster.boot.loaded.v1")==="1") return;
         window.__genycasterIntroStartedAt=performance.now();
         intro.hidden=false;
         boot.dataset.intro="on";

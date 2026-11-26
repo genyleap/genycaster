@@ -73,8 +73,8 @@ window.__genycasterBrowserAuthBootstrap=()=>{
 const studioIntro=$("genycaster-studio-intro");
 let studioComplete=true;
 let splashMinimumReached=true;
-// Three readable phases on every refresh, independently of WASM cache speed.
-// A brief studio credit, a longer partner reveal, then visible Genycaster branding.
+// The introductory presentation is reserved for the first successful startup.
+// Returning visitors are gated only by actual runtime, QML and account readiness.
 const studioSceneMs=2700;
 const studioPartnersMs=5500;
 const splashSceneMs=2600;
@@ -137,10 +137,9 @@ try{
 const updating=seen && !!currentVersion && !!previousVersion && previousVersion!==currentVersion;
 const installing=!seen || updating;
 bootPhase=installing?"download":"initialize";
-// Studio credits are not progress simulation: run on EVERY document load,
-// including ordinary refreshes with cached WASM. Actual progress remains
-// independently measured; Qt readiness cannot cut the credits short.
-if (studioIntro && boot) {
+// A previously completed startup skips all presentation timers, even when
+// a new release needs downloading. The marker does not guarantee a cache hit.
+if (!seen && studioIntro && boot) {
     const earlyStart=Number(window.__genycasterIntroStartedAt);
     const startedAt=Number.isFinite(earlyStart) && earlyStart>0
         ? earlyStart : performance.now();
@@ -167,6 +166,9 @@ if (studioIntro && boot) {
             if(qtRuntimeLoaded && qmlRootReady) revealReady();
         },splashSceneMs);
     },Math.max(0,studioSceneMs+studioPartnersMs-elapsed));
+} else {
+    if(studioIntro)studioIntro.hidden=true;
+    if(boot?.dataset)boot.dataset.intro='off';
 }
 if(boot?.dataset){
     boot.dataset.mode=installing?"install":"warm";
@@ -881,7 +883,8 @@ function revealReady() {
     fill.classList.add("measured");fill.style.width="100%";
     percent.textContent="";
     boot.classList.add("finished");
-    window.setTimeout(()=>{boot.hidden=true;},280);
+    if(seen)boot.hidden=true;
+    else window.setTimeout(()=>{boot.hidden=true;},280);
     watchReleaseUpdates();
 }
 // Called synchronously from main.cpp after the QML root is constructed,

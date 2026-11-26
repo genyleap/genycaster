@@ -37,7 +37,8 @@ test('Plain, readable studio credits precede actual WASM progress without decora
   assert.ok(html.indexOf('src="genycaster-assets.js"')<html.indexOf('src="qtloader.js"'));
   assert.doesNotMatch(source('ui/wasm/genycaster-boot-icon.svg'),/fill="#101010"/);
   assert.match(source('ui/wasm/genycaster-boot-icon.svg'),/fill="#989898"/);
-  assert.doesNotMatch(html,/if \(seen && !\(current && previous && current!==previous\)\) return/);
+  assert.match(html,/if \(localStorage\.getItem\("genycaster\.boot\.loaded\.v1"\)==="1"\) return/);
+  assert.match(js,/if \(!seen && studioIntro && boot\)/);
 });
 
 test('Intro uses the Base network emblem from the project icon set, never the four-block app mark',()=>{

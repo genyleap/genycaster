@@ -166,20 +166,42 @@ test("three intro phases: 2.7s studio, 5.5s partners, 2.6s Genycaster splash",()
     assert.equal(h.phase(),"ready","real Qt readiness is revealed after the splash");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
 });
-test("every refresh presents the studio credits, even after WASM is cached",()=>{
+test("returning visitors skip every intro timer and reveal immediately when ready",()=>{
     const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa",studioTimed:true});
     const intro=h.nodes.get("genycaster-studio-intro");
-    assert.equal(intro.hidden,false);
+    assert.equal(intro.hidden,true);
+    h.config.qt.onLoaded();
+    assert.notEqual(h.phase(),"ready");
+    h.qmlReady();
+    assert.equal(h.phase(),"ready");
+    assert.equal(h.nodes.get("genycaster-boot").hidden,true);
+    assert.equal(intro.hidden,true);
+});
+test("a returning visitor with a new release sees real loading but never studio credits",()=>{
+    const h=host({loaded:true,oldVersion:"bbbbbbbbbbbbbbbbbbbb",studioTimed:true,authRestorePending:true});
+    assert.equal(h.nodes.get("genycaster-studio-intro").hidden,true);
+    assert.equal(h.mode(),"install");
+    assert.equal(h.phase(),"download");
     h.config.qt.onLoaded();
     h.qmlReady();
     assert.notEqual(h.phase(),"ready");
-    h.advance(2700);
-    assert.equal(intro.dataset.scene,"partners");
-    h.advance(5500);
-    assert.equal(intro.hidden,true);
-    assert.notEqual(h.phase(),"ready");
-    h.advance(2600);
+    h.authSettled();
     assert.equal(h.phase(),"ready");
+    assert.equal(h.nodes.get("genycaster-boot").hidden,true);
+});
+test("early HTML intro cannot flash before the loader for a returning visitor",()=>{
+    const shell=readFileSync(new URL("../../ui/wasm/genycaster-shell.html",import.meta.url),"utf8");
+    const inline=[...shell.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1])
+        .find(s=>s.includes("__genycasterIntroStartedAt"));
+    assert.ok(inline);
+    for(const saved of ["1",null,"blocked"]){
+        const intro={hidden:true},boot={dataset:{}},window={};
+        vm.runInNewContext(inline,{window,performance:{now:()=>100},
+            document:{getElementById:id=>id==="genycaster-studio-intro"?intro:boot},
+            localStorage:{getItem:()=>{if(saved==="blocked")throw new Error("storage denied");return saved;}}});
+        assert.equal(intro.hidden,saved!==null);
+        assert.equal(window.__genycasterIntroStartedAt,saved===null?100:undefined);
+    }
 });
 
 test("first launch uses real download → install → Qt initialize → ready milestones",async()=>{
