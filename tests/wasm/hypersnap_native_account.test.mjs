@@ -5,7 +5,7 @@ import {deriveFarcasterCustody,validateRecoveryWords} from '../../ui/wasm/farcas
 import {blake3Digest20,hex} from '../../ui/wasm/farcaster_protocol.mjs';
 import {deployment} from '../../ui/wasm/deployment_config.mjs';
 import {createBrowserNativeRegistry,generateNativePhrase,parseNativeLookup,
-  parseRegistrationChallenge,parseNativeNetworkHealth,sha256,nativePowHash,nativeCommitment,
+  parseRegistrationChallenge,parseNativeNetworkHealth,preflightBrowserNativeRegistries,sha256,nativePowHash,nativeCommitment,
   mineNativePow,encodeNativeOnboard} from '../../ui/wasm/hypersnap_native_account.mjs';
 
 const phrase=('abandon '.repeat(23)+'art').trim();
@@ -354,4 +354,27 @@ test('stale or unverified HyperSnap node never receives a native registration PO
     error=>error?.code==='native-network-syncing'
       && error.blockDelay===1900 && /catching up/.test(error.message));
   assert.equal(posts,0);assert.equal(healthReads,1);
+});
+
+test('browser startup preflight validates challenge, sync and explicit NotFound without Qt network ownership',async()=>{
+ const origins=['https://primary.example','https://peer.example','https://lagging.example'];
+ const calls=[];
+ const fetchImpl=async(url,options)=>{
+   const u=new URL(url);calls.push([u.hostname,u.pathname,options.credentials,options.redirect]);
+   if(u.pathname==='/v1/info')return status(200,u.hostname==='lagging.example'
+      ?{shardInfos:[{shardId:0,maxHeight:150,blockDelay:121}]}:syncedInfo);
+   if(u.pathname==='/v1/nativeRegistration')return status(200,challenge);
+   assert.equal(u.pathname,'/v1/nativeAccount');
+   return status(400,u.hostname==='primary.example'?{error:'arbitrary bad request'}:notFound);
+ };
+ const rows=await preflightBrowserNativeRegistries({origins,browser,fetchImpl,timeoutMs:1000});
+ assert.deepEqual(rows.map(r=>r.registrationPreflight),['not_ready','ready','lagging']);
+ assert.deepEqual(rows.map(r=>r.endpoint),origins);
+ assert.ok(calls.every(c=>c[2]==='omit'&&c[3]==='error'));
+ assert.ok(!calls.some(c=>c[0]==='lagging.example'&&c[1]==='/v1/nativeAccount'));
+});
+test('browser startup preflight settles at a deadline even if fetch never completes',async()=>{
+ const rows=await preflightBrowserNativeRegistries({origins:['https://slow.example'],
+    browser,fetchImpl:()=>new Promise(()=>{}),timeoutMs:20});
+ assert.deepEqual(rows,[{endpoint:'https://slow.example',registrationPreflight:'unknown',shardZeroBlockDelay:-1}]);
 });

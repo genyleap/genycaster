@@ -76,3 +76,13 @@ test('compact rows sort by effective health and measured latency with unknowns l
  assert.match(qml,/visible: nodeRow.expanded/);
  assert.match(qml,/ItemDelegate \{/);
 });
+
+test('WASM startup registry probes use cancellable browser fetch and bounded Qt polling',()=>{
+ const cpp=read('ui/app/identity/native_registration.cpp');
+ const bridge=read('ui/wasm/protocol-signer-pre.js');
+ assert.match(cpp,/#if defined\(Q_OS_WASM\)[\s\S]*?__genycasterRegistryPreflight\?\.start/);
+ assert.match(cpp,/elapsed->elapsed\(\) < deadlineMs/);
+ assert.match(cpp,/__genycasterRegistryPreflight\?\.cancel/);
+ assert.match(bridge,/preflightBrowserNativeRegistries/);
+ assert.match(bridge,/entry\?\.controller.abort\(\)/);
+});

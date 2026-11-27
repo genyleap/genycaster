@@ -30,6 +30,34 @@
             catch { return false; }
         },
     });
+    // Public registration diagnostics only. Each request has its own
+    // correlation token and cancellation scope, independent of account restore.
+    const registryPreflights=new Map();
+    window.__genycasterRegistryPreflight=Object.freeze({
+        start(token,origins,timeoutMs){
+            if(!/^[0-9a-f-]{36}$/i.test(token)||registryPreflights.has(token)
+                ||!Array.isArray(origins)||origins.length>64)return false;
+            const controller=new AbortController();
+            const entry={controller,result:null};
+            registryPreflights.set(token,entry);
+            void import('./hypersnap_native_account.mjs').then(({preflightBrowserNativeRegistries})=>
+                preflightBrowserNativeRegistries({origins,browser:window,timeoutMs,signal:controller.signal})
+            ).then(rows=>{if(registryPreflights.get(token)===entry)entry.result=JSON.stringify(rows);})
+             .catch(()=>{if(registryPreflights.get(token)===entry)entry.result='[]';});
+            return true;
+        },
+        take(token){
+            const entry=registryPreflights.get(token);
+            if(!entry||entry.result===null)return '';
+            registryPreflights.delete(token);
+            return entry.result;
+        },
+        cancel(token){
+            const entry=registryPreflights.get(token);
+            registryPreflights.delete(token);
+            entry?.controller.abort();
+        }
+    });
     const events = [];
     // One QML-owned setup ceremony. No secret is included in the polled status.
     let setupWallet=null, setupWalletLoad=null, setupLoadEpoch=0, stagedRecovery=null;

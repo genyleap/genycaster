@@ -11,7 +11,13 @@
 #include <QList>
 #include <QVariantMap>
 #include <utility>
+#if defined(Q_OS_WASM)
+#include <QElapsedTimer>
+#include <QUuid>
+#include <emscripten.h>
+#endif
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -42,6 +48,79 @@ void NativeRegistrationStatusController::selectBeforeRuntime(
     std::function<void(QVariantList)> observation)
 {
     if (candidates.isEmpty()) { completion({}); return; }
+#if defined(Q_OS_WASM)
+    // Qt WASM network replies from concurrent temporary registration
+    // controllers can outlive their preflight owner. Use the browser's
+    // existing validated registry client for these public probes instead.
+    // The deadline is independent of JS import/fetch completion; startup
+    // always continues on the configured candidate order, not an auth bypass.
+    const auto token = QUuid::createUuid().toString(QUuid::WithoutBraces).toUtf8();
+    const auto origins = QJsonDocument(QJsonArray::fromStringList(candidates))
+        .toJson(QJsonDocument::Compact);
+    const int deadlineMs = std::max(1, timeoutMs);
+    const bool started = EM_ASM_INT({
+        return window.__genycasterRegistryPreflight?.start(
+            UTF8ToString($0), JSON.parse(UTF8ToString($1)), $2) ? 1 : 0;
+    }, token.constData(), origins.constData(), std::max(1, deadlineMs - 250)) != 0;
+    if (!started) { completion(candidates.front()); return; }
+    auto* scope = new QObject(context);
+    auto* poll = new QTimer(scope);
+    auto elapsed = std::make_shared<QElapsedTimer>();
+    elapsed->start();
+    const auto cancel = [token] {
+        EM_ASM({ window.__genycasterRegistryPreflight?.cancel(UTF8ToString($0)); },
+               token.constData());
+    };
+    QObject::connect(scope, &QObject::destroyed, cancel);
+    QObject::connect(poll, &QTimer::timeout, scope,
+        [scope, poll, elapsed, token, candidates, deadlineMs, cancel,
+         completion = std::move(completion), observation = std::move(observation)]() mutable {
+            QByteArray bytes(65536, char{});
+            const int length = EM_ASM_INT({
+                const result=window.__genycasterRegistryPreflight?.take(UTF8ToString($0))||"";
+                const count=lengthBytesUTF8(result);
+                if(count<=0||count+1>$2)return 0;
+                stringToUTF8(result,$1,$2);
+                return count;
+            }, token.constData(), bytes.data(), bytes.size());
+            if (length == 0 && elapsed->elapsed() < deadlineMs) return;
+            poll->stop();
+            cancel();
+            QString selected = candidates.front();
+            QVariantList rows;
+            if (length > 0) {
+                bytes.truncate(length);
+                const auto result = QJsonDocument::fromJson(bytes).array();
+                bool chosen = false;
+                for (const auto& origin : candidates) {
+                    QVariantMap row{{QStringLiteral("endpoint"), origin},
+                        {QStringLiteral("registrationPreflight"), QStringLiteral("unknown")},
+                        {QStringLiteral("shardZeroBlockDelay"), -1}};
+                    for (const auto& entry : result) {
+                        const auto object = entry.toObject();
+                        if (object.value(QStringLiteral("endpoint")).toString() != origin) continue;
+                        const auto status = object.value(QStringLiteral("registrationPreflight")).toString();
+                        const auto lag = object.value(QStringLiteral("shardZeroBlockDelay")).toInt(-1);
+                        if (status == QStringLiteral("ready") && lag >= 0 && lag <= 120) {
+                            row[QStringLiteral("registrationPreflight")] = status;
+                            if (!chosen) { selected = origin; chosen = true; }
+                        } else if (status == QStringLiteral("not_ready") || status == QStringLiteral("lagging")) {
+                            row[QStringLiteral("registrationPreflight")] = status;
+                        }
+                        row[QStringLiteral("shardZeroBlockDelay")] = lag;
+                        break;
+                    }
+                    rows.push_back(row);
+                }
+            }
+            auto done = std::move(completion);
+            auto observed = std::move(observation);
+            scope->deleteLater();
+            if (observed) observed(std::move(rows));
+            if (done) done(std::move(selected));
+        });
+    poll->start(50);
+#else
     auto* scope = new QObject(context);
     auto* deadline = new QTimer(scope);
     deadline->setSingleShot(true);
@@ -109,6 +188,7 @@ void NativeRegistrationStatusController::selectBeforeRuntime(
     QObject::connect(deadline, &QTimer::timeout, scope, [finish] { finish(true); });
     deadline->start(timeoutMs);
     for (auto* probe : state->probes) probe->refresh();
+#endif
 }
 
 

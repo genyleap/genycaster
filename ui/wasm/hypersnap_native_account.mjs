@@ -349,6 +349,53 @@ export function parseNativeNetworkHealth(status,body) {
     blockHeight:shard.maxHeight
   });
 }
+// Public, read-only startup probe. The browser transport owns the lifetime
+// of each request; no transient Qt network manager is destroyed while a
+// WebAssembly network callback is still in flight.
+export async function preflightBrowserNativeRegistries({
+  origins,browser=globalThis,fetchImpl=globalThis.fetch,timeoutMs=4500,signal
+}) {
+  if(!Array.isArray(origins)||origins.length>64)throw Error('invalid registry inventory');
+  const controller=new AbortController();
+  const cancel=()=>controller.abort(signal?.reason);
+  if(signal?.aborted)cancel();
+  else signal?.addEventListener('abort',cancel,{once:true});
+  const rows=origins.map(endpoint=>({endpoint,registrationPreflight:'unknown',shardZeroBlockDelay:-1}));
+  let closed=false;
+  const sentinel='0x0000000000000000000000000000000000000001';
+  const work=Promise.all(rows.map(async row=>{
+    try {
+      const registry=createBrowserNativeRegistry({browser,fetchImpl,base:row.endpoint,requestTimeoutMs:timeoutMs});
+      const health=await registry.networkHealth(controller.signal);
+      if(closed)return;
+      row.shardZeroBlockDelay=health.delaySeconds;
+      if(!health.ready){row.registrationPreflight='lagging';return;}
+      await registry.challenge(controller.signal);
+      const lookup=await registry.lookup(sentinel,controller.signal);
+      if(!closed)row.registrationPreflight=
+        ['confirmed','not-found'].includes(lookup.state)?'ready':'not_ready';
+    }catch {
+      if(!closed&&!controller.signal.aborted)row.registrationPreflight='not_ready';
+    }
+  }));
+  let timer;
+  let abortListener;
+  try {
+    await Promise.race([work,new Promise(resolve=>{
+      abortListener=resolve;
+      controller.signal.addEventListener('abort',abortListener,{once:true});
+      timer=setTimeout(resolve,timeoutMs);
+      if(controller.signal.aborted)resolve();
+    })]);
+    return rows.map(row=>({...row}));
+  }finally{
+    closed=true;
+    clearTimeout(timer);
+    controller.signal.removeEventListener('abort',abortListener);
+    signal?.removeEventListener('abort',cancel);
+    controller.abort();
+  }
+}
 function nativeTypedData({address,challenge,nonce}) {
   return {
     domain:{name:'HypersnapNativeOnboard',version:'1',chainId:10},
