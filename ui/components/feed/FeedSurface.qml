@@ -1470,7 +1470,7 @@ Item {
         // Pulling past the top is a deliberate refresh gesture; the content
         // remains bounded during ordinary wheel/flick movement.
         boundsBehavior: Flickable.DragOverBounds
-        boundsMovement: Flickable.FollowBoundsBehavior
+        boundsMovement: Flickable.StopAtBounds
         // Channel hero + scoped author strip belong to the scroll content,
         // not to a pinned desktop overlay; no stale account StoryStrip.
         // Explorer stories and filters belong to the scrolling content on

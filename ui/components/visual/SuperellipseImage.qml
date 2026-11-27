@@ -74,22 +74,14 @@ Item {
         owner: root
         observeViewport: root.remoteRaster
         viewportMargin: Qt.platform.os === "wasm" ? 320 : 480
-        requireOwnerVisible: false
-    }
-    // Admission and eviction deliberately have different boundaries. A small
-    // reversal of a kinetic flick must not cancel an already-decoded texture.
-    // The actual delegate window remains bounded by ListView/GridView/masonry.
-    MediaResourceScope {
-        id: rasterRetentionScope
-        owner: root
-        observeViewport: root.remoteRaster
-        viewportMargin: Qt.platform.os === "wasm" ? 640 : 960
+        // One shared viewport sample, two hysteresis boundaries.
+        retentionMargin: Qt.platform.os === "wasm" ? 640 : 960
         requireOwnerVisible: false
     }
     readonly property bool rasterEligible: !root.remoteRaster || rasterScope.eligible
-    readonly property bool rasterRetained: !root.remoteRaster || rasterRetentionScope.eligible
+    readonly property bool rasterRetained: !root.remoteRaster || rasterScope.retained
     readonly property bool rasterPageVisible: root.parent !== null && root.parent.visible
-        && rasterRetentionScope.foreground
+        && rasterScope.foreground
     onRasterEligibleChanged: {
         if (!componentReady)
             return
@@ -213,7 +205,7 @@ Item {
                                                ? rememberedIntrinsicWidth : imageSource.implicitWidth
     readonly property real sourceImplicitHeight: root.remoteRaster && imageSource.status !== Image.Ready
                                                 ? rememberedIntrinsicHeight : imageSource.implicitHeight
-    readonly property Item renderItem: imageSource
+    readonly property Item renderItem: directRaster.item !== null && root.directMask ? directRaster.item : imageSource
     readonly property real paintedWidth: imageSource.paintedWidth
     readonly property real paintedHeight: imageSource.paintedHeight
     readonly property real paintedX: Math.max(0, (root.width - imageSource.paintedWidth) / 2)
@@ -244,8 +236,21 @@ Item {
     readonly property bool hasRenderableGeometry: root.width >= 1 && root.height >= 1
     readonly property bool requiresFramePacedPresentation: root.framePacedPresentation
                                                             && root.width * root.height >= 160 * 160
+    readonly property bool gpuRasterAvailable: GraphicsInfo.api !== GraphicsInfo.Unknown
+        && GraphicsInfo.api !== GraphicsInfo.Software && GraphicsInfo.api !== GraphicsInfo.Null
+    // The Qt Image remains the sole texture provider; sampling the ready
+    // texture directly avoids two full-size render targets per clipped photo.
+    property bool directRasterFailed: false
+    readonly property bool directMask: root.clipToSuperellipse
+        && root.gpuRasterAvailable && !root.directRasterFailed
+    readonly property bool stillVisible: root.ready
+        || (root.retainPreviousWhileLoading && imageSource.status === Image.Loading)
     readonly property bool maskActive: root.visible && root.clipToSuperellipse
-                                       && imageSource.visible && root.hasRenderableGeometry
+        && root.stillVisible && root.hasRenderableGeometry
+    readonly property bool animatedMaskActive: gifLoader.item !== null
+        && gifLoader.item.visible && root.maskActive
+    readonly property bool legacyMaskActive: (root.maskActive && !root.directMask)
+        || root.animatedMaskActive
     readonly property size desiredDecodeSize: Qt.size(
         root.quantizedDecodeDimension(root.requestedSourceWidth, root.width),
         root.quantizedDecodeDimension(root.requestedSourceHeight, root.height))
@@ -556,10 +561,8 @@ Item {
         borderWidth: 0
     }
 
-    // The image owns its masking layer directly. This avoids the previous
-    // hidden-Image -> sibling MultiEffect proxy path, which behaved differently
-    // from a plain Image for very wide profile banners and added an avoidable
-    // intermediate texture/proxy.
+    // Image owns decode, atlas and upload. Its direct texture is consumed by
+    // the analytic contour material, not a ShaderEffectSource capture.
     Image {
         id: imageSource
         z: 1
@@ -575,7 +578,7 @@ Item {
         cache: root.remoteSource || root.browserRemoteRaster ? false : root.cache
         smooth: true
         mipmap: false
-        visible: root.ready || (root.retainPreviousWhileLoading && imageSource.status === Image.Loading)
+        visible: !root.directMask && root.stillVisible
         // Retain-previous mode must keep the old pixels visible while an
         // updated source loads; a reveal must not override that contract.
         opacity: root.ready || (root.retainPreviousWhileLoading
@@ -584,12 +587,35 @@ Item {
             enabled: root.smoothReveal && !Theme.reduceMotion && !root.scrollMoving
             NumberAnimation { duration: Theme.motionStandard; easing.type: Easing.OutCubic }
         }
-        layer.enabled: root.maskActive
+        layer.enabled: root.maskActive && !root.directMask
         layer.smooth: true
-        // Assigning an inline effect unconditionally constructs QQuickMultiEffect
-        // even while the layer is disabled. Keep only a Component descriptor and
-        // give it to the layer once a clipped image is actually presented.
-        layer.effect: root.maskActive ? maskEffectComponent : null
+        layer.effect: layer.enabled ? maskEffectComponent : null
+    }
+
+    Loader {
+        id: directRaster
+        objectName: "directRasterMaterial"
+        z: 1
+        x: root.visibleContentRect.x
+        y: root.visibleContentRect.y
+        width: root.visibleContentRect.width
+        height: root.visibleContentRect.height
+        // Keep material topology stable across readiness/resize transitions.
+        active: root.directMask && root.activeSource.toString().length > 0
+        visible: root.stillVisible
+        opacity: root.stillVisible ? 1 : 0
+        sourceComponent: ShaderEffect {
+            property variant source: imageSource
+            property vector4d contour: Qt.vector4d(width, height,
+                Math.min(root.curveDepth, width / 2, height / 2), root.exponent)
+            property vector2d uvScale: root.fillMode === Image.PreserveAspectCrop
+                ? Qt.vector2d(Math.min(1, width / Math.max(1, imageSource.paintedWidth)),
+                              Math.min(1, height / Math.max(1, imageSource.paintedHeight)))
+                : Qt.vector2d(1, 1)
+            property real pixelWidth: 1 / Math.max(1, Screen.devicePixelRatio)
+            fragmentShader: "qrc:/genycaster/effects/raster-contour.frag.qsb"
+            onStatusChanged: if (status === ShaderEffect.Error) root.directRasterFailed = true
+        }
     }
 
     // GIF animation must be decoded by QMovie/AnimatedImage, not QImageReader
@@ -657,8 +683,8 @@ Item {
         // the image is admitted, not when its placeholder enters view.
         anchors.fill: parent
         visible: false
-        active: root.maskActive
-        layer.enabled: root.maskActive
+        active: root.legacyMaskActive
+        layer.enabled: root.legacyMaskActive
         layer.smooth: true
         layer.samples: renderingController.layerSampleCount
 

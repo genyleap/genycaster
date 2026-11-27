@@ -26,6 +26,6 @@ test('changing the load stagger does not restart active media on any backend',()
  assert.match(handler,/activeSource\.toString\(\)\.length > 0/);
  assert.doesNotMatch(handler,/activeSource =/);
  assert.match(qml,/rasterEligible: !root\.remoteRaster \|\| rasterScope\.eligible/);
- assert.match(qml,/rasterRetained: !root\.remoteRaster \|\| rasterRetentionScope\.eligible/);
+ assert.match(qml,/rasterRetained: !root\.remoteRaster \|\| rasterScope\.retained/);
  assert.match(qml,/root\.remoteRaster && \(root\.scrollMoving \|\| !root\.rasterRetained\)/);
 });

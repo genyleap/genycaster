@@ -743,3 +743,31 @@ Coverage source tests are in neon_global_setup_coverage.test.mjs and
 the existing Neon contract suites. Live macOS/Metal/HiDPI visuals
 and platform performance still need a device smoke run; source tests
 must not be presented as equivalent to visual approval.
+
+### Direct raster materials and scroll composition — 2026-11-27
+
+The mobile recording shows late Home identity hydration changing the headline
+height, full-content overscroll, and unstable image presentation during
+scrolling. The recording alone cannot establish GPU frame timing.
+
+Following [Neon's rendering architecture](https://github.com/genyleap/neon/blob/fd35c89c95b3982fa555be1522f50d507d468947/docs/rendering-architecture.md),
+static clipped media now samples Qt's existing image texture directly through
+an atlas-aware analytic contour shader. This removes the image and mask
+offscreen targets for that path without a second image cache or a separate
+scene graph. Fit, crop, alpha, source replacement and arbitrary contour
+exponents remain supported. Animated and unsupported-backend paths retain
+their existing fallback. This is a focused technique adoption, not a full
+Neon dependency integration.
+
+Admission and retention use one viewport sample per media scope. Shared
+environmental reflection capture and blur retain their textures while the
+active Home, feed or profile reader moves. Pull-to-refresh uses vertical
+overshoot for its indicator while keeping content within bounds. Home keeps
+a one-line greeting slot during identity hydration; the browser splash waits
+two animation-frame turns after the existing runtime and auth readiness gates.
+
+Verification: Qt 6.12 OpenGL pixel fixtures on llvmpipe at DPR 1, 1.25, 2
+and 3; actual Qt drag/refresh fixture; native and WASM viewport policy
+fixtures; shader variant reflection; 22 targeted source contracts. Actual
+iOS Safari, Android, Metal and hardware frame-time/texture-memory profiling
+remain separate acceptance gates. No measured device FPS gain is claimed.

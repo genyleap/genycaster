@@ -1726,7 +1726,7 @@ if(EMSCRIPTEN)
     set(_genycasterWebglShaderRoot "${CMAKE_CURRENT_BINARY_DIR}/generated/webgl-shaders")
     file(MAKE_DIRECTORY "${_genycasterWebglShaderRoot}")
     set(_genycasterWebglShaders)
-    foreach(_shader IN ITEMS neon reflection gaussian reflection-gaussian)
+    foreach(_shader IN ITEMS neon reflection gaussian reflection-gaussian raster-contour)
         file(READ "${CMAKE_CURRENT_SOURCE_DIR}/shaders/${_shader}.frag" _shaderText)
         if(_shader STREQUAL "neon" OR _shader STREQUAL "reflection")
             string(FIND "${_shaderText}" "fwidth(sdf)" _hasDerivative)
@@ -1783,6 +1783,7 @@ else()
             "${CMAKE_CURRENT_SOURCE_DIR}/shaders/reflection-gaussian.frag.qsb"
             "${CMAKE_CURRENT_SOURCE_DIR}/shaders/reflection.frag.qsb"
             "${CMAKE_CURRENT_SOURCE_DIR}/shaders/neon.frag.qsb"
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/raster-contour.frag.qsb"
             "${CMAKE_CURRENT_SOURCE_DIR}/shaders/transparent.png")
 endif()
 

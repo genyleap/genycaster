@@ -7,6 +7,7 @@ Item {
     id: root
     property Item sourceItem: null
     property bool active: true
+    property bool motionActive: false
     property real blurRadius: Theme.reflectionBlurRadius
     property alias texture: blurredTexture
     // WebGL1 does not guarantee half-float color-renderable attachments.
@@ -61,6 +62,13 @@ Item {
             }
         }
     }
+    onMotionActiveChanged: {
+        if (!motionActive && capturing && !resizingCapture) {
+            capture.scheduleUpdate()
+            horizontalTexture.scheduleUpdate()
+            blurredTexture.scheduleUpdate()
+        }
+    }
     // Retain broad color fields without blurring saturated pixels into a
     // near-neutral average. Mobile keeps a shorter effective sampling reach.
     readonly property real effectiveBlur: Math.max(14, Math.min(160, blurRadius))
@@ -78,7 +86,7 @@ Item {
         interval: 240
         repeat: true
         triggeredOnStart: true
-        running: root.browserRenderer && root.capturing && !root.resizingCapture
+        running: root.browserRenderer && root.capturing && !root.resizingCapture && !root.motionActive
         onTriggered: capture.scheduleUpdate()
     }
 
@@ -91,7 +99,7 @@ Item {
         hideSource: false
         recursive: false
         visible: false
-        live: root.capturing && !root.browserRenderer && !root.resizingCapture
+        live: root.capturing && !root.browserRenderer && !root.resizingCapture && !root.motionActive
         smooth: true
         wrapMode: ShaderEffectSource.ClampToEdge
     }
@@ -111,7 +119,7 @@ Item {
         format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F
         textureSize: root.textureExtent
         visible: false
-        live: root.capturing && !root.resizingCapture
+        live: root.capturing && !root.resizingCapture && !root.motionActive
         smooth: true
         wrapMode: ShaderEffectSource.ClampToEdge
     }
@@ -131,7 +139,7 @@ Item {
         format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F
         textureSize: root.textureExtent
         visible: false
-        live: root.capturing && !root.resizingCapture
+        live: root.capturing && !root.resizingCapture && !root.motionActive
         smooth: true
         wrapMode: ShaderEffectSource.ClampToEdge
     }

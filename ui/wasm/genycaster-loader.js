@@ -844,9 +844,21 @@ window.__genycasterGraphicsStatus=browserGraphicsStatus;
 // The Qt loader signals only that WebAssembly bootstrapped, NOT that QML
 // constructed Main. Requiring an explicit C++ acknowledgement prevents the
 // silent black screen seen when a type in the AppShell dependency tree fails.
+let readyRevealQueued=false, readyRenderBoundary=false;
 function revealReady() {
     if(failed||finished||!qtRuntimeLoaded||!qmlRootReady||!accountRestoreSettled
        ||!studioComplete||!splashMinimumReached)return;
+    if(!readyRenderBoundary) {
+        if(!readyRevealQueued) {
+            readyRevealQueued=true;
+            requestAnimationFrame(()=>requestAnimationFrame(()=>{
+                readyRevealQueued=false;
+                readyRenderBoundary=true;
+                revealReady();
+            }));
+        }
+        return;
+    }
     if(startupWatchdog!==undefined)window.clearInterval?.(startupWatchdog);
     wasmResourceObserver?.disconnect();
     try{progressReader?.cancel();}catch{}

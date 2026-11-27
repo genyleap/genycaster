@@ -2224,6 +2224,13 @@ Item {
                 active: shellContent.visible && root.visible
                     && (root.desktop || root.compactDesktop || root.mobile)
                     && !root.initialSetupOpen
+                motionActive: Boolean((feedSurfaceLoader.surfaceRequested
+                    && feedSurfaceLoader.item && feedSurfaceLoader.item.readList
+                    && feedSurfaceLoader.item.readList.moving)
+                    || (profileSurfaceLoader.surfaceRequested
+                    && profileSurfaceLoader.item && profileSurfaceLoader.item.readList
+                    && profileSurfaceLoader.item.readList.moving)
+                    || (homeDashboard.visible && homeDashboard.scrolling))
                 blurRadius: root.mobile ? 24 : Theme.reflectionBlurRadius
             }
 

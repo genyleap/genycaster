@@ -32,7 +32,7 @@ test('pull-to-refresh arms only for a real top-origin drag and emits one refresh
     for (const file of ['FeedSurface','ProfileSurface','NotificationSurface']) {
         const source = read('ui/components/' + componentPath(file) + '.qml');
         assert.match(source, /boundsBehavior: Flickable\.DragOverBounds/);
-        assert.match(source, /boundsMovement: Flickable\.FollowBoundsBehavior/);
+        assert.match(source, /boundsMovement: Flickable\.StopAtBounds/);
         assert.match(source, file === 'ProfileSurface'
             ? /PullToRefresh \{[\s\S]*?onRefreshRequested: root\.refreshProfileAndAccount\(\)/
             : /PullToRefresh \{[\s\S]*?onRefreshRequested: root\.refreshRequested\(\)/);

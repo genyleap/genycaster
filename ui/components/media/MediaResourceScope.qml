@@ -8,6 +8,7 @@ QtObject {
     required property Item owner
     property bool observeViewport: true
     property real viewportMargin: 0
+    property real retentionMargin: viewportMargin
     // Some raster items hide themselves until Ready (favicon/fallback).
     // Admission must not depend on that item's own presentation state.
     property bool requireOwnerVisible: true
@@ -15,10 +16,15 @@ QtObject {
         && Qt.application.state !== Qt.ApplicationHidden
         && ((Qt.platform.os !== "android" && Qt.platform.os !== "ios")
              || Qt.application.state === Qt.ApplicationActive)
-    readonly property bool eligible: owner !== null
+    readonly property bool ownerAvailable: owner !== null
         && (requireOwnerVisible ? owner.visible : (owner.parent !== null && owner.parent.visible))
         && foreground
-        && (!observeViewport || intersectsViewport())
+    // Both hysteresis boundaries share one ancestor/transform walk per
+    // geometry change. Inactive/hidden consumers do not observe scrolling.
+    readonly property real viewportDistance: ownerAvailable && observeViewport
+        ? distanceToViewport() : -Infinity
+    readonly property bool eligible: ownerAvailable && viewportDistance < viewportMargin
+    readonly property bool retained: ownerAvailable && viewportDistance < retentionMargin
 
     // Reserve before asynchronous incubation, not after it. A subsequent Play
     // revokes this pending intent even if no QMediaPlayer exists yet.
@@ -44,9 +50,10 @@ QtObject {
     function suspendFromPlaybackCoordinator() { root.revoked() }
     Component.onDestruction: releaseReservation()
 
-    function intersectsViewport() {
+    function distanceToViewport() {
         if (!owner || owner.width <= 0 || owner.height <= 0)
-            return false
+            return Infinity
+        let distance = -Infinity
         // Walk ancestors so QML tracks position/size dependencies as well as
         // Flickable.contentX/Y. Nested scroll/clip containers all must admit.
         let item = owner
@@ -64,12 +71,14 @@ QtObject {
                 // Read the offsets explicitly to track changes on all backends.
                 const mapped = owner.mapToItem(parent, 0, 0)
                 if (!isFinite(x) || !isFinite(y) || !isFinite(cx) || !isFinite(cy)
-                        || mapped.x + owner.width <= -viewportMargin || mapped.y + owner.height <= -viewportMargin
-                        || mapped.x >= parent.width + viewportMargin || mapped.y >= parent.height + viewportMargin)
-                    return false
+                        || !isFinite(mapped.x) || !isFinite(mapped.y))
+                    return Infinity
+                distance = Math.max(distance, -mapped.x - owner.width,
+                    -mapped.y - owner.height, mapped.x - parent.width,
+                    mapped.y - parent.height)
             }
             item = parent
         }
-        return true
+        return distance
     }
 }

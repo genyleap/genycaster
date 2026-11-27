@@ -18,7 +18,7 @@ test("shared raster lifetime follows viewport, releases pixels without losing in
  const qml=read("ui/components/visual/SuperellipseImage.qml");
  assert.match(qml,/browserRemoteRaster: Qt\.platform\.os === "wasm" && root\.remoteRaster/);
  assert.match(qml,/viewportMargin: Qt\.platform\.os === "wasm" \? 320 : 480/);
- assert.match(qml,/viewportMargin: Qt\.platform\.os === "wasm" \? 640 : 960/);
+ assert.match(qml,/retentionMargin: Qt\.platform\.os === "wasm" \? 640 : 960/);
  assert.match(qml,/requireOwnerVisible: false/);
  assert.match(qml,/id: rasterReleaseTimer[\s\S]*?interval: root\.rasterPageVisible \? 1100 : 250[\s\S]*?root\.activeSource = ""/);
  assert.match(qml,/if \(!root\.componentReady \|\| !root\.rasterEligible\)/);

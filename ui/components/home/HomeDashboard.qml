@@ -66,6 +66,7 @@ Item {
             desktopFlick.contentY = 0
         }
     }
+    readonly property bool scrolling: root.compact ? mobileFlick.moving : desktopFlick.moving
     readonly property bool densePhone: root.compact && root.height < 840
     readonly property bool androidCompact: root.compact && Qt.platform.os === "android"
     // Dismiss the draft editor without discarding its contents.
@@ -113,7 +114,7 @@ Item {
         return parts.length > 0 ? parts[0] : trimmed
     }
     readonly property string greetingText: root.welcomeName.length === 0
-        ? qsTrId("genycaster.home.hub_tagline")
+        ? (root.authenticated ? "" : qsTrId("genycaster.home.hub_tagline"))
         : (root.localHour < 5
                                              ? qsTrId("genycaster.home.greeting_night")
                                              : root.localHour < 12
@@ -499,13 +500,18 @@ Item {
                     }
 
                     DirectionAwareLabel {
+                        id: desktopGreeting
                         Layout.fillWidth: true
+                        Layout.preferredHeight: Math.ceil(desktopGreetingMetrics.height)
                         horizontalAlignment: Text.AlignHCenter
                         text: root.greetingText
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                        FontMetrics { id: desktopGreetingMetrics; font: desktopGreeting.font }
                         color: Theme.textPrimary
                         font.pixelSize: Theme.typeTitle1Size
                         font.weight: Theme.weightBold
-                        wrapMode: Text.Wrap
+                        wrapMode: Text.NoWrap
                     }
 
                     DirectionAwareLabel {
@@ -688,9 +694,23 @@ HomeActivityCard {
                     visible: !root.authenticated || root.avatarUrl.length === 0
                 }
             }
-            DirectionAwareLabel { visible: !root.composerFocused && root.activeTab === "overview"; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.androidCompact
-                ? (root.densePhone ? Theme.typeTitle2Size : Theme.typeTitle1Size)
-                : (root.densePhone ? Theme.typeTitle1Size : Theme.typeDisplaySize); font.weight: Theme.weightBold; wrapMode: Text.Wrap }
+            DirectionAwareLabel {
+                id: mobileGreeting
+                visible: !root.composerFocused && root.activeTab === "overview"
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.ceil(mobileGreetingMetrics.height)
+                horizontalAlignment: Text.AlignHCenter
+                text: root.greetingText
+                color: Theme.textPrimary
+                font.pixelSize: root.androidCompact
+                    ? (root.densePhone ? Theme.typeTitle2Size : Theme.typeTitle1Size)
+                    : (root.densePhone ? Theme.typeTitle1Size : Theme.typeDisplaySize)
+                font.weight: Theme.weightBold
+                wrapMode: Text.NoWrap
+                maximumLineCount: 1
+                elide: Text.ElideRight
+                FontMetrics { id: mobileGreetingMetrics; font: mobileGreeting.font }
+            }
             DirectionAwareLabel { visible: !root.composerFocused && root.activeTab === "overview"; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.hub_tagline"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
 
             HomeTabs {
