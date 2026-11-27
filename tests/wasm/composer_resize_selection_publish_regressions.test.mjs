@@ -30,7 +30,7 @@ test('rich editor measures document text instead of nonempty HTML scaffolding', 
 test('composer geometry preserves desktop rounding and viewport scrolling', () => {
     const composer = source('ComposerDrawer.qml')
     assert.match(composer, /fullScreen: root\.compact/)
-    assert.match(composer, /onAboutToShow: root\.compact = root\.requestedCompact/)
+    assert.match(composer, /onAboutToShow: \{\s*root\.compact = root\.requestedCompact\s*root\.closingBrowserEditors = false/)
     assert.doesNotMatch(composer, /parent\.height > parent\.width \* 1\.15/)
     assert.match(composer, /Layout\.minimumHeight: 0\s+clip: true/)
     assert.match(composer, /Math\.max\(128, Math\.min\(255, root\.height \* 0\.4\)\)/)
@@ -53,7 +53,7 @@ test('an open composer keeps one editor tree through desktop resize breakpoints'
     const shell = source('AppShell.qml')
     assert.match(composer, /property bool requestedCompact: false/)
     assert.match(composer, /property bool compact: false/)
-    assert.match(composer, /onAboutToShow: root\.compact = root\.requestedCompact/)
+    assert.match(composer, /onAboutToShow: \{\s*root\.compact = root\.requestedCompact\s*root\.closingBrowserEditors = false/)
     assert.doesNotMatch(composer, /readonly property bool compact: parent \? parent\.width/)
     assert.match(shell, /hostItem: root\s+requestedCompact: root\.mobile/)
     assert.doesNotMatch(shell, /hostItem: root\.mobile \? root : readingPane/)

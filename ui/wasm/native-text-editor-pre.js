@@ -42,6 +42,7 @@
     }
     function remove(field){
         fields.delete(field.token);
+        field.input.style.pointerEvents='none';
         if(document.activeElement===field.input)field.input.blur();
         if(field.input instanceof HTMLInputElement||field.input instanceof HTMLTextAreaElement)field.input.value='';
         else field.input.textContent='';
@@ -64,6 +65,7 @@
         if(!screen||!g||!g.windowWidth||!g.windowHeight||g.clipWidth<=0||g.clipHeight<=0)return false;
         const b=canvasRect(screen),origin=layer.getBoundingClientRect();
         const sx=b.width/g.windowWidth,sy=b.height/g.windowHeight;
+        if(!Number.isFinite(sx)||!Number.isFinite(sy)||sx<=0||sy<=0)return false;
         const o=f.options;
         const x=g.x+(o.leftPadding||0),y=g.y+(o.topPadding||0);
         const w=g.width-(o.leftPadding||0)-(o.rightPadding||0),h=g.height-(o.topPadding||0)-(o.bottomPadding||0);
@@ -156,7 +158,7 @@
     }
     function sync(token,value,options){
         const f=fields.get(token);if(!f)return false;
-        if(options.readOnlyCast)return false;
+        if(options.readOnly||options.readOnlyCast){remove(f);return false;}
         f.options=options;
         if(!layout(f)){remove(f);return false;}
         if(!options.geometryOnly&&!f.composing&&f.input.value!==value){
@@ -174,26 +176,28 @@
             for(const f of [...fields.values()])if(!layout(f)){remove(f);f.reply(f.token,'',false);}
         });
     }
-    // Release DOM focus after a Qt canvas gesture, not before its press and
-    // release pair. This avoids moving the close button during a keyboard
-    // resize and leaves the next canvas click independent of editor text.
+    // Outside taps belong entirely to Qt. Canceling pointerdown suppresses
+    // compatibility mouse events on touch WebKit and can swallow Cancel,
+    // Publish or toolbar actions. Let native focus/default actions run.
+    // The shell independently holds canvas geometry until the gesture ends.
     let outsidePointer=null;
     document.addEventListener('pointerdown',event=>{
         const active=document.activeElement;
         if(!active?.classList.contains('genycaster-native-input'))return;
         if(event.composedPath().includes(active))return;
-        if(event.composedPath().includes(document.getElementById('qt-screen'))){
+        if(event.composedPath().includes(document.getElementById('qt-screen')))
             outsidePointer={id:event.pointerId,active};
-            if(event.cancelable)event.preventDefault();
-        }
-    },true);
+    },{capture:true,passive:true});
     function finishOutside(event){
         if(!outsidePointer||outsidePointer.id!==event.pointerId)return;
         const {active}=outsidePointer;outsidePointer=null;
+        // No synthetic click or preventDefault. Safari may keep the old
+        // input focused after a canvas tap; release only that same field.
         requestAnimationFrame(()=>{if(document.activeElement===active)active.blur();});
     }
-    document.addEventListener('pointerup',finishOutside,true);
-    document.addEventListener('pointercancel',finishOutside,true);
+    document.addEventListener('pointerup',finishOutside,{capture:true,passive:true});
+    document.addEventListener('pointercancel',finishOutside,{capture:true,passive:true});
+    window.addEventListener('blur',()=>{outsidePointer=null;});
     window.addEventListener('resize',refresh);
     window.visualViewport?.addEventListener('resize',refresh);
     window.visualViewport?.addEventListener('scroll',refresh);

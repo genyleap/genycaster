@@ -510,21 +510,46 @@ window.fetch=async function(input,options) {
     return response;
 };
 const screen=$("qt-screen");
-let deferredCanvasFit=false;
+let deferredCanvasFit=false,canvasGestureSettle=0,canvasGestureWatchdog=0;
 const canvasPointers=new Set();
-screen.addEventListener("pointerdown",event=>canvasPointers.add(event.pointerId),true);
+function flushCanvasFit(){
+    clearTimeout(canvasGestureSettle);canvasGestureSettle=0;
+    clearTimeout(canvasGestureWatchdog);canvasGestureWatchdog=0;
+    canvasPointers.clear();
+    if(deferredCanvasFit){deferredCanvasFit=false;requestAnimationFrame(fit);}
+}
+function armCanvasGestureWatchdog(){
+    clearTimeout(canvasGestureWatchdog);
+    canvasGestureWatchdog=setTimeout(flushCanvasFit,1500);
+}
+screen.addEventListener("pointerdown",event=>{
+    clearTimeout(canvasGestureSettle);canvasGestureSettle=0;
+    canvasPointers.add(event.pointerId);
+    armCanvasGestureWatchdog();
+},true);
+window.addEventListener("pointermove",event=>{
+    if(canvasPointers.has(event.pointerId))armCanvasGestureWatchdog();
+},{capture:true,passive:true});
 function finishCanvasGesture(event){
-    canvasPointers.delete(event.pointerId);
-    if(!canvasPointers.size&&deferredCanvasFit){
-        deferredCanvasFit=false;
-        requestAnimationFrame(fit);
-    }
+    if(!canvasPointers.delete(event.pointerId)||canvasPointers.size)return;
+    // Compatibility mouse/click events may follow pointerup. Apply the
+    // pending viewport change only after the native gesture is delivered.
+    clearTimeout(canvasGestureSettle);
+    canvasGestureSettle=setTimeout(flushCanvasFit,80);
 }
 window.addEventListener("pointerup",finishCanvasGesture,true);
 window.addEventListener("pointercancel",finishCanvasGesture,true);
-window.addEventListener("blur",()=>{canvasPointers.clear();if(deferredCanvasFit){deferredCanvasFit=false;fit();}});
+window.addEventListener("lostpointercapture",finishCanvasGesture,true);
+window.addEventListener("click",()=>{
+    if(canvasGestureSettle&&!canvasPointers.size)flushCanvasFit();
+},true);
+window.addEventListener("blur",flushCanvasFit);
+window.addEventListener("pagehide",flushCanvasFit);
+document.addEventListener("visibilitychange",()=>{
+    if(document.hidden)flushCanvasFit();
+});
 function fit() {
-    if(canvasPointers.size){deferredCanvasFit=true;return;}
+    if(canvasPointers.size||canvasGestureSettle){deferredCanvasFit=true;return;}
     // A browser can pan the visual viewport to the focused text input without
     // scrolling the layout viewport. Keep the Qt canvas within that *visible*
     // rectangle, not at document y=0 behind the keyboard.

@@ -182,7 +182,13 @@ Item {
             if (!root.editor.visible) { root.cancelPaste(); root.pasteFailed = false }
             else { root.browserSuspended = false; root.syncBrowserEditor(true) }
         }
-        function onEnabledChanged() { if (!root.editor.enabled) root.cancelPaste() }
+        function onEnabledChanged() {
+            if (!root.editor.enabled) root.cancelPaste()
+            else if (root.editor.visible) {
+                root.browserSuspended = false
+                root.syncBrowserEditor(true)
+            }
+        }
         function onReadOnlyChanged() { if (root.editor.readOnly) root.cancelPaste() }
     }
     Connections {

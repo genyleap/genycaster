@@ -22,7 +22,7 @@ test('native editor geometry uses actual Qt canvas and overlay coordinate space'
  assert.match(loader,/viewport\?viewport.width:window.innerWidth/);
 });
 test('outside gestures finish before the viewport reflows and focus releases',()=>{
- assert.match(loader,/if\(canvasPointers.size\)\{deferredCanvasFit=true;return;\}/);
+ assert.match(loader,/if\(canvasPointers.size\|\|canvasGestureSettle\)\{deferredCanvasFit=true;return;\}/);
  assert.match(loader,/window.addEventListener\("pointerup",finishCanvasGesture,true\)/);
  assert.match(js,/requestAnimationFrame\(\(\)=>\{if\(document.activeElement===active\)active.blur\(\)/);
  assert.match(composer,/initialComposerFocus.stop\(\)[\s\S]*?mobilePlainEditor.dismissSelectionActions\(\)[\s\S]*?root.close\(\)/);

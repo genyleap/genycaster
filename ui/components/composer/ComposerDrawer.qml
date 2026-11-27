@@ -136,7 +136,10 @@ GenyDrawer {
     // selection with a different mobile component tree.
     property bool requestedCompact: false
     property bool compact: false
-    onAboutToShow: root.compact = root.requestedCompact
+    onAboutToShow: {
+        root.compact = root.requestedCompact
+        root.closingBrowserEditors = false
+    }
     readonly property string replyAuthor: root.parentCast
                                                    ? String(root.parentCast.author || "") : ""
     readonly property string replyName: root.parentCast
@@ -687,6 +690,16 @@ GenyDrawer {
             // editor; update the manually-backed mobile text field as well.
             if (root.opened && root.compact && root.editorMode === "visual")
                 mobilePlainEditor.text = richComposer.safeText
+        }
+    }
+
+    property bool closingBrowserEditors: false
+    onAboutToHide: {
+        if (Qt.platform.os === "wasm") {
+            root.closingBrowserEditors = true
+            initialComposerFocus.stop()
+            mobilePlainEditor.dismissSelectionActions()
+            markdownEditor.dismissSelectionActions()
         }
     }
 
@@ -1640,9 +1653,11 @@ GenyDrawer {
     // Fixed chrome stays outside the scrollable document. Resizing the window
     // must never move publish/cancel or mode switches behind the editor.
     contentItem: ColumnLayout {
+        enabled: !root.closingBrowserEditors
         spacing: 0
         ColumnLayout {
             id: composerFixedChrome
+            readonly property bool browserEditorOccludes: true
             Layout.fillWidth: true
             Layout.leftMargin: root.compact ? Theme.mobileGutter : Theme.space6
             Layout.rightMargin: Layout.leftMargin
@@ -2524,6 +2539,7 @@ GenyDrawer {
         // Compact selector bar follows the document; its sheets float above it.
         RowLayout {
             objectName: "mobileCastContext"
+            readonly property bool browserEditorOccludes: true
             visible: root.compact && root.editorMode === "visual"
                      && root.showTaxonomyControls && !root.keyboardVisible
             Layout.fillWidth: true
@@ -2663,6 +2679,7 @@ GenyDrawer {
 
         ColumnLayout {
             id: mobileComposerFooter
+            readonly property bool browserEditorOccludes: true
             objectName: "mobileComposerStickyFooter"
             // Keep the footer geometry stable as sheets overlay the composer.
             visible: root.compact && root.editorMode === "visual"
