@@ -1482,7 +1482,7 @@ Item {
         // come from stable model reconciliation rather than a large offscreen cache.
         // Keep fewer heavyweight offscreen Cast delegates alive on phones.
         // Incubation and delegate reuse still provide continuity while flicking.
-        cacheBuffer: root.compact ? (Qt.platform.os === "wasm" ? 160 : Math.min(Math.max(height * 0.33, 240), 440))
+        cacheBuffer: root.compact ? (Qt.platform.os === "wasm" ? Math.min(360, Math.max(240, height * 0.45)) : Math.min(Math.max(height * 0.33, 240), 440))
                                   : (Qt.platform.os === "wasm" ? 320 : Math.min(Math.max(height * 0.65, 480), 820))
         pixelAligned: false
 

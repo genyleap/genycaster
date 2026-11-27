@@ -269,6 +269,7 @@ struct ActiveReply final {
     std::size_t reservedResponseBytes{};
     bool timedOut{false};
     bool bodyLimitExceeded{false};
+    bool responseBudgetContended{false};
 };
 
 class ReactorWorker final : public QObject {
@@ -630,6 +631,11 @@ private:
             m_bufferedResponseBytes > m_limits.maximumBufferedResponseBytes - chunkBytes;
         if (perRequestExceeded || processExceeded) {
             active.bodyLimitExceeded = true;
+            // A response that cannot fit even by itself is not retryable.
+            // Only contention with concurrent responses is temporary.
+            active.responseBudgetContended = !perRequestExceeded && processExceeded
+                && chunkBytes <= m_limits.maximumBufferedResponseBytes
+                && active.body.size() <= m_limits.maximumBufferedResponseBytes - chunkBytes;
             active.reply->abort();
             return;
         }
@@ -693,8 +699,10 @@ private:
         }
         if (active.bodyLimitExceeded) {
             complete(context, std::unexpected(makeError(
-                ErrorCode::Unavailable,
-                "HTTP response exceeded the configured memory/body budget.")));
+                active.responseBudgetContended ? ErrorCode::RateLimited : ErrorCode::Unavailable,
+                active.responseBudgetContended
+                    ? "HTTP response buffer budget is temporarily contended."
+                    : "HTTP response exceeded the configured memory/body budget.")));
             pump();
             return;
         }

@@ -45,6 +45,7 @@
 
 import farcaster.execution.weighted_thread_pool;
 import farcaster.foundation.result;
+import farcaster.foundation.error;
 import farcaster.transport.async_http;
 import farcaster.transport.http;
 import farcaster.transport.qtnetwork;
@@ -886,6 +887,17 @@ private:
         bool gatewayFallbackAttempt = false,
         unsigned int admissionRetryAttempt = 0U);
 
+    void retryNetworkAdmission(
+        std::shared_ptr<ResponseControl> control,
+        QString urlText,
+        storage_policy::MediaCategory category,
+        bool manual,
+        QSize decodeRequest,
+        QString cacheKey,
+        bool compatibilityAttempt,
+        bool gatewayFallbackAttempt,
+        unsigned int admissionRetryAttempt);
+
     void decodeNetworkResponse(
         std::shared_ptr<ResponseControl> control,
         QString urlText,
@@ -1196,7 +1208,7 @@ void RemoteImageProvider::Impl::startNetwork(
     auto operation = m_transport->start(
         std::move(request),
         [self, control, urlText, category, manual, networkAtStart, decodeRequest, cacheKey,
-         compatibilityAttempt, gatewayFallbackAttempt](
+         compatibilityAttempt, gatewayFallbackAttempt, admissionRetryAttempt](
             farcaster::foundation::result::Result<farcaster::transport::http::HttpResponse> result) mutable {
             // QQuick delegate recycling routinely cancels image requests while
             // scrolling. The transport completes cancellation as an error, but
@@ -1205,6 +1217,14 @@ void RemoteImageProvider::Impl::startNetwork(
             // a cancelled response.
             if (control->cancelled.load(std::memory_order_acquire)) {
                 deliverResponse(control, QImage{});
+                return;
+            }
+            if (!result && (result.error().code == farcaster::foundation::error::ErrorCode::RateLimited
+                    || (result.error().code == farcaster::foundation::error::ErrorCode::Timeout
+                        && admissionRetryAttempt < 2U))) {
+                self->retryNetworkAdmission(std::move(control), std::move(urlText), category,
+                    manual, decodeRequest, std::move(cacheKey), compatibilityAttempt,
+                    gatewayFallbackAttempt, admissionRetryAttempt);
                 return;
             }
             if (!result || result->statusCode < 200U || result->statusCode >= 300U) {
@@ -1231,7 +1251,9 @@ void RemoteImageProvider::Impl::startNetwork(
                     return;
                 }
                 if (deniedByOrigin) rememberForbiddenOrigin(urlText);
-                rememberFailure(urlText);
+                // A failed queued deadline or temporary transport failure
+                // does not establish that the image URL itself is invalid.
+                if (result) rememberFailure(urlText);
                 deliverResponse(control, transparentFailureImage(nullptr));
                 return;
             }
@@ -1263,33 +1285,52 @@ void RemoteImageProvider::Impl::startNetwork(
                 gatewayFallbackAttempt, 0U);
         });
     if (!operation) {
-        // Synchronous start() failure is transport admission/backpressure, not
-        // evidence that this URL is bad. Retry the admission briefly without
-        // polluting the URL failure cache used for real HTTP/decode failures.
-        constexpr unsigned int maximumAdmissionRetries = 6U;
-        if (admissionRetryAttempt < maximumAdmissionRetries && QCoreApplication::instance() != nullptr) {
-            const int delayMs = 16 + static_cast<int>(admissionRetryAttempt) * 16;
-            QTimer::singleShot(
-                delayMs,
-                QCoreApplication::instance(),
-                [self, control, urlText = std::move(urlText), category, manual, decodeRequest,
-                 cacheKey = std::move(cacheKey), compatibilityAttempt, gatewayFallbackAttempt,
-                 admissionRetryAttempt]() mutable {
-                    if (control->cancelled.load(std::memory_order_acquire)) {
-                        deliverResponse(control, QImage{});
-                        return;
-                    }
-                    self->startNetwork(
-                        std::move(control), std::move(urlText), category, manual, decodeRequest,
-                        std::move(cacheKey), compatibilityAttempt, gatewayFallbackAttempt,
-                        admissionRetryAttempt + 1U);
-                });
-            return;
-        }
-        deliverResponse(control, transparentFailureImage(nullptr));
+        retryNetworkAdmission(std::move(control), std::move(urlText), category,
+            manual, decodeRequest, std::move(cacheKey), compatibilityAttempt,
+            gatewayFallbackAttempt, admissionRetryAttempt);
         return;
     }
     setResponseOperation(control, operationGeneration, std::move(*operation));
+}
+
+void RemoteImageProvider::Impl::retryNetworkAdmission(
+    std::shared_ptr<ResponseControl> control,
+    QString urlText,
+    const storage_policy::MediaCategory category,
+    const bool manual,
+    const QSize decodeRequest,
+    QString cacheKey,
+    const bool compatibilityAttempt,
+    const bool gatewayFallbackAttempt,
+    const unsigned int admissionRetryAttempt)
+{
+    // Wait for bounded admission without retaining response bodies or adding
+    // network concurrency. Backoff is staggered per URL and cancellation is
+    // checked before re-admission. Never poison the remote failure cache.
+    constexpr unsigned int maximumAdmissionRetries = 32U;
+    if (control->cancelled.load(std::memory_order_acquire)) {
+        deliverResponse(control, QImage{});
+        return;
+    }
+    if (admissionRetryAttempt >= maximumAdmissionRetries || QCoreApplication::instance() == nullptr) {
+        deliverResponse(control, transparentFailureImage(nullptr));
+        return;
+    }
+    const int delayMs = std::min(650, 80 + static_cast<int>(admissionRetryAttempt) * 35)
+        + static_cast<int>(qHash(urlText) % 71U);
+    const auto self = shared_from_this();
+    QTimer::singleShot(delayMs, QCoreApplication::instance(),
+        [self, control, urlText = std::move(urlText), category, manual, decodeRequest,
+         cacheKey = std::move(cacheKey), compatibilityAttempt, gatewayFallbackAttempt,
+         admissionRetryAttempt]() mutable {
+            if (control->cancelled.load(std::memory_order_acquire)) {
+                deliverResponse(control, QImage{});
+                return;
+            }
+            self->startNetwork(std::move(control), std::move(urlText), category, manual,
+                decodeRequest, std::move(cacheKey), compatibilityAttempt,
+                gatewayFallbackAttempt, admissionRetryAttempt + 1U);
+        });
 }
 
 void RemoteImageProvider::Impl::decodeNetworkResponse(

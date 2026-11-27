@@ -63,35 +63,62 @@ Item {
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
     readonly property bool remoteSource: /^image:\/\/remote\//i.test(root.source.toString())
-    readonly property bool browserRemoteRaster: Qt.platform.os === "wasm"
-        && (root.remoteSource || /^https?:\/\//i.test(root.source.toString()))
+    readonly property bool remoteRaster: root.remoteSource
+        || /^https?:\/\//i.test(root.source.toString())
+    readonly property bool browserRemoteRaster: Qt.platform.os === "wasm" && root.remoteRaster
     // Keep the decode/texture working set tied to the visible page, including
     // pooled ListView delegates and retained shell routes. Local assets and
     // authored attachment previews keep their original behavior.
     MediaResourceScope {
         id: rasterScope
         owner: root
-        observeViewport: root.browserRemoteRaster
-        viewportMargin: 240
+        observeViewport: root.remoteRaster
+        viewportMargin: Qt.platform.os === "wasm" ? 320 : 480
         requireOwnerVisible: false
     }
-    readonly property bool rasterEligible: !root.browserRemoteRaster || rasterScope.eligible
+    // Admission and eviction deliberately have different boundaries. A small
+    // reversal of a kinetic flick must not cancel an already-decoded texture.
+    // The actual delegate window remains bounded by ListView/GridView/masonry.
+    MediaResourceScope {
+        id: rasterRetentionScope
+        owner: root
+        observeViewport: root.remoteRaster
+        viewportMargin: Qt.platform.os === "wasm" ? 640 : 960
+        requireOwnerVisible: false
+    }
+    readonly property bool rasterEligible: !root.remoteRaster || rasterScope.eligible
+    readonly property bool rasterRetained: !root.remoteRaster || rasterRetentionScope.eligible
+    readonly property bool rasterPageVisible: root.parent !== null && root.parent.visible
+        && rasterRetentionScope.foreground
     onRasterEligibleChanged: {
         if (!componentReady)
             return
         if (rasterEligible) {
             rasterReleaseTimer.stop()
-            sourceStartTimer.restart()
-        } else {
+            // A retained request/texture already has the correct identity.
+            if (root.activeSource.toString().length === 0)
+                sourceStartTimer.restart()
+        } else if (root.activeSource.toString().length === 0) {
             sourceStartTimer.stop()
-            rasterReleaseTimer.restart()
         }
+    }
+    onRasterRetainedChanged: {
+        if (!componentReady) return
+        if (rasterRetained)
+            rasterReleaseTimer.stop()
+        else if (root.activeSource.toString().length > 0)
+            rasterReleaseTimer.restart()
+    }
+    onRasterPageVisibleChanged: {
+        if (componentReady && root.remoteRaster && !rasterPageVisible
+                && root.activeSource.toString().length > 0)
+            rasterReleaseTimer.restart()
     }
     Timer {
         id: rasterReleaseTimer
-        interval: 300
+        interval: root.rasterPageVisible ? 1100 : 250
         onTriggered: {
-            if (!root.rasterEligible) {
+            if (!root.rasterRetained) {
                 root.activeSource = ""
                 root.invalidatePresentationAdmission()
             }
@@ -182,9 +209,9 @@ Item {
 
     readonly property int status: imageSource.status
     readonly property real progress: imageSource.progress
-    readonly property real sourceImplicitWidth: root.browserRemoteRaster && imageSource.status !== Image.Ready
+    readonly property real sourceImplicitWidth: root.remoteRaster && imageSource.status !== Image.Ready
                                                ? rememberedIntrinsicWidth : imageSource.implicitWidth
-    readonly property real sourceImplicitHeight: root.browserRemoteRaster && imageSource.status !== Image.Ready
+    readonly property real sourceImplicitHeight: root.remoteRaster && imageSource.status !== Image.Ready
                                                 ? rememberedIntrinsicHeight : imageSource.implicitHeight
     readonly property Item renderItem: imageSource
     readonly property real paintedWidth: imageSource.paintedWidth
@@ -231,7 +258,8 @@ Item {
     function commitDecodeSize(initial) {
         if (!root.hasRenderableGeometry)
             return
-        if (!initial && imageSource.status === Image.Loading)
+        if (!initial && (imageSource.status === Image.Loading
+                || (root.remoteRaster && (root.scrollMoving || !root.rasterRetained))))
             return
         const next = root.desiredDecodeSize
         const previous = root.stableDecodeSize
@@ -428,7 +456,7 @@ Item {
         if (status === Image.Ready || status === Image.Error) {
             root.sizeReloadInFlight = false
             if (status === Image.Ready) {
-                if (root.browserRemoteRaster && !root.providerFallback) {
+                if (root.remoteRaster && !root.providerFallback) {
                     root.rememberedIntrinsicWidth = imageSource.implicitWidth
                     root.rememberedIntrinsicHeight = imageSource.implicitHeight
                 }
@@ -466,7 +494,11 @@ Item {
             if (root.activeSource.toString().length === 0)
                 sourceStartTimer.stop()
         } else {
-            sourceStartTimer.restart()
+            if (root.activeSource.toString().length === 0)
+                sourceStartTimer.restart()
+            if (!root.scrollMoving && root.remoteRaster
+                    && root.desiredDecodeSize !== root.stableDecodeSize)
+                decodeSizeSettler.restart()
             root.synchronizePresentation()
         }
     }
@@ -481,9 +513,10 @@ Item {
         }
     }
     onLoadDelayMsChanged: {
-        if (!root.componentReady || root.ready || root.loadFailed)
+        // Stagger only new loads. A recycled slot's changing delay is not a
+        // reason to discard an in-flight request for the same URL.
+        if (!root.componentReady || root.activeSource.toString().length > 0)
             return
-        root.activeSource = ""
         sourceStartTimer.restart()
     }
     // The provider owns bounded network retries and URL failure backoff. Once

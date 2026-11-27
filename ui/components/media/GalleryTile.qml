@@ -12,46 +12,7 @@ Item {
         String(root.embed.url || root.embed.value || ""))
     property string continuationText: ""
     property bool preserveAspect: false
-    // A single editorial image whose height depends on decoded dimensions
-    // must remain masked until the parent's aspect commit updates its slot.
-    property bool awaitFinalAspect: false
-    property bool fullBleedAspect: false
-    property bool aspectCommitted: false
-    readonly property bool finalAspectReady: {
-        if (root.aspectCommitted)
-            return true
-        if (!root.awaitFinalAspect || !root.preserveAspect)
-            return true
-        // Once this identity has a known aspect, subsequent geometry or
-        // decode-size changes must not hide the painted image.
-        const ratio = Number(root.reportedAspect || 0)
-        if (!(ratio > 0) || root.width <= 0 || root.height <= 0)
-            return false
-        // GalleryLayout rounds the height to whole device-independent pixels.
-        // The small tolerance handles a one-pixel layout rounding difference.
-        // Match GalleryLayout.displayAspect exactly: desktop Magazine uses an
-        // editorial clamp, whereas phones expose the unmodified source ratio.
-        const displayRatio = root.fullBleedAspect
-            ? ratio : Math.max(0.45, Math.min(2.8, ratio))
-        const naturalHeight = root.width / displayRatio
-        const expectedHeight = root.fullBleedAspect
-            ? Math.ceil(naturalHeight)
-            : Math.ceil(Math.max(64, Math.min(Math.max(900, root.width * 2.35), naturalHeight)))
-        return Math.abs(root.height - expectedHeight) <= 2
-    }
-    onFinalAspectReadyChanged: {
-        if (finalAspectReady && root.awaitFinalAspect && root.preserveAspect
-                && root.reportedAspect > 0) {
-            const identity = root.reportedMediaIdentity
-            // Do not mutate a dependency of finalAspectReady while its
-            // binding is evaluating. Recheck identity after recycling.
-            Qt.callLater(() => {
-                if (root.reportedMediaIdentity === identity && root.finalAspectReady
-                        && root.reportedAspect > 0)
-                    root.aspectCommitted = true
-            })
-        }
-    }
+    // Decoded artwork fits the reserved slot independently of layout.
     // The performance-safe defaults avoid briefly constructing layer effects
     // before GalleryLayout applies its multi-image bindings. Single-image slots
     // opt into both features explicitly.
@@ -107,14 +68,13 @@ Item {
                ? target : ""
     }
     onEmbedChanged: {
-        root.originFallbackAttempted = false
         // Refreshing metadata for the SAME source must not revoke a ready
         // image's geometry. A genuinely recycled identity starts at zero.
         const identity = String(root.embed.url || root.embed.imageSource || root.embed.value || "")
         if (identity !== root.reportedMediaIdentity) {
             root.reportedMediaIdentity = identity
             root.reportedAspect = 0
-            root.aspectCommitted = false
+            root.originFallbackAttempted = false
         }
     }
     function resolvedSource() {
@@ -176,7 +136,6 @@ Item {
                    : !preview.ready ? Theme.surfaceMuted
                    : root.preserveAspect ? "transparent" : Theme.surface
         smoothReveal: true
-        presentationEnabled: root.finalAspectReady
         borderWidth: 0
         onLoadFailedChanged: {
             if (loadFailed && !root.originFallbackAttempted

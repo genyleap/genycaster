@@ -16,10 +16,11 @@ test("WASM compressed media is not duplicated in the MEMFS disk cache",()=>{
 });
 test("shared raster lifetime follows viewport, releases pixels without losing intrinsic geometry",()=>{
  const qml=read("ui/components/visual/SuperellipseImage.qml");
- assert.match(qml,/browserRemoteRaster: Qt\.platform\.os === "wasm"/);
- assert.match(qml,/viewportMargin: 240/);
+ assert.match(qml,/browserRemoteRaster: Qt\.platform\.os === "wasm" && root\.remoteRaster/);
+ assert.match(qml,/viewportMargin: Qt\.platform\.os === "wasm" \? 320 : 480/);
+ assert.match(qml,/viewportMargin: Qt\.platform\.os === "wasm" \? 640 : 960/);
  assert.match(qml,/requireOwnerVisible: false/);
- assert.match(qml,/id: rasterReleaseTimer[\s\S]*?interval: 300[\s\S]*?root\.activeSource = ""/);
+ assert.match(qml,/id: rasterReleaseTimer[\s\S]*?interval: root\.rasterPageVisible \? 1100 : 250[\s\S]*?root\.activeSource = ""/);
  assert.match(qml,/if \(!root\.componentReady \|\| !root\.rasterEligible\)/);
  assert.match(qml,/rememberedIntrinsicWidth : imageSource\.implicitWidth/);
  assert.match(qml,/onSourceChanged: \{\s*root\.rememberedIntrinsicWidth = 0/);

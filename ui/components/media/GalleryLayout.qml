@@ -132,14 +132,22 @@ Item {
         // Keep the reservation for unchanged media identities when a model
         // refresh adds dimensions later. Drop removed entries to bound state.
         const next = ({})
+        const nextDiscovered = ({})
+        const nextPending = ({})
         for (let index = 0; index < root.visibleCount; ++index) {
             const key = root.mediaKey(index)
+            if (root.discoveredAspects[key] > 0)
+                nextDiscovered[key] = root.discoveredAspects[key]
+            if (root.pendingAspects[key] > 0)
+                nextPending[key] = root.pendingAspects[key]
             next[key] = (root.sharedMediaGeometry
                              ? root.sharedMediaGeometry.aspectForKey(key) : 0)
                 || root.reservedAspects[key]
                 || root.initialAspect(root.embedAt(index))
         }
         root.reservedAspects = next
+        root.discoveredAspects = nextDiscovered
+        root.pendingAspects = nextPending
     }
 
     function scrollingAncestor() {
@@ -165,8 +173,6 @@ Item {
         // Store the *raw* decoded ratio. A desktop-to-mobile transition
         // must not resurrect the editorial clamp from an earlier viewport.
         nextPending[key] = value
-        if (root.sharedMediaGeometry)
-            root.sharedMediaGeometry.rememberAspect(key, value)
         root.pendingAspects = nextPending
         aspectCommit.restart()
     }
@@ -181,10 +187,18 @@ Item {
         if (keys.length === 0)
             return
         const next = Object.assign({}, root.discoveredAspects)
-        for (let index = 0; index < keys.length; ++index)
-            next[keys[index]] = root.pendingAspects[keys[index]]
+        for (let index = 0; index < keys.length; ++index) {
+            const key = keys[index]
+            next[key] = root.pendingAspects[key]
+        }
         root.pendingAspects = ({})
         root.discoveredAspects = next
+        if (root.sharedMediaGeometry) {
+            for (let index = 0; index < keys.length; ++index) {
+                const key = keys[index]
+                root.sharedMediaGeometry.rememberAspect(key, next[key])
+            }
+        }
     }
 
     Timer {
@@ -363,9 +377,6 @@ Item {
                         // Single-media casts must show the complete image at every
                         // breakpoint. Multi-image galleries intentionally crop tiles.
                         preserveAspect: root.visibleCount === 1
-                        awaitFinalAspect: root.dynamicAspectDiscovery && root.visibleCount === 1
-                                          && root.singleImageHeight <= 0
-                        fullBleedAspect: root.mobileFullBleed
                         // Every fitted single image uses the same alpha mask,
                         // including Magazine cards and temporary letterboxing.
                         // Resizing or discovering its aspect must never switch

@@ -1,42 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import vm from 'node:vm';
 
 const source = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
-test('single-image reveal remains behind placeholder until final aspect is committed', () => {
+test('decoded artwork is independent of deferred aspect geometry on every platform', () => {
     const tile = source('ui/components/media/GalleryTile.qml');
     const image = source('ui/components/visual/SuperellipseImage.qml');
     const layout = source('ui/components/media/GalleryLayout.qml');
-    const extracted = tile.match(/readonly property bool finalAspectReady: \{([\s\S]*?)\n    \}/);
-    assert.ok(extracted, 'actual GalleryTile eligibility expression exists');
-    const ready = (width, height, ratio, fullBleed, loaded = true) => {
-        const root = { awaitFinalAspect: true, preserveAspect: true,
-                       reportedAspect: ratio, width, height, fullBleedAspect: fullBleed };
-        const preview = { status: loaded ? 1 : 2 };
-        const Image = { Ready: 1 };
-        return vm.runInNewContext('(function(){' + extracted[1] + '})()', { root, preview, Image, Math });
-    };
-    assert.equal(ready(390, 293, 0.35, true), false,
-      'a tall portrait must not flash inside its provisional landscape box');
-    assert.equal(ready(390, Math.ceil(390 / 0.35), 0.35, true), true,
-      'release after the full natural mobile height is committed');
-    assert.equal(ready(400, 300, 0.2, false), false,
-      'a desktop editorial card must not expose its small provisional box');
-    assert.equal(ready(400, 889, 0.2, false), true,
-      'desktop layout accepts the same editorial ratio clamp as GalleryLayout');
-    assert.equal(ready(400, 940, 0.2, false), false,
-      'do not wait for an impossible height derived from the raw portrait ratio');
-    assert.equal(ready(400, 500, 0.8, false, false), false,
-      'decoding must finish even if geometry already fits');
+    assert.doesNotMatch(tile, /finalAspectReady|awaitFinalAspect|presentationEnabled:/);
+    assert.match(tile, /Image.PreserveAspectFit : Image.PreserveAspectCrop/);
     assert.match(image, /property bool presentationEnabled: true/);
-    assert.match(image, /root\.decodedReady && root\.presentationReady\s+&& root\.presentationEnabled/);
-    assert.match(image, /root\.decodedReady && !root\.ready/);
-    assert.match(tile, /presentationEnabled: root\.finalAspectReady/);
-    assert.match(layout, /awaitFinalAspect: root\.dynamicAspectDiscovery && root\.visibleCount === 1/);
+    assert.match(image, /\(root\.decodedReady \|\| root\.retainingSizedTexture\)\s*&& root\.presentationReady && root\.presentationEnabled/);
     assert.match(layout, /onAspectRatioResolved: ratio => root\.rememberAspect/);
     assert.match(tile, /reportedMediaIdentity/);
+    const remember=layout.slice(layout.indexOf('    function rememberAspect('),layout.indexOf('    function commitPendingAspects('));
+    assert.doesNotMatch(remember, /sharedMediaGeometry\.rememberAspect/);
+    const commit=layout.slice(layout.indexOf('    function commitPendingAspects('),layout.indexOf('    Timer {\n        id: aspectCommit'));
+    assert.match(commit, /if \(scroller && scroller\.moving\) \{[\s\S]*?return[\s\S]*?sharedMediaGeometry\.rememberAspect/);
 });
 
 test('emoji one-shot is obeyed by policy, both renderers, persisted settings and refresh', () => {
