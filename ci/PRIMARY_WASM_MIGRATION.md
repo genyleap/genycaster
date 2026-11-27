@@ -115,3 +115,27 @@ A current-HEAD WASM build can later be produced directly on the VPS using
 `ci/build_deploy_wasm_server.sh` and the matching Qt WASM SDK, after its
 canonical public HTTPS marker is active. This requires no GitHub Actions
 minutes and performs manifest verification before promotion.
+
+### Nginx parser isolation — 2026-11-27
+
+Never run a minimal root-owned nginx -t -c configuration against default
+temporary paths on the production host. Nginx validates by creating paths
+and adjusting their ownership; omitting the user directive selects its
+compiled-in default (nobody on this VPS), while the live service runs as
+www-data. This can break uploads and buffered image responses with HTTP
+500 / EACCES, despite a successful syntax check.
+
+The test_real_nginx_parser_accepts_primary_vhost test now uses a dedicated
+temporary prefix, all five explicit HTTP temporary paths, isolated PID/lock/log
+files, and a copied vhost with only log destinations redirected. It asserts that
+production temp-root metadata is unchanged after the real parser run.
+Production deployment validation must use the actual production configuration;
+alternate test configurations must never share runtime paths.
+
+Operational recovery: restore the verified worker ownership of
+/var/lib/nginx/{body,proxy,fastcgi,uwsgi,scgi} to www-data:www-data with
+0700 permissions (do not use world-writable permissions). The media vhost
+should also retain the streaming request/response buffering policy defined
+in services/media-gateway/deploy/nginx.conf.example. Confirm real ingress
+with a bounded binary request and authenticated upload acceptance; a health
+endpoint alone does not exercise request-body spooling.

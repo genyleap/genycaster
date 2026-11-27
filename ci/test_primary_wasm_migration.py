@@ -51,18 +51,56 @@ class PrimaryMigrationTests(unittest.TestCase):
     def test_real_nginx_parser_accepts_primary_vhost(self):
         if not shutil.which("nginx"):
             self.skipTest("Nginx unavailable")
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "nginx.conf"
-            path.write_text(
-                "events {}\nhttp {\ninclude /etc/nginx/mime.types;\n"
-                "include " + str(primary.SOURCE) + ";\n}\n",
+        if not primary.CERT.is_file():
+            self.skipTest("Canonical TLS certificate unavailable in test environment")
+        # nginx -t is NOT read-only: ngx_create_paths() changes the owner
+        # of configured temp roots, even when merely validating a config.
+        # A minimal root-run config without 'user' selects nobody on Ubuntu.
+        # Never let the parser touch production temp roots, pid or logs.
+        with tempfile.TemporaryDirectory(prefix="genycaster-nginx-parser-") as directory:
+            root = Path(directory)
+            path = root / "nginx.conf"
+            temp_paths = {
+                name: root / name for name in
+                ("client_body", "proxy", "fastcgi", "uwsgi", "scgi")
+            }
+            for temp_path in temp_paths.values():
+                temp_path.mkdir(mode=0o700)
+            protected = tuple(Path("/var/lib/nginx") / name for name in
+                              ("body", "proxy", "fastcgi", "uwsgi", "scgi"))
+            def ownership_snapshot():
+                return {
+                    str(p): (st.st_uid, st.st_gid, st.st_mode)
+                    for p in protected if p.exists() for st in [p.stat()]
+                }
+            before = ownership_snapshot()
+            vhost = root / "site.conf"
+            vhost.write_text(
+                primary.SOURCE.read_text(encoding="utf-8")
+                .replace("/var/log/nginx/genycaster.xyz.access.log",
+                         str(root / "site-access.log"))
+                .replace("/var/log/nginx/genycaster.xyz.error.log",
+                         str(root / "site-error.log")),
                 encoding="utf-8")
-            result = subprocess.run(
-                ["nginx", "-t", "-c", str(path)],
-                text=True, capture_output=True, timeout=15)
-            if not primary.CERT.is_file():
-                self.skipTest("Canonical TLS certificate unavailable in test environment")
-            self.assertEqual(result.returncode, 0, result.stderr)
+            path.write_text(
+                f'pid "{root / "nginx.pid"}";\n'
+                f'lock_file "{root / "nginx.lock"}";\n'
+                f'error_log "{root / "error.log"}";\n'
+                "events {}\nhttp {\ninclude /etc/nginx/mime.types;\n"
+                f'access_log "{root / "access.log"}";\n'
+                + "".join(f'{name}_temp_path "{temp_path}";\n'
+                          for name, temp_path in temp_paths.items())
+                + f'include "{vhost}";\n}}\n',
+                encoding="utf-8")
+            try:
+                result = subprocess.run(
+                    ["nginx", "-t", "-p", str(root), "-c", str(path),
+                     "-e", str(root / "bootstrap-error.log")],
+                    text=True, capture_output=True, timeout=15)
+                self.assertEqual(result.returncode, 0, result.stderr)
+            finally:
+                self.assertEqual(ownership_snapshot(), before,
+                                 "Nginx parser touched live temp directory metadata")
 
     def test_boot_shell_contains_accessible_platform_dialog(self):
         shell = (ROOT / "ui/wasm/genycaster-shell.html").read_text(encoding="utf-8")
