@@ -78,7 +78,7 @@ the app's language reselects the release content immediately.
 | Linux x86_64 / arm64 | Ubuntu 24.04 x64 / ARM hosted, GCC 16 | Architecture-specific AppImage, DEB and `.zsync` metadata |
 | macOS arm64 / x86_64 | macOS 26 ARM / Intel, LLVM | Architecture-specific DMG and verified self-update transport archive |
 | Windows x86_64 / arm64 | Windows 2022 x64 / Windows 11 ARM, Clang-CL/MSVC ABI | NSIS `.exe` installer and verified self-update transport archive |
-| Android arm64-v8a only | Ubuntu 24.04, NDK 27.2.12479018 | Signed release APK; other Android ABIs excluded |
+| Android arm64-v8a only | Ubuntu 24.04, NDK 30.0.16248370 (Qt 6.12.1) | Signed release APK; other Android ABIs excluded |
 | WebAssembly | Ubuntu 24.04, Emscripten 5.0.5 | Verified site artifact for **genycaster.xyz only**, not a GitHub Release download |
 | iOS arm64 | macOS 15 + iOS SDK | CI-only unsigned .app archive (not a distributable IPA) |
 | NixOS x86_64 / arm64 | Native Nix GCC 16 + Qt on Linux x64 / ARM | Nix package build and closure manifest |

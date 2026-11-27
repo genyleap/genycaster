@@ -6,7 +6,7 @@
 set -euo pipefail
 
 : "${QT_ROOT_DIR:?Qt 6.12 Android arm64 SDK is required}"
-: "${ANDROID_NDK_ROOT:?Android NDK r27 is required}"
+: "${ANDROID_NDK_ROOT:?Android NDK matching Qt SDK is required}"
 : "${RUNNER_TEMP:?GitHub Actions temporary directory is required}"
 : "${ANDROID_API:?Android API target is required}"
 
