@@ -1573,7 +1573,7 @@ Item {
         // Only a deliberate pull is allowed past the top; wheel scrolling
         // stays bounded and the shared indicator requests real profile reload.
         boundsBehavior: Flickable.DragOverBounds
-        boundsMovement: Flickable.StopAtBounds
+        boundsMovement: Flickable.FollowBoundsBehavior
         reuseItems: true
         cacheBuffer: Qt.platform.os === "wasm" ? Math.min(360, Math.max(240, height * 0.45))
                                                 : Math.min(Math.max(height * 0.75, 560), 960)

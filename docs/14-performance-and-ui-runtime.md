@@ -771,3 +771,13 @@ and 3; actual Qt drag/refresh fixture; native and WASM viewport policy
 fixtures; shader variant reflection; 22 targeted source contracts. Actual
 iOS Safari, Android, Metal and hardware frame-time/texture-memory profiling
 remain separate acceptance gates. No measured device FPS gain is claimed.
+
+#### Elastic pull-to-refresh interaction correction
+
+The bounded-content overlay did not match the requested interaction.
+Restore Qt's DragOverBounds / FollowBoundsBehavior and the shared indicator
+inside the real overscroll gap for feed, masonry, profile, notifications and
+bookmarks. Refresh remains a single top-origin drag/release action. The
+reading canvas returns elastically to its resting position. Direct raster
+materials, viewport lifetime hysteresis, reflection motion gating and
+startup readiness changes are unchanged.

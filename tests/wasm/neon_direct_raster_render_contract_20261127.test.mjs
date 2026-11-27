@@ -43,13 +43,13 @@ test('reflection capture and both blur stages retain their previous texture duri
  assert.match(shell,/motionActive: Boolean\([\s\S]*?feedSurfaceLoader\.item\.readList\.moving[\s\S]*?profileSurfaceLoader\.item\.readList\.moving[\s\S]*?homeDashboard\.scrolling/);
 });
 
-test('top refresh is driven by overshoot without moving content outside its bounds',()=>{
+test('top refresh moves the reading canvas and places the indicator inside the exposed gap',()=>{
  const indicator=read('ui/components/feed/PullToRefresh.qml');
- assert.match(indicator,/-Number\(flickable\.verticalOvershoot \|\| 0\)/);
- assert.match(indicator,/function onVerticalOvershootChanged\(\) \{ control\.recordPullDistance\(\) \}/);
- assert.match(indicator,/y: Math\.min\(24,/);
+ assert.match(indicator,/Math\.max\(0, flickable\.originY - flickable\.contentY\)/);
+ assert.match(indicator,/y: Math\.max\(0, \(offset - height\) \* 0\.5\)/);
+ assert.match(indicator,/visible: startedAtTop && offset >= height/);
  for(const path of ['feed/FeedSurface','feed/FeedMasonryView','feed/NotificationSurface','profile/BookmarksSurface','profile/ProfileSurface'])
-  assert.match(read('ui/components/'+path+'.qml'),/boundsMovement: Flickable\.StopAtBounds/);
+  assert.match(read('ui/components/'+path+'.qml'),/boundsMovement: Flickable\.FollowBoundsBehavior/);
 });
 
 test('startup reveal waits for compositor turns, and authenticated greeting keeps its slot before profile hydration',()=>{

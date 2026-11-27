@@ -16,7 +16,7 @@ Item {
         anchors.fill: parent
         contentHeight: 1600
         boundsBehavior: Flickable.DragOverBounds
-        boundsMovement: Flickable.StopAtBounds
+        boundsMovement: Flickable.FollowBoundsBehavior
         acceptedButtons: Qt.LeftButton
         Rectangle { width: 320; height: 1600; color: "white" }
     }
@@ -26,21 +26,32 @@ Item {
         onRefreshRequested: root.refreshes += 1
     }
     TestCase {
-        name: "BoundedPullRefresh"
+        name: "ElasticPullRefresh"
         when: windowShown
+        function test_shortDragDoesNotRefresh() {
+            flick.contentY = flick.originY
+            const before = root.refreshes
+            mousePress(flick,150,40)
+            mouseMove(flick,150,72,50,Qt.LeftButton)
+            mouseRelease(flick,150,72)
+            tryVerify(() => Math.abs(flick.contentY - flick.originY) < 0.5,2500)
+            compare(root.refreshes,before)
+        }
         function test_topDrag() {
             flick.contentY = flick.originY
             mousePress(flick, 150, 40)
             for (let y=70; y<=400; y+=30) {
                 mouseMove(flick,150,y,25,Qt.LeftButton)
-                compare(flick.contentY,flick.originY)
+                verify(flick.contentY <= flick.originY)
             }
+            verify(flick.contentY < flick.originY - refresh.activationDistance)
+            verify(refresh.visible)
+            verify(refresh.y >= 0 && refresh.y + refresh.height <= refresh.offset)
             verify(refresh.armed, "overshoot " + flick.verticalOvershoot + " distance " + refresh.pulledDistance)
             mouseRelease(flick,150,400)
             tryCompare(root,"refreshes",1)
-            wait(300)
+            tryVerify(() => Math.abs(flick.contentY - flick.originY) < 0.5, 2500)
             compare(root.refreshes,1)
-            compare(flick.contentY,flick.originY)
         }
     }
 }

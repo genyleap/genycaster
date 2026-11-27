@@ -111,7 +111,7 @@ test("Feed and profile allow only drag-triggered top refresh; empty state scroll
     const empty=read("ui/components/controls/EmptyState.qml");
     for(const source of [feed,profile]) {
         assert.match(source,/boundsBehavior: Flickable\.DragOverBounds/);
-        assert.match(source,/boundsMovement: Flickable\.StopAtBounds/);
+        assert.match(source,/boundsMovement: Flickable\.FollowBoundsBehavior/);
         assert.match(source,/PullToRefresh \{/);
     }
     const footer=feed.split("id: feedFooterComponent")[1].split("id: newPostsBanner")[0];

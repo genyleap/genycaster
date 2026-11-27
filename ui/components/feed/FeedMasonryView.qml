@@ -123,7 +123,7 @@ Flickable {
     contentHeight: Math.max(0, rowsBottom + footerLoader.height)
     flickableDirection: Flickable.VerticalFlick
     boundsBehavior: Flickable.DragOverBounds
-    boundsMovement: Flickable.StopAtBounds
+    boundsMovement: Flickable.FollowBoundsBehavior
     activeFocusOnTab: true
 
     MasonryWindowModel {

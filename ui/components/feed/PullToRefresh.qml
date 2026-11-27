@@ -18,25 +18,20 @@ Item {
     signal refreshRequested()
 
     readonly property real offset: flickable
-        ? Math.max(0, -Number(flickable.verticalOvershoot || 0),
-                   flickable.originY - flickable.contentY) : 0
+        ? Math.max(0, flickable.originY - flickable.contentY) : 0
     readonly property bool armed: control.startedAtTop
         && control.pulledDistance >= control.activationDistance
 
     anchors.left: parent.left
     anchors.right: parent.right
-    // Keep the content in bounds and expose only a small overlay indicator.
-    // The actual reload continues independently through refreshRequested.
-    y: Math.min(24, Math.max(0, (offset - height) * 0.25))
+    // Render *inside the exposed overscroll gap*, never over a cast. Once the
+    // finger lifts, the gap springs closed and the indicator disappears;
+    // the actual reload continues independently through refreshRequested.
+    y: Math.max(0, (offset - height) * 0.5)
     height: 44
     z: 35
     visible: startedAtTop && offset >= height
     opacity: visible ? 1 : 0
-
-    function recordPullDistance() {
-        if (control.startedAtTop && control.flickable && control.flickable.dragging)
-            control.pulledDistance = Math.max(control.pulledDistance, control.offset)
-    }
 
     Connections {
         target: control.flickable
@@ -54,8 +49,10 @@ Item {
                     control.refreshRequested()
             }
         }
-        function onContentYChanged() { control.recordPullDistance() }
-        function onVerticalOvershootChanged() { control.recordPullDistance() }
+        function onContentYChanged() {
+            if (control.startedAtTop && control.flickable && control.flickable.dragging)
+                control.pulledDistance = Math.max(control.pulledDistance, control.offset)
+        }
     }
 
     Superellipse {

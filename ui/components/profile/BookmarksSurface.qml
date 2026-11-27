@@ -80,7 +80,7 @@ Flickable {
     contentWidth: width
     contentHeight: column.implicitHeight + Theme.space5 * 2
     boundsBehavior: Flickable.DragOverBounds
-    boundsMovement: Flickable.StopAtBounds
+    boundsMovement: Flickable.FollowBoundsBehavior
     readonly property var sortedRows: {
         // QML exposes C++ QVariantList as a sequence, which is not always a
         // JavaScript Array. Array.isArray() can silently discard every saved

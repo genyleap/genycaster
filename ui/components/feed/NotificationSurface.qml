@@ -857,7 +857,7 @@ Item {
                 browserWheelSettleTimer.restart()
             }
             boundsBehavior: Flickable.DragOverBounds
-            boundsMovement: Flickable.StopAtBounds
+            boundsMovement: Flickable.FollowBoundsBehavior
             ScrollBar.vertical: GenyScrollBar {}
 
             HoverHandler {
