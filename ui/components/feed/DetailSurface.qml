@@ -443,7 +443,7 @@ ListView {
     boundsBehavior: Flickable.StopAtBounds
     spacing: Theme.space2
     reuseItems: true
-    cacheBuffer: root.compact ? 340 : 650
+    cacheBuffer: Qt.platform.os === "wasm" ? 180 : (root.compact ? 340 : 650)
     model: replyRows
 
     header: ColumnLayout {

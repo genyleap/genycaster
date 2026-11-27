@@ -1575,7 +1575,8 @@ Item {
         boundsBehavior: Flickable.DragOverBounds
         boundsMovement: Flickable.FollowBoundsBehavior
         reuseItems: true
-        cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)
+        cacheBuffer: Qt.platform.os === "wasm" ? Math.min(height * 0.35, 280)
+                                                : Math.min(Math.max(height * 0.75, 560), 960)
         pixelAligned: false
 
         onMovementStarted: {

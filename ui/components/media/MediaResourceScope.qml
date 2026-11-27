@@ -7,11 +7,17 @@ QtObject {
     id: root
     required property Item owner
     property bool observeViewport: true
+    property real viewportMargin: 0
+    // Some raster items hide themselves until Ready (favicon/fallback).
+    // Admission must not depend on that item's own presentation state.
+    property bool requireOwnerVisible: true
     readonly property bool foreground: Qt.application.state !== Qt.ApplicationSuspended
         && Qt.application.state !== Qt.ApplicationHidden
         && ((Qt.platform.os !== "android" && Qt.platform.os !== "ios")
              || Qt.application.state === Qt.ApplicationActive)
-    readonly property bool eligible: owner !== null && owner.visible && foreground
+    readonly property bool eligible: owner !== null
+        && (requireOwnerVisible ? owner.visible : (owner.parent !== null && owner.parent.visible))
+        && foreground
         && (!observeViewport || intersectsViewport())
 
     // Reserve before asynchronous incubation, not after it. A subsequent Play
@@ -58,8 +64,8 @@ QtObject {
                 // Read the offsets explicitly to track changes on all backends.
                 const mapped = owner.mapToItem(parent, 0, 0)
                 if (!isFinite(x) || !isFinite(y) || !isFinite(cx) || !isFinite(cy)
-                        || mapped.x + owner.width <= 0 || mapped.y + owner.height <= 0
-                        || mapped.x >= parent.width || mapped.y >= parent.height)
+                        || mapped.x + owner.width <= -viewportMargin || mapped.y + owner.height <= -viewportMargin
+                        || mapped.x >= parent.width + viewportMargin || mapped.y >= parent.height + viewportMargin)
                     return false
             }
             item = parent

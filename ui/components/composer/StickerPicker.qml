@@ -521,11 +521,13 @@ Popup {
                         anchors.centerIn: parent
                         width: stickerTile.width - Theme.space3 * 2
                         height: width
-                        source: root.stickerDisplayUrl(stickerTile.modelData.id)
+                        source: Qt.platform.os !== "wasm" || (root.visible && root.page === "library")
+                                ? root.stickerDisplayUrl(stickerTile.modelData.id) : ""
+                        sourceSize: Qt.platform.os === "wasm" ? Qt.size(256, 256) : Qt.size(-1, -1)
                         fillMode: Image.PreserveAspectFit
                         asynchronous: true
                         smooth: true
-                        cache: true
+                        cache: Qt.platform.os !== "wasm"
                     }
                     MouseArea {
                         id: stickerHit
@@ -678,11 +680,13 @@ Popup {
                     required property var modelData
                     width: packPreview.cellWidth - Theme.space2
                     height: packPreview.cellHeight - Theme.space2
-                    source: root.stickerDisplayUrl(modelData.id)
+                    source: Qt.platform.os !== "wasm" || (root.visible && root.page === "detail")
+                            ? root.stickerDisplayUrl(modelData.id) : ""
+                    sourceSize: Qt.platform.os === "wasm" ? Qt.size(256, 256) : Qt.size(-1, -1)
                     fillMode: Image.PreserveAspectFit
                     asynchronous: true
                     smooth: true
-                    cache: true
+                    cache: Qt.platform.os !== "wasm"
                 }
             }
 

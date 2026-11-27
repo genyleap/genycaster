@@ -56,7 +56,7 @@ namespace {
 // Keep recently visited feed media decoded across ListView delegate recycling.
 // Bound memory explicitly: WebAssembly has a smaller memory budget than native.
 #if defined(Q_OS_WASM)
-constexpr int imageCacheCapacityKiB = 48 * 1024;
+constexpr int imageCacheCapacityKiB = 24 * 1024;
 #elif defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 constexpr int imageCacheCapacityKiB = 64 * 1024;
 #else
@@ -70,7 +70,13 @@ constexpr std::size_t imageDecodeWorkerCount = 2U;
 constexpr qint64 maximumDecodedPixelCount = 20LL * 1024LL * 1024LL;
 constexpr int maximumImageDimension = 16'384;
 constexpr qint64 maximumDiskCacheEntryBytes = 64LL * 1024LL * 1024LL;
+#if defined(Q_OS_WASM)
+constexpr std::uint64_t maximumNetworkImageBytes = 16ULL * 1024ULL * 1024ULL;
+constexpr std::size_t imageDecodeQueueBytes = 24U * 1024U * 1024U;
+#else
 constexpr std::uint64_t maximumNetworkImageBytes = 64ULL * 1024ULL * 1024ULL;
+constexpr std::size_t imageDecodeQueueBytes = 64U * 1024U * 1024U;
+#endif
 constexpr int decodedSizeQuantum = 128;
 
 namespace storage_policy = farcaster::presentation::media::storage_policy;
@@ -172,6 +178,14 @@ void writeDiskCachedBytes(
     const QByteArray& bytes,
     const storage_policy::PolicySnapshot& policy)
 {
+#if defined(Q_OS_WASM)
+    // CacheLocation is memory-backed; browser HTTP caching owns compressed data.
+    Q_UNUSED(url);
+    Q_UNUSED(category);
+    Q_UNUSED(bytes);
+    Q_UNUSED(policy);
+    return;
+#endif
     if (!policy.diskCacheEnabled || bytes.isEmpty() || bytes.size() > maximumDiskCacheEntryBytes) {
         return;
     }
@@ -199,6 +213,12 @@ void writeDiskCachedBytes(
     const storage_policy::MediaCategory category,
     const storage_policy::PolicySnapshot& policy)
 {
+#if defined(Q_OS_WASM)
+    Q_UNUSED(url);
+    Q_UNUSED(category);
+    Q_UNUSED(policy);
+    return {};
+#endif
     if (!policy.diskCacheEnabled) {
         return {};
     }
@@ -627,6 +647,15 @@ void rememberImage(
     reader.setDecideFormatFromContent(true);
 
     QSize originalSize = reader.size();
+    // Do not decode a known oversized raster at full resolution just to
+    // reject it afterwards. Unknown dimensions retain the codec fallback.
+    if (originalSize.isValid() && !originalSize.isEmpty()
+        && !acceptableImageDimensions(originalSize)) {
+        if (errorText != nullptr) {
+            *errorText = QStringLiteral("Unsupported or unsafe image dimensions.");
+        }
+        return {};
+    }
     if (acceptableImageDimensions(originalSize)) {
         const QSize decodeSize = boundedDecodeSize(originalSize, requestedSize);
         if (!decodeSize.isValid() || decodeSize.isEmpty()) {
@@ -796,7 +825,7 @@ class RemoteImageProvider::Impl final : public std::enable_shared_from_this<Remo
 public:
     Impl(const bool useDirectProxy, std::shared_ptr<storage_policy::RuntimeState> storageState)
         : m_storageState(std::move(storageState)),
-          m_decodeExecutor(imageDecodeWorkerCount, 48U, 64U * 1024U * 1024U)
+          m_decodeExecutor(imageDecodeWorkerCount, 48U, imageDecodeQueueBytes)
     {
         farcaster::transport::qtnetwork::async::NetworkLimits limits{};
         // The decode stage intentionally has only two workers. Letting dozens
@@ -804,13 +833,20 @@ public:
         // that competes with the render thread exactly when a rich timeline settles.
         // Keep network admission close enough to downstream capacity that scrolling
         // sees steady work instead of large completion bursts.
+#if defined(Q_OS_WASM)
+        limits.maximumActiveRequests = 4U;
+        limits.maximumActiveRequestsPerOrigin = 3U;
+        limits.maximumBackgroundActiveRequests = 2U;
+        limits.maximumBackgroundActiveRequestsPerOrigin = 1U;
+#else
         limits.maximumActiveRequests = 8U;
         limits.maximumActiveRequestsPerOrigin = 4U;
         limits.maximumBackgroundActiveRequests = 4U;
         limits.maximumBackgroundActiveRequestsPerOrigin = 2U;
+#endif
         limits.maximumAcceptedRequests = 32U;
         limits.maximumAcceptedRequestBodyBytes = 8U * 1024U * 1024U;
-        limits.maximumBufferedResponseBytes = 64U * 1024U * 1024U;
+        limits.maximumBufferedResponseBytes = imageDecodeQueueBytes;
         limits.replyReadBufferBytes = 128U * 1024U;
 
         auto transport = farcaster::transport::qtnetwork::async::makeAsyncTransport(

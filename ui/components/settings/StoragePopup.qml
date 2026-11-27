@@ -583,6 +583,7 @@ GenyDrawer {
             text: qsTrId("genycaster.storage.keep_media_on_disk")
             description: qsTrId("genycaster.storage.keep_media_on_disk_description")
             checked: dataStorage.diskCacheEnabled
+            enabled: Qt.platform.os !== "wasm"
             onToggled: dataStorage.setDiskCacheEnabled(checked)
         }
 

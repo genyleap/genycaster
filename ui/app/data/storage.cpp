@@ -354,8 +354,14 @@ public:
     void loadSettings()
     {
         auto policy = state->snapshot();
+#if defined(Q_OS_WASM)
+        // Qt's CacheLocation is MEMFS in the browser, not a physical disk.
+        // Do not duplicate HTTP image bodies in the WebContent working set.
+        policy.diskCacheEnabled = false;
+#else
         policy.diskCacheEnabled = settings.value(
             QStringLiteral("dataStorage/cacheEnabled"), true).toBool();
+#endif
 
         const int cacheMiB = std::clamp(
             settings.value(QStringLiteral("dataStorage/cacheLimitMiB"), 1024).toInt(),
@@ -839,6 +845,9 @@ void DataStorageController::setRetentionDays(const QString& category, const int 
 
 void DataStorageController::setDiskCacheEnabled(const bool enabled)
 {
+#if defined(Q_OS_WASM)
+    if (enabled) return;
+#endif
     auto policy = m_impl->state->snapshot();
     if (policy.diskCacheEnabled == enabled) {
         return;

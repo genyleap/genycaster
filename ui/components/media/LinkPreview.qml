@@ -683,22 +683,26 @@ Superellipse {
                 // Qt's ordinary image provider renders only the first GIF
                 // frame. Keep an actual AnimatedImage for the approved GIF
                 // splash, with the normal poster as a network fallback.
+                MediaResourceScope {
+                    id: posterAnimationScope
+                    owner: miniAppPosterFrame
+                }
                 Loader {
                     id: miniAppAnimation
                     z: 2
                     anchors.fill: parent
                     active: root.animatedPosterUrl.length > 0 && !Theme.powerSave
+                        && posterAnimationScope.eligible
                     visible: item !== null && item.status === AnimatedImage.Ready
                     sourceComponent: AnimatedImage {
                     anchors.fill: parent
-                    MediaResourceScope { id: animationScope; owner: miniAppPosterFrame }
-                    source: animationScope.eligible && !Theme.powerSave ? root.animatedPosterUrl : ""
+                    source: posterAnimationScope.eligible && !Theme.powerSave ? root.animatedPosterUrl : ""
                     sourceSize: Qt.size(Math.min(1024, Math.max(128, Math.ceil(width / 128) * 128)),
                                         Math.min(1024, Math.max(128, Math.ceil(height / 128) * 128)))
                     fillMode: Image.PreserveAspectFit
                     cache: false
                     visible: root.animatedPosterUrl.length > 0 && status === AnimatedImage.Ready
-                    playing: visible && animationScope.eligible && !root.scrollMoving && !Theme.powerSave
+                    playing: visible && posterAnimationScope.eligible && !root.scrollMoving && !Theme.powerSave
                     smooth: true
                     }
                 }

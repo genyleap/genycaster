@@ -103,7 +103,7 @@ test("mini app image admission is independent of scroll and uses a bounded adjac
  const saved=read("ui/components/apps/LibraryShelves.qml");
  assert.match(apps,/id: storeIcon[\s\S]*?deferNewLoadsWhileScrolling: false[\s\S]*?framePacedPresentation: false/);
  assert.match(saved,/deferNewLoadsWhileScrolling: false/);
- assert.match(hero,/cacheBuffer: root\.cardWidth \* 2 \+ spacing \* 2/);
+ assert.match(hero,/cacheBuffer: Qt\.platform\.os === "wasm" \? root\.cardWidth \+ spacing : root\.cardWidth \* 2 \+ spacing \* 2/);
  assert.match(hero,/loadDelayMs: Math\.min\(160, featuredCell\.index \* 35\)/);
  assert.match(hero,/deferNewLoadsWhileScrolling: false/);
  assert.match(hero,/requestedSourceWidth: Math\.min\(640/);

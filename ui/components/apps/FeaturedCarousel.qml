@@ -108,7 +108,7 @@ Item {
         flickDeceleration: 3000
         // Retain both adjacent cards so a brief swipe backward does not
         // recreate its image provider and flash the square-icon fallback.
-        cacheBuffer: root.cardWidth * 2 + spacing * 2
+        cacheBuffer: Qt.platform.os === "wasm" ? root.cardWidth + spacing : root.cardWidth * 2 + spacing * 2
         interactive: root.cardCount > 1
         // Qt's ListView.currentIndex tracks selection, not the card visible
         // after a finger fling or positionViewAtIndex. Derive the counter from

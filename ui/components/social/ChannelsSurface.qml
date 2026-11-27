@@ -262,7 +262,7 @@ Item {
                     ? root.shownChannels
                     : root.channelSource ? root.channelSource.channelModel : null
                 reuseItems: true
-                cacheBuffer: Math.max(320, height)
+                cacheBuffer: Qt.platform.os === "wasm" ? 160 : Math.max(320, height)
                 clip: true
                 boundsBehavior: Flickable.DragOverBounds
                 bottomMargin: root.compact ? Theme.scaleUi(96) : Theme.space4

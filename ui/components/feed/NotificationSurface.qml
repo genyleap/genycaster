@@ -842,7 +842,7 @@ Item {
             // WASM delegates own images, layout and Neon shader resources.
             // Reusing a bounded near-viewport neighborhood dramatically
             // reduces the number of live QML items on large desktop screens.
-            cacheBuffer: Math.min(600, Math.max(240, height * 0.45))
+            cacheBuffer: Qt.platform.os === "wasm" ? 160 : Math.min(600, Math.max(240, height * 0.45))
             reuseItems: true
             property bool browserWheelInProgress: false
             onBrowserWheelInProgressChanged: {

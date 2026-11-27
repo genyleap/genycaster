@@ -155,7 +155,9 @@ Popup {
                                         : dataStorage.remoteImageSource(root.sourceFor(mediaPage.modelData),
                                               String(mediaPage.modelData.mediaCategory || "photos"),true)
                                     readonly property int requestedDecodeEdge: Math.min(
-                                        Qt.platform.os === "android" || Qt.platform.os === "ios" || Qt.platform.os === "wasm" ? 2048 : 4096,
+                                        Qt.platform.os === "wasm"
+                                            ? (mediaPage.index === gallery.currentIndex ? 2048 : 768)
+                                            : (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 2048 : 4096),
                                         Math.max(256, Math.ceil(Math.max(width, height) * Screen.devicePixelRatio
                                         * renderingController.mediaDecodeScale / 256) * 256))
                                     property int decodeEdge: requestedDecodeEdge

@@ -34,7 +34,7 @@ test('notification anchors never override active browser wheel movement',()=>{
 
 test('WASM notifications use bounded delegate cache and defer shader resources during scrolling',()=>{
   const qml=text('ui/components/feed/NotificationSurface.qml');
-  assert.match(qml,/cacheBuffer: Math\.min\(600, Math\.max\(240, height \* 0\.45\)\)/);
+  assert.match(qml,/cacheBuffer: Qt\.platform\.os === "wasm" \? 160 : Math\.min\(600, Math\.max\(240, height \* 0\.45\)\)/);
   assert.match(qml,/reuseItems: true/);
   assert.match(qml,/ambientNeon:[\s\S]*?!list\.browserWheelInProgress/);
   assert.match(qml,/Qt\.platform\.os !== "wasm" \|\| notificationRow\.latestActivity/);

@@ -100,7 +100,7 @@ test('single ordinary link Cast composes author sentence inside the responsive c
 
 test('decoded images remain bounded but warm when recycled feed rows return', () => {
     const cache = read('ui/app/media/remote_image.cpp');
-    assert.match(cache, /imageCacheCapacityKiB = 48 \* 1024/);
+    assert.match(cache, /imageCacheCapacityKiB = 24 \* 1024/);
     assert.match(cache, /imageCacheCapacityKiB = 64 \* 1024/);
     assert.match(cache, /imageCacheCapacityKiB = 128 \* 1024/);
     assert.match(cache, /rememberImage\(cacheKey, decoded.image, decoded.originalSize\)/);

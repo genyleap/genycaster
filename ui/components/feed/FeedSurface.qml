@@ -1482,8 +1482,8 @@ Item {
         // come from stable model reconciliation rather than a large offscreen cache.
         // Keep fewer heavyweight offscreen Cast delegates alive on phones.
         // Incubation and delegate reuse still provide continuity while flicking.
-        cacheBuffer: root.compact ? Math.min(Math.max(height * 0.33, 240), 440)
-                                  : Math.min(Math.max(height * 0.65, 480), 820)
+        cacheBuffer: root.compact ? (Qt.platform.os === "wasm" ? 160 : Math.min(Math.max(height * 0.33, 240), 440))
+                                  : (Qt.platform.os === "wasm" ? 320 : Math.min(Math.max(height * 0.65, 480), 820))
         pixelAligned: false
 
         // The relationship screen already owns its header in AppShell.

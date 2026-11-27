@@ -860,7 +860,8 @@ Item {
                     Layout.preferredHeight: !visible ? 0 : root.compact
                                             ? (root.visibleApps.length === 0
                                                ? Math.max(280, Math.min(400, appsScroller.height * 0.43))
-                                               : Math.max(1, appGrid.contentHeight))
+                                               : Math.max(1, Math.ceil(root.visibleApps.length / appGrid.targetColumns)
+                                                           * appGrid.cellHeight))
                                             : 0
 
                     GridLayout {
@@ -977,13 +978,47 @@ Item {
 
                             GridView {
                                 id: appGrid
-                                anchors.fill: parent
+                                // Compact mode has one outer scroll owner. Reserve the
+                                // full numerical extent above, but move a viewport-sized
+                                // GridView over it so pagination never instantiates every row.
+                                width: parent.width
+                                height: root.compact ? Math.min(parent.height, appsScroller.height) : parent.height
+                                y: root.compact ? compactViewportOffset : 0
+                                readonly property real compactViewportOffset: {
+                                    if (!root.compact) return 0
+                                    // Track the outer content offset and layout geometry.
+                                    const scrollY = appsScroller.contentY
+                                    const layoutY = contentViewport.mapToItem(appsScroller.contentItem, 0, 0).y
+                                    // mapToItem does not itself subscribe to ancestor movement.
+                                    let ancestor = contentViewport
+                                    while (ancestor && ancestor !== appsScroller.contentItem) {
+                                        const trackedY = ancestor.y
+                                        ancestor = ancestor.parent
+                                    }
+                                    const top = scrollY - layoutY
+                                    return Math.max(0, Math.min(top, Math.max(0, contentViewport.height - height)))
+                                }
+                                function syncCompactViewport() {
+                                    if (!root.compact) return
+                                    const target = originY + compactViewportOffset
+                                    if (Math.abs(contentY - target) > 0.5)
+                                        contentY = target
+                                }
+                                onCompactViewportOffsetChanged: syncCompactViewport()
+                                // Model replacement (including page append) can reset
+                                // the internal GridView offset even if its outer offset
+                                // has not changed. Reassert it after layout completes.
+                                onModelChanged: Qt.callLater(appGrid.syncCompactViewport)
+                                onCountChanged: Qt.callLater(appGrid.syncCompactViewport)
+                                onOriginYChanged: Qt.callLater(appGrid.syncCompactViewport)
+                                onHeightChanged: Qt.callLater(appGrid.syncCompactViewport)
+                                Component.onCompleted: Qt.callLater(appGrid.syncCompactViewport)
                                 visible: root.visibleApps.length > 0
-                                clip: !root.compact
+                                clip: true
                                 interactive: !root.compact
                                 boundsBehavior: Flickable.StopAtBounds
                                 model: root.visibleApps
-                                cacheBuffer: Math.min(height, 480)
+                                cacheBuffer: Qt.platform.os === "wasm" ? 160 : Math.min(height, 480)
 
                                 // Two scannable desktop columns with real
                                 // row-level controls; the phone icon grid stays
@@ -1060,7 +1095,7 @@ Item {
                                                 SuperellipseImage {
                                                     id: storeIcon
                                                     anchors.fill: parent
-                                                    source: String(cardCell.modelData.iconSource || "")
+                                                    source: root.compact ? String(cardCell.modelData.iconSource || "") : ""
                                                     mediaCategory: "miniapps"
                                                     forceAutomaticDownload: true
                                                     deferNewLoadsWhileScrolling: false
@@ -1234,7 +1269,7 @@ Item {
                                                 SuperellipseImage {
                                                     id: desktopAppIcon
                                                     anchors.fill: parent
-                                                    source: String(cardCell.modelData.iconSource || "")
+                                                    source: !root.compact ? String(cardCell.modelData.iconSource || "") : ""
                                                     mediaCategory: "miniapps"
                                                     fillMode: Image.PreserveAspectFit
                                                     forceAutomaticDownload: true

@@ -17,8 +17,9 @@ Flickable {
     property int layoutDirection: Theme.uiDirection
     property real gutter: Theme.space3
     property real outsideInset: gutter
-    property real cacheBuffer: Math.min(height * 1.25, 1200)
-    readonly property real retentionBuffer: cacheBuffer + Math.min(1200, Math.max(420, height * 1.15))
+    property real cacheBuffer: Qt.platform.os === "wasm" ? Math.min(height * 0.35, 280) : Math.min(height * 1.25, 1200)
+    readonly property real retentionBuffer: cacheBuffer + Math.min(Qt.platform.os === "wasm" ? 240 : 1200,
+        Math.max(Qt.platform.os === "wasm" ? 120 : 420, height * 1.15))
 
     // Exact painted heights survive viewport eviction and reverse scrolling.
     // The native window model holds the same width/revision-specific samples.

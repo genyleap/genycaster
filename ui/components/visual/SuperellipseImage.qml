@@ -63,6 +63,44 @@ Item {
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
     readonly property bool remoteSource: /^image:\/\/remote\//i.test(root.source.toString())
+    readonly property bool browserRemoteRaster: Qt.platform.os === "wasm"
+        && (root.remoteSource || /^https?:\/\//i.test(root.source.toString()))
+    // Keep the decode/texture working set tied to the visible page, including
+    // pooled ListView delegates and retained shell routes. Local assets and
+    // authored attachment previews keep their original behavior.
+    MediaResourceScope {
+        id: rasterScope
+        owner: root
+        observeViewport: root.browserRemoteRaster
+        viewportMargin: 240
+        requireOwnerVisible: false
+    }
+    readonly property bool rasterEligible: !root.browserRemoteRaster || rasterScope.eligible
+    onRasterEligibleChanged: {
+        if (!componentReady)
+            return
+        if (rasterEligible) {
+            rasterReleaseTimer.stop()
+            sourceStartTimer.restart()
+        } else {
+            sourceStartTimer.stop()
+            rasterReleaseTimer.restart()
+        }
+    }
+    Timer {
+        id: rasterReleaseTimer
+        interval: 300
+        onTriggered: {
+            if (!root.rasterEligible) {
+                root.activeSource = ""
+                root.invalidatePresentationAdmission()
+            }
+        }
+    }
+    // Keep intrinsic dimensions across viewport eviction, but never across
+    // a source identity change. Layout must not jump as pixels are released.
+    property real rememberedIntrinsicWidth: 0
+    property real rememberedIntrinsicHeight: 0
     // AnimatedImage cannot consume a QQuickImageProvider URL. Decode the
     // original canonical URL and use the bounded HTTPS image gateway on WASM.
     // Unsupported sources still keep the ordinary one-frame image fallback.
@@ -144,8 +182,10 @@ Item {
 
     readonly property int status: imageSource.status
     readonly property real progress: imageSource.progress
-    readonly property real sourceImplicitWidth: imageSource.implicitWidth
-    readonly property real sourceImplicitHeight: imageSource.implicitHeight
+    readonly property real sourceImplicitWidth: root.browserRemoteRaster && imageSource.status !== Image.Ready
+                                               ? rememberedIntrinsicWidth : imageSource.implicitWidth
+    readonly property real sourceImplicitHeight: root.browserRemoteRaster && imageSource.status !== Image.Ready
+                                                ? rememberedIntrinsicHeight : imageSource.implicitHeight
     readonly property Item renderItem: imageSource
     readonly property real paintedWidth: imageSource.paintedWidth
     readonly property real paintedHeight: imageSource.paintedHeight
@@ -247,7 +287,7 @@ Item {
     }
 
     function synchronizeActiveSource() {
-        if (!root.componentReady)
+        if (!root.componentReady || !root.rasterEligible)
             return
         if (!root.hasRenderableGeometry && root.activeSource.toString().length === 0)
             return
@@ -314,7 +354,9 @@ Item {
         const physical = Math.max(Number(requested || 0),
                                   Math.ceil(Math.max(1, logicalSize) * dpr * renderingController.mediaDecodeScale))
         const quantum = Math.max(32, Number(root.decodeQuantum || 128))
-        const cap = Qt.platform.os === "android" || Qt.platform.os === "ios" || Qt.platform.os === "wasm" ? 2048 : 4096
+        const cap = Qt.platform.os === "wasm"
+            ? (root.mediaCategory === "miniapps" ? 768 : 1536)
+            : (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 2048 : 4096)
         return Math.min(cap, Math.max(quantum, Math.ceil(physical / quantum) * quantum))
     }
 
@@ -385,13 +427,21 @@ Item {
     onStatusChanged: {
         if (status === Image.Ready || status === Image.Error) {
             root.sizeReloadInFlight = false
-            if (status === Image.Ready && root.desiredDecodeSize !== root.stableDecodeSize)
-                decodeSizeSettler.restart()
+            if (status === Image.Ready) {
+                if (root.browserRemoteRaster && !root.providerFallback) {
+                    root.rememberedIntrinsicWidth = imageSource.implicitWidth
+                    root.rememberedIntrinsicHeight = imageSource.implicitHeight
+                }
+                if (root.desiredDecodeSize !== root.stableDecodeSize)
+                    decodeSizeSettler.restart()
+            }
         }
     }
     onSizeReloadInFlightChanged: root.syncRetainWhileLoading()
     onRetainPreviousWhileLoadingChanged: root.syncRetainWhileLoading()
     onSourceChanged: {
+        root.rememberedIntrinsicWidth = 0
+        root.rememberedIntrinsicHeight = 0
         root.sizeReloadInFlight = false
         root.manualLoadRequested = false
         // Invalidate synchronously: derived effectiveSource bindings may still
@@ -489,7 +539,7 @@ Item {
         // RemoteImageProvider already has bounded memory + disk caches. Avoid
         // a second QML cache layer so transient one-pixel failure sentinels are
         // never sticky for the lifetime of the scene graph image key.
-        cache: root.remoteSource ? false : root.cache
+        cache: root.remoteSource || root.browserRemoteRaster ? false : root.cache
         smooth: true
         mipmap: false
         visible: root.ready || (root.retainPreviousWhileLoading && imageSource.status === Image.Loading)
@@ -517,6 +567,7 @@ Item {
         z: 1.5
         anchors.fill: parent
         active: root.allowAnimation && root.visible && root.componentReady
+            && root.rasterEligible
             && root.animatedGifUrl.length > 0 && !Theme.powerSave
             && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
         sourceComponent: AnimatedImage {
