@@ -27,6 +27,11 @@ gh release download "$TAG" -R "$REPO" \
 test -s "ci-apk/$TEST_APK" && test -s ci-apk/SHA256SUMS
 test -s "previous/$APK" && test -s previous/SHA256SUMS
 (cd ci-apk && sha256sum --check --status SHA256SUMS)
+if [[ -n "${ANDROID_SOURCE_RUN:-}" ]]; then
+  [[ "$ANDROID_SOURCE_RUN" == 46062023249 &&
+     "$ANDROID_SOURCE_SHA" == 4be3d1de2fd95875dbb30898f9257b87c16b4dfe ]]
+  printf '%s  %s\n' 6a9cd2a71f0da0badccc32a4eb1cee77ea22365924256fa252442b0cf7de5887 "ci-apk/$TEST_APK" | sha256sum -c
+fi
 (cd previous && grep -F "  $APK" SHA256SUMS | sha256sum --check --status)
 old_sha="$(sha256sum "previous/$APK" | cut -d' ' -f1)"
 jq -e --arg name "$APK" --arg sha "sha256:$old_sha" '
@@ -64,7 +69,9 @@ new=metadata('test-package.txt')
 assert old['name'] == new['name'] == 'com.genyleap.genycaster', (old,new)
 # Preserve exactly the installed application's manifest version. The
 # existing release identity must remain unchanged.
-assert old['versionName'] == new['versionName'] and old['versionName'] == '1.0.512', (old,new)
+# Both actual v1.0.512 APKs carry legacy Qt manifest versionName=1.0.
+# Preserve installed-app identity; the release tag is not the manifest version.
+assert old['versionName'] == new['versionName'] and old['versionName'] in ('1.0', '1.0.512'), (old,new)
 assert int(new['versionCode']) >= int(old['versionCode']), (old,new)
 print('VALIDATED: same Android package, release version and compatible versionCode')
 PY
@@ -158,7 +165,7 @@ for name in before:
 body=a["body"]
 marker="<!-- genycaster-android-linkage-repair-512 -->"
 body=body.split(marker)[0].rstrip()
-body+="\n\n"+marker+"\n\nAndroid APK replacement: [CI "+os.environ["GITHUB_RUN_ID"]+"](https://github.com/genyleap/genycaster/actions/runs/"+os.environ["GITHUB_RUN_ID"]+"), commit `"+os.environ["GITHUB_SHA"]+"`. Qt 6.12.1 / Android NDK r30; verified native symbol closure and original signing certificate. All other release assets unchanged. Device-level startup validation remains pending.\n"
+body+="\n\n"+marker+"\n\nAndroid APK replacement: [CI "+os.environ.get("ANDROID_SOURCE_RUN",os.environ["GITHUB_RUN_ID"])+"](https://github.com/genyleap/genycaster/actions/runs/"+os.environ.get("ANDROID_SOURCE_RUN",os.environ["GITHUB_RUN_ID"])+"), commit `"+os.environ.get("ANDROID_SOURCE_SHA",os.environ["GITHUB_SHA"])+"`. Qt 6.12.1 / Android NDK r30; verified native symbol closure and original signing certificate. All other release assets unchanged. Device-level startup validation remains pending.\n"
 (b/"updated-body.md").write_text(body)
 PY
 gh release edit "$TAG" -R "$REPO" --notes-file "$RUNNER_TEMP/updated-body.md"

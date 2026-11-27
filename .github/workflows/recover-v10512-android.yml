@@ -1,0 +1,45 @@
+name: Recover verified v1.0.512 Android APK
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: genycaster-existing-v1.0.512-android-apk
+  cancel-in-progress: false
+jobs:
+  repair:
+    if: github.repository == 'genyleap/genycaster' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    env:
+      ANDROID_SOURCE_RUN: '46062023249'
+      ANDROID_SOURCE_SHA: '4be3d1de2fd95875dbb30898f9257b87c16b4dfe'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Verify successful Android job and exact artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ANDROID_SOURCE_RUN" | jq -e --arg sha "$ANDROID_SOURCE_SHA" '.head_sha == $sha and .event == "workflow_dispatch" and .head_branch == "main" and .status == "completed"'
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ANDROID_SOURCE_RUN/jobs?per_page=100" | jq -e '[.jobs[]|select(.id == 140718510476 and (.name|startswith("Android APK")) and .conclusion == "success")]|length == 1'
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ANDROID_SOURCE_RUN/artifacts" | jq -e '[.artifacts[]|select(.id == 15229698111 and .name == "GenyCaster-android-arm64-v8a" and .expired == false)]|length == 1'
+          gh run download "$ANDROID_SOURCE_RUN" -R "$GITHUB_REPOSITORY" -n GenyCaster-android-arm64-v8a -D ci-apk
+      - name: Verify and owner-sign APK; replace only existing Android asset and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: bash ci/replace_v10512_android_apk.sh
