@@ -519,7 +519,10 @@ Flickable {
                         easing.type: Easing.OutCubic
                     }
                 }
-                asynchronous: false
+                // A visible skeleton is a nontrivial item tree as well.
+                // Incubate it rather than doing all of its construction in
+                // the native model's rowsInserted call stack.
+                asynchronous: true
                 sourceComponent: Component {
                     Item {
                         Superellipse {

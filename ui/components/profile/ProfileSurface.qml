@@ -77,6 +77,12 @@ Item {
         if (typeof renderingController !== "undefined" && renderingController
                 && renderingController.shuttingDown === true)
             return
+        // Snapshot the request identity before publishing detail. The bridge
+        // shares stateChanged across unrelated properties, so a live FID
+        // binding can be reentered while dependent QML controls are created.
+        const requestedFid = root.resolveProfileFidText()
+        if (root.profileFidText !== requestedFid)
+            root.profileFidText = requestedFid
         const next = root.resolveActiveDetail()
         const signature = JSON.stringify(next)
         // A general bridge stateChanged() can fire for a feed or pending
@@ -251,15 +257,19 @@ Item {
         const entry=root.moodOptions.find(option=>option.id===String(mood||'none'))
         return entry || root.moodOptions[root.moodOptions.length-1]
     }
-    // Preserve protocol FIDs as decimal text; QML Numbers lose uint64 precision.
-    // Do not derive the request target from activeDetail: detail depends
-    // on the target, and the request-bound side effects also depend on this
-    // property. That cycle is observable on desktop Qt 6.12.
-    readonly property string profileFidText: root.ownProfileNavigation
-        ? root.accountFidText
-        : (String(presentationBridge.activeProfileFidText || "0") !== "0"
-            ? String(presentationBridge.activeProfileFidText)
-            : String((root.detail || ({})).fidString || (root.detail || ({})).fid || ""))
+    // Keep protocol FIDs as decimal text. This is a committed snapshot, not
+    // a binding on the bridge's broad stateChanged notification. Consumers
+    // must never derive the request target from the resolved activeDetail.
+    property string profileFidText: ""
+    function resolveProfileFidText() {
+        if (root.ownProfileNavigation)
+            return root.accountFidText
+        const requested = String(presentationBridge.activeProfileFidText || "0")
+        if (requested !== "0")
+            return requested
+        const detail = root.detail || ({})
+        return String(detail.fidString || detail.fid || "")
+    }
     // The selected read provider identifies the profile's protocol. It must
     // not be inferred from FID magnitude or from a previous account session.
     readonly property string activeReadNetwork:
@@ -1373,6 +1383,10 @@ Item {
         const traceStart = typeof renderingController !== "undefined" && renderingController
                 && renderingController.stallDiagnosticsEnabled === true
                 ? renderingController.diagnosticClockMs() : -1
+        // Identity and row payloads must be reconciled in the same scope,
+        // even if the bridge published rows before its queued identity timer.
+        root.synchronizeActiveDetail()
+        root.reconcileProfileRowsIdentity()
         const source = root.sortedRows()
         if (root.busy && source.length === 0 && profileRowsModel.count > 0) {
             if (traceStart >= 0)

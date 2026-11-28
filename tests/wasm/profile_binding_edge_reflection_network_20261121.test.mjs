@@ -13,7 +13,7 @@ const activeDetailExpression = profile.split('function resolveActiveDetail() {')
 const resolveDetail = new Function('root','presentationBridge',activeDetailExpression);
 
 test('profile identity is a one-way binding: bridge request -> detail; no retained QML feedback loop', () => {
-    const key = profile.split('readonly property string profileFidText:')[1]
+    const key = profile.split('function resolveProfileFidText() {')[1]
         .split('readonly property string activeReadNetwork:')[0];
     assert.doesNotMatch(key, /root\.activeDetail/);
     assert.match(key,/presentationBridge\.activeProfileFidText/);
@@ -24,8 +24,9 @@ test('profile identity is a one-way binding: bridge request -> detail; no retain
     assert.match(profile,/function synchronizeActiveDetail\(\)/);
     assert.match(profile,/if \(signature === root\.activeDetailSignature\) return/);
     assert.match(profile,/root\.activeDetail = next/);
-    assert.match(profile,/onDetailChanged: \{\s*root\.synchronizeActiveDetail\(\)/);
-    assert.match(profile,/onAuthenticationStateChanged\(\) \{ Qt\.callLater\(root\.synchronizeActiveDetail\) \}/);
+    assert.match(profile,/onDetailChanged: \{[\s\S]*?if \(root\.visible\) root\.synchronizeActiveDetail\(\)/);
+    assert.match(profile,/onAuthenticationStateChanged\(\) \{ activeDetailSyncTimer\.restart\(\) \}/);
+    assert.match(profile,/root\.profileFidText = requestedFid/);
     const state = {
         ownProfileNavigation:false, accountFidText:'42',
         detail:{fid:12,fidString:'12',displayName:'Previous person'},

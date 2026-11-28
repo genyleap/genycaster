@@ -20,6 +20,8 @@ resolver = "    function resolveActiveDetail() {" + extract(
     "    function resolveActiveDetail() {", "    function synchronizeActiveDetail() {")
 synchronizer = "    function synchronizeActiveDetail() {" + extract(
     "    function synchronizeActiveDetail() {", "    // Coalesce duplicate session")
+fid_resolver = "    function resolveProfileFidText() {" + extract(
+    "    function resolveProfileFidText() {", "    // The selected read provider")
 
 fixture = """import QtQuick
 Item {
@@ -32,6 +34,9 @@ Item {
     property string activeReadNetwork: "farcaster"
     property var activeDetail: ({})
     property string activeDetailSignature: ""
+    property string activeDetailNetwork: ""
+    property string profileFidText: ""
+    readonly property string profileNetwork: ownProfileNavigation ? accountNetwork : activeReadNetwork
     property int transitions: 0
     onActiveDetailChanged: transitions += 1
     function ensure(condition, message) {
@@ -53,7 +58,7 @@ Item {
         signal stateChanged()
         signal authenticationStateChanged()
     }
-""" + resolver + synchronizer + """
+""" + resolver + synchronizer + fid_resolver + """
     Connections {
         target: presentationBridge
         function onStateChanged() { Qt.callLater(root.synchronizeActiveDetail) }
@@ -76,6 +81,7 @@ Item {
                 presentationBridge.stateChanged()
             } else if (stage === 1) {
                 root.ensure(!root.activeDetail.fid, "stale original after Back")
+                root.ensure(root.profileFidText === "73", "request identity updated independently of detail")
                 root.detail = {fid: 73, fidString: "73", displayName: "New person"}
             } else if (stage === 2) {
                 root.ensure(root.activeDetail.displayName === "New person", "new identity")
@@ -93,6 +99,7 @@ Item {
                             "verified owner restored")
                 root.ensure(root.activeDetail.followerCount === 33,
                             "authentic profile counters")
+                root.ensure(root.profileFidText === "42", "own request identity")
                 root.ensure(root.transitions <= 10,
                             "unexpected binding feedback storm")
                 console.log("PROFILE_QML_RUNTIME_PASS", root.transitions)

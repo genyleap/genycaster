@@ -389,6 +389,19 @@ unchanged. The frame trace includes newMediaTicket, a correlation flag for
 newly synchronized media admission, not an upload duration or proof of GPU
 causality. Inspect Metal with Instruments for remaining recording spikes.
 
+## v3 follow-up: request identity and placeholder incubation
+
+The v3 Metal device log exposed a profileFidText binding loop during cold
+ProfileSurface incubation. The request FID is now an explicit decimal-string
+snapshot committed by the existing detail synchronizer, rather than a
+live binding to the broad bridge stateChanged signal. A visible profile
+reconciles its request identity before projecting rows. The Magazine
+skeleton also incubates asynchronously: the previous slot-count budget
+did not bound synchronous construction of the placeholder's item tree.
+Neither change establishes a measured maximum frame time. The engine's
+remaining creation warning, long GUI delivery delays and recording spikes
+require separate device verification; no warnings are filtered.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

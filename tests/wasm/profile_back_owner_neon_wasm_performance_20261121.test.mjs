@@ -100,7 +100,7 @@ test('reused QML ProfileSurface never reveals previous identity or cross-protoco
     assert.notEqual(own.displayName, 'Late reply');
     assert.doesNotMatch(profile, /retainedDetailNetwork === root\.profileNetwork/);
     assert.match(profile, /presentationBridge\.activeProfileFidText/);
-    const target = profile.split('readonly property string profileFidText:')[1]
+    const target = profile.split('function resolveProfileFidText() {')[1]
         .split('readonly property string activeReadNetwork:')[0];
     assert.doesNotMatch(target, /root\.activeDetail/);
 });
