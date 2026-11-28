@@ -150,8 +150,9 @@ test('Profile shares its one header, footer and native identity model between tw
   assert.match(profile, /readonly property var readList: root\.profileMagazineEnabled \? profileMagazineView : profileList/);
   assert.match(profile, /id: profileHeaderComponent/);
   assert.match(profile, /id: profileFooterComponent/);
-  assert.equal((profile.match(/header: profileHeaderComponent/g) || []).length, 2,
-    'both reading modes keep their profile cover mounted');
+  assert.match(profile, /header: !root\.profileMagazineEnabled \|\| root\.timelineHeaderRetained\s*\? profileHeaderComponent : null/);
+  assert.match(profile, /header: root\.profileMagazineEnabled \|\| root\.magazineHeaderRetained\s*\? profileHeaderComponent : null/);
+  assert.match(profile, /function retainSelectedHeader\(\)/);
   assert.equal((profile.match(/footer: profileFooterComponent/g) || []).length, 2);
   assert.match(profile, /model: profileRowsModel/);
   assert.match(profile, /model: root\.profileMagazineEnabled \? null : profileRowsModel/);

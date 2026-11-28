@@ -122,6 +122,14 @@ Item {
     property string displayLayout: "timeline"
     readonly property bool profileMagazineEnabled: !root.compact && displayLayout !== "timeline"
     readonly property var readList: root.profileMagazineEnabled ? profileMagazineView : profileList
+    // Construct only the selected header on cold entry. Once a mode has
+    // been visited, retain its header across layout toggles as before.
+    property bool timelineHeaderRetained: false
+    property bool magazineHeaderRetained: false
+    function retainSelectedHeader() {
+        if (root.profileMagazineEnabled) root.magazineHeaderRetained = true
+        else root.timelineHeaderRetained = true
+    }
 
     // Cold/changed identity: construct the visible header first, allow it
     // to request its own media, and only then admit post delegates. A slow
@@ -178,7 +186,10 @@ Item {
         return isFinite(origin) ? origin : 0
     }
     // Both modes use the same stable-keyed model, header and media renderer.
-    onProfileMagazineEnabledChanged: profileLayoutSwitch.restart()
+    onProfileMagazineEnabledChanged: {
+        if (root.profileComponentReady) root.retainSelectedHeader()
+        profileLayoutSwitch.restart()
+    }
     Timer {
         id: profileLayoutSwitch
         interval: 0
@@ -728,6 +739,7 @@ Item {
         root.synchronizeActiveDetail()
         root.migrateLegacyProfileExtras()
         root.profileComponentReady = true
+        root.retainSelectedHeader()
         root.reconcileProfileRowsIdentity()
         if (!root.profileRowsReleased && !profileHeaderDeadline.running)
             root.beginProfileHeaderPriority()
@@ -1759,9 +1771,10 @@ Item {
             }
         }
 
-        // Retain the cover/bio header across Magazine/Timeline switches.
-        // Recreating its image/text tree on each toggle caused a visible flash.
-        header: profileHeaderComponent
+        // Do not build an unused second copy during initial navigation.
+        // After first use, keep it mounted to avoid repeat-toggle flashes.
+        header: !root.profileMagazineEnabled || root.timelineHeaderRetained
+                ? profileHeaderComponent : null
         Component {
           id: profileHeaderComponent
           ColumnLayout {
@@ -3505,7 +3518,8 @@ Item {
         visible: root.profileMagazineEnabled
         // The native window model keeps only viewport cards alive when shown.
         model: profileRowsModel
-        header: profileHeaderComponent
+        header: root.profileMagazineEnabled || root.magazineHeaderRetained
+                ? profileHeaderComponent : null
         footer: profileFooterComponent
         targetCardWidth: Theme.scaleUi(420)
         maximumColumns: 3

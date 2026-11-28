@@ -531,6 +531,16 @@ visual insets, compact policy, magazine height and shared media/neon policy
 are preserved. This eliminates a known subtree replacement path, not every
 possible binding or compact-layout cost. No render quality setting is changed.
 
+## Profile cold construction
+
+The v6 first profile click lasted 171.55 ms and enclosed the synchronous
+profile loader's Ready marker. Both reading modes previously constructed
+the full cover/bio header on cold entry. Each now constructs its header
+only when selected and retains it after first use. This preserves the
+header-first post gate and repeated-switch retention. The first-ever
+alternate-layout switch may pay its one-time construction cost instead.
+The actual navigation latency and visual behavior need device validation.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:
