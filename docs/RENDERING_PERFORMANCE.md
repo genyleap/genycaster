@@ -196,6 +196,30 @@ presentation work; it does not directly limit GPU upload bytes or measure
 physical GPU execution time. Actual Qt texture upload scheduling remains
 backend-owned.
 
+## Revision-only Magazine updates
+
+A source change restricted to the revision role can update the existing
+numeric slot and its admitted delegate without rebuilding all lane geometry.
+Revisions include both mutable viewer state and content hydration, so the
+current geometry is provisional, not proof that the content is unchanged.
+The existing QML revision-settle and painted-height measurement paths remain
+authoritative. A changed measured height, cached different height for the
+returning revision, changed layout role, or pending structural reconciliation
+still uses the full layout path.
+
+Recording an exact sample equal to the committed slot height at the same
+width and revision stores the sample without requesting another layout.
+The optimization deliberately uses exact geometry equality; resize samples
+and pending structural layout retain their previous behavior. It does not
+change typography, card height calculations, scroll anchoring or lane rules.
+
+The native model test includes 5,000 rows and verifies zero geometry
+notifications for compatible on- and offscreen revisions, delivery of the
+offscreen revision on entry, real height changes, returning cached revisions,
+and revision updates while a reorder is pending. The QML masonry fixture
+continues to exercise actual expanding/shrinking cards and resizing. This
+is a structural reduction in work, not a measured macOS frame-time result.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

@@ -177,6 +177,8 @@ private:
         qreal height{0};
     };
     void scheduleRelayout();
+    void sourceDataChanged(const QModelIndex& first, const QModelIndex& last,
+                           const QList<int>& roles);
     void synchronizeWindow();
     [[nodiscard]] QString heightKey(const QString& key, const QString& revision,
                                     qreal width) const;
@@ -210,5 +212,7 @@ private:
     bool m_active{false};
     bool m_retainExisting{false};
     bool m_relayoutScheduled{false};
+    // Stays dirty even after the invalidation signal: QML may defer layout.
+    bool m_sourceGeometryDirty{true};
     bool m_forceRepack{false};
 };

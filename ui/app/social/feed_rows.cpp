@@ -316,7 +316,7 @@ void MasonryWindowModel::setSourceModel(FeedRowsModel* const model)
         connect(model, &QAbstractItemModel::rowsMoved, this,
             [this] { scheduleRelayout(); });
         connect(model, &QAbstractItemModel::dataChanged, this,
-            [this] { scheduleRelayout(); });
+            &MasonryWindowModel::sourceDataChanged);
         connect(model, &QAbstractItemModel::modelReset, this,
             [this] { m_forceRepack = true; scheduleRelayout(); });
         connect(model, &QObject::destroyed, this, [this] {
@@ -339,12 +339,67 @@ qreal MasonryWindowModel::shortestColumnBottom() const noexcept
 
 void MasonryWindowModel::scheduleRelayout()
 {
+    m_sourceGeometryDirty = true;
     if (m_relayoutScheduled) return;
     m_relayoutScheduled = true;
     QTimer::singleShot(0, this, [this] {
         m_relayoutScheduled = false;
-        emit geometryInvalidated();
+        if (m_sourceGeometryDirty)
+            emit geometryInvalidated();
     });
+}
+
+void MasonryWindowModel::sourceDataChanged(const QModelIndex& first,
+                                          const QModelIndex& last,
+                                          const QList<int>& roles)
+{
+    // Revision includes viewer state AND structural hydration. Keep the
+    // existing reservation only provisionally; the live card must still
+    // measure its new content. Never bypass a pending structural layout.
+    if (!m_source || m_sourceGeometryDirty || m_forceRepack
+        || roles.size() != 1 || roles.front() != FeedRowsModel::RevisionKeyRole
+        || !first.isValid() || !last.isValid()
+        || first.row() < 0 || last.row() < first.row()
+        || last.row() >= m_geometry.size()
+        || m_source->count() != m_geometry.size()) {
+        scheduleRelayout();
+        return;
+    }
+    // Validate the entire changed range before touching any slot. A cached
+    // height for a returning revision can require genuine reflow.
+    for (int i = first.row(); i <= last.row(); ++i) {
+        const auto& row = m_source->m_rows.at(i);
+        const auto& slot = m_geometry.at(i);
+        const QString id = heightKey(slot.key, row.revisionKey, m_cardWidth);
+        const auto transient = m_resizeSamples.constFind(id);
+        const auto measured = m_heightSamples.constFind(id);
+        if (row.stableKey != slot.key
+            || (transient != m_resizeSamples.cend() && *transient != slot.height)
+            || (transient == m_resizeSamples.cend()
+                && measured != m_heightSamples.cend() && *measured != slot.height)) {
+            scheduleRelayout();
+            return;
+        }
+    }
+    for (int i = first.row(); i <= last.row(); ++i)
+        m_geometry[i].revision = m_source->m_rows.at(i).revisionKey;
+
+    // Only notify already admitted rows. Offscreen slots pick up the new
+    // revision on entry, with no creation, lane changes or viewport restore.
+    for (int i = 0; i < m_window.size(); ++i) {
+        auto& slot = m_window[i];
+        if (slot.sourceIndex < first.row() || slot.sourceIndex > last.row())
+            continue;
+        const auto& desired = m_geometry.at(slot.sourceIndex);
+        if (slot.key != desired.key) {
+            scheduleRelayout();
+            return;
+        }
+        if (slot.revision == desired.revision)
+            continue;
+        slot.revision = desired.revision;
+        emit dataChanged(createIndex(i, 0), createIndex(i, 0), {RevisionKeyRole});
+    }
 }
 
 QString MasonryWindowModel::heightKey(const QString& key, const QString& revision,
@@ -405,6 +460,17 @@ bool MasonryWindowModel::retainHeight(const QString& key, const QString& revisio
     }
     m_heightSamples[id] = height;
     m_exactSamples[id] = measured;
+    // A new revision needs its own cached sample even when its measured
+    // geometry is unchanged. Storing that sample alone is not a reflow.
+    if (!m_sourceGeometryDirty && !m_forceRepack && width == m_cardWidth) {
+        const auto found = m_indexByKey.constFind(key);
+        if (found != m_indexByKey.cend()) {
+            const auto& slot = m_geometry.at(*found);
+            if (slot.revision == revision && slot.height == height
+                && !m_resizeSamples.contains(id))
+                return false;
+        }
+    }
     return true;
 }
 
@@ -484,6 +550,7 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
     }
     m_geometry = std::move(geometry);
     m_indexByKey = std::move(indexByKey);
+    m_sourceGeometryDirty = false;
     m_bottom = m_geometry.isEmpty() ? std::max(0.0, m_top - m_gap)
         : *std::max_element(bottoms.cbegin(), bottoms.cend());
     m_shortestBottom = m_geometry.size() >= m_columns

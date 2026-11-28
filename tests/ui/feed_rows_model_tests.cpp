@@ -189,6 +189,72 @@ int main(int argc, char** argv)
     magazine.setViewport(0.0, 720.0, 280.0, 950.0, false);
     require(magazine.count() == 0);
 
+    // Revision-only changes must reach visible cards without rebuilding
+    // numeric geometry, including a revision of an offscreen source row.
+    FeedRowsModel revisionRows{};
+    for (int i = 0; i < 5000; ++i)
+        revisionRows.append({{QStringLiteral("stableKey"), QString::number(i)},
+                             {QStringLiteral("revisionKey"), QStringLiteral("r1")}});
+    MasonryWindowModel revisionWall{};
+    revisionWall.setSourceModel(&revisionRows);
+    revisionWall.relayout(3, 320, 12, 12, 12, false);
+    revisionWall.setViewport(0, 720, 280, 950, true);
+    QCoreApplication::processEvents();
+    QSignalSpy invalidated{&revisionWall, &MasonryWindowModel::geometryInvalidated};
+    QSignalSpy geometryChanges{&revisionWall, &MasonryWindowModel::geometryChanged};
+    QSignalSpy revisions{&revisionWall, &QAbstractItemModel::dataChanged};
+    const auto geometryBefore = revisionWall.geometryAt(0);
+    const auto tailBefore = revisionWall.geometryAt(4999);
+    const auto previousBottom = revisionWall.rowsBottom();
+    const auto originalHeight = geometryBefore.value(QStringLiteral("height")).toReal();
+    revisionRows.setProperty(0, QStringLiteral("revisionKey"), QStringLiteral("r2"));
+    require(revisions.size() == 1);
+    require(revisions.first().at(2).value<QList<int>>() ==
+            QList<int>{MasonryWindowModel::RevisionKeyRole});
+    require(revisionWall.data(revisionWall.index(0,0), MasonryWindowModel::RevisionKeyRole)
+            == QStringLiteral("r2"));
+    require(!revisionWall.retainHeight(QStringLiteral("0"), QStringLiteral("r2"),
+                                      320, originalHeight, true));
+    revisionRows.setProperty(4999, QStringLiteral("revisionKey"), QStringLiteral("r3"));
+    QCoreApplication::processEvents();
+    require(invalidated.isEmpty() && geometryChanges.isEmpty() && revisions.size() == 1);
+    require(revisionWall.geometryAt(0) == geometryBefore);
+    require(revisionWall.geometryAt(4999) == tailBefore);
+    require(revisionWall.rowsBottom() == previousBottom);
+    revisionWall.setViewport(tailBefore.value(QStringLiteral("y")).toReal(), 720, 280, 950, true);
+    const int tailWindowIndex = revisionWall.windowIndexForSource(4999);
+    require(tailWindowIndex >= 0);
+    require(revisionWall.data(revisionWall.index(tailWindowIndex,0),
+            MasonryWindowModel::RevisionKeyRole) == QStringLiteral("r3"));
+    // A genuine height change must still request layout. Returning to a
+    // cached revision with a different size also takes the full path.
+    require(revisionWall.retainHeight(QStringLiteral("0"), QStringLiteral("r2"),
+                                      320, originalHeight + 300, true));
+    revisionWall.relayout(3, 320, 12, 12, 12, false);
+    require(revisionWall.geometryAt(0).value(QStringLiteral("height")).toReal()
+            == originalHeight + 300);
+    revisionWall.retainHeight(QStringLiteral("0"), QStringLiteral("r1"), 320,
+                              originalHeight, true);
+    revisionRows.setProperty(0, QStringLiteral("revisionKey"), QStringLiteral("r1"));
+    QCoreApplication::processEvents();
+    require(invalidated.size() == 1);
+    revisionWall.relayout(3, 320, 12, 12, 12, false);
+    require(revisionWall.geometryAt(0).value(QStringLiteral("height")).toReal()
+            == originalHeight);
+    invalidated.clear();
+    // A pending reorder remains dirty after its notification is dispatched.
+    revisionRows.move(0, 1, 1);
+    QCoreApplication::processEvents();
+    require(invalidated.size() == 1);
+    revisionRows.setProperty(0, QStringLiteral("revisionKey"), QStringLiteral("moved"));
+    QCoreApplication::processEvents();
+    require(invalidated.size() == 2);
+    revisionWall.relayout(3, 320, 12, 12, 12, false);
+    require(revisionWall.geometryAt(0).value(QStringLiteral("stableKey")) == QStringLiteral("1"));
+    revisionWall.setViewport(0, 720, 280, 950, true);
+    require(revisionWall.data(revisionWall.index(0,0), MasonryWindowModel::RevisionKeyRole)
+            == QStringLiteral("moved"));
+
     // Batch reconciliation preserves rows across hydration, append and
     // reordering; only an unrelated scope replaces the entire model.
     FeedRowsModel incremental{};
