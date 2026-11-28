@@ -16,13 +16,13 @@ test('Feed notice labels never bind their own height to their implicit height', 
         const item = feed.slice(feed.indexOf('id: ' + wrapper), feed.indexOf('id: ' + label));
         assert.doesNotMatch(item, /height: visible \? implicitHeight/, 'no self-referential Label geometry');
     }
-    assert.match(feed, /implicitHeight: feedHeaderLoader\.implicitHeight \+ topicFilterNotice\.height/);
+    assert.match(feed, /implicitHeight:[\s\S]*?: feedHeaderLoader\.implicitHeight \+ topicFilterNotice\.height \+ communityNotice\.height/);
 });
 
 test('Magazine Profile CastItem uses actual painted height and supports rich code blocks', () => {
     const profile = read('ui/components/profile/ProfileSurface.qml');
     const profileMagazine = profile.slice(profile.indexOf('id: profileMagazineView'));
-    assert.match(profileMagazine, /delegate: Component \{\s*CastItem \{\s*width: parent\.width[\s\S]*?height: implicitHeight/);
+    assert.match(profileMagazine, /delegate: Component \{\s*CastItem \{\s*width: parent\.width[\s\S]*?height: Math\.max\(implicitHeight, magazinePaintHeight\)/);
     assert.match(profileMagazine, /sharedMediaGeometry: profileMagazineView/);
     assert.match(profileMagazine, /modelData: \{[\s\S]*?const revision = parent\.revisionKey/);
     assert.match(profileMagazine, /onMovementEnded: \{[\s\S]*?root\.scheduleLoadMore\(\)/);
