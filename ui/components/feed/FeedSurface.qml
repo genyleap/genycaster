@@ -169,6 +169,9 @@ Item {
     // JS object/list wrappers can otherwise be rejected. Keep only primitive,
     // type-stable roles in ListModel and store row payloads externally by key.
     property var stablePayloads: ({})
+    // Bounded, per-surface memoization of the classifier's immutable inputs.
+    // Never retain a whole cast/metadata object or use viewer revisions as keys.
+    readonly property var staticMediaFamilies: new Map()
     property string stableProjectionScope: ""
     property string pendingViewportKey: ""
     property real pendingViewportOffset: 0
@@ -330,14 +333,52 @@ Item {
         return false
     }
 
-    function classifiedFamily(embed, knownMetadata) {
+    function staticMediaFamilyKey(embed) {
+        const value = embed || ({})
+        const fields = [value.kind, value.url, value.value, value.mediaType,
+                        value.contentType, value.providerKind]
+        let size = 0
+        for (let i = 0; i < fields.length; ++i) {
+            if (fields[i] === undefined || fields[i] === null)
+                fields[i] = ""
+            else if (typeof fields[i] !== "string")
+                return ""
+            size += fields[i].length
+        }
+        // Preserve exact field boundaries and avoid retaining unusually
+        // large data URLs. Non-string inputs use the canonical Qt conversion.
+        if (size > 2048)
+            return ""
+        const key = JSON.stringify(fields)
+        return key.length <= 2048 ? key : ""
+    }
+
+    function classifiedFamily(embed, knownMetadata, allowEviction) {
         const metadata = knownMetadata !== undefined
                          ? (knownMetadata || ({}))
                          : (typeof linkPreviewResolver !== "undefined" && linkPreviewResolver !== null
                             ? linkPreviewResolver.previewFor(root.embedUrl(embed)) : ({}))
         if (typeof mediaClassifier !== "undefined" && mediaClassifier !== null) {
+            // Only calls with explicit empty classifier metadata may reuse
+            // static results. Resolver-backed metadata is always evaluated.
+            const key = knownMetadata !== undefined
+                        && metadata.contentType === undefined
+                        && metadata.providerKind === undefined
+                        ? root.staticMediaFamilyKey(embed) : ""
+            const cache = root.staticMediaFamilies
+            if (key && cache.has(key))
+                return cache.get(key)
             const classified = mediaClassifier.classify(embed || {}, metadata)
-            return String(classified.family || "web")
+            const family = String(classified.family || "web")
+            // A long full-feed scan must not evict every warm entry on
+            // each refresh. Only on-demand geometry may replace entries
+            // when the cache is full.
+            if (key && (cache.size < 2048 || allowEviction !== false)) {
+                if (cache.size >= 2048)
+                    cache.delete(cache.keys().next().value)
+                cache.set(key, family)
+            }
+            return family
         }
         return String(embed && embed.kind ? embed.kind : "web").toLowerCase()
     }
@@ -412,7 +453,7 @@ Item {
             const metadata = root.collectiblePreview(embed)
             const kind = String(embed.kind || "").toLowerCase()
             const value = root.embedUrl(embed)
-            const family = root.classifiedFamily(embed, metadata)
+            const family = root.classifiedFamily(embed, metadata, false)
             const directArtwork = String(embed.imageSource || embed.previewImage
                                          || metadata.previewImage || metadata.imageSource || "")
             // Some media origins return bare URLs for real NFT photographs
@@ -477,7 +518,7 @@ Item {
                 return true
             // A classified direct attachment is different from an OG image
             // on an article. Do not infer artwork from the latter.
-            if (root.classifiedFamily(embed, ({})) === "image")
+            if (root.classifiedFamily(embed, ({}), false) === "image")
                 return true
         }
         return false
@@ -775,7 +816,7 @@ Item {
         const embeds = (row || ({})).embeds || []
         let imageCount = 0
         for (let index = 0; index < embeds.length; ++index) {
-            if (root.classifiedFamily(embeds[index], ({})) === "image")
+            if (root.classifiedFamily(embeds[index], ({}), false) === "image")
                 ++imageCount
         }
         return imageCount === 1 ? "single-image" : imageCount > 1 ? "gallery" : "other"
@@ -799,16 +840,20 @@ Item {
         const textLimit = root.magazineEnabled ? 360 : root.compact ? 420 : 560
         const sourceText = String(value.text || "")
         const textLength = Math.min(textLimit, sourceText.length)
-        const logicalLines = Math.min(root.magazineEnabled ? 7 : 9,
-                                      sourceText.split("\n").length)
+        const lineCount = sourceText.split("\n").length
+        const logicalLines = Math.min(root.magazineEnabled ? 7 : 9, lineCount)
         const textLines = textLength > 0
             ? Math.max(logicalLines, Math.ceil(textLength / charactersPerLine))
-                + (sourceText.length > textLimit || sourceText.split("\n").length > logicalLines ? 2 : 0) : 0
+                + (sourceText.length > textLimit || lineCount > logicalLines ? 2 : 0) : 0
         const embeds = value.embeds || []
         let supportingEmbedCount = 0
-        for (let index = 0; index < embeds.length; ++index) {
-            if (root.classifiedFamily(embeds[index], ({})) !== "image")
-                ++supportingEmbedCount
+        // Only image layouts consume this count. Text/link-only rows must
+        // not re-enter the native media classifier during height estimation.
+        if (layoutKind === "single-image" || layoutKind === "gallery") {
+            for (let index = 0; index < embeds.length && supportingEmbedCount < 2; ++index) {
+                if (root.classifiedFamily(embeds[index], ({})) !== "image")
+                    ++supportingEmbedCount
+            }
         }
         let reservation = 112 + textLines * lineHeight
 
@@ -1215,6 +1260,8 @@ Item {
         root.deferFeedWork(true, false, false)
     }
     onActiveFeedChanged: {
+        if (root.staticMediaFamilies)
+            root.staticMediaFamilies.clear()
         root.restartSemanticDeadline()
         root.beginSelectionHandoff()
         if (root.activeFeed === "channel" && root.presentationActive)

@@ -220,6 +220,41 @@ and revision updates while a reorder is pending. The QML masonry fixture
 continues to exercise actual expanding/shrinking cards and resizing. This
 is a structural reduction in work, not a measured macOS frame-time result.
 
+## Feed projection work budget
+
+Profile sorting decorates each row with its numeric time and (only in Popular)
+its score once. The comparator and tie ordering remain the same, and the
+original row objects are returned without mutation. Native reconciliation now
+returns whether the canonical stable ID sequence changed. Profile uses that
+result to decide whether to restore its viewport anchor instead of reading
+a QVariantMap per row before reconciliation.
+
+The Feed and Profile reservation estimators split source text once. Feed
+only counts supporting embeds for image layouts, stopping at two because
+the existing reservation already caps supporting cards at two. The
+underlying height formula and asynchronous real-height measurement remain.
+
+Feed static media classification uses a per-surface FIFO of at most 2,048
+entries, keyed by the classifier's exact kind, URL/value, mediaType,
+contentType and providerKind fields. The serialized key is capped at 2,048
+characters, and malformed/non-string inputs use the original native path.
+Resolver calls and metadata containing classification evidence always use
+native classification. The cache retains strings only (no payloads or
+metadata objects), is not persisted, and does not depend on the incomplete
+structural revision or mutable viewer state. Full-feed scans admit only
+while capacity remains, avoiding sequential-scan eviction of the entire
+warm cache; on-demand height lookups can replace entries when full, and an
+active-feed switch clears the cache. No NFT/developer filter rule or dynamic
+link metadata behavior is changed.
+
+The JavaScript regression compares the actual sorting functions against the
+previous comparator on 5,002 rows, checks classification invocation counts,
+eviction and reservation equivalence. The isolated Qt Quick runtime
+exercises the actual production functions with a counting classifier stub.
+The native model fixture verifies the structural return value for empty,
+revision-only, duplicate, moved and removed rows. These are work-count and
+functional checks, not measured real-device CPU or GPU speedups.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

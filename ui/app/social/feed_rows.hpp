@@ -73,8 +73,8 @@ public:
     /** @brief Updates one mutable role only if its primitive value changes. */
     Q_INVOKABLE void setProperty(int index, const QString& role, const QVariant& value);
 
-    /** @brief Reconciles a snapshot by stable identity with batched native mutations. */
-    Q_INVOKABLE void reconcile(const QVariantList& rows);
+    /** @brief Reconciles a snapshot; returns true if stable row order/count changed. */
+    Q_INVOKABLE bool reconcile(const QVariantList& rows);
 
 signals:
     void countChanged();

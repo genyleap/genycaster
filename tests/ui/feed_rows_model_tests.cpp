@@ -255,6 +255,24 @@ int main(int argc, char** argv)
     require(revisionWall.data(revisionWall.index(0,0), MasonryWindowModel::RevisionKeyRole)
             == QStringLiteral("moved"));
 
+    // The caller can use the native structural outcome to avoid a second
+    // per-row QVariantMap pass and unnecessary viewport restoration.
+    FeedRowsModel structuralOutcome;
+    const QVariantMap outcomeA{{QStringLiteral("stableKey"), QStringLiteral("a")},
+                               {QStringLiteral("revisionKey"), QStringLiteral("r1")}};
+    const QVariantMap outcomeB{{QStringLiteral("stableKey"), QStringLiteral("b")},
+                               {QStringLiteral("revisionKey"), QStringLiteral("r1")}};
+    QVariantMap updatedA = outcomeA;
+    updatedA[QStringLiteral("revisionKey")] = QStringLiteral("r2");
+    require(!structuralOutcome.reconcile({}));
+    require(structuralOutcome.reconcile({outcomeA, outcomeB}));
+    require(!structuralOutcome.reconcile({updatedA, outcomeB}));
+    require(!structuralOutcome.reconcile({updatedA, outcomeB, outcomeB}));
+    require(structuralOutcome.reconcile({outcomeB, updatedA}));
+    require(structuralOutcome.reconcile({outcomeB}));
+    require(structuralOutcome.reconcile({}));
+    require(!structuralOutcome.reconcile({}));
+
     // Batch reconciliation preserves rows across hydration, append and
     // reordering; only an unrelated scope replaces the entire model.
     FeedRowsModel incremental{};

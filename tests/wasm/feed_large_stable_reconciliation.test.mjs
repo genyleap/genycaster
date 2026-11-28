@@ -54,7 +54,7 @@ test('a reordered feed sends ordered stable IDs for native reconciliation', () =
     assert.deepEqual(Array.from(result.calls[0], row => row.stableKey),
         desired.map(row => row.castId));
     assert.equal(result.calls.length, 1);
-    assert.match(cpp, /void FeedRowsModel::reconcile\(const QVariantList& rows\)/);
+    assert.match(cpp, /bool FeedRowsModel::reconcile\(const QVariantList& rows\)/);
     assert.match(cpp, /beginMoveRows\(\{\}, found, found, \{\}, i\)/);
 });
 

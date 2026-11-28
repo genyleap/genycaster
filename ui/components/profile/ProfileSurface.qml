@@ -1133,22 +1133,27 @@ Item {
     function sortedRows() {
         const source = root.rows || []
         const result = []
-        for (let index = 0; index < source.length; ++index)
-            result.push(source[index])
-
-        if (root.profileFeed === "user-popular") {
-            result.sort(function(left, right) {
-                const scoreDelta = root.popularityScore(right) - root.popularityScore(left)
-                return scoreDelta !== 0 ? scoreDelta : root.rowTime(right) - root.rowTime(left)
-            })
-            return result
+        const popular = root.profileFeed === "user-popular"
+        // Decorate once: QVariantMap field access and number conversion no
+        // longer repeat in every comparison of a large profile timeline.
+        for (let index = 0; index < source.length; ++index) {
+            const row = source[index]
+            result.push({row: row, time: root.rowTime(row),
+                         score: popular ? root.popularityScore(row) : 0})
         }
 
-        const direction = root.profileSortMode === "oldest" ? 1 : -1
-        result.sort(function(left, right) {
-            return (root.rowTime(left) - root.rowTime(right)) * direction
-        })
-        return result
+        if (popular) {
+            result.sort(function(left, right) {
+                const scoreDelta = right.score - left.score
+                return scoreDelta !== 0 ? scoreDelta : right.time - left.time
+            })
+        } else {
+            const direction = root.profileSortMode === "oldest" ? 1 : -1
+            result.sort(function(left, right) {
+                return (left.time - right.time) * direction
+            })
+        }
+        return result.map(entry => entry.row)
     }
 
     readonly property var displayRows: root.sortedRows()
@@ -1199,11 +1204,11 @@ Item {
         const textLimit = root.profileMagazineEnabled ? 360 : root.compact ? 420 : 560
         const sourceText = String(value.text || "")
         const textLength = Math.min(textLimit, sourceText.length)
-        const logicalLines = Math.min(root.profileMagazineEnabled ? 7 : 9,
-                                      sourceText.split("\n").length)
+        const lineCount = sourceText.split("\n").length
+        const logicalLines = Math.min(root.profileMagazineEnabled ? 7 : 9, lineCount)
         const textLines = textLength > 0
             ? Math.max(logicalLines, Math.ceil(textLength / charactersPerLine))
-                + (sourceText.length > textLimit || sourceText.split("\n").length > logicalLines ? 2 : 0) : 0
+                + (sourceText.length > textLimit || lineCount > logicalLines ? 2 : 0) : 0
         const embeds = value.embeds || []
         let reservation = 112 + textLines * lineHeight
 
@@ -1362,7 +1367,6 @@ Item {
 
         const next = []
         const retainedKeys = Object.create(null)
-        let structureChanged = profileRowsModel.count !== source.length
         for (let index = 0; index < source.length; ++index) {
             const key = root.rowKey(source[index], index)
             const revision = root.rowRevision(source[index])
@@ -1370,12 +1374,10 @@ Item {
             root.stablePayloads[key] = source[index]
             next.push({stableKey: key, revisionKey: revision,
                        presentationKind: "conversation", mediaLayoutKind: "other"})
-            if (!structureChanged && String(profileRowsModel.get(index).stableKey) !== key)
-                structureChanged = true
         }
-        // Reconcile once; the native adapter keeps stable delegates intact
-        // for unchanged rows and batches large identity replacements.
-        profileRowsModel.reconcile(next)
+        // Native reconciliation already compares stable IDs. Return its
+        // structural outcome rather than fetching a QVariantMap per row.
+        const structureChanged = profileRowsModel.reconcile(next)
         for (const key in root.stablePayloads) {
             if (!retainedKeys[key])
                 delete root.stablePayloads[key]

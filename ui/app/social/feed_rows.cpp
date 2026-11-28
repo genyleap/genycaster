@@ -151,7 +151,7 @@ void FeedRowsModel::setProperty(const int index, const QString& role, const QVar
     emit dataChanged(changed, changed, {roleId});
 }
 
-void FeedRowsModel::reconcile(const QVariantList& rows)
+bool FeedRowsModel::reconcile(const QVariantList& rows)
 {
     QList<Row> incoming{};
     incoming.reserve(rows.size());
@@ -166,8 +166,9 @@ void FeedRowsModel::reconcile(const QVariantList& rows)
         incoming.append(std::move(row));
     }
     if (incoming.isEmpty()) {
+        const bool structureChanged = !m_rows.isEmpty();
         clear();
-        return;
+        return structureChanged;
     }
 
     // When hydration or reaction updates preserve stable row order, avoid
@@ -199,7 +200,7 @@ void FeedRowsModel::reconcile(const QVariantList& rows)
                       })) {
         for (int index = 0; index < incoming.size(); ++index)
             updateRoles(index, incoming.at(index));
-        return;
+        return false;
     }
 
     // Provider/audience switches with almost no common IDs should not
@@ -221,7 +222,7 @@ void FeedRowsModel::reconcile(const QVariantList& rows)
         m_rows = std::move(incoming);
         endResetModel();
         emit countChanged();
-        return;
+        return true;
     }
 
     bool countChangedValue = false;
@@ -257,6 +258,7 @@ void FeedRowsModel::reconcile(const QVariantList& rows)
         countChangedValue = true;
     }
     if (countChangedValue) emit countChanged();
+    return true;
 }
 
 MasonryWindowModel::MasonryWindowModel(QObject* const parent) : QAbstractListModel(parent) {}
