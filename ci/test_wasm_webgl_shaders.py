@@ -32,6 +32,9 @@ class WebglShaderCompatibilityTests(unittest.TestCase):
         self.assertIn("else()", config)
         self.assertIn("qt_add_resources(genycaster genycaster_surface_effects", config)
         self.assertIn("shaders/neon.frag.qsb", config)
+        self.assertIn("shaders/neon-analytic.frag.qsb", config)
+        self.assertIn('if(_shader STREQUAL "neon-analytic")', config)
+        self.assertIn('"#define GENYCASTER_NEON_ANALYTIC 1"', config)
         self.assertIn("shaders/reflection.frag.qsb", config)
         self.assertIn("fwidth(sdf)", config)
         self.assertIn("dFdx(edgeSdf)", config)
@@ -75,7 +78,8 @@ class WebglShaderCompatibilityTests(unittest.TestCase):
         self.assertEqual(source.count(
             "format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F"), 3)
         self.assertIn("live: root.capturing && !root.browserRenderer", source)
-        self.assertIn("running: root.browserRenderer && root.capturing", source)
+        self.assertIn("running: root.capturing && !root.resizingCapture", source)
+        self.assertIn("&& (root.browserRenderer || root.motionActive)", source)
         self.assertIn("onTriggered: root.refreshCapture()", source)
         for stage in ("capture", "horizontalTexture", "blurredTexture"):
             self.assertIn(f"{stage}.scheduleUpdate()", source)

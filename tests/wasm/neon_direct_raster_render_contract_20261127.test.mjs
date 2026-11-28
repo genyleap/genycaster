@@ -48,6 +48,19 @@ test('reflection updates during reader movement with bounded coherent snapshots'
  assert.match(shell,/motionActive: Boolean\([\s\S]*?feedSurfaceLoader\.item\.readList\.moving[\s\S]*?profileSurfaceLoader\.item\.readList\.moving[\s\S]*?homeDashboard\.scrolling/);
 });
 
+test('neutral Halo uses the sampler-free variant without allocating a dummy image',()=>{
+ const halo=read('ui/components/visual/NeonHalo.qml');
+ const shader=read('ui/shaders/neon.frag');
+ const cmake=read('ui/CMakeLists.txt');
+ assert.match(halo,/samplesEnvironment: reflectionSourceIsSafe\s*&& reflectionStrength > 0 && Theme\.reflectionGain > 0/);
+ assert.match(halo,/environmentSource: root\.samplesEnvironment\s*\? root\.reflectionSource\.texture : null/);
+ assert.match(halo,/fragmentShader: root\.samplesEnvironment\s*\? "qrc:\/genycaster\/effects\/neon\.frag\.qsb"\s*: "qrc:\/genycaster\/effects\/neon-analytic\.frag\.qsb"/);
+ assert.doesNotMatch(halo,/emptyEnvironment|transparent\.png/);
+ assert.match(shader,/#if !GENYCASTER_NEON_ANALYTIC\s*layout\(binding = 1\) uniform sampler2D environmentSource;/);
+ assert.match(cmake,/foreach\(_shader IN ITEMS neon neon-analytic [^\n]+raster-contour\)/);
+ assert.match(cmake,/shaders\/neon-analytic\.frag\.qsb/);
+});
+
 test('inactive reflection receivers do not observe the source coordinate chain',()=>{
  for (const file of ['NeonReflection','NeonHalo','NeonSurface']) {
   const receiver=read('ui/components/visual/'+file+'.qml');

@@ -152,19 +152,13 @@ Item {
     opacity: !suppressed && Theme.neonEnabled
         ? (Theme.neonMotionEnabled ? envelope : (responding ? 1 : 0)) : 0
 
-    // A ShaderEffect sampler must have a texture provider even when its
-    // source is disabled. This singleton-size PNG is not a scene capture.
-    Image {
-        id: emptyEnvironment
-        width: 1
-        height: 1
-        visible: false
-        asynchronous: false
-        cache: true
-        source: "qrc:/genycaster/effects/transparent.png"
-    }
+    // Match the Neon kit's analytic/environment material split. Neutral
+    // hover, ambient and activity lighting needs no texture provider.
+    readonly property bool samplesEnvironment: reflectionSourceIsSafe
+        && reflectionStrength > 0 && Theme.reflectionGain > 0
 
     ShaderEffect {
+        objectName: "neonHaloMaterial"
         anchors.fill: parent
         blending: true
         property vector4d surfaceParameters: Qt.vector4d(Math.max(1, root.width), Math.max(1, root.height), root.cornerRadius, root.cornerPower)
@@ -174,8 +168,8 @@ Item {
         property vector4d cornerFlags: Qt.vector4d(root.curveTopLeft ? 1 : 0,
             root.curveTopRight ? 1 : 0, root.curveBottomRight ? 1 : 0,
             root.curveBottomLeft ? 1 : 0)
-        property variant environmentSource: root.reflectionSourceIsSafe
-            ? root.reflectionSource.texture : emptyEnvironment
+        property variant environmentSource: root.samplesEnvironment
+            ? root.reflectionSource.texture : null
         property vector2d environmentSize: Qt.vector2d(
             root.reflectionSource ? Math.max(1, root.reflectionSource.width) : 1,
             root.reflectionSource ? Math.max(1, root.reflectionSource.height) : 1)
@@ -186,6 +180,8 @@ Item {
             Math.max(1, root.reflectionReach), root.useLight ? 1 : 0,
             root.reflectionSource ? 2 * root.reflectionSource.effectiveBlur : 0)
         property real steadyActivity: root.visualSteady
-        fragmentShader: "qrc:/genycaster/effects/neon.frag.qsb"
+        fragmentShader: root.samplesEnvironment
+            ? "qrc:/genycaster/effects/neon.frag.qsb"
+            : "qrc:/genycaster/effects/neon-analytic.frag.qsb"
     }
 }

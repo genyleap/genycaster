@@ -731,6 +731,7 @@ qt_add_resources(farcaster_media_scroll_tests media_scroll_effects
     FILES
         "${genycasterUiSourceDir}/shaders/transparent.png"
         "${genycasterUiSourceDir}/shaders/neon.frag.qsb"
+        "${genycasterUiSourceDir}/shaders/neon-analytic.frag.qsb"
         "${genycasterUiSourceDir}/shaders/reflection.frag.qsb"
         "${genycasterUiSourceDir}/shaders/gaussian.frag.qsb"
         "${genycasterUiSourceDir}/shaders/reflection-gaussian.frag.qsb")

@@ -1730,9 +1730,15 @@ if(EMSCRIPTEN)
     set(_genycasterWebglShaderRoot "${CMAKE_CURRENT_BINARY_DIR}/generated/webgl-shaders")
     file(MAKE_DIRECTORY "${_genycasterWebglShaderRoot}")
     set(_genycasterWebglShaders)
-    foreach(_shader IN ITEMS neon reflection gaussian reflection-gaussian raster-contour)
-        file(READ "${CMAKE_CURRENT_SOURCE_DIR}/shaders/${_shader}.frag" _shaderText)
-        if(_shader STREQUAL "neon" OR _shader STREQUAL "reflection")
+    foreach(_shader IN ITEMS neon neon-analytic reflection gaussian reflection-gaussian raster-contour)
+        if(_shader STREQUAL "neon-analytic")
+            file(READ "${CMAKE_CURRENT_SOURCE_DIR}/shaders/neon.frag" _shaderText)
+            string(REPLACE "#define GENYCASTER_NEON_ANALYTIC 0"
+                "#define GENYCASTER_NEON_ANALYTIC 1" _shaderText "${_shaderText}")
+        else()
+            file(READ "${CMAKE_CURRENT_SOURCE_DIR}/shaders/${_shader}.frag" _shaderText)
+        endif()
+        if(_shader MATCHES "^neon" OR _shader STREQUAL "reflection")
             string(FIND "${_shaderText}" "fwidth(sdf)" _hasDerivative)
             if(_hasDerivative EQUAL -1)
                 message(FATAL_ERROR "WebGL compatibility audit: missing expected derivative in ${_shader}")
@@ -1791,6 +1797,7 @@ else()
             "${CMAKE_CURRENT_SOURCE_DIR}/shaders/reflection-gaussian.frag.qsb"
             "${CMAKE_CURRENT_SOURCE_DIR}/shaders/reflection.frag.qsb"
             "${CMAKE_CURRENT_SOURCE_DIR}/shaders/neon.frag.qsb"
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/neon-analytic.frag.qsb"
             "${CMAKE_CURRENT_SOURCE_DIR}/shaders/raster-contour.frag.qsb"
             "${CMAKE_CURRENT_SOURCE_DIR}/shaders/transparent.png")
 endif()

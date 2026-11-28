@@ -736,6 +736,37 @@ Genycaster retains its bounded motion snapshots and existing material shaders;
 porting the native material pipeline requires separate parity and backend
 qualification. No compact blur kernel or reflection gain change is introduced.
 
+## v10 follow-up: reduce repeated projection and neutral Halo work
+
+The new device trace retains motion-linked reflections, but slow frames still
+cluster in CPU-side pre-main-pass recording. The trace does not attribute the
+time to an individual GPU pass. Keep the chromatic capture cadence and blur
+kernel unchanged while removing avoidable work:
+
+- A single collectible projection reads each exact URL's resolver metadata
+  once, even when several casts or predicates refer to it. The cache belongs
+  only to that synchronous projection; the next metadata update is evaluated
+  anew. The real QML engine fixture reduces seven resolver calls to two for
+  four casts without changing their eligibility or provider order.
+- Magazine exact height recall now uses the existing bounded native sample
+  cache (600 settled records, with separate transient resize samples).
+  Estimates cannot masquerade as exact painted measurements. The duplicate
+  JavaScript height dictionary and FIFO are removed.
+- Following Neon's analytic/environment shader split, a Halo without active
+  chromatic sampling selects a sampler-free variant of the same shader. It
+  does not instantiate a dummy transparent Image or attach its texture.
+  Sampled Halo keeps the original QSB byte-for-byte. The native and
+  derivative-free browser-compatible variants retain the same uniform ABI.
+  Qt RHI pixel tests compare 24 neutral configurations (tint, steady
+  activity, asymmetric corners) and exercise a real texture-provider switch.
+  The maximum permitted 8-bit channel delta is one; a nonzero reflection is
+  required in the sampled case. This is not a Metal frame-time measurement.
+
+Regenerate both reviewed native QSB packages with
+`cmake -DQT_QSB_EXECUTABLE=/path/to/qsb -P scripts/regenerate-neon-shader.cmake`.
+The browser build derives both variants from the same source and replaces
+derivatives before baking the WebGL packages.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

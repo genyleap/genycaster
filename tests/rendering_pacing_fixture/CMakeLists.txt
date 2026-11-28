@@ -110,7 +110,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(pacing_opengl PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=xcb;QSG_RHI_BACKEND=opengl;QT_QUICK_BACKEND=rhi;LIBGL_ALWAYS_SOFTWARE=1" TIMEOUT 20)
     find_program(QT_QSB_EXECUTABLE NAMES qsb HINTS "${Qt6_DIR}/../../../bin" NO_DEFAULT_PATH)
     if(Python3_Interpreter_FOUND AND QML_TEST_RUNNER AND QT_QSB_EXECUTABLE)
-      foreach(fixture IN ITEMS gaussian_shader_equivalence_runtime reflection_capture_runtime drawer_backdrop_runtime)
+      foreach(fixture IN ITEMS gaussian_shader_equivalence_runtime neon_shader_equivalence_runtime reflection_capture_runtime drawer_backdrop_runtime)
         add_test(NAME "${fixture}" COMMAND "${XVFB_RUN}" -a
           "${Python3_EXECUTABLE}" "${root}/tests/ui/${fixture}.py")
         set_tests_properties("${fixture}" PROPERTIES

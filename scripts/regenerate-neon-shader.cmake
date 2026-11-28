@@ -29,3 +29,18 @@ if(NOT dump_code EQUAL 0 OR NOT reflection MATCHES "cornerFlags")
     message(FATAL_ERROR "Neon QSB reflection missing cornerFlags uniform: ${dump_error}")
 endif()
 message(STATUS "Rebuilt and inspected portable Neon shader: ${bundle}")
+set(analyticBundle "${CMAKE_CURRENT_LIST_DIR}/../ui/shaders/neon-analytic.frag.qsb")
+execute_process(
+    COMMAND "${qsb}" --glsl 100es,120,150 --hlsl 50 --msl 12
+            -D GENYCASTER_NEON_ANALYTIC=1 -o "${analyticBundle}" "${shader}"
+    RESULT_VARIABLE code ERROR_VARIABLE errors)
+if(NOT code EQUAL 0)
+    message(FATAL_ERROR "Unable to rebuild analytic Neon QSB: ${errors}")
+endif()
+execute_process(COMMAND "${qsb}" --dump "${analyticBundle}"
+    RESULT_VARIABLE dump_code OUTPUT_VARIABLE reflection ERROR_VARIABLE dump_error)
+if(NOT dump_code EQUAL 0 OR NOT reflection MATCHES "cornerFlags"
+        OR reflection MATCHES "sampler2D|environmentSource")
+    message(FATAL_ERROR "Analytic Neon QSB must retain contour uniforms and omit the environment sampler: ${dump_error}")
+endif()
+message(STATUS "Rebuilt and inspected sampler-free Neon shader: ${analyticBundle}")

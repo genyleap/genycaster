@@ -16,7 +16,14 @@ layout(std140, binding = 0) uniform buf {
     vec4 environmentParameters; // hue weight, reach, polarity, sample depth
     float steadyActivity;
 };
+// The analytic variant shares the complete uniform ABI but has no texture
+// provider or sampling instructions. Both variants use the same contour.
+#ifndef GENYCASTER_NEON_ANALYTIC
+#define GENYCASTER_NEON_ANALYTIC 0
+#endif
+#if !GENYCASTER_NEON_ANALYTIC
 layout(binding = 1) uniform sampler2D environmentSource;
+#endif
 float superellipseDistance(vec2 point, vec2 extent, float radius, float power,
                            vec4 roundedCorners)
 {
@@ -40,6 +47,7 @@ float superellipseDistance(vec2 point, vec2 extent, float radius, float power,
     }
     return max(q.x, q.y) - r;
 }
+#if !GENYCASTER_NEON_ANALYTIC
 // Color only the half of the rim facing the source, with the same spatial
 // falloff as the projected body reflection. Neutral hover always remains.
 float sourceFacingWeight(vec2 uv, vec4 receiver, vec2 size)
@@ -83,6 +91,7 @@ vec4 reflectedEdgeMaterial(vec3 baseColor, out float colorWeight)
     return vec4(mix(baseColor, hue * mix(0.62, 0.96, environmentParameters.z),
                     contribution), mix(1.0, distanceFade, contribution));
 }
+#endif
 
 void main()
 {
@@ -117,6 +126,9 @@ void main()
     // Explicit semantic tint continues to win over neighboring artwork.
     float tint = clamp(tintParameters.a, 0.0, 1.0);
     base = mix(base, tintParameters.rgb, tint);
+#if GENYCASTER_NEON_ANALYTIC
+    fragColor = vec4(base * alpha, alpha);
+#else
     float colorWeight;
     vec4 environment = reflectedEdgeMaterial(base, colorWeight);
     float headroom = clamp(lightParameters.y, 0.0, 1.0);
@@ -130,4 +142,5 @@ void main()
     alpha *= environment.a;
     vec3 finalColor = mix(environment.rgb, base, tint);
     fragColor = vec4(finalColor * alpha, alpha);
+#endif
 }
