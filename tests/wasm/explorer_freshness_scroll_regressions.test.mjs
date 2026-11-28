@@ -244,7 +244,7 @@ test('NFT and developer tabs favor real channel casts and preserve independent p
     assert.match(local, /"feed:nfts"/);
     assert.match(local, /"feed:developers"/);
     assert.match(model, /Nfts, Developers/);
-    assert.match(surface, /root\.hasCollectible\(row\)/);
+    assert.match(surface, /root\.hasCollectible\(row, previewCache\)/);
     assert.doesNotMatch(surface, /root\.activeFeed === "nfts" \|\| root\.hasCollectible\(row\)/);
     assert.match(surface, /root\.activeFeed === "developers"/);
 });
@@ -252,7 +252,7 @@ test('NFT and developer tabs favor real channel casts and preserve independent p
 test('NFT image admission accepts opaque artwork CDN URLs but not ordinary links', () => {
     const qml = read('ui/components/feed/FeedSurface.qml');
     const artworkMatch = qml.match(/    function looksLikeArtworkUrl\(value\) \{([\s\S]*?)\n    \}/);
-    const imageMatch = qml.match(/    function rowHasImage\(data\) \{([\s\S]*?)\n    \}/);
+    const imageMatch = qml.match(/    function rowHasImage\(data, previewCache\) \{([\s\S]*?)\n    \}/);
     assert.ok(artworkMatch && imageMatch);
     const looksLikeArtworkUrl = new Function('value', artworkMatch[0] + '\nreturn looksLikeArtworkUrl(value);');
     const rowHasImage = new Function('root', 'data', imageMatch[0] + '\nreturn rowHasImage(data);');

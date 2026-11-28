@@ -385,6 +385,25 @@ int main(int argc, char** argv)
     require(revisionWall.data(revisionWall.index(0,0), MasonryWindowModel::RevisionKeyRole)
             == QStringLiteral("moved"));
 
+    // Exact height recall is now owned entirely by the native model, not
+    // a second QML dictionary. Estimates and transient samples are not exact.
+    MasonryWindowModel heightRecall{};
+    require(heightRecall.recalledHeight(QStringLiteral("a"), QStringLiteral("r1"), 320) == 0);
+    require(heightRecall.retainHeight(QStringLiteral("a"), QStringLiteral("r1"), 320, 250, false));
+    require(heightRecall.recalledHeight(QStringLiteral("a"), QStringLiteral("r1"), 320) == 0);
+    heightRecall.retainHeight(QStringLiteral("a"), QStringLiteral("r1"), 320, 250, true);
+    require(heightRecall.recalledHeight(QStringLiteral("a"), QStringLiteral("r1"), 320) == 250);
+    require(heightRecall.recalledHeight(QStringLiteral("a"), QStringLiteral("r2"), 320) == 0);
+    require(heightRecall.recalledHeight(QStringLiteral("a"), QStringLiteral("r1"), 420) == 0);
+    require(heightRecall.retainHeight(QStringLiteral("a"), QStringLiteral("r1"), 320, 360, true, true));
+    require(heightRecall.recalledHeight(QStringLiteral("a"), QStringLiteral("r1"), 320) == 250);
+    require(!heightRecall.retainHeight(QStringLiteral("a"), QStringLiteral("r1"), 320, 100, false));
+    require(heightRecall.recalledHeight(QStringLiteral("a"), QStringLiteral("r1"), 320) == 250);
+    for (int i = 0; i < 600; ++i)
+        heightRecall.retainHeight(QString::number(i), QStringLiteral("r1"), 320, 400, true);
+    require(heightRecall.recalledHeight(QStringLiteral("a"), QStringLiteral("r1"), 320) == 0);
+    require(heightRecall.recalledHeight(QStringLiteral("599"), QStringLiteral("r1"), 320) == 400);
+
     // Repeating a geometry commit for an explicit scroll jump must not
     // rebuild unchanged numeric rows or publish a redundant notification.
     geometryChanges.clear();

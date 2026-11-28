@@ -29,10 +29,8 @@ Flickable {
         ? Math.min(cacheBuffer, Math.max(height * 0.35, Math.abs(verticalVelocity) * 0.15))
         : cacheBuffer
 
-    // Exact painted heights survive viewport eviction and reverse scrolling.
-    // The native window model holds the same width/revision-specific samples.
-    property var measuredHeights: ({})
-    property var measuredOrder: []
+    // Exact painted heights survive viewport eviction and reverse scrolling
+    // in the native width/revision-specific sample cache.
     property var aspectMemory: ({})
     property var aspectOrder: []
     // A reservation belongs to a specific cast/media identity, not a texture.
@@ -86,27 +84,9 @@ Flickable {
         }
         aspectMemory[id] = value
     }
-    function heightKey(key, revision, width) {
-        return String(key) + "|" + String(revision) + "|" + Number(width).toFixed(2)
-    }
-    function recalledHeight(key, revision, width) {
-        return Number(measuredHeights[heightKey(key, revision, width)] || 0)
-    }
     function retainHeight(key, revision, width, height) {
         if (!(height > 0) || !key) return
-        if (resizeInProgress) {
-            if (layoutModel.retainHeight(key, revision, width, height, true, true))
-                scheduleLayout()
-            return
-        }
-        const id = heightKey(key, revision, width)
-        if (!Object.prototype.hasOwnProperty.call(measuredHeights, id)) {
-            measuredOrder.push(id)
-            if (measuredOrder.length > 400)
-                delete measuredHeights[measuredOrder.shift()]
-        }
-        measuredHeights[id] = height
-        if (layoutModel.retainHeight(key, revision, width, height, true))
+        if (layoutModel.retainHeight(key, revision, width, height, true, resizeInProgress))
             scheduleLayout()
     }
 
@@ -377,7 +357,7 @@ Flickable {
             required property bool retiring
             visible: !retiring
             enabled: !retiring
-            property real measuredHeight: view.recalledHeight(stableKey, revisionKey, width)
+            property real measuredHeight: layoutModel.recalledHeight(stableKey, revisionKey, width)
             // A revision update (especially Like/Recast) can briefly shrink
             // the nested Qt Layout before it completes rearrangement.
             // Grow immediately, but only commit a smaller height after the
@@ -444,7 +424,7 @@ Flickable {
             clip: true
 
             function offerEstimate() {
-                if (retiring || view.resizeInProgress || !view.estimateHeight || view.recalledHeight(stableKey, revisionKey, width) > 0)
+                if (retiring || view.resizeInProgress || !view.estimateHeight || layoutModel.recalledHeight(stableKey, revisionKey, width) > 0)
                     return
                 const hint = Number(view.estimateHeight(stableKey, presentationKind,
                                                         mediaLayoutKind, width))
@@ -496,7 +476,7 @@ Flickable {
                 revisionSettling = true
                 revisionSettleTimer.restart()
                 const previousPaintedHeight = measuredHeight
-                measuredHeight = view.recalledHeight(stableKey, revisionKey, width)
+                measuredHeight = layoutModel.recalledHeight(stableKey, revisionKey, width)
                 // A like/recast changes the row revision but not the cast's
                 // text/media geometry. Retain its old painted height until
                 // the updated content reports its own implicitHeight.

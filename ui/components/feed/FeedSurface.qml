@@ -288,10 +288,18 @@ Item {
         return /^eip155:\d+\/erc(?:721|1155):0x[0-9a-f]{40}(?:\/[^/?#]+|:[^/?#]+)?(?:$|[/?#])/i.test(text)
     }
 
-    function collectiblePreview(embed) {
+    function collectiblePreview(embed, previewCache) {
         if (typeof linkPreviewResolver === "undefined" || linkPreviewResolver === null)
             return ({})
-        return linkPreviewResolver.previewFor(root.embedUrl(embed)) || ({})
+        const url = root.embedUrl(embed)
+        if (!url) return ({})
+        if (previewCache && previewCache.has(url))
+            return previewCache.get(url)
+        const preview = linkPreviewResolver.previewFor(url) || ({})
+        // One synchronous semantic projection sees one resolver snapshot per
+        // exact URL. Never persist metadata across previewReady or account changes.
+        if (previewCache) previewCache.set(url, preview)
+        return preview
     }
 
     function isFungibleTokenEvidence(embed, metadata) {
@@ -437,12 +445,12 @@ Item {
         return false
     }
 
-    function rowHasImage(data) {
+    function rowHasImage(data, previewCache) {
         const row = data || ({})
         const embeds = row.embeds || []
         for (let index = 0; index < embeds.length; ++index) {
             const embed = embeds[index] || ({})
-            const metadata = root.collectiblePreview(embed)
+            const metadata = root.collectiblePreview(embed, previewCache)
             const kind = String(embed.kind || "").toLowerCase()
             const value = root.embedUrl(embed)
             const family = root.classifiedFamily(embed, metadata, false)
@@ -460,7 +468,7 @@ Item {
         return false
     }
 
-    function containsCollectibleLink(data) {
+    function containsCollectibleLink(data, previewCache) {
         const row = data || ({})
         if (root.isCollectibleMarketplaceUrl(row.text)
                 || root.isCollectibleMarketplaceUrl(row.parentUrl))
@@ -469,7 +477,7 @@ Item {
         const embeds = row.embeds || []
         for (let index = 0; index < embeds.length; ++index) {
             const embed = embeds[index] || ({})
-            const metadata = root.collectiblePreview(embed)
+            const metadata = root.collectiblePreview(embed, previewCache)
             if (root.isFungibleTokenEvidence(embed, metadata))
                 continue
             const value = root.embedUrl(embed)
@@ -516,7 +524,7 @@ Item {
         return false
     }
 
-    function hasCollectible(data) {
+    function hasCollectible(data, previewCache) {
         const row = data || ({})
         const text = String(row.text || "")
         const explicitNft = /(?:\bnfts?\b|\b(?:cryptoart|nftart)\b|\bon[- ]?chain art\b|\bdigital collectibles?\b|\bnon[- ]fungible tokens?\b|\berc[- ]?(?:721|1155)\b|\b(?:nft|art|collectible)\s+mint\b)/i.test(text)
@@ -524,7 +532,7 @@ Item {
         // are not evidence of art: medical posts and product screenshots
         // routinely contain them. Require specific artistic subject matter.
         const artContext = /(?:\b(?:artworks?|cryptoart|illustrations?|illustrator|paintings?|sculptures?)\b|\b(?:digital|generative|pixel|abstract|concept|fine|visual|on[- ]?chain|original) art\b|\b(?:my|our|new|original) (?:art|artwork|painting|illustration|sculpture)\b|\b(?:fine[- ]art|street|landscape|portrait|artistic|macro) photography\b|\b(?:oil|watercolor|watercolour|acrylic) (?:painting|on canvas)\b)/i.test(text)
-        if (root.containsCollectibleLink(row))
+        if (root.containsCollectibleLink(row, previewCache))
             return true
         const campaign = /\b(?:daily tasks?|check[- ]ins?|onchain claims?|claim (?:points|rewards)|earn (?:points|rewards)|token farming|airdrop farming|reward points)\b/i.test(text)
         const nftSubject = /\b(?:nft(?:s)?\s+(?:art|artist|collection|marketplace|royalties|ownership|mint|edition)|(?:mint|collect|sell|buy|own)(?:ing|ed)?\s+(?:an?\s+|the\s+)?nft|erc[- ]?(?:721|1155)|non[- ]fungible tokens?|digital collectibles?)\b/i.test(text)
@@ -532,7 +540,7 @@ Item {
             return false
         if (root.isArtChannelCast(row) || explicitNft)
             return true
-        if (artContext && root.rowHasImage(row))
+        if (artContext && root.rowHasImage(row, previewCache))
             return true
         // Following is already account scoped. Use artist identity + original
         // media for captionless artworks, without importing global results.
@@ -755,6 +763,8 @@ Item {
         // or insert old indexed results above today's casts.
 
         const result = []
+        const previewCache = root.presentationMode === "visuals" && !root.topicFilterActive
+            ? new Map() : null
         for (let index = 0; index < source.length; ++index) {
             const row = source[index]
             if (!root.topicFilterActive
@@ -770,7 +780,7 @@ Item {
                 if (root.isRootPost(row))
                     result.push({ payload: row, presentationKind: "conversation" })
             } else if (root.presentationMode === "visuals") {
-                if (root.hasCollectible(row))
+                if (root.hasCollectible(row, previewCache))
                     result.push({ payload: row, presentationKind: "visual" })
             } else if (root.presentationMode === "devs") {
                 if (root.activeFeed === "developers" || root.looksDeveloper(row))

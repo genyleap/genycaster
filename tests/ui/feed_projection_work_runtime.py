@@ -20,6 +20,14 @@ Item {
     id: root
     width: 320; height: 240
     property var rows: []
+    property bool socialMode: false
+    property bool topicFilterActive: false
+    property string presentationMode: "visuals"
+    property string activeFeed: "following"
+    property string signerFilterMode: "all"
+    property string appFilterMode: "all"
+    property string selectedSignerKey: ""
+    property string selectedAppFid: ""
     property var nativeRowSnapshot: null
     property var nativeRowOrderProvider: null
     property string profileFeed: "user-popular"
@@ -49,12 +57,19 @@ Item {
     QtObject {
         id: linkPreviewResolver
         property string observed: "image"
-        function previewFor(url) { return {contentType: observed} }
+        property int calls: 0
+        function previewFor(url) {
+            ++calls
+            return {contentType: observed}
+        }
     }
     TestCase {
         name: "FeedProjectionWorkBudget"
         when: windowShown
         function test_staticClassifierMemoization() {
+            mediaClassifier.calls = 0
+            root.staticMediaFamilies.clear()
+            linkPreviewResolver.observed = "image"
             const embed = {kind:"url", url:"https://example.invalid/a"}
             compare(root.classifiedFamily(embed,{}),"url")
             compare(root.classifiedFamily({kind:"url",url:embed.url},{}),"url")
@@ -82,6 +97,31 @@ Item {
                 root.classifiedFamily({kind:"url",url:"https://example.invalid/scan/"+i},{},false)
             compare(mediaClassifier.calls-firstScan,52)
             compare(root.staticMediaFamilies.size,2048)
+        }
+        function test_collectibleProjectionReadsEachUrlOnce() {
+            root.presentationMode = "visuals"
+            root.activeFeed = "trending"
+            root.topicFilterActive = false
+            const a = "https://example.invalid/piece-a"
+            const b = "https://example.invalid/piece-b"
+            root.rows = [
+                {castId:"one",text:"My new painting",embeds:[{kind:"url",url:a}]},
+                {castId:"two",text:"Original art",embeds:[{kind:"url",url:a}]},
+                {castId:"three",text:"Original art",embeds:[{kind:"url",url:b}]},
+                {castId:"four",text:"Ordinary post",embeds:[{kind:"url",url:b}]}
+            ]
+            linkPreviewResolver.observed = "image"
+            linkPreviewResolver.calls = 0
+            compare(root.sourceRows().map(r=>r.payload.castId).join(","),"one,two,three")
+            compare(linkPreviewResolver.calls,2)
+            // Resolver updates must invalidate the projection-local snapshot.
+            linkPreviewResolver.observed = "web"
+            compare(root.sourceRows().length,0)
+            compare(linkPreviewResolver.calls,4)
+            root.presentationMode = "for-you"
+            compare(root.sourceRows().length,4)
+            compare(linkPreviewResolver.calls,4)
+            root.presentationMode = "visuals"
         }
         function test_profileRankingLargeTies() {
             const source=[]
@@ -144,8 +184,8 @@ def main():
         raise SystemExit("Set QML_TEST_RUNNER")
     feed=FEED.read_text()
     profile=PROFILE.read_text()
-    functions=section(feed,"    function embedUrl(","    function isCollectibleMarketplaceUrl(")
-    functions+=section(feed,"    function staticMediaFamilyKey(","    function looksLikeArtworkUrl(")
+    functions=section(feed,"    function embedUrl(","    function incrementFilterPrefetchPages(")
+    functions+=section(feed,"    function rowMatchesAppFilter(","    function rowKey(")
     functions+=section(profile,"    function rowTime(","    function rowKey(")
     with tempfile.TemporaryDirectory(prefix="genycaster-projection-") as tmp:
         (Path(tmp)/"tst_projection.qml").write_text(QML.replace("    // PRODUCTION_FUNCTIONS",functions))

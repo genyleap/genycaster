@@ -19,25 +19,29 @@ function method(source, name, nextName) {
 test('Magazine stores measured card sizes and image aspect for reverse scroll without unbounded memory', () => {
   const source = wall.slice(wall.indexOf('    function aspectForKey('),
                             wall.indexOf('    readonly property int count:'));
+  const recorded = [];
   const context = vm.createContext({
-    measuredHeights: {}, measuredOrder: [], aspectMemory: {}, aspectOrder: [],
+    aspectMemory: {}, aspectOrder: [],
     resizeInProgress: false,
-    layoutModel: { retainHeight: () => false }
+    layoutModel: { retainHeight: (...args) => { recorded.push(args); return false; } }
   });
   vm.runInContext(source, context);
   context.retainHeight('cast-4', 'r1', 336, 715);
-  assert.equal(context.recalledHeight('cast-4', 'r1', 336), 715);
-  assert.equal(context.recalledHeight('cast-4', 'r2', 336), 0,
-    'a revised cast cannot reuse a stale height');
-  assert.equal(context.recalledHeight('cast-4', 'r1', 420), 0,
-    'a different card width does not reuse a stale height');
+  context.resizeInProgress = true;
+  context.retainHeight('cast-4', 'r1', 420, 720);
+  assert.deepEqual(recorded, [
+    ['cast-4','r1',336,715,true,false],
+    ['cast-4','r1',420,720,true,true]
+  ]);
+  assert.doesNotMatch(wall, /property var measuredHeights|property var measuredOrder/);
+  assert.match(wall, /layoutModel\.recalledHeight\(stableKey, revisionKey, width\)/);
+  // Native feed_rows_model tests verify exact recall, revision/width isolation,
+  // transient resize samples and bounded FIFO eviction.
   context.rememberAspect('https://example.org/photo', 0.53);
   assert.equal(context.aspectForKey('https://example.org/photo'), 0.53);
   for (let i = 0; i < 720; ++i) {
-    context.retainHeight('cast-' + i, 'r1', 340, 360 + i);
     context.rememberAspect('image-' + i, 0.5 + i / 2000);
   }
-  assert.equal(Object.keys(context.measuredHeights).length, 400);
   assert.equal(Object.keys(context.aspectMemory).length, 600);
   assert.equal(context.aspectForKey('image-0'), 0, 'oldest image is evicted');
   assert.match(wall, /readonly property real retentionBuffer: cacheBuffer \+ Math\.min/);

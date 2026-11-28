@@ -157,6 +157,12 @@ public:
     Q_INVOKABLE bool retainHeight(const QString& key, const QString& revision,
                                  qreal width, qreal height, bool measured, bool transient = false);
 
+    /** @brief Returns a settled exact measurement for this identity, revision and width.
+     * Estimates, transient resize samples and absent records return zero.
+     */
+    Q_INVOKABLE [[nodiscard]] qreal recalledHeight(const QString& key, const QString& revision,
+                                                    qreal width) const;
+
     /** @brief Returns the source row at a content-space coordinate or -1. */
     Q_INVOKABLE [[nodiscard]] int indexAt(qreal x, qreal y) const;
 

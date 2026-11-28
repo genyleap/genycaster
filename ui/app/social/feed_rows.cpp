@@ -586,6 +586,14 @@ QString MasonryWindowModel::heightKey(const QString& key, const QString& revisio
         + QString::number(width, 'f', 2);
 }
 
+qreal MasonryWindowModel::recalledHeight(const QString& key, const QString& revision,
+                                         const qreal width) const
+{
+    if (key.isEmpty() || !std::isfinite(width) || width <= 0) return 0;
+    const QString id = heightKey(key, revision, width);
+    return m_exactSamples.value(id) ? m_heightSamples.value(id) : 0;
+}
+
 qreal MasonryWindowModel::fallbackHeight(const Slot& slot) const
 {
     if (slot.kind == QStringLiteral("profile")) return 72.0;
