@@ -583,6 +583,18 @@ network managers use their owning QObject as parent. No endpoint, token,
 user content or request body is logged. This helps identify v8 network
 callback stalls without guessing which service is responsible.
 
+## Coalesced derived-data interest scans
+
+Cast views and browser reactions keep their synchronous retain/release
+ownership and immediate removal of unsent requests. A single owned
+zero-interval timer coalesces cache scans triggered by retain, release
+and ensure during model transactions. Existing retry deadlines, network
+batch limits, metadata updates and optimistic reaction notifications are
+unchanged. Completion and retry may run the scan directly and cancel
+the redundant scheduled scan. This reduces repeated cache traversal
+during viewport changes; it does not identify the specific v8 network
+callback or eliminate synchronous QML observer work.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

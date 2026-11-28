@@ -67,6 +67,7 @@ private:
 
     [[nodiscard]] static QString canonicalKey(const QString& castId, double viewerFid);
     [[nodiscard]] Entry* getOrCreate(const QString& key);
+    void scheduleInterestScan();
     void queueInterested();
     void dispatch();
     void finish(QNetworkReply* reply, QStringList keys);
@@ -78,6 +79,7 @@ private:
     QElapsedTimer m_clock{};
     QTimer m_dispatchTimer{};
     QTimer m_retryTimer{};
+    QTimer m_interestScanTimer{this};
     QNetworkAccessManager m_network{this};
     QNetworkReply* m_activeReply{nullptr};
     QByteArray m_response{};

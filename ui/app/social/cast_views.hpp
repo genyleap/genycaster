@@ -83,6 +83,7 @@ private:
     [[nodiscard]] static QString normalizeHash(const QString& input);
     [[nodiscard]] CastViewEntry* getOrCreate(const QString& normalized);
     void evictUnused();
+    void scheduleInterestScan();
     void queueInterested();
     void dispatch();
     void finish(QNetworkReply* reply, const QStringList& hashes);
@@ -94,6 +95,7 @@ private:
     QUrl m_endpoint{};
     QTimer m_dispatchTimer{};
     QTimer m_retryTimer{};
+    QTimer m_interestScanTimer{this};
     QNetworkReply* m_activeReply{nullptr};
     bool m_networkEnabled{false};
     qint64 m_retryIntervalMs{90 * 1000};

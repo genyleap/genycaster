@@ -58,6 +58,9 @@ CastViewController::CastViewController(
     connect(&m_dispatchTimer, &QTimer::timeout, this, &CastViewController::dispatch);
     m_retryTimer.setSingleShot(true);
     connect(&m_retryTimer, &QTimer::timeout, this, &CastViewController::queueInterested);
+    m_interestScanTimer.setSingleShot(true);
+    m_interestScanTimer.setInterval(0);
+    connect(&m_interestScanTimer, &QTimer::timeout, this, &CastViewController::queueInterested);
     m_clock.start();
 }
 
@@ -65,6 +68,7 @@ CastViewController::~CastViewController()
 {
     m_dispatchTimer.stop();
     m_retryTimer.stop();
+    m_interestScanTimer.stop();
     if (m_activeReply) {
         disconnect(m_activeReply, nullptr, this, nullptr);
         // Only one bounded derived-analytics request can remain in flight.
@@ -146,7 +150,7 @@ void CastViewController::retain(const QString& castId)
     }
     if (auto* entry = getOrCreate(key)) {
         ++entry->m_consumers;
-        queueInterested();
+        scheduleInterestScan();
     }
 }
 
@@ -165,7 +169,7 @@ void CastViewController::release(const QString& castId)
         }
         entry->m_metadataFollowUpUsed = false;
     }
-    queueInterested();
+    scheduleInterestScan();
 }
 
 void CastViewController::ensure(
@@ -204,11 +208,21 @@ void CastViewController::ensure(
         it->authorFid = entry->m_desiredAuthorFid;
         it->text = entry->m_desiredText;
     }
-    queueInterested();
+    scheduleInterestScan();
+}
+
+void CastViewController::scheduleInterestScan()
+{
+    // Many delegates acquire/release interest in one model transaction.
+    // Scan the bounded cache once on the next event turn, not once per
+    // delegate. Ownership and cancellation still change synchronously.
+    if (m_networkEnabled && !m_interestScanTimer.isActive())
+        m_interestScanTimer.start();
 }
 
 void CastViewController::queueInterested()
 {
+    m_interestScanTimer.stop();
     m_retryTimer.stop();
     if (!m_networkEnabled) {
         return;

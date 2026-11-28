@@ -47,12 +47,16 @@ BrowserReactionController::BrowserReactionController(
     connect(&m_dispatchTimer, &QTimer::timeout, this, &BrowserReactionController::dispatch);
     m_retryTimer.setSingleShot(true);
     connect(&m_retryTimer, &QTimer::timeout, this, &BrowserReactionController::queueInterested);
+    m_interestScanTimer.setSingleShot(true);
+    m_interestScanTimer.setInterval(0);
+    connect(&m_interestScanTimer, &QTimer::timeout, this, &BrowserReactionController::queueInterested);
 }
 
 BrowserReactionController::~BrowserReactionController()
 {
     m_dispatchTimer.stop();
     m_retryTimer.stop();
+    m_interestScanTimer.stop();
     if (m_activeReply) {
         disconnect(m_activeReply, nullptr, this, nullptr);
         m_activeReply->abort();
@@ -114,7 +118,7 @@ void BrowserReactionController::retain(const QString& castId, const double viewe
     if (key.isEmpty()) return;
     if (auto* entry = getOrCreate(key)) {
         ++entry->consumers;
-        queueInterested();
+        scheduleInterestScan();
     }
 }
 
@@ -128,7 +132,7 @@ void BrowserReactionController::release(const QString& castId, const double view
         // Releasing an unsent cast must not impose a failed-request cooldown.
         m_pending.removeAll(key);
     }
-    queueInterested();
+    scheduleInterestScan();
 }
 
 void BrowserReactionController::ensure(const QString& castId, const double viewerFid)
@@ -136,7 +140,7 @@ void BrowserReactionController::ensure(const QString& castId, const double viewe
     if (!m_enabled) return;
     const auto key = canonicalKey(castId, viewerFid);
     if (auto it = m_entries.find(key); it != m_entries.end() && it->consumers > 0) {
-        queueInterested();
+        scheduleInterestScan();
     }
 }
 
@@ -183,8 +187,18 @@ void BrowserReactionController::notifyChange()
     emit revisionChanged();
 }
 
+void BrowserReactionController::scheduleInterestScan()
+{
+    // Many delegates acquire/release interest in one model transaction.
+    // Scan the bounded cache once on the next event turn, not once per
+    // delegate. Ownership and cancellation still change synchronously.
+    if (m_enabled && !m_interestScanTimer.isActive())
+        m_interestScanTimer.start();
+}
+
 void BrowserReactionController::queueInterested()
 {
+    m_interestScanTimer.stop();
     m_retryTimer.stop();
     if (!m_enabled) return;
     const auto now = m_clock.elapsed();
