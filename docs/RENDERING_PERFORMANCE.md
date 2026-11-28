@@ -503,6 +503,24 @@ shutdown and renderer-replacement cases. These are source/logic tests;
 the real QML engine and Metal device remain necessary for visual and
 lifecycle validation.
 
+## v5: separate immutable media inputs from viewer updates
+
+The v5 trace attributes 34.42 ms of a 34.51 ms reconcile to one role
+notification, not the removal of 68 primitive rows (0.057 ms). Role
+diagnostics now include slowRoleMs and slowRoleMask (1 = revision,
+2 = presentation kind, 4 = media layout; bitwise combination). These
+measure synchronous observers, not just native model work.
+
+CastItem snapshots media inputs (cast identity, text, parent URL, art-source
+flag and ordered embed records) independently of viewer state. Equal input
+records retain their existing array and partition identities; nested metadata
+changes and new cast identity still publish normally. The native comparator
+checks exact QVariant types, ordered lists and nested map values. Unknown
+types or excessive depth conservatively trigger the normal update path.
+This does not defer likes/recasts, suppress metadata updates, or alter
+classification policy and rendering style. The effect on device latency
+must be measured rather than inferred from the v5 log.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

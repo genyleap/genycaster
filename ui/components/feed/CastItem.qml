@@ -8,6 +8,29 @@ Item {
     id: root
 
     property var modelData
+    // Snapshot only media-related inputs. Viewer counters and reaction
+    // evidence remain live on modelData, but must not rebuild embed arrays.
+    property var mediaContent: ({identity: "", text: "", parentUrl: "", artChannel: false, embeds: []})
+    function synchronizeMediaContent() {
+        const value = root.modelData || ({})
+        const next = {
+            identity: String(value.castId || value.hash || value.id || ""),
+            text: String(value.text || ""),
+            parentUrl: String(value.parentUrl || ""),
+            artChannel: Boolean(value._artChannelSource),
+            embeds: value.embeds || []
+        }
+        const previous = root.mediaContent
+        if (previous && previous.identity === next.identity
+                && previous.text === next.text && previous.parentUrl === next.parentUrl
+                && previous.artChannel === next.artChannel
+                && typeof mediaClassifier !== "undefined" && mediaClassifier !== null
+                && typeof mediaClassifier.sameEmbedRecords === "function"
+                && mediaClassifier.sameEmbedRecords(previous.embeds, next.embeds))
+            return
+        root.mediaContent = next
+    }
+    onModelDataChanged: root.synchronizeMediaContent()
     property bool compact: false
     property bool magazineCard: false
     property color mediaSurfaceColor: magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
@@ -50,6 +73,7 @@ Item {
     }
 
     Component.onCompleted: {
+        root.synchronizeMediaContent()
         root.resolveScrollHost()
         if (root.enrichmentActive && root.castChannel.length > 0
                 && root.channelImageUrl.length === 0)
@@ -159,7 +183,7 @@ Item {
         // omit MIME metadata; recognize only pinned, reviewed URLs.
         if (StickerCatalog.isStickerUrl(root.normalizedEmbedUrl(embed)))
             return true
-        if (!Boolean(root.modelData && root.modelData._artChannelSource))
+        if (!root.mediaContent.artChannel)
             return false
         const url = root.normalizedEmbedUrl(embed).toLowerCase()
         return url.indexOf("imagedelivery.net/") >= 0
@@ -196,9 +220,9 @@ Item {
         if (typeof liveInsights === "undefined" || liveInsights === null)
             return null
 
-        let locator = root.parentTokenLocator
+        let locator = TokenSemantic.canonicalLocator(root.mediaContent.parentUrl)
         let targetUrl = ""
-        const text = String(root.modelData.text || "")
+        const text = root.mediaContent.text
 
         // A direct token URL in cast text is stronger evidence than a cashtag.
         // Preserve that URL on the token card so the external-link action still
@@ -228,7 +252,7 @@ Item {
         if (locator.length === 0)
             return null
 
-        const source = root.modelData.embeds || []
+        const source = root.mediaContent.embeds
         for (let index = 0; index < source.length; ++index) {
             if (TokenSemantic.sameLocator(TokenSemantic.locatorFromEmbed(source[index]), locator))
                 return null
@@ -243,7 +267,7 @@ Item {
     }
 
     function inferredTextLink() {
-        const text = String(root.modelData.text || "")
+        const text = root.mediaContent.text
         const match = text.match(/https?:\/\/[^\s<>]+/i)
         if (!match || match.length === 0)
             return null
@@ -260,7 +284,7 @@ Item {
         if (TokenSemantic.locatorFromUrl(candidate).length > 0)
             return null
         const canonical = candidate.split("#")[0]
-        const source = root.modelData.embeds || []
+        const source = root.mediaContent.embeds
         for (let index = 0; index < source.length; ++index) {
             if (root.normalizedEmbedUrl(source[index]) === canonical)
                 return null
@@ -269,7 +293,7 @@ Item {
     }
 
     readonly property var effectiveEmbeds: {
-        const source = root.modelData.embeds || []
+        const source = root.mediaContent.embeds
         const result = []
         for (let index = 0; index < source.length; ++index)
             result.push(source[index])
@@ -441,7 +465,7 @@ Item {
             const candidate = String(values[index].url || values[index].value || "")
             if (/^https?:\/\//i.test(candidate)) return candidate
         }
-        const match = String(root.modelData.text || "").match(/https?:\/\/[^\s<>]+/i)
+        const match = root.mediaContent.text.match(/https?:\/\/[^\s<>]+/i)
         return match && match.length ? String(match[0]).replace(/[.,!?;:]+$/, "") : ""
     }
 

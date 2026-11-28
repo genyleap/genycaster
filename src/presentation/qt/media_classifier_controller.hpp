@@ -17,6 +17,7 @@
 
 #include <QObject>
 #include <QVariantMap>
+#include <QVariantList>
 
 /**
  * @brief QML-facing canonical embed media classifier.
@@ -45,4 +46,10 @@ public:
 
     /** @brief Classifies a bare URL (no surrounding metadata). */
     Q_INVOKABLE QVariantMap classifyUrl(const QString& url) const;
+
+    /** @brief Exact, type-sensitive equality of ordered embed records.
+     * Unknown variant types compare conservatively as changed.
+     */
+    Q_INVOKABLE [[nodiscard]] bool sameEmbedRecords(const QVariantList& left,
+                                                   const QVariantList& right) const;
 };

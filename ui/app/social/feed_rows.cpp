@@ -38,6 +38,8 @@ struct FeedModelTrace final {
             << "insertMs" << ms(insert) << "inserts" << insert.calls
             << "moveMs" << ms(move) << "moves" << move.calls
             << "rolesMs" << ms(roles) << "roleSignals" << roles.calls
+            << "slowRoleMs" << static_cast<double>(slowRoleNs) / 1e6
+            << "slowRoleMask" << slowRoleMask
             << "countMs" << ms(count) << "countSignals" << count.calls;
     }
     template<class Action>
@@ -58,6 +60,8 @@ struct FeedModelTrace final {
     qsizetype input;
     int after{0};
     Phase reset, remove, insert, move, roles, count;
+    qint64 slowRoleNs{0};
+    int slowRoleMask{0};
 };
 }
 
@@ -285,9 +289,17 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
     };
     const auto notifyRoles = [this, &trace](int first, int last, const QList<int>& roles) {
         if (roles.isEmpty()) return;
+        const auto before = trace.roles.ns;
         trace.measure(trace.roles, [&] {
             emit dataChanged(createIndex(first, 0), createIndex(last, 0), roles);
         });
+        const auto duration = trace.roles.ns - before;
+        if (trace.enabled && duration > trace.slowRoleNs) {
+            trace.slowRoleNs = duration;
+            trace.slowRoleMask = (roles.contains(RevisionKeyRole) ? 1 : 0)
+                | (roles.contains(PresentationKindRole) ? 2 : 0)
+                | (roles.contains(MediaLayoutKindRole) ? 4 : 0);
+        }
     };
     if (incoming.size() == m_rows.size()
         && std::equal(incoming.cbegin(), incoming.cend(), m_rows.cbegin(),

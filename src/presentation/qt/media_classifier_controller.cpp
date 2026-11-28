@@ -1,4 +1,5 @@
 #include "media_classifier_controller.hpp"
+#include "media_embed_equivalence.hpp"
 
 #include <QString>
 #include <QVariant>
@@ -81,4 +82,11 @@ QVariantMap MediaClassifierController::classifyUrl(const QString& url) const
 {
     return resultMap(
         farcaster::presentation::media::classifyUrl(url.toStdString()));
+}
+
+
+bool MediaClassifierController::sameEmbedRecords(const QVariantList& left,
+                                                 const QVariantList& right) const
+{
+    return genycaster::presentation::detail::sameEmbedRecords(left, right);
 }

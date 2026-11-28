@@ -1,4 +1,5 @@
 #include "../../ui/app/social/feed_rows.hpp"
+#include "../../src/presentation/qt/media_embed_equivalence.hpp"
 
 #include <QCoreApplication>
 #include <QSignalSpy>
@@ -513,5 +514,23 @@ int main(int argc, char** argv)
     require(stableOrder.keyAt(-1).isEmpty() && stableOrder.keyAt(2048).isEmpty());
     require(stableOrder.indexForKey({}) == -1);
     require(stableOrder.indexForKey("missing") == -1);
+    // Equal media inputs must preserve the QML media projection; nested
+    // metadata changes, reordering and coercive equality must not.
+    using genycaster::presentation::detail::sameEmbedRecords;
+    const QVariantMap embed{{"url", "https://example.invalid/art"},
+                            {"meta", QVariantMap{{"width", 640}, {"height", 480}}}};
+    const QVariantList embedList{embed, QVariantMap{{"url", "https://example.invalid/other"}}};
+    require(sameEmbedRecords(embedList, embedList));
+    require(sameEmbedRecords({}, {}));
+    auto changedEmbed = embed;
+    changedEmbed["meta"] = QVariantMap{{"width", 641}, {"height", 480}};
+    require(!sameEmbedRecords(embedList, {changedEmbed, embedList.at(1)}));
+    changedEmbed["meta"] = QVariantMap{{"width", QStringLiteral("640")}, {"height", 480}};
+    require(!sameEmbedRecords(embedList, {changedEmbed, embedList.at(1)}));
+    require(!sameEmbedRecords(embedList, {embedList.at(1), embedList.at(0)}));
+    require(!sameEmbedRecords(embedList, {embedList.at(0)}));
+    QVariant deep{1};
+    for (int i = 0; i < 33; ++i) deep = QVariant::fromValue(QVariantList{deep});
+    require(!sameEmbedRecords({deep}, {deep}));
     return 0;
 }
