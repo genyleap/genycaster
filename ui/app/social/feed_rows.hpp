@@ -119,7 +119,8 @@ public:
         MediaLayoutKindRole,
         CardXRole,
         CardYRole,
-        CardHeightRole
+        CardHeightRole,
+        RetiringRole
     };
     [[nodiscard]] int count() const noexcept;
     [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
@@ -138,12 +139,13 @@ public:
     Q_INVOKABLE void requestRepack() noexcept;
 
     /** @brief Updates the visible window; true means further admission is pending.
-     * A positive budget caps newly inserted slots, not retained geometry.
-     * Zero preserves the synchronous behavior for native callers and tests.
+     * Positive budgets cap new and removed slots per transaction. Retiring
+     * slots are invisible and noninteractive until their bounded destruction.
+     * Zero preserves synchronous behavior for native callers and tests.
      */
     Q_INVOKABLE bool setViewport(qreal top, qreal height, qreal enteringBuffer,
                                  qreal retentionBuffer, bool active, bool retainExisting = false,
-                                 int admissionBudget = 0);
+                                 int admissionBudget = 0, int evictionBudget = 0);
 
     /** @brief Records a width/revision-specific estimate or exact painted height. */
     Q_INVOKABLE bool retainHeight(const QString& key, const QString& revision,
@@ -176,6 +178,7 @@ private:
         int sourceIndex{-1};
         int column{-1};
         bool laneCommitted{false};
+        bool retiring{false};
         qreal x{0};
         qreal y{0};
         qreal height{0};
@@ -183,7 +186,8 @@ private:
     void scheduleRelayout();
     void sourceDataChanged(const QModelIndex& first, const QModelIndex& last,
                            const QList<int>& roles);
-    bool synchronizeWindow(int admissionBudget = 0);
+    bool synchronizeWindow(int admissionBudget = 0, int evictionBudget = 0);
+    void updateWindowSlot(int index, const Slot& desired);
     [[nodiscard]] QString heightKey(const QString& key, const QString& revision,
                                     qreal width) const;
     [[nodiscard]] qreal fallbackHeight(const Slot& slot) const;

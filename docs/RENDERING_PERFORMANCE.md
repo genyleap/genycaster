@@ -415,6 +415,21 @@ restarts the gate before clearing the old model. The profile gate does not
 change image download policy or cover/Avatar styling. A late network reply
 can still arrive after the bounded window; the permanent cover slot remains.
 
+## Two-sided native viewport work budget
+
+The latest device trace contains an admission operation ending with zero slots
+that took 36 ms. Insert limits alone cannot address destruction costs. A positive
+eviction budget now limits model removal to four slots per production pass, with
+three new slots admitted at most. During retirement debt the old slot is hidden,
+noninteractive and excluded from active source-index lookup. The model retains
+physical ordering until debt is cleared and admits replacements without growing
+the transient working set. Hidden routes drain by the same timer. Height
+estimation is no longer performed synchronously during Repeater construction.
+Native callers using zero budgets retain synchronous semantics.
+Enable genycaster.render.masonry.debug for planning/eviction/publish CPU spans;
+these measure model signal delivery including synchronous QML observers, not
+actual GPU duration. No visual-quality settings are modified.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

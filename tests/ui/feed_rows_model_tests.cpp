@@ -169,6 +169,39 @@ int main(int argc, char** argv)
     require(!pacedWall.setViewport(0, 0, 0, 0, false, false, 3));
     require(pacedWall.count() == 0);
 
+    // Eviction debt must never leave an old identity discoverable or
+    // exceed the working set. Active replacements progress while draining.
+    MasonryWindowModel retiredWall;
+    retiredWall.setSourceModel(&batchRows);
+    retiredWall.relayout(2, 320, 12, 12, 12, false);
+    QAbstractItemModelTester retiredTester{&retiredWall, QAbstractItemModelTester::FailureReportingMode::Fatal};
+    retiredWall.setViewport(0, 1000, 1200, 1600, true);
+    const int originalSlots = retiredWall.count();
+    require(originalSlots > 8);
+    QSignalSpy retirementRemoves{&retiredWall, &QAbstractItemModel::rowsRemoved};
+    bool debt = retiredWall.setViewport(distant, 1000, 1200, 1600, true, false, 3, 4);
+    require(debt && retiredWall.count() <= originalSlots);
+    require(retiredWall.windowIndexForSource(0) < 0);
+    require(retiredWall.windowIndexForSource(400) >= 0);
+    int removedInPass = 0;
+    for (const auto& signal : retirementRemoves)
+        removedInPass += signal.at(2).toInt() - signal.at(1).toInt() + 1;
+    require(removedInPass <= 4);
+    int drainPasses = 0;
+    while (debt && drainPasses++ < 100)
+        debt = retiredWall.setViewport(distant, 1000, 1200, 1600, true, false, 3, 4);
+    require(!debt);
+    for (int i = 0; i < retiredWall.count(); ++i)
+        require(!retiredWall.index(i, 0).data(MasonryWindowModel::RetiringRole).toBool());
+    const int beforeHide = retiredWall.count();
+    debt = retiredWall.setViewport(0, 0, 0, 0, false, false, 3, 4);
+    require(debt && retiredWall.count() == beforeHide - 4);
+    require(retiredWall.windowIndexForSource(400) < 0);
+    drainPasses = 0;
+    while (debt && drainPasses++ < 100)
+        debt = retiredWall.setViewport(0, 0, 0, 0, false, false, 3, 4);
+    require(!debt && retiredWall.count() == 0);
+
     // The native magazine owns geometry for the whole feed but QML objects
     // only for the viewport. Mixed measured heights never overlap lanes.
     FeedRowsModel casts{};

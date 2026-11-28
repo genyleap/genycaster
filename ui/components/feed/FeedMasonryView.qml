@@ -121,6 +121,7 @@ Flickable {
     property real committedCardWidth: 1
     // Bound Repeater/Loader construction, not geometry or media quality.
     readonly property int newSlotsPerPass: 3
+    readonly property int retiredSlotsPerPass: 4
     function viewportResized() {
         if (typeof renderingController !== "undefined" && renderingController
                 && renderingController.shuttingDown === true)
@@ -206,7 +207,8 @@ Flickable {
         admissionTimer.stop()
         const more = layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer,
                                 view.visible && positioned && height > 0,
-                                view.resizeInProgress, view.newSlotsPerPass)
+                                view.resizeInProgress, view.newSlotsPerPass,
+                                view.retiredSlotsPerPass)
         if (more)
             scheduleAdmission()
         if (admissionStart >= 0)
@@ -306,8 +308,11 @@ Flickable {
         if (!visible) {
             resizeSettleTimer.stop()
             admissionTimer.stop()
+            layoutTimer.stop()
             resizeInProgress = false
-            layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer, false, false)
+            // Drain hidden routes in bounded batches too; do not destroy
+            // every mounted card in the navigation event.
+            updateAdmissions()
         } else {
             scheduleLayout()
         }
@@ -347,6 +352,9 @@ Flickable {
             required property real cardX
             required property real cardY
             required property real cardHeight
+            required property bool retiring
+            visible: !retiring
+            enabled: !retiring
             property real measuredHeight: view.recalledHeight(stableKey, revisionKey, width)
             // A revision update (especially Like/Recast) can briefly shrink
             // the nested Qt Layout before it completes rearrangement.
@@ -387,7 +395,7 @@ Flickable {
                         slot.cardPresented = true
                 }
             }
-            readonly property bool intersectsViewport: view.visible && view.positioned
+            readonly property bool intersectsViewport: !retiring && view.visible && view.positioned
                 && y + height > view.contentY && y < view.contentY + view.height
             property bool everExposed: false
             function markExposed() {
@@ -399,7 +407,7 @@ Flickable {
             // cards away. A card already seen (including reverse scroll) is
             // not allowed to change its media reservation.
             function mayRefineMediaGeometry() {
-                return !everExposed && !view.wasMediaRowExposed(stableKey)
+                return !retiring && !everExposed && !view.wasMediaRowExposed(stableKey)
                     && !intersectsViewport && view.positioned && !view.moving
                     && y >= view.contentY + view.height + view.gutter
             }
@@ -414,7 +422,7 @@ Flickable {
             clip: true
 
             function offerEstimate() {
-                if (view.resizeInProgress || !view.estimateHeight || view.recalledHeight(stableKey, revisionKey, width) > 0)
+                if (retiring || view.resizeInProgress || !view.estimateHeight || view.recalledHeight(stableKey, revisionKey, width) > 0)
                     return
                 const hint = Number(view.estimateHeight(stableKey, presentationKind,
                                                         mediaLayoutKind, width))
@@ -424,7 +432,7 @@ Flickable {
             }
             function recordHeight() {
                 const content = cardLoader.item
-                if (!content || content.incubating === true)
+                if (retiring || !content || content.incubating === true)
                     return
 
                 // A nested FeedRow Loader paints a provisional, potentially
@@ -451,7 +459,9 @@ Flickable {
             Component.onCompleted: {
                 if (intersectsViewport) markExposed()
                 if (presentationEligible) presentationCommit.start()
-                offerEstimate()
+                // Avoid a synchronous QVariant/JS height estimate inside
+                // rowsInserted. Measure or estimate on the next frame.
+                widthMeasureTimer.restart()
             }
             onStableKeyChanged: {
                 cardPresented = false
@@ -508,7 +518,7 @@ Flickable {
                 anchors.fill: parent
                 z: 2
                 enabled: false
-                active: view.visible && slot.placed
+                active: !slot.retiring && view.visible && slot.placed
                         && slot.y + slot.height > view.contentY
                         && slot.y < view.contentY + view.height
                         && (!slot.cardReady || opacity > 0.01)
@@ -549,7 +559,7 @@ Flickable {
                 readonly property string presentationKind: slot.presentationKind
                 readonly property string mediaLayoutKind: slot.mediaLayoutKind
                 readonly property real slotY: slot.y
-                readonly property bool sharedNeonPointerActive: masonryPointer.hovered && !view.moving
+                readonly property bool sharedNeonPointerActive: !slot.retiring && masonryPointer.hovered && !view.moving
                 readonly property real sharedNeonPointerX: masonryPointer.point.position.x - slot.x
                 readonly property real sharedNeonPointerY: masonryPointer.point.position.y
                     + view.contentY - slot.y

@@ -5,6 +5,12 @@
 #include <QVariant>
 #include <QTimer>
 #include <QSet>
+#include <QElapsedTimer>
+#include <QLoggingCategory>
+
+namespace {
+Q_LOGGING_CATEGORY(masonryWorkLog, "genycaster.render.masonry", QtWarningMsg)
+}
 
 #include <algorithm>
 #include <cmath>
@@ -306,6 +312,7 @@ QVariant MasonryWindowModel::data(const QModelIndex& index, const int role) cons
     case CardXRole: return slot.x;
     case CardYRole: return slot.y;
     case CardHeightRole: return slot.height;
+    case RetiringRole: return slot.retiring;
     default: return {};
     }
 }
@@ -321,6 +328,7 @@ QHash<int, QByteArray> MasonryWindowModel::roleNames() const
         {CardXRole, QByteArrayLiteral("cardX")},
         {CardYRole, QByteArrayLiteral("cardY")},
         {CardHeightRole, QByteArrayLiteral("cardHeight")},
+        {RetiringRole, QByteArrayLiteral("retiring")},
     };
 }
 
@@ -412,7 +420,7 @@ void MasonryWindowModel::sourceDataChanged(const QModelIndex& first,
     // revision on entry, with no creation, lane changes or viewport restore.
     for (int i = 0; i < m_window.size(); ++i) {
         auto& slot = m_window[i];
-        if (slot.sourceIndex < first.row() || slot.sourceIndex > last.row())
+        if (slot.retiring || slot.sourceIndex < first.row() || slot.sourceIndex > last.row())
             continue;
         const auto& desired = m_geometry.at(slot.sourceIndex);
         if (slot.key != desired.key) {
@@ -640,14 +648,15 @@ QVariantMap MasonryWindowModel::geometryForKey(const QString& key) const
 int MasonryWindowModel::windowIndexForSource(const int sourceIndex) const
 {
     for (int index = 0; index < m_window.size(); ++index)
-        if (m_window.at(index).sourceIndex == sourceIndex) return index;
+        if (!m_window.at(index).retiring && m_window.at(index).sourceIndex == sourceIndex) return index;
     return -1;
 }
 
 bool MasonryWindowModel::setViewport(const qreal top, const qreal height,
                                     const qreal enteringBuffer,
                                     const qreal retentionBuffer, const bool active,
-                                    const bool retainExisting, const int admissionBudget)
+                                    const bool retainExisting, const int admissionBudget,
+                                    const int evictionBudget)
 {
     m_viewportTop = std::isfinite(top) ? top : 0.0;
     m_viewportHeight = std::max(0.0, std::isfinite(height) ? height : 0.0);
@@ -659,11 +668,21 @@ bool MasonryWindowModel::setViewport(const qreal top, const qreal height,
         m_resizeSampleWidth = 0;
     }
     m_retainExisting = active && retainExisting;
-    return synchronizeWindow(admissionBudget);
+    return synchronizeWindow(admissionBudget, evictionBudget);
 }
 
-bool MasonryWindowModel::synchronizeWindow(const int admissionBudget)
+bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int evictionBudget)
 {
+    const bool tracing = masonryWorkLog().isDebugEnabled();
+    QElapsedTimer workClock;
+    if (tracing) workClock.start();
+    qint64 planningNs = 0, evictionNs = 0, updateNs = 0;
+    int removed = 0, inserted = 0;
+    const auto measure = [&workClock, tracing](qint64& sum, auto&& action) {
+        const auto start = tracing ? workClock.nsecsElapsed() : 0;
+        action();
+        if (tracing) sum += workClock.nsecsElapsed() - start;
+    };
     QVector<int> admitted{};
     if (m_active && m_viewportHeight > 0) {
         const qreal minimum = m_viewportTop - m_buffer;
@@ -671,7 +690,8 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget)
         const qreal enterTop = m_viewportTop - m_enterBuffer;
         const qreal enterBottom = m_viewportTop + m_viewportHeight + m_enterBuffer;
         QHash<QString, bool> retained{};
-        for (const Slot& slot : std::as_const(m_window)) retained.insert(slot.key, true);
+        for (const Slot& slot : std::as_const(m_window))
+            if (!slot.retiring) retained.insert(slot.key, true);
         for (const auto& lane : std::as_const(m_lanes)) {
             auto it = std::lower_bound(lane.cbegin(), lane.cend(), minimum,
                 [this](const int index, const qreal position) {
@@ -691,6 +711,7 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget)
             constexpr qsizetype resizeRetentionLimit{160};
             for (const Slot& slot : std::as_const(m_window)) {
                 if (admitted.size() >= resizeRetentionLimit) break;
+                if (slot.retiring) continue;
                 const auto found = m_indexByKey.constFind(slot.key);
                 if (found != m_indexByKey.cend()
                     && std::find(admitted.cbegin(), admitted.cend(), *found) == admitted.cend())
@@ -746,18 +767,89 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget)
     desiredKeys.reserve(admitted.size());
     for (const int sourceIndex : std::as_const(admitted))
         desiredKeys.insert(m_geometry.at(sourceIndex).key);
+    if (tracing) planningNs = workClock.nsecsElapsed();
+    // Remove no more than the requested number. A disjoint jump or a
+    // filter clear can otherwise synchronously destroy dozens of rich cards.
+    // Unremoved departed slots remain in their old position, marked retiring;
+    // they cannot paint, receive input or be returned by index lookup.
     for (int end = static_cast<int>(m_window.size()) - 1; end >= 0;) {
         if (desiredKeys.contains(m_window.at(end).key)) {
             --end;
             continue;
         }
+        if (evictionBudget > 0 && removed >= evictionBudget)
+            break;
         int first = end;
-        while (first > 0 && !desiredKeys.contains(m_window.at(first - 1).key))
+        while (first > 0 && !desiredKeys.contains(m_window.at(first - 1).key)
+               && (evictionBudget <= 0 || removed + end - first + 1 < evictionBudget))
             --first;
-        beginRemoveRows({}, first, end);
-        m_window.remove(first, end - first + 1);
-        endRemoveRows();
+        measure(evictionNs, [&] {
+            beginRemoveRows({}, first, end);
+            m_window.remove(first, end - first + 1);
+            endRemoveRows();
+        });
+        removed += end - first + 1;
         end = first - 1;
+    }
+    bool evictionPending = false;
+    for (const auto& slot : std::as_const(m_window)) {
+        if (!desiredKeys.contains(slot.key)) {
+            evictionPending = true;
+            break;
+        }
+    }
+    if (evictionPending) {
+        // While draining, keep physical model order. Avoid moves of items
+        // that are about to disappear; still refresh retained geometry and
+        // admit newly visible slots without waiting for the entire drain.
+        QSet<QString> present;
+        present.reserve(m_window.size());
+        for (int i = 0; i < m_window.size(); ++i) {
+            const auto& current = m_window.at(i);
+            present.insert(current.key);
+            if (!desiredKeys.contains(current.key)) {
+                if (!current.retiring) {
+                    m_window[i].retiring = true;
+                    measure(updateNs, [&] {
+                        emit dataChanged(createIndex(i, 0), createIndex(i, 0), {RetiringRole});
+                    });
+                }
+                continue;
+            }
+            const auto source = m_indexByKey.constFind(current.key);
+            if (source != m_indexByKey.cend()) {
+                auto& desired = m_geometry[*source];
+                desired.laneCommitted = true;
+                measure(updateNs, [&] { updateWindowSlot(i, desired); });
+            }
+        }
+        QVector<int> entering;
+        // Do not grow the transient working set during a retirement backlog.
+        for (const int sourceIndex : std::as_const(admitted)) {
+            if (entering.size() >= removed) break;
+            if (!present.contains(m_geometry.at(sourceIndex).key))
+                entering.append(sourceIndex);
+        }
+        if (!entering.isEmpty()) {
+            const int first = static_cast<int>(m_window.size());
+            measure(updateNs, [&] {
+                beginInsertRows({}, first, first + static_cast<int>(entering.size()) - 1);
+                for (const int sourceIndex : std::as_const(entering)) {
+                    auto& desired = m_geometry[sourceIndex];
+                    desired.laneCommitted = true;
+                    m_window.append(desired);
+                }
+                endInsertRows();
+            });
+            inserted += static_cast<int>(entering.size());
+        }
+        if (previousCount != m_window.size()) emit countChanged();
+        if (tracing && workClock.elapsed() >= 8)
+            qCDebug(masonryWorkLog) << "window" << "planningMs" << planningNs / 1e6
+                << "evictionMs" << evictionNs / 1e6 << "publishMs" << updateNs / 1e6
+                << "removed" << removed << "inserted" << inserted
+                << "retirementPending" << true << "slots" << m_window.size();
+        return true;
     }
     QSet<QString> existingKeys;
     existingKeys.reserve(m_window.size());
@@ -791,46 +883,21 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget)
                 while (end + 1 < admitted.size()
                        && !existingKeys.contains(m_geometry.at(admitted.at(end + 1)).key))
                     ++end;
-                beginInsertRows({}, index, end);
-                for (int i = index; i <= end; ++i) {
-                    auto& incoming = m_geometry[admitted.at(i)];
-                    incoming.laneCommitted = true;
-                    m_window.insert(i, incoming);
-                }
-                endInsertRows();
+                measure(updateNs, [&] {
+                    beginInsertRows({}, index, end);
+                    for (int i = index; i <= end; ++i) {
+                        auto& incoming = m_geometry[admitted.at(i)];
+                        incoming.laneCommitted = true;
+                        m_window.insert(i, incoming);
+                    }
+                    endInsertRows();
+                });
+                inserted += end - index + 1;
                 index = end + 1;
                 continue;
             }
         }
-        Slot& current = m_window[index];
-        QList<int> changedRoles{};
-        if (current.sourceIndex != desired.sourceIndex) {
-            changedRoles.append(SourceIndexRole);
-        }
-        if (current.revision != desired.revision) {
-            changedRoles.append(RevisionKeyRole);
-        }
-        if (current.kind != desired.kind) {
-            changedRoles.append(PresentationKindRole);
-        }
-        if (current.media != desired.media) {
-            changedRoles.append(MediaLayoutKindRole);
-        }
-        if (std::abs(current.x - desired.x) >= 0.5) {
-            changedRoles.append(CardXRole);
-        }
-        if (std::abs(current.y - desired.y) >= 0.5) {
-            changedRoles.append(CardYRole);
-        }
-        if (std::abs(current.height - desired.height) >= 0.5) {
-            changedRoles.append(CardHeightRole);
-        }
-        if (!changedRoles.isEmpty()) {
-            current = desired;
-            // Geometry corrections must not invalidate unchanged cast payloads
-            // and rebuild their rich text/media bindings on the GUI thread.
-            emit dataChanged(createIndex(index, 0), createIndex(index, 0), changedRoles);
-        }
+        measure(updateNs, [&] { updateWindowSlot(index, desired); });
         ++index;
     }
     if (index < m_window.size()) {
@@ -840,5 +907,46 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget)
     }
     if (previousCount != m_window.size())
         emit countChanged();
+    if (tracing && workClock.elapsed() >= 8)
+        qCDebug(masonryWorkLog) << "window" << "planningMs" << planningNs / 1e6
+            << "evictionMs" << evictionNs / 1e6 << "publishMs" << updateNs / 1e6
+            << "removed" << removed << "inserted" << inserted
+            << "retirementPending" << false << "slots" << m_window.size();
     return morePending;
+}
+
+void MasonryWindowModel::updateWindowSlot(const int index, const Slot& desired)
+{
+    Slot& current = m_window[index];
+    QList<int> changedRoles{};
+    if (current.sourceIndex != desired.sourceIndex) {
+        changedRoles.append(SourceIndexRole);
+    }
+    if (current.revision != desired.revision) {
+        changedRoles.append(RevisionKeyRole);
+    }
+    if (current.kind != desired.kind) {
+        changedRoles.append(PresentationKindRole);
+    }
+    if (current.media != desired.media) {
+        changedRoles.append(MediaLayoutKindRole);
+    }
+    if (std::abs(current.x - desired.x) >= 0.5) {
+        changedRoles.append(CardXRole);
+    }
+    if (std::abs(current.y - desired.y) >= 0.5) {
+        changedRoles.append(CardYRole);
+    }
+    if (std::abs(current.height - desired.height) >= 0.5) {
+        changedRoles.append(CardHeightRole);
+    }
+    if (current.retiring != desired.retiring)
+        changedRoles.append(RetiringRole);
+    if (!changedRoles.isEmpty()) {
+        current = desired;
+        // Geometry corrections must not invalidate unchanged cast payloads
+        // and rebuild their rich text/media bindings on the GUI thread.
+        emit dataChanged(createIndex(index, 0), createIndex(index, 0), changedRoles);
+    }
+
 }
