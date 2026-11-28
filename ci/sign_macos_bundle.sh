@@ -15,16 +15,32 @@ umask 077
 scratch="$(mktemp -d)"
 keychain=""
 trusted_cert=""
+search_list_changed=0
+bounded() {
+  python3 -c 'import subprocess,sys; sys.exit(subprocess.run(sys.argv[1:],timeout=15).returncode)' "$@"
+}
+restore_search_list() {
+  if [[ "$search_list_changed" == 1 ]]; then
+    python3 - "$scratch/search-list.txt" <<'PY'
+import shlex, subprocess, sys
+with open(sys.argv[1]) as stream:
+    paths = shlex.split(stream.read())
+subprocess.run(["/usr/bin/security", "list-keychains", "-d", "user", "-s", *paths], check=True, timeout=15)
+PY
+    search_list_changed=0
+  fi
+}
 remove_runner_trust() {
-  sudo -n /usr/bin/security remove-trusted-cert -d "$trusted_cert" &&
-    sudo -n /usr/bin/security delete-certificate -Z "$identity" /Library/Keychains/System.keychain
+  bounded sudo -n /usr/bin/security remove-trusted-cert -d "$trusted_cert" &&
+    bounded sudo -n /usr/bin/security delete-certificate -Z "$identity" /Library/Keychains/System.keychain
 }
 cleanup() {
   if [[ -n "$trusted_cert" ]]; then
     remove_runner_trust >/dev/null 2>&1 || true
   fi
+  restore_search_list || true
   if [[ -n "$keychain" ]]; then
-    security delete-keychain "$keychain" >/dev/null 2>&1 || true
+    bounded security delete-keychain "$keychain" >/dev/null 2>&1 || true
   fi
   rm -rf -- "$scratch"
 }
@@ -79,7 +95,7 @@ if [[ "$mode" != ad-hoc ]]; then
     -P "$p12_password" -T /usr/bin/codesign
   unset p12_password
   security set-key-partition-list -S apple-tool:,apple: -s \
-    -k "$keychain_password" "$keychain"
+    -k "$keychain_password" "$keychain" >/dev/null
   if [[ "$mode" == self-signed ]]; then
     identity="$(printf '%s' "$MACOS_SELF_SIGNED_CERT_SHA1" | tr '[:lower:]' '[:upper:]')"
     # Export only the public certificate from the imported P12. Verify the
@@ -105,8 +121,21 @@ if [[ "$mode" != ad-hoc ]]; then
     trusted_cert="$scratch/cert.der"
     perl -e 'alarm 30; exec @ARGV' sudo -n /usr/bin/security add-trusted-cert -d -r trustRoot \
       -p codeSign -k /Library/Keychains/System.keychain "$trusted_cert"
-    security find-identity -v -p codesigning "$keychain" | grep -F "$identity"
-    sign_args=(--force --sign "$identity" --timestamp=none --keychain "$keychain")
+    # codesign also consults the user search list while resolving a signing
+    # identity and its chain. Merely passing --keychain was insufficient on
+    # the hosted macOS runner even though security found the identity.
+    /usr/bin/security list-keychains -d user > "$scratch/search-list.txt"
+    search_list_changed=1
+    python3 - "$scratch/search-list.txt" "$keychain" <<'PY'
+import shlex, subprocess, sys
+with open(sys.argv[1]) as stream:
+    paths = shlex.split(stream.read())
+subprocess.run(["/usr/bin/security", "list-keychains", "-d", "user", "-s", sys.argv[2], *paths],
+               check=True, timeout=15)
+PY
+    security find-identity -v -p codesigning | grep -F "$identity"
+    echo "Signing identity visible in the user keychain search list"
+    sign_args=(--force --sign "$identity" --timestamp=none)
   else
   # Restrict the operation to the temporary keychain. There must be exactly
   # one suitable Developer ID Application signing identity in this bundle.
@@ -151,6 +180,9 @@ elif [[ "$mode" == self-signed ]]; then
   # Remove the runner trust before verification, to model an ordinary Mac.
   remove_runner_trust
   trusted_cert=""
+  restore_search_list
+  bounded security delete-keychain "$keychain"
+  keychain=""
   bash ci/verify_macos_self_signed.sh "$app"
 else
   codesign "${sign_args[@]}" "$app"
