@@ -14,6 +14,12 @@ Item {
     property real avatarCurveDepth: Math.round(avatarSize * 0.30)
     property real avatarExponent: 3.8
 
+    // Let the owning profile prioritize its header before admitting posts.
+    // Missing, failed and policy-blocked pictures are valid fallback states.
+    readonly property bool mediaPending: root.sourceUrl.length > 0
+        && root.resolvedSource.length > 0 && !avatarImage.ready
+        && !avatarImage.loadFailed && !avatarImage.policyBlocked
+
     readonly property string initial: displayName.length > 0
                                       ? displayName.substring(0, 1).toUpperCase()
                                       : "?"

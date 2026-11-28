@@ -2936,6 +2936,9 @@ Item {
 
                                     RouteSurfaceLoader {
                                         id: profileSurfaceLoader
+                                        // Profile chrome is the primary content, not a
+                                        // background task. Nested cast loaders stay paced.
+                                        asynchronous: false
                                         diagnosticRoute: "profile"
                                         readonly property bool surfaceRequested: !root.shuttingDown && root.shellRoute.length === 0
                                                                                  && presentationBridge.activeView === "profile"

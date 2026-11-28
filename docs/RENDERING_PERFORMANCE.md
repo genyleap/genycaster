@@ -402,6 +402,19 @@ Neither change establishes a measured maximum frame time. The engine's
 remaining creation warning, long GUI delivery delays and recording spikes
 require separate device verification; no warnings are filtered.
 
+## Profile header-first navigation
+
+Cold ProfileSurface construction is synchronous again, unlike the other
+route loaders. Its nested cast loaders remain asynchronous and the stable
+model is not populated until the active header has been constructed and
+given a frame to request and present identity media. A 450 ms maximum
+media/metadata priority window (after construction) prevents unavailable
+covers or avatars from blocking posts. On a warm same-identity return,
+existing rows are retained and the gate is not reset. A real identity change
+restarts the gate before clearing the old model. The profile gate does not
+change image download policy or cover/Avatar styling. A late network reply
+can still arrive after the bounded window; the permanent cover slot remains.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

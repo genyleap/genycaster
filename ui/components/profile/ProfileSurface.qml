@@ -122,6 +122,55 @@ Item {
     property string displayLayout: "timeline"
     readonly property bool profileMagazineEnabled: !root.compact && displayLayout !== "timeline"
     readonly property var readList: root.profileMagazineEnabled ? profileMagazineView : profileList
+
+    // Cold/changed identity: construct the visible header first, allow it
+    // to request its own media, and only then admit post delegates. A slow
+    // or absent remote image may never indefinitely block the reader.
+    property bool profileRowsReleased: false
+    property bool profileHeaderDeadlineExpired: false
+    property bool profileComponentReady: false
+    readonly property bool profileHeaderConstructed: Boolean(root.readList
+        && root.readList.headerItem && root.readList.headerItem.headerConstructed)
+    readonly property bool profileHeaderPrepared: root.profileHeaderConstructed
+        && (root.profileHeaderDeadlineExpired
+            || (Boolean(root.activeDetail.fidString || root.activeDetail.fid)
+                && !root.readList.headerItem.headerMediaPending))
+    function beginProfileHeaderPriority() {
+        root.profileRowsReleased = false
+        root.profileHeaderDeadlineExpired = false
+        profileHeaderReleaseTimer.stop()
+        profileHeaderDeadline.stop()
+        if (root.profileComponentReady && root.visible) {
+            profileHeaderDeadline.start()
+            if (root.profileHeaderPrepared)
+                profileHeaderReleaseTimer.start()
+        }
+    }
+    onProfileHeaderPreparedChanged: {
+        if (root.profileComponentReady && root.visible && !root.profileRowsReleased
+                && root.profileHeaderPrepared)
+            profileHeaderReleaseTimer.restart()
+    }
+    Timer {
+        id: profileHeaderDeadline
+        interval: 450
+        repeat: false
+        onTriggered: root.profileHeaderDeadlineExpired = true
+    }
+    Timer {
+        id: profileHeaderReleaseTimer
+        interval: 16
+        repeat: false
+        onTriggered: {
+            if (!root.visible || !root.profileHeaderPrepared || root.profileRowsReleased
+                    || (typeof renderingController !== "undefined" && renderingController
+                        && renderingController.shuttingDown === true))
+                return
+            root.profileRowsReleased = true
+            profileHeaderDeadline.stop()
+            stableModelSyncTimer.restart()
+        }
+    }
     // ListView exposes originY, but the masonry Flickable may not. An
     // undefined origin must never turn pagination and anchor math into NaN.
     function readOriginY() {
@@ -678,6 +727,10 @@ Item {
     Component.onCompleted: {
         root.synchronizeActiveDetail()
         root.migrateLegacyProfileExtras()
+        root.profileComponentReady = true
+        root.reconcileProfileRowsIdentity()
+        if (!root.profileRowsReleased && !profileHeaderDeadline.running)
+            root.beginProfileHeaderPriority()
         profileStatusFetch.start()
     }
     readonly property var profileExtras: {
@@ -933,6 +986,7 @@ Item {
         if (key === root.rowsIdentityKey || root.profileFidText.length === 0)
             return
         root.rowsIdentityKey = key
+        root.beginProfileHeaderPriority()
         root.cancelViewportCorrections()
         root.stableModelSyncPending = false
         root.positionedProfileFid = Number(root.profileFidText)
@@ -1368,7 +1422,15 @@ Item {
     }
 
     function requestStableModelSync() {
-        if (!root.visible || root.readList.moving) {
+        if (!root.visible || !root.profileComponentReady || root.readList.moving) {
+            root.stableModelSyncPending = true
+            return
+        }
+        // Resolve scope before testing the release gate so a navigation
+        // cannot publish cached rows for a new identity ahead of its header.
+        root.synchronizeActiveDetail()
+        root.reconcileProfileRowsIdentity()
+        if (!root.profileRowsReleased) {
             root.stableModelSyncPending = true
             return
         }
@@ -1387,6 +1449,10 @@ Item {
         // even if the bridge published rows before its queued identity timer.
         root.synchronizeActiveDetail()
         root.reconcileProfileRowsIdentity()
+        if (!root.profileRowsReleased) {
+            root.stableModelSyncPending = true
+            return
+        }
         const source = root.sortedRows()
         if (root.busy && source.length === 0 && profileRowsModel.count > 0) {
             if (traceStart >= 0)
@@ -1492,11 +1558,15 @@ Item {
             stableModelSyncTimer.stop()
             activeDetailSyncTimer.stop()
             profileIdentitySyncTimer.stop()
+            profileHeaderReleaseTimer.stop()
+            profileHeaderDeadline.stop()
             root.stableModelSyncPending = true
             accountConnectionsPopup.close()
             return
         }
         root.reconcileProfileRowsIdentity()
+        if (!root.profileRowsReleased && !profileHeaderDeadline.running)
+            root.beginProfileHeaderPriority()
         stableModelSyncTimer.restart()
         root.scrollToBeginning()
         root.positionNewProfileAtBeginning()
@@ -1695,6 +1765,12 @@ Item {
         Component {
           id: profileHeaderComponent
           ColumnLayout {
+            id: headerRoot
+            property bool headerConstructed: false
+            readonly property bool headerMediaPending: (Boolean(root.activeDetail.bannerUrl)
+                && !bannerImage.ready && !bannerImage.loadFailed && !bannerImage.policyBlocked)
+                || profileAvatar.mediaPending
+            Component.onCompleted: headerConstructed = true
             width: root.readList.width
             // Keep Back and Profile Options reachable for own profiles on
             // mobile; GenyBuzz consent cannot depend on desktop-only actions.
