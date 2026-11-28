@@ -14,7 +14,6 @@ case "$mode" in ad-hoc|self-signed|developer-id) ;; *) echo "Unknown signing mod
 umask 077
 scratch="$(mktemp -d)"
 keychain=""
-trusted_cert=""
 search_list_changed=0
 bounded() {
   python3 -c 'import subprocess,sys; sys.exit(subprocess.run(sys.argv[1:],timeout=15).returncode)' "$@"
@@ -30,14 +29,7 @@ PY
     search_list_changed=0
   fi
 }
-remove_runner_trust() {
-  bounded sudo -n /usr/bin/security remove-trusted-cert -d "$trusted_cert" &&
-    bounded sudo -n /usr/bin/security delete-certificate -Z "$identity" /Library/Keychains/System.keychain
-}
 cleanup() {
-  if [[ -n "$trusted_cert" ]]; then
-    remove_runner_trust >/dev/null 2>&1 || true
-  fi
   restore_search_list || true
   if [[ -n "$keychain" ]]; then
     bounded security delete-keychain "$keychain" >/dev/null 2>&1 || true
@@ -111,16 +103,8 @@ if [[ "$mode" != ad-hoc ]]; then
     [[ "${GITHUB_ACTIONS:-}" == true && "${RUNNER_ENVIRONMENT:-}" == github-hosted ]] || {
       echo "Self-signed P12 import is restricted to GitHub-hosted runners" >&2; exit 1;
     }
-    # User-domain trust changes prompt for GUI authorization on macOS 26.
-    # Use the admin trust domain on the disposable hosted runner only.
-    # Refuse a pre-existing system certificate so cleanup cannot remove it.
-    if /usr/bin/security find-certificate -a -Z /Library/Keychains/System.keychain | grep -Fq "$identity"; then
-      echo "Pinned certificate already present in system keychain; refusing to modify existing trust" >&2
-      exit 1
-    fi
-    trusted_cert="$scratch/cert.der"
-    perl -e 'alarm 30; exec @ARGV' sudo -n /usr/bin/security add-trusted-cert -d -r trustRoot \
-      -p codeSign -k /Library/Keychains/System.keychain "$trusted_cert"
+    # A self-signed identity is intentionally not a trusted CA. Do not
+    # modify either user or admin trust settings for this signing operation.
     # codesign also consults the user search list while resolving a signing
     # identity and its chain. Merely passing --keychain was insufficient on
     # the hosted macOS runner even though security found the identity.
@@ -133,7 +117,7 @@ with open(sys.argv[1]) as stream:
 subprocess.run(["/usr/bin/security", "list-keychains", "-d", "user", "-s", sys.argv[2], *paths],
                check=True, timeout=15)
 PY
-    security find-identity -v -p codesigning | grep -F "$identity"
+    security find-identity -p codesigning | grep -F "$identity"
     echo "Signing identity visible in the user keychain search list"
     sign_args=(--force --sign "$identity" --timestamp=none)
   else
@@ -177,9 +161,7 @@ elif [[ "$mode" == self-signed ]]; then
   requirement="identifier \"com.genyleap.genycaster\" and certificate leaf = H\"$identity\""
   codesign "${sign_args[@]}" --identifier com.genyleap.genycaster \
     -r "=designated => $requirement" "$app"
-  # Remove the runner trust before verification, to model an ordinary Mac.
-  remove_runner_trust
-  trusted_cert=""
+  # Remove the temporary identity before verification, to model a recipient Mac.
   restore_search_list
   bounded security delete-keychain "$keychain"
   keychain=""
