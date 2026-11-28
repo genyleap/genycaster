@@ -1139,6 +1139,8 @@ Item {
                 && renderingController.stallDiagnosticsEnabled === true
                 ? renderingController.diagnosticClockMs() : -1
         const source = root.sourceRows()
+        if (traceStart >= 0)
+            renderingController.recordUiOperation("feed.classify", traceStart, source.length)
         // Preserve rows during a refresh of the SAME projection only.
         // A different topic/audience must never inherit unrelated cards.
         const scope = root.activeFeed + ":" + root.presentationMode + ":" + root.socialMode
@@ -1167,7 +1169,12 @@ Item {
                        presentationKind: String(entry.presentationKind || "conversation"),
                        mediaLayoutKind: root.mediaLayoutKind(payload)})
         }
+        const reconcileStart = traceStart >= 0 ? renderingController.diagnosticClockMs() : -1
+        if (traceStart >= 0)
+            renderingController.recordUiOperation("feed.roles", traceStart, next.length)
         stableRows.reconcile(next)
+        if (reconcileStart >= 0)
+            renderingController.recordUiOperation("feed.reconcile", reconcileStart, next.length)
         for (const key of Object.keys(root.stablePayloads)) {
             if (!liveKeys[key])
                 delete root.stablePayloads[key]
@@ -1249,6 +1256,14 @@ Item {
     // Qt.callLater queue. Repeated changes coalesce into one reconciliation;
     // unloading the page destroys the timer and its pending work.
     function deferFeedWork(syncRows, primeArt, checkPage) {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
+        if (!root.presentationActive) {
+            if (syncRows)
+                root.stableModelSyncPending = true
+            return
+        }
         root.deferredFeedSync = root.deferredFeedSync || syncRows
         root.deferredArtPrime = root.deferredArtPrime || primeArt
         root.deferredPageCheck = root.deferredPageCheck || checkPage
@@ -1346,13 +1361,16 @@ Item {
         root.deferFeedWork(true, root.presentationMode === "visuals", true)
         primaryScrollRequestTimer.restart()
     }
-    Component.onCompleted: requestStableModelSync()
+    Component.onCompleted: root.deferFeedWork(true, false, true)
 
     Timer {
         id: feedWorkTimer
         interval: 0
         repeat: false
         onTriggered: {
+            if (typeof renderingController !== "undefined" && renderingController
+                    && renderingController.shuttingDown === true)
+                return
             const synchronize = root.deferredFeedSync
             const prime = root.deferredArtPrime
             const check = root.deferredPageCheck

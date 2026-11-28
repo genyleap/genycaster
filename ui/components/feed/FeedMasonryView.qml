@@ -119,6 +119,8 @@ Flickable {
     property bool relayoutPending: false
     property bool resizeInProgress: false
     property real committedCardWidth: 1
+    // Bound Repeater/Loader construction, not geometry or media quality.
+    readonly property int newSlotsPerPass: 3
     function viewportResized() {
         if (typeof renderingController !== "undefined" && renderingController
                 && renderingController.shuttingDown === true)
@@ -201,9 +203,12 @@ Flickable {
         const admissionStart = typeof renderingController !== "undefined" && renderingController
                 && renderingController.stallDiagnosticsEnabled === true
                 ? renderingController.diagnosticClockMs() : -1
-        layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer,
+        admissionTimer.stop()
+        const more = layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer,
                                 view.visible && positioned && height > 0,
-                                view.resizeInProgress)
+                                view.resizeInProgress, view.newSlotsPerPass)
+        if (more)
+            scheduleAdmission()
         if (admissionStart >= 0)
             renderingController.recordUiOperation("magazine.admission", admissionStart, layoutModel.count)
     }
@@ -300,6 +305,7 @@ Flickable {
             return
         if (!visible) {
             resizeSettleTimer.stop()
+            admissionTimer.stop()
             resizeInProgress = false
             layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer, false, false)
         } else {
@@ -316,7 +322,9 @@ Flickable {
 
     // Collect text/media measurements into one geometry commit per frame.
     Timer { id: layoutTimer; interval: 16; onTriggered: view.forceLayout() }
-    Timer { id: admissionTimer; interval: 0; onTriggered: view.updateAdmissions() }
+    // Yield between bounded admission transactions; explicit geometry
+    // commits can still admit an initial batch without waiting for a timer.
+    Timer { id: admissionTimer; interval: 16; onTriggered: view.updateAdmissions() }
 
     Loader {
         id: headerLoader

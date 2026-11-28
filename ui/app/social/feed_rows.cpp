@@ -226,7 +226,22 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
         return true;
     }
 
-    bool countChangedValue = false;
+    const auto previousCount = m_rows.size();
+    // Remove obsolete contiguous ranges first. Retained stable IDs keep
+    // their persistent indexes and new rows never overlap departed ones.
+    for (int end = static_cast<int>(m_rows.size()) - 1; end >= 0;) {
+        if (seen.contains(m_rows.at(end).stableKey)) {
+            --end;
+            continue;
+        }
+        int first = end;
+        while (first > 0 && !seen.contains(m_rows.at(first - 1).stableKey))
+            --first;
+        beginRemoveRows({}, first, end);
+        m_rows.remove(first, end - first + 1);
+        endRemoveRows();
+        end = first - 1;
+    }
     for (int i = 0; i < incoming.size(); ++i) {
         const Row& desired = incoming.at(i);
         if (i >= m_rows.size() || m_rows.at(i).stableKey != desired.stableKey) {
@@ -243,10 +258,17 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
                     endMoveRows();
                 }
             } else {
-                beginInsertRows({}, i, i);
-                m_rows.insert(i, desired);
+                // The old-key set distinguishes a contiguous run of new
+                // identities from retained rows that must be moved.
+                int end = i;
+                while (end + 1 < incoming.size()
+                       && !oldKeys.contains(incoming.at(end + 1).stableKey))
+                    ++end;
+                beginInsertRows({}, i, end);
+                for (int j = i; j <= end; ++j)
+                    m_rows.insert(j, incoming.at(j));
                 endInsertRows();
-                countChangedValue = true;
+                i = end;
                 continue;
             }
         }
@@ -256,9 +278,8 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
         beginRemoveRows({}, incoming.size(), m_rows.size() - 1);
         m_rows.resize(incoming.size());
         endRemoveRows();
-        countChangedValue = true;
     }
-    if (countChangedValue) emit countChanged();
+    if (previousCount != m_rows.size()) emit countChanged();
     return true;
 }
 
@@ -623,10 +644,10 @@ int MasonryWindowModel::windowIndexForSource(const int sourceIndex) const
     return -1;
 }
 
-void MasonryWindowModel::setViewport(const qreal top, const qreal height,
+bool MasonryWindowModel::setViewport(const qreal top, const qreal height,
                                     const qreal enteringBuffer,
                                     const qreal retentionBuffer, const bool active,
-                                    const bool retainExisting)
+                                    const bool retainExisting, const int admissionBudget)
 {
     m_viewportTop = std::isfinite(top) ? top : 0.0;
     m_viewportHeight = std::max(0.0, std::isfinite(height) ? height : 0.0);
@@ -638,10 +659,10 @@ void MasonryWindowModel::setViewport(const qreal top, const qreal height,
         m_resizeSampleWidth = 0;
     }
     m_retainExisting = active && retainExisting;
-    synchronizeWindow();
+    return synchronizeWindow(admissionBudget);
 }
 
-void MasonryWindowModel::synchronizeWindow()
+bool MasonryWindowModel::synchronizeWindow(const int admissionBudget)
 {
     QVector<int> admitted{};
     if (m_active && m_viewportHeight > 0) {
@@ -678,6 +699,44 @@ void MasonryWindowModel::synchronizeWindow()
         }
         std::sort(admitted.begin(), admitted.end());
         admitted.erase(std::unique(admitted.begin(), admitted.end()), admitted.end());
+    }
+    // Retain existing identities and admit visible/nearest new slots first.
+    // Only the selected rows reach Repeater in this transaction; geometry
+    // for all source rows remains valid. Recompute on every pass so a fast
+    // scroll never finishes admitting cards from an obsolete viewport.
+    bool morePending = false;
+    if (admissionBudget > 0 && !admitted.isEmpty()) {
+        QSet<QString> currentKeys;
+        currentKeys.reserve(m_window.size());
+        for (const auto& slot : std::as_const(m_window))
+            currentKeys.insert(slot.key);
+        QVector<int> selected;
+        QVector<int> newcomers;
+        selected.reserve(admitted.size());
+        newcomers.reserve(admitted.size());
+        for (const int sourceIndex : std::as_const(admitted)) {
+            if (currentKeys.contains(m_geometry.at(sourceIndex).key))
+                selected.append(sourceIndex);
+            else
+                newcomers.append(sourceIndex);
+        }
+        if (newcomers.size() > admissionBudget) {
+            const auto distance = [this](int index) {
+                const auto& slot = m_geometry.at(index);
+                return std::max({qreal{0}, m_viewportTop - (slot.y + slot.height),
+                    slot.y - (m_viewportTop + m_viewportHeight)});
+            };
+            std::partial_sort(newcomers.begin(), newcomers.begin() + admissionBudget,
+                newcomers.end(), [&distance](int left, int right) {
+                    const auto a = distance(left), b = distance(right);
+                    return a == b ? left < right : a < b;
+                });
+            newcomers.resize(admissionBudget);
+            morePending = true;
+        }
+        selected.append(newcomers);
+        std::sort(selected.begin(), selected.end());
+        admitted = std::move(selected);
     }
     // Evict departed ranges before inserting replacements. This avoids
     // temporarily holding both entire viewport windows during fast jumps.
@@ -781,4 +840,5 @@ void MasonryWindowModel::synchronizeWindow()
     }
     if (previousCount != m_window.size())
         emit countChanged();
+    return morePending;
 }

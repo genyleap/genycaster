@@ -350,6 +350,19 @@ incubators; scheduled preview and raster suppression; and native/QML
 Magazine range batching and retained indexes. No full application or
 Metal benchmark is implied by these isolated fixtures.
 
+## Frame-bounded magazine admission and feed reconciliation
+
+Magazine admits at most three new native viewport slots per transaction, prioritizing
+visible cards before nearest prefetch slots. Numeric geometry and existing resize
+retention remain independent; subsequent 16 ms timer passes recompute the current
+viewport instead of completing obsolete scroll requests. The cap is on work units,
+not a claim that every transaction meets the display deadline. Feed reconciliation
+also removes departed contiguous ranges before batching adjacent new identities.
+Retained IDs keep persistent indexes. Initial feed projection is deferred and hidden
+surfaces do not schedule projection work. The optional feed.classify, feed.roles
+(cumulative from projection start), and feed.reconcile scopes separate filtering,
+role construction and synchronous model/delegate notifications. These scopes overlap.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

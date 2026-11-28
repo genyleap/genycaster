@@ -137,9 +137,13 @@ public:
     /** @brief Explicitly resets lane assignment for a new presentation, not hydration. */
     Q_INVOKABLE void requestRepack() noexcept;
 
-    /** @brief Updates the bounded visible window by per-lane binary search. */
-    Q_INVOKABLE void setViewport(qreal top, qreal height, qreal enteringBuffer,
-                                 qreal retentionBuffer, bool active, bool retainExisting = false);
+    /** @brief Updates the visible window; true means further admission is pending.
+     * A positive budget caps newly inserted slots, not retained geometry.
+     * Zero preserves the synchronous behavior for native callers and tests.
+     */
+    Q_INVOKABLE bool setViewport(qreal top, qreal height, qreal enteringBuffer,
+                                 qreal retentionBuffer, bool active, bool retainExisting = false,
+                                 int admissionBudget = 0);
 
     /** @brief Records a width/revision-specific estimate or exact painted height. */
     Q_INVOKABLE bool retainHeight(const QString& key, const QString& revision,
@@ -179,7 +183,7 @@ private:
     void scheduleRelayout();
     void sourceDataChanged(const QModelIndex& first, const QModelIndex& last,
                            const QList<int>& roles);
-    void synchronizeWindow();
+    bool synchronizeWindow(int admissionBudget = 0);
     [[nodiscard]] QString heightKey(const QString& key, const QString& revision,
                                     qreal width) const;
     [[nodiscard]] qreal fallbackHeight(const Slot& slot) const;

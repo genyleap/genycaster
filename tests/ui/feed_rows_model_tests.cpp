@@ -143,6 +143,32 @@ int main(int argc, char** argv)
     require(batchWall.windowIndexForSource(400) >= 0);
     QObject::disconnect(monitor);
 
+    // Production admission budget: visible rows precede prefetch and no
+    // transaction creates more than three slots, even after a large jump.
+    MasonryWindowModel pacedWall;
+    pacedWall.setSourceModel(&batchRows);
+    pacedWall.relayout(2, 320, 12, 12, 12, false);
+    QAbstractItemModelTester pacedTester{&pacedWall, QAbstractItemModelTester::FailureReportingMode::Fatal};
+    QSignalSpy pacedInserts{&pacedWall, &QAbstractItemModel::rowsInserted};
+    const auto topOf100 = pacedWall.geometryAt(100).value(QStringLiteral("y")).toReal();
+    bool pending = pacedWall.setViewport(topOf100, 1000, 1200, 1600, true, false, 3);
+    require(pending && pacedWall.count() == 3 && pacedWall.windowIndexForSource(100) >= 0);
+    const auto oldSlot = QPersistentModelIndex{pacedWall.index(pacedWall.windowIndexForSource(100), 0)};
+    int passes = 0;
+    while (pending && passes++ < 100) {
+        const int before = pacedWall.count();
+        pending = pacedWall.setViewport(topOf100, 1000, 1200, 1600, true, false, 3);
+        require(pacedWall.count() <= before + 3);
+        require(oldSlot.isValid());
+    }
+    require(!pending && pacedWall.count() > 3);
+    pacedInserts.clear();
+    pending = pacedWall.setViewport(distant, 1000, 1200, 1600, true, false, 3);
+    require(pending && pacedWall.count() == 3 && !oldSlot.isValid());
+    require(pacedWall.windowIndexForSource(400) >= 0);
+    require(!pacedWall.setViewport(0, 0, 0, 0, false, false, 3));
+    require(pacedWall.count() == 0);
+
     // The native magazine owns geometry for the whole feed but QML objects
     // only for the viewport. Mixed measured heights never overlap lanes.
     FeedRowsModel casts{};
@@ -342,6 +368,16 @@ int main(int argc, char** argv)
     require(incrementalMoves.size() >= 1 && incrementalResets.isEmpty());
     incremental.reconcile({row(QStringLiteral("other"), QStringLiteral("r1"))});
     require(incrementalResets.size() == 1);
+    FeedRowsModel rangeFeed;
+    rangeFeed.reconcile({row("a","1"),row("b","1"),row("c","1"),row("d","1")});
+    QAbstractItemModelTester rangeTester{&rangeFeed, QAbstractItemModelTester::FailureReportingMode::Fatal};
+    const QPersistentModelIndex kept{rangeFeed.index(0,0)};
+    QSignalSpy rangeInserts{&rangeFeed, &QAbstractItemModel::rowsInserted};
+    QSignalSpy rangeRemoves{&rangeFeed, &QAbstractItemModel::rowsRemoved};
+    rangeFeed.reconcile({row("a","1"),row("x","1"),row("y","1"),row("z","1"),row("d","1")});
+    require(rangeRemoves.size() == 1 && rangeInserts.size() == 1);
+    require(rangeFeed.count() == 5 && kept.isValid());
+    require(rangeFeed.get(3).value(QStringLiteral("stableKey")) == QStringLiteral("z"));
 
     // A large stable-order hydration must notify ONLY the mutable row roles;
     // reprocessing an unchanged snapshot must never reset the view or emit
