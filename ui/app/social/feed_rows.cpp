@@ -1,4 +1,5 @@
 #include "feed_rows.hpp"
+#include "viewport_work_budget.hpp"
 
 #include <QByteArray>
 #include <QString>
@@ -252,10 +253,12 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
         const Row& desired = incoming.at(i);
         if (i >= m_rows.size() || m_rows.at(i).stableKey != desired.stableKey) {
             int found = -1;
-            for (int search = i + 1; search < m_rows.size(); ++search) {
-                if (m_rows.at(search).stableKey == desired.stableKey) {
-                    found = search;
-                    break;
+            if (oldKeys.contains(desired.stableKey)) {
+                for (int search = i + 1; search < m_rows.size(); ++search) {
+                    if (m_rows.at(search).stableKey == desired.stableKey) {
+                        found = search;
+                        break;
+                    }
                 }
             }
             if (found >= 0) {
@@ -271,8 +274,10 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
                        && !oldKeys.contains(incoming.at(end + 1).stableKey))
                     ++end;
                 beginInsertRows({}, i, end);
-                for (int j = i; j <= end; ++j)
-                    m_rows.insert(j, incoming.at(j));
+                // Open the gap once instead of shifting the same suffix
+                // for every inserted row (notably a large prepend).
+                m_rows.insert(i, end - i + 1, Row{});
+                std::copy_n(incoming.cbegin() + i, end - i + 1, m_rows.begin() + i);
                 endInsertRows();
                 i = end;
                 continue;
@@ -772,25 +777,16 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
     // filter clear can otherwise synchronously destroy dozens of rich cards.
     // Unremoved departed slots remain in their old position, marked retiring;
     // they cannot paint, receive input or be returned by index lookup.
-    for (int end = static_cast<int>(m_window.size()) - 1; end >= 0;) {
-        if (desiredKeys.contains(m_window.at(end).key)) {
-            --end;
-            continue;
-        }
-        if (evictionBudget > 0 && removed >= evictionBudget)
-            break;
-        int first = end;
-        while (first > 0 && !desiredKeys.contains(m_window.at(first - 1).key)
-               && (evictionBudget <= 0 || removed + end - first + 1 < evictionBudget))
-            --first;
-        measure(evictionNs, [&] {
-            beginRemoveRows({}, first, end);
-            m_window.remove(first, end - first + 1);
-            endRemoveRows();
+    removed = genycaster::ui::detail::evictDepartedRanges(
+        static_cast<int>(m_window.size()), evictionBudget,
+        [&](int index) { return desiredKeys.contains(m_window.at(index).key); },
+        [&](int first, int last) {
+            measure(evictionNs, [&] {
+                beginRemoveRows({}, first, last);
+                m_window.remove(first, last - first + 1);
+                endRemoveRows();
+            });
         });
-        removed += end - first + 1;
-        end = first - 1;
-    }
     bool evictionPending = false;
     for (const auto& slot : std::as_const(m_window)) {
         if (!desiredKeys.contains(slot.key)) {
@@ -865,10 +861,12 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
         desired.laneCommitted = true;
         if (index >= m_window.size() || m_window.at(index).key != desired.key) {
             int found = -1;
-            for (int search = index + 1; search < m_window.size(); ++search) {
-                if (m_window.at(search).key == desired.key) {
-                    found = search;
-                    break;
+            if (existingKeys.contains(desired.key)) {
+                for (int search = index + 1; search < m_window.size(); ++search) {
+                    if (m_window.at(search).key == desired.key) {
+                        found = search;
+                        break;
+                    }
                 }
             }
             if (found >= 0) {
@@ -885,10 +883,11 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
                     ++end;
                 measure(updateNs, [&] {
                     beginInsertRows({}, index, end);
+                    m_window.insert(index, end - index + 1, Slot{});
                     for (int i = index; i <= end; ++i) {
                         auto& incoming = m_geometry[admitted.at(i)];
                         incoming.laneCommitted = true;
-                        m_window.insert(i, incoming);
+                        m_window[i] = incoming;
                     }
                     endInsertRows();
                 });

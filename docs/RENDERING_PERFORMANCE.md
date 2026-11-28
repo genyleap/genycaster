@@ -430,6 +430,17 @@ Enable genycaster.render.masonry.debug for planning/eviction/publish CPU spans;
 these measure model signal delivery including synchronous QML observers, not
 actual GPU duration. No visual-quality settings are modified.
 
+## RHI main pass and low-allocation model publication
+
+The public beforeRenderPassRecording/afterRenderPassRecording signals split
+recordingMs into preMainPassMs, mainPassMs and postMainPassMs. Missing hooks
+remain -1 (not zero). Pre-main time can include texture preparation and
+offscreen passes; all spans are CPU wall time, not GPU execution timing.
+The primitive feed and masonry models skip searches for known new identities
+and open contiguous insertion gaps once, rather than repeatedly shifting
+the same suffix. The allocation-free retirement range primitive is tested
+independently of Qt; the model fixture covers Qt signals and indexes.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

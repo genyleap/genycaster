@@ -304,12 +304,19 @@ QtObject {
         traceWindow.beforeSynchronizing();
         traceWindow.afterSynchronizing();
         traceWindow.beforeRendering();
+        QTest::qSleep(10);
+        traceWindow.beforeRenderPassRecording();
         QTest::qSleep(30);
+        traceWindow.afterRenderPassRecording();
+        QTest::qSleep(10);
         traceWindow.afterRendering();
         traceWindow.afterFrameEnd();
         CHECK(traceMessages.size() == 1);
         CHECK(traceField(traceMessages.first(), QStringLiteral("recordingMs")) >= 25.0);
         CHECK(traceMessages.first().contains("newMediaTicket false"));
+        CHECK(traceField(traceMessages.first(), QStringLiteral("preMainPassMs")) >= 8.0);
+        CHECK(traceField(traceMessages.first(), QStringLiteral("mainPassMs")) >= 25.0);
+        CHECK(traceField(traceMessages.first(), QStringLiteral("postMainPassMs")) >= 8.0);
         CHECK(traceField(traceMessages.first(), QStringLiteral("submitTailMs")) >= 0.0);
         CHECK(traceField(traceMessages.first(), QStringLiteral("totalMs"))
               >= traceField(traceMessages.first(), QStringLiteral("recordingMs")));
@@ -322,6 +329,7 @@ QtObject {
         traceWindow.afterFrameEnd();
         CHECK(traceMessages.size() == 2);
         CHECK(traceMessages.last().contains("syncMs -1"));
+        CHECK(traceMessages.last().contains("mainPassMs -1"));
         CHECK(traceField(traceMessages.last(), QStringLiteral("submitTailMs")) >= 25.0);
         controller.recordUiMarker(QStringLiteral("fixture.route"));
         const double start = controller.diagnosticClockMs();

@@ -197,10 +197,13 @@ Flickable {
         if (typeof renderingController !== "undefined" && renderingController
                 && renderingController.shuttingDown === true)
             return
-        // A zero-delay viewport timer can run during layout invalidation;
-        // only commit admissions against the completed numeric geometry.
-        if (arranging || layoutTimer.running)
+        // Only commit against completed numeric geometry. A hidden route
+        // has no new admissions; ensure retirement still makes progress
+        // when its visibility changes during an existing layout transaction.
+        if (arranging || layoutTimer.running) {
+            if (!view.visible) scheduleAdmission()
             return
+        }
         const admissionStart = typeof renderingController !== "undefined" && renderingController
                 && renderingController.stallDiagnosticsEnabled === true
                 ? renderingController.diagnosticClockMs() : -1
@@ -518,10 +521,14 @@ Flickable {
                 anchors.fill: parent
                 z: 2
                 enabled: false
-                active: !slot.retiring && view.visible && slot.placed
-                        && slot.y + slot.height > view.contentY
-                        && slot.y < view.contentY + view.height
-                        && (!slot.cardReady || opacity > 0.01)
+                // Keep an already-admitted placeholder until this retired
+                // slot's scheduled deletion; do not destroy every skeleton
+                // as a side effect of a route visibility/retirement change.
+                active: slot.retiring || !view.visible
+                        ? item !== null
+                        : slot.placed && slot.y + slot.height > view.contentY
+                          && slot.y < view.contentY + view.height
+                          && (!slot.cardReady || opacity > 0.01)
                 opacity: slot.cardReady ? 0 : 1
                 Behavior on opacity {
                     NumberAnimation {

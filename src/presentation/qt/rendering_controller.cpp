@@ -39,6 +39,7 @@ const TraceTime traceOrigin = TraceClock::now();
 // No locks, private QRhi APIs, GPU readbacks, or queued GUI calls.
 struct StallFrameTrace final {
   std::optional<TraceTime> frameBegin, syncBegin, syncEnd, recordBegin, recordEnd;
+  std::optional<TraceTime> mainPassBegin, mainPassEnd;
   quint64 sequence{0};
   quint64 lastMediaGeneration{0};
   bool newMediaTicket{false};
@@ -51,6 +52,8 @@ struct StallFrameTrace final {
     syncEnd.reset();
     recordBegin.reset();
     recordEnd.reset();
+    mainPassBegin.reset();
+    mainPassEnd.reset();
   }
 
   void finish() {
@@ -70,6 +73,9 @@ struct StallFrameTrace final {
         << "totalMs" << total << "syncMs" << sync
         << "beforeRecordingMs" << beforeRecording
         << "recordingMs" << recording << "submitTailMs" << submitTail
+        << "preMainPassMs" << phaseMs(recordBegin, mainPassBegin)
+        << "mainPassMs" << phaseMs(mainPassBegin, mainPassEnd)
+        << "postMainPassMs" << phaseMs(mainPassEnd, recordEnd)
         << "newMediaTicket" << newMediaTicket;
   }
 };
@@ -336,6 +342,13 @@ void RenderingController::attachWindow(QQuickWindow *window) {
         [trace] { trace->syncEnd = TraceClock::now(); }, Qt::DirectConnection);
     connect(window, &QQuickWindow::beforeRendering, this,
         [trace] { trace->recordBegin = TraceClock::now(); }, Qt::DirectConnection);
+    // Public RHI hooks delimit the main scene pass. The preceding CPU span
+    // can contain offscreen layers, texture preparation and driver work.
+    // Software backends may not emit these hooks; leave missing spans at -1.
+    connect(window, &QQuickWindow::beforeRenderPassRecording, this,
+        [trace] { trace->mainPassBegin = TraceClock::now(); }, Qt::DirectConnection);
+    connect(window, &QQuickWindow::afterRenderPassRecording, this,
+        [trace] { trace->mainPassEnd = TraceClock::now(); }, Qt::DirectConnection);
     connect(window, &QQuickWindow::afterRendering, this,
         [trace] { trace->recordEnd = TraceClock::now(); }, Qt::DirectConnection);
     connect(window, &QQuickWindow::afterFrameEnd, this,
