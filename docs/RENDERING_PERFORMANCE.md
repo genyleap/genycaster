@@ -612,6 +612,17 @@ objects for less creation churn, and is not general delegate recycling.
 v9 still reports 24 unfinished QML creations despite a zero public
 incubation count. These changes do not prove that warning is resolved.
 
+## Native notification row reconciliation
+
+Notifications now use the existing native FeedRowsModel and stable-key
+anchor lookup rather than per-row QML ListModel operations and repeated
+QVariantMap lookups. Grouping, mute and mention filtering stay unchanged;
+the final visible projection drives synchronization. Duplicate stable IDs
+keep the first displayed row, and payloads no longer in the model are
+removed after publication. The diagnostic notification.projection measures
+this path. This is a structural optimization, not proof that the v9
+notification navigation stalls are caused by this model.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

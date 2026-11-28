@@ -451,7 +451,7 @@ Item {
         if (index < 0 || index >= notificationModel.count) return
         const item = list.itemAtIndex(index)
         if (!item) return
-        root.viewportAnchorKey = String(notificationModel.get(index).stableKey || "")
+        root.viewportAnchorKey = notificationModel.keyAt(index)
         root.viewportAnchorOffset = item.y - list.contentY
     }
 
@@ -477,13 +477,7 @@ Item {
     function restoreViewportAnchor(anchorKey, anchorOffset) {
         if (anchorKey.length === 0 || notificationModel.count === 0)
             return
-        let targetIndex = -1
-        for (let index = 0; index < notificationModel.count; ++index) {
-            if (String(notificationModel.get(index).stableKey) === anchorKey) {
-                targetIndex = index
-                break
-            }
-        }
+        const targetIndex = notificationModel.indexForKey(anchorKey)
         if (targetIndex < 0)
             return
         const item = list.itemAtIndex(targetIndex)
@@ -511,50 +505,39 @@ Item {
         const source = root.visibleRows || []
         let anchorKey = ""
         let anchorOffset = 0
-        let structureChanged = false
+        const traceStart = typeof renderingController !== "undefined" && renderingController
+                && renderingController.stallDiagnosticsEnabled === true
+                ? renderingController.diagnosticClockMs() : -1
         const probeY = Math.max(0, list.contentY) + 1
         const anchorIndex = list.indexAt(Math.max(1, list.width / 2), probeY)
         if (anchorIndex >= 0 && anchorIndex < notificationModel.count) {
             const anchorItem = list.itemAtIndex(anchorIndex)
-            anchorKey = String(notificationModel.get(anchorIndex).stableKey)
+            anchorKey = notificationModel.keyAt(anchorIndex)
             anchorOffset = anchorItem ? anchorItem.y - list.contentY : 0
         }
 
+        const roles = []
+        const retainedKeys = new Set()
         for (let index = 0; index < source.length; ++index) {
             const key = root.notificationKey(source[index], index)
-            const revision = root.notificationRevision(source[index])
+            // A duplicate provider event must not create a second delegate
+            // with the same stable identity. Keep the first displayed row.
+            if (retainedKeys.has(key)) continue
+            retainedKeys.add(key)
             root.stablePayloads[key] = source[index]
-            if (index < notificationModel.count
-                    && String(notificationModel.get(index).stableKey) === key) {
-                if (String(notificationModel.get(index).revisionKey || "") !== revision) {
-                    notificationModel.setProperty(index, "revisionKey", revision)
-                }
-                continue
-            }
-
-            let existingIndex = -1
-            for (let probe = index + 1; probe < notificationModel.count; ++probe) {
-                if (String(notificationModel.get(probe).stableKey) === key) {
-                    existingIndex = probe
-                    break
-                }
-            }
-            if (existingIndex >= 0) {
-                notificationModel.move(existingIndex, index, 1)
-                structureChanged = true
-                if (String(notificationModel.get(index).revisionKey || "") !== revision) {
-                    notificationModel.setProperty(index, "revisionKey", revision)
-                }
-            } else {
-                notificationModel.insert(index, { stableKey: key, revisionKey: revision })
-                structureChanged = true
-            }
+            roles.push({stableKey: key, revisionKey: root.notificationRevision(source[index])})
         }
-
-        while (notificationModel.count > source.length) {
-            notificationModel.remove(notificationModel.count - 1)
-            structureChanged = true
+        // All payloads must be available before synchronous native model
+        // observers receive insert/move/revision notifications.
+        const structureChanged = notificationModel.reconcile(roles)
+        // Retiring delegates have now left the model; do not retain old
+        // account/filter payloads indefinitely in the side store.
+        for (const key of Object.keys(root.stablePayloads)) {
+            if (!retainedKeys.has(key))
+                delete root.stablePayloads[key]
         }
+        if (traceStart >= 0)
+            renderingController.recordUiOperation("notification.projection", traceStart, roles.length)
 
         if (structureChanged && anchorKey.length > 0)
             root.scheduleViewportRestore(anchorKey, anchorOffset, false)
@@ -597,8 +580,10 @@ Item {
         repeat: false
         onTriggered: root.requestStableModelSync()
     }
-    onRowsChanged: stableModelSyncTimer.restart()
-    onFilterKindChanged: stableModelSyncTimer.restart()
+    // Grouping, mute and account-name dependent mention filters all feed
+    // this projection. Observe the final result, not only raw rows/filter.
+    onVisibleRowsChanged: stableModelSyncTimer.restart()
+    Component.onCompleted: stableModelSyncTimer.restart()
 
     ColumnLayout {
         anchors.fill: parent
@@ -818,7 +803,7 @@ Item {
             }
         }
 
-        ListModel {
+        FeedRowsModel {
             id: notificationModel
         }
 
