@@ -1,0 +1,25 @@
+name: macOS signing-only smoke
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: macos-signing-only
+  cancel-in-progress: false
+jobs:
+  signing:
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-26
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify persistent self-signed release identity without building Qt
+        shell: bash
+        env:
+          MACOS_SELF_SIGNED_P12_BASE64: ${{ secrets.MACOS_SELF_SIGNED_P12_BASE64 }}
+          MACOS_SELF_SIGNED_P12_PASSWORD: ${{ secrets.MACOS_SELF_SIGNED_P12_PASSWORD }}
+          MACOS_SELF_SIGNED_CERT_SHA1: ${{ vars.MACOS_SELF_SIGNED_CERT_SHA1 }}
+          REQUIRE_MACOS_RELEASE_SIGNING: 'true'
+        run: bash ci/test_macos_signing_smoke.sh
