@@ -11,6 +11,15 @@ target_include_directories(genycaster_rendering_pacing_fixture PRIVATE "${root}/
 target_compile_features(genycaster_rendering_pacing_fixture PRIVATE cxx_std_23)
 target_link_libraries(genycaster_rendering_pacing_fixture PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::Test)
 enable_testing()
+find_package(Qt6 REQUIRED COMPONENTS Network)
+add_executable(genycaster_link_preview_seed_fixture
+  "${root}/tests/ui/link_preview_seed_cache_tests.cpp"
+  "${root}/ui/app/network/link_preview.cpp"
+  "${root}/ui/app/network/link_preview.hpp")
+target_compile_features(genycaster_link_preview_seed_fixture PRIVATE cxx_std_23)
+target_link_libraries(genycaster_link_preview_seed_fixture PRIVATE Qt6::Core Qt6::Network Qt6::Test)
+add_test(NAME link_preview_seed_cache COMMAND genycaster_link_preview_seed_fixture)
+set_tests_properties(link_preview_seed_cache PROPERTIES TIMEOUT 30)
 add_executable(genycaster_reflection_coordinates_fixture
   "${root}/tests/ui/reflection_coordinates_tests.cpp"
   "${root}/ui/render/reflection_coordinates.cpp"

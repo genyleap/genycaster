@@ -28,6 +28,13 @@ Item {
     property string appFilterMode: "all"
     property string selectedSignerKey: ""
     property string selectedAppFid: ""
+    property bool presentationActive: true
+    property bool stableModelSyncPending: false
+    property bool previewSyncPending: false
+    property int projectionSyncs: 0
+    function synchronizeStableModel() { ++projectionSyncs }
+    QtObject { id: readList; property bool moving: false }
+    Timer { id: previewSyncDebounce; interval: 10000 }
     property var nativeRowSnapshot: null
     property var nativeRowOrderProvider: null
     property string profileFeed: "user-popular"
@@ -97,6 +104,45 @@ Item {
                 root.classifiedFamily({kind:"url",url:"https://example.invalid/scan/"+i},{},false)
             compare(mediaClassifier.calls-firstScan,52)
             compare(root.staticMediaFamilies.size,2048)
+        }
+        function test_fullProjectionConsumesPendingMetadataSync() {
+            root.presentationActive = true
+            root.stableModelSyncPending = false
+            root.previewSyncPending = true
+            root.projectionSyncs = 0
+            readList.moving = true
+            previewSyncDebounce.start()
+            root.requestStableModelSync()
+            compare(root.projectionSyncs,0)
+            verify(root.stableModelSyncPending)
+            verify(root.previewSyncPending)
+            verify(previewSyncDebounce.running)
+            readList.moving = false
+            root.presentationActive = false
+            root.requestStableModelSync()
+            compare(root.projectionSyncs,0)
+            verify(root.previewSyncPending)
+            root.presentationActive = true
+            root.requestStableModelSync()
+            compare(root.projectionSyncs,1)
+            verify(!root.stableModelSyncPending)
+            verify(!root.previewSyncPending)
+            verify(!previewSyncDebounce.running)
+        }
+        function test_imageEvidenceSkipsUnneededNativeClassification() {
+            mediaClassifier.calls = 0
+            root.staticMediaFamilies.clear()
+            linkPreviewResolver.observed = "web"
+            verify(root.rowHasImage({embeds:[{kind:"image",url:"https://example.invalid/a"}]}))
+            verify(root.rowHasImage({embeds:[{kind:"url",url:"https://example.invalid/b.jpg"}]}))
+            verify(root.rowHasImage({embeds:[{kind:"url",url:"https://example.invalid/c",previewImage:"poster"}]}))
+            verify(root.rowHasImage({embeds:[{kind:"url",url:"https://imagedelivery.net/hash/id/public"}]}))
+            compare(mediaClassifier.calls,0)
+            verify(!root.rowHasImage({embeds:[{kind:"url",url:"https://example.invalid/d"}]}))
+            compare(mediaClassifier.calls,1)
+            linkPreviewResolver.observed = "image"
+            verify(root.rowHasImage({embeds:[{kind:"url",url:"https://example.invalid/d"}]}))
+            compare(mediaClassifier.calls,2)
         }
         function test_collectibleProjectionReadsEachUrlOnce() {
             root.presentationMode = "visuals"
@@ -186,6 +232,7 @@ def main():
     profile=PROFILE.read_text()
     functions=section(feed,"    function embedUrl(","    function incrementFilterPrefetchPages(")
     functions+=section(feed,"    function rowMatchesAppFilter(","    function rowKey(")
+    functions+=section(feed,"    function requestStableModelSync(","    function cancelViewportCorrections(")
     functions+=section(profile,"    function rowTime(","    function rowKey(")
     with tempfile.TemporaryDirectory(prefix="genycaster-projection-") as tmp:
         (Path(tmp)/"tst_projection.qml").write_text(QML.replace("    // PRODUCTION_FUNCTIONS",functions))

@@ -453,16 +453,16 @@ Item {
             const metadata = root.collectiblePreview(embed, previewCache)
             const kind = String(embed.kind || "").toLowerCase()
             const value = root.embedUrl(embed)
-            const family = root.classifiedFamily(embed, metadata, false)
             const directArtwork = String(embed.imageSource || embed.previewImage
                                          || metadata.previewImage || metadata.imageSource || "")
             // Some media origins return bare URLs for real NFT photographs
             // (notably imagedelivery.net and IPFS) without a file extension.
             // The selected read route's art/nft channel must still pass the collectible
             // classifier below; only the media candidate detection expands.
-            if (directArtwork.length > 0 || kind === "image" || family === "image"
+            if (directArtwork.length > 0 || kind === "image"
                     || root.looksLikeArtworkUrl(value)
-                    || /\.(?:avif|gif|jpe?g|png|webp)(?:$|[?#])/i.test(value))
+                    || /\.(?:avif|gif|jpe?g|png|webp)(?:$|[?#])/i.test(value)
+                    || root.classifiedFamily(embed, metadata, false) === "image")
                 return true
         }
         return false
@@ -1093,7 +1093,11 @@ Item {
             root.stableModelSyncPending = true
             return
         }
+        // A full projection observes current metadata. Consume any pending
+        // preview-only reconciliation instead of scanning the same feed twice.
         root.stableModelSyncPending = false
+        root.previewSyncPending = false
+        previewSyncDebounce.stop()
         root.synchronizeStableModel()
     }
 
@@ -1133,7 +1137,7 @@ Item {
                 ? renderingController.diagnosticClockMs() : -1
         const source = root.sourceRows()
         if (traceStart >= 0)
-            renderingController.recordUiOperation("feed.classify", traceStart, source.length)
+            renderingController.recordUiOperation("feed.classify", traceStart, (root.rows || []).length)
         // Preserve rows during a refresh of the SAME projection only.
         // A different topic/audience must never inherit unrelated cards.
         const scope = root.activeFeed + ":" + root.presentationMode + ":" + root.socialMode
@@ -1588,9 +1592,11 @@ Item {
             // updates from an empty/duplicate continuation page.
             root.resetAutomaticPageBudget()
             scrollWorkThrottle.stop()
-            if (root.stableModelSyncPending)
-                root.requestStableModelSync()
-            if (root.previewSyncPending) {
+            if (root.stableModelSyncPending) {
+                // Keep full reconciliation out of the Flickable input
+                // handler and fold metadata/page changes into one owned turn.
+                root.deferFeedWork(true, false, true)
+            } else if (root.previewSyncPending) {
                 root.previewSyncPending = false
                 previewSyncDebounce.restart()
             }

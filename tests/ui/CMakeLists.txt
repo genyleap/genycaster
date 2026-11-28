@@ -773,6 +773,16 @@ add_test(NAME ui.link_preview_shutdown COMMAND farcaster_link_preview_shutdown_t
 set_tests_properties(ui.link_preview_shutdown PROPERTIES TIMEOUT 8
     LABELS "ui;network;shutdown")
 
+add_executable(farcaster_link_preview_seed_cache_tests
+    link_preview_seed_cache_tests.cpp
+    "${genycasterUiSourceDir}/app/network/link_preview.cpp")
+target_include_directories(farcaster_link_preview_seed_cache_tests PRIVATE
+    "${genycasterUiSourceDir}/app")
+target_link_libraries(farcaster_link_preview_seed_cache_tests PRIVATE Qt6::Core Qt6::Network Qt6::Test)
+add_test(NAME ui.link_preview_seed_cache COMMAND farcaster_link_preview_seed_cache_tests)
+set_tests_properties(ui.link_preview_seed_cache PROPERTIES TIMEOUT 30
+    LABELS "ui;network;performance")
+
 add_executable(farcaster_emoji_ui_tests emoji_runtime_tests.cpp)
 target_link_libraries(farcaster_emoji_ui_tests PRIVATE farcaster_emoji_runtime farcaster::provider_emoji Qt6::Test Qt6::Quick)
 target_compile_definitions(farcaster_emoji_ui_tests PRIVATE

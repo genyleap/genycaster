@@ -1,6 +1,7 @@
 #include "link_preview.hpp"
 
 #include <QByteArray>
+#include <QCache>
 #include <QHash>
 #include <QHostAddress>
 #include <QJsonDocument>
@@ -28,6 +29,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <utility>
 
 namespace {
@@ -39,6 +41,10 @@ constexpr int maximumRedirects = 4;
 constexpr qsizetype maximumConcurrentPreviewRequests = 2;
 constexpr qsizetype maximumPendingPreviewRequests = 64;
 constexpr qsizetype maximumRetainedPreviewEntries = 320;
+// Read-only classification can touch many more URLs than network admission.
+// Keep their deterministic seeds separate from the resolved/network FIFO.
+constexpr qsizetype maximumPreviewSeedEntries = 1024;
+constexpr qsizetype maximumPreviewSeedUrlLength = 2048;
 constexpr qint64 previewFreshnessMilliseconds = 15 * 60 * 1000;
 constexpr qsizetype maximumJsonBytes = 128 * 1024;
 
@@ -766,18 +772,40 @@ public:
         return true;
     }
 
+    struct PreviewSeed final {
+        QString key;
+        std::optional<QVariantMap> fallback;
+    };
+
     [[nodiscard]] QVariantMap previewFor(const QString& rawUrl) const
     {
-        const QString key = normalizedUrl(rawUrl);
-        if (key.isEmpty()) {
-            return {};
+        // Exact raw input preserves QUrl normalization semantics, including
+        // fragments, escaped paths and invalid URLs. Oversized inputs are
+        // evaluated normally but never retained.
+        const bool retainSeed = rawUrl.size() <= maximumPreviewSeedUrlLength
+            && (rawUrl.startsWith(QStringLiteral("https://"), Qt::CaseInsensitive)
+                || rawUrl.startsWith(QStringLiteral("http://"), Qt::CaseInsensitive));
+        PreviewSeed local{};
+        PreviewSeed* seed = retainSeed ? previewSeeds.object(rawUrl) : nullptr;
+        if (!seed) {
+            local.key = normalizedUrl(rawUrl);
+            seed = &local;
+            if (retainSeed) {
+                auto* const entry = new PreviewSeed{local};
+                if (previewSeeds.insert(rawUrl, entry))
+                    seed = entry;
+            }
         }
-        const auto found = cache.constFind(key);
-        if (found != cache.cend()) {
-            return found.value();
+        if (seed->key.isEmpty()) return {};
+        // Resolved metadata always wins, even for an already warmed seed.
+        // No read changes the network FIFO, revision or request admission.
+        const auto found = cache.constFind(seed->key);
+        if (found != cache.cend()) return found.value();
+        if (!seed->fallback) {
+            const QUrl url{seed->key};
+            seed->fallback = publicHttpUrl(url) ? seedPreview(url) : QVariantMap{};
         }
-        const QUrl url{key};
-        return publicHttpUrl(url) ? seedPreview(url) : QVariantMap{};
+        return *seed->fallback;
     }
 
     void requestPreview(const QString& rawUrl)
@@ -1042,6 +1070,7 @@ public:
     LinkPreviewNetworkWorker* networkWorker{};
     QThreadPool parsePool{};
     QHash<QString, QVariantMap> cache{};
+    mutable QCache<QString, PreviewSeed> previewSeeds{maximumPreviewSeedEntries};
     QQueue<QString> cacheOrder{};
     QHash<QString, qint64> observedAt{};
     QQueue<PendingPreview> pending{};

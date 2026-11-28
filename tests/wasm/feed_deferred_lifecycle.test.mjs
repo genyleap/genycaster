@@ -59,12 +59,14 @@ test('inactive surfaces defer visible reconciliation and never admit network pag
   const { root, calls, defer, trigger } = fixture(false, true);
   defer(true, true, true);
   trigger();
-  assert.deepEqual(calls, ['restart']);
+  // An inactive surface retains only the reconciliation intent. It
+  // must not even wake the timer until the surface is active again.
+  assert.deepEqual(calls, []);
   assert.equal(root.stableModelSyncPending, true);
   root.presentationActive = true;
   defer(true, true, true);
   trigger();
-  assert.deepEqual(calls, ['restart', 'restart', 'prime', 'sync', 'page']);
+  assert.deepEqual(calls, ['restart', 'prime', 'sync', 'page']);
 });
 
 test('optional visual metadata priming respects current mode', () => {
