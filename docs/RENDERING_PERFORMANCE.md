@@ -633,7 +633,9 @@ indices measured 2.96 ms versus 6.75 ms JavaScript for 1000 rows, and
 not whole application navigation or hardware-rendering results.
 
 The production profile now captures the bridge's native row snapshot and
-a token. Native ranking reads only the canonical numeric keys and returns
+a token. The snapshot binding subscribes to rowsChanged rather than the
+broad stateChanged signal, so progress/network updates do not reconvert
+the payload. Native ranking reads only the canonical numeric keys and returns
 a stable permutation; QML reuses its existing payload objects. Every row
 publication invalidates the token; topic rows and unknown numeric forms
 retain local fallback. Both paths explicitly resolve ties by original

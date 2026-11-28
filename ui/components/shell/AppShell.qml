@@ -2972,14 +2972,17 @@ Item {
                                                 bottomOverlayInset: root.readingOverlayInset(profileSurfaceLoader)
                                                 detail: presentationBridge.detail
                                                 navigationRevision: root.profileTopRevision
+                                                // Subscribe to row publication, not activeView's
+                                                // broad stateChanged signal. Status/network changes
+                                                // must not reconvert a large native row snapshot.
                                                 nativeRowSnapshot: root.topicBrowseActive && root.topicBrowseScope==="profile"
-                                                    || presentationBridge.activeView !== "profile"
                                                     ? null : presentationBridge.profileRowSnapshot
                                                 nativeRowOrderProvider: (token, feed, mode, metric) =>
                                                     presentationBridge.profileRowOrder(token, feed, mode, metric)
                                                 rows: root.topicBrowseActive && root.topicBrowseScope==="profile"
                                                     ? root.topicInlineRows()
                                                     : nativeProfileSurface.nativeRowSnapshot
+                                                        && nativeProfileSurface.nativeRowSnapshot.rows
                                                         ? nativeProfileSurface.nativeRowSnapshot.rows : []
                                                 mutedProfileFids: root.mutedActorIds
                                                 muteSettingsReady: openProofConnections ? openProofConnections.mutedProfilesReady : false

@@ -34,12 +34,14 @@ int main(int argc, char** argv)
     component.setData(R"QML(
 import QtQml
 QtObject {
-    property var snapshot: bridge.activeView === "profile" ? bridge.profileRowSnapshot : null
-    property var rows: snapshot ? snapshot.rows : []
-    property string token: snapshot ? snapshot.token : ""
+    property var snapshot: bridge.profileRowSnapshot
+    property int snapshotChanges: 0
+    onSnapshotChanged: ++snapshotChanges
+    property var rows: snapshot && snapshot.rows ? snapshot.rows : []
+    property string token: snapshot && snapshot.token ? snapshot.token : ""
     property string mode: "newest"
     property string ranked: {
-        if (!snapshot) return ""
+        if (bridge.activeView !== "profile" || !snapshot || !snapshot.rows) return ""
         const order = bridge.profileRowOrder(snapshot.token, bridge.profileFeed, mode, "likes")
         if (order.length !== rows.length) return "stale"
         const ids = []
@@ -66,8 +68,10 @@ QtObject {
     require(binding->setProperty("mode","oldest"));
     require(binding->property("ranked").toString()=="0xa,0xb,0xc");
 
+    const int priorChanges=binding->property("snapshotChanges").toInt();
     bridge.applyLookupState("refreshing", {}, {}, true, false, false);
     require(binding->property("token").toString()==firstToken);
+    require(binding->property("snapshotChanges").toInt()==priorChanges);
     bridge.applyList("profile","user-posts",{row("0xd",10,4)}, {}, {}, {}, {},
         false, false, false, true);
     require(binding->property("ranked").toString()=="0xd,0xa,0xb,0xc");
