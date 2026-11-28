@@ -144,6 +144,13 @@ if(GENYCASTER_FIXTURE_PRESENTATION_BRIDGE)
     "${root}/src/presentation/qt/presentation_bridge.hpp")
   set_target_properties(genycaster_fixture_bridge PROPERTIES CXX_SCAN_FOR_MODULES ON)
   target_compile_features(genycaster_fixture_bridge PUBLIC cxx_std_23)
+  # This target checks bridge contracts, not CPU performance. Avoid an
+  # expensive optimized compilation on shared one-core test machines.
+  if(MSVC)
+    target_compile_options(genycaster_fixture_bridge PRIVATE /Od)
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(genycaster_fixture_bridge PRIVATE -O0)
+  endif()
   target_include_directories(genycaster_fixture_bridge PUBLIC "${root}/src/presentation/qt"
     PRIVATE "${fixture_generated}")
   target_link_libraries(genycaster_fixture_bridge PUBLIC genycaster_fixture_configuration
