@@ -27,6 +27,7 @@ int main(int argc, char** argv)
 {
     QCoreApplication app{argc, argv};
     PresentationBridge bridge{};
+    bridge.applyRuntimeState(true);
     bridge.applyAuthenticationState(true, "authenticated", 42, "viewer", "Viewer", {}, {}, {}, {});
     QQmlEngine engine;
     engine.rootContext()->setContextProperty("bridge", &bridge);
