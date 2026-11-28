@@ -45,6 +45,8 @@ Item {
                 property string activeSource: ""
                 property int admissions: 0
                 property int evictions: 0
+                property bool presentationAdmissionPending: false
+                function synchronizePresentation() {}
                 function invalidatePresentationAdmission() { evictions += 1 }
                 Timer {
                     id: sourceStartTimer

@@ -28,5 +28,8 @@ test('flick admission keeps in-flight provider work and frame-paces texture visi
   assert.match(image, /sourceStartTimer\.stop\(\)/);
   assert.match(image, /renderingController\.requestMediaPresentation\(root, root\.presentationGeneration\)/);
   assert.match(image, /root\.invalidatePresentationAdmission\(\)/);
+  assert.match(image, /function acceptMediaPresentation\(generation: int\)/);
+  assert.doesNotMatch(image, /function onMediaPresentationGranted\(/);
+  assert.match(image, /if \(root\.remoteRaster && !root\.rasterEligible\)\s*return/);
   assert.match(image, /root\.activeSource = ""/);
 });

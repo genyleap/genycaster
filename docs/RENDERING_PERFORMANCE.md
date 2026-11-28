@@ -172,6 +172,30 @@ against Qt Core/Gui, checks PNG pixel equivalence, cache cost, size and URL
 isolation and LRU eviction. It does not compile the complete provider's
 transport or worker integration.
 
+## Targeted media presentation grants
+
+The shared scheduler retains one outstanding presentation ticket per render
+barrier. Instead of connecting every raster (including immediate avatars) to
+a global QML signal, it invokes the admitted surface's typed
+`acceptMediaPresentation(int)` method on the GUI thread. The existing native
+observation signal remains available for instrumentation. Identity and
+pending-ticket guards reject stale or duplicate deliveries.
+
+When a not-yet-presented remote raster leaves the admission margin, its
+queued ticket is cancelled without dropping decoded pixels. Re-entry asks
+for a fresh generation, while an already-presented retained image remains
+ready. An already-granted ticket still crosses the render barrier before
+the next grant. Prefetch/retention distances, decoder quality and cache
+limits are unchanged.
+
+The software and OpenGL pacing fixtures exercise real typed QML receivers
+alongside render-barrier tests. The shared raster fixture checks withdrawal,
+stale generation rejection, re-entry and warm reuse with a controlled local
+decode. This reduces unnecessary GUI signal fan-out and off-viewport
+presentation work; it does not directly limit GPU upload bytes or measure
+physical GPU execution time. Actual Qt texture upload scheduling remains
+backend-owned.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

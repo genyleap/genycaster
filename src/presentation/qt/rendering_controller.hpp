@@ -92,6 +92,7 @@ public:
   /**
    * @brief Queues one decoded media surface for admission after a rendered frame.
    * @param requester Borrowed QML media object; destroyed objects are skipped.
+   * A QML surface receives its ticket through acceptMediaPresentation(int).
    * @param generation Caller-owned identity used to reject stale source requests.
    */
   Q_INVOKABLE void requestMediaPresentation(QObject *requester, quint64 generation);
@@ -112,7 +113,7 @@ signals:
   void adaptiveQualityChanged();
   void telemetryChanged();
 
-  /** @brief Grants at most one live decoded media surface per rendered frame. */
+  /** @brief Observes a granted ticket for native instrumentation and tests. */
   void mediaPresentationGranted(QObject *requester, quint64 generation, quint64 presentationSequence);
 
 private:

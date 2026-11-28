@@ -90,8 +90,14 @@ Item {
             // A retained request/texture already has the correct identity.
             if (root.activeSource.toString().length === 0)
                 sourceStartTimer.restart()
-        } else if (root.activeSource.toString().length === 0) {
-            sourceStartTimer.stop()
+            root.synchronizePresentation()
+        } else {
+            if (root.activeSource.toString().length === 0)
+                sourceStartTimer.stop()
+            // An unpresented remote surface outside admission no longer
+            // competes for a frame ticket. Keep decoded pixels resident.
+            if (root.presentationAdmissionPending)
+                root.invalidatePresentationAdmission()
         }
     }
     onRasterRetainedChanged: {
@@ -378,6 +384,8 @@ Item {
         if (root.presentationReady)
             return
         if (root.requiresFramePacedPresentation) {
+            if (root.remoteRaster && !root.rasterEligible)
+                return
             if (!root.presentationAdmissionPending) {
                 root.presentationAdmissionPending = true
                 root.presentationGeneration += 1
@@ -574,17 +582,16 @@ Item {
         }
     }
 
-    Connections {
-        target: renderingController
-
-        function onMediaPresentationGranted(requester, generation, presentationSequence) {
-            if (requester !== root || Number(generation) !== root.presentationGeneration)
-                return
-            root.presentationAdmissionPending = false
-            if (!root.decodedReady || (root.deferNewLoadsWhileScrolling && root.scrollMoving))
-                return
-            root.presentationReady = true
-        }
+    // Invoked directly by the GUI-thread scheduler. No per-image
+    // subscription to a global grant signal, including for small avatars.
+    function acceptMediaPresentation(generation: int) {
+        if (!root.presentationAdmissionPending || generation !== root.presentationGeneration)
+            return
+        root.presentationAdmissionPending = false
+        if (!root.decodedReady || (root.remoteRaster && !root.rasterEligible)
+                || (root.deferNewLoadsWhileScrolling && root.scrollMoving))
+            return
+        root.presentationReady = true
     }
 
     // Stable placeholder remains present through the complete request lifecycle.

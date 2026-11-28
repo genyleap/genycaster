@@ -4,9 +4,12 @@
 #include <QEvent>
 #include <QGuiApplication>
 #include <QQuickWindow>
+#include <QQmlEngine>
+#include <QQmlComponent>
+#include <memory>
 #include <QSettings>
 #include <QTemporaryDir>
-#include <QTest>
+#include <QtCore/qtestsupport_core.h>
 
 #include <atomic>
 #include <vector>
@@ -178,5 +181,39 @@ int main(int argc, char** argv) {
     }
     controller.attachWindow(nullptr);
     window.hide();
+
+    // Actual typed QML methods (not C++ substitutes): the same generation
+    // reaches only its owner, while the native observation signal remains.
+    QQmlEngine engine;
+    QQmlComponent receiver(&engine);
+    receiver.setData(R"QML(import QtQml
+QtObject {
+    property int received: 0
+    property int calls: 0
+    function acceptMediaPresentation(generation: int) {
+        received = generation
+        ++calls
+    }
+})QML", QUrl{});
+    CHECK(receiver.isReady());
+    std::unique_ptr<QObject> a(receiver.create()), b(receiver.create());
+    CHECK(a && b);
+    controller.attachWindow(&window);
+    controller.requestMediaPresentation(a.get(), 101);
+    controller.requestMediaPresentation(b.get(), 102);
+    controller.requestMediaPresentation(b.get(), 103);
+    CHECK(a->property("calls").toInt() == 0 && b->property("calls").toInt() == 0);
+    showWindow(window);
+    CHECK(QTest::qWaitFor([&] {
+        return a->property("calls").toInt() == 1 && b->property("calls").toInt() == 1;
+    }, 3000));
+    CHECK(a->property("received").toInt() == 101);
+    CHECK(b->property("received").toInt() == 103);
+    CHECK(grants.back().requester == b.get() && grants.back().generation == 103);
+    QTest::qWait(100);
+    CHECK(a->property("calls").toInt() == 1 && b->property("calls").toInt() == 1);
+    controller.attachWindow(nullptr);
+    window.hide();
+    qInfo("PASS: targeted delivery to actual typed QML methods");
     return 0;
 }

@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #include <QQuickWindow>
 #include <QLoggingCategory>
 #include <QMetaObject>
+#include <QMetaMethod>
 #include <QScreen>
 #include <QSettings>
 #include <QSGRendererInterface>
@@ -431,8 +433,19 @@ void RenderingController::tryGrantMediaPresentation() {
     ++m_currentMediaPresentationGeneration;
     m_renderHandshake->m_publishedMediaPresentationGeneration.store(
         m_currentMediaPresentationGeneration, std::memory_order_release);
-    emit mediaPresentationGranted(
-        request.requester.data(), request.generation, m_currentMediaPresentationGeneration);
+    // Only the admitted QML surface needs to execute a JS handler.
+    // Keep the signal for native observers/tests, not a QML broadcast.
+    const auto* meta = request.requester->metaObject();
+    const int handler = meta->indexOfMethod("acceptMediaPresentation(int)");
+    if (handler >= 0 && request.generation <= static_cast<quint64>(std::numeric_limits<int>::max())) {
+      const bool delivered = meta->method(handler).invoke(request.requester.data(),
+          Qt::DirectConnection, Q_ARG(int, static_cast<int>(request.generation)));
+      if (!delivered)
+        qWarning("Could not deliver raster presentation ticket");
+    }
+    if (request.requester)
+      emit mediaPresentationGranted(
+          request.requester.data(), request.generation, m_currentMediaPresentationGeneration);
     if (m_window)
       m_window->update();
     return;

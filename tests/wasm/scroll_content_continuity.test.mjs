@@ -14,6 +14,8 @@ const imageSource = read('SuperellipseImage');
 function imageFixture(defer = false) {
     const root = {
         componentReady: true, scrollMoving: true, deferNewLoadsWhileScrolling: defer,
+        rasterEligible: true, remoteRaster: true, hasRenderableGeometry: true,
+        commitDecodeSize() {},
         effectiveSource: 'image://remote/new', activeSource: '',
         decodedReady: true, presentationReady: false, requiresFramePacedPresentation: true,
         presentationAdmissionPending: false, presentationGeneration: 0,

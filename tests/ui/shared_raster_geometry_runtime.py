@@ -19,7 +19,9 @@ Item {
     property QtObject dataStorage: QtObject {
         signal policyChanged()
         function autoDownloadAllowed(category) { return true }
-        function remoteImageSource(source, category, manual) { return source }
+        function remoteImageSource(source, category, manual) {
+            return source.startsWith("image://remote/") ? Qt.resolvedUrl("landscape.png").toString() : source
+        }
     }
     property QtObject renderingController: QtObject {
         property real mediaDecodeScale: 1
@@ -33,11 +35,19 @@ Item {
             lastGeometry = [category,requestedWidth,requestedHeight,sourceWidth,
                             sourceHeight,viewWidth,viewHeight]
         }
-        signal mediaPresentationGranted(var requester, int generation, int sequence)
+        property bool autoGrant: true
+        property int requests: 0
+        property int cancellations: 0
         function requestMediaPresentation(requester, generation) {
-            mediaPresentationGranted(requester, generation, 1)
+            ++requests
+            if (autoGrant)
+                requester.acceptMediaPresentation(generation)
         }
+        function cancelMediaPresentation(requester) { ++cancellations }
     }
+    Item {
+        id: card
+        width: 640; height: 480
     SuperellipseImage {
         id: image
         width: 240; height: 240
@@ -47,10 +57,14 @@ Item {
         showLoadingIndicator: false
         fillMode: Image.PreserveAspectFit
     }
+    }
     TestCase {
         name: "SharedRasterGeometry"
         when: windowShown
         function init() {
+            card.visible = true
+            renderingController.autoGrant = true
+            image.framePacedPresentation = false
             image.source = ""
             image.width = 240
             image.height = 240
@@ -76,6 +90,39 @@ Item {
             compare(geometry[5], 240)
             compare(geometry[6], 240)
             renderingController.mediaDiagnosticsEnabled = false
+        }
+        function test_pendingTicketWithdrawal() {
+            renderingController.autoGrant = false
+            image.framePacedPresentation = true
+            image.source = "image://remote/one"
+            tryCompare(image,"presentationAdmissionPending",true)
+            verify(image.decodedReady)
+            verify(!image.ready)
+            const oldGeneration = image.presentationGeneration
+            const requests = renderingController.requests
+            const cancellations = renderingController.cancellations
+            const resident = image.activeSource.toString()
+            card.visible = false
+            tryCompare(image,"rasterEligible",false)
+            compare(image.presentationAdmissionPending,false)
+            compare(renderingController.cancellations,cancellations+1)
+            image.acceptMediaPresentation(oldGeneration)
+            compare(image.ready,false)
+            compare(image.activeSource.toString(),resident)
+            card.visible = true
+            tryCompare(image,"presentationAdmissionPending",true)
+            compare(renderingController.requests,requests+1)
+            const freshGeneration = image.presentationGeneration
+            verify(freshGeneration !== oldGeneration)
+            image.acceptMediaPresentation(oldGeneration)
+            compare(image.presentationAdmissionPending,true)
+            image.acceptMediaPresentation(freshGeneration)
+            compare(image.ready,true)
+            compare(image.presentationAdmissionPending,false)
+            card.visible = false
+            card.visible = true
+            compare(image.ready,true)
+            compare(renderingController.requests,requests+1)
         }
         function test_resizeAndEviction() {
             const ratio = image.intrinsicAspect
