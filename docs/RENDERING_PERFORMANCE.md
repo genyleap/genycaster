@@ -648,6 +648,15 @@ Release assertions enabled in the existing row-notification test, and
 exercises native snapshot ordering via a real QML property binding.
 No provider runtime or production credentials are needed.
 
+The standalone `masonry_lifecycle` fixture instantiates the production
+FeedMasonryView with the actual native models and lightweight synthetic
+card/chrome components. It repeatedly jumps among 500 rows, resizes,
+hides and restores the route, replaces the source and checks bounded
+slot ownership, fully drained retirement, stable identity and lifecycle
+warnings. It reports wall time to a settled target, not GPU frame time.
+The synthetic card intentionally does not claim the cost of CastItem's
+network/media hierarchy.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

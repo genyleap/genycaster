@@ -15,12 +15,23 @@ add_executable(genycaster_viewport_work_budget_fixture "${root}/tests/ui/viewpor
 set_target_properties(genycaster_viewport_work_budget_fixture PROPERTIES AUTOMOC OFF)
 target_compile_features(genycaster_viewport_work_budget_fixture PRIVATE cxx_std_20)
 add_test(NAME viewport_work_budget COMMAND genycaster_viewport_work_budget_fixture)
-add_executable(genycaster_feed_rows_fixture
-  "${root}/tests/ui/feed_rows_model_tests.cpp"
+add_library(genycaster_fixture_feed_models STATIC
   "${root}/ui/app/social/feed_rows.cpp"
   "${root}/ui/app/social/feed_rows.hpp")
+target_compile_features(genycaster_fixture_feed_models PUBLIC cxx_std_23)
+target_link_libraries(genycaster_fixture_feed_models PUBLIC Qt6::Core Qt6::Qml)
+add_executable(genycaster_feed_rows_fixture "${root}/tests/ui/feed_rows_model_tests.cpp")
 target_compile_features(genycaster_feed_rows_fixture PRIVATE cxx_std_23)
-target_link_libraries(genycaster_feed_rows_fixture PRIVATE Qt6::Core Qt6::Qml Qt6::Test)
+target_link_libraries(genycaster_feed_rows_fixture PRIVATE genycaster_fixture_feed_models Qt6::Test)
+
+add_executable(genycaster_masonry_lifecycle_fixture "${root}/tests/ui/masonry_lifecycle_runtime.cpp")
+target_compile_features(genycaster_masonry_lifecycle_fixture PRIVATE cxx_std_23)
+target_link_libraries(genycaster_masonry_lifecycle_fixture PRIVATE
+  genycaster_fixture_feed_models Qt6::Gui Qt6::Quick Qt6::Test)
+add_test(NAME masonry_lifecycle COMMAND genycaster_masonry_lifecycle_fixture
+  "${root}/ui/components/feed/FeedMasonryView.qml")
+set_tests_properties(masonry_lifecycle PROPERTIES TIMEOUT 60
+  ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QSG_RENDER_LOOP=basic")
 add_test(NAME feed_rows_model COMMAND genycaster_feed_rows_fixture)
 set_tests_properties(viewport_work_budget feed_rows_model PROPERTIES TIMEOUT 30)
 add_test(NAME pacing_software COMMAND genycaster_rendering_pacing_fixture --synthetic)
