@@ -2263,6 +2263,13 @@ Item {
                     && profileSurfaceLoader.item && profileSurfaceLoader.item.readList
                     && profileSurfaceLoader.item.readList.moving)
                     || (homeDashboard.visible && homeDashboard.scrolling))
+                onMotionActiveChanged: {
+                    if (capturing && typeof renderingController !== "undefined"
+                            && renderingController && renderingController.stallDiagnosticsEnabled
+                            && !renderingController.shuttingDown)
+                        renderingController.recordUiMarker(motionActive
+                            ? "reflection.motion.begin" : "reflection.motion.end")
+                }
                 blurRadius: root.mobile ? 24 : Theme.reflectionBlurRadius
             }
 

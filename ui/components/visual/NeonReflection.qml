@@ -8,7 +8,7 @@ ShaderEffect {
     id: reflection
     property NeonReflectionSource reflectionSource: null
     property rect sampleRect: NeonGeometry.translatedRect(reflection,
-        reflectionSource ? reflectionSource.sourceItem : null)
+        reflectionSource && reflectionSource.capturing ? reflectionSource.sourceItem : null)
     property real strength: Theme.reflectionStrength
     property real reach: Theme.reflectionReach
     property real cornerRadius: Theme.curveContainer

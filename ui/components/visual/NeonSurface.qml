@@ -12,7 +12,7 @@ Superellipse {
     property bool interactive: false
     property NeonReflectionSource reflectionSource: null
     property rect reflectionRect: NeonGeometry.translatedRect(material,
-        reflectionSource ? reflectionSource.sourceItem : null)
+        reflectionSource && reflectionSource.capturing ? reflectionSource.sourceItem : null)
     property real reflectionStrength: Theme.reflectionStrength
     property real neonReflectionStrength: Theme.neonReflectionStrength
     property bool reflectedBorder: true

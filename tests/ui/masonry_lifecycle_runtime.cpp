@@ -228,6 +228,40 @@ Window {
             require(layout->count()<70);
         }
         require(synchronousAdmissions > 0);
+        // Real flicking must narrow speculative admissions without changing
+        // the retention margin or canceling an existing visible card.
+        const auto idleBuffer = wall->property("cacheBuffer").toReal();
+        const auto retentionBuffer = wall->property("retentionBuffer").toReal();
+        int motionAdmissions{0};
+        const auto observeMotion = QObject::connect(layout, &QAbstractItemModel::rowsInserted,
+            wall, [&](const QModelIndex&, int first, int last) {
+                if (!wall->property("moving").toBool()) return;
+                const auto top = wall->property("contentY").toReal();
+                const auto buffer = wall->property("motionAdmissionBuffer").toReal();
+                for (int row = first; row <= last; ++row) {
+                    const auto index = layout->index(row, 0);
+                    const auto y = layout->data(index, MasonryWindowModel::CardYRole).toReal();
+                    const auto height = layout->data(index, MasonryWindowModel::CardHeightRole).toReal();
+                    require(y + height >= top - buffer - 1.0);
+                    require(y <= top + wall->height() + buffer + 1.0);
+                    ++motionAdmissions;
+                }
+            });
+        require(QMetaObject::invokeMethod(wall, "flick", Q_ARG(qreal, 0.0),
+                                          Q_ARG(qreal, -1800.0)));
+        require(QTest::qWaitFor([&] {
+            return wall->property("moving").toBool()
+                && wall->property("motionAdmissionBuffer").isValid()
+                && wall->property("motionAdmissionBuffer").toReal() < idleBuffer;
+        }, 1000));
+        require(wall->property("retentionBuffer").toReal() == retentionBuffer);
+        require(QTest::qWaitFor([&] { return !wall->property("moving").toBool(); }, 5000));
+        require(wall->property("motionAdmissionBuffer").toReal() == idleBuffer);
+        QObject::disconnect(observeMotion);
+        require(motionAdmissions > 0);
+        qInfo() << "Magazine flick motionAdmissions" << motionAdmissions;
+        jump(0);
+        require(QTest::qWaitFor([&]{return settled(0);},5000));
         // Exercise rapid crossings before admission has settled.
         for(const int index:{350,0,470,5,460,0}) jump(index);
         require(QTest::qWaitFor([&]{return settled(0);},5000));

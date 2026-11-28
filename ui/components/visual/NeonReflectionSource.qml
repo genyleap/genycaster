@@ -64,7 +64,7 @@ Item {
         }
     }
     function refreshCapture() {
-        if (!root.capturing || root.resizingCapture || root.motionActive
+        if (!root.capturing || root.resizingCapture
                 || !capture || !horizontalTexture || !blurredTexture)
             return
         // A snapshot is one dependency chain: schedule all three stages
@@ -73,7 +73,7 @@ Item {
         horizontalTexture.scheduleUpdate()
         blurredTexture.scheduleUpdate()
     }
-    onMotionActiveChanged: if (!motionActive) root.refreshCapture()
+    onMotionActiveChanged: root.refreshCapture()
     onCapturingChanged: if (capturing) root.refreshCapture()
     onSourceItemChanged: root.refreshCapture()
     // Retain broad color fields without blurring saturated pixels into a
@@ -84,16 +84,16 @@ Item {
     height: sourceItem ? sourceItem.height : 0
     visible: false
 
-    // Qt/WASM runs scene-graph capture, texture upload and both blur passes
-    // on the browser's graphics path. A 160ms full-pane capture at 1/8 scale
-    // repeatedly stalled scrolling on mid-range GPUs. Keep one shared source
-    // but capture a coarse *color* field at a measured cadence; text/edges
-    // remain rendered by Qt at full resolution.
+    // Never freeze the chromatic field during a scroll. Native motion uses
+    // bounded snapshots rather than three continuously live offscreen passes.
+    // The browser keeps a lower cadence because capture and blur share its
+    // graphics path. No extent, format, blur kernel or gain changes on motion.
     Timer {
-        interval: 240
+        interval: root.motionActive ? (root.browserRenderer ? 96 : 32) : 240
         repeat: true
         triggeredOnStart: true
-        running: root.browserRenderer && root.capturing && !root.resizingCapture && !root.motionActive
+        running: root.capturing && !root.resizingCapture
+            && (root.browserRenderer || root.motionActive)
         onTriggered: root.refreshCapture()
     }
 

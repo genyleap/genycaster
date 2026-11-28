@@ -41,10 +41,12 @@ python3 scripts/generate_gaussian_shaders.py --check
 python3 scripts/generate_gaussian_shaders.py --qsb /path/to/Qt/6.12/bin/qsb
 ```
 
-The shared reflection still uses live native captures outside motion.
-On WebGL, the source capture and both downstream blur textures now share
-the existing 240 ms snapshot cadence. While scrolling/resizing, the last
-complete color field is retained. Disabled reflection detaches all three
+The shared reflection uses live native captures outside motion. During reader
+movement, all three stages refresh together at a nominal 32 ms native or
+96 ms browser cadence; the browser retains its 240 ms idle cadence. These are
+scheduling targets, not measured display latency guarantees. Motion no longer
+freezes the color field. Live resize still retains the last completed texture
+until the extent settles, avoiding per-pixel GPU allocation churn. Disabled reflection detaches all three
 sources and requests 1x1 targets; palette transitions retain the previous
 extent reservation. Native modal Gaussian snapshots also update the
 capture and the horizontal intermediate together, rather than leaving the
@@ -56,8 +58,8 @@ The isolated QML RHI test compares the actual native QSB and compiled
 browser kernel against the original formula on a deterministic RGBA8
 texture, across both axes, both shaders, and two opacity levels. The
 acceptance limit is one 8-bit channel value. Reflection and modal tests
-also inspect rendered pixels, allocation requests, motion freeze and
-explicit refresh. The fixture's browser cadence is simulated on desktop
+also inspect rendered pixels, allocation requests, repeated updates during
+sustained motion and the final refresh after motion. The fixture's browser cadence is simulated on desktop
 OpenGL; it is not a real browser execution. Requested texture extents are
 not measurements of physical GPU allocation.
 
@@ -707,6 +709,28 @@ Across three 5000-row benchmark runs per revision, the median of run P50s
 for full relayout was 7.6946 ms before and 6.0280 ms after. Run P95s varied
 from 15.56–29.88 ms before to 8.17–27.09 ms after on the shared host; this
 is not a hard latency bound.
+
+During flicking, the Magazine admission envelope is bounded by the idle cache
+and a lookahead of at least 35% of the viewport or 150 ms of current vertical
+velocity, whichever is greater. The existing retention envelope is unchanged;
+idle prefetch resumes when motion stops. This limits new speculative Loader
+creation without canceling admitted cards or changing their measured geometry.
+The real Flickable fixture checks motion, admission geometry, and idle refill.
+The envelope is a tuning policy, not a guaranteed card-ready deadline.
+
+The `reflection.motion.begin` and `reflection.motion.end` stall markers delimit
+scrolling in the shared chromatic reflection source. They identify policy
+transitions, not completion of GPU work.
+
+Neon 0.7.11's rendering architecture is the reference for the receiver-side
+coordinate admission: Reflection, Halo and Surface do not traverse the source
+ancestor chain when capture is disabled. The standalone kit keeps all three
+capture stages live and uses a native coordinate adapter plus render-thread
+texture refresh deduplication for its native materials. Genycaster currently
+retains its bounded motion snapshots and existing QML receiver architecture;
+porting the native material/coordinate adapters requires separate parity and
+backend qualification. No compact blur kernel or reflection gain change is
+introduced here.
 
 ## Measure on a real device
 

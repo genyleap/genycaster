@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check real Qt RHI reflection captures and frozen browser cadence.
+"""Check real Qt RHI reflection captures and bounded motion cadence.
 
 The browser branch is exercised through a fixture-only platform selector;
 this does not replace browser/device acceptance testing.
@@ -24,7 +24,15 @@ import QtTest
 import Farcaster.Client
 Item {
     width: 400; height: 220
-    Rectangle { id: workspace; width: 160; height: 160; color: "red" }
+    Rectangle {
+        id: workspace
+        width: 160; height: 160; color: "red"; clip: true
+        Rectangle {
+            id: movingColor
+            width: parent.width; height: parent.height
+            x: parent.width; color: "blue"
+        }
+    }
     NeonReflectionSource { id: reflection; sourceItem: workspace; active: false }
     ShaderEffect {
         id: projected
@@ -61,11 +69,17 @@ Item {
                 compare(stage.live,!reflection.browserRenderer)
             }
             reflection.motionActive = true
+            for (const stage of stages) compare(stage.live,false)
+            movingColor.x = 0
+            tryVerify(isBlue,1000,"reflection must follow translated content before scrolling stops")
+            movingColor.x = workspace.width
+            tryVerify(isRed,1000,"reflection must continue updating during sustained motion")
+            movingColor.visible = false
+            compare(reflection.motionActive,true)
+            for (const stage of stages) compare(stage.textureSize,extent)
             workspace.color = "blue"
-            wait(350)
-            verify(isRed(),"motion must retain the previous complete color field")
             reflection.motionActive = false
-            tryVerify(isBlue,3000)
+            tryVerify(isBlue,1000,"final motion snapshot must not remain stale")
             workspace.color = "red"
             tryVerify(isRed,3000)
             // Resizing keeps the previous allocation until the settle event.

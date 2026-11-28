@@ -21,6 +21,14 @@ Flickable {
     readonly property real retentionBuffer: cacheBuffer + Math.min(Qt.platform.os === "wasm" ? 240 : 1200,
         Math.max(Qt.platform.os === "wasm" ? 120 : 420, height * 1.15))
 
+    // During movement, prioritize the actual viewport and a velocity-based
+    // lookahead rather than starting every speculative Loader in the idle
+    // cache. The retention boundary stays unchanged, so reverse scrolling
+    // reuses existing cards instead of canceling their incubation.
+    readonly property real motionAdmissionBuffer: moving
+        ? Math.min(cacheBuffer, Math.max(height * 0.35, Math.abs(verticalVelocity) * 0.15))
+        : cacheBuffer
+
     // Exact painted heights survive viewport eviction and reverse scrolling.
     // The native window model holds the same width/revision-specific samples.
     property var measuredHeights: ({})
@@ -210,7 +218,7 @@ Flickable {
                 && renderingController.stallDiagnosticsEnabled === true
                 ? renderingController.diagnosticClockMs() : -1
         admissionTimer.stop()
-        const more = layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer,
+        const more = layoutModel.setViewport(contentY, height, motionAdmissionBuffer, retentionBuffer,
                                 view.visible && positioned && height > 0,
                                 view.resizeInProgress, view.newSlotsPerPass,
                                 view.retiredSlotsPerPass, view.retirementTimeBudgetMs)
@@ -312,6 +320,9 @@ Flickable {
         scheduleAdmission()
     }
     onContentYChanged: scheduleAdmission()
+    // Refill the idle prefetch window after movement, even if contentY
+    // has already reached its final position.
+    onMovingChanged: scheduleAdmission()
     onVisibleChanged: {
         if (typeof renderingController !== "undefined" && renderingController
                 && renderingController.shuttingDown === true)

@@ -12,7 +12,7 @@ Item {
     // halo or one of its ancestors, and never allocate a capture per control.
     property NeonReflectionSource reflectionSource: null
     property rect reflectionRect: NeonGeometry.translatedRect(root,
-        reflectionSource ? reflectionSource.sourceItem : null)
+        reflectionSource && reflectionSource.capturing ? reflectionSource.sourceItem : null)
     property real reflectionStrength: Theme.neonReflectionStrength
     property real reflectionReach: Theme.reflectionReach
     property bool suppressed: false

@@ -34,15 +34,25 @@ test('scrolling uses one viewport sample for both media lifetime boundaries',()=
  assert.match(scope,/retained: ownerAvailable && viewportDistance < retentionMargin/);
 });
 
-test('reflection capture and both blur stages retain their previous texture during reader movement',()=>{
+test('reflection updates during reader movement with bounded coherent snapshots',()=>{
  const source=read('ui/components/visual/NeonReflectionSource.qml');
- assert.match(source,/running: root\.browserRenderer && root\.capturing && !root\.resizingCapture && !root\.motionActive/);
+ assert.match(source,/interval: root\.motionActive \? \(root\.browserRenderer \? 96 : 32\) : 240/);
+ assert.match(source,/running: root\.capturing && !root\.resizingCapture\s*&& \(root\.browserRenderer \|\| root\.motionActive\)/);
  assert.equal((source.match(/live: root\.capturing[^\n]*!root\.motionActive/g)||[]).length,3);
- assert.match(source,/onMotionActiveChanged: if \(!motionActive\) root\.refreshCapture\(\)/);
- assert.match(source,/function refreshCapture\(\) \{\s*if \(!root\.capturing \|\| root\.resizingCapture \|\| root\.motionActive/);
+ assert.match(source,/onMotionActiveChanged: root\.refreshCapture\(\)/);
+ const refresh=source.slice(source.indexOf('function refreshCapture()'),source.indexOf('onMotionActiveChanged:'));
+ assert.match(refresh,/if \(!root\.capturing \|\| root\.resizingCapture/);
+ assert.doesNotMatch(refresh,/root\.motionActive/);
  assert.match(source,/capture\.scheduleUpdate\(\)\s*horizontalTexture\.scheduleUpdate\(\)\s*blurredTexture\.scheduleUpdate\(\)/);
  const shell=read('ui/components/shell/AppShell.qml');
  assert.match(shell,/motionActive: Boolean\([\s\S]*?feedSurfaceLoader\.item\.readList\.moving[\s\S]*?profileSurfaceLoader\.item\.readList\.moving[\s\S]*?homeDashboard\.scrolling/);
+});
+
+test('inactive reflection receivers do not observe the source coordinate chain',()=>{
+ for (const file of ['NeonReflection','NeonHalo','NeonSurface']) {
+  const receiver=read('ui/components/visual/'+file+'.qml');
+  assert.match(receiver,/NeonGeometry\.translatedRect\([^,]+,\s*reflectionSource && reflectionSource\.capturing \? reflectionSource\.sourceItem : null\)/);
+ }
 });
 
 test('top refresh moves the reading canvas and places the indicator inside the exposed gap',()=>{
