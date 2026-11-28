@@ -143,7 +143,9 @@ ComboBox {
         contentItem: ListView {
             clip: true
             implicitHeight: contentHeight
-            model: control.delegateModel
+            // Match the general ComboBox: hidden option rows are not part
+            // of the feed's construction budget.
+            model: control.popupVisible ? control.delegateModel : null
             currentIndex: control.highlightedIndex
             ScrollBar.vertical: GenyScrollBar {}
         }

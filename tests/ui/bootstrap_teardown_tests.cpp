@@ -100,6 +100,31 @@ int main(int argc, char** argv)
                 contentItem: Text { text: "More popups" }
             }
 
+            // Match the shell's new non-visual lazy utility owner.
+            // Visual parent and QObject ownership are deliberately distinct.
+            Loader {
+                id: utilityLoader
+                objectName: "utilityLoader"
+                active: true
+                asynchronous: false
+                sourceComponent: Component {
+                    QtObject {
+                        property Item dialog: Item {
+                            objectName: "utilityController"
+                            parent: secondWindow.Overlay.overlay
+                            Popup {
+                                objectName: "utilityPopup"
+                                parent: secondWindow.Overlay.overlay
+                                width: 80
+                                height: 50
+                                visible: true
+                                contentItem: Text { text: "Utility" }
+                            }
+                        }
+                    }
+                }
+            }
+
             ListView {
                 id: hintList
                 parent: secondWindow.Overlay.overlay
@@ -137,6 +162,13 @@ int main(int argc, char** argv)
         || hint->parent()->objectName() != QStringLiteral("hintLoader")) {
         return 10;
     }
+
+    const QPointer<QObject> utility = second->findChild<QObject*>(QStringLiteral("utilityController"));
+    const QPointer<QObject> utilityPopup = second->findChild<QObject*>(QStringLiteral("utilityPopup"));
+    if (!utility || !utilityPopup) return 17;
+    const auto* utilityItem = qobject_cast<QQuickItem*>(utility.data());
+    if (!utilityItem || !utilityItem->parentItem()
+        || !utilityItem->parentItem()->inherits("QQuickOverlay")) return 18;
 
     int overlays = 0;
     int index = 0;
@@ -213,6 +245,7 @@ int main(int argc, char** argv)
     const std::unique_ptr<QObject> completed{pending.object()};
     if (!completed || !pending.isReady() || engine.incubationController()) return 13;
     if (tracked || trackedSecond || !engine.rootObjects().isEmpty()) return 3;
+    if (utility || utilityPopup) return 19;
     for (const WindowOrder& state : order) {
         if (!state.orderValid
             || state.sceneItemsDestroyed != state.sceneItemsExpected

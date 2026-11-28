@@ -4644,20 +4644,61 @@ Item {
         walletHost: proWalletHost
     }
 
-    TaskManagerPopup {
+    // These optional tools are not part of first paint. A non-visual
+    // loaded owner preserves each controller's real overlay parent and
+    // avoids Loader sizing interfering with adaptive dialog dimensions.
+    // Retain the owner after first use (including pending feedback state).
+    component UtilitySurface: Loader {
+        active: false
+        asynchronous: false
+        readonly property var dialog: item ? item.dialog : null
+        readonly property bool opened: !!dialog && dialog.opened
+
+        function open() {
+            if (!active)
+                active = true
+            if (dialog)
+                dialog.open()
+        }
+
+        function close() {
+            if (dialog)
+                dialog.close()
+        }
+    }
+
+    UtilitySurface {
         id: taskManagerPopup
-        parent: Overlay.overlay
+        sourceComponent: Component {
+            QtObject {
+                property Item dialog: TaskManagerPopup {
+                    parent: root.Overlay.overlay
+                }
+            }
+        }
     }
 
-    RenderingSettingsPopup {
+    UtilitySurface {
         id: renderingSettingsPopup
-        parent: Overlay.overlay
+        sourceComponent: Component {
+            QtObject {
+                property Item dialog: RenderingSettingsPopup {
+                    parent: root.Overlay.overlay
+                }
+            }
+        }
     }
 
-    FeedbackDialog {
+    UtilitySurface {
         id: feedbackDialog
-        parent: Overlay.overlay
-        reportRoute: String(root.shellRoute || root.primaryDestination || "")
+        sourceComponent: Component {
+            QtObject {
+                property Item dialog: FeedbackDialog {
+                    parent: root.Overlay.overlay
+                    reportRoute: String(root.shellRoute || root.primaryDestination || "")
+                }
+            }
+        }
     }
 
     Component.onCompleted: {

@@ -15,8 +15,10 @@ set_tests_properties(bootstrap_teardown PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=
 find_package(Python3 QUIET COMPONENTS Interpreter)
 find_program(QML_TEST_RUNNER NAMES qmltestrunner HINTS "${Qt6_DIR}/../../../bin" NO_DEFAULT_PATH)
 if(Python3_Interpreter_FOUND AND QML_TEST_RUNNER)
-  add_test(NAME supporting_preview_lifecycle COMMAND "${Python3_EXECUTABLE}" "${root}/tests/ui/supporting_preview_lifecycle_runtime.py")
-  set_tests_properties(supporting_preview_lifecycle PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_TEST_RUNNER=${QML_TEST_RUNNER}"
-    TIMEOUT 40)
+  foreach(fixture IN ITEMS supporting_preview_lifecycle lazy_shell_utility)
+    add_test(NAME "${fixture}" COMMAND "${Python3_EXECUTABLE}" "${root}/tests/ui/${fixture}_runtime.py")
+    set_tests_properties("${fixture}" PROPERTIES
+      ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_TEST_RUNNER=${QML_TEST_RUNNER}"
+      TIMEOUT 40)
+  endforeach()
 endif()

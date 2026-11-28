@@ -118,6 +118,29 @@ Hidden gallery tiles do not initiate their staggered construction until
 visible again; already-admitted tiles remain resident. This does not
 change the gallery's geometry or image decode quality.
 
+## First-use utility surfaces
+
+The shell keeps Task Manager, Rendering Settings and Feedback inactive until
+the first explicit open request. A nonvisual Loader owner preserves the
+actual overlay parent of each adaptive controller without imposing Loader
+geometry on the dialog. The opened state still drives the existing modal input
+guard and back-navigation path. Retain instances after first use, especially
+feedback draft and asynchronous submission state. First-open construction
+moves work out of startup, not out of the application entirely. No prewarm
+timer is added.
+
+Compact filter dropdowns attach the option delegate model only while the
+popup is visible, preserving current selection and width measurements.
+The isolated Qt fixture tests the actual shell Loader definitions using
+stand-in dialog content and the actual filter with stub visual chrome.
+The native teardown regression also verifies the new overlay-owned visual
+controller/nonvisual Loader ownership combination under fatal warnings.
+
+These changes reduce unnecessary initial creation; they do not establish
+the cause of Qt's internal creation counter warning on macOS. No private
+Qt APIs or warning suppression are introduced. Re-test the full application
+with the shutdown logging category after opening and closing the tools.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:
