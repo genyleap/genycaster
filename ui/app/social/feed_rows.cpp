@@ -675,21 +675,9 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
         return;
     }
     const bool packAgain = m_forceRepack || m_columns != nextColumns;
-    // Preserve already measured geometry as a provisional estimate even
-    // when width changes. Live delegates replace it with exact new heights.
-    // Falling back to generic card heights on every resize collapses lanes.
-    QHash<QString, qreal> previousHeights{};
-    previousHeights.reserve(m_geometry.size());
-    for (const Slot& slot : std::as_const(m_geometry))
-        previousHeights.insert(slot.key, slot.height);
-    QHash<QString, int> previousColumns{};
-    if (!packAgain) {
-        previousColumns.reserve(m_geometry.size());
-        for (const Slot& slot : std::as_const(m_geometry)) {
-            if (slot.laneCommitted)
-                previousColumns.insert(slot.key, slot.column);
-        }
-    }
+    // Keep the previous geometry and stable-key index intact until the new
+    // geometry is complete. They already own both provisional heights and
+    // committed lanes; rebuilding two temporary hash tables duplicates work.
     m_columns = nextColumns;
     m_cardWidth = cardWidth;
     m_gap = nextGap;
@@ -717,9 +705,12 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
         slot.media = data.mediaLayoutKind;
         indexByKey.insert(slot.key, index);
         slot.sourceIndex = index;
-        const auto old = previousColumns.constFind(slot.key);
-        if (old != previousColumns.cend() && *old >= 0 && *old < m_columns) {
-            slot.column = *old;
+        const auto prior = m_indexByKey.constFind(slot.key);
+        const Slot* previous = prior == m_indexByKey.cend()
+            ? nullptr : &m_geometry.at(*prior);
+        if (!packAgain && previous && previous->laneCommitted
+            && previous->column >= 0 && previous->column < m_columns) {
+            slot.column = previous->column;
             slot.laneCommitted = true;
         } else {
             slot.column = static_cast<int>(std::min_element(bottoms.cbegin(),
@@ -733,7 +724,7 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
         const auto resizeSample = m_resizeSamples.constFind(id);
         slot.height = resizeSample != m_resizeSamples.cend() ? *resizeSample
             : sample != m_heightSamples.cend() ? *sample
-            : previousHeights.value(slot.key, fallbackHeight(slot));
+            : previous ? previous->height : fallbackHeight(slot);
         slot.y = bottoms[slot.column];
         const int visualColumn = m_rtl ? m_columns - 1 - slot.column : slot.column;
         slot.x = m_inset + visualColumn * (m_cardWidth + m_gap);

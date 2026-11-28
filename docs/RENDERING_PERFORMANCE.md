@@ -700,6 +700,14 @@ reported median settled latencies of 134.015, 135.284 and 135.012 ms, with
 at most nine slots. Host scheduling and synthetic card content limit the
 comparability of these observations to actual device frame timing.
 
+A genuine relayout now reuses the existing stable-key index and previous
+numeric slots until the new geometry is complete. This avoids rebuilding
+separate height and committed-lane hash tables for stable feed identities.
+Across three 5000-row benchmark runs per revision, the median of run P50s
+for full relayout was 7.6946 ms before and 6.0280 ms after. Run P95s varied
+from 15.56–29.88 ms before to 8.17–27.09 ms after on the shared host; this
+is not a hard latency bound.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:
