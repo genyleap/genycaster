@@ -4,6 +4,8 @@
 
 #include <QGuiApplication>
 #include <QSGNode>
+#include <QSGGeometryNode>
+#include <QSGGeometry>
 
 #include <cmath>
 #include <limits>
@@ -74,5 +76,43 @@ int main(int argc, char** argv)
     auto* superellipse = surface.updatePaintNode(nullptr, nullptr);
     require(superellipse != nullptr);
     delete superellipse;
+
+    // Existing scene graph nodes must reflect same-count recoloring and
+    // geometry changes during resize; DynamicPattern cannot depend on
+    // allocating a new buffer to invalidate its vertex data.
+    surface.setWidth(320);
+    surface.setHeight(180);
+    surface.setCurveDepth(24);
+    auto* retainedSurface = surface.updatePaintNode(nullptr, nullptr);
+    auto* fill = static_cast<QSGGeometryNode*>(retainedSurface->firstChild());
+    const auto vertexCount = fill->geometry()->vertexCount();
+    require(vertexCount > 0);
+    const auto oldColor = fill->geometry()->vertexDataAsColoredPoint2D()[0].r;
+    surface.setFillColor(Qt::blue);
+    require(surface.updatePaintNode(retainedSurface, nullptr) == retainedSurface);
+    require(fill->geometry()->vertexCount() == vertexCount);
+    require(fill->geometry()->vertexDataAsColoredPoint2D()[0].r != oldColor);
+    surface.setWidth(640);
+    require(surface.updatePaintNode(retainedSurface, nullptr) == retainedSurface);
+    require(fill->geometry()->vertexCount() > 0);
+    delete retainedSurface;
+
+    stroke.setWidth(120);
+    stroke.setHeight(120);
+    stroke.setCornerRadius(12);
+    stroke.setStrokeColor(Qt::white);
+    auto* retainedStroke = static_cast<QSGGeometryNode*>(stroke.updatePaintNode(nullptr, nullptr));
+    const auto strokeCount = retainedStroke->geometry()->vertexCount();
+    require(strokeCount > 0);
+    stroke.setStrokeColor(Qt::blue);
+    require(stroke.updatePaintNode(retainedStroke, nullptr) == retainedStroke);
+    require(retainedStroke->geometry()->vertexCount() == strokeCount);
+    bool hasBlue = false;
+    for (int i = 0; i < strokeCount; ++i) {
+        const auto& vertex = retainedStroke->geometry()->vertexDataAsColoredPoint2D()[i];
+        hasBlue |= vertex.b > vertex.r;
+    }
+    require(hasBlue);
+    delete retainedStroke;
     return 0;
 }

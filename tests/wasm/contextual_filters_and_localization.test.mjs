@@ -19,7 +19,7 @@ test('topic discovery updates existing Explorer/Profile lists, never a new route
  assert.match(app,/openProofConnections\.selectCastTopic\(chosen,root\.topicBrowseAuthorFid\)/);
  assert.match(app,/presentationBridge\.hydrateTopicCasts\(pending\)/);
  assert.match(feed,/if \(root\.topicFilterActive\) \{\s*result\.push/);
- assert.match(profile,/readonly property var displayRows: root\.sortedRows\(\)/);
+ assert.match(profile,/const source = root\.sortedRows\(\)/);
  assert.match(profile,/topicFilterActive: false/);
 });
 

@@ -391,12 +391,17 @@ void buildBorderGeometry(
 
 void writeGeometry(QSGGeometry* geometry, const VertexList& vertices)
 {
-    geometry->allocate(static_cast<int>(vertices.size()));
+    const auto vertexCount = static_cast<int>(vertices.size());
+    if (geometry->vertexCount() != vertexCount)
+        geometry->allocate(vertexCount);
     auto* target = geometry->vertexDataAsColoredPoint2D();
     for (std::size_t index = 0; index < vertices.size(); ++index) {
         const Vertex& vertex = vertices[index];
         target[index].set(vertex.x, vertex.y, vertex.r, vertex.g, vertex.b, vertex.a);
     }
+    // DynamicPattern requires explicit buffer invalidation, including
+    // same-size color/geometry edits that do not call allocate().
+    geometry->markVertexDataDirty();
 }
 
 [[nodiscard]] bool pointInsideCorner(
@@ -588,7 +593,7 @@ QSGNode* SceneGraphSuperellipseItem::updatePaintNode(QSGNode* oldNode, UpdatePai
     fillVertices.reserve(outerBoundary.size() * 9U);
     buildFillGeometry(fillVertices, outerBoundary, m_fillColor, feather, borderWidth <= Epsilon);
     writeGeometry(node->fillGeometry, fillVertices);
-    node->fillNode->markDirty(QSGNode::DirtyGeometry | QSGNode::DirtyMaterial);
+    node->fillNode->markDirty(QSGNode::DirtyGeometry);
 
     VertexList borderVertices{};
     if (borderWidth > Epsilon && m_borderColor.alpha() > 0) {
@@ -620,7 +625,7 @@ QSGNode* SceneGraphSuperellipseItem::updatePaintNode(QSGNode* oldNode, UpdatePai
         buildBorderGeometry(borderVertices, outerBoundary, innerBoundary, innerFeatherBoundary, feather, m_borderColor);
     }
     writeGeometry(node->borderGeometry, borderVertices);
-    node->borderNode->markDirty(QSGNode::DirtyGeometry | QSGNode::DirtyMaterial);
+    node->borderNode->markDirty(QSGNode::DirtyGeometry);
     return node;
 }
 

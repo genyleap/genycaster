@@ -363,6 +363,32 @@ surfaces do not schedule projection work. The optional feed.classify, feed.roles
 (cumulative from projection start), and feed.reconcile scopes separate filtering,
 role construction and synchronous model/delegate notifications. These scopes overlap.
 
+## Navigation incubation, renderer buffers and shutdown
+
+Heavy route loaders incubate asynchronously with the existing GenySpinner
+during loading; the retained Explorer/Profile/Cast surfaces preserve their
+identity and navigation revisions. Shell scroll callbacks now belong to
+object-owned timers and are route-checked. Profile sorting is performed only
+when the visible surface reconciles, rather than eagerly on hidden row changes.
+The optional shell.loader.* markers distinguish cold construction from a
+warm route transition; elapsed time between loading and ready is wall time,
+not exclusive GUI-thread CPU work.
+
+Shutdown quiescence is registered before native media/mini-app close callbacks.
+Pending loaders are discovered through both QObject and visual item trees.
+After cancellation, deferred deletion and a second bounded incubation drain
+run while the contexts are alive; the existing native window/overlay deletion
+order is unchanged. The afterCancellation counter is public incubation state,
+not the engine's internal in-progress creation counter. Do not suppress the
+engine warning or claim it is fixed until the device quit trace is clean.
+
+Stroke and Superellipse use DynamicPattern geometry, explicitly mark modified
+vertex data dirty, avoid same-count allocation calls and no longer mark an
+unchanged vertex-color material dirty. Shape sampling, AA and colors are
+unchanged. The frame trace includes newMediaTicket, a correlation flag for
+newly synchronized media admission, not an upload duration or proof of GPU
+causality. Inspect Metal with Instruments for remaining recording spikes.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

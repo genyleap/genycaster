@@ -21,7 +21,7 @@ test('Profile ranking reads each score/time exactly once; preserves order and ti
     const context={root};
     const time=method(profile,'rowTime','\n    function popularityScore',context);
     const score=method(profile,'popularityScore','\n    function sortedRows',context);
-    const sorted=method(profile,'sortedRows','\n    readonly property var displayRows',context);
+    const sorted=method(profile,'sortedRows','\n    function rowKey',context);
     for(const profileFeed of ['user-casts','user-popular']) {
         root.profileFeed=profileFeed;
         for(const profileSortMode of ['oldest','newest']) {

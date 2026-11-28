@@ -309,6 +309,7 @@ QtObject {
         traceWindow.afterFrameEnd();
         CHECK(traceMessages.size() == 1);
         CHECK(traceField(traceMessages.first(), QStringLiteral("recordingMs")) >= 25.0);
+        CHECK(traceMessages.first().contains("newMediaTicket false"));
         CHECK(traceField(traceMessages.first(), QStringLiteral("submitTailMs")) >= 0.0);
         CHECK(traceField(traceMessages.first(), QStringLiteral("totalMs"))
               >= traceField(traceMessages.first(), QStringLiteral("recordingMs")));

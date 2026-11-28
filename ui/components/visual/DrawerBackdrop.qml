@@ -27,18 +27,27 @@ Item {
     property bool captureUpdateQueued: false
     function performSnapshotUpdate() {
         root.captureUpdateQueued = false
-        if (root.active && root.sourceItem) {
+        if (root.active && root.sourceItem
+                && !(typeof renderingController !== "undefined" && renderingController
+                     && renderingController.shuttingDown === true)) {
             capture.scheduleUpdate()
             if (root.nativeGaussian)
                 intermediate.scheduleUpdate()
         }
     }
     function refreshSnapshot() {
-        if (!root.active || !root.sourceItem || root.captureUpdateQueued)
+        if (!root.active || !root.sourceItem || root.captureUpdateQueued
+                || (typeof renderingController !== "undefined" && renderingController
+                    && renderingController.shuttingDown === true))
             return
         root.captureUpdateQueued = true
         // All triggers share one scheduled update, even during rapid resizing.
-        Qt.callLater(root.performSnapshotUpdate)
+        snapshotUpdateTimer.start()
+    }
+    Timer {
+        id: snapshotUpdateTimer
+        interval: 0
+        onTriggered: root.performSnapshotUpdate()
     }
     onActiveChanged: {
         if (root.active)

@@ -74,6 +74,9 @@ Item {
         return ({})
     }
     function synchronizeActiveDetail() {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         const next = root.resolveActiveDetail()
         const signature = JSON.stringify(next)
         // A general bridge stateChanged() can fire for a feed or pending
@@ -90,14 +93,19 @@ Item {
     // cannot synchronously reenter its computation.
     Connections {
         target: presentationBridge
-        function onStateChanged() { Qt.callLater(root.synchronizeActiveDetail) }
-        function onAuthenticationStateChanged() { Qt.callLater(root.synchronizeActiveDetail) }
+        function onStateChanged() { activeDetailSyncTimer.restart() }
+        function onAuthenticationStateChanged() { activeDetailSyncTimer.restart() }
     }
-    onOwnProfileNavigationChanged: Qt.callLater(root.synchronizeActiveDetail)
-    onAccountFidTextChanged: Qt.callLater(root.synchronizeActiveDetail)
-    onAccountFidChanged: Qt.callLater(root.synchronizeActiveDetail)
-    onAccountIsNativeCustodyChanged: Qt.callLater(root.synchronizeActiveDetail)
-    onActiveReadNetworkChanged: Qt.callLater(root.synchronizeActiveDetail)
+    onOwnProfileNavigationChanged: activeDetailSyncTimer.restart()
+    onAccountFidTextChanged: activeDetailSyncTimer.restart()
+    onAccountFidChanged: activeDetailSyncTimer.restart()
+    onAccountIsNativeCustodyChanged: activeDetailSyncTimer.restart()
+    onActiveReadNetworkChanged: activeDetailSyncTimer.restart()
+    Timer {
+        id: activeDetailSyncTimer
+        interval: 0
+        onTriggered: if (root.visible) root.synchronizeActiveDetail()
+    }
     property var rows
     // Navigation must show the cover, even when this Loader is reused.
     property int navigationRevision: 0
@@ -908,6 +916,9 @@ Item {
     // before any cache/network rows settle; a late profile detail must never
     // destroy an already-rendered timeline.
     function reconcileProfileRowsIdentity() {
+        if (!root.visible || (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true))
+            return
         const key = root.profileNetwork + ":" + root.profileFidText
         if (key === root.rowsIdentityKey || root.profileFidText.length === 0)
             return
@@ -919,8 +930,13 @@ Item {
         root.stablePayloads = ({})
         stableModelSyncTimer.restart()
     }
-    onProfileFidTextChanged: Qt.callLater(root.reconcileProfileRowsIdentity)
-    onProfileNetworkChanged: Qt.callLater(root.reconcileProfileRowsIdentity)
+    onProfileFidTextChanged: profileIdentitySyncTimer.restart()
+    onProfileNetworkChanged: profileIdentitySyncTimer.restart()
+    Timer {
+        id: profileIdentitySyncTimer
+        interval: 0
+        onTriggered: root.reconcileProfileRowsIdentity()
+    }
 
     signal backRequested()
     signal followersRequested()
@@ -1162,8 +1178,6 @@ Item {
         return sorted
     }
 
-    readonly property var displayRows: root.sortedRows()
-
     function rowKey(row, index) {
         const value = row || ({})
         const castId = String(value.castId || value.hash || value.id || "")
@@ -1344,7 +1358,7 @@ Item {
     }
 
     function requestStableModelSync() {
-        if (root.readList.moving) {
+        if (!root.visible || root.readList.moving) {
             root.stableModelSyncPending = true
             return
         }
@@ -1359,7 +1373,7 @@ Item {
         const traceStart = typeof renderingController !== "undefined" && renderingController
                 && renderingController.stallDiagnosticsEnabled === true
                 ? renderingController.diagnosticClockMs() : -1
-        const source = root.displayRows
+        const source = root.sortedRows()
         if (root.busy && source.length === 0 && profileRowsModel.count > 0) {
             if (traceStart >= 0)
                 renderingController.recordUiOperation("profile.projection", traceStart, source.length)
@@ -1461,9 +1475,15 @@ Item {
     onVisibleChanged: {
         if (root.visible) root.synchronizeActiveDetail()
         if (!root.visible) {
+            stableModelSyncTimer.stop()
+            activeDetailSyncTimer.stop()
+            profileIdentitySyncTimer.stop()
+            root.stableModelSyncPending = true
             accountConnectionsPopup.close()
             return
         }
+        root.reconcileProfileRowsIdentity()
+        stableModelSyncTimer.restart()
         root.scrollToBeginning()
         root.positionNewProfileAtBeginning()
         profileStatusFetch.restart()
@@ -1474,9 +1494,12 @@ Item {
         // requested-FID change owns the only model reset; an HTTP profile
         // response is never allowed to clear visible Cast delegates or
         // reposition the reader during a gesture.
-        root.synchronizeActiveDetail()
+        if (root.visible) root.synchronizeActiveDetail()
     }
-    onRowsChanged: stableModelSyncTimer.restart()
+    onRowsChanged: {
+        if (root.visible) stableModelSyncTimer.restart()
+        else root.stableModelSyncPending = true
+    }
     onProfileFeedChanged: {
         profileSortMode = "newest"
         popularMetric = "all"

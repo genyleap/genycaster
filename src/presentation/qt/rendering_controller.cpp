@@ -40,9 +40,12 @@ const TraceTime traceOrigin = TraceClock::now();
 struct StallFrameTrace final {
   std::optional<TraceTime> frameBegin, syncBegin, syncEnd, recordBegin, recordEnd;
   quint64 sequence{0};
+  quint64 lastMediaGeneration{0};
+  bool newMediaTicket{false};
 
   void begin() noexcept {
     ++sequence;
+    newMediaTicket = false;
     frameBegin = TraceClock::now();
     syncBegin.reset();
     syncEnd.reset();
@@ -66,7 +69,8 @@ struct StallFrameTrace final {
         << "startMs" << QString::number(traceMs(*start), 'f', 3)
         << "totalMs" << total << "syncMs" << sync
         << "beforeRecordingMs" << beforeRecording
-        << "recordingMs" << recording << "submitTailMs" << submitTail;
+        << "recordingMs" << recording << "submitTailMs" << submitTail
+        << "newMediaTicket" << newMediaTicket;
   }
 };
 
@@ -320,7 +324,14 @@ void RenderingController::attachWindow(QQuickWindow *window) {
     connect(window, &QQuickWindow::beforeFrameBegin, this,
         [trace] { trace->begin(); }, Qt::DirectConnection);
     connect(window, &QQuickWindow::beforeSynchronizing, this,
-        [trace] { trace->syncBegin = TraceClock::now(); }, Qt::DirectConnection);
+        [trace, state] {
+          trace->syncBegin = TraceClock::now();
+          const auto generation = state->m_publishedMediaPresentationGeneration.load(std::memory_order_acquire);
+          if (generation != 0 && generation != trace->lastMediaGeneration) {
+            trace->newMediaTicket = true;
+            trace->lastMediaGeneration = generation;
+          }
+        }, Qt::DirectConnection);
     connect(window, &QQuickWindow::afterSynchronizing, this,
         [trace] { trace->syncEnd = TraceClock::now(); }, Qt::DirectConnection);
     connect(window, &QQuickWindow::beforeRendering, this,

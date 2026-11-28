@@ -951,6 +951,8 @@ Item {
     // when the user taps Compose. Keep the intent, not an authentication popup.
     property var pendingComposerIntent: null
     property string replyTargetErrorText: ""
+    readonly property bool shuttingDown: typeof renderingController !== "undefined"
+        && renderingController && renderingController.shuttingDown === true
     property string shellRoute: ""
     // Shell route (e.g. Notifications) that was visible when a cast or profile
     // opened above it. Back from that content restores this route instead of
@@ -1147,10 +1149,11 @@ Item {
     function withoutMutedActors(items) {
         if (!items || !root.mutedActorIds || !root.mutedActorIds.length) return items
         const selected=[]
+        const muted = new Set(root.mutedActorIds)
         for(let index=0;index<items.length;++index) {
             const row=items[index] || ({})
             const fid=String(Number(row.authorFid || 0))
-            if (root.mutedActorIds.indexOf(fid) < 0) selected.push(row)
+            if (!muted.has(fid)) selected.push(row)
         }
         return selected
     }
@@ -1532,16 +1535,13 @@ Item {
         }
     }
     function openMyProfileFromNavigation() {
+        if (root.shuttingDown) return
         ++root.profileTopRevision
         presentationBridge.clearDetailHistory()
         root.clearPendingShellReturn()
         root.shellRoute = ""
         presentationBridge.openMyProfile()
-        Qt.callLater(() => {
-            if (root.shellRoute === "" && presentationBridge.activeView === "profile"
-                    && profileSurfaceLoader.item)
-                profileSurfaceLoader.item.scrollToBeginning()
-        })
+        profileTopTimer.restart()
     }
 
     Connections {
@@ -1569,20 +1569,48 @@ Item {
         }
     }
 
+    // These one-turn actions belong to the shell lifetime. A route that
+    // has already been replaced or is still incubating cannot be mutated.
+    Timer {
+        id: profileTopTimer
+        interval: 0
+        onTriggered: if (!root.shuttingDown && root.shellRoute === ""
+                         && presentationBridge.activeView === "profile" && profileSurfaceLoader.item)
+            profileSurfaceLoader.item.scrollToBeginning()
+    }
+    Timer {
+        id: appsTopTimer
+        interval: 0
+        onTriggered: if (!root.shuttingDown && root.shellRoute === "apps" && appsSurfaceLoader.item)
+            appsSurfaceLoader.item.scrollToBeginning()
+    }
+    Timer {
+        id: homeTopTimer
+        interval: 0
+        onTriggered: if (!root.shuttingDown && root.homeSurfaceActive)
+            homeDashboard.scrollToBeginning()
+    }
+    Timer {
+        id: explorerTopTimer
+        interval: 0
+        onTriggered: if (!root.shuttingDown && root.primaryDestination === "explorer"
+                         && root.shellRoute === "" && feedSurfaceLoader.item)
+            feedSurfaceLoader.item.scrollToBeginning()
+    }
+
     function openShellRoute(route) {
+        if (root.shuttingDown) return
         root.clearPendingShellReturn()
         const nextRoute = String(route || "")
         root.shellRoute = nextRoute
         if (nextRoute === "notifications")
             presentationBridge.openNotifications()
         if (nextRoute === "apps")
-            Qt.callLater(() => {
-                if (root.shellRoute === "apps" && appsSurfaceLoader.item)
-                    appsSurfaceLoader.item.scrollToBeginning()
-            })
+            appsTopTimer.restart()
     }
 
     function openHome() {
+        if (root.shuttingDown) return
         root.clearPendingShellReturn()
         root.primaryDestination = "home"
         root.shellRoute = ""
@@ -1594,10 +1622,7 @@ Item {
                 || presentationBridge.activeFeed !== source) {
             presentationBridge.selectFeed(source)
         }
-        Qt.callLater(() => {
-            if (root.homeSurfaceActive)
-                homeDashboard.scrollToBeginning()
-        })
+        homeTopTimer.restart()
     }
 
     function selectHomePresentationMode(mode) {
@@ -1658,6 +1683,7 @@ Item {
     }
 
     function openExplorer() {
+        if (root.shuttingDown) return
         const wasExplorer = root.primaryDestination === "explorer"
                             && root.shellRoute === ""
                             && presentationBridge.activeView === "feed"
@@ -1676,6 +1702,7 @@ Item {
     }
 
     function openTrends() {
+        if (root.shuttingDown) return
         ++root.explorerTopRevision
         // Direct Home shortcut to the provider-backed Trending timeline.
         // It shares the existing Explorer surface, not a synthetic feed.
@@ -1688,11 +1715,7 @@ Item {
                 || !presentationBridge.feedStarted) {
             presentationBridge.selectFeed("trending")
         }
-        Qt.callLater(() => {
-            if (root.primaryDestination === "explorer" && root.shellRoute === ""
-                    && feedSurfaceLoader.item)
-                feedSurfaceLoader.item.scrollToBeginning()
-        })
+        explorerTopTimer.restart()
     }
 
     // Mentions are internal navigation. Never launch a browser or assume a
@@ -2419,9 +2442,10 @@ Item {
 
                                     // Public Channel discovery is a real route; the
                                     // composer retains a separate joined-only picker.
-                                    Loader {
+                                    RouteSurfaceLoader {
                                         id: channelsSurfaceLoader
-                                        active: root.shellRoute === "channels"
+                                        diagnosticRoute: "channels"
+                                        active: root.shuttingDown ? item !== null : root.shellRoute === "channels"
                                         visible: active
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
@@ -2455,8 +2479,9 @@ Item {
                                         }
                                     }
 
-                                    Loader {
-                                        active: root.shellRoute === "bookmarks"
+                                    RouteSurfaceLoader {
+                                        diagnosticRoute: "bookmarks"
+                                        active: root.shuttingDown ? item !== null : root.shellRoute === "bookmarks"
                                         visible: active
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
@@ -2534,9 +2559,12 @@ Item {
                                         }
                                     }
 
-                                    Loader {
+                                    RouteSurfaceLoader {
                                         id: appsSurfaceLoader
-                                        active: root.shellRoute === "apps"
+                                        diagnosticRoute: "apps"
+                                        onLoaded: if (!root.shuttingDown && root.shellRoute === "apps")
+                                            item.scrollToBeginning()
+                                        active: root.shuttingDown ? item !== null : root.shellRoute === "apps"
                                         visible: active
                                         opacity: active ? 1.0 : 0.0
                                         scale: active ? 1.0 : 0.99
@@ -2571,9 +2599,10 @@ Item {
                                         }
                                     }
 
-                                    Loader {
+                                    RouteSurfaceLoader {
                                         id: notificationsRouteLoader
-                                        active: root.shellRoute === "notifications"
+                                        diagnosticRoute: "notifications"
+                                        active: root.shuttingDown ? item !== null : root.shellRoute === "notifications"
                                         visible: active
                                         opacity: active ? 1.0 : 0.0
                                         scale: active ? 1.0 : 0.99
@@ -2726,9 +2755,10 @@ Item {
                                         }
                                     }
 
-                                    Loader {
+                                    RouteSurfaceLoader {
                                         id: feedSurfaceLoader
-                                        readonly property bool surfaceRequested: root.shellRoute.length === 0 && root.listViewActive
+                                        diagnosticRoute: "feed"
+                                        readonly property bool surfaceRequested: !root.shuttingDown && root.shellRoute.length === 0 && root.listViewActive
                                                                                  && !(presentationBridge.activeView === "feed"
                                                                                       && root.primaryDestination === "home")
                                         active: surfaceRequested || item !== null
@@ -2904,9 +2934,10 @@ Item {
                                         }
                                     }
 
-                                    Loader {
+                                    RouteSurfaceLoader {
                                         id: profileSurfaceLoader
-                                        readonly property bool surfaceRequested: root.shellRoute.length === 0
+                                        diagnosticRoute: "profile"
+                                        readonly property bool surfaceRequested: !root.shuttingDown && root.shellRoute.length === 0
                                                                                  && presentationBridge.activeView === "profile"
                                         active: surfaceRequested || item !== null
                                         visible: surfaceRequested
@@ -3035,9 +3066,10 @@ Item {
                                         }
                                     }
 
-                                    Loader {
+                                    RouteSurfaceLoader {
                                         id: castSurfaceLoader
-                                        readonly property bool surfaceRequested: root.shellRoute.length === 0
+                                        diagnosticRoute: "cast"
+                                        readonly property bool surfaceRequested: !root.shuttingDown && root.shellRoute.length === 0
                                                                                  && presentationBridge.activeView === "cast"
                                         active: surfaceRequested || item !== null
                                         visible: surfaceRequested
@@ -4654,6 +4686,31 @@ Item {
     // loaded owner preserves each controller's real overlay parent and
     // avoids Loader sizing interfering with adaptive dialog dimensions.
     // Retain the owner after first use (including pending feedback state).
+    // Heavy pages incubate across Qt Quick frames. Keep already-loaded
+    // retained pages alive for Back, but never instantiate a new one on quit.
+    component RouteSurfaceLoader: Loader {
+        id: routeLoader
+        property string diagnosticRoute: ""
+        asynchronous: true
+        GenySpinner {
+            anchors.centerIn: parent
+            width: 28
+            height: 28
+            visible: routeLoader.visible && routeLoader.status === Loader.Loading
+                && !(typeof renderingController !== "undefined" && renderingController
+                     && renderingController.shuttingDown === true)
+        }
+        onStatusChanged: {
+            if (typeof renderingController !== "undefined" && renderingController
+                    && renderingController.stallDiagnosticsEnabled === true) {
+                if (status === Loader.Loading)
+                    renderingController.recordUiMarker("shell.loader." + diagnosticRoute + ".loading")
+                else if (status === Loader.Ready)
+                    renderingController.recordUiMarker("shell.loader." + diagnosticRoute + ".ready")
+            }
+        }
+    }
+
     component UtilitySurface: Loader {
         active: false
         asynchronous: false

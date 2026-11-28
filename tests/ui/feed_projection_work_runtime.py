@@ -115,7 +115,7 @@ def main():
     profile=PROFILE.read_text()
     functions=section(feed,"    function embedUrl(","    function isCollectibleMarketplaceUrl(")
     functions+=section(feed,"    function staticMediaFamilyKey(","    function looksLikeArtworkUrl(")
-    functions+=section(profile,"    function rowTime(","    readonly property var displayRows:")
+    functions+=section(profile,"    function rowTime(","    function rowKey(")
     with tempfile.TemporaryDirectory(prefix="genycaster-projection-") as tmp:
         (Path(tmp)/"tst_projection.qml").write_text(QML.replace("    // PRODUCTION_FUNCTIONS",functions))
         env=dict(os.environ,QT_QPA_PLATFORM="offscreen",QT_QUICK_BACKEND="software")

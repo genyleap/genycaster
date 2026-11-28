@@ -580,13 +580,17 @@ QSGNode* SceneGraphStrokeItem::updatePaintNode(QSGNode* oldNode, UpdatePaintNode
         }
     }
 
-    geometry->allocate(static_cast<int>(vertices.size()));
+    const auto vertexCount = static_cast<int>(vertices.size());
+    if (geometry->vertexCount() != vertexCount)
+        geometry->allocate(vertexCount);
     auto* target = geometry->vertexDataAsColoredPoint2D();
     for (std::size_t index = 0; index < vertices.size(); ++index) {
         const Vertex& vertex = vertices[index];
         target[index].set(vertex.x, vertex.y, vertex.r, vertex.g, vertex.b, vertex.a);
     }
-    node->markDirty(QSGNode::DirtyGeometry | QSGNode::DirtyMaterial);
+    geometry->markVertexDataDirty();
+    // Vertex colors are buffer data; the immutable material does not change.
+    node->markDirty(QSGNode::DirtyGeometry);
     return node;
 }
 

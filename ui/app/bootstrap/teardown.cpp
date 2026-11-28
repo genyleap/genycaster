@@ -6,6 +6,7 @@ module;
 #include <QObject>
 #include <QPointer>
 #include <QList>
+#include <QSet>
 #include <QLoggingCategory>
 #include <QMetaProperty>
 #include <QString>
@@ -55,25 +56,42 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
         // Inspect Loading loaders even when the public incubation count is
         // zero. Cancel only unfinished work, while contexts still exist.
         QList<QPointer<QObject>> pending;
-        for (const auto& root : guardedRoots(engine)) {
-            if (!root) continue;
-            for (auto* object : root->findChildren<QObject*>()) {
-                if (!object->inherits("QQuickLoader") || !object->property("active").toBool()
-                    || object->property("item").value<QObject*>())
-                    continue;
-                const auto* meta = object->metaObject();
-                const int statusIndex = meta->indexOfProperty("status");
-                bool loading = false;
-                if (statusIndex >= 0) {
-                    const auto status = meta->property(statusIndex);
-                    bool valid = false;
-                    const int loadingValue = status.enumerator().keyToValue("Loading", &valid);
-                    loading = valid && status.read(object).toInt() == loadingValue;
-                }
-                if (loading || afterDrain > 0)
-                    pending.append(object);
+        // QObject ownership and visual parenting can differ (Popup,
+        // Loader and reparented Item trees). Inspect both without changing
+        // their parentage, and visit each object only once.
+        QList<QPointer<QObject>> scan = guardedRoots(engine);
+        QSet<QObject*> visited;
+        while (!scan.isEmpty()) {
+            const auto guard = scan.takeLast();
+            QObject* const object = guard.data();
+            if (!object || visited.contains(object))
+                continue;
+            visited.insert(object);
+            for (QObject* const child : object->children())
+                scan.append(QPointer<QObject>{child});
+            if (auto* const item = qobject_cast<QQuickItem*>(object)) {
+                for (QQuickItem* const child : item->childItems())
+                    scan.append(QPointer<QObject>{child});
+            } else if (auto* const window = qobject_cast<QQuickWindow*>(object)) {
+                if (window->contentItem())
+                    scan.append(QPointer<QObject>{window->contentItem()});
             }
+            if (!object->inherits("QQuickLoader") || !object->property("active").toBool()
+                || object->property("item").value<QObject*>())
+                continue;
+            const auto* meta = object->metaObject();
+            const int statusIndex = meta->indexOfProperty("status");
+            bool loading = false;
+            if (statusIndex >= 0) {
+                const auto status = meta->property(statusIndex);
+                bool valid = false;
+                const int loadingValue = status.enumerator().keyToValue("Loading", &valid);
+                loading = valid && status.read(object).toInt() == loadingValue;
+            }
+            if (loading || afterDrain > 0)
+                pending.append(object);
         }
+        qCDebug(qmlTeardownLog) << "pendingLoaders" << pending.size();
         // A parent cancellation can destroy a child in this snapshot.
         for (const auto& loader : pending) {
             if (loader) {
@@ -82,6 +100,14 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
                 QQmlProperty::write(loader.data(), QStringLiteral("active"), false);
             }
         }
+        // Loader deactivation may queue destruction of a partially built
+        // subtree. Deliver only deferred deletion while its context is still
+        // alive, then finish any remaining public incubators within the same
+        // deadline. Do not process arbitrary input/network events on quit.
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        while (controller->incubatingObjectCount() > 0 && !deadline.hasExpired())
+            controller->incubateFor(10);
+        qCDebug(qmlTeardownLog) << "afterCancellation" << controller->incubatingObjectCount();
         qCDebug(qmlTeardownLog) << "beforeDetach" << controller->incubatingObjectCount();
         // With no controller, new creation during teardown is synchronous.
         // Keep the existing popup/overlay lifetime boundary intact.
