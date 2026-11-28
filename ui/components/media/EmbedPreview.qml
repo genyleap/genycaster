@@ -19,6 +19,9 @@ Item {
     // Magazine rows are already viewport-admitted; avoid canceling a nested
     // incubator when the parent card is recycled or the view switches.
     property bool magazineCard: false
+    // CastEmbedsPanel already incubates the complete preview subtree.
+    // A standalone rich renderer may still own an independent incubator.
+    property bool rendererAsynchronous: true
     property color mediaSurfaceColor: magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
     property var sharedMediaGeometry: null
     readonly property bool mobileViewport: root.compact && !root.magazineCard
@@ -346,6 +349,7 @@ Item {
 
     Loader {
         id: loader
+        objectName: "embedRendererLoader"
         anchors.left: parent.left
         anchors.right: parent.right
         active: root.classificationReady
@@ -353,7 +357,7 @@ Item {
         // asynchronous incubation is still creating LinkPreview. Construct
         // the lightweight link shell synchronously; heavier media stays
         // asynchronously incubated outside the admitted Magazine view.
-        asynchronous: !root.magazineCard && root.resolvedKind !== "link"
+        asynchronous: !root.magazineCard && root.rendererAsynchronous && root.resolvedKind !== "link"
         sourceComponent: root.resolvedKind === "cast-reference" ? castReferenceComponent
                        : root.resolvedKind === "token-address" ? tokenAddressComponent
                        : root.resolvedKind === "collectible" ? collectibleComponent
@@ -413,7 +417,7 @@ Item {
             compact: root.compact
             mobilePresentation: root.mobileViewport
             cornerCoverColor: root.mediaSurfaceColor
-            asynchronousTiles: !root.magazineCard
+            asynchronousTiles: !root.magazineCard && root.rendererAsynchronous
             sharedMediaGeometry: root.sharedMediaGeometry
             lockFeedGeometry: root.magazineCard
                 || (root.sharedMediaGeometry !== null && !root.mobileViewport)

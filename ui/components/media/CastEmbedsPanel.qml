@@ -16,6 +16,7 @@ ColumnLayout {
     // Keep their tile incubation synchronous so Back cannot destroy an
     // incomplete GalleryTile context. Scrolling feed cards stay asynchronous.
     property bool asynchronousTiles: true
+    readonly property bool asynchronousPreviews: asynchronousTiles && !magazineCard
     property var sharedMediaGeometry: null
     property var scrollHost: null
     readonly property bool mobileViewport: root.compact && !root.magazineCard
@@ -308,12 +309,23 @@ ColumnLayout {
                             ? previewLoader.item.implicitHeight : tile.reservedHeight
 
                     function scheduleAdmission() {
-                        if (root.magazineCard || tile.admitted || previewAdmission.running)
+                        if (!root.asynchronousPreviews || tile.admitted || previewAdmission.running)
+                            return
+                        if (!root.visible)
                             return
                         previewAdmission.restart()
                     }
 
                     Component.onCompleted: tile.scheduleAdmission()
+                    Connections {
+                        target: root
+                        function onVisibleChanged() {
+                            if (root.visible)
+                                tile.scheduleAdmission()
+                            else
+                                previewAdmission.stop()
+                        }
+                    }
                     Component.onDestruction: {
                         if (previewLoader && previewLoader.status === Loader.Loading)
                             previewLoader.active = false
@@ -324,26 +336,28 @@ ColumnLayout {
                         interval: 24 + tile.index * 28
                         repeat: false
                         onTriggered: {
-                            tile.admitted = true
+                            if (root.visible)
+                                tile.admitted = true
                         }
                     }
 
                     Loader {
                         id: previewLoader
+                        objectName: "supportingPreviewLoader"
                         anchors.left: parent.left
                         anchors.right: parent.right
                         // The magazine's outer asynchronous Loader owns the
                         // construction budget. Its actual supporting geometry
                         // must exist before the whole cast is first revealed.
-                        active: root.magazineCard || tile.admitted
-                        // Timers on several newly admitted casts can fire in
-                        // the same frame. Incubate the heavy preview trees too,
-                        // rather than constructing that entire burst at once.
-                        asynchronous: !root.magazineCard
+                        active: !root.asynchronousPreviews || tile.admitted
+                        // One incubator owns the preview tree. Detail and
+                        // Magazine already own their construction budget.
+                        asynchronous: root.asynchronousPreviews
                         visible: status === Loader.Ready
                         sourceComponent: Component {
                             EmbedPreview {
                                 embed: tile.embedData
+                                rendererAsynchronous: false
                                 castCaption: root.supportingCount === 1 && root.visualCount === 0
                                              ? root.castCaption : ""
                                 compact: root.magazineCard || tile.width < 520

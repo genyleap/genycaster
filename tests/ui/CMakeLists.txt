@@ -633,7 +633,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     find_program(GENYCASTER_QML_TEST_RUNNER NAMES qmltestrunner
         HINTS "${Qt6_DIR}/../../../bin" NO_DEFAULT_PATH)
     if(GENYCASTER_QML_TEST_RUNNER)
-        foreach(fixture IN ITEMS media_gallery_zoom_runtime shared_raster_geometry_runtime drawer_backdrop_runtime)
+        foreach(fixture IN ITEMS media_gallery_zoom_runtime shared_raster_geometry_runtime drawer_backdrop_runtime supporting_preview_lifecycle_runtime)
             add_test(NAME ui.${fixture}
                 COMMAND "${CMAKE_COMMAND}" -E env
                     "QML_TEST_RUNNER=${GENYCASTER_QML_TEST_RUNNER}"

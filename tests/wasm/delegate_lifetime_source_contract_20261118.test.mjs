@@ -9,7 +9,14 @@ test('EmbedPreview preserves scroll metadata and differentiates async Timeline v
   assert.match(qml,/property bool metadataUpdatePending: false/);
   assert.match(qml,/if \(root\.scrollMoving\)[\s\S]*?root\.metadataUpdatePending = true/);
   assert.match(qml,/if \(root\.metadataUpdatePending\)\s*root\.acceptLinkMetadata\(root\.pendingLinkMetadata\)/);
-  assert.match(qml,/asynchronous: !root\.magazineCard && root\.resolvedKind !== "link"/);
+  assert.match(qml,/asynchronous: !root\.magazineCard && root\.rendererAsynchronous && root\.resolvedKind !== "link"/);
+  const panel=read('ui/components/media/CastEmbedsPanel.qml');
+  assert.match(panel,/asynchronousPreviews: asynchronousTiles && !magazineCard/);
+  assert.match(panel,/asynchronous: root\.asynchronousPreviews/);
+  assert.match(panel,/rendererAsynchronous: false/);
+  assert.match(qml,/asynchronousTiles: !root\.magazineCard && root\.rendererAsynchronous/);
+  assert.match(panel,/if \(!root\.visible\)\s*return/);
+  assert.match(panel,/else\s*previewAdmission\.stop\(\)/);
 });
 
 test('LinkPreview defers resolved metadata while moving and avoids pending Magazine incubators',()=>{

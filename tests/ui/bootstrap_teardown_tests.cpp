@@ -202,6 +202,12 @@ int main(int argc, char** argv)
     component.create(pending);
     if (!pending.isLoading() || controller.incubatingObjectCount() != 1) return 12;
 
+    // Model the last native window detaching its controller before the
+    // composition root gets control back from exec(). The engine still
+    // owns its pending incubation; teardown must recover and complete it.
+    engine.setIncubationController(nullptr);
+    if (!pending.isLoading()) return 14;
+
     // The native composition root calls this after the GUI event loop returns.
     genycaster::ui::bootstrap::releaseQmlRoots(engine, window);
     const std::unique_ptr<QObject> completed{pending.object()};

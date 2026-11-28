@@ -710,7 +710,9 @@ if ('property bool metadataUpdatePending: false' not in embed_preview
         or 'root.metadataUpdatePending = true' not in embed_preview
         or 'root.acceptLinkMetadata(preview)' not in embed_preview
         or 'if (root.metadataUpdatePending)' not in embed_preview
-        or 'asynchronous: !root.magazineCard && root.resolvedKind !== "link"' not in embed_preview):
+        or 'asynchronous: !root.magazineCard && root.rendererAsynchronous && root.resolvedKind !== "link"' not in embed_preview
+        or 'rendererAsynchronous: false' not in cast_embeds_panel
+        or 'asynchronous: root.asynchronousPreviews' not in cast_embeds_panel):
     errors.append('EmbedPreview must defer moving-scroll metadata and asynchronously incubate Timeline (not admitted Magazine) previews')
 if ('asynchronous: false' not in link_preview_media
         or 'property bool resolvedPreviewPending: false' not in link_preview_media

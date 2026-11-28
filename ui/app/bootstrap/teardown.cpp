@@ -22,6 +22,12 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
     // The window normally advances incubators on frame/timer callbacks. At
     // shutdown finish already admitted delegates while their QML contexts are live,
     // then disable further deferred creation before destroying their owners.
+    // The last QQuickWindow can already have detached its controller during
+    // close. Pending incubators belong to the engine, not the controller.
+    // Attach a local, manually driven controller even in that case; never
+    // depend on a window or timer after the application event loop stops.
+    QQmlIncubationController finalController;
+    engine.setIncubationController(&finalController);
     if (auto* const controller = engine.incubationController()) {
         const QDeadlineTimer deadline{500};
         while (controller->incubatingObjectCount() > 0 && !deadline.hasExpired())

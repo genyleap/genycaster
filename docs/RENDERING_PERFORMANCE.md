@@ -61,6 +61,36 @@ explicit refresh. The fixture's browser cadence is simulated on desktop
 OpenGL; it is not a real browser execution. Requested texture extents are
 not measurements of physical GPU allocation.
 
+## QML preview ownership and shutdown
+
+Timeline supporting-preview admission remains staggered and asynchronous,
+but the outer preview Loader owns the complete dispatcher subtree.
+Nested renderer and promoted-gallery creation do not start independent
+incubators for that admitted subtree. Magazine and short-lived detail
+routes use synchronous QML construction; network/decode remain async.
+Hidden pooled cards do not start new preview admissions, and already
+admitted cards retain their identity on reuse. Standalone rich previews
+retain their existing independent renderer policy.
+
+Native shutdown uses a local QQmlIncubationController, so pending work
+can be advanced even after the last window detached its controller.
+The existing bounded drain and Popup/Overlay destruction order remain.
+This is not a guarantee that every application-specific incubator will
+finish; do not suppress warnings or increase the deadline without evidence.
+
+```sh
+cmake -S tests/qml_lifecycle_fixture -B build/qml-lifecycle -G Ninja \
+  -DCMAKE_PREFIX_PATH=/path/to/Qt/6.12
+cmake --build build/qml-lifecycle
+ctest --test-dir build/qml-lifecycle --output-on-failure
+```
+
+The isolated fixture builds the production C++26 shutdown module and
+executes its existing multi-window regression, now with a detached
+incubation controller. The QML fixture runs the actual panel/dispatcher
+with stub leaf renderers, checking hidden admission, URL reuse, renderer
+promotion, immediate Detail construction and repeated destruction.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

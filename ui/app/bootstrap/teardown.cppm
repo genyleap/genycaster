@@ -21,8 +21,9 @@ export namespace genycaster::ui::bootstrap {
      * @brief Destroy all loaded QML roots while a GUI dispatcher still exists.
      *
      * Invoke only after stopping producers and joining runtime bootstrap.
-     * Advances pending QML incubation within a final time budget and detaches
-     * the controller before destroying the object tree.
+     * Advances pending QML incubation with a local controller within a final
+     * time budget (even if the last window detached its controller), then
+     * detaches it before destroying the object tree.
      * Deletes QML visual owners before standalone Popups and their associated
      * QQuickOverlay, keeping the QQuickWindow alive throughout. Loaders release
      * their own Popups before the overlay is destroyed. Finally destroys

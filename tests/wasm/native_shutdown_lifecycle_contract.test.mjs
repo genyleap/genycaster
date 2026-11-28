@@ -20,6 +20,7 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
         && released > joined && returned > released,
         "the main thread must stop producers, join workers and explicitly release the scene graph");
 
+    const finalController = teardown.indexOf('engine.setIncubationController(&finalController);');
     const incubate = teardown.indexOf('controller->incubateFor(');
     const detachIncubator = teardown.indexOf('engine.setIncubationController(nullptr);');
     const sceneCleanup = teardown.indexOf('child->inherits("QQuickOverlay")');
@@ -32,7 +33,8 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
     const destroy = teardown.indexOf("delete root;");
     const drain = teardown.lastIndexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
     const collect = teardown.indexOf("engine.collectGarbage();");
-    assert.ok(incubate >= 0 && detachIncubator > incubate && sceneCleanup > detachIncubator
+    assert.ok(finalController >= 0 && incubate > finalController
+        && detachIncubator > incubate && sceneCleanup > detachIncubator
         && sceneDelete > sceneCleanup
         && popupCleanup > sceneDelete && popupDelete > popupCleanup
         && overlayCleanup > popupDelete && overlayDelete > overlayCleanup
