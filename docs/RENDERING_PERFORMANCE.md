@@ -441,6 +441,21 @@ and open contiguous insertion gaps once, rather than repeatedly shifting
 the same suffix. The allocation-free retirement range primitive is tested
 independently of Qt; the model fixture covers Qt signals and indexes.
 
+## Correlating GUI event delivery
+
+Enable genycaster.render.gui.debug to time outermost main-thread Qt notify
+calls at 16 ms or more. The category logs event type, receiver class and a
+monotonic start/duration in the same clock domain as frame observations.
+Nested delivery is counted within its outer event, not reported twice;
+the guarded receiver may disappear during DeferredDelete. No event
+payload, account, URL, object name or user content is logged. This timing
+does not cover all native platform callbacks and cannot by itself separate
+CPU execution from waits. It is disabled by default.
+
+The isolated rendering_pacing_fixture now includes the pure C++ retirement
+test and native FeedRowsModel/MasonryWindowModel test, in addition to
+render pacing. Release builds retain the retirement assertions.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

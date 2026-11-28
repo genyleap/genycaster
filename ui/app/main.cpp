@@ -93,6 +93,7 @@
 
 #include "presentation_bridge.hpp"
 #include "rendering_controller.hpp"
+#include "diagnostics/gui_event_trace.hpp"
 #include "emoji_controller.hpp"
 #include "rich_inline_text_item.hpp"
 #include "rich_composer_controller.hpp"
@@ -400,9 +401,11 @@ int main(int argc, char* argv[])
     QtWebEngineQuick::initialize();
 #endif
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
-    QApplication application(argc, argv);
+    genycaster::ui::diagnostics::GuiEventTraceApplication<
+        QApplication, &RenderingController::traceClockMs> application(argc, argv);
 #else
-    QGuiApplication application(argc, argv);
+    genycaster::ui::diagnostics::GuiEventTraceApplication<
+        QGuiApplication, &RenderingController::traceClockMs> application(argc, argv);
 #endif
 #if defined(Q_OS_ANDROID)
     // Qt 6.12 private API: unlike QT_MEDIA_BACKEND, setBackend() does NOT

@@ -18,7 +18,7 @@ test('Windows uses a real origin-locked native Qt WebEngine SDK host',()=>{
   assert.match(win,/qt_add_resources\(genycaster genycaster_windows_miniapp_quick/);
   assert.match(main,/defined\(Q_OS_WIN\) && defined\(GENYCASTER_HAS_WINDOWS_MINIAPP_HOST\)/);
   assert.match(main,/QtWebEngineQuick::initialize\(\)/);
-  assert.match(main,/QApplication application\(argc, argv\)/);
+  assert.match(main,/GuiEventTraceApplication<\s*QApplication, &RenderingController::traceClockMs> application\(argc, argv\)/);
   assert.match(main,/setLinuxMiniAppQuickHost\(mainWindow, &engine\)/);
 });
 

@@ -584,6 +584,14 @@ add_test(NAME ui.feed_rows_model COMMAND farcaster_feed_rows_model_tests)
 set_tests_properties(ui.feed_rows_model PROPERTIES
     TIMEOUT 30 LABELS "ui;qt;model;read-pipeline")
 
+# Standard C++ retirement primitive, independent of Qt and active in Release.
+add_executable(farcaster_viewport_work_budget_tests viewport_work_budget_tests.cpp)
+set_target_properties(farcaster_viewport_work_budget_tests PROPERTIES AUTOMOC OFF)
+target_compile_features(farcaster_viewport_work_budget_tests PRIVATE cxx_std_20)
+farcaster_enable_warnings(farcaster_viewport_work_budget_tests)
+add_test(NAME ui.viewport_work_budget COMMAND farcaster_viewport_work_budget_tests)
+set_tests_properties(ui.viewport_work_budget PROPERTIES TIMEOUT 30 LABELS "ui;model")
+
 # Manual native microbenchmark only. Do not gate CI on noisy wall-clock
 # thresholds or build this target as part of ordinary UI tests.
 add_executable(farcaster_feed_performance_benchmark EXCLUDE_FROM_ALL

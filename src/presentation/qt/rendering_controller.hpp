@@ -87,6 +87,7 @@ public:
   [[nodiscard]] bool stallDiagnosticsEnabled() const noexcept;
 
   /** Monotonic diagnostic timestamps, shared by GUI and render thread traces. */
+  [[nodiscard]] static double traceClockMs() noexcept;
   Q_INVOKABLE double diagnosticClockMs() const noexcept;
   /** Logs slow, fixed-name UI work only. No media or account payloads. */
   Q_INVOKABLE void recordUiOperation(const QString &operation, double startMs, int rows) const;

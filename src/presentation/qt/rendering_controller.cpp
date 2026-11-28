@@ -255,8 +255,12 @@ bool RenderingController::stallDiagnosticsEnabled() const noexcept {
   return stallTraceLog().isDebugEnabled();
 }
 
-double RenderingController::diagnosticClockMs() const noexcept {
+double RenderingController::traceClockMs() noexcept {
   return traceMs(TraceClock::now());
+}
+
+double RenderingController::diagnosticClockMs() const noexcept {
+  return traceClockMs();
 }
 
 void RenderingController::recordUiOperation(const QString &operation, double startMs,

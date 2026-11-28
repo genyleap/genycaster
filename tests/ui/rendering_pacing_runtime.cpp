@@ -1,4 +1,5 @@
 #include "rendering_controller.hpp"
+#include "../../ui/app/diagnostics/gui_event_trace.hpp"
 
 #include <QCoreApplication>
 #include <QEvent>
@@ -22,11 +23,14 @@
 
 namespace {
 QStringList traceMessages;
+QStringList guiTraceMessages;
 QMutex traceMutex;
 void captureTrace(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (type == QtDebugMsg && QByteArrayView(context.category) == "genycaster.render.stalls") {
+    if (type != QtDebugMsg) return;
+    const auto category = QByteArrayView(context.category);
+    if (category == "genycaster.render.stalls" || category == "genycaster.render.gui") {
         const QMutexLocker lock{&traceMutex};
-        traceMessages.append(message);
+        (category == "genycaster.render.stalls" ? traceMessages : guiTraceMessages).append(message);
     }
 }
 
@@ -76,8 +80,38 @@ void drain(RenderingController& controller) {
 } // namespace
 
 int main(int argc, char** argv) {
-    QGuiApplication app(argc, argv);
+    genycaster::ui::diagnostics::GuiEventTraceApplication<
+        QGuiApplication, &RenderingController::traceClockMs> app(argc, argv);
     app.setQuitOnLastWindowClosed(false);
+    if (app.arguments().contains("--synthetic")) {
+        struct SlowReceiver final : QObject {
+            bool event(QEvent* event) override {
+                if (event->type() == QEvent::User) {
+                    QEvent nested{static_cast<QEvent::Type>(QEvent::User + 1)};
+                    QCoreApplication::sendEvent(this, &nested);
+                    return true;
+                }
+                if (event->type() == QEvent::User + 1) {
+                    QTest::qSleep(22);
+                    return true;
+                }
+                return QObject::event(event);
+            }
+        } receiver;
+        const auto oldHandler = qInstallMessageHandler(captureTrace);
+        guiTraceMessages.clear();
+        QEvent event{QEvent::User};
+        QCoreApplication::sendEvent(&receiver, &event);
+        CHECK(guiTraceMessages.isEmpty());
+        QLoggingCategory::setFilterRules(QStringLiteral("genycaster.render.gui.debug=true"));
+        QCoreApplication::sendEvent(&receiver, &event);
+        CHECK(guiTraceMessages.size() == 1);
+        CHECK(traceField(guiTraceMessages.first(), QStringLiteral("durationMs")) >= 16.0);
+        CHECK(traceField(guiTraceMessages.first(), QStringLiteral("guiEvent")) == QEvent::User);
+        qInstallMessageHandler(oldHandler);
+        QLoggingCategory::setFilterRules(QString{});
+        qInfo("PASS: opt-in outermost GUI event timing");
+    }
     // The queue is independent of Qt and uses actual timestamps in FIFO order.
     {
         FrameObservationQueue queue;

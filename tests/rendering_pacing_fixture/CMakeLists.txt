@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 project(GenycasterRenderingPacingFixture LANGUAGES CXX)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Quick Test)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick Test)
 set(CMAKE_AUTOMOC ON)
 set(root "${CMAKE_CURRENT_LIST_DIR}/../..")
 add_executable(genycaster_rendering_pacing_fixture
@@ -11,6 +11,18 @@ target_include_directories(genycaster_rendering_pacing_fixture PRIVATE "${root}/
 target_compile_features(genycaster_rendering_pacing_fixture PRIVATE cxx_std_23)
 target_link_libraries(genycaster_rendering_pacing_fixture PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::Test)
 enable_testing()
+add_executable(genycaster_viewport_work_budget_fixture "${root}/tests/ui/viewport_work_budget_tests.cpp")
+set_target_properties(genycaster_viewport_work_budget_fixture PROPERTIES AUTOMOC OFF)
+target_compile_features(genycaster_viewport_work_budget_fixture PRIVATE cxx_std_20)
+add_test(NAME viewport_work_budget COMMAND genycaster_viewport_work_budget_fixture)
+add_executable(genycaster_feed_rows_fixture
+  "${root}/tests/ui/feed_rows_model_tests.cpp"
+  "${root}/ui/app/social/feed_rows.cpp"
+  "${root}/ui/app/social/feed_rows.hpp")
+target_compile_features(genycaster_feed_rows_fixture PRIVATE cxx_std_23)
+target_link_libraries(genycaster_feed_rows_fixture PRIVATE Qt6::Core Qt6::Qml Qt6::Test)
+add_test(NAME feed_rows_model COMMAND genycaster_feed_rows_fixture)
+set_tests_properties(viewport_work_budget feed_rows_model PROPERTIES TIMEOUT 30)
 add_test(NAME pacing_software COMMAND genycaster_rendering_pacing_fixture --synthetic)
 set_tests_properties(pacing_software PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QSG_RENDER_LOOP=basic" TIMEOUT 20)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")

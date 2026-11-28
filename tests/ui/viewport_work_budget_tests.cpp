@@ -1,10 +1,21 @@
 #include "../../ui/app/social/viewport_work_budget.hpp"
 
 #include <algorithm>
-#include <cassert>
+#include <cstdlib>
+#include <cstdio>
 #include <numeric>
 #include <random>
 #include <vector>
+
+namespace {
+void require(bool condition)
+{
+    if (!condition) {
+        std::fputs("Viewport retirement budget invariant failed\n", stderr);
+        std::abort();
+    }
+}
+}
 
 int main()
 {
@@ -25,16 +36,16 @@ int main()
             const int removed = evictDepartedRanges(static_cast<int>(items.size()), budget,
                 [&](int index) { return desired[items.at(index)]; },
                 [&](int first, int last) {
-                    assert(first >= 0 && first <= last && last < static_cast<int>(items.size()));
-                    for (int i = first; i <= last; ++i) assert(!desired[items[i]]);
+                    require(first >= 0 && first <= last && last < static_cast<int>(items.size()));
+                    for (int i = first; i <= last; ++i) require(!desired[items[i]]);
                     items.erase(items.begin() + first, items.begin() + last + 1);
                 });
-            assert(removed > 0 && before - items.size() == static_cast<unsigned>(removed));
-            assert(budget == 0 || removed <= budget);
-            assert(std::is_sorted(items.begin(), items.end()));
-            assert(++passes <= count);
+            require(removed > 0 && before - items.size() == static_cast<unsigned>(removed));
+            require(budget == 0 || removed <= budget);
+            require(std::is_sorted(items.begin(), items.end()));
+            require(++passes <= count);
         }
-        assert(evictDepartedRanges(static_cast<int>(items.size()), budget,
-            [](int) { return true; }, [](int, int) { assert(false); }) == 0);
+        require(evictDepartedRanges(static_cast<int>(items.size()), budget,
+            [](int) { return true; }, [](int, int) { require(false); }) == 0);
     }
 }
