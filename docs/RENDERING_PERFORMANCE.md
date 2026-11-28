@@ -665,7 +665,17 @@ cmake --build build/rendering-pacing
 ctest --test-dir build/rendering-pacing --output-on-failure
 ```
 
-This builds only the production rendering controller and small Qt tests.
+This builds only the production rendering controller, native model and small Qt
+tests. Keep the build directory across source revisions; Ninja rebuilds
+only changed objects. On shared Linux test hosts run with
+`cmake --build build/rendering-pacing --parallel 1` and
+`ctest --test-dir build/rendering-pacing --output-on-failure --parallel 1`
+to avoid saturating production services. No deployment or release is involved.
+The fixture also registers an isolated engine-shutdown smoke test, the
+actual Qt QML JavaScript projection test when host qmltestrunner and Python
+are available, and selected source-contract suites when Node is installed.
+They are separate from application-level navigation and platform GPU tests.
+
 The software fixture stresses signal deduplication and queued timing;
 on Linux, Xvfb additionally tests actual OpenGL scene-graph barriers.
 The regular UI tests also register the controller and backdrop regressions.

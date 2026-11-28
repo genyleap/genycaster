@@ -29,8 +29,10 @@ int main()
         const int removed = evictDepartedRanges(5, 4,
             [&](int index) { return items.at(static_cast<std::size_t>(index)) == 0; },
             [&](int first, int last) {
-                require(first == last);
-                items.erase(items.begin() + first, items.begin() + last + 1);
+                // These deterministic cases remove only the trailing
+                // single element. Assert the complete range contract.
+                require(first == last && last == static_cast<int>(items.size()) - 1);
+                items.pop_back();
                 simulatedNs += 7;
             }, 1, [&] { return simulatedNs >= 5; });
         require(removed == 1 && items == std::vector<int>({0, 1, 2, 3}));
@@ -38,15 +40,16 @@ int main()
         const int fast = evictDepartedRanges(4, 2,
             [&](int index) { return items.at(static_cast<std::size_t>(index)) == 0; },
             [&](int first, int last) {
-                require(first == last);
+                require(first == last && last == static_cast<int>(items.size()) - 1);
                 ++calls;
-                items.erase(items.begin() + first, items.begin() + last + 1);
+                items.pop_back();
             }, 1, [] { return false; });
         require(fast == 2 && calls == 2 && items == std::vector<int>({0, 1}));
         require(evictDepartedRanges(2, 4,
             [&](int index) { return items.at(static_cast<std::size_t>(index)) == 0; },
             [&](int first, int last) {
-                items.erase(items.begin() + first, items.begin() + last + 1);
+                require(first == last && last == static_cast<int>(items.size()) - 1);
+                items.pop_back();
             }, 1, [] { return true; }) == 1);
         require(items == std::vector<int>({0}));
     }
