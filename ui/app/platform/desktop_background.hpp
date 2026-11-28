@@ -1,6 +1,14 @@
 /*!
- * @file ui/app/platform/desktop_background.hpp
- * @brief Native desktop window and background lifecycle.
+ * @file        ui/app/platform/desktop_background.hpp
+ * @brief       Native desktop window and background lifecycle.
+ *
+ * @details
+ * Separates window close, task restoration and application shutdown.
+ *
+ * @author      Genyleap contributors
+ * @since       28 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
  */
 
 #pragma once
@@ -10,6 +18,7 @@
 #include <QWindow>
 #include <memory>
 
+class QAction;
 class QEvent;
 class QMenu;
 class QSystemTrayIcon;
@@ -30,6 +39,9 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    void retranslate();
+    QAction* m_openAction{};
+    QAction* m_quitAction{};
     QApplication& m_application;
     QPointer<QWindow> m_window;
     std::unique_ptr<QMenu> m_menu;

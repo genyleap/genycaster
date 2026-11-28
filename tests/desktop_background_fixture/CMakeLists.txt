@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.30)
+project(GenycasterDesktopBackgroundFixture LANGUAGES CXX)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets)
+find_package(X11 REQUIRED)
+find_program(XVFB_RUN xvfb-run REQUIRED)
+get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+add_executable(desktop_background_runtime
+    "${ROOT}/tests/unit/desktop_background_runtime.cpp"
+    "${ROOT}/ui/app/platform/desktop_background.cpp")
+target_compile_features(desktop_background_runtime PRIVATE cxx_std_26)
+target_compile_definitions(desktop_background_runtime PRIVATE GENYCASTER_TEST_X11)
+target_include_directories(desktop_background_runtime PRIVATE "${ROOT}/ui/app/platform")
+target_link_libraries(desktop_background_runtime PRIVATE Qt6::Widgets X11::X11)
+enable_testing()
+add_test(NAME desktop_without_tray COMMAND "${XVFB_RUN}" -a $<TARGET_FILE:desktop_background_runtime>)
+add_test(NAME desktop_with_tray COMMAND "${XVFB_RUN}" -a $<TARGET_FILE:desktop_background_runtime> --tray)
+set_tests_properties(desktop_without_tray desktop_with_tray PROPERTIES TIMEOUT 15)

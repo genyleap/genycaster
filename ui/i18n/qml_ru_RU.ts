@@ -1,6 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="ru_RU" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.desktop.open">
+            <source>Open Genycaster</source>
+            <translation>Открыть Genycaster</translation>
+        </message>
+        <message id="genycaster.desktop.quit">
+            <source>Quit Genycaster</source>
+            <translation>Выйти из Genycaster</translation>
+        </message>
         <message id="genycaster.miniapp.signin_wallet_title">
             <source>Mini App sign-in could not be verified</source>
             <translation>Не удалось проверить вход в мини-приложение</translation>

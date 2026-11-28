@@ -24,11 +24,12 @@ DesktopBackgroundController::DesktopBackgroundController(QApplication& applicati
     // Application filter also sees native Quit and application activation.
     // Only the main window's Close event is intercepted.
     m_application.installEventFilter(this);
-    auto* open = m_menu->addAction(QCoreApplication::translate("DesktopBackground", "Open Genycaster"));
-    connect(open, &QAction::triggered, this, &DesktopBackgroundController::showMainWindow);
+    m_openAction = m_menu->addAction(QString{});
+    connect(m_openAction, &QAction::triggered, this, &DesktopBackgroundController::showMainWindow);
     m_menu->addSeparator();
-    auto* quit = m_menu->addAction(QCoreApplication::translate("DesktopBackground", "Quit Genycaster"));
-    connect(quit, &QAction::triggered, this, &DesktopBackgroundController::quitApplication);
+    m_quitAction = m_menu->addAction(QString{});
+    retranslate();
+    connect(m_quitAction, &QAction::triggered, this, &DesktopBackgroundController::quitApplication);
     m_tray->setToolTip(QStringLiteral("Genycaster"));
     m_tray->setContextMenu(m_menu.get());
     connect(m_tray.get(), &QSystemTrayIcon::activated, this,
@@ -84,8 +85,21 @@ void DesktopBackgroundController::quitApplication()
     QCoreApplication::quit();
 }
 
+void DesktopBackgroundController::retranslate()
+{
+    const auto open = qtTrId("genycaster.desktop.open");
+    const auto quit = qtTrId("genycaster.desktop.quit");
+    m_openAction->setText(open == QStringLiteral("genycaster.desktop.open")
+                         ? QStringLiteral("Open Genycaster") : open);
+    m_quitAction->setText(quit == QStringLiteral("genycaster.desktop.quit")
+                         ? QStringLiteral("Quit Genycaster") : quit);
+}
+
 bool DesktopBackgroundController::eventFilter(QObject* watched, QEvent* event)
 {
+    if (event->type() == QEvent::LanguageChange && watched == m_menu.get() &&
+        m_openAction && m_quitAction)
+        retranslate();
     if (watched == &m_application && event->type() == QEvent::Quit) {
         m_quitting = true;
         // If another window rejects a quit request, do not permanently
