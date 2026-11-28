@@ -541,6 +541,19 @@ header-first post gate and repeated-switch retention. The first-ever
 alternate-layout switch may pay its one-time construction cost instead.
 The actual navigation latency and visual behavior need device validation.
 
+## v7: playback callback lifetime and timer diagnosis
+
+The v7 trace has a 1975.69 ms QTimer event after native video startup
+and a separate 209.96 ms render recording (207.54 ms pre-main-pass).
+This does not identify the timer implementation or prove a decoder cause.
+GUI traces now report the timer ID and receiver's parent class (no names
+or payloads). The video player writes the existing muted Q_PROPERTY,
+rather than calling an unregistered C++ setter. Transport start, reload
+and seek restoration use object-owned timers, canceled on new requests,
+reset and destruction. Source preparation request IDs are invalidated
+on replacement. The native decoder stays on its supported Qt thread;
+these changes do not claim to eliminate platform backend blocking.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

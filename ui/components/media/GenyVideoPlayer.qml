@@ -570,6 +570,8 @@ Item {
         const target = descriptor || ({ url: "", qualityId: "original", autoIndex: -1 })
         if (String(target.url || "").length === 0)
             return
+        root.cancelDeferredTransport()
+        activation.preparationId = 0
         activation.pendingUrl = String(target.url)
         activation.pendingQualityId = String(target.qualityId || "original")
         activation.pendingPosition = Math.max(0, Number(positionMs || 0))
@@ -603,12 +605,8 @@ Item {
             console.info("Genycaster: Android media source assigned")
         if (String(player.source) !== String(target))
             player.source = target
-        Qt.callLater(() => {
-            if (root && player && String(player.source) === String(target)
-                    && (root.userActivated || root.eager) && activation.resumeAfterLoad
-                    && !root.failed)
-                player.play()
-        })
+        transportStart.targetSource = String(target)
+        transportStart.restart()
     }
 
     function applyPreparedSource(target) {
@@ -617,7 +615,8 @@ Item {
             // clear/re-assign keeps backend teardown out of the click handler.
             activation.forceReload = false
             player.source = ""
-            Qt.callLater(() => { if (root && player && !String(player.source)) root.startPendingSource(target) })
+            transportReload.targetSource = String(target)
+            transportReload.restart()
             return
         }
         activation.forceReload = false
@@ -648,7 +647,20 @@ Item {
         }
     }
 
+    function cancelDeferredTransport() {
+        transportStart.stop()
+        transportReload.stop()
+        transportRestore.stop()
+        transportStart.targetSource = ""
+        transportReload.targetSource = ""
+        transportRestore.targetSource = ""
+        transportRestore.seekPosition = 0
+        transportRestore.pauseRequested = false
+    }
+
     function resetPlayback() {
+        root.cancelDeferredTransport()
+        primePause.stop()
         startupTimer.stop()
         startupWatchdog.stop()
         activation.resumeAfterLoad = false
@@ -826,7 +838,7 @@ Item {
         const session = root.coordinator()
         if (session === null)
             return
-        session.setMuted(!session.muted)
+        session.muted = !session.muted
     }
 
     function setVolume(value) {
@@ -834,7 +846,7 @@ Item {
         if (audioOutput.volume > 0 && root.sessionMuted) {
             const session = root.coordinator()
             if (session !== null)
-                session.setMuted(false)
+                session.muted = false
         }
     }
 
@@ -989,16 +1001,16 @@ Item {
                 const resume = activation.resumeAfterLoad
                 activation.pendingUrl = ""
                 activation.pendingPosition = 0
+                // Loaded/Buffering/Buffered can arrive before the next
+                // frame. Preserve a pending seek across these notifications.
                 const loadedSource = String(player.source)
-                Qt.callLater(() => {
-                    if (!player || !activation || String(player.source) !== loadedSource) return
-                    if (seekPosition > 0 && player.duration > 0)
-                        player.position = Math.min(seekPosition, player.duration)
-                    if (!resume)
-                        player.pause()
-                    activation.switching = false
-                    activation.recovering = false
-                })
+                if (transportRestore.targetSource !== loadedSource)
+                    transportRestore.seekPosition = 0
+                transportRestore.targetSource = loadedSource
+                if (seekPosition > 0)
+                    transportRestore.seekPosition = seekPosition
+                transportRestore.pauseRequested = !resume
+                transportRestore.restart()
                 adaptiveDownshift.stop()
                 if (root.automaticRenditionMode && player.playbackState === MediaPlayer.PlayingState)
                     adaptiveUpgrade.restart()
@@ -1081,6 +1093,67 @@ Item {
             root.releasePrimaryPlayback()
             chromePinned = true
             root.playbackFailed(String(errorText || ""))
+        }
+    }
+
+    readonly property bool transportShuttingDown:
+        typeof renderingController !== "undefined" && renderingController
+        && renderingController.shuttingDown === true
+
+    // Object-owned transport callbacks. A source request/reset cancels all
+    // previous work, including retries of the same URL. No global closures
+    // survive a recycled or destroyed delegate.
+    Timer {
+        id: transportStart
+        interval: 0
+        repeat: false
+        property string targetSource: ""
+        onTriggered: {
+            const target = targetSource
+            targetSource = ""
+            if (!root.transportShuttingDown && target.length > 0
+                    && String(player.source) === target
+                    && (root.userActivated || root.eager)
+                    && activation.resumeAfterLoad && !root.failed)
+                player.play()
+        }
+    }
+    Timer {
+        id: transportReload
+        interval: 0
+        repeat: false
+        property string targetSource: ""
+        onTriggered: {
+            const target = targetSource
+            targetSource = ""
+            if (!root.transportShuttingDown && target.length > 0
+                    && target === activation.pendingUrl && !String(player.source)
+                    && (root.userActivated || root.eager))
+                root.startPendingSource(target)
+        }
+    }
+    Timer {
+        id: transportRestore
+        interval: 0
+        repeat: false
+        property string targetSource: ""
+        property real seekPosition: 0
+        property bool pauseRequested: false
+        onTriggered: {
+            const target = targetSource
+            const seek = seekPosition
+            const pause = pauseRequested
+            targetSource = ""
+            seekPosition = 0
+            pauseRequested = false
+            if (root.transportShuttingDown || !target
+                    || String(player.source) !== target) return
+            if (seek > 0 && player.duration > 0)
+                player.position = Math.min(seek, player.duration)
+            if (pause && !activation.resumeAfterLoad)
+                player.pause()
+            activation.switching = false
+            activation.recovering = false
         }
     }
 
@@ -2191,6 +2264,10 @@ Item {
     // Cleanup: recycled/deleted delegates never leak decoders, audio outputs
     // or coordinator ownership.
     Component.onDestruction: {
+        if (transportStart) transportStart.stop()
+        if (transportReload) transportReload.stop()
+        if (transportRestore) transportRestore.stop()
+        if (primePause) primePause.stop()
         if (startupTimer) startupTimer.stop()
         if (startupWatchdog) startupWatchdog.stop()
         if (stallWatchdog) stallWatchdog.stop()

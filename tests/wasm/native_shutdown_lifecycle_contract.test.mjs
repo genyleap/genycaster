@@ -108,7 +108,7 @@ test("popup-host QML bindings stay null-safe during native scene destruction", (
     assert.match(shell, /\(composerDrawer && composerDrawer\.opened\)/);
     assert.match(shell, /widgetsOpen: !!contextDrawer && contextDrawer\.visible/);
     assert.match(shell, /interactionAuthorizationScroller \? interactionAuthorizationScroller.availableWidth : 0/);
-    assert.match(video, /if \(!player \|\| !activation \|\| String\(player.source\) !== loadedSource\) return/);
+    assert.match(video, /if \(root\.transportShuttingDown \|\| !target\s*\|\| String\(player.source\) !== target\) return/);
     for (const [file, loader] of [['GalleryLayout', 'tileLoader'], ['CastEmbedsPanel', 'previewLoader']]) {
         const media = read('ui/components/media/' + file + '.qml');
         assert.ok(media.includes(loader + '.status === Loader.Loading'));
