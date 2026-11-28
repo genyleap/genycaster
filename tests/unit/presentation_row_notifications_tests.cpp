@@ -174,20 +174,22 @@ QtObject {
         QVariantMap{{QStringLiteral("operationKind"), QStringLiteral("publish-cast")},
                     {QStringLiteral("castId"), QStringLiteral("0xoptimistic")},
                     {QStringLiteral("text"), QStringLiteral("Local outgoing cast")}});
-    assert(rowSignals == afterPagination + 1);
+    // Provider-ranked discovery must not pin an unconfirmed local write.
+    assert(rowSignals == afterPagination);
+    assert(bridge.rows().size() == largeTimeline + 1);
     assert(bridge.rows().first().toMap().value(QStringLiteral("castId"))
-        == QStringLiteral("0xoptimistic"));
+        == QStringLiteral("0xrow-0"));
 
     // A principal change invalidates the entire active projection. A fresh
     // provider publication must not inherit the previous viewer's evidence.
     bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 43,
         QStringLiteral("other"), QStringLiteral("Other"), {}, {}, {}, {});
-    assert(rowSignals == afterPagination + 2);
+    assert(rowSignals == afterPagination + 1);
     assert(bridge.rows().isEmpty());
     assert(bridge.activeView() == QStringLiteral("feed"));
     bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
         initial, QStringLiteral("next-page"), {}, {}, {}, false, false, false, false);
-    assert(rowSignals == afterPagination + 3);
+    assert(rowSignals == afterPagination + 2);
     assert(bridge.rows().size() == largeTimeline);
     assert(bridge.rows().first().toMap().value(QStringLiteral("castId"))
         == QStringLiteral("0xrow-0"));
@@ -205,7 +207,7 @@ QtObject {
         QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xrow-0")},
                     {QStringLiteral("liked"), true}},
     });
-    assert(rowSignals == afterPagination + 4);
+    assert(rowSignals == afterPagination + 3);
     assert(bridge.rows().first().toMap().value(QStringLiteral("likedByMe")).toBool());
 
     const int beforeProfile = rowSignals;
