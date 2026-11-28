@@ -124,7 +124,8 @@ if(GENYCASTER_FIXTURE_PRESENTATION_BRIDGE)
   add_library(genycaster_fixture_configuration STATIC)
   set_target_properties(genycaster_fixture_configuration PROPERTIES AUTOMOC OFF CXX_SCAN_FOR_MODULES ON)
   target_sources(genycaster_fixture_configuration
-    PUBLIC FILE_SET CXX_MODULES FILES "${root}/src/application/configuration.cppm"
+    PUBLIC FILE_SET CXX_MODULES BASE_DIRS "${root}/src/application"
+    FILES "${root}/src/application/configuration.cppm"
     PRIVATE "${fixture_generated}/configured_features.cpp")
   target_compile_features(genycaster_fixture_configuration PUBLIC cxx_std_23)
   add_library(genycaster_fixture_bridge STATIC
