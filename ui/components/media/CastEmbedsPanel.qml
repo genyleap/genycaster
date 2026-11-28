@@ -309,6 +309,9 @@ ColumnLayout {
                             ? previewLoader.item.implicitHeight : tile.reservedHeight
 
                     function scheduleAdmission() {
+                        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+                            return
                         if (!root.asynchronousPreviews || tile.admitted || previewAdmission.running)
                             return
                         if (!root.visible)
@@ -336,7 +339,8 @@ ColumnLayout {
                         interval: 24 + tile.index * 28
                         repeat: false
                         onTriggered: {
-                            if (root.visible)
+                            if (root.visible && !(typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true))
                                 tile.admitted = true
                         }
                     }

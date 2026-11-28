@@ -222,7 +222,7 @@ bool RenderingController::setProfile(const QString &profile) {
 }
 
 void RenderingController::requestMediaPresentation(QObject *requester, const quint64 generation) {
-  if (requester == nullptr) {
+  if (m_shuttingDown || requester == nullptr) {
     return;
   }
   // A recycled delegate can request a new source before its previous ticket is
@@ -286,7 +286,18 @@ void RenderingController::cancelMediaPresentation(QObject *requester) {
   // cancellation could allow two texture presentations in a single frame.
 }
 
+void RenderingController::beginShutdown() {
+  if (m_shuttingDown)
+    return;
+  m_shuttingDown = true;
+  attachWindow(nullptr);
+  m_mediaPresentationQueue.clear();
+  emit shutdownStarted();
+}
+
 void RenderingController::attachWindow(QQuickWindow *window) {
+  if (m_shuttingDown && window)
+    return;
   if (m_window == window && (window != nullptr || !m_renderHandshake)) {
     return;
   }
@@ -339,7 +350,7 @@ void RenderingController::attachWindow(QQuickWindow *window) {
     QMetaObject::invokeMethod(this, [this, state, traceEnabled] {
       const auto batch = state->frameObservations.take();
       const auto isCurrent = [this, &state, &batch] {
-        return m_renderHandshake == state
+        return !m_shuttingDown && m_renderHandshake == state
             && state->observationEpoch.load(std::memory_order_acquire) == batch.epoch;
       };
       if (batch.count == 0 || !isCurrent())

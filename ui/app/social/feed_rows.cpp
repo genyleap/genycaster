@@ -4,6 +4,7 @@
 #include <QString>
 #include <QVariant>
 #include <QTimer>
+#include <QSet>
 
 #include <algorithm>
 #include <cmath>
@@ -678,8 +679,34 @@ void MasonryWindowModel::synchronizeWindow()
         std::sort(admitted.begin(), admitted.end());
         admitted.erase(std::unique(admitted.begin(), admitted.end()), admitted.end());
     }
+    // Evict departed ranges before inserting replacements. This avoids
+    // temporarily holding both entire viewport windows during fast jumps.
+    // A retained stable key keeps its persistent index and delegate.
+    const auto previousCount = m_window.size();
+    QSet<QString> desiredKeys;
+    desiredKeys.reserve(admitted.size());
+    for (const int sourceIndex : std::as_const(admitted))
+        desiredKeys.insert(m_geometry.at(sourceIndex).key);
+    for (int end = static_cast<int>(m_window.size()) - 1; end >= 0;) {
+        if (desiredKeys.contains(m_window.at(end).key)) {
+            --end;
+            continue;
+        }
+        int first = end;
+        while (first > 0 && !desiredKeys.contains(m_window.at(first - 1).key))
+            --first;
+        beginRemoveRows({}, first, end);
+        m_window.remove(first, end - first + 1);
+        endRemoveRows();
+        end = first - 1;
+    }
+    QSet<QString> existingKeys;
+    existingKeys.reserve(m_window.size());
+    for (const auto& slot : std::as_const(m_window))
+        existingKeys.insert(slot.key);
     int index = 0;
-    for (const int sourceIndex : std::as_const(admitted)) {
+    while (index < admitted.size()) {
+        const int sourceIndex = admitted.at(index);
         // Once admitted, a cast keeps its lane across hydration, eviction,
         // reverse scrolling and engagement revisions. Unseen rows can still
         // fill the shorter lane as real heights replace initial estimates.
@@ -699,11 +726,20 @@ void MasonryWindowModel::synchronizeWindow()
                     endMoveRows();
                 }
             } else {
-                beginInsertRows({}, index, index);
-                m_window.insert(index, desired);
+                // Batch consecutive new identities into one model signal.
+                // QML still receives the exact roles and order for every row.
+                int end = index;
+                while (end + 1 < admitted.size()
+                       && !existingKeys.contains(m_geometry.at(admitted.at(end + 1)).key))
+                    ++end;
+                beginInsertRows({}, index, end);
+                for (int i = index; i <= end; ++i) {
+                    auto& incoming = m_geometry[admitted.at(i)];
+                    incoming.laneCommitted = true;
+                    m_window.insert(i, incoming);
+                }
                 endInsertRows();
-                emit countChanged();
-                ++index;
+                index = end + 1;
                 continue;
             }
         }
@@ -742,6 +778,7 @@ void MasonryWindowModel::synchronizeWindow()
         beginRemoveRows({}, index, m_window.size() - 1);
         m_window.resize(index);
         endRemoveRows();
-        emit countChanged();
     }
+    if (previousCount != m_window.size())
+        emit countChanged();
 }

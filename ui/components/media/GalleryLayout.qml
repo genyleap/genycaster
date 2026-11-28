@@ -404,6 +404,9 @@ Item {
             property bool admitted: false
 
             function scheduleAdmission() {
+                if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+                    return
                 if (tileSlot.admitted || !root.scrollHostResolved || tileAdmission.running
                         || !root.visible)
                     return
@@ -437,7 +440,8 @@ Item {
                 interval: 16 + tileSlot.index * 32
                 repeat: false
                 onTriggered: {
-                    if (root.visible)
+                    if (root.visible && !(typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true))
                         tileSlot.admitted = true
                 }
             }

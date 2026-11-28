@@ -279,6 +279,9 @@ Item {
     readonly property int stableSourceWidth: stableDecodeSize.width
     readonly property int stableSourceHeight: stableDecodeSize.height
     function commitDecodeSize(initial) {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         if (!root.hasRenderableGeometry)
             return
         if (!initial && (imageSource.status === Image.Loading
@@ -338,6 +341,9 @@ Item {
     }
 
     function synchronizeActiveSource() {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         if (!root.componentReady || !root.rasterEligible)
             return
         if (!root.hasRenderableGeometry && root.activeSource.toString().length === 0)
@@ -372,6 +378,9 @@ Item {
     }
 
     function synchronizePresentation() {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         if (!root.decodedReady) {
             if (!root.retainingSizedTexture)
                 root.presentationReady = false

@@ -1693,6 +1693,12 @@ int main(int argc, char* argv[])
         });
 #endif
     renderingController.attachWindow(mainWindow);
+#if !defined(Q_OS_WASM)
+    // Quiesce while the GUI dispatcher and QML context are still alive.
+    // A desktop close-to-tray is not an application quit.
+    QObject::connect(&application, &QCoreApplication::aboutToQuit,
+                     &renderingController, &RenderingController::beginShutdown);
+#endif
 #if defined(Q_OS_WASM)
     qInfo() << "Genycaster WebAssembly Qt Quick renderer:"
             << mainWindow->rendererInterface()->graphicsApi();
@@ -2003,6 +2009,7 @@ int main(int argc, char* argv[])
     // owners outlive the engine, but their runtime dependencies need not.
     // Stop producers, finish bootstrap, and dismantle the QML object tree
     // before either the runtime or the QGuiApplication can disappear.
+    renderingController.beginShutdown();
     shutdownScope.stop();
     bootstrap.join();
     genycaster::ui::bootstrap::releaseQmlRoots(engine, mainWindow);

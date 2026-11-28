@@ -11,6 +11,7 @@ QML="""import QtQuick
 import QtTest
 Item {
     width: 640; height: 600
+    property QtObject renderingController: QtObject { property bool shuttingDown: false }
     Component {
         id: panelComponent
         CastEmbedsPanel {
@@ -61,6 +62,22 @@ Item {
             tryCompare(preview,"resolvedKind","image")
             tryCompare(inner,"status",Loader.Ready)
             compare(inner.item.asynchronousTiles,false)
+        }
+        function test_shutdownBlocksScheduledAdmission() {
+            renderingController.shuttingDown = false
+            const panel = createTemporaryObject(panelComponent,parent,{visible:false})
+            verify(panel)
+            const outer = findChild(panel,"supportingPreviewLoader")
+            compare(outer.active,false)
+            panel.visible=true
+            renderingController.shuttingDown=true
+            wait(150)
+            compare(outer.active,false)
+            panel.visible=false
+            panel.visible=true
+            wait(100)
+            compare(outer.active,false)
+            renderingController.shuttingDown=false
         }
         function test_rapidNavigation() {
             for(let i=0;i<25;++i) {

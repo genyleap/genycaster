@@ -7,6 +7,11 @@
 #include <QPointer>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
+#include <QQmlContext>
+#include <QQmlPropertyMap>
+#include <QHostAddress>
+#include <QTcpServer>
+#include <QMetaProperty>
 #include <QQmlIncubator>
 #include <QQuickWindow>
 #include <QQuickItem>
@@ -28,6 +33,26 @@ struct WindowOrder {
     int windowsDestroyed = 0;
     bool orderValid = true;
 };
+
+// A QML root's compilation may complete asynchronously even for loadData.
+// This is a fixture-only wait, never part of production shutdown.
+bool waitForRoots(QQmlApplicationEngine& engine, qsizetype expected)
+{
+    if (engine.rootObjects().size() == expected) return true;
+    QEventLoop loop;
+    QTimer watchdog;
+    watchdog.setSingleShot(true);
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
+                     &loop, [&] {
+                         if (engine.rootObjects().size() >= expected) loop.quit();
+                     });
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
+                     &loop, &QEventLoop::quit);
+    QObject::connect(&watchdog, &QTimer::timeout, &loop, &QEventLoop::quit);
+    watchdog.start(3'000);
+    loop.exec();
+    return engine.rootObjects().size() == expected;
+}
 
 std::atomic_int nullBindingErrors{0};
 QtMessageHandler previousMessageHandler = nullptr;
@@ -62,20 +87,7 @@ int main(int argc, char** argv)
         QUrl{QStringLiteral("inmemory:/teardown.qml")});
     // Some Qt backends finish QML loading on the next event-loop turn.
     // Wait for construction instead of treating deferred incubation as failure.
-    if (engine.rootObjects().isEmpty()) {
-        QEventLoop loadLoop;
-        QTimer watchdog;
-        watchdog.setSingleShot(true);
-        QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-                         &loadLoop, &QEventLoop::quit);
-        QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
-                         &loadLoop, &QEventLoop::quit);
-        QObject::connect(&watchdog, &QTimer::timeout,
-                         &loadLoop, &QEventLoop::quit);
-        watchdog.start(3'000);
-        loadLoop.exec();
-    }
-    if (engine.rootObjects().size() != 1) return 1;
+    if (!waitForRoots(engine, 1)) return 1;
     auto* const window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
     if (!window) return 2;
     QPointer<QObject> tracked = window;
@@ -153,7 +165,7 @@ int main(int argc, char** argv)
         }
     )QML"),
         QUrl{QStringLiteral("inmemory:/second-teardown.qml")});
-    if (engine.rootObjects().size() != 2) return 4;
+    if (!waitForRoots(engine, 2)) return 4;
     auto* const second = qobject_cast<QQuickWindow*>(engine.rootObjects().constLast());
     if (!second) return 5;
     QPointer<QObject> trackedSecond = second;
@@ -263,13 +275,51 @@ int main(int argc, char** argv)
     // of rootObjects() would then attempt to delete a dangling entry.
     QQmlApplicationEngine siblings;
     siblings.loadData("import QtQml\nQtObject {}", QUrl{"inmemory:/sibling-a.qml"});
+    if (!waitForRoots(siblings, 1)) return 15;
     siblings.loadData("import QtQml\nQtObject {}", QUrl{"inmemory:/sibling-b.qml"});
-    if (siblings.rootObjects().size() != 2) return 15;
+    if (!waitForRoots(siblings, 2)) return 15;
     QPointer<QObject> siblingA = siblings.rootObjects().constFirst();
     QPointer<QObject> siblingB = siblings.rootObjects().constLast();
     QObject::connect(siblingA.data(), &QObject::destroyed, &app,
         [&siblingB] { delete siblingB.data(); });
     genycaster::ui::bootstrap::releaseQmlRoots(siblings, nullptr);
     if (siblingA || siblingB || !siblings.rootObjects().isEmpty()) return 16;
+
+    // A component fetch can be Loading before any object incubator exists.
+    // Use an isolated loopback listener that never sends a response; no
+    // external network or timing-dependent fetch completion is needed.
+    QTcpServer stalledServer;
+    if (!stalledServer.listen(QHostAddress::LocalHost, 0)) return 20;
+    const std::unique_ptr<QQmlPropertyMap> marker{QQmlPropertyMap::create()};
+    marker->insert(QStringLiteral("cancelled"), false);
+    QQmlIncubationController waitingController;
+    QQmlApplicationEngine waiting;
+    waiting.setIncubationController(&waitingController);
+    waiting.rootContext()->setContextProperty(QStringLiteral("marker"), marker.get());
+    const QByteArray source = QStringLiteral(R"QML(
+        import QtQuick
+        Item {
+            Loader {
+                objectName: "waitingLoader"
+                asynchronous: true
+                source: "http://127.0.0.1:%1/Pending.qml"
+                onActiveChanged: if (!active) marker.cancelled = true
+            }
+        }
+    )QML").arg(stalledServer.serverPort()).toUtf8();
+    waiting.loadData(source, QUrl{QStringLiteral("inmemory:/waiting-loader.qml")});
+    if (!waitForRoots(waiting, 1)) return 21;
+    const QPointer<QObject> waitingLoader =
+        waiting.rootObjects().first()->findChild<QObject*>(QStringLiteral("waitingLoader"));
+    if (!waitingLoader || waitingController.incubatingObjectCount() != 0) return 22;
+    const auto* meta = waitingLoader->metaObject();
+    const auto status = meta->property(meta->indexOfProperty("status"));
+    bool valid = false;
+    if (status.read(waitingLoader.data()).toInt()
+        != status.enumerator().keyToValue("Loading", &valid) || !valid) return 23;
+    if (marker->value(QStringLiteral("cancelled")).toBool()) return 24;
+    genycaster::ui::bootstrap::releaseQmlRoots(waiting, nullptr);
+    if (waitingLoader || !marker->value(QStringLiteral("cancelled")).toBool()
+        || waiting.incubationController() || !waiting.rootObjects().isEmpty()) return 25;
     return 0;
 }

@@ -300,6 +300,56 @@ synthetic phase delays, missing synchronization, duplicate/detached frames,
 disabled logging and a real RHI OpenGL render with an injected recording
 delay. This validates instrumentation, not Metal driver performance.
 
+## Bounded telemetry, quit quiescence and batched admission
+
+Frame-swap timestamps cross the thread boundary in the attachment-local fixed
+256-element FrameObservationQueue introduced on main, with one queued drain
+rather than one event per frame.
+A short mutex protects only timestamp storage; the drain copies samples
+before releasing the lock and never calls QML or telemetry observers under
+it. The GUI consumes original ordered timestamps, not callback times.
+Overflow retains the latest 256 timestamps, resets the observation burst
+rather than fabricating an interval across lost samples, and logs the
+number lost when stall tracing is enabled. Visibility changes invalidate
+the old burst; detached attachments cannot update the new window.
+`guiDeliveryDelayMs` describes the first queued timestamp in one batch
+and includes `samples` and `dropped`, so event counts must not
+be compared directly with pre-batching per-frame delay logs. The independent
+media-presentation acknowledgement barrier remains unchanged.
+
+Native quit calls the irreversible controller shutdown before runtime
+producer cleanup (also on aboutToQuit). The controller detaches render
+telemetry, rejects new presentation requests and discards its pending
+queue. Major Feed/Profile projection, Magazine layout/admission, Gallery
+and supporting-preview admission, raster source/decode/presentation and
+optional shell utility entry points refuse new work once this flag is set.
+Previously admitted objects are not forcibly deactivated by a global
+binding. QML teardown still drains existing incubators, then also cancels
+unfinished Loading loaders even when the public incubator count is zero
+(a component can be waiting for URL data). The existing Cocoa-safe
+Popup/Overlay/window destruction order is retained; no early hide,
+releaseResources, private Qt APIs or warning suppression. This addresses
+specific producer paths but does not prove Qt's broader deferred-creation
+counter is zero on every native quit.
+
+Magazine reconciliation evicts departed contiguous ranges before inserting
+replacement rows, batches adjacent new rows, and publishes count changes
+only when the final count differs. Retained identities, committed lane
+assignments and persistent indexes remain. This avoids the temporary
+old-plus-new viewport population and repeated model insertion notifications.
+New opt-in `magazine.geometry` and `magazine.admission` scopes distinguish
+the relayout call (including synchronous geometry callbacks) from viewport
+reconciliation (including synchronous delegate work). They overlap the
+existing `magazine.layout` scope; do not add them to that total. The scopes
+do not capture asynchronous incubation or prove which binding is slow.
+
+Tests exercise 10,000 queued frame signals with one MetaCall, original
+frame timestamps, overflow, visibility/detach and irreversible quit on
+software/RHI; a nonresponding loopback component URL with zero active
+incubators; scheduled preview and raster suppression; and native/QML
+Magazine range batching and retained indexes. No full application or
+Metal benchmark is implied by these isolated fixtures.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

@@ -12,11 +12,12 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
     const teardown = read("ui/app/bootstrap/teardown.cpp");
     const segment = main.slice(main.lastIndexOf("const int exitCode = application.exec();"));
     assert.match(segment, /const int exitCode = application\.exec\(\);\s*#if !defined\(Q_OS_WASM\)/);
+    const quiesced = segment.indexOf("renderingController.beginShutdown();");
     const stopped = segment.indexOf("shutdownScope.stop();");
     const joined = segment.indexOf("bootstrap.join();");
     const released = segment.indexOf("genycaster::ui::bootstrap::releaseQmlRoots(engine, mainWindow);");
     const returned = segment.indexOf("return exitCode;");
-    assert.ok(stopped >= 0 && joined > stopped
+    assert.ok(quiesced >= 0 && stopped > quiesced && joined > stopped
         && released > joined && returned > released,
         "the main thread must stop producers, join workers and explicitly release the scene graph");
 
@@ -45,6 +46,8 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
     assert.match(teardown, /for \(QObject\* const root : engine\.rootObjects\(\)\)/);
     assert.match(teardown, /for \(const auto& root : guardedRoots\(engine\)\)/);
     assert.match(teardown, /"beforeDrain"/);
+    assert.match(teardown, /keyToValue\("Loading", &valid\)/);
+    assert.match(teardown, /if \(loading \|\| afterDrain > 0\)/);
     assert.match(teardown, /"afterRootCleanup"/);
     assert.match(teardown, /QPointer<QObject>/);
     assert.doesNotMatch(teardown, /child->setParentItem\(nullptr\)/,

@@ -38,6 +38,7 @@ import QtTest
 Item {
     width: 960
     height: 650
+    property QtObject renderingController: QtObject { property bool shuttingDown: false }
     QtObject {
         id: memory
 """ + cache + """
@@ -181,6 +182,24 @@ Item {
             shown.visible = true
             compare(loader.item,rendered)
             item.destroy()
+        }
+        function test_shutdownBlocksGalleryAdmission() {
+            shown.visible = false
+            renderingController.shuttingDown = false
+            const item = make(shown, "https://example.invalid/quit.jpg", 2)
+            const loader = findChild(item,"galleryTileLoader")
+            verify(loader)
+            compare(loader.active,false)
+            shown.visible = true
+            renderingController.shuttingDown = true
+            wait(120)
+            compare(loader.active,false)
+            shown.visible = false
+            shown.visible = true
+            wait(120)
+            compare(loader.active,false)
+            item.destroy()
+            renderingController.shuttingDown = false
         }
         function test_declaredMetadataAndResponsiveWidth() {
             ahead.canRefine = true

@@ -201,7 +201,7 @@ endif()
 if(TARGET genycaster_bootstrap_teardown)
     add_executable(genycaster_bootstrap_teardown_tests bootstrap_teardown_tests.cpp)
     target_link_libraries(genycaster_bootstrap_teardown_tests PRIVATE
-        genycaster_bootstrap_teardown Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)
+        genycaster_bootstrap_teardown Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Network)
     target_compile_features(genycaster_bootstrap_teardown_tests PRIVATE cxx_std_26)
     set_property(TARGET genycaster_bootstrap_teardown_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
     add_test(NAME ui.bootstrap_teardown COMMAND genycaster_bootstrap_teardown_tests)

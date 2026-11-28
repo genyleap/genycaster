@@ -4,6 +4,7 @@
 #include <QSignalSpy>
 #include <QAbstractItemModelTester>
 
+#include <algorithm>
 #include <limits>
 #include <source_location>
 
@@ -105,6 +106,42 @@ int main(int argc, char** argv)
     model.clear();
     require(model.count() == 0 && resets.size() == 1);
     require(counts.size() == n + 3);
+
+    // A disjoint viewport jump must evict before admission and batch
+    // contiguous new rows. Overlapping windows retain persistent indexes.
+    FeedRowsModel batchRows;
+    for (int i = 0; i < 500; ++i)
+        batchRows.append({{QStringLiteral("stableKey"), QString::number(i)},
+                          {QStringLiteral("revisionKey"), QStringLiteral("r1")}});
+    MasonryWindowModel batchWall;
+    batchWall.setSourceModel(&batchRows);
+    batchWall.relayout(2, 320, 12, 12, 12, false);
+    QAbstractItemModelTester batchTester{&batchWall, QAbstractItemModelTester::FailureReportingMode::Fatal};
+    QSignalSpy batchInserts{&batchWall, &QAbstractItemModel::rowsInserted};
+    QSignalSpy batchRemoves{&batchWall, &QAbstractItemModel::rowsRemoved};
+    QSignalSpy batchCounts{&batchWall, &MasonryWindowModel::countChanged};
+    batchWall.setViewport(0, 1000, 0, 0, true);
+    require(batchWall.count() > 2 && batchInserts.size() == 1 && batchCounts.size() == 1);
+    const int originalCount = batchWall.count();
+    const auto middle = batchWall.geometryAt(4).value(QStringLiteral("y")).toReal();
+    const int retainedIndex = batchWall.windowIndexForSource(4);
+    require(retainedIndex >= 0);
+    const QPersistentModelIndex retained{batchWall.index(retainedIndex, 0)};
+    batchWall.setViewport(middle, 1000, 0, 0, true);
+    require(retained.isValid() && retained.data(MasonryWindowModel::StableKeyRole) == QStringLiteral("4"));
+    batchInserts.clear();
+    batchRemoves.clear();
+    batchCounts.clear();
+    int peak = batchWall.count();
+    const auto monitor = QObject::connect(&batchWall, &QAbstractItemModel::rowsInserted,
+        &batchWall, [&] { peak = std::max(peak, batchWall.count()); });
+    const auto distant = batchWall.geometryAt(400).value(QStringLiteral("y")).toReal();
+    batchWall.setViewport(distant, 1000, 0, 0, true);
+    require(!retained.isValid());
+    require(batchRemoves.size() == 1 && batchInserts.size() == 1 && batchCounts.size() <= 1);
+    require(peak <= std::max(originalCount + 2, batchWall.count()));
+    require(batchWall.windowIndexForSource(400) >= 0);
+    QObject::disconnect(monitor);
 
     // The native magazine owns geometry for the whole feed but QML objects
     // only for the viewport. Mixed measured heights never overlap lanes.

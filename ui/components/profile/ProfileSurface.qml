@@ -1353,6 +1353,9 @@ Item {
     }
 
     function synchronizeStableModel() {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         const traceStart = typeof renderingController !== "undefined" && renderingController
                 && renderingController.stallDiagnosticsEnabled === true
                 ? renderingController.diagnosticClockMs() : -1

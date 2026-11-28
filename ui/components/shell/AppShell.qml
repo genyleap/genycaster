@@ -4661,6 +4661,9 @@ Item {
         readonly property bool opened: !!dialog && dialog.opened
 
         function open() {
+            if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+                return
             if (!active)
                 active = true
             if (dialog)

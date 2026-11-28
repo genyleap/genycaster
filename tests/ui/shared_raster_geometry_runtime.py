@@ -35,6 +35,7 @@ Item {
             lastGeometry = [category,requestedWidth,requestedHeight,sourceWidth,
                             sourceHeight,viewWidth,viewHeight]
         }
+        property bool shuttingDown: false
         property bool autoGrant: true
         property int requests: 0
         property int cancellations: 0
@@ -63,6 +64,7 @@ Item {
         when: windowShown
         function init() {
             card.visible = true
+            renderingController.shuttingDown = false
             renderingController.autoGrant = true
             image.framePacedPresentation = false
             image.source = ""
@@ -123,6 +125,17 @@ Item {
             card.visible = true
             compare(image.ready,true)
             compare(renderingController.requests,requests+1)
+        }
+        function test_shutdownBlocksNewRaster() {
+            renderingController.shuttingDown = true
+            const requests = renderingController.requests
+            image.framePacedPresentation = true
+            image.source = "image://remote/one"
+            wait(150)
+            compare(image.activeSource.toString(),"")
+            compare(renderingController.requests,requests)
+            compare(image.presentationReady,false)
+            renderingController.shuttingDown = false
         }
         function test_resizeAndEviction() {
             const ratio = image.intrinsicAspect

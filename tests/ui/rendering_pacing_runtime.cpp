@@ -221,10 +221,16 @@ int main(int argc, char** argv) {
         CHECK(controller.effectiveQuality() == quality);
         qInfo("PASS: timestamped frame burst %.2f ms; isolated idle redraws do not change quality", interval);
         const auto beforeOverflow = counter.count;
-        for (int i = 0; i < 300; ++i)
+        for (int i = 0; i < 10000; ++i)
             replacement.frameSwapped();
         drain(controller);
         CHECK(counter.count == beforeOverflow + 1);
+        CHECK(controller.effectiveQuality() == quality);
+        replacement.frameSwapped();
+        replacement.hide();
+        replacement.show();
+        drain(controller);
+        CHECK(controller.frameIntervalMs() == interval);
         // A pending notification from the old attachment must not consume
         // samples from the new attachment or mutate its telemetry.
         replacement.frameSwapped();
@@ -369,5 +375,25 @@ QtObject {
         QLoggingCategory::setFilterRules(QString{});
         qInfo("PASS: real RHI frame phase diagnostics with a controlled recording delay");
     }
+    // Shutdown cannot be reversed by a late ready image, queued ack or
+    // a window activation. Already posted frame drains are harmless.
+    controller.attachWindow(&window);
+    showWindow(window);
+    controller.requestMediaPresentation(&first, 201);
+    controller.requestMediaPresentation(&second, 202);
+    const auto beforeShutdown = grants.size();
+    window.frameSwapped();
+    if (app.arguments().contains("--synthetic"))
+        renderBarrier(window);
+    controller.beginShutdown();
+    CHECK(controller.shuttingDown());
+    controller.beginShutdown();
+    controller.requestMediaPresentation(&first, 203);
+    controller.attachWindow(&window);
+    drain(controller);
+    QTest::qWait(50);
+    CHECK(grants.size() == beforeShutdown);
+    window.hide();
+    qInfo("PASS: irreversible shutdown rejects new media and stale render callbacks");
     return 0;
 }

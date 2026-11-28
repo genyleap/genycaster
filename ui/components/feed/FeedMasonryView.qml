@@ -120,6 +120,9 @@ Flickable {
     property bool resizeInProgress: false
     property real committedCardWidth: 1
     function viewportResized() {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         if (!positioned || !visible) {
             scheduleLayout()
             return
@@ -171,6 +174,9 @@ Flickable {
     function indexAt(x, y) { return layoutModel.indexAt(x, y) }
 
     function scheduleLayout() {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         if (arranging) {
             relayoutPending = true
             return
@@ -179,18 +185,32 @@ Flickable {
         if (!layoutTimer.running) layoutTimer.start()
     }
     function scheduleAdmission() {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         if (!admissionTimer.running) admissionTimer.start()
     }
     function updateAdmissions() {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         // A zero-delay viewport timer can run during layout invalidation;
         // only commit admissions against the completed numeric geometry.
         if (arranging || layoutTimer.running)
             return
+        const admissionStart = typeof renderingController !== "undefined" && renderingController
+                && renderingController.stallDiagnosticsEnabled === true
+                ? renderingController.diagnosticClockMs() : -1
         layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer,
                                 view.visible && positioned && height > 0,
                                 view.resizeInProgress)
+        if (admissionStart >= 0)
+            renderingController.recordUiOperation("magazine.admission", admissionStart, layoutModel.count)
     }
     function forceLayout() {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         if (arranging) {
             relayoutPending = true
             return
@@ -215,8 +235,11 @@ Flickable {
         // Apply the card width in the same geometry transaction, then
         // restore the reading anchor before admitting/evicting anything.
         committedCardWidth = cardWidth
+        const geometryStart = traceStart >= 0 ? renderingController.diagnosticClockMs() : -1
         layoutModel.relayout(columns, committedCardWidth, gutter, headerLoader.height + gutter,
                              leadingInset, layoutDirection === Qt.RightToLeft, true)
+        if (geometryStart >= 0)
+            renderingController.recordUiOperation("magazine.geometry", geometryStart, count)
         if (anchor && anchor.stableKey && !moving) {
             // A source-index is not identity when rows insert above the reader.
             const restored = layoutModel.geometryForKey(anchor.stableKey)
@@ -272,6 +295,9 @@ Flickable {
     }
     onContentYChanged: scheduleAdmission()
     onVisibleChanged: {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.shuttingDown === true)
+            return
         if (!visible) {
             resizeSettleTimer.stop()
             resizeInProgress = false

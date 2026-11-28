@@ -7,6 +7,7 @@ module;
 #include <QPointer>
 #include <QList>
 #include <QLoggingCategory>
+#include <QMetaProperty>
 #include <QString>
 #include <QVariant>
 #include <QQmlApplicationEngine>
@@ -50,24 +51,35 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
             controller->incubateFor(10);
         const auto afterDrain = controller->incubatingObjectCount();
         qCDebug(qmlTeardownLog) << "afterDrain" << afterDrain;
-        if (afterDrain > 0) {
-            // A nested Loader can still be waiting for its parent or a URL.
-            // Cancel it while its context exists. Destroying a parent loader
-            // can invalidate other entries in this snapshot.
-            QList<QPointer<QObject>> pending;
-            for (auto* root : engine.rootObjects()) {
-                for (auto* object : root->findChildren<QObject*>()) {
-                    if (object->inherits("QQuickLoader") && object->property("active").toBool()
-                        && !object->property("item").value<QObject*>())
-                        pending.append(object);
+        // Loading a component URL is distinct from incubating its object.
+        // Inspect Loading loaders even when the public incubation count is
+        // zero. Cancel only unfinished work, while contexts still exist.
+        QList<QPointer<QObject>> pending;
+        for (const auto& root : guardedRoots(engine)) {
+            if (!root) continue;
+            for (auto* object : root->findChildren<QObject*>()) {
+                if (!object->inherits("QQuickLoader") || !object->property("active").toBool()
+                    || object->property("item").value<QObject*>())
+                    continue;
+                const auto* meta = object->metaObject();
+                const int statusIndex = meta->indexOfProperty("status");
+                bool loading = false;
+                if (statusIndex >= 0) {
+                    const auto status = meta->property(statusIndex);
+                    bool valid = false;
+                    const int loadingValue = status.enumerator().keyToValue("Loading", &valid);
+                    loading = valid && status.read(object).toInt() == loadingValue;
                 }
+                if (loading || afterDrain > 0)
+                    pending.append(object);
             }
-            for (const auto& loader : pending) {
-                if (loader) {
-                    qCDebug(qmlTeardownLog) << "cancelLoaderType"
-                                           << loader->metaObject()->className();
-                    QQmlProperty::write(loader.data(), QStringLiteral("active"), false);
-                }
+        }
+        // A parent cancellation can destroy a child in this snapshot.
+        for (const auto& loader : pending) {
+            if (loader) {
+                qCDebug(qmlTeardownLog) << "cancelLoaderType"
+                                       << loader->metaObject()->className();
+                QQmlProperty::write(loader.data(), QStringLiteral("active"), false);
             }
         }
         qCDebug(qmlTeardownLog) << "beforeDetach" << controller->incubatingObjectCount();

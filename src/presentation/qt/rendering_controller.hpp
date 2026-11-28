@@ -62,6 +62,7 @@ class RenderingController final : public QObject {
   Q_PROPERTY(bool restartRequired READ restartRequired NOTIFY renderingChanged)
   Q_PROPERTY(bool mediaDiagnosticsEnabled READ mediaDiagnosticsEnabled CONSTANT)
   Q_PROPERTY(bool stallDiagnosticsEnabled READ stallDiagnosticsEnabled CONSTANT)
+  Q_PROPERTY(bool shuttingDown READ shuttingDown NOTIFY shutdownStarted)
 
 public:
   /** @brief Creates rendering policy backed by the borrowed settings store. */
@@ -109,6 +110,10 @@ public:
   /** @brief Withdraws a queued request when its source is replaced or evicted. */
   Q_INVOKABLE void cancelMediaPresentation(QObject *requester);
 
+  /** Stop presentation admission before native QML teardown; irreversible. */
+  void beginShutdown();
+  [[nodiscard]] bool shuttingDown() const noexcept { return m_shuttingDown; }
+
   /** @brief Attaches the application window used for render telemetry. */
   void attachWindow(QQuickWindow *window);
 
@@ -122,6 +127,7 @@ signals:
   void renderingChanged();
   void adaptiveQualityChanged();
   void telemetryChanged();
+  void shutdownStarted();
 
   /** @brief Observes a granted ticket for native instrumentation and tests. */
   void mediaPresentationGranted(QObject *requester, quint64 generation, quint64 presentationSequence);
@@ -173,4 +179,5 @@ private:
   std::shared_ptr<RenderHandshake> m_renderHandshake{};
   quint64 m_currentMediaPresentationGeneration{0};
   bool m_mediaPresentationGrantOutstanding{false};
+  bool m_shuttingDown{false};
 };
