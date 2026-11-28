@@ -37,6 +37,10 @@ Item {
     property int rowIndex: 0
     property string presentationKind: "conversation"
     property var sharedMediaGeometry: null
+    property bool sharedNeonPointerActive: false
+    property real sharedNeonPointerX: 0
+    property real sharedNeonPointerY: 0
+    property real magazinePaintHeight: implicitHeight
     property bool magazineCard: false
     property bool compact: false
     property bool interactionsAvailable: false
@@ -66,6 +70,7 @@ Item {
     property real accountFid: 0
     property string geometryAnchorKey: ""
     property var payloads: ({})
+    QtObject { id: magazineView }
     function payloadForStableKey(key) { return payloads[key] || ({}) }
     function rowIncubationHeight() { return 600 }
     function rememberVisibleGeometry() {}

@@ -62,6 +62,11 @@ endif()
 
 find_program(NODE_EXECUTABLE NAMES node nodejs)
 if(NODE_EXECUTABLE)
+  if(QML_TEST_RUNNER)
+    add_test(NAME feed_geometry_qml_runtime
+      COMMAND "${NODE_EXECUTABLE}" "${root}/tests/ui/feed_geometry_runtime.mjs" "${QML_TEST_RUNNER}")
+    set_tests_properties(feed_geometry_qml_runtime PROPERTIES TIMEOUT 45)
+  endif()
   set(projection_contracts
     feed_projection_work_budget_20261128
     feed_publication_lifecycle_20261128

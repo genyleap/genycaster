@@ -659,6 +659,12 @@ warnings. It reports wall time to a settled target, not GPU frame time.
 The synthetic card intentionally does not claim the cost of CastItem's
 network/media hierarchy.
 
+The existing `feed_geometry_runtime.mjs` fixture is also registered when
+Node and Qt's host qmltestrunner are installed. Its synthetic renderer
+declares the current shared-neon and media-geometry interfaces. The real
+FeedRow/ListView tests cover pooled delegate identity, release of estimated
+height during motion and late expansion without clipping.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:
