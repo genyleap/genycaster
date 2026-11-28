@@ -2,8 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import Farcaster.Client
 
-// Numeric layout lives in the native model. Repeater receives only the
-// viewport-window rows: offscreen casts are not QQuickItems or QML Loaders.
+// Numeric layout lives in the native model. Repeater receives viewport
+// rows and a small same-identity warm pool; all other rows remain numeric.
 Flickable {
     id: view
 
@@ -201,7 +201,8 @@ Flickable {
         const more = layoutModel.setViewport(contentY, height, motionAdmissionBuffer, retentionBuffer,
                                 view.visible && positioned && height > 0,
                                 view.resizeInProgress, view.newSlotsPerPass,
-                                view.retiredSlotsPerPass, view.retirementTimeBudgetMs)
+                                view.retiredSlotsPerPass, view.retirementTimeBudgetMs,
+                                Qt.platform.os === "wasm" ? 2 : 4)
         if (more)
             scheduleAdmission()
         if (admissionStart >= 0)
@@ -386,6 +387,13 @@ Flickable {
             required property real cardY
             required property real cardHeight
             required property bool retiring
+            required property bool parked
+            onRetiringChanged: {
+                if (!retiring) {
+                    widthMeasureTimer.restart()
+                    if (cardReady) view.schedulePlaceholderCleanup()
+                }
+            }
             visible: !retiring
             enabled: !retiring
             property real measuredHeight: layoutModel.recalledHeight(stableKey, revisionKey, width)

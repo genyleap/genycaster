@@ -145,6 +145,41 @@ int main(int argc, char** argv)
     require(batchWall.windowIndexForSource(400) >= 0);
     QObject::disconnect(monitor);
 
+    // Same-key warm pool: no reassignment of a live card, no visible lookup
+    // while parked, and exact persistent identity on reverse scroll.
+    MasonryWindowModel pooledWall;
+    pooledWall.setSourceModel(&batchRows);
+    pooledWall.relayout(2, 320, 12, 12, 12, false);
+    QAbstractItemModelTester pooledTester{&pooledWall, QAbstractItemModelTester::FailureReportingMode::Fatal};
+    pooledWall.setViewport(0, 1000, 0, 0, true, false, 0, 0, 0, 4);
+    QList<QPersistentModelIndex> prior;
+    for (int i = 0; i < pooledWall.count(); ++i)
+        prior.append(QPersistentModelIndex{pooledWall.index(i, 0)});
+    const auto nearby = pooledWall.geometryAt(8).value(QStringLiteral("y")).toReal();
+    pooledWall.setViewport(nearby, 1000, 0, 0, true, false, 0, 0, 0, 4);
+    QList<QPersistentModelIndex> parked;
+    for (const auto& entry : prior) {
+        if (!entry.isValid() || !entry.data(MasonryWindowModel::ParkedRole).toBool()) continue;
+        require(entry.data(MasonryWindowModel::RetiringRole).toBool());
+        require(pooledWall.windowIndexForSource(entry.data(MasonryWindowModel::SourceIndexRole).toInt()) < 0);
+        parked.append(entry);
+    }
+    require(!parked.isEmpty() && parked.size() <= 4);
+    pooledWall.setViewport(0, 1000, 0, 0, true, false, 0, 0, 0, 4);
+    for (const auto& entry : parked) {
+        require(entry.isValid() && !entry.data(MasonryWindowModel::RetiringRole).toBool());
+        require(pooledWall.windowIndexForSource(entry.data(MasonryWindowModel::SourceIndexRole).toInt()) == entry.row());
+    }
+    pooledWall.setViewport(nearby, 1000, 0, 0, true, false, 0, 0, 0, 4);
+    const int changedIndex = parked.first().data(MasonryWindowModel::SourceIndexRole).toInt();
+    batchRows.setProperty(changedIndex, QStringLiteral("revisionKey"), QStringLiteral("r2"));
+    pooledWall.relayout(2, 320, 12, 12, 12, false, true);
+    pooledWall.setViewport(nearby, 1000, 0, 0, true, false, 0, 0, 0, 4);
+    require(!parked.first().isValid());
+    batchRows.setProperty(changedIndex, QStringLiteral("revisionKey"), QStringLiteral("r1"));
+    pooledWall.setViewport(0, 0, 0, 0, false, false, 0, 0, 0, 4);
+    require(pooledWall.count() == 0);
+
     // Production admission budget: visible rows precede prefetch and no
     // transaction creates more than three slots, even after a large jump.
     MasonryWindowModel pacedWall;

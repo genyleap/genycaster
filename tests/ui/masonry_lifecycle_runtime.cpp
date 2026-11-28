@@ -188,7 +188,11 @@ Window {
             if(layout->windowIndexForSource(index)<0 || liveSlots.size()!=layout->count()) return false;
             bool targetReady=false;
             for(auto* slot:liveSlots) {
-                if(slot->property("retiring").toBool()) return false;
+                if(slot->property("retiring").toBool()) {
+                    if (!slot->property("parked").toBool()) return false;
+                    if (slot->isVisible() || slot->isEnabled()) return false;
+                    continue;
+                }
                 if(slot->property("sourceIndex").toInt()==index)
                     targetReady=slot->property("cardReady").toBool();
             }
@@ -230,6 +234,39 @@ Window {
             require(layout->count()<70);
         }
         require(synchronousAdmissions > 0);
+        // A nearby reversal returns the original live object instead of
+        // destroying it and reconstructing its rich delegate tree.
+        QHash<QString, QPointer<QQuickItem>> beforeReverse;
+        require(QTest::qWaitFor([&] {
+            for (auto* slot : slotItems()) {
+                if (!slot->property("cardReady").toBool() || slot->property("retiring").toBool()) return false;
+            }
+            return true;
+        },5000));
+        for (auto* slot : slotItems())
+            beforeReverse.insert(slot->property("stableKey").toString(), slot);
+        jump(18);
+        require(QTest::qWaitFor([&]{return settled(18);},5000));
+        QHash<QString, QPointer<QQuickItem>> pooled;
+        for (auto* slot : slotItems()) {
+            if (!slot->property("parked").toBool()) continue;
+            const auto key=slot->property("stableKey").toString();
+            require(beforeReverse.value(key)==slot);
+            require(!slot->isVisible() && !slot->isEnabled());
+            pooled.insert(key,slot);
+        }
+        require(!pooled.isEmpty() && pooled.size()<=4);
+        jump(0);
+        require(QTest::qWaitFor([&]{return settled(0);},5000));
+        int reused=0;
+        for (auto* slot : slotItems()) {
+            const auto key=slot->property("stableKey").toString();
+            if (!pooled.contains(key) || slot->property("retiring").toBool()) continue;
+            require(pooled.value(key)==slot);
+            ++reused;
+        }
+        require(reused>0);
+        qInfo() << "Magazine same-identity warm pool reused" << reused;
         // Real flicking must narrow speculative admissions without changing
         // the retention margin or canceling an existing visible card.
         const auto idleBuffer = wall->property("cacheBuffer").toReal();

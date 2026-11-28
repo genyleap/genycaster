@@ -458,6 +458,7 @@ QVariant MasonryWindowModel::data(const QModelIndex& index, const int role) cons
     case CardYRole: return slot.y;
     case CardHeightRole: return slot.height;
     case RetiringRole: return slot.retiring;
+    case ParkedRole: return slot.parked;
     default: return {};
     }
 }
@@ -474,6 +475,7 @@ QHash<int, QByteArray> MasonryWindowModel::roleNames() const
         {CardYRole, QByteArrayLiteral("cardY")},
         {CardHeightRole, QByteArrayLiteral("cardHeight")},
         {RetiringRole, QByteArrayLiteral("retiring")},
+        {ParkedRole, QByteArrayLiteral("parked")},
     };
 }
 
@@ -817,7 +819,8 @@ bool MasonryWindowModel::setViewport(const qreal top, const qreal height,
                                     const qreal enteringBuffer,
                                     const qreal retentionBuffer, const bool active,
                                     const bool retainExisting, const int admissionBudget,
-                                    const int evictionBudget, const int evictionTimeBudgetMs)
+                                    const int evictionBudget, const int evictionTimeBudgetMs,
+                                    const int parkedBudget)
 {
     m_viewportTop = std::isfinite(top) ? top : 0.0;
     m_viewportHeight = std::max(0.0, std::isfinite(height) ? height : 0.0);
@@ -830,11 +833,11 @@ bool MasonryWindowModel::setViewport(const qreal top, const qreal height,
         m_resizeSampleWidth = 0;
     }
     m_retainExisting = active && retainExisting;
-    return synchronizeWindow(admissionBudget, evictionBudget, evictionTimeBudgetMs);
+    return synchronizeWindow(admissionBudget, evictionBudget, evictionTimeBudgetMs, parkedBudget);
 }
 
 bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int evictionBudget,
-                                           const int evictionTimeBudgetMs)
+                                           const int evictionTimeBudgetMs, const int parkedBudget)
 {
     const bool tracing = masonryWorkLog().isDebugEnabled();
     QElapsedTimer workClock;
@@ -931,6 +934,43 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
     desiredKeys.reserve(admitted.size());
     for (const int sourceIndex : std::as_const(admitted))
         desiredKeys.insert(m_geometry.at(sourceIndex).key);
+    // Keep only nearby departed cards with exactly the same payload identity.
+    // They remain hidden and cannot answer viewport queries. Prefer the
+    // closest candidates; a distant jump or source change drains the pool.
+    QSet<int> parkedIndices;
+    if (m_active && parkedBudget > 0 && m_viewportHeight > 0) {
+        QVector<int> candidates;
+        const qreal parkDistance = m_buffer + m_viewportHeight;
+        for (const auto& slot : std::as_const(m_window)) {
+            if (desiredKeys.contains(slot.key) || (slot.retiring && !slot.parked))
+                continue;
+            const auto found = m_indexByKey.constFind(slot.key);
+            if (found == m_indexByKey.cend()) continue;
+            const auto& next = m_geometry.at(*found);
+            if (slot.revision != next.revision || slot.kind != next.kind
+                || slot.media != next.media || distance(*found) > parkDistance)
+                continue;
+            candidates.append(*found);
+        }
+        const auto limit = std::min<qsizetype>(std::clamp(parkedBudget, 0, 8), candidates.size());
+        std::partial_sort(candidates.begin(), candidates.begin() + limit,
+                          candidates.end(), nearer);
+        for (qsizetype i = 0; i < limit; ++i) {
+            const int sourceIndex = candidates.at(i);
+            parkedIndices.insert(sourceIndex);
+            desiredKeys.insert(m_geometry.at(sourceIndex).key);
+            admitted.append(sourceIndex);
+        }
+        std::sort(admitted.begin(), admitted.end());
+    }
+    const auto desiredSlot = [&](const int sourceIndex) {
+        auto& geometry = m_geometry[sourceIndex];
+        geometry.laneCommitted = true;
+        Slot next = geometry;
+        next.parked = parkedIndices.contains(sourceIndex);
+        next.retiring = next.parked;
+        return next;
+    };
     if (tracing) planningNs = workClock.nsecsElapsed();
     // Remove no more than the requested number. A disjoint jump or a
     // filter clear can otherwise synchronously destroy dozens of rich cards.
@@ -995,15 +1035,16 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
         const auto flushRetiring = [&](const int last) {
             if (firstRetiring < 0) return;
             measure(updateNs, [&] {
-                emit dataChanged(createIndex(firstRetiring, 0), createIndex(last, 0), {RetiringRole});
+                emit dataChanged(createIndex(firstRetiring, 0), createIndex(last, 0), {RetiringRole, ParkedRole});
             });
             firstRetiring = -1;
         };
         for (int i = 0; i < m_window.size(); ++i) {
             const auto& current = m_window.at(i);
             present.insert(current.key);
-            if (!desiredKeys.contains(current.key) && !current.retiring) {
+            if (!desiredKeys.contains(current.key) && (!current.retiring || current.parked)) {
                 m_window[i].retiring = true;
+                m_window[i].parked = false;
                 if (firstRetiring < 0) firstRetiring = i;
                 continue;
             }
@@ -1011,9 +1052,7 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
             if (!desiredKeys.contains(current.key)) continue;
             const auto source = m_indexByKey.constFind(current.key);
             if (source != m_indexByKey.cend()) {
-                auto& desired = m_geometry[*source];
-                desired.laneCommitted = true;
-                measure(updateNs, [&] { updateWindowSlot(i, desired); });
+                measure(updateNs, [&] { updateWindowSlot(i, desiredSlot(*source)); });
             }
         }
         flushRetiring(count() - 1);
@@ -1063,8 +1102,7 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
         // Once admitted, a cast keeps its lane across hydration, eviction,
         // reverse scrolling and engagement revisions. Unseen rows can still
         // fill the shorter lane as real heights replace initial estimates.
-        Slot& desired = m_geometry[sourceIndex];
-        desired.laneCommitted = true;
+        const Slot desired = desiredSlot(sourceIndex);
         if (index >= m_window.size() || m_window.at(index).key != desired.key) {
             int found = -1;
             if (existingKeys.contains(desired.key)) {
@@ -1091,9 +1129,7 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
                     beginInsertRows({}, index, end);
                     m_window.insert(index, end - index + 1, Slot{});
                     for (int i = index; i <= end; ++i) {
-                        auto& incoming = m_geometry[admitted.at(i)];
-                        incoming.laneCommitted = true;
-                        m_window[i] = incoming;
+                        m_window[i] = desiredSlot(admitted.at(i));
                     }
                     endInsertRows();
                 });
@@ -1148,6 +1184,8 @@ void MasonryWindowModel::updateWindowSlot(const int index, const Slot& desired)
     }
     if (current.retiring != desired.retiring)
         changedRoles.append(RetiringRole);
+    if (current.parked != desired.parked)
+        changedRoles.append(ParkedRole);
     if (!changedRoles.isEmpty()) {
         current = desired;
         // Geometry corrections must not invalidate unchanged cast payloads

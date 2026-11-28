@@ -101,7 +101,8 @@ private:
  *
  * The source preserves canonical row identity/order. This GUI-thread adapter
  * owns only lightweight layout slots and exposes a bounded window of delegates.
- * Offscreen slots remain numeric geometry, never QQuickItems.
+ * Outside that window, only a bounded opt-in same-key warm pool retains items;
+ * all other offscreen rows remain numeric geometry.
  */
 class MasonryWindowModel : public QAbstractListModel {
     Q_OBJECT
@@ -123,7 +124,8 @@ public:
         CardXRole,
         CardYRole,
         CardHeightRole,
-        RetiringRole
+        RetiringRole,
+        ParkedRole
     };
     [[nodiscard]] int count() const noexcept;
     [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
@@ -146,12 +148,15 @@ public:
      * slots are invisible and noninteractive until their bounded destruction.
      * A positive evictionTimeBudgetMs also yields between individual removals.
      * It is cooperative: one synchronous observer can exceed the deadline.
+     * A positive parkedBudget retains a bounded number of nearby, unchanged
+     * departed identities, hidden and noninteractive, for reverse scrolling.
+     * No parked slot survives a hidden view or a changed payload revision.
      * Zero preserves synchronous behavior for native callers and tests.
      */
     Q_INVOKABLE bool setViewport(qreal top, qreal height, qreal enteringBuffer,
                                  qreal retentionBuffer, bool active, bool retainExisting = false,
                                  int admissionBudget = 0, int evictionBudget = 0,
-                                 int evictionTimeBudgetMs = 0);
+                                 int evictionTimeBudgetMs = 0, int parkedBudget = 0);
 
     /** @brief Records a width/revision-specific estimate or exact painted height. */
     Q_INVOKABLE bool retainHeight(const QString& key, const QString& revision,
@@ -191,6 +196,7 @@ private:
         int column{-1};
         bool laneCommitted{false};
         bool retiring{false};
+        bool parked{false};
         qreal x{0};
         qreal y{0};
         qreal height{0};
@@ -199,7 +205,7 @@ private:
     void sourceDataChanged(const QModelIndex& first, const QModelIndex& last,
                            const QList<int>& roles);
     bool synchronizeWindow(int admissionBudget = 0, int evictionBudget = 0,
-                           int evictionTimeBudgetMs = 0);
+                           int evictionTimeBudgetMs = 0, int parkedBudget = 0);
     void updateWindowSlot(int index, const Slot& desired);
     [[nodiscard]] QString heightKey(const QString& key, const QString& revision,
                                     qreal width) const;
