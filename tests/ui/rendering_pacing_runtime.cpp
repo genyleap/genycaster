@@ -78,6 +78,26 @@ void drain(RenderingController& controller) {
 int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     app.setQuitOnLastWindowClosed(false);
+    // The queue is independent of Qt and uses actual timestamps in FIFO order.
+    {
+        FrameObservationQueue queue;
+        using namespace std::chrono_literals;
+        const FrameObservationQueue::Time start{};
+        for (int i = 0; i < 300; ++i)
+            CHECK(queue.push(start + i * 1ms, 1) == (i == 0));
+        const auto overflow = queue.take();
+        CHECK(overflow.count == 256 && overflow.dropped == 44);
+        CHECK(overflow.firstQueued == start && overflow.epoch == 1);
+        for (std::size_t i = 0; i < overflow.count; ++i)
+            CHECK(overflow.timestamps[i] == start + (i + 44) * 1ms);
+        CHECK(queue.push(start + 300ms, 1));
+        CHECK(!queue.push(start + 301ms, 2));
+        const auto next = queue.take();
+        CHECK(next.count == 1 && next.dropped == 0 && next.epoch == 2);
+        CHECK(next.timestamps[0] == start + 301ms);
+        CHECK(queue.take().count == 0);
+        qInfo("PASS: bounded FIFO, overflow and epoch replacement");
+    }
     QTemporaryDir temp;
     CHECK(temp.isValid());
     QSettings settings(temp.filePath("rendering.ini"), QSettings::IniFormat);
@@ -178,6 +198,8 @@ int main(int argc, char** argv) {
 
         // Queue a burst without delivering the GUI-thread callbacks. The
         // recorded interval must come from signal time, not drain time.
+        drain(controller);
+        const auto beforeBurst = counter.count;
         QTest::qSleep(300);
         for (int i = 0; i < 85; ++i) {
             replacement.frameSwapped();
@@ -185,6 +207,7 @@ int main(int argc, char** argv) {
         }
         QTest::qSleep(100);
         drain(controller);
+        CHECK(counter.count == beforeBurst + 1);
         const double interval = controller.frameIntervalMs();
         CHECK(interval > 5.0 && interval < 45.0);
         CHECK(controller.effectScale() == 0.88);
@@ -197,6 +220,20 @@ int main(int argc, char** argv) {
         CHECK(controller.frameIntervalMs() == interval);
         CHECK(controller.effectiveQuality() == quality);
         qInfo("PASS: timestamped frame burst %.2f ms; isolated idle redraws do not change quality", interval);
+        const auto beforeOverflow = counter.count;
+        for (int i = 0; i < 300; ++i)
+            replacement.frameSwapped();
+        drain(controller);
+        CHECK(counter.count == beforeOverflow + 1);
+        // A pending notification from the old attachment must not consume
+        // samples from the new attachment or mutate its telemetry.
+        replacement.frameSwapped();
+        controller.attachWindow(&window);
+        const auto beforeDetached = counter.count;
+        window.frameSwapped();
+        drain(controller);
+        CHECK(counter.count == beforeDetached + 2);
+        qInfo("PASS: frame notification coalescing and detached-window isolation");
         controller.removeEventFilter(&counter);
         controller.attachWindow(nullptr);
         replacement.hide();

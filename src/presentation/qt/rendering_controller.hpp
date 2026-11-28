@@ -16,6 +16,8 @@
 // .hpp file.
 #pragma once
 
+#include "frame_observation_queue.hpp"
+
 #include <QObject>
 #include <QPointer>
 #include <QString>
@@ -166,6 +168,7 @@ private:
     std::atomic<quint64> m_synchronizedMediaPresentationGeneration{0};
     std::atomic<quint64> lastQueuedAcknowledgment{0};
     std::atomic<quint64> observationEpoch{0};
+    FrameObservationQueue frameObservations;
   };
   std::shared_ptr<RenderHandshake> m_renderHandshake{};
   quint64 m_currentMediaPresentationGeneration{0};

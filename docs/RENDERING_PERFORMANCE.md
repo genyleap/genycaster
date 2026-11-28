@@ -277,8 +277,16 @@ A frame report is emitted only when the measured frame span is at least
 - A missing or reversed phase is -1. The next frame clears prior phases;
   aborted frames and duplicate end signals are not combined across frames.
 
-Separate records identify GUI delivery delays >= 25 ms (from the existing
-frameSwapped timestamp to its queued GUI callback), synchronous Feed and
+Frame-swap telemetry retains up to 256 timestamps per window attachment,
+with at most one pending GUI notification. The consumer drains timestamps
+in order, outside the queue lock. Overflow drops the oldest samples and
+restarts pacing statistics before the retained burst; visibility epochs
+reject obsolete samples. This handoff is independent of media presentation
+acknowledgments.
+
+Separate records identify GUI delivery delays >= 25 ms (from the oldest
+frameSwapped timestamp in a batch to its queued GUI callback; includes
+sample and dropped counts), synchronous Feed and
 Profile projections, Profile sorting and Magazine layout >= 8 ms, window
 dimension changes and fixed-name shell navigation markers. These scopes
 include synchronous callbacks and can overlap each other; they are not

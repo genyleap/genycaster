@@ -333,17 +333,32 @@ void RenderingController::attachWindow(QQuickWindow *window) {
   connect(window, &QQuickWindow::frameSwapped, this, [this, state, traceEnabled] {
     const auto epoch = state->observationEpoch.load(std::memory_order_acquire);
     const auto timestamp = std::chrono::steady_clock::now();
-    QMetaObject::invokeMethod(this, [this, state, timestamp, epoch, traceEnabled] {
-      if (m_renderHandshake == state
-          && state->observationEpoch.load(std::memory_order_acquire) == epoch) {
-        if (traceEnabled) {
-          const double delay = std::chrono::duration<double, std::milli>(
-              TraceClock::now() - timestamp).count();
-          if (delay >= 25.0)
-            qCDebug(stallTraceLog) << "guiDeliveryDelayMs" << delay
-                << "startMs" << QString::number(traceMs(timestamp), 'f', 3);
-        }
-        recordFrame(timestamp);
+    // Keep actual swap timestamps without an unbounded GUI event backlog.
+    if (!state->frameObservations.push(timestamp, epoch))
+      return;
+    QMetaObject::invokeMethod(this, [this, state, traceEnabled] {
+      const auto batch = state->frameObservations.take();
+      const auto isCurrent = [this, &state, &batch] {
+        return m_renderHandshake == state
+            && state->observationEpoch.load(std::memory_order_acquire) == batch.epoch;
+      };
+      if (batch.count == 0 || !isCurrent())
+        return;
+      if (traceEnabled) {
+        const double delay = std::chrono::duration<double, std::milli>(
+            TraceClock::now() - batch.firstQueued).count();
+        if (delay >= 25.0 || batch.dropped != 0)
+          qCDebug(stallTraceLog) << "guiDeliveryDelayMs" << delay
+              << "startMs" << QString::number(traceMs(batch.firstQueued), 'f', 3)
+              << "samples" << batch.count << "dropped" << batch.dropped;
+      }
+      // Do not calculate an interval across a discarded portion of the burst.
+      if (batch.dropped != 0)
+        resetFramePacing();
+      for (std::size_t i = 0; i < batch.count; ++i) {
+        if (!isCurrent())
+          break;
+        recordFrame(batch.timestamps[i]);
       }
     }, Qt::QueuedConnection);
   }, Qt::DirectConnection);
