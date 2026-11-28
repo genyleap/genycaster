@@ -445,8 +445,9 @@ independently of Qt; the model fixture covers Qt signals and indexes.
 
 ## Correlating GUI event delivery
 
-Enable genycaster.render.gui.debug to time outermost main-thread Qt notify
-calls at 16 ms or more. The category logs event type, receiver class and a
+Enable genycaster.render.gui.debug (or the existing genycaster.render.stalls.debug)
+to time outermost main-thread Qt notify calls at 16 ms or more. The category
+logs event type, receiver class and a
 monotonic start/duration in the same clock domain as frame observations.
 Nested delivery is counted within its outer event, not reported twice;
 the guarded receiver may disappear during DeferredDelete. No event
@@ -795,6 +796,35 @@ response to this trace.
 Cross-identity delegate recycling and attribution of long GUI stalls remain
 separate work. The host has no physical GPU; the startup Metal pipeline
 cost and actual Mac frame pacing require hardware verification.
+
+## Magazine same-identity warm pool and route shutdown
+
+The native window model may retain up to four nearby departed delegates
+(two on WebAssembly) for reverse scrolling. They are invisible, disabled,
+excluded from active-index lookup, and eligible only while their source key,
+revision and presentation/media kind are unchanged. The pool does not
+reassign live QML objects across cast identities. Distant jumps, source
+removal and hiding the view drain it; geometry and admission remain bounded.
+Three successive real QML fixture runs each reused three original delegate
+objects on a nearby reversal. The observed synthetic 500-row jump medians
+were 129.055–131.235 ms; these include incubation/presentation and are not
+device frame timings.
+
+During native shutdown, route Loader admission is frozen, not canceled by
+visibility changes. Already admitted routes are drained by the existing
+native teardown before their contexts disappear. A cold route cannot start
+after shutdown. The runtime fixture checks both a Loading and a Ready
+Loader and verifies normal route retention/deactivation before shutdown.
+The standalone GCC 16/CMake module fixture also builds the actual production
+teardown and exercises nested in-flight Loaders.
+
+For unexplained GUI delay, the existing stall logging filter now includes
+the outermost slow Qt event type, receiver/owner/service classes, timer ID
+and duration without any payload. This is opt-in diagnostics only; use
+genycaster.qml.teardown.debug=true to correlate incubation counts on quit.
+Actual Metal timings and the wider Qt engine creation counter remain subject
+to native verification; neither a synthetic fixture nor a warm pool proves
+that all macOS stalls are eliminated.
 
 ## Measure on a real device
 

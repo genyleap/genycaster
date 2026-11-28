@@ -337,5 +337,49 @@ int main(int argc, char** argv)
         || waiting.incubationController() || !waiting.rootObjects().isEmpty()) return 25;
     if (!marker->value(QStringLiteral("visualCancelled")).toBool()) return 28;
     if (visualLoader) delete visualLoader.data();
+
+    // A live asynchronous route can contain nested asynchronous loaders.
+    // Finish both while their contexts are alive, without another GUI turn.
+    const std::unique_ptr<QQmlPropertyMap> nestedMarker{QQmlPropertyMap::create()};
+    nestedMarker->insert(QStringLiteral("outerReady"), false);
+    nestedMarker->insert(QStringLiteral("innerReady"), false);
+    QQmlIncubationController nestedController;
+    QQmlApplicationEngine nested;
+    nested.setIncubationController(&nestedController);
+    nested.rootContext()->setContextProperty(QStringLiteral("marker"), nestedMarker.get());
+    nested.loadData(R"QML(
+        import QtQuick
+        Item {
+            Loader {
+                objectName: "pendingRoute"
+                active: false
+                asynchronous: true
+                sourceComponent: Component {
+                    Item {
+                        Component.onCompleted: marker.outerReady = true
+                        Loader {
+                            asynchronous: true
+                            sourceComponent: Component {
+                                Item {
+                                    Component.onCompleted: marker.innerReady = true
+                                    Repeater { model: 80; delegate: Rectangle { width: 10; height: 10 } }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )QML", QUrl{QStringLiteral("inmemory:/pending-route.qml")});
+    if (!waitForRoots(nested, 1)) return 29;
+    const QPointer<QObject> pendingRoute = nested.rootObjects().first()->findChild<QObject*>(
+        QStringLiteral("pendingRoute"));
+    if (!pendingRoute || !pendingRoute->setProperty("active", true)
+        || nestedController.incubatingObjectCount() == 0) return 30;
+    if (nestedMarker->value(QStringLiteral("outerReady")).toBool()) return 31;
+    genycaster::ui::bootstrap::releaseQmlRoots(nested, nullptr);
+    if (pendingRoute || !nested.rootObjects().isEmpty() || nested.incubationController()
+        || !nestedMarker->value(QStringLiteral("outerReady")).toBool()
+        || !nestedMarker->value(QStringLiteral("innerReady")).toBool()) return 32;
     return 0;
 }

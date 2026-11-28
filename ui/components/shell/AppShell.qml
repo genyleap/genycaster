@@ -2452,8 +2452,8 @@ Item {
                                     RouteSurfaceLoader {
                                         id: channelsSurfaceLoader
                                         diagnosticRoute: "channels"
-                                        active: root.shuttingDown ? item !== null : root.shellRoute === "channels"
-                                        visible: active
+                                        routeRequested: root.shellRoute === "channels"
+                                        visible: !root.shuttingDown && active
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         Layout.maximumWidth: root.adaptiveDetailWidth
@@ -2488,8 +2488,8 @@ Item {
 
                                     RouteSurfaceLoader {
                                         diagnosticRoute: "bookmarks"
-                                        active: root.shuttingDown ? item !== null : root.shellRoute === "bookmarks"
-                                        visible: active
+                                        routeRequested: root.shellRoute === "bookmarks"
+                                        visible: !root.shuttingDown && active
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         // Wider desktop canvas allows two cast cards side by side.
@@ -2571,8 +2571,8 @@ Item {
                                         diagnosticRoute: "apps"
                                         onLoaded: if (!root.shuttingDown && root.shellRoute === "apps")
                                             item.scrollToBeginning()
-                                        active: root.shuttingDown ? item !== null : root.shellRoute === "apps"
-                                        visible: active
+                                        routeRequested: root.shellRoute === "apps"
+                                        visible: !root.shuttingDown && active
                                         opacity: active ? 1.0 : 0.0
                                         scale: active ? 1.0 : 0.99
                                         transform: Translate {
@@ -2609,8 +2609,8 @@ Item {
                                     RouteSurfaceLoader {
                                         id: notificationsRouteLoader
                                         diagnosticRoute: "notifications"
-                                        active: root.shuttingDown ? item !== null : root.shellRoute === "notifications"
-                                        visible: active
+                                        routeRequested: root.shellRoute === "notifications"
+                                        visible: !root.shuttingDown && active
                                         opacity: active ? 1.0 : 0.0
                                         scale: active ? 1.0 : 0.99
                                         transform: Translate {
@@ -2765,10 +2765,11 @@ Item {
                                     RouteSurfaceLoader {
                                         id: feedSurfaceLoader
                                         diagnosticRoute: "feed"
-                                        readonly property bool surfaceRequested: !root.shuttingDown && root.shellRoute.length === 0 && root.listViewActive
+                                        routeRequested: root.shellRoute.length === 0 && root.listViewActive
                                                                                  && !(presentationBridge.activeView === "feed"
                                                                                       && root.primaryDestination === "home")
-                                        active: surfaceRequested || item !== null
+                                        retainLoaded: true
+                                        readonly property bool surfaceRequested: !root.shuttingDown && routeRequested
                                         visible: surfaceRequested
                                         opacity: visible ? 1.0 : 0.0
                                         scale: visible ? 1.0 : 0.99
@@ -2948,9 +2949,10 @@ Item {
                                         // prevents post admission before the cover/bio.
                                         asynchronous: true
                                         diagnosticRoute: "profile"
-                                        readonly property bool surfaceRequested: !root.shuttingDown && root.shellRoute.length === 0
+                                        routeRequested: root.shellRoute.length === 0
                                                                                  && presentationBridge.activeView === "profile"
-                                        active: surfaceRequested || item !== null
+                                        retainLoaded: true
+                                        readonly property bool surfaceRequested: !root.shuttingDown && routeRequested
                                         visible: surfaceRequested
                                         opacity: visible ? 1.0 : 0.0
                                         scale: visible ? 1.0 : 0.99
@@ -3095,9 +3097,10 @@ Item {
                                     RouteSurfaceLoader {
                                         id: castSurfaceLoader
                                         diagnosticRoute: "cast"
-                                        readonly property bool surfaceRequested: !root.shuttingDown && root.shellRoute.length === 0
+                                        routeRequested: root.shellRoute.length === 0
                                                                                  && presentationBridge.activeView === "cast"
-                                        active: surfaceRequested || item !== null
+                                        retainLoaded: true
+                                        readonly property bool surfaceRequested: !root.shuttingDown && routeRequested
                                         visible: surfaceRequested
                                         opacity: visible ? 1.0 : 0.0
                                         scale: visible ? 1.0 : 0.99
@@ -4717,7 +4720,20 @@ Item {
     component RouteSurfaceLoader: Loader {
         id: routeLoader
         property string diagnosticRoute: ""
+        property bool routeRequested: false
+        property bool retainLoaded: false
+        active: false
         asynchronous: true
+        // Freeze admission at shutdown, including an already Loading route.
+        // The native teardown drains admitted incubation while its contexts
+        // still live. Do not cancel the Loader from a visibility binding.
+        Binding {
+            target: routeLoader
+            property: "active"
+            value: routeLoader.routeRequested || (routeLoader.retainLoaded && routeLoader.item !== null)
+            when: !root.shuttingDown
+            restoreMode: Binding.RestoreNone
+        }
         GenySpinner {
             anchors.centerIn: parent
             width: 28

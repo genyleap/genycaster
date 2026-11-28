@@ -30,7 +30,10 @@ void captureTrace(QtMsgType type, const QMessageLogContext& context, const QStri
     const auto category = QByteArrayView(context.category);
     if (category == "genycaster.render.stalls" || category == "genycaster.render.gui") {
         const QMutexLocker lock{&traceMutex};
-        (category == "genycaster.render.stalls" ? traceMessages : guiTraceMessages).append(message);
+        // GUI event details may use the general stall category when only
+        // that filter is enabled. Keep them separate from frame assertions.
+        (message.startsWith(QStringLiteral("guiEvent "))
+            ? guiTraceMessages : traceMessages).append(message);
     }
 }
 
@@ -109,6 +112,11 @@ int main(int argc, char** argv) {
         CHECK(traceField(guiTraceMessages.first(), QStringLiteral("durationMs")) >= 16.0);
         CHECK(traceField(guiTraceMessages.first(), QStringLiteral("guiEvent"))
               == static_cast<double>(QEvent::User));
+        guiTraceMessages.clear();
+        QLoggingCategory::setFilterRules(QStringLiteral("genycaster.render.stalls.debug=true"));
+        QCoreApplication::sendEvent(&receiver, &event);
+        CHECK(guiTraceMessages.size() == 1);
+        CHECK(traceField(guiTraceMessages.first(), QStringLiteral("durationMs")) >= 16.0);
         qInstallMessageHandler(oldHandler);
         QLoggingCategory::setFilterRules(QString{});
         qInfo("PASS: opt-in outermost GUI event timing");

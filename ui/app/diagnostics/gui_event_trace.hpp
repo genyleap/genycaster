@@ -18,6 +18,14 @@ inline const QLoggingCategory& guiEventTraceLog()
     return category;
 }
 
+// The normal stall investigation already opts into diagnostics. Use the
+// same category when the more specific GUI category was not requested.
+inline const QLoggingCategory& guiStallTraceLog()
+{
+    static const QLoggingCategory category{"genycaster.render.stalls", QtWarningMsg};
+    return category;
+}
+
 // Qt's public notify boundary measures event delivery, including nested
 // delivery, synchronous QML bindings and waits. Never inspect worker
 // receivers or event payloads, never restart an event loop, and never
@@ -29,7 +37,9 @@ public:
 
     bool notify(QObject* receiver, QEvent* event) override
     {
-        if (!guiEventTraceLog().isDebugEnabled() || !QThread::isMainThread()
+        const auto& log = guiEventTraceLog().isDebugEnabled()
+            ? guiEventTraceLog() : guiStallTraceLog();
+        if (!log.isDebugEnabled() || !QThread::isMainThread()
             || !receiver || !event || m_notifying)
             return Base::notify(receiver, event);
 
@@ -44,7 +54,7 @@ public:
         const bool delivered = Base::notify(receiver, event);
         const auto elapsed = ClockMs() - start;
         if (elapsed >= 16.0)
-            qCDebug(guiEventTraceLog()) << "guiEvent" << static_cast<int>(type)
+            qCDebug(log) << "guiEvent" << static_cast<int>(type)
                 << "receiver" << (guard ? guard->metaObject()->className() : "<destroyed>")
                 << "ownerClass" << (owner ? owner->metaObject()->className() : "<none>")
                 << "serviceClass" << (service ? service->metaObject()->className() : "<none>")

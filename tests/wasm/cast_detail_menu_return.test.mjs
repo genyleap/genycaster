@@ -50,7 +50,8 @@ test("conversation header exposes the same lazy, accessible Cast menu as feed ca
 test("the hidden Explorer does not change into a profile model or remove its header", () => {
     assert.match(shell, /socialMode: presentationBridge\.activeView === "followers"\s*\|\| presentationBridge\.activeView === "following"/);
     assert.match(shell, /headerContent: presentationBridge\.activeView === "followers"\s*\|\| presentationBridge\.activeView === "following" \? null/);
-    assert.match(shell, /active: surfaceRequested \|\| item !== null/);
+    assert.match(shell, /value: routeLoader\.routeRequested \|\| \(routeLoader\.retainLoaded && routeLoader\.item !== null\)/);
+    assert.match(shell, /when: !root\.shuttingDown\s*restoreMode: Binding\.RestoreNone/);
     assert.match(shell, /onBackRequested: root\.returnFromCastDetail\(\)/);
     assert.doesNotMatch(shell, /socialMode: presentationBridge\.activeView !== "feed"/);
 });

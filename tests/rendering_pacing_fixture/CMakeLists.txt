@@ -12,6 +12,24 @@ target_compile_features(genycaster_rendering_pacing_fixture PRIVATE cxx_std_23)
 target_link_libraries(genycaster_rendering_pacing_fixture PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::Test)
 enable_testing()
 find_package(Qt6 REQUIRED COMPONENTS Network)
+# Exercise the actual named-module teardown, not just a small engine smoke.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.28 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+   AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
+  add_library(genycaster_bootstrap_teardown_fixture STATIC)
+  target_sources(genycaster_bootstrap_teardown_fixture
+    PUBLIC FILE_SET CXX_MODULES BASE_DIRS "${root}/ui/app/bootstrap" FILES "${root}/ui/app/bootstrap/teardown.cppm"
+    PRIVATE "${root}/ui/app/bootstrap/teardown.cpp")
+  target_include_directories(genycaster_bootstrap_teardown_fixture PRIVATE "${root}/ui/app/runtime")
+  target_compile_features(genycaster_bootstrap_teardown_fixture PUBLIC cxx_std_26)
+  set_property(TARGET genycaster_bootstrap_teardown_fixture PROPERTY CXX_SCAN_FOR_MODULES ON)
+  target_link_libraries(genycaster_bootstrap_teardown_fixture PUBLIC Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)
+  add_executable(genycaster_bootstrap_teardown_runtime "${root}/tests/ui/bootstrap_teardown_tests.cpp")
+  set_property(TARGET genycaster_bootstrap_teardown_runtime PROPERTY CXX_SCAN_FOR_MODULES ON)
+  target_link_libraries(genycaster_bootstrap_teardown_runtime PRIVATE genycaster_bootstrap_teardown_fixture Qt6::Network)
+  add_test(NAME bootstrap_teardown_runtime COMMAND genycaster_bootstrap_teardown_runtime)
+  set_tests_properties(bootstrap_teardown_runtime PROPERTIES TIMEOUT 30
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_QUICK_CONTROLS_STYLE=Basic;QT_FATAL_WARNINGS=1")
+endif()
 add_executable(genycaster_link_preview_seed_fixture
   "${root}/tests/ui/link_preview_seed_cache_tests.cpp"
   "${root}/ui/app/network/link_preview.cpp"
@@ -83,6 +101,10 @@ if(Python3_Interpreter_FOUND AND QML_TEST_RUNNER)
   add_test(NAME feed_projection_qml_runtime
     COMMAND "${Python3_EXECUTABLE}" "${root}/tests/ui/feed_projection_work_runtime.py")
   set_tests_properties(feed_projection_qml_runtime PROPERTIES TIMEOUT 45
+    ENVIRONMENT "QML_TEST_RUNNER=${QML_TEST_RUNNER}")
+  add_test(NAME route_loader_shutdown_runtime
+    COMMAND "${Python3_EXECUTABLE}" "${root}/tests/ui/route_loader_shutdown_runtime.py")
+  set_tests_properties(route_loader_shutdown_runtime PROPERTIES TIMEOUT 45
     ENVIRONMENT "QML_TEST_RUNNER=${QML_TEST_RUNNER}")
 endif()
 
