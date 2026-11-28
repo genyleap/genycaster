@@ -432,6 +432,26 @@ int main(int argc, char** argv)
     require(rangeFeed.count() == 5 && kept.isValid());
     require(rangeFeed.get(3).value(QStringLiteral("stableKey")) == QStringLiteral("z"));
 
+    // A sparse intersection in an ordinary feed must not invalidate
+    // its only retained delegate (e.g. a filtered or refreshed projection).
+    FeedRowsModel sparse;
+    QVariantList oldSparse, newSparse;
+    for (int i = 0; i < 32; ++i) {
+        oldSparse.append(row(QStringLiteral("old:%1").arg(i), "r1"));
+        newSparse.append(row(QStringLiteral("new:%1").arg(i), "r1"));
+    }
+    newSparse[19] = oldSparse.at(7);
+    sparse.reconcile(oldSparse);
+    QAbstractItemModelTester sparseTester{&sparse, QAbstractItemModelTester::FailureReportingMode::Fatal};
+    const QPersistentModelIndex survivor{sparse.index(7, 0)};
+    QSignalSpy sparseResets{&sparse, &QAbstractItemModel::modelReset};
+    require(sparse.reconcile(newSparse));
+    require(sparseResets.isEmpty() && survivor.isValid() && survivor.row() == 19);
+    require(survivor.data(FeedRowsModel::StableKeyRole).toString() == "old:7");
+    require(sparse.count() == 32);
+    for (int i = 0; i < sparse.count(); ++i)
+        require(sparse.keyAt(i) == newSparse.at(i).toMap().value("stableKey").toString());
+
     // A large stable-order hydration must notify ONLY the mutable row roles;
     // reprocessing an unchanged snapshot must never reset the view or emit
     // redundant updates. Use runtime checks independent of NDEBUG so this

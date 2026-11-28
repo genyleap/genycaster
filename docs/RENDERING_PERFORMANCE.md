@@ -554,6 +554,19 @@ reset and destruction. Source preparation request IDs are invalidated
 on replacement. The native decoder stays on its supported Qt thread;
 these changes do not claim to eliminate platform backend blocking.
 
+## Preserve sparse feed intersections
+
+For snapshots at most 512 rows, the model retains every surviving stable
+identity even when fewer than 25% survive. A disjoint replacement still
+resets; large replacements retain the existing escape hatch. The test
+checks persistent indexes and exact final order. This reduces avoidable
+incubation invalidation but does not eliminate cancellation of obsolete
+delegates. Native tests require the real Qt SDK.
+
+The video source setter is also guarded by a transport epoch because a
+synchronous backend error can queue recovery before setSource returns.
+An older request must not re-arm deferred transport after replacement.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

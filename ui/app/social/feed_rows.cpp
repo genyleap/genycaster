@@ -346,7 +346,14 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
     // qsizetype by three (including 32-bit WASM).
     const auto resetDisplacementThreshold =
         (incoming.size() / 4) * 3 + (incoming.size() % 4) * 3 / 4;
-    if (static_cast<qint64>(retained) * 4 < std::min(m_rows.size(), incoming.size())
+    // For ordinary viewport-sized feeds, preserve even one surviving
+    // identity. Reset invalidates every delegate and pending incubation,
+    // whereas the incremental path can preserve that cast and its media.
+    // Large, heavily displaced snapshots retain the reset escape hatch.
+    const bool largeReplacement = std::max(m_rows.size(), incoming.size()) > 512;
+    if (retained == 0
+        || (largeReplacement
+            && static_cast<qint64>(retained) * 4 < std::min(m_rows.size(), incoming.size()))
         || (incoming.size() > 512 && displaced > resetDisplacementThreshold)) {
         const bool countWillChange = m_rows.size() != incoming.size();
         trace.measure(trace.reset, [this, &incoming] {

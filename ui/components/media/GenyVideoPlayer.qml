@@ -603,8 +603,11 @@ Item {
         startupWatchdog.restart()
         if (Qt.platform.os === "android")
             console.info("Genycaster: Android media source assigned")
+        const epoch = activation.transportEpoch
         if (String(player.source) !== String(target))
             player.source = target
+        // Assignment may synchronously emit an error and queue recovery.
+        if (epoch !== activation.transportEpoch) return
         transportStart.targetSource = String(target)
         transportStart.restart()
     }
@@ -614,7 +617,9 @@ Item {
             // Retry is the only path that tears down the same URL. Splitting
             // clear/re-assign keeps backend teardown out of the click handler.
             activation.forceReload = false
+            const epoch = activation.transportEpoch
             player.source = ""
+            if (epoch !== activation.transportEpoch) return
             transportReload.targetSource = String(target)
             transportReload.restart()
             return
@@ -648,6 +653,7 @@ Item {
     }
 
     function cancelDeferredTransport() {
+        ++activation.transportEpoch
         transportStart.stop()
         transportReload.stop()
         transportRestore.stop()
@@ -879,6 +885,7 @@ Item {
         property bool fallbackAttempted: false
         property bool forceReload: false
         property real preparationId: 0
+        property real transportEpoch: 0
         property bool resumeAfterLoad: true
         property real pendingPosition: 0
         property string pendingUrl: ""
