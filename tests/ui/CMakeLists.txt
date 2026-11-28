@@ -1,6 +1,22 @@
 # Test targets belong to this directory so IDEs group them under tests/ui.
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
+if(NOT EMSCRIPTEN AND NOT ANDROID AND NOT IOS)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets)
+    add_executable(genycaster_desktop_background_tests desktop_background_tests.cpp)
+    target_include_directories(genycaster_desktop_background_tests PRIVATE
+        "${CMAKE_SOURCE_DIR}/ui/app")
+    target_link_libraries(genycaster_desktop_background_tests PRIVATE
+        Qt6::Core Qt6::Gui Qt6::Widgets)
+    target_compile_features(genycaster_desktop_background_tests PRIVATE cxx_std_26)
+    farcaster_enable_warnings(genycaster_desktop_background_tests)
+    add_test(NAME ui.desktop_background COMMAND genycaster_desktop_background_tests)
+    set_tests_properties(ui.desktop_background PROPERTIES
+        TIMEOUT 8 LABELS "ui;desktop;lifecycle"
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()
+
+
 # Exercise the same issuer/subject/FID admission policy used by the native
 # account controller. These are source-level QtCore tests, not live OPP E2E.
 if(NOT EMSCRIPTEN AND NOT ANDROID)
