@@ -36,18 +36,20 @@ test('Magazine shows a bounded skeleton for truly visible slots awaiting their d
     const wall = read('ui/components/feed/FeedMasonryView.qml');
     const placeholder = wall.slice(wall.indexOf('id: visiblePlaceholder'),
         wall.indexOf('id: cardLoader'));
-    assert.match(placeholder, /active: view\.visible && slot\.placed/);
-    assert.match(placeholder, /slot\.y \+ slot\.height > view\.contentY/);
-    assert.match(placeholder, /slot\.y < view\.contentY \+ view\.height/);
+    assert.match(placeholder, /active: requested/);
+    assert.match(placeholder, /needed: slot\.placed && slot\.intersectsViewport\s*&& !slot\.cardReady/);
+    assert.match(placeholder, /visible: slot\.intersectsViewport/);
+    assert.match(wall, /y \+ height > view\.contentY && y < view\.contentY \+ view\.height/);
     assert.match(placeholder, /!slot\.cardReady \|\| opacity > 0\.01/);
-    assert.match(wall, /readonly property bool cardReady: cardLoader\.status === Loader\.Ready[\s\S]*?paintedHeight > 0/);
+    assert.match(wall, /readonly property bool contentReady: cardLoader\.status === Loader\.Ready[\s\S]*?paintedHeight > 0/);
+    assert.match(wall, /readonly property bool cardReady: cardLoader\.status === Loader\.Ready\s*&& loadedCard !== null && cardPresented/);
     assert.match(placeholder, /opacity: slot\.cardReady \? 0 : 1/);
     assert.match(placeholder, /sourceComponent: Component \{\s*Item \{/);
     assert.match(placeholder, /Superellipse \{\s*anchors\.fill: parent\s*fillColor: Theme\.surfaceRaised/);
     assert.match(placeholder, /CastSkeleton \{[\s\S]*?height: Math\.min\(parent\.height, implicitHeight\)/);
-    assert.match(placeholder, /animate: !view\.moving/);
+    assert.match(placeholder, /animate: visiblePlaceholder\.visible && !view\.moving/);
     assert.match(wall, /active: slot\.admitted/, 'the real card uses sampled admission, not geometry bindings');
-    assert.match(wall, /clip: cardLoader\.item === null/);
+    assert.match(wall, /clip: true/);
     assert.match(wall, /height: Math\.max\(1, cardHeight\)/);
     const slotSource = wall.slice(wall.indexOf('required property real cardHeight'),
         wall.indexOf('id: visiblePlaceholder'));

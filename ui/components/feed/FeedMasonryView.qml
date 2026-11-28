@@ -523,14 +523,22 @@ Flickable {
                 anchors.fill: parent
                 z: 2
                 enabled: false
-                // Keep an already-admitted placeholder until this retired
-                // slot's scheduled deletion; do not destroy every skeleton
-                // as a side effect of a route visibility/retirement change.
-                active: slot.retiring || !view.visible
-                        ? item !== null
-                        : slot.placed && slot.y + slot.height > view.contentY
-                          && slot.y < view.contentY + view.height
-                          && (!slot.cardReady || opacity > 0.01)
+                // Admission is latched for this bounded slot lifetime.
+                // A viewport crossing must not cancel an in-flight incubator
+                // or recreate a skeleton for the same cast. Visibility and
+                // animation are independent of Loader ownership.
+                property bool requested: false
+                readonly property bool needed: slot.placed && slot.intersectsViewport
+                    && !slot.cardReady
+                function requestIfNeeded() {
+                    if (needed && !(typeof renderingController !== "undefined"
+                            && renderingController && renderingController.shuttingDown === true))
+                        requested = true
+                }
+                onNeededChanged: requestIfNeeded()
+                Component.onCompleted: requestIfNeeded()
+                active: requested
+                visible: slot.intersectsViewport && (!slot.cardReady || opacity > 0.01)
                 opacity: slot.cardReady ? 0 : 1
                 Behavior on opacity {
                     NumberAnimation {
@@ -554,7 +562,7 @@ Flickable {
                             width: parent.width
                             height: Math.min(parent.height, implicitHeight)
                             mediaPreview: slot.mediaLayoutKind !== "other"
-                            animate: !view.moving
+                            animate: visiblePlaceholder.visible && !view.moving
                         }
                     }
                 }

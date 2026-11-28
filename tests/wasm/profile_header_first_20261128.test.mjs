@@ -5,8 +5,8 @@ const read = p => readFileSync(new URL('../../'+p, import.meta.url),'utf8');
 const profile = read('ui/components/profile/ProfileSurface.qml');
 const shell = read('ui/components/shell/AppShell.qml');
 const avatar = read('ui/components/content/Avatar.qml');
-test('profile chrome is synchronous while its posts remain asynchronous',()=>{
-    assert.match(shell,/id: profileSurfaceLoader[\s\S]*?asynchronous: false\s+diagnosticRoute: "profile"/);
+test('profile chrome incubates asynchronously while its posts remain header-gated',()=>{
+    assert.match(shell,/id: profileSurfaceLoader[\s\S]*?asynchronous: true\s+diagnosticRoute: "profile"/);
     assert.match(profile,/id: profileCastLoader[\s\S]*?asynchronous: true/);
     assert.match(profile,/property bool profileRowsReleased: false/);
     assert.match(profile,/headerConstructed: false/);

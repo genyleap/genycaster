@@ -595,6 +595,23 @@ the redundant scheduled scan. This reduces repeated cache traversal
 during viewport changes; it does not identify the specific v8 network
 callback or eliminate synchronous QML observer work.
 
+## v9: separate cold profile incubation and skeleton visibility
+
+v9 records a 139.74 ms profile input event enclosing the loader Ready
+marker and 73.40 ms render recording shortly afterwards. The profile
+route loader now uses asynchronous incubation again, preserving the
+existing header-first admission gate and applying the initial scroll
+reset after Ready. Total time to header may differ; validate on device.
+
+Magazine skeleton creation is latched once needed for an admitted slot.
+Visibility and animation remain viewport-bound; no self-referential
+Loader.item activation or repeated cancellation on viewport crossings.
+A requested skeleton is retained (hidden and non-animating after the
+crossfade) until the bounded slot retires. This trades bounded resident
+objects for less creation churn, and is not general delegate recycling.
+v9 still reports 24 unfinished QML creations despite a zero public
+incubation count. These changes do not prove that warning is resolved.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

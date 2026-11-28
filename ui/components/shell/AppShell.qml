@@ -2936,9 +2936,10 @@ Item {
 
                                     RouteSurfaceLoader {
                                         id: profileSurfaceLoader
-                                        // Profile chrome is the primary content, not a
-                                        // background task. Nested cast loaders stay paced.
-                                        asynchronous: false
+                                        // Incubate the cold surface outside the input
+                                        // event. ProfileSurface's header-first gate still
+                                        // prevents post admission before the cover/bio.
+                                        asynchronous: true
                                         diagnosticRoute: "profile"
                                         readonly property bool surfaceRequested: !root.shuttingDown && root.shellRoute.length === 0
                                                                                  && presentationBridge.activeView === "profile"
@@ -2961,6 +2962,10 @@ Item {
                                                              ? root.availableSocialWidth : root.adaptiveProfileWidth
                                         Layout.alignment: Qt.AlignHCenter
 
+                                        onLoaded: {
+                                            if (surfaceRequested && item)
+                                                item.scrollToBeginning()
+                                        }
                                         sourceComponent: Component {
                                             ProfileSurface {
                                                 bottomOverlayInset: root.readingOverlayInset(profileSurfaceLoader)
