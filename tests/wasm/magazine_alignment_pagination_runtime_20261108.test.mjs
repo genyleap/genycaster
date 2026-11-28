@@ -38,8 +38,8 @@ test("Rich Cast paint height tracks its implicit text/media geometry through eac
     const semantic = read("ui/components/feed/SemanticFeedItem.qml");
     assert.match(cast, /implicitHeight: messageRow\.implicitHeight[\s\S]*?height: implicitHeight/);
     assert.match(cast, /id: messageRow[\s\S]*?anchors\.bottomMargin: Theme\.space1\s*height: implicitHeight/);
-    assert.match(semantic, /implicitHeight: loader\.item \? loader\.item\.implicitHeight : 0[\s\S]*?height: implicitHeight/);
-    assert.match(semantic, /id: loader[\s\S]*?anchors\.top: parent\.top\s*height: root\.height/);
+    assert.match(semantic, /implicitHeight: cast\.implicitHeight \+ root\.totalInset/);
+    assert.match(semantic, /id: cast[\s\S]*?anchors\.top: parent\.top\s*anchors\.topMargin: root\.topInset/);
     const profileMagazine = profile.slice(profile.indexOf("id: profileMagazineView"));
     assert.match(profileMagazine, /delegate: Component \{\s*CastItem \{\s*width: parent\.width[\s\S]*?height: implicitHeight/);
     // During transient async relayout, the slot must block any content

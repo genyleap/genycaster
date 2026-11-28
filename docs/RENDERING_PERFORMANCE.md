@@ -521,6 +521,16 @@ This does not defer likes/recasts, suppress metadata updates, or alter
 classification policy and rendering style. The effect on device latency
 must be measured rather than inferred from the v5 log.
 
+## v6: keep one rich Cast renderer per semantic row
+
+The v6 role mask identifies a single PresentationKind notification at 57.55 ms.
+ConversationRow, VisualPost and DeveloperPost all ultimately contained CastItem.
+SemanticFeedItem now owns one CastItem across classification changes instead of
+switching the entire nested Loader. Only the small developer label is lazy;
+visual insets, compact policy, magazine height and shared media/neon policy
+are preserved. This eliminates a known subtree replacement path, not every
+possible binding or compact-layout cost. No render quality setting is changed.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

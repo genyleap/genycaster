@@ -97,7 +97,7 @@ test('Masonry tracks gutters with one observer and forwards local coordinates th
   assert.match(feed,/component FeedRow: Loader[\s\S]*?property bool sharedNeonPointerActive: false/);
   assert.match(feed,/sharedNeonPointerActive: parent\.sharedNeonPointerActive/);
   assert.match(feed,/sharedNeonPointerActive: rowDelegate\.sharedNeonPointerActive/);
-  assert.match(semantic,/sharedNeonPointerActive: root\.sharedNeonPointerActive/);
+  assert.match(semantic,/sharedNeonPointerActive: root\.magazineCard && root\.sharedNeonPointerActive/);
   assert.match(profile,/sharedNeonPointerActive: parent\.sharedNeonPointerActive/);
   assert.match(cast,/id: magazineCardSurface[\s\S]*?proximityPointerActive: root\.magazineCard && root\.sharedNeonPointerActive/);
   assert.match(cast,/mapFromItem\([\s\S]*?root, root\.sharedNeonPointerX, root\.sharedNeonPointerY\)/);

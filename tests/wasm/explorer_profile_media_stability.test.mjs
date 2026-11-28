@@ -130,7 +130,7 @@ test('image ratio knowledge reaches Explorer and Profile through the same magazi
   const embed = read('ui/components/media/EmbedPreview.qml');
   const rich = read('ui/components/content/RichCastRenderer.qml');
   assert.match(feed, /sharedMediaGeometry: magazineView/);
-  assert.match(semantic, /sharedMediaGeometry: root\.sharedMediaGeometry/);
+  assert.match(semantic, /sharedMediaGeometry: root\.magazineCard \? root\.sharedMediaGeometry : null/);
   assert.match(cast, /sharedMediaGeometry: root\.sharedMediaGeometry/);
   assert.match(profile, /sharedMediaGeometry: profileMagazineView/);
   assert.match(panel, /dynamicAspectDiscovery: root\.magazineCard/);

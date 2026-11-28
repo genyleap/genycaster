@@ -1,4 +1,6 @@
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import Farcaster.Client
 
 Item {
@@ -31,109 +33,74 @@ Item {
                                           : root.presentationKind === "developer" ? "developer"
                                           : "conversation"
 
-    implicitHeight: loader.item ? loader.item.implicitHeight : 0
-    // The last rendered actions row is the strongest geometry observation
-    // for a Magazine cast containing delayed link/media hydration.
-    readonly property real magazinePaintHeight: root.magazineCard && loader.item
-        ? Number(loader.item.magazinePaintHeight || 0) : 0
-    // Give the nested Loader a real vertical extent. Width-only anchoring
-    // allows rich children to calculate their implicitHeight while painting
-    // with a zero-height scene node, clipping markdown/media into the next row.
+    readonly property bool visualChrome: !root.magazineCard && root.resolvedKind === "visual"
+    readonly property bool developerChrome: !root.magazineCard && root.resolvedKind === "developer"
+    readonly property real topInset: root.developerChrome
+        ? builderHeader.height + Theme.space1 : root.visualChrome ? Theme.space2 : 0
+    readonly property real totalInset: root.developerChrome
+        ? root.topInset + Theme.space3
+        : root.visualChrome ? (root.compact ? Theme.space2 : Theme.space5) : 0
+
+    // All presentation kinds have the same rich CastItem. A classification
+    // change adjusts only its chrome and geometry, not the media renderer,
+    // playback, subscriptions, decoded images, or menu ownership.
+    implicitHeight: cast.implicitHeight + root.totalInset
+    readonly property real magazinePaintHeight: root.magazineCard
+        ? Number(cast.magazinePaintHeight || 0) : 0
     height: root.magazineCard ? Math.max(implicitHeight, magazinePaintHeight) : implicitHeight
 
     Loader {
-        id: loader
+        id: builderHeader
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Theme.space4
+        anchors.rightMargin: Theme.space4
+        anchors.top: parent.top
+        active: root.developerChrome
+        height: item ? item.implicitHeight : 0
+        sourceComponent: Component {
+            RowLayout {
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+
+                Icon { text: Theme.iconCode; color: Theme.accent; preferredSize: Theme.typeMetaSize }
+                Label {
+                    text: qsTrId("genycaster.home.builder_notes")
+                    color: Theme.textTertiary
+                    font.pixelSize: Theme.typeCaptionSize
+                    font.weight: Theme.weightDemiBold
+                }
+                Item { Layout.fillWidth: true }
+            }
+        }
+    }
+
+    CastItem {
+        id: cast
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: root.height
-        sourceComponent: root.magazineCard ? magazineComponent
-                       : root.resolvedKind === "visual" ? visualComponent
-                       : root.resolvedKind === "developer" ? developerComponent : conversationComponent
-    }
-
-    Component {
-        id: magazineComponent
-        CastItem {
-            magazineCard: true
-            sharedMediaGeometry: root.sharedMediaGeometry
-            sharedNeonPointerActive: root.sharedNeonPointerActive
-            sharedNeonPointerX: root.sharedNeonPointerX
-            sharedNeonPointerY: root.sharedNeonPointerY
-            modelData: root.modelData
-            compact: true
-            interactionsAvailable: root.interactionsAvailable
-            accountFid: root.accountFid
-            enrichmentActive: root.enrichmentActive
-            onOpenRequested: castId => root.openRequested(castId)
-            onProfileRequested: fid => root.profileRequested(fid)
-            onReplyRequested: data => root.replyRequested(data)
-            onQuoteRequested: data => root.quoteRequested(data)
-            onReactionRequested: (kind, data, active) => root.reactionRequested(kind, data, active)
-            onRemoveRequested: data => root.removeRequested(data)
-            onExternalRequested: url => root.externalRequested(url)
-            onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
-            onAuthenticationRequested: root.authenticationRequested()
-        }
-    }
-
-    Component {
-        id: conversationComponent
-        ConversationRow {
-            modelData: root.modelData
-            compact: root.compact
-            interactionsAvailable: root.interactionsAvailable
-            accountFid: root.accountFid
-            enrichmentActive: root.enrichmentActive
-            onOpenRequested: castId => root.openRequested(castId)
-            onProfileRequested: fid => root.profileRequested(fid)
-            onReplyRequested: data => root.replyRequested(data)
-            onQuoteRequested: data => root.quoteRequested(data)
-            onReactionRequested: (kind, data, active) => root.reactionRequested(kind, data, active)
-            onRemoveRequested: data => root.removeRequested(data)
-            onExternalRequested: url => root.externalRequested(url)
-            onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
-            onAuthenticationRequested: root.authenticationRequested()
-        }
-    }
-
-    Component {
-        id: visualComponent
-        VisualPost {
-            modelData: root.modelData
-            compact: root.compact
-            interactionsAvailable: root.interactionsAvailable
-            accountFid: root.accountFid
-            enrichmentActive: root.enrichmentActive
-            onOpenRequested: castId => root.openRequested(castId)
-            onProfileRequested: fid => root.profileRequested(fid)
-            onReplyRequested: data => root.replyRequested(data)
-            onQuoteRequested: data => root.quoteRequested(data)
-            onReactionRequested: (kind, data, active) => root.reactionRequested(kind, data, active)
-            onRemoveRequested: data => root.removeRequested(data)
-            onExternalRequested: url => root.externalRequested(url)
-            onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
-            onAuthenticationRequested: root.authenticationRequested()
-        }
-    }
-
-    Component {
-        id: developerComponent
-        DeveloperPost {
-            modelData: root.modelData
-            compact: root.compact
-            interactionsAvailable: root.interactionsAvailable
-            accountFid: root.accountFid
-            enrichmentActive: root.enrichmentActive
-            onOpenRequested: castId => root.openRequested(castId)
-            onProfileRequested: fid => root.profileRequested(fid)
-            onReplyRequested: data => root.replyRequested(data)
-            onQuoteRequested: data => root.quoteRequested(data)
-            onReactionRequested: (kind, data, active) => root.reactionRequested(kind, data, active)
-            onRemoveRequested: data => root.removeRequested(data)
-            onExternalRequested: url => root.externalRequested(url)
-            onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
-            onAuthenticationRequested: root.authenticationRequested()
-        }
+        anchors.topMargin: root.topInset
+        magazineCard: root.magazineCard
+        // ConversationRow and Magazine used compact CastItem regardless of
+        // the shell width. Visual and Developer used the shell compact flag.
+        compact: root.magazineCard || root.resolvedKind === "conversation" || root.compact
+        sharedMediaGeometry: root.magazineCard ? root.sharedMediaGeometry : null
+        sharedNeonPointerActive: root.magazineCard && root.sharedNeonPointerActive
+        sharedNeonPointerX: root.magazineCard ? root.sharedNeonPointerX : 0
+        sharedNeonPointerY: root.magazineCard ? root.sharedNeonPointerY : 0
+        modelData: root.modelData
+        interactionsAvailable: root.interactionsAvailable
+        accountFid: root.accountFid
+        enrichmentActive: root.enrichmentActive
+        onOpenRequested: castId => root.openRequested(castId)
+        onProfileRequested: fid => root.profileRequested(fid)
+        onReplyRequested: data => root.replyRequested(data)
+        onQuoteRequested: data => root.quoteRequested(data)
+        onReactionRequested: (kind, data, active) => root.reactionRequested(kind, data, active)
+        onRemoveRequested: data => root.removeRequested(data)
+        onExternalRequested: url => root.externalRequested(url)
+        onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
+        onAuthenticationRequested: root.authenticationRequested()
     }
 }

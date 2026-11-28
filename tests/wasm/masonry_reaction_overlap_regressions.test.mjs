@@ -12,7 +12,7 @@ const surface=read('ui/components/feed/FeedSurface.qml');
 test('Magazine measures the final painted engagement row through every Loader boundary',()=>{
   assert.match(cast,/readonly property real magazinePaintHeight:[\s\S]*?messageRow\.y \+ messageSurface\.y \+ messageContent\.y[\s\S]*?magazineActions\.y \+ magazineActions\.height/);
   assert.match(cast,/id: magazineActions\s+visible: !root\.mediaFirst \|\| root\.magazineCard/);
-  assert.match(semantic,/magazinePaintHeight: root\.magazineCard && loader\.item[\s\S]*?loader\.item\.magazinePaintHeight/);
+  assert.match(semantic,/magazinePaintHeight: root\.magazineCard\s*\? Number\(cast\.magazinePaintHeight/);
   assert.match(surface,/readonly property real resolvedHeight: item[\s\S]*?Math\.max\(0, Number\(item\.implicitHeight \|\| 0\),[\s\S]*?Number\(item\.magazinePaintHeight \|\| 0\)/);
 });
 
