@@ -91,6 +91,33 @@ incubation controller. The QML fixture runs the actual panel/dispatcher
 with stub leaf renderers, checking hidden admission, URL reuse, renderer
 promotion, immediate Detail construction and repeated destruction.
 
+## Shutdown and large-raster diagnostics
+
+Enable these categories only when investigating a problem:
+
+```sh
+QT_LOGGING_RULES='genycaster.qml.teardown.debug=true;genycaster.render.raster.debug=true;genycaster.render.pacing.debug=true'
+```
+
+On native quit, `beforeDrain`, `afterDrain`, `beforeDetach` and
+`afterRootCleanup` report the public incubation count. The last report
+also records the number of remaining application roots. Qt's own engine
+warning uses a broader internal creation counter, which may include
+deferred control creation and is not equivalent to the public count.
+The shutdown keeps the existing popup/overlay order and guards each root
+against destruction by a sibling callback. No warning is suppressed.
+
+The raster log reports the media category, requested decode dimensions,
+implicit source dimensions, logical display dimensions and window DPR
+when an image becomes ready. It records no URLs or content. It is useful
+for correlating large textures with their presentation geometry, but
+does not measure GPU residency, physical allocation or upload duration.
+When disabled the QML path does not invoke the diagnostic method.
+
+Hidden gallery tiles do not initiate their staggered construction until
+visible again; already-admitted tiles remain resident. This does not
+change the gallery's geometry or image decode quality.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

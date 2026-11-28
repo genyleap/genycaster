@@ -76,10 +76,14 @@ test('gallery and supporting tiles schedule once even while the viewport keeps m
         ['GalleryLayout', 'tileSlot', 'tileAdmission'],
         ['CastEmbedsPanel', 'tile', 'previewAdmission'],
     ]) {
-        const root = {scrollMoving: true, scrollHostResolved: true};
+        const root = {scrollMoving: true, scrollHostResolved: true, visible: true, asynchronousPreviews: true};
         const tile = {admitted: false};
         const timer = {running: false, starts: 0, restart() {this.running = true; ++this.starts;}};
         const schedule = method(read(file), 'scheduleAdmission', {root, [tileName]: tile, [timerName]: timer});
+        root.visible = false;
+        schedule();
+        assert.equal(timer.starts, 0, file + ' must not admit hidden media');
+        root.visible = true;
         schedule(); schedule();
         assert.equal(timer.starts, 1, file + ' does not starve or continually restart admission');
     }

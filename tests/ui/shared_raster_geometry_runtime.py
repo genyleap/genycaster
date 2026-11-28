@@ -24,6 +24,15 @@ Item {
     property QtObject renderingController: QtObject {
         property real mediaDecodeScale: 1
         property int layerSampleCount: 1
+        property bool mediaDiagnosticsEnabled: false
+        property int diagnosticCount: 0
+        property var lastGeometry: []
+        function recordRasterGeometry(category, requestedWidth, requestedHeight,
+                                      sourceWidth, sourceHeight, viewWidth, viewHeight) {
+            ++diagnosticCount
+            lastGeometry = [category,requestedWidth,requestedHeight,sourceWidth,
+                            sourceHeight,viewWidth,viewHeight]
+        }
         signal mediaPresentationGranted(var requester, int generation, int sequence)
         function requestMediaPresentation(requester, generation) {
             mediaPresentationGranted(requester, generation, 1)
@@ -49,6 +58,24 @@ Item {
             image.source = Qt.resolvedUrl("landscape.png")
             tryCompare(image, "ready", true)
             tryVerify(() => image.intrinsicAspect > 0)
+        }
+        function test_optInDiagnostics() {
+            renderingController.diagnosticCount = 0
+            renderingController.mediaDiagnosticsEnabled = false
+            image.source = Qt.resolvedUrl("portrait.png")
+            tryCompare(image, "ready", true)
+            compare(renderingController.diagnosticCount, 0)
+            renderingController.mediaDiagnosticsEnabled = true
+            image.source = Qt.resolvedUrl("landscape.png")
+            tryCompare(image, "ready", true)
+            tryVerify(() => renderingController.diagnosticCount > 0)
+            const geometry = renderingController.lastGeometry
+            compare(geometry.length, 7)
+            verify(geometry[1] > 0 && geometry[2] > 0)
+            verify(geometry[3] > 0 && geometry[4] > 0)
+            compare(geometry[5], 240)
+            compare(geometry[6], 240)
+            renderingController.mediaDiagnosticsEnabled = false
         }
         function test_resizeAndEviction() {
             const ratio = image.intrinsicAspect

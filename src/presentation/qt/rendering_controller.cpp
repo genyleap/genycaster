@@ -15,6 +15,7 @@ namespace {
 
 constexpr auto kProfileSetting = "rendering/profile";
 Q_LOGGING_CATEGORY(framePacingLog, "genycaster.render.pacing", QtWarningMsg)
+Q_LOGGING_CATEGORY(rasterGeometryLog, "genycaster.render.raster", QtWarningMsg)
 
 [[nodiscard]] QString apiName(const QSGRendererInterface::GraphicsApi api) {
   using GraphicsApi = QSGRendererInterface::GraphicsApi;
@@ -181,6 +182,22 @@ void RenderingController::requestMediaPresentation(QObject *requester, const qui
       .generation = generation,
   });
   tryGrantMediaPresentation();
+}
+
+bool RenderingController::mediaDiagnosticsEnabled() const noexcept {
+  return rasterGeometryLog().isDebugEnabled();
+}
+
+void RenderingController::recordRasterGeometry(const QString &category,
+    int requestedWidth, int requestedHeight, double sourceWidth, double sourceHeight,
+    double viewWidth, double viewHeight) const {
+  // Never log the media URL, identity, token or content. These values are
+  // geometry at the QML boundary, not an allocation/upload measurement.
+  qCDebug(rasterGeometryLog) << "category" << category
+      << "requestedDecode" << requestedWidth << requestedHeight
+      << "implicitSource" << sourceWidth << sourceHeight
+      << "viewLogical" << viewWidth << viewHeight
+      << "windowDpr" << m_devicePixelRatio;
 }
 
 void RenderingController::cancelMediaPresentation(QObject *requester) {

@@ -163,6 +163,25 @@ Item {
             verify(item.planHeight > initialHeight)
             item.destroy()
         }
+        function test_hiddenAdmissionAndReuse() {
+            shown.visible = false
+            const item = make(shown, "https://example.invalid/hidden.jpg", 2)
+            const loader = findChild(item,"galleryTileLoader")
+            verify(loader)
+            const reserved = item.planHeight
+            wait(120)
+            compare(loader.active,false)
+            shown.visible = true
+            tryCompare(loader,"status",Loader.Ready,2000)
+            const rendered = loader.item
+            shown.visible = false
+            wait(120)
+            compare(loader.item,rendered)
+            compare(item.planHeight,reserved)
+            shown.visible = true
+            compare(loader.item,rendered)
+            item.destroy()
+        }
         function test_declaredMetadataAndResponsiveWidth() {
             ahead.canRefine = true
             const item = make(ahead, "https://example.invalid/known.jpg", 2)

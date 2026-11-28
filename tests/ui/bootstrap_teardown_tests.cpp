@@ -225,5 +225,18 @@ int main(int argc, char** argv)
     // A second idle engine must be a safe no-op.
     QQmlApplicationEngine empty;
     genycaster::ui::bootstrap::releaseQmlRoots(empty, nullptr);
+
+    // Destruction callbacks can release sibling roots. A raw-pointer snapshot
+    // of rootObjects() would then attempt to delete a dangling entry.
+    QQmlApplicationEngine siblings;
+    siblings.loadData("import QtQml\nQtObject {}", QUrl{"inmemory:/sibling-a.qml"});
+    siblings.loadData("import QtQml\nQtObject {}", QUrl{"inmemory:/sibling-b.qml"});
+    if (siblings.rootObjects().size() != 2) return 15;
+    QPointer<QObject> siblingA = siblings.rootObjects().constFirst();
+    QPointer<QObject> siblingB = siblings.rootObjects().constLast();
+    QObject::connect(siblingA.data(), &QObject::destroyed, &app,
+        [&siblingB] { delete siblingB.data(); });
+    genycaster::ui::bootstrap::releaseQmlRoots(siblings, nullptr);
+    if (siblingA || siblingB || !siblings.rootObjects().isEmpty()) return 16;
     return 0;
 }

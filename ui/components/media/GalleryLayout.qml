@@ -404,7 +404,8 @@ Item {
             property bool admitted: false
 
             function scheduleAdmission() {
-                if (tileSlot.admitted || !root.scrollHostResolved || tileAdmission.running)
+                if (tileSlot.admitted || !root.scrollHostResolved || tileAdmission.running
+                        || !root.visible)
                     return
                 tileAdmission.restart()
             }
@@ -420,6 +421,12 @@ Item {
                 function onScrollHostResolvedChanged() {
                     tileSlot.scheduleAdmission()
                 }
+                function onVisibleChanged() {
+                    if (root.visible)
+                        tileSlot.scheduleAdmission()
+                    else
+                        tileAdmission.stop()
+                }
             }
 
             Timer {
@@ -430,7 +437,8 @@ Item {
                 interval: 16 + tileSlot.index * 32
                 repeat: false
                 onTriggered: {
-                    tileSlot.admitted = true
+                    if (root.visible)
+                        tileSlot.admitted = true
                 }
             }
 

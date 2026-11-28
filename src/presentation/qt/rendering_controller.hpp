@@ -58,6 +58,7 @@ class RenderingController final : public QObject {
   Q_PROPERTY(double vectorRasterScale READ vectorRasterScale NOTIFY renderingChanged)
   Q_PROPERTY(int layerSampleCount READ layerSampleCount NOTIFY renderingChanged)
   Q_PROPERTY(bool restartRequired READ restartRequired NOTIFY renderingChanged)
+  Q_PROPERTY(bool mediaDiagnosticsEnabled READ mediaDiagnosticsEnabled CONSTANT)
 
 public:
   /** @brief Creates rendering policy backed by the borrowed settings store. */
@@ -78,6 +79,12 @@ public:
   [[nodiscard]] double vectorRasterScale() const noexcept;
   [[nodiscard]] int layerSampleCount() const noexcept;
   [[nodiscard]] bool restartRequired() const noexcept;
+  [[nodiscard]] bool mediaDiagnosticsEnabled() const noexcept;
+
+  /** Reports raster geometry, not physical GPU memory or upload duration. */
+  Q_INVOKABLE void recordRasterGeometry(const QString &category,
+      int requestedWidth, int requestedHeight, double sourceWidth, double sourceHeight,
+      double viewWidth, double viewHeight) const;
 
   /** @brief Selects efficiency, adaptive, or fidelity. Returns false for an unknown value. */
   Q_INVOKABLE bool setProfile(const QString &profile);

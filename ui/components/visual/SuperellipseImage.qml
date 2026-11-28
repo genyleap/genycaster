@@ -488,6 +488,12 @@ Item {
             root.sizeReloadInFlight = false
             if (status === Image.Ready) {
                 root.rememberIntrinsicGeometry()
+                if (!root.providerFallback && typeof renderingController !== "undefined"
+                        && renderingController && renderingController.mediaDiagnosticsEnabled === true)
+                    renderingController.recordRasterGeometry(root.mediaCategory,
+                        root.stableSourceWidth, root.stableSourceHeight,
+                        imageSource.implicitWidth, imageSource.implicitHeight,
+                        root.width, root.height)
                 if (root.desiredDecodeSize.width > root.stableSourceWidth * 1.20
                         || root.desiredDecodeSize.height > root.stableSourceHeight * 1.20)
                     decodeSizeSettler.restart()

@@ -6,6 +6,7 @@ module;
 #include <QObject>
 #include <QPointer>
 #include <QList>
+#include <QLoggingCategory>
 #include <QString>
 #include <QVariant>
 #include <QQmlApplicationEngine>
@@ -17,6 +18,18 @@ module;
 module genycaster.ui.bootstrap.teardown;
 
 namespace genycaster::ui::bootstrap {
+namespace {
+Q_LOGGING_CATEGORY(qmlTeardownLog, "genycaster.qml.teardown", QtWarningMsg)
+
+[[nodiscard]] QList<QPointer<QObject>> guardedRoots(const QQmlApplicationEngine& engine)
+{
+    QList<QPointer<QObject>> roots;
+    for (QObject* const root : engine.rootObjects())
+        roots.append(QPointer<QObject>{root});
+    return roots;
+}
+} // namespace
+
 void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
 {
     // The window normally advances incubators on frame/timer callbacks. At
@@ -29,10 +42,15 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
     QQmlIncubationController finalController;
     engine.setIncubationController(&finalController);
     if (auto* const controller = engine.incubationController()) {
+        const auto initialCount = controller->incubatingObjectCount();
         const QDeadlineTimer deadline{500};
+        qCDebug(qmlTeardownLog) << "beforeDrain" << initialCount
+                              << "roots" << engine.rootObjects().size();
         while (controller->incubatingObjectCount() > 0 && !deadline.hasExpired())
             controller->incubateFor(10);
-        if (controller->incubatingObjectCount() > 0) {
+        const auto afterDrain = controller->incubatingObjectCount();
+        qCDebug(qmlTeardownLog) << "afterDrain" << afterDrain;
+        if (afterDrain > 0) {
             // A nested Loader can still be waiting for its parent or a URL.
             // Cancel it while its context exists. Destroying a parent loader
             // can invalidate other entries in this snapshot.
@@ -45,9 +63,16 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
                 }
             }
             for (const auto& loader : pending) {
-                if (loader) QQmlProperty::write(loader.data(), QStringLiteral("active"), false);
+                if (loader) {
+                    qCDebug(qmlTeardownLog) << "cancelLoaderType"
+                                           << loader->metaObject()->className();
+                    QQmlProperty::write(loader.data(), QStringLiteral("active"), false);
+                }
             }
         }
+        qCDebug(qmlTeardownLog) << "beforeDetach" << controller->incubatingObjectCount();
+        // With no controller, new creation during teardown is synchronous.
+        // Keep the existing popup/overlay lifetime boundary intact.
         engine.setIncubationController(nullptr);
     }
 
@@ -128,21 +153,36 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
     // engine.rootObjects() is authoritative. Do not dereference a raw
     // mainWindow pointer if its QML root was already destroyed on close.
     Q_UNUSED(mainWindow);
-    for (QObject* const root : engine.rootObjects()) {
-        if (auto* const window = qobject_cast<QQuickWindow*>(root))
+    for (const auto& root : guardedRoots(engine)) {
+        if (auto* const window = qobject_cast<QQuickWindow*>(root.data()))
             releaseWindowScene(window);
     }
+    qCDebug(qmlTeardownLog) << "afterSceneCleanup" << "roots" << engine.rootObjects().size();
 
     // Do not defer root deletion until the QQmlApplicationEngine destructor:
     // its referenced runtime may already have been released by then.
     // deleteLater() is invalid here because the main event loop has stopped.
-    for (QObject* const root : engine.rootObjects())
-        delete root;
+    // A root destruction handler can release another root. The engine's
+    // snapshot contains raw pointers, so guard every entry before deletion.
+    for (const auto& root : guardedRoots(engine)) {
+        if (root)
+            delete root.data();
+    }
 
     // Drain deferred child cleanup while Qt still has a GUI dispatcher;
     // never restart the event loop or admit new network requests.
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     engine.collectGarbage();
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    // Reattach only to read the public count, not to finalize objects whose
+    // creation contexts have already been destroyed. Qt's engine warning
+    // tracks a wider creation counter, including deferred control properties.
+    if (qmlTeardownLog().isDebugEnabled()) {
+        engine.setIncubationController(&finalController);
+        qCDebug(qmlTeardownLog) << "afterRootCleanup"
+                              << finalController.incubatingObjectCount()
+                              << "roots" << engine.rootObjects().size();
+        engine.setIncubationController(nullptr);
+    }
 }
 } // namespace genycaster::ui::bootstrap

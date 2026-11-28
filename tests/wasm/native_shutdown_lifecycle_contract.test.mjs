@@ -30,7 +30,7 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
     const overlayCleanup = teardown.indexOf('obj->inherits("QQuickOverlay")');
     const overlayDelete = teardown.indexOf('delete overlay.data();');
     const roots = teardown.indexOf("engine.rootObjects()", overlayDelete);
-    const destroy = teardown.indexOf("delete root;");
+    const destroy = teardown.indexOf("delete root.data();");
     const drain = teardown.lastIndexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
     const collect = teardown.indexOf("engine.collectGarbage();");
     assert.ok(finalController >= 0 && incubate > finalController
@@ -43,6 +43,9 @@ test("native shutdown owns QML teardown before C++ runtime/controller stack unwi
         "destroy QML owners, remaining Popups, Overlay, and only then QML windows");
     assert.match(teardown, /while \(controller->incubatingObjectCount\(\) > 0 && !deadline.hasExpired\(\)\)/);
     assert.match(teardown, /for \(QObject\* const root : engine\.rootObjects\(\)\)/);
+    assert.match(teardown, /for \(const auto& root : guardedRoots\(engine\)\)/);
+    assert.match(teardown, /"beforeDrain"/);
+    assert.match(teardown, /"afterRootCleanup"/);
     assert.match(teardown, /QPointer<QObject>/);
     assert.doesNotMatch(teardown, /child->setParentItem\(nullptr\)/,
         "Qt 6.12 macOS crashes when visual teardown disconnects attached overlays");
