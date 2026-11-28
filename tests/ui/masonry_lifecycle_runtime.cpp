@@ -117,11 +117,11 @@ import QtQuick.Controls
 ScrollBar {}
 )QML"),"Farcaster.Client",1,0,"GenyScrollBar");
         qmlRegisterType(QUrl::fromLocalFile(wallPath),"Fixture",1,0,"FeedMasonryView");
-        QQmlPropertyMap controller;
-        controller.insert("shuttingDown",false);
-        controller.insert("stallDiagnosticsEnabled",false);
+        const std::unique_ptr<QQmlPropertyMap> controller{QQmlPropertyMap::create()};
+        controller->insert("shuttingDown",false);
+        controller->insert("stallDiagnosticsEnabled",false);
         QQmlEngine engine;
-        engine.rootContext()->setContextProperty("renderingController",&controller);
+        engine.rootContext()->setContextProperty("renderingController",controller.get());
         QQmlComponent component{&engine};
         component.setData(R"QML(
 import QtQuick
@@ -181,10 +181,10 @@ Window {
         require(source->reconcile(sourceRows(500,"fixture:")));
         const auto slotItems=[&]{return namedItems(wall,"masonrySlot");};
         auto settled=[&](const int index) {
-            const auto slots=slotItems();
-            if(layout->windowIndexForSource(index)<0 || slots.size()!=layout->count()) return false;
+            const auto liveSlots=slotItems();
+            if(layout->windowIndexForSource(index)<0 || liveSlots.size()!=layout->count()) return false;
             bool targetReady=false;
-            for(auto* slot:slots) {
+            for(auto* slot:liveSlots) {
                 if(slot->property("retiring").toBool()) return false;
                 if(slot->property("sourceIndex").toInt()==index)
                     targetReady=slot->property("cardReady").toBool();
@@ -230,7 +230,7 @@ Window {
             require(slot->property("stableKey").toString().startsWith("replacement:"));
         wall->setVisible(false);
         require(QTest::qWaitFor([&]{return layout->count()==0&&slotItems().isEmpty();},5000));
-        controller.insert("shuttingDown",true);
+        controller->insert("shuttingDown",true);
         object.reset();
         QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
         engine.collectGarbage();
