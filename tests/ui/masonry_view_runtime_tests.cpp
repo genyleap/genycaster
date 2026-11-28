@@ -141,12 +141,13 @@ Feed.FeedMasonryView {
     window.setHeight(740);
     root->setParentItem(window.contentItem());
     window.show();
-    QTest::qWait(150);
-
     auto* layout = root->findChild<MasonryWindowModel*>(QStringLiteral("masonryWindowModel"));
     auto* source = root->findChild<FeedRowsModel*>();
     require(layout && source && source->count() == 800);
-    require(layout->count() > 0 && layout->count() < 70);
+    require(QTest::qWaitFor([&] {
+        return layout->count() > 0 && layout->count() < 70
+            && std::abs(layout->geometryAt(0).value(QStringLiteral("height")).toDouble() - 140.0) < 2.0;
+    }, 2000));
     const QVariantMap first = layout->geometryAt(0);
     require(first.value(QStringLiteral("stableKey")).toString() == QStringLiteral("cast:0"));
     require(std::abs(first.value(QStringLiteral("height")).toDouble() - 140.0) < 2.0);

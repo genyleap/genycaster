@@ -84,8 +84,9 @@ test('ProfileSurface never clears already-visible posts when late banner or bio 
   assert.match(switchBody,/profileRowsModel\.clear\(\)/);
   assert.match(switchBody,/stableModelSyncTimer\.restart\(\)/);
   assert.match(profile,/smoothReveal: true/);
-  assert.match(profile,/readonly property bool metadataPending:/);
-  assert.match(profile,/height: Boolean\(root\.activeDetail\.bannerUrl\) \|\| metadataPending/);
+  const banner=profile.slice(profile.indexOf("id: bannerFrame"),profile.indexOf("id: bannerImage"));
+  assert.match(banner,/height: Math\.max\(root\.compact \? 132 : 156/);
+  assert.doesNotMatch(banner,/height: Boolean\(root\.activeDetail\.bannerUrl\)/);
   assert.match(profile,/retainPreviousWhileLoading: false/);
 });
 

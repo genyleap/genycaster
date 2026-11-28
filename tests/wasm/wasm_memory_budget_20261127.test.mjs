@@ -22,8 +22,9 @@ test("shared raster lifetime follows viewport, releases pixels without losing in
  assert.match(qml,/requireOwnerVisible: false/);
  assert.match(qml,/id: rasterReleaseTimer[\s\S]*?interval: root\.rasterPageVisible \? 1100 : 250[\s\S]*?root\.activeSource = ""/);
  assert.match(qml,/if \(!root\.componentReady \|\| !root\.rasterEligible\)/);
- assert.match(qml,/rememberedIntrinsicWidth : imageSource\.implicitWidth/);
- assert.match(qml,/onSourceChanged: \{\s*root\.rememberedIntrinsicWidth = 0/);
+ assert.match(qml,/readonly property real sourceImplicitWidth: rememberedIntrinsicWidth/);
+ assert.match(qml,/root\.rememberedIntrinsicSize = Qt\.size\(width, height\)/);
+ assert.match(qml,/onSourceChanged: \{\s*intrinsicGeometryTimer\.stop\(\)\s*root\.rememberedIntrinsicSize = Qt\.size\(0, 0\)/);
  assert.match(qml,/cache: root\.remoteSource \|\| root\.browserRemoteRaster \? false/);
 });
 test("Mini Apps has a real bounded viewport and mirrors the outer scroll through model resets",()=>{

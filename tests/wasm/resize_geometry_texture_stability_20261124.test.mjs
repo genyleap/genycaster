@@ -33,7 +33,13 @@ test("resize keeps decoded pixels; only a meaningful settled decode size replace
     commit(false);
     assert.equal(root.stableDecodeSize.width,1024,"do not cancel an in-flight decode");
     assert.match(qml,/sourceSize: root\.stableDecodeSize/);
-    assert.match(qml,/onSourceChanged: \{\s*root\.sizeReloadInFlight = false/);
+    assert.match(qml,/onSourceChanged: \{[\s\S]*?root\.rememberedIntrinsicSize = Qt\.size\(0, 0\)\s*root\.sizeReloadInFlight = false/);
+    imageSource.status = Image.Ready;
+    root.desiredDecodeSize = {width:128,height:128};
+    commit(false);
+    assert.equal(root.stableDecodeSize.width,1024,"resident texture must not downgrade");
+    commit(true);
+    assert.equal(root.stableDecodeSize.width,128,"a new source can use a smaller budget");
     assert.match(qml,/onActiveSourceChanged: \{\s*root\.sizeReloadInFlight = false/);
     assert.match(qml,/imageSource\[propertyName\] = root\.retainPreviousWhileLoading \|\| root\.sizeReloadInFlight/);
 });

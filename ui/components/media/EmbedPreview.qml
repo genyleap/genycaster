@@ -416,6 +416,7 @@ Item {
             asynchronousTiles: !root.magazineCard
             sharedMediaGeometry: root.sharedMediaGeometry
             lockFeedGeometry: root.magazineCard
+                || (root.sharedMediaGeometry !== null && !root.mobileViewport)
             dynamicAspectDiscovery: root.magazineCard || root.mobileViewport
             onOpenRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
         }

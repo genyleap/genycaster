@@ -6,27 +6,29 @@ const read = path => readFileSync(new URL('../../'+path, import.meta.url), 'utf8
 test('Mini App detail cover preserves the supplied artwork and its rounded corners', () => {
   const qml=read('ui/components/apps/AppsSurface.qml');
   const cover=qml.slice(qml.indexOf('id: detailCover'),qml.indexOf('id: detailCover')+1700);
-  assert.match(cover,/detailCover\.sourceImplicitHeight \/ detailCover\.sourceImplicitWidth/);
+  assert.match(cover,/\(detailScroll \? detailScroll\.width : 0\) \* 0\.52/);
+  assert.doesNotMatch(cover,/detailCover\.sourceImplicit/);
   assert.match(cover,/fillMode: Image\.PreserveAspectFit/);
   assert.match(cover,/clipToSuperellipse: true/);
   assert.doesNotMatch(cover,/fillMode: Image\.PreserveAspectCrop/);
   assert.match(cover,/curveDepth: Theme\.curveContainer/);
 });
 
-test('Mini App screenshots preserve aspect and skip broken publisher assets', () => {
+test('Mini App screenshots preserve aspect and retain geometry on broken publisher assets', () => {
   const qml=read('ui/components/apps/AppsSurface.qml');
   const section=qml.slice(qml.indexOf('id: screenshotSection'));
-  assert.match(section,/screenshotFailures < screenshotTotal/);
+  assert.match(section,/visible: screenshotTotal > 0/);
   assert.match(section,/model: root\.selectedMiniApp\.screenshots \|\| \[\]/);
-  assert.match(section,/visible: !loadFailed/);
+  assert.match(section,/width: 220\s*height: 150/);
+  assert.doesNotMatch(section,/visible: !loadFailed/);
   assert.match(section,/fillMode: Image\.PreserveAspectFit/);
   assert.match(section,/clipToSuperellipse: true/);
-  assert.match(section,/onLoadFailedChanged:/);
+  assert.match(section,/showFailureIndicator: true/);
   assert.doesNotMatch(section,/visible: screenshotPreview\.loadFailed/);
   const cpp=read('ui/app/miniapp/catalog.cpp');
   assert.match(cpp,/screenshotArray = app\.value\(QStringLiteral\("screenshotUrls"\)\)/);
   assert.match(cpp,/screenshotArray = row\.value\(QStringLiteral\("screenshotUrls"\)\)/);
-  assert.match(qml,/screenshotSection\.screenshotFailures = 0/);
+  assert.doesNotMatch(qml,/screenshotFailures/);
 });
 
 test('mobile conversation actions are at the trailing edge and create action uses desktop compose symbol', () => {

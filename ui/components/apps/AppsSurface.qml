@@ -261,7 +261,6 @@ Item {
     }
     function showAppDetails(app) {
         if (!app || !String(app.homeUrl || "").length) return
-        screenshotSection.screenshotFailures = 0
         root.selectedMiniApp = app
         miniAppDetailDrawer.open()
     }
@@ -1541,13 +1540,10 @@ Item {
                     SuperellipseImage {
                         id: detailCover
                         Layout.fillWidth: true
-                        // Match the actual banner ratio instead of cutting off
-                        // its edges with a fixed-height, center-cropped box.
+                        // Reserve the cover independently of its decoded raster.
+                        // PreserveAspectFit still shows the entire artwork.
                         Layout.preferredHeight: visible ? Math.max(112, Math.min(280,
-                            (detailScroll ? detailScroll.width : 0) * (detailCover.sourceImplicitWidth > 0
-                                && detailCover.sourceImplicitHeight > 0
-                                ? detailCover.sourceImplicitHeight / detailCover.sourceImplicitWidth
-                                : 0.52))) : 0
+                            (detailScroll ? detailScroll.width : 0) * 0.52)) : 0
                         visible: String(root.selectedMiniApp.coverSource || "").length > 0
                         source: String(root.selectedMiniApp.coverSource || "")
                         mediaCategory: "miniapps"
@@ -1709,12 +1705,12 @@ Item {
                     ColumnLayout {
                         id: screenshotSection
                         Layout.fillWidth: true
-                        // The publisher may remove screenshots while their URLs
-                        // remain in the catalogue. Never show empty error tiles.
-                        property int screenshotFailures: 0
+                        // A failed network request is not evidence that the
+                        // publisher removed a screenshot. Keep the section's
+                        // geometry until the catalogue changes its identities.
                         readonly property int screenshotTotal: root.selectedMiniApp.screenshots
                             ? root.selectedMiniApp.screenshots.length : 0
-                        visible: screenshotTotal > 0 && screenshotFailures < screenshotTotal
+                        visible: screenshotTotal > 0
                         spacing: Theme.space2
                         DirectionAwareLabel {
                             Layout.fillWidth: true
@@ -1735,18 +1731,15 @@ Item {
                                 id: screenshotRow
                                 spacing: Theme.space2
                                 Repeater {
-                                    // At most five screenshots: load all five so
-                                    // failures offscreen can collapse the section.
+                                    // The catalogue bounds this list to five
+                                    // screenshots; failed slots remain stable.
                                     model: root.selectedMiniApp.screenshots || []
                                     delegate: SuperellipseImage {
                                         id: screenshotPreview
                                         required property string modelData
-                                        property bool failureCounted: false
-                                        visible: !loadFailed
-                                        width: sourceImplicitWidth > 0 && sourceImplicitHeight > 0
-                                            ? Math.max(94, Math.min(240,
-                                                height * sourceImplicitWidth / sourceImplicitHeight))
-                                            : 220
+                                        // Keep a stable horizontal slot even on
+                                        // failure/redecode; only pixels change.
+                                        width: 220
                                         height: 150
                                         source: modelData
                                         mediaCategory: "miniapps"
@@ -1754,19 +1747,13 @@ Item {
                                         deferNewLoadsWhileScrolling: false
                                         framePacedPresentation: false
                                         showLoadingIndicator: false
-                                        showFailureIndicator: false
+                                        showFailureIndicator: true
                                         showManualLoadIndicator: false
                                         fillMode: Image.PreserveAspectFit
                                         requestedSourceWidth: 480
                                         requestedSourceHeight: 480
                                         clipToSuperellipse: true
                                         curveDepth: Theme.curveControl
-                                        onLoadFailedChanged: {
-                                            if (loadFailed && !failureCounted) {
-                                                failureCounted = true
-                                                screenshotSection.screenshotFailures++
-                                            }
-                                        }
                                     }
                                 }
                             }

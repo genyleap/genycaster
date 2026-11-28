@@ -65,6 +65,14 @@ Item {
             height: 700
         }
         Item {
+            id: timeline
+            objectName: "timelineRow"
+            property string stableKey: "cast:timeline"
+            y: 2600
+            width: 320
+            height: 700
+        }
+        Item {
             id: nextCast
             objectName: "masonrySlot"
             property string stableKey: "cast:next"
@@ -134,6 +142,25 @@ Item {
             wait(30)
             item = make(ahead, url, 0)
             compare(item.planHeight, 640)
+            item.destroy()
+        }
+        function test_desktopTimelineReuseAndLateMetadata() {
+            const url = "https://example.invalid/timeline.jpg"
+            timeline.stableKey = "cast:timeline"
+            let item = make(timeline, url, 0)
+            item.dynamicAspectDiscovery = false
+            const initialHeight = item.planHeight
+            item.rememberAspect(0, 0.5)
+            compare(item.planHeight, initialHeight)
+            item.embeds = [{kind:"image",url:url,width:300,height:600}]
+            compare(item.planHeight, initialHeight)
+            item.destroy()
+            wait(30)
+            item = make(timeline, url, 0)
+            item.dynamicAspectDiscovery = false
+            compare(item.planHeight, initialHeight)
+            timeline.stableKey = "cast:timeline-other"
+            verify(item.planHeight > initialHeight)
             item.destroy()
         }
         function test_declaredMetadataAndResponsiveWidth() {

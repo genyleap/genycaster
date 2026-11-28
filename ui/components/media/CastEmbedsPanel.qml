@@ -268,6 +268,7 @@ ColumnLayout {
         asynchronousTiles: root.asynchronousTiles && !root.magazineCard
         sharedMediaGeometry: root.sharedMediaGeometry
         lockFeedGeometry: root.magazineCard
+            || (root.sharedMediaGeometry !== null && !root.mobileViewport)
         // Desktop Timeline keeps its fixed media reservation. On phones a
         // portrait screenshot must instead adopt the decoded natural ratio,
         // after kinetic scrolling settles, so the full-width image is not

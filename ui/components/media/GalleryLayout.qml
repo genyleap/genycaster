@@ -60,7 +60,8 @@ Item {
         root.geometryOwner = null
         let candidate = root.parent
         while (candidate !== null) {
-            if (candidate.objectName === "masonrySlot")
+            if (candidate.objectName === "masonrySlot"
+                    || (!root.geometryOwner && candidate.stableKey !== undefined))
                 root.geometryOwner = candidate
             if (candidate.moving !== undefined && candidate.contentY !== undefined) {
                 root.scrollHost = candidate
@@ -154,9 +155,24 @@ Item {
 
     function reservationKey(key) {
         const owner = root.geometryOwner
-        return owner && owner.stableKey ? JSON.stringify([owner.stableKey, key]) : ""
+        return owner && owner.stableKey ? JSON.stringify([
+            owner.objectName === "masonrySlot" ? "magazine" : "timeline",
+            owner.stableKey, key]) : ""
     }
     onEmbedsChanged: if (geometryInitialized) root.syncReservations()
+    Connections {
+        target: root.geometryOwner
+        ignoreUnknownSignals: true
+        function onStableKeyChanged() {
+            // A pooled Timeline delegate may be assigned to a different
+            // cast even when two posts happen to reference the same URL.
+            root.reservedAspects = ({})
+            root.discoveredAspects = ({})
+            root.pendingAspects = ({})
+            root.decodedOnce = Object.create(null)
+            root.syncReservations()
+        }
+    }
     function syncReservations() {
         if (!root.geometryInitialized) return
         // Keep the reservation for unchanged media identities when a model
@@ -204,7 +220,7 @@ Item {
     }
 
     function rememberAspect(index, ratio) {
-        if (!root.dynamicAspectDiscovery) return
+        if (!root.dynamicAspectDiscovery && !root.lockFeedGeometry) return
         const value = Number(ratio || 0)
         if (!(value > 0) || !isFinite(value))
             return

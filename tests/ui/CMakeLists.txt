@@ -611,6 +611,23 @@ set_tests_properties(ui.mobile_portrait_gallery PROPERTIES
     TIMEOUT 20 LABELS "ui;qt;mobile;media;scroll"
     ENVIRONMENT "QT_QPA_PLATFORM=minimal;QT_QUICK_BACKEND=software")
 
+# Exercise production QML handlers and raster lifecycle with real Qt Quick
+# events, without compiling the entire client or requiring a live account.
+if(NOT CMAKE_CROSSCOMPILING)
+    find_program(GENYCASTER_QML_TEST_RUNNER NAMES qmltestrunner
+        HINTS "${Qt6_DIR}/../../../bin" NO_DEFAULT_PATH)
+    if(GENYCASTER_QML_TEST_RUNNER)
+        foreach(fixture IN ITEMS media_gallery_zoom_runtime shared_raster_geometry_runtime)
+            add_test(NAME ui.${fixture}
+                COMMAND "${CMAKE_COMMAND}" -E env
+                    "QML_TEST_RUNNER=${GENYCASTER_QML_TEST_RUNNER}"
+                    "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/${fixture}.py")
+            set_tests_properties(ui.${fixture} PROPERTIES
+                TIMEOUT 30 LABELS "ui;qt;media;scroll")
+        endforeach()
+    endif()
+endif()
+
 add_executable(farcaster_media_scroll_tests
     media_scroll_tests.cpp
     "${genycasterUiSourceDir}/app/social/feed_rows.cpp"

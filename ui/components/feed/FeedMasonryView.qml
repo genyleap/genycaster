@@ -329,10 +329,25 @@ Flickable {
             // Once revealed, transient inner Layout notifications cannot
             // toggle its opacity or bring the skeleton back.
             property bool cardPresented: false
+            readonly property bool presentationEligible: contentReady
+                && Math.abs(Math.ceil(paintedHeight) - cardHeight) <= 1
             readonly property bool cardReady: cardLoader.status === Loader.Ready
-                && loadedCard !== null && (cardPresented
-                    || (contentReady && Math.abs(Math.ceil(paintedHeight) - cardHeight) <= 1))
-            onCardReadyChanged: if (cardReady) cardPresented = true
+                && loadedCard !== null && cardPresented
+            // Never mutate a dependency from the binding's own NOTIFY
+            // handler. Publish the presentation latch on the next event turn.
+            onPresentationEligibleChanged: {
+                if (presentationEligible && !cardPresented)
+                    presentationCommit.start()
+            }
+            Timer {
+                id: presentationCommit
+                interval: 0
+                repeat: false
+                onTriggered: {
+                    if (slot.presentationEligible)
+                        slot.cardPresented = true
+                }
+            }
             readonly property bool intersectsViewport: view.visible && view.positioned
                 && y + height > view.contentY && y < view.contentY + view.height
             property bool everExposed: false
@@ -396,11 +411,12 @@ Flickable {
             }
             Component.onCompleted: {
                 if (intersectsViewport) markExposed()
-                if (cardReady) cardPresented = true
+                if (presentationEligible) presentationCommit.start()
                 offerEstimate()
             }
             onStableKeyChanged: {
                 cardPresented = false
+                if (presentationEligible) presentationCommit.restart()
                 everExposed = view.wasMediaRowExposed(stableKey)
                 if (intersectsViewport) markExposed()
                 offerEstimate()

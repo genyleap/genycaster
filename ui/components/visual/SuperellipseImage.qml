@@ -118,8 +118,11 @@ Item {
     }
     // Keep intrinsic dimensions across viewport eviction, but never across
     // a source identity change. Layout must not jump as pixels are released.
-    property real rememberedIntrinsicWidth: 0
-    property real rememberedIntrinsicHeight: 0
+    // Publish both intrinsic dimensions in a single transaction. A decode
+    // upgrade can round pixels differently; it is not new source metadata.
+    property size rememberedIntrinsicSize: Qt.size(0, 0)
+    readonly property real rememberedIntrinsicWidth: rememberedIntrinsicSize.width
+    readonly property real rememberedIntrinsicHeight: rememberedIntrinsicSize.height
     // AnimatedImage cannot consume a QQuickImageProvider URL. Decode the
     // original canonical URL and use the bounded HTTPS image gateway on WASM.
     // Unsupported sources still keep the ordinary one-frame image fallback.
@@ -201,17 +204,26 @@ Item {
 
     readonly property int status: imageSource.status
     readonly property real progress: imageSource.progress
-    readonly property real sourceImplicitWidth: root.remoteRaster && imageSource.status !== Image.Ready
-                                               ? rememberedIntrinsicWidth : imageSource.implicitWidth
-    readonly property real sourceImplicitHeight: root.remoteRaster && imageSource.status !== Image.Ready
-                                                ? rememberedIntrinsicHeight : imageSource.implicitHeight
+    readonly property real sourceImplicitWidth: rememberedIntrinsicWidth
+    readonly property real sourceImplicitHeight: rememberedIntrinsicHeight
+    readonly property real intrinsicAspect: rememberedIntrinsicSize.width > 0
+        && rememberedIntrinsicSize.height > 0
+        ? rememberedIntrinsicSize.width / rememberedIntrinsicSize.height : 0
     readonly property Item renderItem: directRaster.item !== null && root.directMask ? directRaster.item : imageSource
-    readonly property real paintedWidth: imageSource.paintedWidth
-    readonly property real paintedHeight: imageSource.paintedHeight
-    readonly property real paintedX: Math.max(0, (root.width - imageSource.paintedWidth) / 2)
-    readonly property real paintedY: Math.max(0, (root.height - imageSource.paintedHeight) / 2)
-    readonly property real paintedAspectRatio: imageSource.paintedHeight > 1
-                                               ? imageSource.paintedWidth / imageSource.paintedHeight : 0
+    // Keep the fitted/cropped rectangle stable while Image swaps textures.
+    // Do not use intermediate paintedWidth/Height from the loading decoder.
+    readonly property real paintedWidth: intrinsicAspect > 0
+        ? (fillMode === Image.PreserveAspectFit ? Math.min(width, height * intrinsicAspect)
+           : fillMode === Image.PreserveAspectCrop ? Math.max(width, height * intrinsicAspect) : width)
+        : imageSource.paintedWidth
+    readonly property real paintedHeight: intrinsicAspect > 0
+        ? (fillMode === Image.PreserveAspectFit ? Math.min(height, width / intrinsicAspect)
+           : fillMode === Image.PreserveAspectCrop ? Math.max(height, width / intrinsicAspect) : height)
+        : imageSource.paintedHeight
+    readonly property real paintedX: Math.max(0, (root.width - root.paintedWidth) / 2)
+    readonly property real paintedY: Math.max(0, (root.height - root.paintedHeight) / 2)
+    readonly property real paintedAspectRatio: root.paintedHeight > 1
+        ? root.paintedWidth / root.paintedHeight : 0
     readonly property rect visibleContentRect: root.fillMode === Image.PreserveAspectFit
                                                  ? Qt.rect(root.paintedX, root.paintedY,
                                                            Math.max(1, root.paintedWidth),
@@ -271,9 +283,9 @@ Item {
         if (!initial && previous.width > 0 && previous.height > 0) {
             const grows = next.width > previous.width * 1.20
                        || next.height > previous.height * 1.20
-            const shrinks = next.width < previous.width * 0.50
-                         && next.height < previous.height * 0.50
-            if (!grows && !shrinks)
+            // A resident texture is not downgraded on shrink. Eviction
+            // or a new media identity resets the allocation to its new size.
+            if (!grows)
                 return
         }
         if (next.width === previous.width && next.height === previous.height)
@@ -457,24 +469,38 @@ Item {
             root.invalidatePresentationAdmission()
         root.synchronizePresentation()
     }
+    function rememberIntrinsicGeometry() {
+        if (imageSource.status !== Image.Ready || root.providerFallback
+                || root.rememberedIntrinsicSize.width > 0
+                || root.activeSource.toString().length === 0)
+            return
+        const width = imageSource.implicitWidth
+        const height = imageSource.implicitHeight
+        if (width > 0 && height > 0 && isFinite(width) && isFinite(height))
+            root.rememberedIntrinsicSize = Qt.size(width, height)
+    }
     onStatusChanged: {
         if (status === Image.Ready || status === Image.Error) {
             root.sizeReloadInFlight = false
             if (status === Image.Ready) {
-                if (root.remoteRaster && !root.providerFallback) {
-                    root.rememberedIntrinsicWidth = imageSource.implicitWidth
-                    root.rememberedIntrinsicHeight = imageSource.implicitHeight
-                }
-                if (root.desiredDecodeSize !== root.stableDecodeSize)
+                root.rememberIntrinsicGeometry()
+                if (root.desiredDecodeSize.width > root.stableSourceWidth * 1.20
+                        || root.desiredDecodeSize.height > root.stableSourceHeight * 1.20)
                     decodeSizeSettler.restart()
             }
         }
     }
+    Timer {
+        id: intrinsicGeometryTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.rememberIntrinsicGeometry()
+    }
     onSizeReloadInFlightChanged: root.syncRetainWhileLoading()
     onRetainPreviousWhileLoadingChanged: root.syncRetainWhileLoading()
     onSourceChanged: {
-        root.rememberedIntrinsicWidth = 0
-        root.rememberedIntrinsicHeight = 0
+        intrinsicGeometryTimer.stop()
+        root.rememberedIntrinsicSize = Qt.size(0, 0)
         root.sizeReloadInFlight = false
         root.manualLoadRequested = false
         // Invalidate synchronously: derived effectiveSource bindings may still
@@ -570,6 +596,8 @@ Item {
         // A momentary zero-size layout must not detach an existing texture.
         source: root.activeSource
         sourceSize: root.stableDecodeSize
+        onImplicitWidthChanged: if (status === Image.Ready) intrinsicGeometryTimer.restart()
+        onImplicitHeightChanged: if (status === Image.Ready) intrinsicGeometryTimer.restart()
         fillMode: root.fillMode
         asynchronous: root.asynchronous
         // RemoteImageProvider already has bounded memory + disk caches. Avoid
@@ -609,8 +637,8 @@ Item {
             property vector4d contour: Qt.vector4d(width, height,
                 Math.min(root.curveDepth, width / 2, height / 2), root.exponent)
             property vector2d uvScale: root.fillMode === Image.PreserveAspectCrop
-                ? Qt.vector2d(Math.min(1, width / Math.max(1, imageSource.paintedWidth)),
-                              Math.min(1, height / Math.max(1, imageSource.paintedHeight)))
+                ? Qt.vector2d(Math.min(1, width / Math.max(1, root.paintedWidth)),
+                              Math.min(1, height / Math.max(1, root.paintedHeight)))
                 : Qt.vector2d(1, 1)
             property real pixelWidth: 1 / Math.max(1, Screen.devicePixelRatio)
             fragmentShader: "qrc:/genycaster/effects/raster-contour.frag.qsb"
@@ -626,7 +654,7 @@ Item {
         z: 1.5
         anchors.fill: parent
         active: root.allowAnimation && root.visible && root.componentReady
-            && root.rasterEligible
+            && root.rasterRetained && root.activeSource.toString().length > 0
             && root.animatedGifUrl.length > 0 && !Theme.powerSave
             && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
         sourceComponent: AnimatedImage {
@@ -637,7 +665,7 @@ Item {
         // the single source of admission and is allowed to fail back cleanly
         // when the animation codec or network is unavailable.
         source: root.componentReady && root.hasRenderableGeometry
-                && animationScope.eligible && !Theme.powerSave
+                && root.rasterRetained && !Theme.powerSave
                 && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
                 && root.automaticDownloadAllowed
                 && root.activeSource.toString().length > 0

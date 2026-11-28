@@ -12,6 +12,15 @@ Popup {
     property int requestedIndex: 0
     readonly property int itemCount: root.items ? root.items.length : 0
     readonly property int currentIndex: gallery.currentIndex
+    readonly property var currentPage: gallery.currentItem
+    readonly property var currentZoom: currentPage ? currentPage.zoomViewport : null
+
+    function zoomCurrent(factor) {
+        if (currentZoom) currentZoom.zoomBy(factor)
+    }
+    function resetCurrentZoom() {
+        if (currentZoom) currentZoom.reset()
+    }
 
     function compatibilityStickerUrl(item) {
         if (!item || (Qt.platform.os !== "android" && Qt.platform.os !== "wasm"))
@@ -38,8 +47,12 @@ Popup {
     }
 
     function openAt(mediaItems, index) {
-        root.items = mediaItems || []
-        root.requestedIndex = Math.max(0, Math.min(root.itemCount - 1, Number(index || 0)))
+        if (!mediaItems || mediaItems.length === 0) return
+        root.resetCurrentZoom()
+        root.items = mediaItems
+        const requested = Number(index || 0)
+        root.requestedIndex = Math.max(0, Math.min(root.itemCount - 1,
+            isFinite(requested) ? Math.floor(requested) : 0))
         gallery.currentIndex = root.requestedIndex
         root.open()
     }
@@ -75,8 +88,11 @@ Popup {
                 duration: Theme.reduceMotion ? 0 : Theme.motionStandard
                 easing.type: Easing.OutCubic
             }
-            ScaleAnimator {
-                from: 0.985
+            // Animate only the media stage, not the popup's layout or chrome.
+            NumberAnimation {
+                target: gallery
+                property: "scale"
+                from: Theme.reduceMotion ? 1 : 0.92
                 to: 1
                 duration: Theme.reduceMotion ? 0 : Theme.motionStandard
                 easing.type: Easing.OutCubic
@@ -90,10 +106,13 @@ Popup {
                 to: 0
                 duration: Theme.reduceMotion ? 0 : Theme.motionFast
             }
-            ScaleAnimator {
+            NumberAnimation {
+                target: gallery
+                property: "scale"
                 from: 1
-                to: 0.992
+                to: Theme.reduceMotion ? 1 : 0.96
                 duration: Theme.reduceMotion ? 0 : Theme.motionFast
+                easing.type: Easing.InCubic
             }
         }
     }
@@ -113,8 +132,10 @@ Popup {
         // gallery composition.
         SwipeView {
             id: gallery
+            objectName: "mediaGalleryStage"
             anchors.fill: parent
-            interactive: root.itemCount > 1
+            interactive: root.itemCount > 1 && (!root.currentZoom
+                || (!root.currentZoom.zoomed && !root.currentZoom.gestureActive))
             clip: true
 
             Repeater {
@@ -125,6 +146,8 @@ Popup {
                     id: mediaPage
                     required property int index
                     required property var modelData
+                    readonly property var zoomViewport: mediaPageLoader.item
+                        ? mediaPageLoader.item.zoomViewport : null
                     readonly property rect paintedRect: mediaPageLoader.item !== null
                                                         ? mediaPageLoader.item.paintedRect
                                                         : Qt.rect(0, 0, width, height)
@@ -140,65 +163,123 @@ Popup {
 
                         sourceComponent: Component {
                             Item {
-                                readonly property rect paintedRect: fullImage.status === Image.Ready
-                                                                    ? Qt.rect((width - fullImage.paintedWidth) / 2,
-                                                                              (height - fullImage.paintedHeight) / 2,
-                                                                              fullImage.paintedWidth,
-                                                                              fullImage.paintedHeight)
-                                                                    : Qt.rect(0, 0, width, height)
+                                property alias zoomViewport: zoomStage
+                                readonly property rect paintedRect: zoomStage.intrinsicAspect > 0
+                                    ? Qt.rect((width - zoomStage.fittedWidth) / 2,
+                                              (height - zoomStage.fittedHeight) / 2,
+                                              zoomStage.fittedWidth, zoomStage.fittedHeight)
+                                    : Qt.rect(0, 0, width, height)
 
-                                Image {
-                                    id: fullImage
+                                MediaZoomViewport {
+                                    id: zoomStage
+                                    objectName: "mediaZoomStage"
                                     anchors.fill: parent
-                                    source: root.compatibilityStickerUrl(mediaPage.modelData).length > 0
-                                        ? root.compatibilityStickerUrl(mediaPage.modelData)
-                                        : dataStorage.remoteImageSource(root.sourceFor(mediaPage.modelData),
-                                              String(mediaPage.modelData.mediaCategory || "photos"),true)
-                                    readonly property int requestedDecodeEdge: Math.min(
-                                        Qt.platform.os === "wasm"
-                                            ? (mediaPage.index === gallery.currentIndex ? 2048 : 768)
-                                            : (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 2048 : 4096),
-                                        Math.max(256, Math.ceil(Math.max(width, height) * Screen.devicePixelRatio
-                                        * renderingController.mediaDecodeScale / 256) * 256))
-                                    property int decodeEdge: requestedDecodeEdge
-                                    property bool presentedImage: false
-                                    Component.onCompleted: {
-                                        decodeEdge = requestedDecodeEdge
-                                        if (fullImage["retainWhileLoading"] !== undefined)
-                                            fullImage["retainWhileLoading"] = true
+                                    enabled: root.opened
+                                    interactionEnabled: mediaPage.index === gallery.currentIndex
+                                        && fullImage.presentedImage
+                                    fittedWidth: intrinsicAspect > 0
+                                        ? Math.min(width, height * intrinsicAspect) : 0
+                                    fittedHeight: intrinsicAspect > 0
+                                        ? fittedWidth / intrinsicAspect : 0
+                                    property real intrinsicAspect: 0
+
+                                    Image {
+                                        id: fullImage
+                                        width: zoomStage.fittedWidth > 0 ? zoomStage.fittedWidth : zoomStage.width
+                                        height: zoomStage.fittedHeight > 0 ? zoomStage.fittedHeight : zoomStage.height
+                                        x: (zoomStage.width - width) / 2 + zoomStage.offsetX
+                                        y: (zoomStage.height - height) / 2 + zoomStage.offsetY
+                                        scale: zoomStage.zoomFactor
+                                        transformOrigin: Item.Center
+                                        source: root.compatibilityStickerUrl(mediaPage.modelData).length > 0
+                                            ? root.compatibilityStickerUrl(mediaPage.modelData)
+                                            : dataStorage.remoteImageSource(root.sourceFor(mediaPage.modelData),
+                                                  String(mediaPage.modelData.mediaCategory || "photos"),true)
+                                        readonly property int requestedDecodeEdge: Math.min(
+                                            Qt.platform.os === "wasm"
+                                                ? (mediaPage.index === gallery.currentIndex ? 2048 : 768)
+                                                : (mediaPage.index !== gallery.currentIndex ? 1024
+                                                    : (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 2048 : 4096)),
+                                            Math.max(256, Math.ceil(Math.max(zoomStage.width, zoomStage.height) * Screen.devicePixelRatio
+                                            * renderingController.mediaDecodeScale
+                                            * Math.min(2, zoomStage.zoomFactor) / 256) * 256))
+                                        property int decodeEdge: requestedDecodeEdge
+                                        property bool presentedImage: false
+                                        Component.onCompleted: {
+                                            decodeEdge = requestedDecodeEdge
+                                            if (fullImage["retainWhileLoading"] !== undefined)
+                                                fullImage["retainWhileLoading"] = false
+                                        }
+                                        onRequestedDecodeEdgeChanged: if (resizeSettle) resizeSettle.restart()
+                                        // Only downsize an adjacent, non-visible page.
+                                        Connections {
+                                            target: gallery
+                                            function onCurrentIndexChanged() {
+                                                resizeSettle.restart()
+                                            }
+                                        }
+                                        onSourceChanged: {
+                                            presentedImage = false
+                                            if (fullImage["retainWhileLoading"] !== undefined)
+                                                fullImage["retainWhileLoading"] = false
+                                            zoomStage.intrinsicAspect = 0
+                                            zoomStage.reset()
+                                        }
+                                        onStatusChanged: {
+                                            if (status === Image.Ready) {
+                                                if (!(zoomStage.intrinsicAspect > 0)
+                                                        && implicitWidth > 0 && implicitHeight > 0)
+                                                    zoomStage.intrinsicAspect = implicitWidth / implicitHeight
+                                                presentedImage = true
+                                                if (requestedDecodeEdge > decodeEdge
+                                                        || (mediaPage.index !== gallery.currentIndex
+                                                            && requestedDecodeEdge < decodeEdge))
+                                                    resizeSettle.restart()
+                                            }
+                                        }
+                                        Timer {
+                                            id: resizeSettle
+                                            interval: 180
+                                            onTriggered: {
+                                                if (fullImage.status === Image.Loading) return
+                                                const next = fullImage.requestedDecodeEdge
+                                                if (next > fullImage.decodeEdge
+                                                        || (mediaPage.index !== gallery.currentIndex
+                                                            && next < fullImage.decodeEdge)) {
+                                                    if (fullImage["retainWhileLoading"] !== undefined)
+                                                        fullImage["retainWhileLoading"] = fullImage.presentedImage
+                                                    fullImage.decodeEdge = next
+                                                }
+                                            }
+                                        }
+                                        // Bound the decoded texture to the physical viewport while
+                                        // preserving source aspect in the provider. Qt documents images
+                                        // as one of the largest QML memory consumers, so full-resolution
+                                        // source pixels are not retained when the window cannot display them.
+                                        sourceSize: Qt.size(decodeEdge, decodeEdge)
+                                        // A media viewer is a content surface, not a decorative cover.
+                                        // PreserveAspectFit guarantees the complete source is visible and
+                                        // never crops user media. Letterbox space belongs to the viewer
+                                        // background and the floating chrome stays over the painted image.
+                                        fillMode: Image.PreserveAspectFit
+                                        asynchronous: true
+                                        // RemoteImageProvider/DataStorage own the bounded media
+                                        // cache. Avoid retaining a second full-screen QML image
+                                        // cache entry for every gallery visit.
+                                        cache: false
+                                        smooth: true
+                                        mipmap: false
+                                        opacity: status === Image.Ready || (status === Image.Loading && presentedImage) ? 1 : 0
+                                        Behavior on opacity {
+                                            enabled: !Theme.reduceMotion && mediaPage.index === gallery.currentIndex
+                                            NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic }
+                                        }
                                     }
-                                    onRequestedDecodeEdgeChanged: if (resizeSettle) resizeSettle.restart()
-                                    onSourceChanged: presentedImage = false
-                                    onStatusChanged: if (status === Image.Ready) presentedImage = true
-                                    Timer {
-                                        id: resizeSettle
-                                        interval: 150
-                                        onTriggered: fullImage.decodeEdge = fullImage.requestedDecodeEdge
-                                    }
-                                    // Bound the decoded texture to the physical viewport while
-                                    // preserving source aspect in the provider. Qt documents images
-                                    // as one of the largest QML memory consumers, so full-resolution
-                                    // source pixels are not retained when the window cannot display them.
-                                    sourceSize.width: decodeEdge
-                                    sourceSize.height: decodeEdge
-                                    // A media viewer is a content surface, not a decorative cover.
-                                    // PreserveAspectFit guarantees the complete source is visible and
-                                    // never crops user media. Letterbox space belongs to the viewer
-                                    // background and the floating chrome stays over the painted image.
-                                    fillMode: Image.PreserveAspectFit
-                                    asynchronous: true
-                                    // RemoteImageProvider/DataStorage own the bounded media
-                                    // cache. Avoid retaining a second full-screen QML image
-                                    // cache entry for every gallery visit.
-                                    cache: false
-                                    smooth: true
-                                    mipmap: false
-                                    opacity: status === Image.Ready || (status === Image.Loading && presentedImage) ? 1 : 0
                                 }
 
                                 GenySpinner {
                                     anchors.centerIn: parent
-                                    visible: fullImage.status === Image.Loading
+                                    visible: fullImage.status === Image.Loading && !fullImage.presentedImage
                                     running: visible
                                 }
 
@@ -406,6 +487,21 @@ Popup {
             }
         }
 
+        Shortcut {
+            enabled: root.opened
+            sequences: ["+", "="]
+            onActivated: root.zoomCurrent(1.25)
+        }
+        Shortcut {
+            enabled: root.opened
+            sequence: "-"
+            onActivated: root.zoomCurrent(0.8)
+        }
+        Shortcut {
+            enabled: root.opened
+            sequence: "0"
+            onActivated: root.resetCurrentZoom()
+        }
         Shortcut {
             enabled: root.opened
             sequence: "Left"

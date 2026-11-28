@@ -79,7 +79,9 @@ test('Magazine reveals committed slots and never repacks admitted cards during h
   assert.match(cpp, /if \(slot\.laneCommitted\)\s+previousColumns\.insert/);
   assert.match(cpp, /desired\.laneCommitted = true/);
   assert.match(wall, /readonly property bool contentReady: cardLoader\.status === Loader\.Ready[\s\S]*?paintedHeight > 0/);
-  assert.match(wall, /contentReady && Math\.abs\(Math\.ceil\(paintedHeight\) - cardHeight\) <= 1/);
+  assert.match(wall, /presentationEligible: contentReady\s*&& Math\.abs\(Math\.ceil\(paintedHeight\) - cardHeight\) <= 1/);
+  assert.doesNotMatch(wall, /onCardReadyChanged:\s*if \(cardReady\) cardPresented = true/);
+  assert.match(wall, /id: presentationCommit[\s\S]*?if \(slot\.presentationEligible\)\s*slot\.cardPresented = true/);
   assert.match(wall, /id: visiblePlaceholder[\s\S]*?opacity: slot\.cardReady \? 0 : 1/);
   assert.match(wall, /id: cardLoader[\s\S]*?opacity: slot\.cardReady \? 1 : 0/);
   assert.ok((wall.match(/duration: Theme\.reduceMotion \|\| view\.moving \? 0 : Theme\.motionStandard/g) || []).length >= 2,

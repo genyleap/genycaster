@@ -51,6 +51,8 @@ Rectangle {
             property int fillMode: Image.PreserveAspectFit
             property real curveDepth: 16
             property real exponent: 4
+            readonly property real paintedWidth: imageSource.paintedWidth
+            readonly property real paintedHeight: imageSource.paintedHeight
             readonly property rect visibleContentRect: fillMode === Image.PreserveAspectFit
                 ? Qt.rect((width-imageSource.paintedWidth)/2,(height-imageSource.paintedHeight)/2,
                           Math.max(1,imageSource.paintedWidth),Math.max(1,imageSource.paintedHeight))

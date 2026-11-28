@@ -73,6 +73,7 @@ set(farcasterQmlFiles
     components/media/GalleryLayout.qml
     components/media/GalleryTile.qml
     components/media/MediaGallery.qml
+    components/media/MediaZoomViewport.qml
     components/shell/ComingSoonSurface.qml
     components/media/EmbedCard.qml
     components/feed/EngagementButton.qml

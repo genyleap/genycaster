@@ -1870,21 +1870,12 @@ Item {
                         const diagonal = Math.pow(0.5, 1 / exponent)
                         return Math.max(0.5522847498, Math.min(0.985, (8 * diagonal - 4) / 3))
                     }
-                    // Reserve the final banner geometry while the target
-                    // profile is still resolving. A late cover image must
-                    // never grow the header underneath a reader's scroll.
-                    // Profiles confirmed to have no banner retain the original
-                    // compact empty-cover design.
-                    readonly property bool metadataPending:
-                        root.visible && root.profileFidText.length > 0
-                        && root.profileFidText !== "0"
-                        && String(root.activeDetail.fidString || root.activeDetail.fid || "")
-                           !== root.profileFidText
-                    height: Boolean(root.activeDetail.bannerUrl) || metadataPending
-                            ? Math.max(root.compact ? 132 : 156,
-                                       Math.min(root.compact ? 196 : 280,
-                                                Math.round(width / bannerAspectRatio)))
-                            : (root.compact ? 56 : 64)
+                    // A cover is a permanent header slot, including empty,
+                    // pending and failed states. Metadata refreshes must not
+                    // move the avatar, bio, tabs or the reader's scroll anchor.
+                    height: Math.max(root.compact ? 132 : 156,
+                                     Math.min(root.compact ? 196 : 280,
+                                              Math.round(width / bannerAspectRatio)))
 
                     Superellipse {
                         anchors.fill: parent
