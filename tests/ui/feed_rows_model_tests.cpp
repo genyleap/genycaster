@@ -144,10 +144,10 @@ int main(int argc, char** argv)
     require(magazine.geometryAt(1).value(QStringLiteral("y")) ==
            top.value(QStringLiteral("y")));
 
-    // Hydration can make the original shortest-lane decisions very stale:
-    // a 900px card pinned to lane 0 must not keep every later slot in lane 0
-    // while adjacent lanes have free space. The reader requests this pass
-    // only after movement has stopped (not for every media-frame update).
+    // A previously admitted row holds its lane after a height change.
+    require(grown.value(QStringLiteral("x")) == top.value(QStringLiteral("x")));
+    // The explicit reset API is only for changing presentations, never
+    // for image hydration. It may redistribute the numeric layout.
     magazine.requestRepack();
     magazine.relayout(3, 320.0, 12.0, 12.0, 12.0, false);
     const auto rebalanced = magazine.geometryAt(3);

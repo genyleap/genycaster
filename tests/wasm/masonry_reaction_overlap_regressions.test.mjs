@@ -45,7 +45,7 @@ test('Like/recast cannot immediately shrink a committed masonry lane during Qt L
 
 test('A delayed tall embed cannot paint over another card before native reflow catches up',()=>{
   assert.match(wall,/id: slot[\s\S]*?height: Math\.max\(1, cardHeight\)[\s\S]*?clip: true/);
-  assert.match(wall,/function onResolvedHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
-  assert.match(wall,/function onImplicitHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
-  assert.match(wall,/if \(layoutModel\.retainHeight\(key, revision, width, height, true\)\) \{\s+scheduleLayout\(\)/);
+  assert.match(wall,/function onResolvedHeightChanged\(\) \{ slot\.scheduleHeightMeasurement\(\) \}/);
+  assert.match(wall,/function onImplicitHeightChanged\(\) \{ slot\.scheduleHeightMeasurement\(\) \}/);
+  assert.match(wall,/if \(layoutModel\.retainHeight\(key, revision, width, height, true\)\)\s+scheduleLayout\(\)/);
 });

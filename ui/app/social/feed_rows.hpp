@@ -134,7 +134,7 @@ public:
     Q_INVOKABLE void relayout(int columns, qreal cardWidth, qreal gap, qreal top,
                             qreal leadingInset, bool rtl, bool deferWindowUpdate = false);
 
-    /** @brief Rebalances lane assignment on the next relayout, after scrolling settles. */
+    /** @brief Explicitly resets lane assignment for a new presentation, not hydration. */
     Q_INVOKABLE void requestRepack() noexcept;
 
     /** @brief Updates the bounded visible window by per-lane binary search. */
@@ -171,6 +171,7 @@ private:
         QString media{};
         int sourceIndex{-1};
         int column{-1};
+        bool laneCommitted{false};
         qreal x{0};
         qreal y{0};
         qreal height{0};

@@ -43,7 +43,7 @@ Item {
     property string reportedMediaIdentity: ""
 
     function reportDecodedAspect() {
-        if (preview.status !== Image.Ready)
+        if (root.reportedAspect > 0 || preview.status !== Image.Ready)
             return
         const sourceWidth = Number(preview.sourceImplicitWidth || 0)
         const sourceHeight = Number(preview.sourceImplicitHeight || 0)
@@ -144,10 +144,20 @@ Item {
                     && String(root.embed.imageSource || "").startsWith("image://remote/"))
                 root.originFallbackAttempted = true
         }
-        onStatusChanged: root.reportDecodedAspect()
-        onSourceImplicitWidthChanged: root.reportDecodedAspect()
-        onSourceImplicitHeightChanged: root.reportDecodedAspect()
+        onStatusChanged: aspectReportTimer.restart()
+        onSourceImplicitWidthChanged: aspectReportTimer.restart()
+        onSourceImplicitHeightChanged: aspectReportTimer.restart()
         // Painted dimensions are viewport geometry, not source metadata.
+    }
+
+    // Read both intrinsic dimensions after the Image.Ready transaction.
+    // Independent width/height notifications and later resolution changes
+    // must not be treated as new source aspect ratios.
+    Timer {
+        id: aspectReportTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.reportDecodedAspect()
     }
 
     // Multi-image feed galleries stay on Image's direct scene-graph texture path.

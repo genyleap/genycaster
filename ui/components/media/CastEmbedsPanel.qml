@@ -267,10 +267,12 @@ ColumnLayout {
         cornerCoverColor: root.mediaSurfaceColor
         asynchronousTiles: root.asynchronousTiles && !root.magazineCard
         sharedMediaGeometry: root.sharedMediaGeometry
+        lockFeedGeometry: root.magazineCard
         // Desktop Timeline keeps its fixed media reservation. On phones a
         // portrait screenshot must instead adopt the decoded natural ratio,
         // after kinetic scrolling settles, so the full-width image is not
-        // shrunk inside a shallow rectangle.
+        // shrunk inside a shallow rectangle. Magazine discovers dimensions
+        // for pre-admission/cache only, never to resize an exposed card.
         dynamicAspectDiscovery: root.magazineCard
                                 || (root.visualCount === 1
                                     && (root.mobileViewport || root.scrollHost === null))
@@ -305,7 +307,7 @@ ColumnLayout {
                             ? previewLoader.item.implicitHeight : tile.reservedHeight
 
                     function scheduleAdmission() {
-                        if (tile.admitted || previewAdmission.running)
+                        if (root.magazineCard || tile.admitted || previewAdmission.running)
                             return
                         previewAdmission.restart()
                     }
@@ -329,7 +331,10 @@ ColumnLayout {
                         id: previewLoader
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        active: tile.admitted
+                        // The magazine's outer asynchronous Loader owns the
+                        // construction budget. Its actual supporting geometry
+                        // must exist before the whole cast is first revealed.
+                        active: root.magazineCard || tile.admitted
                         // Timers on several newly admitted casts can fire in
                         // the same frame. Incubate the heavy preview trees too,
                         // rather than constructing that entire burst at once.

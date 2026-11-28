@@ -18,8 +18,8 @@ test('measured media heights are routed to native stable-lane geometry instead o
   const native = source('ui/app/social/feed_rows.cpp');
   const fixture = source('tests/ui/feed_rows_model_tests.cpp');
   assert.match(wall, /layoutModel\.relayout\(columns, committedCardWidth, gutter,/);
-  assert.match(wall, /onHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
-  assert.match(wall, /onImplicitHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
+  assert.match(wall, /onHeightChanged\(\) \{ slot\.scheduleHeightMeasurement\(\) \}/);
+  assert.match(wall, /onImplicitHeightChanged\(\) \{ slot\.scheduleHeightMeasurement\(\) \}/);
   assert.match(wall, /view\.retainHeight\(stableKey, revisionKey, width, resolved\)/);
   assert.match(native, /bottoms\[slot\.column\] \+= slot\.height \+ m_gap/);
   assert.match(native, /slot\.y = bottoms\[slot\.column\]/);
@@ -63,25 +63,23 @@ test('Magazine never mistakes a provisional Loader reservation for a real painte
   ctx.cardLoader.item = {height: 360, implicitHeight: 0};
   vm.runInContext('recordHeight()', ctx);
   assert.equal(ctx.measuredHeight, 360, 'height-only delegates retain a valid fallback');
-  assert.match(wall, /onResolvedHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
-  assert.match(wall, /onIncubatingChanged\(\) \{ slot\.recordHeight\(\) \}/);
-  assert.match(wall, /onImplicitHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
+  assert.match(wall, /onResolvedHeightChanged\(\) \{ slot\.scheduleHeightMeasurement\(\) \}/);
+  assert.match(wall, /onIncubatingChanged\(\) \{ slot\.scheduleHeightMeasurement\(\) \}/);
+  assert.match(wall, /onImplicitHeightChanged\(\) \{ slot\.scheduleHeightMeasurement\(\) \}/);
   const surface = source('ui/components/feed/FeedSurface.qml');
   assert.match(surface, /width: magazineRow && parent \? parent\.width : readList\.width/);
 });
 
-test('Magazine soft-reveals hydrated cards and coalesces lane balancing only after motion', () => {
+test('Magazine reveals committed slots and never repacks admitted cards during hydration', () => {
   const cpp = source('ui/app/social/feed_rows.cpp');
   const header = source('ui/app/social/feed_rows.hpp');
   assert.match(header, /Q_INVOKABLE void requestRepack\(\) noexcept;/);
   assert.match(cpp, /void MasonryWindowModel::requestRepack\(\) noexcept[\s\S]*?m_forceRepack = true;/);
-  assert.match(wall, /function scheduleRebalance\(\)/);
-  assert.match(wall, /if \(visible && positioned && !moving && !resizeInProgress\)\s+rebalanceTimer\.restart\(\)/);
-  assert.match(wall, /onMovementStarted: rebalanceTimer\.stop\(\)/);
-  assert.match(wall, /onMovementEnded: if \(rebalancePending\) scheduleRebalance\(\)/);
-  assert.match(wall, /id: rebalanceTimer; interval: 300; repeat: false; onTriggered: view\.rebalanceNow\(\)/);
-  assert.match(wall, /layoutModel\.requestRepack\(\)/);
-  assert.match(wall, /readonly property bool cardReady: cardLoader\.status === Loader\.Ready[\s\S]*?paintedHeight > 0/);
+  assert.doesNotMatch(wall, /scheduleRebalance|requestRepack|rebalanceTimer/);
+  assert.match(cpp, /if \(slot\.laneCommitted\)\s+previousColumns\.insert/);
+  assert.match(cpp, /desired\.laneCommitted = true/);
+  assert.match(wall, /readonly property bool contentReady: cardLoader\.status === Loader\.Ready[\s\S]*?paintedHeight > 0/);
+  assert.match(wall, /contentReady && Math\.abs\(Math\.ceil\(paintedHeight\) - cardHeight\) <= 1/);
   assert.match(wall, /id: visiblePlaceholder[\s\S]*?opacity: slot\.cardReady \? 0 : 1/);
   assert.match(wall, /id: cardLoader[\s\S]*?opacity: slot\.cardReady \? 1 : 0/);
   assert.ok((wall.match(/duration: Theme\.reduceMotion \|\| view\.moving \? 0 : Theme\.motionStandard/g) || []).length >= 2,

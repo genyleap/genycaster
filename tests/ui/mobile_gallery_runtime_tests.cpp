@@ -67,11 +67,8 @@ Item {
     id: tile
     property var embed: ({})
     property bool preserveAspect: false
-    // Mirror properties added to the production GalleryTile contract. These
-    // flags only gate presentation; the stub still supplies the delayed ratio.
-    property bool awaitFinalAspect: false
-    property bool fullBleedAspect: false
     property bool useLayeredMask: false
+    property bool asynchronousAmbient: true
     property bool ambientEnabled: false
     property color cornerCoverColor: "transparent"
     property int loadDelayMs: 0
@@ -94,9 +91,15 @@ Item {
     qmlRegisterType(QUrl::fromLocalFile(tileFile),
                     "Farcaster.Client", 1, 0, "GalleryTile");
 
+    // The app's QML resource alias flattens StickerCatalog.js into the media
+    // module. Recreate that layout for this isolated filesystem fixture.
+    const auto galleryFile = temporary.filePath(QStringLiteral("GalleryLayout.qml"));
+    require(QFile::copy(QStringLiteral(GENYCASTER_MEDIA_QML_DIR "/GalleryLayout.qml"),
+                        galleryFile));
+    require(QFile::copy(QStringLiteral(GENYCASTER_MEDIA_QML_DIR "/../composer/StickerCatalog.js"),
+                        temporary.filePath(QStringLiteral("StickerCatalog.js"))));
     QQmlEngine engine{};
-    QQmlComponent production{&engine, QUrl::fromLocalFile(
-        QStringLiteral(GENYCASTER_MEDIA_QML_DIR "/GalleryLayout.qml"))};
+    QQmlComponent production{&engine, QUrl::fromLocalFile(galleryFile)};
     if (production.isError()) qCritical() << production.errors();
     require(production.isReady());
 
@@ -105,13 +108,15 @@ Item {
     window.show();
 
     const auto makeGallery = [&](const QVariantMap& embed, const bool discover,
-                                 const qreal reservedHeight = 180.0) {
+                                 const qreal reservedHeight = 180.0,
+                                 const bool lockGeometry = false) {
         const QVariantMap properties{
             {QStringLiteral("width"), 360},
             {QStringLiteral("compact"), true},
             {QStringLiteral("mobilePresentation"), true},
             {QStringLiteral("embeds"), QVariantList{embed}},
             {QStringLiteral("dynamicAspectDiscovery"), discover},
+            {QStringLiteral("lockFeedGeometry"), lockGeometry},
             {QStringLiteral("singleImageHeight"), reservedHeight}
         };
         std::unique_ptr<QObject> owned{production.createWithInitialProperties(properties)};
@@ -157,9 +162,8 @@ Item {
     require(std::abs(decodedItem->implicitHeight() - (2000.0 + 8.0)) < 2.0);
     const qreal phoneHeight = decodedItem->implicitHeight();
 
-    // For a genuinely unknown image size, the dynamic one-shot gate must be
-    // enabled on the instantiated tile. Known pre-reserved heights must not
-    // wait unnecessarily for a second aspect-discovery round.
+    // For genuinely unknown mobile image sizes, the first decoded ratio
+    // is applied once; the portrait still preserves its complete contents.
     const auto unknownAspect = makeGallery({
         {QStringLiteral("kind"), QStringLiteral("image")},
         {QStringLiteral("url"), QStringLiteral("fixture://unknown-portrait")},
@@ -173,8 +177,9 @@ Item {
             && unknownLoader->property("item").value<QObject*>() != nullptr;
     }, 1800));
     auto* loadedTile = unknownLoader->property("item").value<QObject*>();
-    require(loadedTile->property("awaitFinalAspect").toBool());
-    require(loadedTile->property("fullBleedAspect").toBool());
+    // The actual production tile contract reports the ratio asynchronously;
+    // the resulting natural geometry is verified below, not obsolete flags.
+    require(loadedTile->property("preserveAspect").toBool());
     require(QTest::qWaitFor([&] {
         return unknownItem->implicitHeight() > 1300;
     }, 1800));
@@ -197,7 +202,24 @@ Item {
             && std::abs(decodedItem->implicitHeight() - phoneHeight) < 2;
     }, 600));
 
+    // The same delayed portrait in a Magazine slot must never resize an
+    // already reserved card. Preserve the actual photo by fitting pixels
+    // inside that slot; mobile's explicit full-height behavior stays intact.
+    const auto magazine = makeGallery({
+        {QStringLiteral("kind"), QStringLiteral("image")},
+        {QStringLiteral("url"), QStringLiteral("fixture://magazine-unknown")},
+        {QStringLiteral("fixtureRatio"), 0.5}}, true, 0.0, true);
+    auto* magazineItem = qobject_cast<QQuickItem*>(magazine.get());
+    require(magazineItem);
+    magazineItem->setProperty("mobilePresentation", false);
+    require(std::abs(magazineItem->implicitHeight() - 278.0) < 2.0);
+    QTest::qWait(420);
+    require(std::abs(magazineItem->implicitHeight() - 278.0) < 2.0);
+    magazineItem->setWidth(400);
+    require(std::abs(magazineItem->implicitHeight() - 308.0) < 2.0);
+
     window.hide();
+    magazineItem->setParentItem(nullptr);
     metadataItem->setParentItem(nullptr);
     decodedItem->setParentItem(nullptr);
     unknownItem->setParentItem(nullptr);

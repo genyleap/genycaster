@@ -34,7 +34,7 @@ test('CastItem heavy media is async in Timeline and supporting cards wait for ad
   const qml=read('ui/components/feed/CastItem.qml');
   assert.ok((qml.match(/asynchronous: !root\.magazineCard/g)||[]).length>=3);
   assert.match(qml,/id: castTextBody[\s\S]*?asynchronous: false/);
-  assert.match(qml,/active: root\.mediaFirst && root\.supportingEmbeds\.length > 0\s*&& root\.supportingAdmitted/);
+  assert.match(qml,/active: root\.mediaFirst && root\.supportingEmbeds\.length > 0\s*&& \(root\.magazineCard \|\| root\.supportingAdmitted\)/);
   assert.match(qml,/active: !root\.mediaFirst && root\.supportingEmbeds\.length > 0/);
 });
 

@@ -15,7 +15,7 @@ function section(start, end) {
 
 test('a resolved magazine card replaces an oversized reservation with its actual height', () => {
     const code = section('            function recordHeight() {',
-                         '\n            Component.onCompleted: offerEstimate()');
+                         '\n            Component.onCompleted: {');
     const sample = [];
     const context = vm.createContext({
         cardLoader: {item: {height: 850, implicitHeight: 230}},
@@ -34,7 +34,7 @@ test('a resolved magazine card replaces an oversized reservation with its actual
     context.cardLoader.item = null;
     vm.runInContext('recordHeight()', context);
     assert.equal(context.measuredHeight, 250, 'destroying a pooled delegate never resets its confirmed height');
-    assert.match(wall, /function onImplicitHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
+    assert.match(wall, /function onImplicitHeightChanged\(\) \{ slot\.scheduleHeightMeasurement\(\) \}/);
 });
 
 test('the magazine uses a viewport-bounded native layout model instead of one QML Item per cast', () => {

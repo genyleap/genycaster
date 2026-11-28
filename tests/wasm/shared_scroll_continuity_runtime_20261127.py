@@ -67,6 +67,8 @@ Item {
         component Geometry: Item {
             id: root
             property bool dynamicAspectDiscovery: true
+            property bool lockFeedGeometry: false
+            property var decodedOnce: Object.create(null)
             property var discoveredAspects: ({})
             property var pendingAspects: ({})
             property bool moving: false

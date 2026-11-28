@@ -314,7 +314,7 @@ void MasonryWindowModel::setSourceModel(FeedRowsModel* const model)
         connect(model, &QAbstractItemModel::rowsRemoved, this,
             [this] { scheduleRelayout(); });
         connect(model, &QAbstractItemModel::rowsMoved, this,
-            [this] { m_forceRepack = true; scheduleRelayout(); });
+            [this] { scheduleRelayout(); });
         connect(model, &QAbstractItemModel::dataChanged, this,
             [this] { scheduleRelayout(); });
         connect(model, &QAbstractItemModel::modelReset, this,
@@ -364,8 +364,7 @@ qreal MasonryWindowModel::fallbackHeight(const Slot& slot) const
 
 void MasonryWindowModel::requestRepack() noexcept
 {
-    // Keep currently visible lanes stable during hydration. The caller
-    // coalesces this costly, visually disruptive pass until the reader rests.
+    // Only an explicit presentation reset may discard admitted lane identity.
     m_forceRepack = true;
 }
 
@@ -427,8 +426,10 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
     QHash<QString, int> previousColumns{};
     if (!packAgain) {
         previousColumns.reserve(m_geometry.size());
-        for (const Slot& slot : std::as_const(m_geometry))
-            previousColumns.insert(slot.key, slot.column);
+        for (const Slot& slot : std::as_const(m_geometry)) {
+            if (slot.laneCommitted)
+                previousColumns.insert(slot.key, slot.column);
+        }
     }
     m_columns = nextColumns;
     m_cardWidth = cardWidth;
@@ -460,6 +461,7 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
         const auto old = previousColumns.constFind(slot.key);
         if (old != previousColumns.cend() && *old >= 0 && *old < m_columns) {
             slot.column = *old;
+            slot.laneCommitted = true;
         } else {
             slot.column = static_cast<int>(std::min_element(bottoms.cbegin(),
                                                             bottoms.cend()) - bottoms.cbegin());
@@ -609,7 +611,11 @@ void MasonryWindowModel::synchronizeWindow()
     }
     int index = 0;
     for (const int sourceIndex : std::as_const(admitted)) {
-        const Slot& desired = m_geometry.at(sourceIndex);
+        // Once admitted, a cast keeps its lane across hydration, eviction,
+        // reverse scrolling and engagement revisions. Unseen rows can still
+        // fill the shorter lane as real heights replace initial estimates.
+        Slot& desired = m_geometry[sourceIndex];
+        desired.laneCommitted = true;
         if (index >= m_window.size() || m_window.at(index).key != desired.key) {
             int found = -1;
             for (int search = index + 1; search < m_window.size(); ++search) {

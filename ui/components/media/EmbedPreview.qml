@@ -415,6 +415,7 @@ Item {
             cornerCoverColor: root.mediaSurfaceColor
             asynchronousTiles: !root.magazineCard
             sharedMediaGeometry: root.sharedMediaGeometry
+            lockFeedGeometry: root.magazineCard
             dynamicAspectDiscovery: root.magazineCard || root.mobileViewport
             onOpenRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
         }

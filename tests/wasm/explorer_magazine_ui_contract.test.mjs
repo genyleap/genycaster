@@ -88,7 +88,7 @@ test("Magazine / Timeline view actions sit next to Everyone / Following, without
 
 test("Masonry viewport admission has no Loader.active geometry binding or loop", () => {
     const source = read("ui/components/feed/FeedMasonryView.qml");
-    const match = source.match(/    function updateAdmissions\(\) \{([\s\S]*?)\n    \}\n    function scheduleRebalance\(\)/);
+    const match = source.match(/    function updateAdmissions\(\) \{([\s\S]*?)\n    \}\n    function forceLayout\(\)/);
     assert.ok(match, "Viewport admission logic must be present");
     assert.match(source, /active: slot\.admitted/);
     assert.doesNotMatch(source, /active: view\.visible && view\.positioned && slot\.placed/);

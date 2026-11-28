@@ -49,7 +49,7 @@ test("Rich Cast paint height tracks its implicit text/media geometry through eac
     assert.match(cast, /readonly property real magazinePaintHeight:/);
     assert.match(semantic, /readonly property real magazinePaintHeight:/);
     assert.match(feed, /rowDelegate\.magazineRow \? Number\(item\.magazinePaintHeight \|\| 0\)/);
-    assert.match(wall, /function onImplicitHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
+    assert.match(wall, /function onImplicitHeightChanged\(\) \{ slot\.scheduleHeightMeasurement\(\) \}/);
 });
 
 test("The profile cover, bio, heatmap and Magazine card columns share one outer reading gutter", () => {

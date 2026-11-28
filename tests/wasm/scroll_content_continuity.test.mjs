@@ -116,7 +116,14 @@ test('payload refresh preserves admitted supporting subtree and new links wait u
     root.supportingAdmitted = false;
     root.scheduleSupportingAdmission();
     assert.equal(supportingAdmissionTimer.starts, 1,
-        'only new supporting identities are scheduled when scrolling stops');
+        'only new Timeline supporting identities are scheduled when scrolling stops');
+    root.magazineCard = true;
+    root.supportingAdmitted = false;
+    root.scrollMoving = true;
+    root.scheduleSupportingAdmission();
+    assert.equal(root.supportingAdmitted, true,
+        'Magazine reserves supporting geometry before the first visible card');
+    assert.equal(supportingAdmissionTimer.starts, 1);
 });
 test('wallet picker applies mirroring to its content Item, never the Popup object', () => {
     const picker = read('WalletBrowserPicker');

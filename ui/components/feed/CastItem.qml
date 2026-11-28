@@ -318,8 +318,10 @@ Item {
             root.supportingAdmitted = false
             return
         }
-        // A link-only cast must not wait behind the mixed-image admission gate.
-        if (!root.mediaFirst) {
+        // Magazine already bounds admission at the outer card; its
+        // supporting panel must be present before the first paint. Timeline
+        // retains the separate mixed-image gate, except for link-only casts.
+        if (!root.mediaFirst || root.magazineCard) {
             root.supportingAdmitted = true
             return
         }
@@ -1243,8 +1245,12 @@ Item {
                 }
 
                 Loader {
+                    // Magazine's outer card already incubates within a bounded
+                    // viewport. Reserve its supporting panel from the first
+                    // measured frame; waiting for scroll idle used to insert
+                    // a whole link/NFT block below the painted photograph.
                     active: root.mediaFirst && root.supportingEmbeds.length > 0
-                            && root.supportingAdmitted
+                            && (root.magazineCard || root.supportingAdmitted)
                     visible: active
                     // Magazine cards are admitted only near the viewport; avoid
                     // abandoning unfinished rich/embedded QML incubation on

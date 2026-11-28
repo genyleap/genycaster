@@ -783,7 +783,7 @@ if (cast_item.count('asynchronous: !root.magazineCard') < 3
         or 'id: castTextBody' not in cast_item
         or 'asynchronous: false' not in cast_item
         or 'active: root.mediaFirst && root.supportingEmbeds.length > 0' not in cast_item
-        or '&& root.supportingAdmitted' not in cast_item
+        or '&& (root.magazineCard || root.supportingAdmitted)' not in cast_item
         or 'active: !root.mediaFirst && root.supportingEmbeds.length > 0' not in cast_item):
     errors.append('CastItem must admit only supporting embeds and incubate heavy Timeline media without recycled Magazine incubator churn')
 if ('objectName: "castTextBody"' not in cast_item or
@@ -794,7 +794,7 @@ for token in (
     'property bool supportingAdmitted: false',
     'readonly property bool scrollMoving:',
     'onSupportingEmbedsChanged:',
-    '&& root.supportingAdmitted',
+    '&& (root.magazineCard || root.supportingAdmitted)',
 ):
     if token not in cast_item:
         errors.append(f'CastItem mixed-media supporting admission contract missing {token!r}')

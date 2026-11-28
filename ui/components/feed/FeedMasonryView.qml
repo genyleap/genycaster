@@ -27,13 +27,50 @@ Flickable {
     property var measuredOrder: []
     property var aspectMemory: ({})
     property var aspectOrder: []
+    // A reservation belongs to a specific cast/media identity, not a texture.
+    // Keep it across delegate destruction and reverse scrolling; a separate
+    // cache below remembers intrinsic metadata for new presentations.
+    property var mediaReservations: Object.create(null)
+    property var mediaReservationOrder: []
+    property var exposedMediaRows: Object.create(null)
+    property var exposedMediaOrder: []
+    function markMediaRowExposed(key) {
+        const id = String(key || "")
+        if (!id || exposedMediaRows[id]) return
+        exposedMediaRows[id] = true
+        exposedMediaOrder.push(id)
+        if (exposedMediaOrder.length > 8192)
+            delete exposedMediaRows[exposedMediaOrder.shift()]
+    }
+    function wasMediaRowExposed(key) {
+        return Boolean(exposedMediaRows[String(key || "")])
+    }
+    function reserveMediaAspect(key, proposed) {
+        const id = String(key || "")
+        const value = Number(proposed)
+        if (!id || !(value > 0) || !isFinite(value)) return 4 / 3
+        if (Object.prototype.hasOwnProperty.call(mediaReservations, id))
+            return mediaReservations[id]
+        mediaReservationOrder.push(id)
+        if (mediaReservationOrder.length > 8192)
+            delete mediaReservations[mediaReservationOrder.shift()]
+        mediaReservations[id] = value
+        return value
+    }
+    function refineMediaAspect(key, ratio) {
+        const id = String(key || "")
+        const value = Number(ratio)
+        if (!id || !(value > 0) || !isFinite(value)) return
+        reserveMediaAspect(id, value)
+        mediaReservations[id] = value
+    }
     function aspectForKey(key) {
         return Number(aspectMemory[String(key)] || 0)
     }
     function rememberAspect(key, ratio) {
         const id = String(key || "")
         const value = Number(ratio || 0)
-        if (!id || !(value > 0)) return
+        if (!id || !(value > 0) || !isFinite(value)) return
         if (!Object.prototype.hasOwnProperty.call(aspectMemory, id)) {
             aspectOrder.push(id)
             if (aspectOrder.length > 600)
@@ -52,7 +89,6 @@ Flickable {
         if (resizeInProgress) {
             if (layoutModel.retainHeight(key, revision, width, height, true, true))
                 scheduleLayout()
-            rebalancePending = true
             return
         }
         const id = heightKey(key, revision, width)
@@ -62,10 +98,8 @@ Flickable {
                 delete measuredHeights[measuredOrder.shift()]
         }
         measuredHeights[id] = height
-        if (layoutModel.retainHeight(key, revision, width, height, true)) {
+        if (layoutModel.retainHeight(key, revision, width, height, true))
             scheduleLayout()
-            scheduleRebalance()
-        }
     }
 
     readonly property int count: model ? model.count : 0
@@ -83,7 +117,6 @@ Flickable {
     property bool arranging: false
     property bool positioned: false
     property bool relayoutPending: false
-    property bool rebalancePending: false
     property bool resizeInProgress: false
     property real committedCardWidth: 1
     function viewportResized() {
@@ -93,7 +126,6 @@ Flickable {
         }
         resizeInProgress = true
         resizeSettleTimer.restart()
-        rebalanceTimer.stop()
         scheduleLayout()
     }
     Timer {
@@ -103,7 +135,6 @@ Flickable {
         onTriggered: {
             view.resizeInProgress = false
             view.forceLayout()
-            if (view.rebalancePending) view.scheduleRebalance()
         }
     }
 
@@ -159,22 +190,6 @@ Flickable {
                                 view.visible && positioned && height > 0,
                                 view.resizeInProgress)
     }
-    function scheduleRebalance() {
-        // Newly hydrated dimensions invalidate the original shortest-lane
-        // decisions. Preserve lanes during a flick, then redistribute the
-        // numeric slots once the viewport is at rest. Never animate a live
-        // kinetic gesture or instantiate the offscreen cast delegates.
-        rebalancePending = true
-        if (visible && positioned && !moving && !resizeInProgress)
-            rebalanceTimer.restart()
-    }
-    function rebalanceNow() {
-        if (!rebalancePending || !visible || !positioned || moving || resizeInProgress)
-            return
-        rebalancePending = false
-        layoutModel.requestRepack()
-        forceLayout()
-    }
     function forceLayout() {
         if (arranging) {
             relayoutPending = true
@@ -184,7 +199,7 @@ Flickable {
         arranging = true
         layoutStarted()
         // A tall-media column can leave the centre of the viewport empty.
-        // Probe further down for a real cast before rebalancing so source
+        // Probe further down for a real cast before relayout so source
         // geometry changes preserve the reader's stable-key scroll anchor.
         let anchorIndex = -1
         if (positioned && !moving && contentY > 0) {
@@ -209,9 +224,6 @@ Flickable {
         positioned = true
         arranging = false
         updateAdmissions()
-        // Initial rows may arrive before the first viewport has geometry.
-        if (rebalancePending && !moving && !resizeInProgress && !rebalanceTimer.running)
-            rebalanceTimer.start()
         layoutFinished()
         if (relayoutPending) {
             relayoutPending = false
@@ -261,11 +273,8 @@ Flickable {
             layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer, false, false)
         } else {
             scheduleLayout()
-            if (rebalancePending) scheduleRebalance()
         }
     }
-    onMovementStarted: rebalanceTimer.stop()
-    onMovementEnded: if (rebalancePending) scheduleRebalance()
     onCacheBufferChanged: scheduleAdmission()
     onColumnsChanged: scheduleLayout()
     onCardWidthChanged: scheduleLayout()
@@ -277,13 +286,6 @@ Flickable {
     // Collect text/media measurements into one geometry commit per frame.
     Timer { id: layoutTimer; interval: 16; onTriggered: view.forceLayout() }
     Timer { id: admissionTimer; interval: 0; onTriggered: view.updateAdmissions() }
-    Timer { id: rebalanceTimer; interval: 300; repeat: false; onTriggered: view.rebalanceNow() }
-
-    Connections {
-        target: view.model
-        ignoreUnknownSignals: true
-        function onCountChanged() { view.scheduleRebalance() }
-    }
 
     Loader {
         id: headerLoader
@@ -320,9 +322,33 @@ Flickable {
                   ? Number(loadedCard.resolvedHeight || 0)
                   : Math.max(Number(loadedCard.magazinePaintHeight || 0),
                       Number(loadedCard.implicitHeight || loadedCard.height || 0))
-            readonly property bool cardReady: cardLoader.status === Loader.Ready
+            readonly property bool contentReady: cardLoader.status === Loader.Ready
                 && loadedCard !== null && loadedCard.incubating !== true
                 && paintedHeight > 0
+            // Do not reveal an actual card inside the previous estimated slot.
+            // Once revealed, transient inner Layout notifications cannot
+            // toggle its opacity or bring the skeleton back.
+            property bool cardPresented: false
+            readonly property bool cardReady: cardLoader.status === Loader.Ready
+                && loadedCard !== null && (cardPresented
+                    || (contentReady && Math.abs(Math.ceil(paintedHeight) - cardHeight) <= 1))
+            onCardReadyChanged: if (cardReady) cardPresented = true
+            readonly property bool intersectsViewport: view.visible && view.positioned
+                && y + height > view.contentY && y < view.contentY + view.height
+            property bool everExposed: false
+            function markExposed() {
+                everExposed = true
+                view.markMediaRowExposed(stableKey)
+            }
+            onIntersectsViewportChanged: if (intersectsViewport) markExposed()
+            // Refining an unseen slot below the reader cannot push visible
+            // cards away. A card already seen (including reverse scroll) is
+            // not allowed to change its media reservation.
+            function mayRefineMediaGeometry() {
+                return !everExposed && !view.wasMediaRowExposed(stableKey)
+                    && !intersectsViewport && view.positioned && !view.moving
+                    && y >= view.contentY + view.height + view.gutter
+            }
             x: cardX
             y: cardY
             width: view.committedCardWidth
@@ -368,8 +394,17 @@ Flickable {
                     view.retainHeight(stableKey, revisionKey, width, resolved)
                 }
             }
-            Component.onCompleted: offerEstimate()
-            onStableKeyChanged: offerEstimate()
+            Component.onCompleted: {
+                if (intersectsViewport) markExposed()
+                if (cardReady) cardPresented = true
+                offerEstimate()
+            }
+            onStableKeyChanged: {
+                cardPresented = false
+                everExposed = view.wasMediaRowExposed(stableKey)
+                if (intersectsViewport) markExposed()
+                offerEstimate()
+            }
             onRevisionKeyChanged: {
                 revisionSettling = true
                 revisionSettleTimer.restart()
@@ -397,7 +432,7 @@ Flickable {
                 interval: 16
                 repeat: false
                 onTriggered: {
-                    if (slot.cardReady) slot.recordHeight()
+                    if (slot.contentReady) slot.recordHeight()
                     else slot.offerEstimate()
                 }
             }
@@ -475,16 +510,26 @@ Flickable {
                 // Incubate costly CastItem trees over multiple frames.
                 asynchronous: true
                 sourceComponent: view.delegate
-                onLoaded: slot.recordHeight()
+                onLoaded: slot.scheduleHeightMeasurement()
+            }
+            // Coalesce Layout's intermediate implicit-height notifications.
+            // A new measurement is committed at most once per event turn;
+            // the old measured slot stays in place during incubation.
+            function scheduleHeightMeasurement() {
+                if (!heightMeasurementTimer.running) heightMeasurementTimer.start()
+            }
+            Timer {
+                id: heightMeasurementTimer
+                interval: 0
+                repeat: false
+                onTriggered: slot.recordHeight()
             }
             Connections {
                 target: cardLoader.item
-                // The nested Loader's resolvedHeight may change without an
-                // outer geometry signal (async previews and text hydration).
-                function onResolvedHeightChanged() { slot.recordHeight() }
-                function onIncubatingChanged() { slot.recordHeight() }
-                function onHeightChanged() { slot.recordHeight() }
-                function onImplicitHeightChanged() { slot.recordHeight() }
+                function onResolvedHeightChanged() { slot.scheduleHeightMeasurement() }
+                function onIncubatingChanged() { slot.scheduleHeightMeasurement() }
+                function onHeightChanged() { slot.scheduleHeightMeasurement() }
+                function onImplicitHeightChanged() { slot.scheduleHeightMeasurement() }
                 ignoreUnknownSignals: true
             }
         }

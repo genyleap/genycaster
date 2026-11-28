@@ -17,6 +17,12 @@ Item {
     // metadata can shape the grid immediately; decoded dimensions are only an
     // opt-in enhancement for non-scrolling/detail surfaces.
     property bool dynamicAspectDiscovery: false
+    property bool lockFeedGeometry: false
+    property var geometryOwner: null
+    property bool geometryInitialized: false
+    // One valid decoded aspect per identity, independent of later texture
+    // reloads, DPR or resource admission.
+    property var decodedOnce: Object.create(null)
     property var discoveredAspects: ({})
     property var pendingAspects: ({})
     property var reservedAspects: ({})
@@ -51,8 +57,11 @@ Item {
     signal openRequested(var mediaItems, int index)
 
     function resolveScrollHost() {
+        root.geometryOwner = null
         let candidate = root.parent
         while (candidate !== null) {
+            if (candidate.objectName === "masonrySlot")
+                root.geometryOwner = candidate
             if (candidate.moving !== undefined && candidate.contentY !== undefined) {
                 root.scrollHost = candidate
                 root.scrollHostResolved = true
@@ -64,11 +73,20 @@ Item {
         root.scrollHostResolved = true
     }
 
-    Component.onCompleted: root.resolveScrollHost()
-    onParentChanged: {
-        if (root.scrollHostResolved)
-            root.resolveScrollHost()
+    Component.onCompleted: {
+        root.resolveScrollHost()
+        root.geometryInitialized = true
+        root.syncReservations()
     }
+    onParentChanged: {
+        if (root.scrollHostResolved) {
+            root.geometryOwner = null
+            root.resolveScrollHost()
+            root.syncReservations()
+        }
+    }
+    onSharedMediaGeometryChanged: if (geometryInitialized) root.syncReservations()
+    onLockFeedGeometryChanged: if (geometryInitialized) root.syncReservations()
 
     function embedAt(index) {
         if (index < 0 || index >= root.itemCount)
@@ -112,12 +130,18 @@ Item {
         // Metadata may be reserved BEFORE this item enters a mobile window.
         // That earlier desktop reservation can have an aspect clamped to 0.45.
         // Prefer the real source dimensions when switching to full-height mode.
+        const nativeAspect = root.rawAspect(item)
+        if (root.lockFeedGeometry) {
+            // Do not read the live decoded cache once the card has reserved
+            // its slot: another delegate decoding the same URL is not a
+            // geometry update for this cast.
+            return root.displayAspect(root.reservedAspects[key] || nativeAspect || 4 / 3)
+        }
         const decoded = Number(root.discoveredAspects[key] || 0)
         if (root.dynamicAspectDiscovery && decoded > 0)
             return root.displayAspect(decoded)
         const cached = Number(root.sharedMediaGeometry
                               ? root.sharedMediaGeometry.aspectForKey(key) : 0)
-        const nativeAspect = root.rawAspect(item)
         return root.displayAspect(cached
                                   || (root.mobileFullBleed ? nativeAspect : 0)
                                   || root.reservedAspects[key]
@@ -128,26 +152,45 @@ Item {
         return root.displayAspect(root.rawAspect(item))
     }
 
-    onEmbedsChanged: {
+    function reservationKey(key) {
+        const owner = root.geometryOwner
+        return owner && owner.stableKey ? JSON.stringify([owner.stableKey, key]) : ""
+    }
+    onEmbedsChanged: if (geometryInitialized) root.syncReservations()
+    function syncReservations() {
+        if (!root.geometryInitialized) return
         // Keep the reservation for unchanged media identities when a model
         // refresh adds dimensions later. Drop removed entries to bound state.
         const next = ({})
         const nextDiscovered = ({})
         const nextPending = ({})
+        const nextDecodedOnce = Object.create(null)
         for (let index = 0; index < root.visibleCount; ++index) {
             const key = root.mediaKey(index)
             if (root.discoveredAspects[key] > 0)
                 nextDiscovered[key] = root.discoveredAspects[key]
             if (root.pendingAspects[key] > 0)
                 nextPending[key] = root.pendingAspects[key]
-            next[key] = (root.sharedMediaGeometry
-                             ? root.sharedMediaGeometry.aspectForKey(key) : 0)
-                || root.reservedAspects[key]
-                || root.initialAspect(root.embedAt(index))
+            if (root.decodedOnce[key]) nextDecodedOnce[key] = true
+            const cached = root.sharedMediaGeometry
+                ? root.sharedMediaGeometry.aspectForKey(key) : 0
+            if (root.lockFeedGeometry) {
+                const proposed = root.reservedAspects[key]
+                    || root.rawAspect(root.embedAt(index)) || cached || 4 / 3
+                const id = root.reservationKey(key)
+                next[key] = id && root.sharedMediaGeometry
+                    && root.sharedMediaGeometry.reserveMediaAspect
+                    ? root.sharedMediaGeometry.reserveMediaAspect(id, proposed) : proposed
+            } else {
+                // Retain raw ratios, not a desktop-clamped ratio.
+                next[key] = cached || root.reservedAspects[key]
+                    || root.rawAspect(root.embedAt(index)) || 4 / 3
+            }
         }
         root.reservedAspects = next
         root.discoveredAspects = nextDiscovered
         root.pendingAspects = nextPending
+        root.decodedOnce = nextDecodedOnce
     }
 
     function scrollingAncestor() {
@@ -163,9 +206,35 @@ Item {
     function rememberAspect(index, ratio) {
         if (!root.dynamicAspectDiscovery) return
         const value = Number(ratio || 0)
-        if (!(value > 0))
+        if (!(value > 0) || !isFinite(value))
             return
         const key = root.mediaKey(index)
+        if (root.decodedOnce[key]) return
+        root.decodedOnce[key] = true
+        if (root.lockFeedGeometry) {
+            // Cache the intrinsic ratio even if this card is already visible.
+            // It may be used for a new cast, but cannot mutate this reservation.
+            if (root.sharedMediaGeometry)
+                root.sharedMediaGeometry.rememberAspect(key, value)
+            if (!root.geometryOwner) {
+                root.resolveScrollHost()
+                root.syncReservations()
+            }
+            // Declared dimensions are authoritative. A thumbnail or decode
+            // size is not a correction to the protocol's layout metadata.
+            if (root.rawAspect(root.embedAt(index)) > 0) return
+            const owner = root.geometryOwner
+            if (!owner || !owner.mayRefineMediaGeometry
+                    || !owner.mayRefineMediaGeometry()) return
+            const reservation = root.reservationKey(key)
+            if (!reservation || !root.sharedMediaGeometry
+                    || !root.sharedMediaGeometry.refineMediaAspect) return
+            root.sharedMediaGeometry.refineMediaAspect(reservation, value)
+            const next = Object.assign({}, root.reservedAspects)
+            next[key] = value
+            root.reservedAspects = next
+            return
+        }
         const previous = Number(root.discoveredAspects[key] || 0)
         if (previous > 0 && Math.abs(previous - value) < 0.015)
             return

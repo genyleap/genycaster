@@ -80,7 +80,7 @@ test('an actual portrait aspect makes single-photo Magazine cards fill the card 
   assert.equal(vm.runInContext('declaredAspect(0)', memory), 0.5,
     'cached decoded ratio must override a prior 4:3 placeholder');
   assert.match(gallery, /if \(scroller && scroller\.moving\)/);
-  assert.match(gallery, /ambientEnabled: root\.visibleCount === 1 && !root\.dynamicAspectDiscovery/);
+  assert.match(gallery, /ambientEnabled: !root\.singleSticker\s*&& root\.visibleCount === 1 && !root\.dynamicAspectDiscovery/);
 });
 
 test('phone portrait screenshots expand edge-to-edge to their full natural height without a crop ceiling', () => {
@@ -119,7 +119,7 @@ test('phone portrait screenshots expand edge-to-edge to their full natural heigh
   assert.match(read('ui/components/media/EmbedPreview.qml'), /mobilePresentation: root\.mobileViewport/);
   assert.match(gallery, /if \(scroller && scroller\.moving\)/);
   const preview = read('ui/components/media/GalleryTile.qml');
-  assert.match(preview, /fillMode: root\.preserveAspect \? Image\.PreserveAspectFit : Image\.PreserveAspectCrop/);
+  assert.match(preview, /fillMode: root\.officialSticker \|\| root\.preserveAspect\s*\? Image\.PreserveAspectFit : Image\.PreserveAspectCrop/);
 });
 
 test('image ratio knowledge reaches Explorer and Profile through the same magazine media renderer', () => {
