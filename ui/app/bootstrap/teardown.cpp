@@ -14,6 +14,7 @@ module;
 #include <QQmlApplicationEngine>
 #include <QQmlIncubationController>
 #include <QQmlProperty>
+#include <QtQml/qqml.h>
 #include <QQuickItem>
 #include <QQuickWindow>
 
@@ -76,7 +77,8 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
                 if (window->contentItem())
                     scan.append(QPointer<QObject>{window->contentItem()});
             }
-            if (!object->inherits("QQuickLoader") || !object->property("active").toBool()
+            if (qmlEngine(object) != &engine || !object->inherits("QQuickLoader")
+                || !object->property("active").toBool()
                 || object->property("item").value<QObject*>())
                 continue;
             const auto* meta = object->metaObject();
@@ -100,11 +102,10 @@ void releaseQmlRoots(QQmlApplicationEngine& engine, QQuickWindow* mainWindow)
                 QQmlProperty::write(loader.data(), QStringLiteral("active"), false);
             }
         }
-        // Loader deactivation may queue destruction of a partially built
-        // subtree. Deliver only deferred deletion while its context is still
-        // alive, then finish any remaining public incubators within the same
-        // deadline. Do not process arbitrary input/network events on quit.
-        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        // Finish remaining public incubators within the same deadline.
+        // Do not dispatch global DeferredDelete events here: native windows
+        // might already be queued for deletion, and their overlay must be
+        // released in the ordered scene teardown below.
         while (controller->incubatingObjectCount() > 0 && !deadline.hasExpired())
             controller->incubateFor(10);
         qCDebug(qmlTeardownLog) << "afterCancellation" << controller->incubatingObjectCount();

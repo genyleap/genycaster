@@ -1504,6 +1504,10 @@ Item {
         profileSortMode = "newest"
         popularMetric = "all"
         root.viewportAnchorKey = ""
+        if (!root.visible) {
+            root.stableModelSyncPending = true
+            return
+        }
         stableModelSyncTimer.restart()
         root.resetPositionPasses = 1
         root.profileEntryResetActive = true
@@ -1513,8 +1517,14 @@ Item {
         root.positionReaderAtHeaderTop()
         resetPositionTimer.restart()
     }
-    onProfileSortModeChanged: stableModelSyncTimer.restart()
-    onPopularMetricChanged: stableModelSyncTimer.restart()
+    onProfileSortModeChanged: {
+        if (root.visible) stableModelSyncTimer.restart()
+        else root.stableModelSyncPending = true
+    }
+    onPopularMetricChanged: {
+        if (root.visible) stableModelSyncTimer.restart()
+        else root.stableModelSyncPending = true
+    }
 
     onHasMoreChanged: {
         if (!hasMore)
@@ -1524,7 +1534,8 @@ Item {
     onBusyChanged: {
         if (!busy) {
             loadMorePending = false
-            stableModelSyncTimer.restart()
+            if (root.visible) stableModelSyncTimer.restart()
+            else root.stableModelSyncPending = true
         }
     }
 

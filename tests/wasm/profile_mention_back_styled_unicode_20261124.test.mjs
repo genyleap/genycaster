@@ -73,11 +73,11 @@ test('nested public profile Back does not accidentally skip its intermediate pro
 
 test('ProfileSurface never clears already-visible posts when late banner or bio metadata arrives',()=>{
   const handler=profile.slice(profile.indexOf('    onDetailChanged: {'),
-    profile.indexOf('    onRowsChanged: stableModelSyncTimer.restart()'));
+    profile.indexOf('    onRowsChanged: {'));
   assert.match(handler,/root\.synchronizeActiveDetail\(\)/);
   assert.doesNotMatch(handler,/profileRowsModel\.clear/);
-  assert.match(profile,/onProfileFidTextChanged: Qt\.callLater\(root\.reconcileProfileRowsIdentity\)/);
-  assert.match(profile,/onProfileNetworkChanged: Qt\.callLater\(root\.reconcileProfileRowsIdentity\)/);
+  assert.match(profile,/onProfileFidTextChanged: profileIdentitySyncTimer\.restart\(\)/);
+  assert.match(profile,/onProfileNetworkChanged: profileIdentitySyncTimer\.restart\(\)/);
   const switchBody=profile.slice(profile.indexOf('function reconcileProfileRowsIdentity()'),
     profile.indexOf('onProfileFidTextChanged:',profile.indexOf('function reconcileProfileRowsIdentity()')));
   assert.match(switchBody,/const key = root\.profileNetwork \+ ":" \+ root\.profileFidText/);

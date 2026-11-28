@@ -292,6 +292,8 @@ int main(int argc, char** argv)
     if (!stalledServer.listen(QHostAddress::LocalHost, 0)) return 20;
     const std::unique_ptr<QQmlPropertyMap> marker{QQmlPropertyMap::create()};
     marker->insert(QStringLiteral("cancelled"), false);
+    marker->insert(QStringLiteral("visualCancelled"), false);
+    QObject visualOwner;
     QQmlIncubationController waitingController;
     QQmlApplicationEngine waiting;
     waiting.setIncubationController(&waitingController);
@@ -305,6 +307,12 @@ int main(int argc, char** argv)
                 source: "http://127.0.0.1:%1/Pending.qml"
                 onActiveChanged: if (!active) marker.cancelled = true
             }
+            Loader {
+                objectName: "visualLoader"
+                asynchronous: true
+                source: "http://127.0.0.1:%1/VisualPending.qml"
+                onActiveChanged: if (!active) marker.visualCancelled = true
+            }
         }
     )QML").arg(stalledServer.serverPort()).toUtf8();
     waiting.loadData(source, QUrl{QStringLiteral("inmemory:/waiting-loader.qml")});
@@ -317,9 +325,17 @@ int main(int argc, char** argv)
     bool valid = false;
     if (status.read(waitingLoader.data()).toInt()
         != status.enumerator().keyToValue("Loading", &valid) || !valid) return 23;
-    if (marker->value(QStringLiteral("cancelled")).toBool()) return 24;
+    const QPointer<QQuickItem> visualLoader =
+        waiting.rootObjects().first()->findChild<QQuickItem*>(QStringLiteral("visualLoader"));
+    if (!visualLoader || !visualLoader->parentItem()) return 26;
+    visualLoader->setParent(&visualOwner);
+    if (visualLoader->parentItem() != waiting.rootObjects().first()) return 27;
+    if (marker->value(QStringLiteral("cancelled")).toBool()
+        || marker->value(QStringLiteral("visualCancelled")).toBool()) return 24;
     genycaster::ui::bootstrap::releaseQmlRoots(waiting, nullptr);
     if (waitingLoader || !marker->value(QStringLiteral("cancelled")).toBool()
         || waiting.incubationController() || !waiting.rootObjects().isEmpty()) return 25;
+    if (!marker->value(QStringLiteral("visualCancelled")).toBool()) return 28;
+    if (visualLoader) delete visualLoader.data();
     return 0;
 }

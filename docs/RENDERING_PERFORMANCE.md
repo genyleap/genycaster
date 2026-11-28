@@ -376,9 +376,9 @@ not exclusive GUI-thread CPU work.
 
 Shutdown quiescence is registered before native media/mini-app close callbacks.
 Pending loaders are discovered through both QObject and visual item trees.
-After cancellation, deferred deletion and a second bounded incubation drain
-run while the contexts are alive; the existing native window/overlay deletion
-order is unchanged. The afterCancellation counter is public incubation state,
+After cancellation, a second bounded incubation drain runs while contexts are
+alive. Global deferred deletion remains within the existing ordered native
+window/overlay teardown; unrelated engines are excluded from cancellation. The afterCancellation counter is public incubation state,
 not the engine's internal in-progress creation counter. Do not suppress the
 engine warning or claim it is fixed until the device quit trace is clean.
 

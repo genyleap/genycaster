@@ -69,7 +69,9 @@ test('Settings fills the desktop viewport and the mobile inspector remains full-
     assert.match(frost, /Math\.min\(0\.48, 1440 \/ Math\.max\(1, root\.width, root\.height\)\)/);
     assert.match(frost, /sourceItem: root\.nativeGaussian \? horizontalPass : null/);
     assert.match(frost, /captureUpdateQueued: false/);
-    assert.match(frost, /Qt\.callLater\(root\.performSnapshotUpdate\)/);
+    assert.match(frost, /snapshotUpdateTimer\.start\(\)/);
+    assert.match(frost, /id: snapshotUpdateTimer[\s\S]*?onTriggered: root\.performSnapshotUpdate\(\)/);
+    assert.doesNotMatch(frost, /Qt\.callLater\(root\.performSnapshotUpdate\)/);
     const theme = read('ui/theme/Theme.qml');
     const surfaces = read('ui/components/visual/NeonSurface.qml');
     const plates = read('ui/components/visual/NeonStatePlate.qml');
