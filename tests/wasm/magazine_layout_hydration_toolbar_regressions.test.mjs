@@ -34,7 +34,7 @@ test('Magazine never mistakes a provisional Loader reservation for a real painte
   const stored = [];
   const ctx = vm.createContext({
     cardLoader: {item: {height: 850, implicitHeight: 850, resolvedHeight: 0, incubating: true}},
-    measuredHeight: 0, cardHeight: 850, revisionSettling: false,
+    measuredHeight: 0, cardHeight: 850, revisionSettling: false, retiring: false,
     stableKey: 'cast-1', revisionKey: 'rev-3', width: 330,
     view: {retainHeight(...args) {stored.push(args);}}
   });

@@ -74,12 +74,10 @@ Item {
         root.returnCastOffset = 0
         root.returnCastAttempts = 0
         root.returnCastPending = true
-        for (let index = 0; index < stableRows.count; ++index) {
-            if (String(stableRows.get(index).stableKey).toLowerCase() !== root.returnCastKey)
-                continue
+        const index = stableRows.indexForKey(root.returnCastKey, true)
+        if (index >= 0) {
             const item = readList.itemAtIndex(index)
             if (item) root.returnCastOffset = item.y - readList.contentY
-            break
         }
     }
     function restoreCastOnReturn() {
@@ -89,13 +87,7 @@ Item {
             root.returnCastPending = false
             return
         }
-        let index = -1
-        for (let i = 0; i < stableRows.count; ++i) {
-            if (String(stableRows.get(i).stableKey).toLowerCase() === root.returnCastKey) {
-                index = i
-                break
-            }
-        }
+        const index = stableRows.indexForKey(root.returnCastKey, true)
         root.applyingViewportRestore = true
         if (index < 0) {
             readList.contentY = root.returnCastY
@@ -970,13 +962,7 @@ Item {
                 || root.pendingViewportScope.length > 0
                 || root.geometryAnchorKey.length === 0) return
         const key = root.geometryAnchorKey
-        let anchorIndex = -1
-        for (let i = 0; i < stableRows.count; ++i) {
-            if (String(stableRows.get(i).stableKey) === key) {
-                anchorIndex = i
-                break
-            }
-        }
+        const anchorIndex = stableRows.indexForKey(key)
         if (anchorIndex < 0) return
         root.applyingGeometryAnchor = true
         readList.forceLayout()
@@ -1005,7 +991,7 @@ Item {
                                        readList.contentY + probe)
         const item = index >= 0 ? readList.itemAtIndex(index) : null
         return { key: index >= 0 && item
-                      ? String(stableRows.get(index).stableKey || "") : "",
+                      ? stableRows.keyAt(index) : "",
                  offset: item ? item.y - readList.contentY : 0,
                  y: readList.contentY,
                  scope: root.activeFeed + ":" + root.presentationMode + ":" + root.socialMode }
@@ -1040,10 +1026,7 @@ Item {
                 Math.min(readList.originY + Math.max(0, readList.contentHeight-readList.height), previousY))
             return
         }
-        let index = -1
-        for (let i = 0; i < stableRows.count; ++i) {
-            if (String(stableRows.get(i).stableKey) === key) { index=i;break }
-        }
+        const index = stableRows.indexForKey(key)
         if (index < 0) {
             root.pendingViewportScope = ""
             root.pendingViewportKey = ""
@@ -2003,7 +1986,9 @@ Item {
         }
 
         Connections {
-            target: readList
+            // Magazine already measures its outer slot independently.
+            // Pooled timeline rows must not participate in scroll callbacks.
+            target: !rowDelegate.magazineRow && rowDelegate.visible ? readList : null
             function onMovingChanged() {
                 if (!readList.moving) {
                     // Capture the visible cast before deferred video/card

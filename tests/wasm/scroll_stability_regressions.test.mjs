@@ -31,7 +31,8 @@ function feedHarness() {
     };
     const context = {
         root, readList, ListView: { Beginning: 0 },
-        stableRows: { count: 1, get: () => ({ stableKey: 'a' }) },
+        stableRows: { count: 1, get: () => ({ stableKey: 'a' }),
+            indexForKey: key => key === 'a' ? 0 : -1 },
         geometryAnchorDebounce: timer(), geometryRestoreTimer: timer(),
         stableViewportRestoreTimer: timer(), positionAtTopTimer: timer(),
     };

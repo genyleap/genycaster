@@ -506,5 +506,12 @@ int main(int argc, char** argv)
     require(stableChanges.at(1).at(0).value<QModelIndex>().row() == 7);
     require(stableChanges.at(1).at(1).value<QModelIndex>().row() == 7);
     require(stableChanges.at(0).at(2).value<QList<int>>() == QList<int>{FeedRowsModel::RevisionKeyRole});
+    require(stableOrder.indexForKey("stable:7") == 7);
+    require(stableOrder.indexForKey("STABLE:7") == -1);
+    require(stableOrder.indexForKey("STABLE:7", true) == 7);
+    require(stableOrder.keyAt(7) == "stable:7");
+    require(stableOrder.keyAt(-1).isEmpty() && stableOrder.keyAt(2048).isEmpty());
+    require(stableOrder.indexForKey({}) == -1);
+    require(stableOrder.indexForKey("missing") == -1);
     return 0;
 }

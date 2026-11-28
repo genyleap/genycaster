@@ -58,7 +58,9 @@ test("the hidden Explorer does not change into a profile model or remove its hea
 test("Back restores selected Cast identity and its original viewport offset", () => {
     const rows = [{stableKey:"cast:0xaaa"}, {stableKey:"cast:0xbbb"}, {stableKey:"cast:0xccc"}];
     let currentItem = {y:1250};
-    const stableRows = {count:rows.length,get:index=>rows[index]};
+    const stableRows = {count:rows.length,get:index=>rows[index],
+        indexForKey:(key,ignoreCase=false)=>rows.findIndex(row=>ignoreCase
+            ? row.stableKey.toLowerCase()===key.toLowerCase() : row.stableKey===key)};
     const readList = {
         contentY:1150,
         forceLayout(){},

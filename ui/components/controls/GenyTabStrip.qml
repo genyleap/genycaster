@@ -49,10 +49,26 @@ Item {
         currentIndex: root.indexForId(root.currentId)
 
         function revealCurrentTab() {
-            Qt.callLater(function() {
-                if (tabList.currentIndex >= 0 && tabList.currentIndex < tabList.count)
+            if (tabList.visible && !(typeof renderingController !== "undefined"
+                    && renderingController && renderingController.shuttingDown === true))
+                revealTimer.restart()
+        }
+        Timer {
+            id: revealTimer
+            interval: 0
+            repeat: false
+            onTriggered: {
+                if (typeof renderingController !== "undefined" && renderingController
+                        && renderingController.shuttingDown === true)
+                    return
+                if (tabList.visible && tabList.currentIndex >= 0
+                        && tabList.currentIndex < tabList.count)
                     tabList.positionViewAtIndex(tabList.currentIndex, ListView.Contain)
-            })
+            }
+        }
+        onVisibleChanged: {
+            if (visible) revealCurrentTab()
+            else revealTimer.stop()
         }
 
         onCurrentIndexChanged: revealCurrentTab()

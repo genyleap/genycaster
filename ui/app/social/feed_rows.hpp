@@ -54,6 +54,9 @@ public:
 
     /** @brief Returns one shallow primitive row, or an empty map for an invalid index. */
     Q_INVOKABLE [[nodiscard]] QVariantMap get(int index) const;
+    /** @brief Finds an anchor without constructing a QVariantMap for each row. */
+    Q_INVOKABLE [[nodiscard]] int indexForKey(const QString& key, bool ignoreCase = false) const;
+    Q_INVOKABLE [[nodiscard]] QString keyAt(int index) const;
 
     /** @brief Clears all visible rows; only broad source replacement should use this. */
     Q_INVOKABLE void clear();

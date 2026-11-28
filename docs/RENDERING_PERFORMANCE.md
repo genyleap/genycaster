@@ -483,6 +483,20 @@ Magazine already owns a crossfading placeholder: FeedRow no longer creates
 a second hidden CastSkeleton inside the transparent magazine card.
 Timeline retains the existing placeholder style and reservation.
 
+## Owned delegate callbacks and native anchor lookup
+
+Feed navigation and geometry restoration use indexForKey/keyAt instead
+of allocating a QVariantMap and crossing into C++ for every row. Pooled
+timeline delegates no longer receive scroll-settlement callbacks; the
+magazine has independent measurements. SpriteEmoji interest and atlas
+publication, AnimatedEmoji replay restoration and GenyTabStrip reveal
+requests are coalesced in object-owned timers rather than global
+Qt.callLater closures. Replay restoration validates the actual renderer
+and Unicode identity and restores artwork even if motion is paused.
+These changes reduce lifecycle work but do not establish the cause of
+the outstanding engine creation warning. No Qt-private counter is
+changed and no warning is suppressed.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

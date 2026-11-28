@@ -24,6 +24,10 @@ Item {
     property bool requestFailed: false
     property bool rendererResident: false
     property bool replayOnReturn: false
+    property string replaySequence: ""
+    property var replayTarget: null
+    readonly property bool shuttingDown: typeof renderingController !== "undefined"
+        && renderingController && renderingController.shuttingDown === true
     readonly property bool emojiPlaybackEnabled: Theme.animateEmoji
                                                && !Theme.powerSave && !Theme.reduceMotion
     // Some lightweight/test QML contexts intentionally omit the optional emoji runtime.
@@ -108,6 +112,7 @@ Item {
         && root.rendererResident && root.assetSource.length > 0
 
     function requestIfNeeded() {
+        if (root.shuttingDown) return
         if (root.artworkWanted && root.assetSource.length === 0) {
             if (root.controller === null)
                 return
@@ -140,7 +145,7 @@ Item {
         interval: 150
         repeat: false
         onTriggered: {
-            if (!root.replayOnReturn || !root.motionActive)
+            if (root.shuttingDown || !root.replayOnReturn || !root.motionActive)
                 return
             root.replayOnReturn = false
             if (!lottie.item || !lottie.item.playbackCompleted)
@@ -148,13 +153,28 @@ Item {
             // Reuse the cached asset, never refetch it. A regenerated scene is
             // necessary because generatedItem owns a completed value-source
             // animation rather than an externally restartable QML Animation.
-            const expected = root.unicodeSequence
+            root.replaySequence = root.unicodeSequence
+            root.replayTarget = lottie.item
             lottie.item.source = ""
-            Qt.callLater(function() {
-                if (lottie.item && root.motionActive
-                        && expected === root.unicodeSequence)
-                    lottie.item.source = root.assetSource
-            })
+            replayRestoreTimer.restart()
+        }
+    }
+
+    // Restore only the original live renderer. If motion paused between
+    // clearing and restoring, preserve the resting artwork rather than
+    // leaving a permanently empty source. Playback policy controls motion.
+    Timer {
+        id: replayRestoreTimer
+        interval: 0
+        repeat: false
+        onTriggered: {
+            const target = root.replayTarget
+            const sequence = root.replaySequence
+            root.replayTarget = null
+            root.replaySequence = ""
+            if (!root.shuttingDown && target && lottie.item === target
+                    && sequence === root.unicodeSequence)
+                target.source = root.assetSource
         }
     }
 
@@ -192,6 +212,9 @@ Item {
     onUnicodeSequenceChanged: {
         root.replayOnReturn = false
         replayTimer.stop()
+        replayRestoreTimer.stop()
+        root.replayTarget = null
+        root.replaySequence = ""
         root.requestFailed = false
         root.rendererResident = false
         requestTimer.restart()

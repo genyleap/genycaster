@@ -20,6 +20,10 @@ Item {
     property bool explicitRetry: false
     property var spriteData: ({})
     property string requestedSequence: ""
+    property string pendingSpriteSequence: ""
+    property var pendingSpriteMetadata: null
+    readonly property bool shuttingDown: typeof renderingController !== "undefined"
+        && renderingController && renderingController.shuttingDown === true
     property real framePosition: 0
     readonly property var controller: typeof emojiController !== "undefined" ? emojiController : null
     readonly property bool rendererUsable: root.controller !== null && root.controller.spriteAvailable
@@ -50,6 +54,7 @@ Item {
     readonly property int frameIndex: Math.min(root.frameCount - 1, Math.floor(root.framePosition))
 
     function syncInterest() {
+        if (root.shuttingDown) return
         const wantedSequence = root.artworkWanted ? root.unicodeSequence : ""
         if (!root.artworkWanted) {
             admission.stop()
@@ -77,7 +82,7 @@ Item {
     }
 
     function restartRequest(explicit) {
-        if (!root.artworkWanted)
+        if (root.shuttingDown || !root.artworkWanted)
             return
         retryDelay.stop()
         if (root.requestedSequence.length > 0 && root.controller !== null)
@@ -92,6 +97,7 @@ Item {
     }
 
     function fail(reason) {
+        if (root.shuttingDown) return
         root.requestFailed = true
         root.failureReason = String(reason || "atlas: preparation failed")
         if (root.artworkWanted && root.retryCount < 2 && !retryDelay.running)
@@ -118,7 +124,7 @@ Item {
         interval: 150
         repeat: false
         onTriggered: {
-            if (!root.artworkWanted || root.requestedSequence.length > 0)
+            if (root.shuttingDown || !root.artworkWanted || root.requestedSequence.length > 0)
                 return
             // A retained/Qt-cached sheet needs neither a disk digest probe nor
             // another native request when a short scroll reveals it again.
@@ -134,7 +140,33 @@ Item {
         }
     }
 
-    onArtworkWantedChanged: Qt.callLater(root.syncInterest)
+    // Coalesce identity/visibility changes in an object-owned timer. A
+    // recycled or destroyed delegate cannot leave a global callback behind.
+    Timer {
+        id: interestSyncTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.syncInterest()
+    }
+    Timer {
+        id: spriteCommitTimer
+        interval: 0
+        repeat: false
+        onTriggered: {
+            const sequence = root.pendingSpriteSequence
+            const metadata = root.pendingSpriteMetadata
+            root.pendingSpriteSequence = ""
+            root.pendingSpriteMetadata = null
+            if (root.shuttingDown || !metadata || sequence !== root.unicodeSequence
+                    || !root.artworkWanted)
+                return
+            root.requestFailed = false
+            root.failureReason = ""
+            retryDelay.stop()
+            root.spriteData = metadata
+        }
+    }
+    onArtworkWantedChanged: interestSyncTimer.restart()
     onViewportVisibleChanged: {
         if (!root.viewportVisible)
             root.replayOnReturn = true
@@ -164,7 +196,10 @@ Item {
         root.retryCount = 0
         root.explicitRetry = false
         retryDelay.stop()
-        Qt.callLater(root.syncInterest)
+        spriteCommitTimer.stop()
+        root.pendingSpriteSequence = ""
+        root.pendingSpriteMetadata = null
+        interestSyncTimer.restart()
     }
     Component.onCompleted: root.syncInterest()
     Component.onDestruction: {
@@ -175,20 +210,15 @@ Item {
     Connections {
         target: root.controller
         function onSpriteReady(sequence, metadata) {
-            if (sequence !== root.unicodeSequence || !root.artworkWanted)
+            if (root.shuttingDown || sequence !== root.unicodeSequence || !root.artworkWanted)
                 return
             // A memory entry can outlive disk-cache eviction. Clear an errored
             // URL before restoring a newly prepared file at the same path.
             if (atlas.status === Image.Error)
                 root.spriteData = ({})
-            Qt.callLater(() => {
-                if (sequence === root.unicodeSequence && root.artworkWanted) {
-                    root.requestFailed = false
-                    root.failureReason = ""
-                    retryDelay.stop()
-                    root.spriteData = metadata
-                }
-            })
+            root.pendingSpriteSequence = sequence
+            root.pendingSpriteMetadata = metadata
+            spriteCommitTimer.restart()
         }
         function onSpriteFailed(sequence, reason) {
             if (sequence === root.requestedSequence && !root.animationReady) {

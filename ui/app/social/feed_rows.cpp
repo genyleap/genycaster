@@ -125,6 +125,20 @@ QVariantMap FeedRowsModel::get(const int index) const
     return toMap(m_rows.at(index));
 }
 
+int FeedRowsModel::indexForKey(const QString& key, const bool ignoreCase) const
+{
+    if (key.isEmpty()) return -1;
+    const auto sensitivity = ignoreCase ? Qt::CaseInsensitive : Qt::CaseSensitive;
+    for (int i = 0; i < count(); ++i)
+        if (m_rows.at(i).stableKey.compare(key, sensitivity) == 0) return i;
+    return -1;
+}
+
+QString FeedRowsModel::keyAt(const int index) const
+{
+    return index >= 0 && index < count() ? m_rows.at(index).stableKey : QString{};
+}
+
 void FeedRowsModel::clear()
 {
     if (m_rows.isEmpty()) return;
