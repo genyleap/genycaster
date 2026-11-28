@@ -497,6 +497,12 @@ These changes reduce lifecycle work but do not establish the cause of
 the outstanding engine creation warning. No Qt-private counter is
 changed and no warning is suppressed.
 
+Regression coverage: tests/wasm/feed_publication_lifecycle_20261128.test.mjs
+executes the actual timer-handler bodies against stale identity, hidden,
+shutdown and renderer-replacement cases. These are source/logic tests;
+the real QML engine and Metal device remain necessary for visual and
+lifecycle validation.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

@@ -2,6 +2,7 @@
 #include "viewport_work_budget.hpp"
 
 #include <QByteArray>
+#include <QDebug>
 #include <QString>
 #include <QVariant>
 #include <QTimer>
@@ -329,8 +330,12 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
         if (i >= m_rows.size() || m_rows.at(i).stableKey != incoming.at(i).stableKey)
             ++displaced;
     }
-    if (static_cast<qsizetype>(retained) * 4 < std::min(m_rows.size(), incoming.size())
-        || (incoming.size() > 512 && displaced > incoming.size() - incoming.size() / 4)) {
+    // Preserve the original 75% threshold without multiplying a large
+    // qsizetype by three (including 32-bit WASM).
+    const auto resetDisplacementThreshold =
+        (incoming.size() / 4) * 3 + (incoming.size() % 4) * 3 / 4;
+    if (static_cast<qint64>(retained) * 4 < std::min(m_rows.size(), incoming.size())
+        || (incoming.size() > 512 && displaced > resetDisplacementThreshold)) {
         const bool countWillChange = m_rows.size() != incoming.size();
         trace.measure(trace.reset, [this, &incoming] {
             beginResetModel();
