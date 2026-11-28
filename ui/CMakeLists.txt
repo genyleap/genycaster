@@ -1703,6 +1703,8 @@ qt_add_qml_module(genycaster
         render/stroke.hpp
         render/superellipse.cpp
         render/superellipse.hpp
+        render/reflection_coordinates.cpp
+        render/reflection_coordinates.hpp
         render/sparkline.cpp
         render/sparkline.hpp
         app/social/feed_rows.cpp

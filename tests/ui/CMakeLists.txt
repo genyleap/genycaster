@@ -256,6 +256,19 @@ set_tests_properties(ui.render_geometry_bounds PROPERTIES
     TIMEOUT 20 LABELS "ui;qt;rendering;safety"
     ENVIRONMENT "QT_QPA_PLATFORM=minimal;QT_QUICK_BACKEND=software")
 
+qt_add_executable(farcaster_reflection_coordinates_tests
+    reflection_coordinates_tests.cpp
+    "${genycasterUiSourceDir}/render/reflection_coordinates.cpp"
+    "${genycasterUiSourceDir}/render/reflection_coordinates.hpp")
+target_compile_features(farcaster_reflection_coordinates_tests PRIVATE cxx_std_26)
+target_link_libraries(farcaster_reflection_coordinates_tests PRIVATE
+    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Test)
+farcaster_enable_warnings(farcaster_reflection_coordinates_tests)
+add_test(NAME ui.reflection_coordinates COMMAND farcaster_reflection_coordinates_tests)
+set_tests_properties(ui.reflection_coordinates PROPERTIES
+    TIMEOUT 20 LABELS "ui;qt;rendering;reflection"
+    ENVIRONMENT "QT_QPA_PLATFORM=minimal;QT_QUICK_BACKEND=software;QT_FATAL_WARNINGS=1")
+
 # Check untrusted multipart gateway JSON numbers before converting to an
 # unsigned C++ integer. This small test intentionally needs only QtCore.
 qt_add_executable(farcaster_media_json_numbers_tests media_json_numbers_tests.cpp)
@@ -659,7 +672,9 @@ add_executable(farcaster_media_scroll_tests
     "${genycasterUiSourceDir}/app/social/feed_rows.hpp"
     "${genycasterUiSourceDir}/render/sparkline.cpp"
     "${genycasterUiSourceDir}/render/sparkline.hpp"
-    "${genycasterUiSourceDir}/render/superellipse.cpp")
+    "${genycasterUiSourceDir}/render/superellipse.cpp"
+    "${genycasterUiSourceDir}/render/reflection_coordinates.cpp"
+    "${genycasterUiSourceDir}/render/reflection_coordinates.hpp")
 target_include_directories(farcaster_media_scroll_tests PRIVATE
     "${genycasterUiSourceDir}/render")
 target_link_libraries(farcaster_media_scroll_tests PRIVATE

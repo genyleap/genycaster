@@ -161,26 +161,3 @@ function borderPoint(progress, width, height, radius, power) {
     }
     return { x: w / 2, y: 0 }
 }
-
-// Reactive mapping between sibling UI panes in the same untransformed scene.
-// Bind x/y/parent through this function; no per-frame polling is required.
-// Transformed callers should provide an explicit source-local rectangle.
-function translatedRect(item, source) {
-    if (!item) return Qt.rect(0, 0, 0, 0)
-    if (!source) return Qt.rect(0, 0, item.width, item.height)
-    let x = 0
-    let y = 0
-    let current = item
-    while (current) {
-        x += current.x
-        y += current.y
-        current = current.parent
-    }
-    current = source
-    while (current) {
-        x -= current.x
-        y -= current.y
-        current = current.parent
-    }
-    return Qt.rect(x, y, item.width, item.height)
-}

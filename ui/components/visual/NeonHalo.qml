@@ -11,8 +11,9 @@ Item {
     // Share the adjacent scene texture with the surface; never capture the
     // halo or one of its ancestors, and never allocate a capture per control.
     property NeonReflectionSource reflectionSource: null
-    property rect reflectionRect: NeonGeometry.translatedRect(root,
-        reflectionSource && reflectionSource.capturing ? reflectionSource.sourceItem : null)
+    ReflectionCoordinates.source: reflectionSource && reflectionSource.capturing
+        ? reflectionSource.sourceItem : null
+    property rect reflectionRect: ReflectionCoordinates.bounds
     property real reflectionStrength: Theme.neonReflectionStrength
     property real reflectionReach: Theme.reflectionReach
     property bool suppressed: false

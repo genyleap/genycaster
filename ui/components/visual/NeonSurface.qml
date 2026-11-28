@@ -1,6 +1,5 @@
 import QtQuick
 import Farcaster.Client
-import "NeonGeometry.js" as NeonGeometry
 
 // One material owner for the surface, its focus outline, and its Neon rim.
 // Adapted from the user-provided Genyleap Neon UI Kit v0.4.5 NeonSurface.
@@ -11,8 +10,9 @@ Superellipse {
 
     property bool interactive: false
     property NeonReflectionSource reflectionSource: null
-    property rect reflectionRect: NeonGeometry.translatedRect(material,
-        reflectionSource && reflectionSource.capturing ? reflectionSource.sourceItem : null)
+    ReflectionCoordinates.source: reflectionSource && reflectionSource.capturing
+        ? reflectionSource.sourceItem : null
+    property rect reflectionRect: ReflectionCoordinates.bounds
     property real reflectionStrength: Theme.reflectionStrength
     property real neonReflectionStrength: Theme.neonReflectionStrength
     property bool reflectedBorder: true

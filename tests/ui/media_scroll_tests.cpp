@@ -5,6 +5,7 @@
 #include "sparkline.hpp"
 #include "rich_inline_text_item.hpp"
 #include "../../ui/render/superellipse.hpp"
+#include "../../ui/render/reflection_coordinates.hpp"
 #include "../../ui/app/social/feed_rows.hpp"
 
 #include <QGuiApplication>
@@ -221,6 +222,8 @@ int main(int argc, char** argv)
     qmlRegisterType<RichInlineTextItem>("Farcaster.Client", 1, 0, "RichInlineTextItem");
     qmlRegisterType<FeedRowsModel>("Farcaster.Client", 1, 0, "FeedRowsModel");
     qmlRegisterType<MasonryWindowModel>("Farcaster.Client", 1, 0, "MasonryWindowModel");
+    qmlRegisterUncreatableType<ReflectionCoordinates>("Farcaster.Client", 1, 0,
+        "ReflectionCoordinates", "Attach ReflectionCoordinates to a visual item");
     qmlRegisterType<SceneGraphSuperellipseItem>(
         "Farcaster.Client", 1, 0, "SceneGraphSuperellipse");
     // Source-loaded components normally get native types from their enclosing

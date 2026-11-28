@@ -722,15 +722,19 @@ The `reflection.motion.begin` and `reflection.motion.end` stall markers delimit
 scrolling in the shared chromatic reflection source. They identify policy
 transitions, not completion of GPU work.
 
-Neon 0.7.11's rendering architecture is the reference for the receiver-side
-coordinate admission: Reflection, Halo and Surface do not traverse the source
-ancestor chain when capture is disabled. The standalone kit keeps all three
-capture stages live and uses a native coordinate adapter plus render-thread
-texture refresh deduplication for its native materials. Genycaster currently
-retains its bounded motion snapshots and existing QML receiver architecture;
-porting the native material/coordinate adapters requires separate parity and
-backend qualification. No compact blur kernel or reflection gain change is
-introduced here.
+Neon 0.7.11 (genyleap/neon, fd35c89c) is the reference for the native
+receiver coordinate adapter. Reflection, Halo and Surface use the attached
+`ReflectionCoordinates` type rather than a JavaScript ancestor walk. It
+maps the receiver's rectangle in source-local coordinates and observes only
+relative geometry below the common ancestor. Disabled capture disconnects
+source observations; an explicit rectangle override need not observe the
+default mapping. The isolated Qt fixture exercises registration, movement,
+source disconnection, relative transforms, reparenting and destruction.
+The standalone kit keeps all three capture stages live and also deduplicates
+explicit render-thread refreshes of dynamic textures in its native materials.
+Genycaster retains its bounded motion snapshots and existing material shaders;
+porting the native material pipeline requires separate parity and backend
+qualification. No compact blur kernel or reflection gain change is introduced.
 
 ## Measure on a real device
 

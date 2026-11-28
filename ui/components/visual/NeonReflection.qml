@@ -1,14 +1,14 @@
 import QtQuick
 import Farcaster.Client
-import "NeonGeometry.js" as NeonGeometry
 
 // Chromatic material layer: the shared source is projected onto the adjacent
 // receiver. Source-facing edges get color; neutral/no-source stays neutral.
 ShaderEffect {
     id: reflection
     property NeonReflectionSource reflectionSource: null
-    property rect sampleRect: NeonGeometry.translatedRect(reflection,
-        reflectionSource && reflectionSource.capturing ? reflectionSource.sourceItem : null)
+    ReflectionCoordinates.source: reflectionSource && reflectionSource.capturing
+        ? reflectionSource.sourceItem : null
+    property rect sampleRect: ReflectionCoordinates.bounds
     property real strength: Theme.reflectionStrength
     property real reach: Theme.reflectionReach
     property real cornerRadius: Theme.curveContainer

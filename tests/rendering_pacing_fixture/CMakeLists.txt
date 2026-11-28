@@ -11,6 +11,15 @@ target_include_directories(genycaster_rendering_pacing_fixture PRIVATE "${root}/
 target_compile_features(genycaster_rendering_pacing_fixture PRIVATE cxx_std_23)
 target_link_libraries(genycaster_rendering_pacing_fixture PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::Test)
 enable_testing()
+add_executable(genycaster_reflection_coordinates_fixture
+  "${root}/tests/ui/reflection_coordinates_tests.cpp"
+  "${root}/ui/render/reflection_coordinates.cpp"
+  "${root}/ui/render/reflection_coordinates.hpp")
+target_compile_features(genycaster_reflection_coordinates_fixture PRIVATE cxx_std_23)
+target_link_libraries(genycaster_reflection_coordinates_fixture PRIVATE Qt6::Core Qt6::Qml Qt6::Quick Qt6::Test)
+add_test(NAME reflection_coordinates_runtime COMMAND genycaster_reflection_coordinates_fixture)
+set_tests_properties(reflection_coordinates_runtime PROPERTIES TIMEOUT 20
+  ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FATAL_WARNINGS=1")
 add_executable(genycaster_viewport_work_budget_fixture "${root}/tests/ui/viewport_work_budget_tests.cpp")
 set_target_properties(genycaster_viewport_work_budget_fixture PROPERTIES AUTOMOC OFF)
 target_compile_features(genycaster_viewport_work_budget_fixture PRIVATE cxx_std_20)

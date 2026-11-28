@@ -51,7 +51,9 @@ test('reflection updates during reader movement with bounded coherent snapshots'
 test('inactive reflection receivers do not observe the source coordinate chain',()=>{
  for (const file of ['NeonReflection','NeonHalo','NeonSurface']) {
   const receiver=read('ui/components/visual/'+file+'.qml');
-  assert.match(receiver,/NeonGeometry\.translatedRect\([^,]+,\s*reflectionSource && reflectionSource\.capturing \? reflectionSource\.sourceItem : null\)/);
+  assert.match(receiver,/ReflectionCoordinates\.source: reflectionSource && reflectionSource\.capturing\s*\? reflectionSource\.sourceItem : null/);
+  assert.match(receiver,/property rect (?:sampleRect|reflectionRect): ReflectionCoordinates\.bounds/);
+  assert.doesNotMatch(receiver,/NeonGeometry\.translatedRect/);
  }
 });
 
