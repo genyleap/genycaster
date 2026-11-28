@@ -42,7 +42,7 @@ public:
 signals:
     void changed();
 private:
-    QNetworkAccessManager m_network{};
+    QNetworkAccessManager m_network{this};
     QPointer<QNetworkReply> m_reply{};
     QVariantMap m_metrics{};
     QString m_state{QStringLiteral("idle")};

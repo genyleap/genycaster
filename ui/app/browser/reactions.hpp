@@ -78,7 +78,7 @@ private:
     QElapsedTimer m_clock{};
     QTimer m_dispatchTimer{};
     QTimer m_retryTimer{};
-    QNetworkAccessManager m_network{};
+    QNetworkAccessManager m_network{this};
     QNetworkReply* m_activeReply{nullptr};
     QByteArray m_response{};
     QUrl m_endpoint{};

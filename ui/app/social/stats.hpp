@@ -66,7 +66,7 @@ private:
     [[nodiscard]] QUrl endpointUrl(const QString& route,
                                     const QHash<QString, QString>& query) const;
 
-    QNetworkAccessManager m_network{};
+    QNetworkAccessManager m_network{this};
     QPointer<QNetworkReply> m_reply{};
     QString m_state{QStringLiteral("idle")};
     QString m_endpoint{};

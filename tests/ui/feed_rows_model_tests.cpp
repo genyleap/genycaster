@@ -2,6 +2,7 @@
 #include "../../src/presentation/qt/media_embed_equivalence.hpp"
 
 #include <QCoreApplication>
+#include <QThread>
 #include <QSignalSpy>
 #include <QAbstractItemModelTester>
 
@@ -215,6 +216,25 @@ int main(int argc, char** argv)
     while (debt && drainPasses++ < 100)
         debt = retiredWall.setViewport(distant, 1000, 1200, 1600, true, false, 3, 4, 5);
     require(!debt && retiredWall.windowIndexForSource(400) >= 0);
+
+    // Simulate a slow model observer, not a slow machine. Once removal
+    // consumes the deadline, at most one nearest newcomer is published.
+    retiredWall.setViewport(0, 1000, 1200, 1600, true);
+    const auto slowRemoval = QObject::connect(&retiredWall, &QAbstractItemModel::rowsRemoved,
+        &retiredWall, [] { QThread::msleep(12); });
+    QSignalSpy slowAdmissions{&retiredWall, &QAbstractItemModel::rowsInserted};
+    debt = retiredWall.setViewport(distant, 1000, 1200, 1600, true, false, 3, 4, 5);
+    QObject::disconnect(slowRemoval);
+    require(debt && retiredWall.windowIndexForSource(0) < 0);
+    int admittedAfterSlowRemoval = 0;
+    for (const auto& signal : slowAdmissions)
+        admittedAfterSlowRemoval += signal.at(2).toInt() - signal.at(1).toInt() + 1;
+    require(admittedAfterSlowRemoval == 1);
+    require(retiredWall.windowIndexForSource(400) >= 0);
+    drainPasses = 0;
+    while (debt && drainPasses++ < 100)
+        debt = retiredWall.setViewport(distant, 1000, 1200, 1600, true, false, 3, 4, 5);
+    require(!debt);
 
     // The native magazine owns geometry for the whole feed but QML objects
     // only for the viewport. Mixed measured heights never overlap lanes.

@@ -935,6 +935,30 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
         }, pacedEviction ? 1 : 0, [&] {
             return pacedEviction && evictionClock.nsecsElapsed() >= deadlineNs;
         });
+    // A slow retirement must not be followed by an entire new batch of
+    // rich delegate admissions in the same event turn. Keep one nearest
+    // newcomer for forward progress even on a completely disjoint jump.
+    // Existing rows still receive their geometry and retirement state now.
+    const bool admissionThrottled = pacedEviction && removed > 0
+        && evictionClock.nsecsElapsed() >= deadlineNs;
+    if (admissionThrottled) {
+        QSet<QString> present;
+        present.reserve(m_window.size());
+        for (const auto& slot : std::as_const(m_window)) present.insert(slot.key);
+        int nearest = -1;
+        for (const int sourceIndex : std::as_const(admitted)) {
+            if (!present.contains(m_geometry.at(sourceIndex).key)
+                && (nearest < 0 || nearer(sourceIndex, nearest)))
+                nearest = sourceIndex;
+        }
+        const auto previousSize = admitted.size();
+        admitted.erase(std::remove_if(admitted.begin(), admitted.end(),
+            [&](const int sourceIndex) {
+                return sourceIndex != nearest
+                    && !present.contains(m_geometry.at(sourceIndex).key);
+            }), admitted.end());
+        morePending = morePending || admitted.size() != previousSize;
+    }
     bool evictionPending = false;
     for (const auto& slot : std::as_const(m_window)) {
         if (!desiredKeys.contains(slot.key)) {
@@ -948,18 +972,26 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
         // admit newly visible slots without waiting for the entire drain.
         QSet<QString> present;
         present.reserve(m_window.size());
+        // Publish contiguous retirement flags as a range, rather than
+        // waking every observer independently. Preserve exact changed rows.
+        int firstRetiring = -1;
+        const auto flushRetiring = [&](const int last) {
+            if (firstRetiring < 0) return;
+            measure(updateNs, [&] {
+                emit dataChanged(createIndex(firstRetiring, 0), createIndex(last, 0), {RetiringRole});
+            });
+            firstRetiring = -1;
+        };
         for (int i = 0; i < m_window.size(); ++i) {
             const auto& current = m_window.at(i);
             present.insert(current.key);
-            if (!desiredKeys.contains(current.key)) {
-                if (!current.retiring) {
-                    m_window[i].retiring = true;
-                    measure(updateNs, [&] {
-                        emit dataChanged(createIndex(i, 0), createIndex(i, 0), {RetiringRole});
-                    });
-                }
+            if (!desiredKeys.contains(current.key) && !current.retiring) {
+                m_window[i].retiring = true;
+                if (firstRetiring < 0) firstRetiring = i;
                 continue;
             }
+            flushRetiring(i - 1);
+            if (!desiredKeys.contains(current.key)) continue;
             const auto source = m_indexByKey.constFind(current.key);
             if (source != m_indexByKey.cend()) {
                 auto& desired = m_geometry[*source];
@@ -967,6 +999,7 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
                 measure(updateNs, [&] { updateWindowSlot(i, desired); });
             }
         }
+        flushRetiring(count() - 1);
         QVector<int> entering;
         // Do not grow the transient working set during a retirement backlog.
         for (const int sourceIndex : std::as_const(admitted)) {
@@ -999,6 +1032,7 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
             qCDebug(masonryWorkLog) << "window" << "planningMs" << static_cast<double>(planningNs) / 1e6
                 << "evictionMs" << static_cast<double>(evictionNs) / 1e6 << "publishMs" << static_cast<double>(updateNs) / 1e6
                 << "removed" << removed << "inserted" << inserted
+                << "admissionThrottled" << admissionThrottled
                 << "retirementPending" << true << "slots" << m_window.size();
         return true;
     }
@@ -1065,6 +1099,7 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
         qCDebug(masonryWorkLog) << "window" << "planningMs" << static_cast<double>(planningNs) / 1e6
             << "evictionMs" << static_cast<double>(evictionNs) / 1e6 << "publishMs" << static_cast<double>(updateNs) / 1e6
             << "removed" << removed << "inserted" << inserted
+                << "admissionThrottled" << admissionThrottled
             << "retirementPending" << false << "slots" << m_window.size();
     return morePending;
 }

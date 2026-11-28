@@ -90,7 +90,7 @@ private:
     QElapsedTimer m_clock{};
     QHash<QString, CastViewEntry*> m_entries{};
     QHash<QString, Pending> m_pending{};
-    QNetworkAccessManager m_network{};
+    QNetworkAccessManager m_network{this};
     QUrl m_endpoint{};
     QTimer m_dispatchTimer{};
     QTimer m_retryTimer{};

@@ -39,6 +39,7 @@ public:
             ? static_cast<QTimerEvent*>(event)->timerId() : 0;
         const QPointer<QObject> guard{receiver};
         const QPointer<QObject> owner{receiver->parent()};
+        const QPointer<QObject> service{owner ? owner->parent() : nullptr};
         const auto start = ClockMs();
         const bool delivered = Base::notify(receiver, event);
         const auto elapsed = ClockMs() - start;
@@ -46,6 +47,7 @@ public:
             qCDebug(guiEventTraceLog()) << "guiEvent" << static_cast<int>(type)
                 << "receiver" << (guard ? guard->metaObject()->className() : "<destroyed>")
                 << "ownerClass" << (owner ? owner->metaObject()->className() : "<none>")
+                << "serviceClass" << (service ? service->metaObject()->className() : "<none>")
                 << "timerId" << timerId
                 << "startMs" << QString::number(start, 'f', 3)
                 << "durationMs" << elapsed;

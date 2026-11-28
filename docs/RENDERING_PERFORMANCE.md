@@ -567,6 +567,22 @@ The video source setter is also guarded by a transport epoch because a
 synchronous backend error can queue recovery before setSource returns.
 An older request must not re-arm deferred transport after replacement.
 
+## v8: throttle publication after a slow retirement
+
+The v8 trace records one 17.88 ms admission with 9.76 ms eviction and
+8.07 ms publication. After retirement exhausts its cooperative deadline,
+admit at most one nearest new slot, preserving forward progress; defer
+other new slots to the next pass. Existing visible geometry is not delayed.
+Adjacent changed retirement flags are published in exact ranges. The
+admissionThrottled trace distinguishes this branch. This is not a hard
+real-time bound: synchronous observers may still overrun it.
+
+Network event diagnostics add serviceClass (the receiver's grandparent
+class). The cast views, browser reactions, browser preview, stats and market
+network managers use their owning QObject as parent. No endpoint, token,
+user content or request body is logged. This helps identify v8 network
+callback stalls without guessing which service is responsible.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

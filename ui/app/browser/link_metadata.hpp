@@ -68,7 +68,7 @@ private:
     void complete(QNetworkReply* reply, Request request);
     void store(const QString& key, QVariantMap data, qint64 ttl);
 
-    QNetworkAccessManager m_network{};
+    QNetworkAccessManager m_network{this};
     QUrl m_relayBase{};
     QQueue<Request> m_pending{};
     QHash<QString, CacheEntry> m_cache{};

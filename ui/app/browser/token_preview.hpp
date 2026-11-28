@@ -49,7 +49,7 @@ private:
     void complete(QNetworkReply* reply, const QString& locator);
     void retain(const QString& locator, QVariantMap snapshot);
 
-    QNetworkAccessManager m_network{};
+    QNetworkAccessManager m_network{this};
     QUrl m_gatewayBase{};
     QElapsedTimer m_clock{};
     QQueue<QString> m_pending{};
