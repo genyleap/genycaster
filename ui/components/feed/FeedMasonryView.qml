@@ -195,6 +195,9 @@ Flickable {
             relayoutPending = true
             return
         }
+        const traceStart = typeof renderingController !== "undefined" && renderingController
+                && renderingController.stallDiagnosticsEnabled === true
+                ? renderingController.diagnosticClockMs() : -1
         layoutTimer.stop()
         arranging = true
         layoutStarted()
@@ -225,6 +228,8 @@ Flickable {
         arranging = false
         updateAdmissions()
         layoutFinished()
+        if (traceStart >= 0)
+            renderingController.recordUiOperation("magazine.layout", traceStart, count)
         if (relayoutPending) {
             relayoutPending = false
             scheduleLayout()

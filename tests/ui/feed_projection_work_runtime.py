@@ -26,6 +26,16 @@ Item {
     readonly property var staticMediaFamilies: new Map()
     // PRODUCTION_FUNCTIONS
     QtObject {
+        id: renderingController
+        property bool stallDiagnosticsEnabled: false
+        property int clockCalls: 0
+        property var operations: []
+        function diagnosticClockMs() { ++clockCalls; return 123 }
+        function recordUiOperation(operation, startMs, rows) {
+            operations.push([operation, startMs, rows])
+        }
+    }
+    QtObject {
         id: mediaClassifier
         property int calls: 0
         function classify(embed, metadata) {
@@ -84,6 +94,14 @@ Item {
             root.profileSortMode="newest"
             compare(root.sortedRows().map(r=>r.id).join(","),"c,d,a,b")
             compare(root.rows.map(r=>r.id).join(","),"a,b,c,d")
+            compare(renderingController.clockCalls,0)
+            compare(renderingController.operations.length,0)
+            renderingController.stallDiagnosticsEnabled=true
+            compare(root.sortedRows().map(r=>r.id).join(","),"c,d,a,b")
+            compare(renderingController.clockCalls,1)
+            compare(renderingController.operations.length,1)
+            compare(renderingController.operations[0].join(","),"profile.sort,123,4")
+            renderingController.stallDiagnosticsEnabled=false
         }
     }
 }

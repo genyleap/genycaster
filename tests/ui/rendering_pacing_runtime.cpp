@@ -2,6 +2,12 @@
 
 #include <QCoreApplication>
 #include <QEvent>
+#include <QLoggingCategory>
+#include <QByteArrayView>
+#include <QStringList>
+#include <QMutex>
+#include <QMutexLocker>
+#include <QRegularExpression>
 #include <QGuiApplication>
 #include <QQuickWindow>
 #include <QQmlEngine>
@@ -15,6 +21,22 @@
 #include <vector>
 
 namespace {
+QStringList traceMessages;
+QMutex traceMutex;
+void captureTrace(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    if (type == QtDebugMsg && QByteArrayView(context.category) == "genycaster.render.stalls") {
+        const QMutexLocker lock{&traceMutex};
+        traceMessages.append(message);
+    }
+}
+
+double traceField(const QString& message, const QString& name) {
+    const QRegularExpression pattern{QStringLiteral("(?:^| )") + name
+        + QStringLiteral(" (-?[0-9]+(?:\\.[0-9]+)?)")};
+    const auto match = pattern.match(message);
+    return match.hasMatch() ? match.captured(1).toDouble() : -1.0;
+}
+
 void require(bool condition, int line) {
     if (!condition)
         qFatal("Rendering pacing regression at line %d", line);
@@ -215,5 +237,100 @@ QtObject {
     controller.attachWindow(nullptr);
     window.hide();
     qInfo("PASS: targeted delivery to actual typed QML methods");
+
+    if (app.arguments().contains("--synthetic")) {
+        // No real window rendering during the synthetic diagnostic sequence.
+        QQuickWindow traceWindow;
+        CHECK(!controller.stallDiagnosticsEnabled());
+        controller.attachWindow(&traceWindow);
+        auto previous = qInstallMessageHandler(captureTrace);
+        traceMessages.clear();
+        traceWindow.beforeFrameBegin();
+        traceWindow.beforeRendering();
+        QTest::qSleep(30);
+        traceWindow.afterRendering();
+        traceWindow.afterFrameEnd();
+        CHECK(traceMessages.isEmpty());
+        controller.attachWindow(nullptr);
+
+        QLoggingCategory::setFilterRules(QStringLiteral("genycaster.render.stalls.debug=true"));
+        CHECK(controller.stallDiagnosticsEnabled());
+        controller.attachWindow(&traceWindow);
+        traceMessages.clear();
+        traceWindow.beforeFrameBegin();
+        traceWindow.beforeSynchronizing();
+        traceWindow.afterSynchronizing();
+        traceWindow.beforeRendering();
+        QTest::qSleep(30);
+        traceWindow.afterRendering();
+        traceWindow.afterFrameEnd();
+        CHECK(traceMessages.size() == 1);
+        CHECK(traceField(traceMessages.first(), QStringLiteral("recordingMs")) >= 25.0);
+        CHECK(traceField(traceMessages.first(), QStringLiteral("submitTailMs")) >= 0.0);
+        CHECK(traceField(traceMessages.first(), QStringLiteral("totalMs"))
+              >= traceField(traceMessages.first(), QStringLiteral("recordingMs")));
+        traceWindow.afterFrameEnd(); // duplicate cannot report twice
+        CHECK(traceMessages.size() == 1);
+        traceWindow.beforeFrameBegin();
+        traceWindow.beforeRendering();
+        traceWindow.afterRendering();
+        QTest::qSleep(30);
+        traceWindow.afterFrameEnd();
+        CHECK(traceMessages.size() == 2);
+        CHECK(traceMessages.last().contains("syncMs -1"));
+        CHECK(traceField(traceMessages.last(), QStringLiteral("submitTailMs")) >= 25.0);
+        controller.recordUiMarker(QStringLiteral("fixture.route"));
+        const double start = controller.diagnosticClockMs();
+        QTest::qSleep(15);
+        controller.recordUiOperation(QStringLiteral("fixture.projection"), start, 5000);
+        CHECK(traceMessages.size() == 4);
+        CHECK(traceMessages.at(2).contains("uiMarker"));
+        CHECK(traceMessages.at(3).contains("rows 5000"));
+        controller.recordUiOperation(QStringLiteral("fixture.fast"),
+                                     controller.diagnosticClockMs(), 0);
+        CHECK(traceMessages.size() == 4);
+        controller.attachWindow(nullptr);
+        traceWindow.beforeFrameBegin();
+        traceWindow.afterFrameEnd();
+        CHECK(traceMessages.size() == 4);
+        qInstallMessageHandler(previous);
+        QLoggingCategory::setFilterRules(QString{});
+        qInfo("PASS: opt-in frame phase diagnostics, incomplete sync, duplicate and detached frame rejection");
+    } else {
+        // Real threaded RHI path: attach the diagnostic listener before a
+        // single controlled slow recording callback. Capture from the render
+        // thread and inspect only while holding the mutex.
+        QLoggingCategory::setFilterRules(QStringLiteral("genycaster.render.stalls.debug=true"));
+        QQuickWindow traceWindow;
+        auto previous = qInstallMessageHandler(captureTrace);
+        {
+            const QMutexLocker lock{&traceMutex};
+            traceMessages.clear();
+        }
+        controller.attachWindow(&traceWindow);
+        const auto inject = std::make_shared<std::atomic<bool>>(true);
+        QObject::connect(&traceWindow, &QQuickWindow::beforeRendering,
+            &traceWindow, [inject] {
+                if (inject->exchange(false))
+                    QTest::qSleep(35);
+            }, Qt::DirectConnection);
+        showWindow(traceWindow);
+        CHECK(QTest::qWaitFor([] {
+            const QMutexLocker lock{&traceMutex};
+            for (const auto& message : traceMessages) {
+                if (message.startsWith(QStringLiteral("frame "))
+                    && traceField(message, QStringLiteral("recordingMs")) >= 30.0
+                    && traceField(message, QStringLiteral("totalMs")) >= 30.0
+                    && traceField(message, QStringLiteral("submitTailMs")) >= 0.0)
+                    return true;
+            }
+            return false;
+        }, 3000));
+        traceWindow.hide();
+        controller.attachWindow(nullptr);
+        qInstallMessageHandler(previous);
+        QLoggingCategory::setFilterRules(QString{});
+        qInfo("PASS: real RHI frame phase diagnostics with a controlled recording delay");
+    }
     return 0;
 }

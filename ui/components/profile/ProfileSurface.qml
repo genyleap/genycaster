@@ -1131,6 +1131,9 @@ Item {
     }
 
     function sortedRows() {
+        const traceStart = typeof renderingController !== "undefined" && renderingController
+                && renderingController.stallDiagnosticsEnabled === true
+                ? renderingController.diagnosticClockMs() : -1
         const source = root.rows || []
         const result = []
         const popular = root.profileFeed === "user-popular"
@@ -1153,7 +1156,10 @@ Item {
                 return (left.time - right.time) * direction
             })
         }
-        return result.map(entry => entry.row)
+        const sorted = result.map(entry => entry.row)
+        if (traceStart >= 0)
+            renderingController.recordUiOperation("profile.sort", traceStart, sorted.length)
+        return sorted
     }
 
     readonly property var displayRows: root.sortedRows()
@@ -1347,9 +1353,15 @@ Item {
     }
 
     function synchronizeStableModel() {
+        const traceStart = typeof renderingController !== "undefined" && renderingController
+                && renderingController.stallDiagnosticsEnabled === true
+                ? renderingController.diagnosticClockMs() : -1
         const source = root.displayRows
-        if (root.busy && source.length === 0 && profileRowsModel.count > 0)
+        if (root.busy && source.length === 0 && profileRowsModel.count > 0) {
+            if (traceStart >= 0)
+                renderingController.recordUiOperation("profile.projection", traceStart, source.length)
             return
+        }
 
         const headerHeight = root.readList.headerItem
                 ? root.readList.headerItem.implicitHeight : 0
@@ -1384,6 +1396,8 @@ Item {
         }
         if (structureChanged && anchorKey.length > 0)
             root.scheduleViewportRestore(anchorKey, anchorOffset, false)
+        if (traceStart >= 0)
+            renderingController.recordUiOperation("profile.projection", traceStart, next.length)
     }
 
     function isNearEnd() {

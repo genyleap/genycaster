@@ -255,6 +255,43 @@ The native model fixture verifies the structural return value for empty,
 revision-only, duplicate, moved and removed rows. These are work-count and
 functional checks, not measured real-device CPU or GPU speedups.
 
+## Opt-in stall phase tracing
+
+Set `genycaster.render.stalls.debug=true` before launching the app. The
+controller installs direct, attachment-local scene-graph observers only
+when this category is enabled at window attachment. No private Qt APIs,
+graphics calls, timers, GPU readbacks, or new per-frame GUI events are used.
+All event timestamps use the same process-local steady-clock origin.
+
+A frame report is emitted only when the measured frame span is at least
+25 ms or the synchronization span is at least 8 ms:
+
+- `totalMs`: beforeFrameBegin to afterFrameEnd (CPU wall-clock span).
+- `syncMs`: beforeSynchronizing to afterSynchronizing.
+- `beforeRecordingMs`: beforeFrameBegin to beforeRendering; **includes**
+  any synchronization within that interval, so do not add syncMs to it.
+- `recordingMs`: beforeRendering to afterRendering (scene-graph command
+  recording interval, including other callbacks/driver work).
+- `submitTailMs`: afterRendering to afterFrameEnd. Includes submission
+  and possible waits; is not proof of GPU execution or display presentation.
+- A missing or reversed phase is -1. The next frame clears prior phases;
+  aborted frames and duplicate end signals are not combined across frames.
+
+Separate records identify GUI delivery delays >= 25 ms (from the existing
+frameSwapped timestamp to its queued GUI callback), synchronous Feed and
+Profile projections, Profile sorting and Magazine layout >= 8 ms, window
+dimension changes and fixed-name shell navigation markers. These scopes
+include synchronous callbacks and can overlap each other; they are not
+exclusive CPU time or a causal attribution. No URLs, text, account IDs or
+cast identities are recorded. Diagnostic logging itself may perturb timing.
+
+Use the trace alongside Qt scene-graph logs and Instruments Time Profiler;
+do not infer GPU saturation from a long CPU render span. For a normal
+performance comparison, turn these categories off. The Qt fixture checks
+synthetic phase delays, missing synchronization, duplicate/detached frames,
+disabled logging and a real RHI OpenGL render with an injected recording
+delay. This validates instrumentation, not Metal driver performance.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

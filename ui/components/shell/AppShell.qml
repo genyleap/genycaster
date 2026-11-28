@@ -1232,12 +1232,18 @@ Item {
         openProofConnections.clearCastTopic()
     }
     onShellRouteChanged: {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.stallDiagnosticsEnabled === true)
+            renderingController.recordUiMarker("shell.route.changed")
         if (root.shellRoute.length > 0)
             presentationBridge.clearDetailHistory()
         if(root.shellRoute.length > 0 && root.topicBrowseActive)
             root.closeTopicBrowser()
     }
     onPrimaryDestinationChanged: {
+        if (typeof renderingController !== "undefined" && renderingController
+                && renderingController.stallDiagnosticsEnabled === true)
+            renderingController.recordUiMarker("shell.destination.changed")
         presentationBridge.clearDetailHistory()
         if (root.topicBrowseActive
             && ((root.topicBrowseScope==="explorer" && root.primaryDestination!=="explorer")

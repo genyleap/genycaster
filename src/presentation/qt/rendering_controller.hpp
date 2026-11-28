@@ -59,6 +59,7 @@ class RenderingController final : public QObject {
   Q_PROPERTY(int layerSampleCount READ layerSampleCount NOTIFY renderingChanged)
   Q_PROPERTY(bool restartRequired READ restartRequired NOTIFY renderingChanged)
   Q_PROPERTY(bool mediaDiagnosticsEnabled READ mediaDiagnosticsEnabled CONSTANT)
+  Q_PROPERTY(bool stallDiagnosticsEnabled READ stallDiagnosticsEnabled CONSTANT)
 
 public:
   /** @brief Creates rendering policy backed by the borrowed settings store. */
@@ -80,6 +81,13 @@ public:
   [[nodiscard]] int layerSampleCount() const noexcept;
   [[nodiscard]] bool restartRequired() const noexcept;
   [[nodiscard]] bool mediaDiagnosticsEnabled() const noexcept;
+  [[nodiscard]] bool stallDiagnosticsEnabled() const noexcept;
+
+  /** Monotonic diagnostic timestamps, shared by GUI and render thread traces. */
+  Q_INVOKABLE double diagnosticClockMs() const noexcept;
+  /** Logs slow, fixed-name UI work only. No media or account payloads. */
+  Q_INVOKABLE void recordUiOperation(const QString &operation, double startMs, int rows) const;
+  Q_INVOKABLE void recordUiMarker(const QString &operation) const;
 
   /** Reports raster geometry, not physical GPU memory or upload duration. */
   Q_INVOKABLE void recordRasterGeometry(const QString &category,

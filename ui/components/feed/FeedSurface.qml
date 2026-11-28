@@ -1132,13 +1132,19 @@ Item {
     }
 
     function synchronizeStableModel() {
+        const traceStart = typeof renderingController !== "undefined" && renderingController
+                && renderingController.stallDiagnosticsEnabled === true
+                ? renderingController.diagnosticClockMs() : -1
         const source = root.sourceRows()
         // Preserve rows during a refresh of the SAME projection only.
         // A different topic/audience must never inherit unrelated cards.
         const scope = root.activeFeed + ":" + root.presentationMode + ":" + root.socialMode
         const sameScope = root.stableProjectionScope === scope
-        if (source.length === 0 && root.busy && stableRows.count > 0 && sameScope)
+        if (source.length === 0 && root.busy && stableRows.count > 0 && sameScope) {
+            if (traceStart >= 0)
+            renderingController.recordUiOperation("feed.projection", traceStart, source.length)
             return
+        }
         root.stableProjectionScope = scope
 
         // One transfer of primitive roles into the native model. Every move,
@@ -1163,6 +1169,8 @@ Item {
             if (!liveKeys[key])
                 delete root.stablePayloads[key]
         }
+        if (traceStart >= 0)
+            renderingController.recordUiOperation("feed.projection", traceStart, next.length)
     }
 
     function isNearEnd() {

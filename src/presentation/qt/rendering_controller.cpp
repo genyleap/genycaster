@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <utility>
 
 #include <QQuickWindow>
 #include <QLoggingCategory>
@@ -18,6 +19,56 @@ namespace {
 constexpr auto kProfileSetting = "rendering/profile";
 Q_LOGGING_CATEGORY(framePacingLog, "genycaster.render.pacing", QtWarningMsg)
 Q_LOGGING_CATEGORY(rasterGeometryLog, "genycaster.render.raster", QtWarningMsg)
+Q_LOGGING_CATEGORY(stallTraceLog, "genycaster.render.stalls", QtWarningMsg)
+
+using TraceClock = std::chrono::steady_clock;
+using TraceTime = TraceClock::time_point;
+const TraceTime traceOrigin = TraceClock::now();
+
+[[nodiscard]] double traceMs(TraceTime time) noexcept {
+  return std::chrono::duration<double, std::milli>(time - traceOrigin).count();
+}
+[[nodiscard]] double phaseMs(const std::optional<TraceTime>& start,
+                             const std::optional<TraceTime>& end) noexcept {
+  if (!start || !end || *end < *start)
+    return -1.0;
+  return std::chrono::duration<double, std::milli>(*end - *start).count();
+}
+
+// Per-attachment state touched only by direct scene-graph callbacks.
+// No locks, private QRhi APIs, GPU readbacks, or queued GUI calls.
+struct StallFrameTrace final {
+  std::optional<TraceTime> frameBegin, syncBegin, syncEnd, recordBegin, recordEnd;
+  quint64 sequence{0};
+
+  void begin() noexcept {
+    ++sequence;
+    frameBegin = TraceClock::now();
+    syncBegin.reset();
+    syncEnd.reset();
+    recordBegin.reset();
+    recordEnd.reset();
+  }
+
+  void finish() {
+    if (!frameBegin)
+      return;
+    const auto end = TraceClock::now();
+    const auto start = std::exchange(frameBegin, std::nullopt);
+    const double total = phaseMs(start, end);
+    const double sync = phaseMs(syncBegin, syncEnd);
+    const double beforeRecording = phaseMs(start, recordBegin);
+    const double recording = phaseMs(recordBegin, recordEnd);
+    const double submitTail = phaseMs(recordEnd, end);
+    if (total < 25.0 && sync < 8.0)
+      return;
+    qCDebug(stallTraceLog) << "frame" << sequence
+        << "startMs" << QString::number(traceMs(*start), 'f', 3)
+        << "totalMs" << total << "syncMs" << sync
+        << "beforeRecordingMs" << beforeRecording
+        << "recordingMs" << recording << "submitTailMs" << submitTail;
+  }
+};
 
 [[nodiscard]] QString apiName(const QSGRendererInterface::GraphicsApi api) {
   using GraphicsApi = QSGRendererInterface::GraphicsApi;
@@ -190,6 +241,31 @@ bool RenderingController::mediaDiagnosticsEnabled() const noexcept {
   return rasterGeometryLog().isDebugEnabled();
 }
 
+bool RenderingController::stallDiagnosticsEnabled() const noexcept {
+  return stallTraceLog().isDebugEnabled();
+}
+
+double RenderingController::diagnosticClockMs() const noexcept {
+  return traceMs(TraceClock::now());
+}
+
+void RenderingController::recordUiOperation(const QString &operation, double startMs,
+                                             int rows) const {
+  if (!stallDiagnosticsEnabled() || !std::isfinite(startMs))
+    return;
+  const double elapsed = diagnosticClockMs() - startMs;
+  if (elapsed >= 8.0)
+    qCDebug(stallTraceLog) << "uiOperation" << operation
+        << "startMs" << QString::number(startMs, 'f', 3)
+        << "durationMs" << elapsed << "rows" << rows;
+}
+
+void RenderingController::recordUiMarker(const QString &operation) const {
+  if (stallDiagnosticsEnabled())
+    qCDebug(stallTraceLog) << "uiMarker" << operation
+        << "atMs" << QString::number(diagnosticClockMs(), 'f', 3);
+}
+
 void RenderingController::recordRasterGeometry(const QString &category,
     int requestedWidth, int requestedHeight, double sourceWidth, double sourceHeight,
     double viewWidth, double viewHeight) const {
@@ -227,16 +303,48 @@ void RenderingController::attachWindow(QQuickWindow *window) {
   }
   const auto state = std::make_shared<RenderHandshake>();
   m_renderHandshake = state;
+  const bool traceEnabled = stallDiagnosticsEnabled();
+  if (traceEnabled) {
+    const auto trace = std::make_shared<StallFrameTrace>();
+    connect(window, &QQuickWindow::beforeFrameBegin, this,
+        [trace] { trace->begin(); }, Qt::DirectConnection);
+    connect(window, &QQuickWindow::beforeSynchronizing, this,
+        [trace] { trace->syncBegin = TraceClock::now(); }, Qt::DirectConnection);
+    connect(window, &QQuickWindow::afterSynchronizing, this,
+        [trace] { trace->syncEnd = TraceClock::now(); }, Qt::DirectConnection);
+    connect(window, &QQuickWindow::beforeRendering, this,
+        [trace] { trace->recordBegin = TraceClock::now(); }, Qt::DirectConnection);
+    connect(window, &QQuickWindow::afterRendering, this,
+        [trace] { trace->recordEnd = TraceClock::now(); }, Qt::DirectConnection);
+    connect(window, &QQuickWindow::afterFrameEnd, this,
+        [trace] { trace->finish(); }, Qt::DirectConnection);
+    const auto traceSize = [this] {
+      if (m_window)
+        qCDebug(stallTraceLog) << "windowSize" << m_window->width() << m_window->height()
+            << "atMs" << QString::number(diagnosticClockMs(), 'f', 3);
+    };
+    connect(window, &QQuickWindow::widthChanged, this, traceSize);
+    connect(window, &QQuickWindow::heightChanged, this, traceSize);
+    traceSize();
+  }
   // Timestamp at the render-thread signal, not when the GUI eventually
   // handles its queued notification. GUI congestion otherwise distorts
   // observed intervals and introduces false quality transitions.
-  connect(window, &QQuickWindow::frameSwapped, this, [this, state] {
+  connect(window, &QQuickWindow::frameSwapped, this, [this, state, traceEnabled] {
     const auto epoch = state->observationEpoch.load(std::memory_order_acquire);
     const auto timestamp = std::chrono::steady_clock::now();
-    QMetaObject::invokeMethod(this, [this, state, timestamp, epoch] {
+    QMetaObject::invokeMethod(this, [this, state, timestamp, epoch, traceEnabled] {
       if (m_renderHandshake == state
-          && state->observationEpoch.load(std::memory_order_acquire) == epoch)
+          && state->observationEpoch.load(std::memory_order_acquire) == epoch) {
+        if (traceEnabled) {
+          const double delay = std::chrono::duration<double, std::milli>(
+              TraceClock::now() - timestamp).count();
+          if (delay >= 25.0)
+            qCDebug(stallTraceLog) << "guiDeliveryDelayMs" << delay
+                << "startMs" << QString::number(traceMs(timestamp), 'f', 3);
+        }
         recordFrame(timestamp);
+      }
     }, Qt::QueuedConnection);
   }, Qt::DirectConnection);
   connect(window, &QQuickWindow::beforeSynchronizing, this, [state] {
