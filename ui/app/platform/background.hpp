@@ -45,6 +45,7 @@ public:
 
         qApp->installEventFilter(this);
         QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, [this] {
+            m_shutdownStarted = true;
             m_quitting = true;
             m_tray.hide();
         });
@@ -73,10 +74,17 @@ protected:
         // hide-to-tray. Quit is delivered before Qt closes its windows.
         if (watched == qApp && event->type() == QEvent::Quit) {
             m_quitting = true;
+            // If another window vetoes Quit, resume the regular close policy.
+            QTimer::singleShot(0, this, [this] {
+                if (!m_shutdownStarted) m_quitting = false;
+            });
             return false;
         }
         if (watched != &m_window || event->type() != QEvent::Close ||
-            m_quitting || qApp->isSavingSession()) return false;
+            m_quitting) return false;
+#if QT_CONFIG(sessionmanager)
+        if (qApp->isSavingSession()) return false;
+#endif
 
         event->ignore();
         if (!m_closePending) {
@@ -101,7 +109,8 @@ protected:
         return true;
     }
 
-private:
+public:
+    // Shared by the tray actions and focused native lifecycle tests.
     void restore()
     {
         if (m_quitting) return;
@@ -122,12 +131,14 @@ private:
         QCoreApplication::quit();
     }
 
+private:
     QWindow& m_window;
     QMenu m_menu;
     QSystemTrayIcon m_tray;
     bool m_closePending{false};
     bool m_hiddenByClose{false};
     bool m_quitting{false};
+    bool m_shutdownStarted{false};
 };
 
 } // namespace genycaster::ui
