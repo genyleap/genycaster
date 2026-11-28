@@ -84,10 +84,11 @@ QtObject {
     assert(choice->property("independent").toBool());
     assert(rowSignals == 0);
 
-    const int initialBindings = binding->property("rowBindingUpdates").toInt();
-
     bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 42,
         QStringLiteral("viewer"), QStringLiteral("Viewer"), {}, {}, {}, {});
+    const int afterAuthentication = rowSignals;
+    assert(afterAuthentication == 1); // New principal invalidates the visible projection.
+    const int initialBindings = binding->property("rowBindingUpdates").toInt();
     QVariantList initial{};
     constexpr int largeTimeline = 2048;
     initial.reserve(largeTimeline);
@@ -98,7 +99,7 @@ QtObject {
     bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
         initial, QStringLiteral("next-page"), {}, {}, {}, false, false, false, false);
     assert(bridge.rows().size() == largeTimeline);
-    assert(rowSignals == 1);
+    assert(rowSignals == afterAuthentication + 1);
     assert(binding->property("rowBindingUpdates").toInt() == initialBindings + 1);
 
     // Repeated status and detail events must not replay/re-diff 2048 rows.
@@ -114,7 +115,7 @@ QtObject {
     // switching navigation away from the active feed.
     assert(stateSignals >= 64);
     assert(bridge.activeView() == QStringLiteral("feed"));
-    assert(rowSignals == 1);
+    assert(rowSignals == afterAuthentication + 1);
     assert(binding->property("rowBindingUpdates").toInt() == afterInitial);
 
     // In-place busy cached snapshots do not invalidate stable delegates.
@@ -177,12 +178,17 @@ QtObject {
     assert(bridge.rows().first().toMap().value(QStringLiteral("castId"))
         == QStringLiteral("0xoptimistic"));
 
-    // Leaving the account removes only its optimistic cast, without losing
-    // any of the 2049 public cached feed entries.
+    // A principal change invalidates the entire active projection. A fresh
+    // provider publication must not inherit the previous viewer's evidence.
     bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 43,
         QStringLiteral("other"), QStringLiteral("Other"), {}, {}, {}, {});
     assert(rowSignals == afterPagination + 2);
-    assert(bridge.rows().size() == largeTimeline + 1);
+    assert(bridge.rows().isEmpty());
+    assert(bridge.activeView() == QStringLiteral("feed"));
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+        initial, QStringLiteral("next-page"), {}, {}, {}, false, false, false, false);
+    assert(rowSignals == afterPagination + 3);
+    assert(bridge.rows().size() == largeTimeline);
     assert(bridge.rows().first().toMap().value(QStringLiteral("castId"))
         == QStringLiteral("0xrow-0"));
     const auto cleanRow = bridge.rows().first().toMap();
@@ -199,7 +205,7 @@ QtObject {
         QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xrow-0")},
                     {QStringLiteral("liked"), true}},
     });
-    assert(rowSignals == afterPagination + 3);
+    assert(rowSignals == afterPagination + 4);
     assert(bridge.rows().first().toMap().value(QStringLiteral("likedByMe")).toBool());
 
     const int beforeProfile = rowSignals;
@@ -207,8 +213,8 @@ QtObject {
     assert(rowSignals == beforeProfile + 1);
     assert(bridge.rows().isEmpty());
 
-    // Profile feed caches are keyed by subject, not by viewer; stored
-    // viewer-only evidence must be scrubbed on account switch as well.
+    // Profile snapshots and their cached projections are principal-scoped.
+    // Reopening the same subject after account switch requires a fresh read.
     PresentationBridge profileCache{};
     profileCache.applyAuthenticationState(true, QStringLiteral("authenticated"), 42,
         QStringLiteral("viewer"), QStringLiteral("Viewer"), {}, {}, {}, {});
@@ -227,7 +233,17 @@ QtObject {
         }}, {}, {}, {}, {}, false, false, false, false);
     profileCache.applyAuthenticationState(true, QStringLiteral("authenticated"), 43,
         QStringLiteral("another"), QStringLiteral("Another"), {}, {}, {}, {});
+    assert(profileCache.rows().isEmpty());
     profileCache.openProfileFid(77);
+    assert(profileCache.rows().isEmpty());
+    profileCache.applyList(QStringLiteral("profile"), QStringLiteral("user-posts"),
+        QVariantList{QVariantMap{
+            {QStringLiteral("castId"), QStringLiteral("0xcached-profile")},
+            {QStringLiteral("text"), QStringLiteral("Public profile cast")},
+            {QStringLiteral("threadReplies"), QVariantList{QVariantMap{
+                {QStringLiteral("castId"), QStringLiteral("0xcached-reply")},
+            }}},
+        }}, {}, {}, {}, {}, false, false, false, false);
     assert(profileCache.rows().size() == 1);
     const auto restored = profileCache.rows().front().toMap();
     assert(restored.value(QStringLiteral("text"))
@@ -352,7 +368,9 @@ QtObject {
 
     // Changing feed surface invalidates the old local position before the
     // new cached snapshot arrives; it cannot leak into another selector.
+    windowed.applyRuntimeState(true);
     windowed.selectFeed(QStringLiteral("recent"));
+    assert(windowed.activeFeed() == QStringLiteral("recent"));
     assert(!windowed.cachedFeedHasMore());
     return 0;
 }
