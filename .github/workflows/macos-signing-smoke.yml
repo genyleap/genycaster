@@ -1,6 +1,15 @@
 name: macOS signing-only smoke
 on:
   workflow_dispatch:
+    inputs:
+      architecture:
+        description: Architecture to verify (no compilation)
+        required: true
+        type: choice
+        default: arm64
+        options:
+          - arm64
+          - x86_64
 permissions:
   contents: read
 concurrency:
@@ -9,7 +18,7 @@ concurrency:
 jobs:
   signing:
     if: github.ref == 'refs/heads/main'
-    runs-on: macos-26
+    runs-on: ${{ inputs.architecture == 'x86_64' && 'macos-26-intel' || 'macos-26' }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4

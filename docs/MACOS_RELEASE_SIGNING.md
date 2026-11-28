@@ -78,10 +78,23 @@ P12, or password to chat. CI validates the encrypted P12 with OpenSSL 3, then re
 with macOS-compatible PKCS12 encryption (3DES/SHA-1 MAC) without changing
 the certificate or exposing an unencrypted key. The original encrypted
 backup remains unchanged. CI uses a temporary signing keychain on a
-GitHub-hosted runner, constrains temporary certificate trust to code signing,
-and removes that trust before verifying the app. It never changes users'
-Keychain ACLs or Gatekeeper settings. All three parameters must exist
-together. Developer ID takes precedence only if all its credentials exist.
+GitHub-hosted runner, adds it to the runner's user keychain search list,
+signs with the exact pinned certificate, restores the original search list
+and deletes the temporary keychain before verification. No user or admin
+certificate trust settings are modified. The self-signed certificate is
+intentionally not Apple-trusted; signature verification checks the explicit
+certificate-backed designated requirement, not Gatekeeper approval.
+It never changes users' Keychain ACLs or Gatekeeper settings. All three
+parameters must exist together. Developer ID takes precedence only if all
+its credentials exist.
+
+For a fast CI signing-only diagnostic without compiling Qt or any app code,
+run the manual `macos-signing-smoke.yml` workflow on main, selecting
+`arm64` or `x86_64`. It signs two different existing macOS executables
+packaged as temporary app fixtures, checks that their designated requirements
+are identical, rejects an ad-hoc replacement, and verifies a mounted DMG.
+No release or downloadable artifact is created. This is a signing test,
+not a test of Genycaster's application functionality or Keychain prompts.
 
 ### Acceptance before a public release
 
@@ -99,8 +112,8 @@ codesign --force --sign "$PIN" --timestamp=none \
 MACOS_SELF_SIGNED_CERT_SHA1="$PIN" bash ci/verify_macos_self_signed.sh "$APP"
 ```
 
-The signing Mac must have the test identity and code-signing trust; do not
-install that trust on the clean recipient Mac. Install build A, authorize
+The signing Mac must have the test identity visible in the user keychain
+search list. Do not install certificate trust on the clean recipient Mac. Install build A, authorize
 existing Keychain items if needed, quit/reopen twice, replace with build B,
 then quit/reopen again. Exercise account restore, cloud proof and social
 signing with an isolated test account. Verify an unrelated signer fails the
