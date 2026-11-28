@@ -45,6 +45,29 @@ if [[ "$mode" != ad-hoc ]]; then
   printf '%s' "$p12" | base64 -D > "$scratch/identity.p12"
   unset p12
   test -s "$scratch/identity.p12"
+  if [[ "$mode" == self-signed ]]; then
+    # Distinguish an incorrect secret from Apple's legacy PKCS12 importer.
+    # OpenSSL 3 supports the modern AES container; rewrap only for import.
+    openssl_bin="$(brew --prefix openssl@3)/bin/openssl"
+    test -x "$openssl_bin"
+    export GENYCASTER_P12_IMPORT_PASSWORD="$p12_password"
+    if ! "$openssl_bin" pkcs12 -in "$scratch/identity.p12" -noout -passin env:GENYCASTER_P12_IMPORT_PASSWORD; then
+      echo "PKCS12 password or container integrity validation failed before Apple import" >&2
+      exit 1
+    fi
+    echo "PKCS12 password and container MAC verified by OpenSSL"
+    # Never write an unencrypted key: the intermediate PEM is encrypted
+    # using a unique per-run password and removed by the scratch trap.
+    export GENYCASTER_PEM_PASSWORD="$(openssl rand -hex 32)"
+    "$openssl_bin" pkcs12 -in "$scratch/identity.p12" -out "$scratch/identity.pem" \
+      -passin env:GENYCASTER_P12_IMPORT_PASSWORD -passout env:GENYCASTER_PEM_PASSWORD
+    "$openssl_bin" pkcs12 -export -in "$scratch/identity.pem" -out "$scratch/import.p12" \
+      -passin env:GENYCASTER_PEM_PASSWORD -passout env:GENYCASTER_P12_IMPORT_PASSWORD \
+      -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1
+    mv "$scratch/import.p12" "$scratch/identity.p12"
+    rm -f "$scratch/identity.pem"
+    unset GENYCASTER_PEM_PASSWORD GENYCASTER_P12_IMPORT_PASSWORD
+  fi
   security create-keychain -p "$keychain_password" "$keychain"
   security set-keychain-settings -lut 21600 "$keychain"
   security unlock-keychain -p "$keychain_password" "$keychain"

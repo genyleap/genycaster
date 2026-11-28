@@ -74,7 +74,10 @@ gh variable set MACOS_SELF_SIGNED_CERT_SHA1 -R genyleap/genycaster \
 ```
 
 The password command prompts interactively. Do not send the private key,
-P12, or password to chat. CI uses a temporary signing keychain on a
+P12, or password to chat. CI validates the encrypted P12 with OpenSSL 3, then rewraps it temporarily
+with macOS-compatible PKCS12 encryption (3DES/SHA-1 MAC) without changing
+the certificate or exposing an unencrypted key. The original encrypted
+backup remains unchanged. CI uses a temporary signing keychain on a
 GitHub-hosted runner, constrains temporary certificate trust to code signing,
 and removes that trust before verifying the app. It never changes users'
 Keychain ACLs or Gatekeeper settings. All three parameters must exist
