@@ -229,5 +229,7 @@ private:
     bool m_relayoutScheduled{false};
     // Stays dirty even after the invalidation signal: QML may defer layout.
     bool m_sourceGeometryDirty{true};
+    // Height samples can change independently of the source model roles.
+    bool m_heightGeometryDirty{false};
     bool m_forceRepack{false};
 };

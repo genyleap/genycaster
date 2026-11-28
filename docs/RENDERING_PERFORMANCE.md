@@ -665,6 +665,41 @@ declares the current shared-neon and media-geometry interfaces. The real
 FeedRow/ListView tests cover pooled delegate identity, release of estimated
 height during motion and late expansion without clipping.
 
+## Magazine navigation and unchanged geometry
+
+An explicit jump must commit numeric geometry, apply the destination scroll
+position, and only then publish viewport admissions. Running admission for
+the outgoing viewport first can build unnecessary delegates and expand the
+retirement backlog. Ordinary layout commits still preserve the stable-key
+reading anchor. The production QML lifecycle fixture checks the destination
+position at synchronous row insertion, including rapid jumps and source
+replacement.
+
+The native layout model skips an unchanged geometry commit when the source,
+height samples, lane policy, and normalized layout parameters are unchanged.
+Window synchronization is still independent and runs when requested. Both
+persistent and transient height changes can invalidate this fast path; clearing
+transient resize samples also invalidates it. Tests cover no-op notifications,
+real height updates, and the return to settled geometry after resize.
+
+The isolated CPU benchmark can be run without the full application or a GPU:
+
+```sh
+cmake --build build/rendering-pacing --parallel 1 --target run_feed_performance_benchmark
+```
+
+It measures source reconciliation, full geometry rebuild, viewport admission,
+and a repeated unchanged geometry commit across 5000 synthetic rows. Use the
+same compiler, build configuration and host load for comparisons. CPU model
+latencies and settled QML viewport times are not display frame intervals.
+
+On the isolated Linux Qt 6.12.0/GCC 16.2 Release fixture (40 samples),
+unchanged geometry P95 was 18.4980 ms before the fast path and 0.0008 ms
+with it. Three production-wall fixture runs (500 synthetic cards, 12 jumps)
+reported median settled latencies of 134.015, 135.284 and 135.012 ms, with
+at most nine slots. Host scheduling and synthetic card content limit the
+comparability of these observations to actual device frame timing.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

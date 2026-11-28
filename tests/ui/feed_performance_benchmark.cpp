@@ -103,7 +103,8 @@ int main(int argc, char** argv)
     Samples reorderedSamples;
     Samples relayout;
     Samples viewport;
-    for (Samples* samples : {&unchanged, &reorderedSamples, &relayout, &viewport})
+    Samples unchangedGeometry;
+    for (Samples* samples : {&unchanged, &reorderedSamples, &relayout, &viewport, &unchangedGeometry})
         samples->reserve(repeatCount);
 
     for (int i = 0; i < repeatCount; ++i) {
@@ -111,6 +112,7 @@ int main(int argc, char** argv)
         measure(reorderedSamples, [&] { model.reconcile(reordered); });
         model.reconcile(stable);
         measure(relayout, [&] { masonry.relayout(3, 410, 12, 60, 12, false); });
+        measure(unchangedGeometry, [&] { masonry.relayout(3, 410, 12, 60, 12, false, true); });
         measure(viewport, [&] {
             masonry.setViewport(1'000 + (i % 17) * 600, 860, 420, 1'200, true);
         });
@@ -120,5 +122,6 @@ int main(int argc, char** argv)
     report("reconcile-reordered90", std::move(reorderedSamples), rowCount);
     report("masonry-full-relayout", std::move(relayout), rowCount);
     report("masonry-scroll-window", std::move(viewport), rowCount);
+    report("masonry-unchanged-geometry", std::move(unchangedGeometry), rowCount);
     return 0;
 }

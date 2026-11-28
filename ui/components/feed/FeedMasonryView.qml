@@ -220,6 +220,9 @@ Flickable {
             renderingController.recordUiOperation("magazine.admission", admissionStart, layoutModel.count)
     }
     function forceLayout() {
+        commitLayout(null)
+    }
+    function commitLayout(positionViewport) {
         if (typeof renderingController !== "undefined" && renderingController
                 && renderingController.shuttingDown === true)
             return
@@ -259,6 +262,9 @@ Flickable {
                 contentY = Math.max(0, Math.min(restored.y - offset,
                     Math.max(0, contentHeight - height)))
         }
+        // An explicit navigation owns the viewport after geometry commits.
+        // Reconcile the destination, not the outgoing viewport.
+        if (positionViewport) positionViewport()
         positioned = true
         arranging = false
         updateAdmissions()
@@ -272,16 +278,16 @@ Flickable {
     }
     function positionViewAtBeginning() {
         cancelFlick()
-        forceLayout()
-        contentY = 0
+        commitLayout(function() { contentY = 0 })
     }
     function positionViewAtIndex(index, mode) {
         cancelFlick()
-        forceLayout()
-        const slot = layoutModel.geometryAt(index)
-        if (!slot || !slot.stableKey) return
-        const offset = mode === ListView.Center ? (height - slot.height) / 2 : 0
-        contentY = Math.max(0, Math.min(slot.y - offset, Math.max(0, contentHeight - height)))
+        commitLayout(function() {
+            const slot = layoutModel.geometryAt(index)
+            if (!slot || !slot.stableKey) return
+            const offset = mode === ListView.Center ? (height - slot.height) / 2 : 0
+            contentY = Math.max(0, Math.min(slot.y - offset, Math.max(0, contentHeight - height)))
+        })
     }
     function scrollBy(distance) {
         cancelFlick()

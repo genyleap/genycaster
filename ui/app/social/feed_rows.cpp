@@ -609,6 +609,7 @@ bool MasonryWindowModel::retainHeight(const QString& key, const QString& revisio
     const QString id = heightKey(key, revision, width);
     if (transient) {
         if (std::abs(m_resizeSampleWidth - width) >= 0.01) {
+            if (!m_resizeSamples.isEmpty()) m_heightGeometryDirty = true;
             m_resizeSamples.clear();
             m_resizeSampleWidth = width;
         }
@@ -618,6 +619,7 @@ bool MasonryWindowModel::retainHeight(const QString& key, const QString& revisio
         if (m_resizeSamples.size() >= 160 && prior == m_resizeSamples.cend())
             return false;
         m_resizeSamples.insert(id, height);
+        m_heightGeometryDirty = true;
         return true;
     }
     const auto existing = m_heightSamples.constFind(id);
@@ -633,6 +635,7 @@ bool MasonryWindowModel::retainHeight(const QString& key, const QString& revisio
             const QString expired = m_sampleOrder.takeFirst();
             m_heightSamples.remove(expired);
             m_exactSamples.remove(expired);
+            m_heightGeometryDirty = true;
         }
     }
     m_heightSamples[id] = height;
@@ -648,6 +651,7 @@ bool MasonryWindowModel::retainHeight(const QString& key, const QString& revisio
                 return false;
         }
     }
+    m_heightGeometryDirty = true;
     return true;
 }
 
@@ -658,6 +662,18 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
 {
     if (!(cardWidth > 0) || !std::isfinite(cardWidth)) return;
     const int nextColumns = std::clamp(columns, 1, 8);
+    const qreal nextGap = std::max(0.0, gap);
+    const qreal nextTop = std::max(0.0, top);
+    const qreal nextInset = std::max(0.0, leadingInset);
+    // A navigation jump can request a geometry commit without changing
+    // any layout inputs. Window admission is independent of that commit.
+    if (!m_sourceGeometryDirty && !m_heightGeometryDirty && !m_forceRepack
+        && m_columns == nextColumns && m_cardWidth == cardWidth
+        && m_gap == nextGap && m_top == nextTop && m_inset == nextInset
+        && m_rtl == rtl) {
+        if (!deferWindowUpdate) synchronizeWindow();
+        return;
+    }
     const bool packAgain = m_forceRepack || m_columns != nextColumns;
     // Preserve already measured geometry as a provisional estimate even
     // when width changes. Live delegates replace it with exact new heights.
@@ -676,9 +692,9 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
     }
     m_columns = nextColumns;
     m_cardWidth = cardWidth;
-    m_gap = std::max(0.0, gap);
-    m_top = std::max(0.0, top);
-    m_inset = std::max(0.0, leadingInset);
+    m_gap = nextGap;
+    m_top = nextTop;
+    m_inset = nextInset;
     m_rtl = rtl;
     m_forceRepack = false;
     QVector<qreal> bottoms(m_columns, m_top);
@@ -728,6 +744,7 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
     m_geometry = std::move(geometry);
     m_indexByKey = std::move(indexByKey);
     m_sourceGeometryDirty = false;
+    m_heightGeometryDirty = false;
     m_bottom = m_geometry.isEmpty() ? std::max(0.0, m_top - m_gap)
         : *std::max_element(bottoms.cbegin(), bottoms.cend());
     m_shortestBottom = m_geometry.size() >= m_columns
@@ -809,6 +826,7 @@ bool MasonryWindowModel::setViewport(const qreal top, const qreal height,
     m_enterBuffer = std::max(0.0, std::isfinite(enteringBuffer) ? enteringBuffer : 0.0);
     m_active = active;
     if (!active || (!retainExisting && m_retainExisting)) {
+        if (!m_resizeSamples.isEmpty()) m_heightGeometryDirty = true;
         m_resizeSamples.clear();
         m_resizeSampleWidth = 0;
     }

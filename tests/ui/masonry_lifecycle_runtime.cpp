@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <memory>
 #include <source_location>
 #include <vector>
@@ -194,9 +195,24 @@ Window {
         require(QTest::qWaitFor([&]{return settled(0);},5000));
         require(layout->count()<70);
         require(layout->geometryAt(499).value("stableKey").toString()=="fixture:499");
+        int requestedJump{-1};
+        int synchronousAdmissions{0};
+        QObject::connect(layout,&QAbstractItemModel::rowsInserted,wall,
+            [&](const QModelIndex&, int first, int last) {
+                if (requestedJump < 0) return;
+                const auto target = layout->geometryAt(requestedJump);
+                require(!target.isEmpty());
+                const auto maximum = std::max(0.0, wall->property("contentHeight").toDouble()
+                    - wall->height());
+                const auto expected = std::clamp(target.value("y").toDouble(), 0.0, maximum);
+                require(std::abs(wall->property("contentY").toDouble() - expected) <= 1.0);
+                synchronousAdmissions += last - first + 1;
+            });
         auto jump=[&](const int index){
+            requestedJump = index;
             require(QMetaObject::invokeMethod(wall,"positionViewAtIndex",
                 Q_ARG(QVariant,QVariant{index}),Q_ARG(QVariant,QVariant{0})));
+            requestedJump = -1;
         };
         std::vector<double> latencies;
         int maxSlots=layout->count();
@@ -211,6 +227,7 @@ Window {
             latencies.push_back(static_cast<double>(timer.nsecsElapsed())/1e6);
             require(layout->count()<70);
         }
+        require(synchronousAdmissions > 0);
         // Exercise rapid crossings before admission has settled.
         for(const int index:{350,0,470,5,460,0}) jump(index);
         require(QTest::qWaitFor([&]{return settled(0);},5000));

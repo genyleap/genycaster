@@ -20,6 +20,14 @@ add_library(genycaster_fixture_feed_models STATIC
   "${root}/ui/app/social/feed_rows.hpp")
 target_compile_features(genycaster_fixture_feed_models PUBLIC cxx_std_23)
 target_link_libraries(genycaster_fixture_feed_models PUBLIC Qt6::Core Qt6::Qml)
+add_executable(genycaster_feed_performance_benchmark EXCLUDE_FROM_ALL
+  "${root}/tests/ui/feed_performance_benchmark.cpp")
+set_target_properties(genycaster_feed_performance_benchmark PROPERTIES AUTOMOC OFF)
+target_link_libraries(genycaster_feed_performance_benchmark PRIVATE genycaster_fixture_feed_models)
+add_custom_target(run_feed_performance_benchmark
+  COMMAND genycaster_feed_performance_benchmark 5000 40
+  DEPENDS genycaster_feed_performance_benchmark
+  USES_TERMINAL VERBATIM)
 add_executable(genycaster_feed_rows_fixture "${root}/tests/ui/feed_rows_model_tests.cpp")
 target_compile_features(genycaster_feed_rows_fixture PRIVATE cxx_std_23)
 target_link_libraries(genycaster_feed_rows_fixture PRIVATE genycaster_fixture_feed_models Qt6::Test)

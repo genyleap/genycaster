@@ -385,6 +385,33 @@ int main(int argc, char** argv)
     require(revisionWall.data(revisionWall.index(0,0), MasonryWindowModel::RevisionKeyRole)
             == QStringLiteral("moved"));
 
+    // Repeating a geometry commit for an explicit scroll jump must not
+    // rebuild unchanged numeric rows or publish a redundant notification.
+    geometryChanges.clear();
+    const auto settledGeometry = revisionWall.geometryAt(0);
+    revisionWall.relayout(3, 320, 12, 12, 12, false, true);
+    require(geometryChanges.isEmpty());
+    require(revisionWall.geometryAt(0) == settledGeometry);
+    const auto settledHeight = settledGeometry.value(QStringLiteral("height")).toReal();
+    // An actual height sample still invalidates geometry even when the
+    // source model and the viewport dimensions have not changed.
+    require(!revisionWall.retainHeight(QStringLiteral("1"), QStringLiteral("moved"),
+                                       320, settledHeight, true));
+    revisionWall.relayout(3, 320, 12, 12, 12, false, true);
+    require(geometryChanges.isEmpty());
+    revisionWall.setViewport(0, 720, 280, 950, true, true);
+    require(revisionWall.retainHeight(QStringLiteral("1"), QStringLiteral("moved"),
+                                      320, settledHeight + 120, true, true));
+    revisionWall.relayout(3, 320, 12, 12, 12, false, true);
+    require(geometryChanges.size() == 1);
+    require(revisionWall.geometryAt(0).value(QStringLiteral("height")).toReal()
+            == settledHeight + 120);
+    // Clearing transient resize samples must also invalidate geometry.
+    revisionWall.setViewport(0, 720, 280, 950, true, false);
+    revisionWall.relayout(3, 320, 12, 12, 12, false, true);
+    require(geometryChanges.size() == 2);
+    require(revisionWall.geometryAt(0) == settledGeometry);
+
     // The caller can use the native structural outcome to avoid a second
     // per-row QVariantMap pass and unnecessary viewport restoration.
     FeedRowsModel structuralOutcome;
