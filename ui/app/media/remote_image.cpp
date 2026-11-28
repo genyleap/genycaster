@@ -510,11 +510,32 @@ void clearForbiddenOrigin(const QString& source)
         QStringLiteral("x") + QString::number(requestedSize.height());
 }
 
-[[nodiscard]] CachedImage cachedImage(const QString& key)
+// Small originals already decoded at their natural resolution need only
+// one RAM cache entry, regardless of the larger requested decode bucket.
+// Keep this in the same cost-bounded LRU; no secondary unbounded URL index.
+constexpr int smallNaturalRasterEdge = 256;
+
+[[nodiscard]] QString naturalSmallImageKey(const QString& url)
+{
+    return url + QStringLiteral("#natural-small");
+}
+
+[[nodiscard]] bool fitsRequestedSize(const QSize& original, const QSize& requested) noexcept
+{
+    return (requested.width() <= 0 || requested.width() >= original.width())
+        && (requested.height() <= 0 || requested.height() >= original.height());
+}
+
+[[nodiscard]] CachedImage cachedImage(const QString& key, const QString& url,
+                                      const QSize& requestedSize)
 {
     const QMutexLocker lock{&imageCacheMutex};
     if (const auto* const cached = imageCache.object(key); cached != nullptr) {
         return *cached;
+    }
+    if (const auto* const natural = imageCache.object(naturalSmallImageKey(url));
+        natural != nullptr && fitsRequestedSize(natural->originalSize, requestedSize)) {
+        return *natural;
     }
     return {};
 }
@@ -565,15 +586,24 @@ void clearFailure(const QString& url)
 
 void rememberImage(
     const QString& key,
+    const QString& url,
+    const QSize& requestedSize,
     const QImage& image,
     const QSize& originalSize)
 {
     if (image.isNull()) {
         return;
     }
+    // Only identical natural-resolution pixels qualify. A downsampled
+    // image (or a rotated non-square decode) retains its exact-size key.
+    const bool naturalSmall = image.size() == originalSize
+        && fitsRequestedSize(originalSize, requestedSize)
+        && originalSize.width() <= smallNaturalRasterEdge
+        && originalSize.height() <= smallNaturalRasterEdge;
+    const QString storageKey = naturalSmall ? naturalSmallImageKey(url) : key;
     const QMutexLocker lock{&imageCacheMutex};
     imageCache.insert(
-        key,
+        storageKey,
         new CachedImage{.image = image, .originalSize = originalSize},
         imageCostKiB(image));
 }
@@ -1082,7 +1112,7 @@ void RemoteImageProvider::Impl::start(
 
     const QSize decodeRequest = canonicalRequestedSize(requestedSize);
     const QString cacheKey = imageCacheKey(urlText, decodeRequest);
-    CachedImage cached = cachedImage(cacheKey);
+    CachedImage cached = cachedImage(cacheKey, urlText, decodeRequest);
     if (!cached.image.isNull()) {
         deliverResponse(control, std::move(cached.image));
         return;
@@ -1107,6 +1137,13 @@ void RemoteImageProvider::Impl::start(
                 deliverResponse(control, QImage{});
                 return;
             }
+            // Another request may have populated the natural-size entry
+            // while this job was waiting for a decode worker.
+            if (auto resident = cachedImage(cacheKey, urlText, decodeRequest);
+                !resident.image.isNull()) {
+                deliverResponse(control, std::move(resident.image));
+                return;
+            }
             const auto policy = self->m_storageState ? self->m_storageState->snapshot() : storage_policy::PolicySnapshot{};
             const QByteArray diskBytes = readDiskCachedBytes(urlText, category, policy);
             if (!diskBytes.isEmpty()) {
@@ -1114,7 +1151,7 @@ void RemoteImageProvider::Impl::start(
                 CachedImage decoded = decodeImage(diskBytes, decodeRequest, &decodeError);
                 if (!decoded.image.isNull()) {
                     clearFailure(urlText);
-                    rememberImage(cacheKey, decoded.image, decoded.originalSize);
+                    rememberImage(cacheKey, urlText, decodeRequest, decoded.image, decoded.originalSize);
                     deliverResponse(control, std::move(decoded.image));
                     return;
                 }
@@ -1402,7 +1439,7 @@ void RemoteImageProvider::Impl::decodeNetworkResponse(
             clearFailure(urlText);
             const auto latestPolicy = self->m_storageState ? self->m_storageState->snapshot() : storage_policy::PolicySnapshot{};
             writeDiskCachedBytes(urlText, category, bytes, latestPolicy);
-            rememberImage(cacheKey, decoded.image, decoded.originalSize);
+            rememberImage(cacheKey, urlText, decodeRequest, decoded.image, decoded.originalSize);
             deliverResponse(control, std::move(decoded.image));
         });
     if (!queued) {

@@ -141,6 +141,37 @@ the cause of Qt's internal creation counter warning on macOS. No private
 Qt APIs or warning suppression are introduced. Re-test the full application
 with the shutdown logging category after opening and closing the tools.
 
+## Small natural raster cache reuse
+
+The decoded-image RAM cache retains its existing per-platform byte budget,
+128-pixel request quantization, decode quality and network admission policy.
+An original of at most 256 pixels on either axis may be retained under one
+natural-size URL key, only if the decoded dimensions equal its original
+dimensions and the requested bounds contain the complete source. A later
+compatible size request can reuse those exact pixels. A smaller request,
+transformed non-square decode or larger original uses the prior size-specific
+key. The same LRU owns both entry types. There is no secondary unbounded map.
+The decode worker rechecks RAM before disk I/O because a different queued
+request may have completed in the meantime. In-flight request coalescing
+continues to isolate network class, category and manual/automatic policy.
+
+This is a cache reuse optimization, not a lower-resolution avatar policy.
+It avoids redundant resident entries and some repeated disk reads/decodes
+when small originals are used in different UI sizes. Concurrent jobs may
+still decode independently, and GPU residency is not measured by this cache.
+
+```sh
+cmake -S tests/raster_cache_fixture -B build/raster-cache -G Ninja \
+  -DCMAKE_PREFIX_PATH=/path/to/Qt/6.12
+cmake --build build/raster-cache
+ctest --test-dir build/raster-cache --output-on-failure
+```
+
+The standalone fixture compiles the provider's exact cache and decode routines
+against Qt Core/Gui, checks PNG pixel equivalence, cache cost, size and URL
+isolation and LRU eviction. It does not compile the complete provider's
+transport or worker integration.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

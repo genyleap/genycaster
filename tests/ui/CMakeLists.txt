@@ -2,6 +2,7 @@
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
 if(NOT CMAKE_CROSSCOMPILING)
+    add_subdirectory("../raster_cache_fixture" "${CMAKE_CURRENT_BINARY_DIR}/raster_cache_fixture")
     add_executable(genycaster_rendering_pacing_tests
         rendering_pacing_runtime.cpp
         "${CMAKE_SOURCE_DIR}/src/presentation/qt/rendering_controller.cpp"

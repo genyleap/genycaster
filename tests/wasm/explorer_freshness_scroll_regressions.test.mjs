@@ -103,7 +103,10 @@ test('decoded images remain bounded but warm when recycled feed rows return', ()
     assert.match(cache, /imageCacheCapacityKiB = 24 \* 1024/);
     assert.match(cache, /imageCacheCapacityKiB = 64 \* 1024/);
     assert.match(cache, /imageCacheCapacityKiB = 128 \* 1024/);
-    assert.match(cache, /rememberImage\(cacheKey, decoded.image, decoded.originalSize\)/);
+    assert.match(cache, /rememberImage\(cacheKey, urlText, decodeRequest, decoded.image, decoded.originalSize\)/);
+    assert.match(cache, /const bool naturalSmall = image\.size\(\) == originalSize\s*&& fitsRequestedSize\(originalSize, requestedSize\)/);
+    assert.match(cache, /imageCache\.object\(naturalSmallImageKey\(url\)\)/);
+    assert.match(cache, /const QString storageKey = naturalSmall \? naturalSmallImageKey\(url\) : key/);
     assert.match(read('ui/components/feed/FeedSurface.qml'), /reuseItems: true/);
 });
 
