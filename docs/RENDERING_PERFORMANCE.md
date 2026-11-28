@@ -641,6 +641,13 @@ ordinal (the Qt JavaScript engine did not preserve every large equal-key
 group in the probe). Profile viewport anchors use the existing primitive
 native key lookup instead of building one QVariantMap per row.
 
+The optional `GENYCASTER_FIXTURE_PRESENTATION_BRIDGE=ON` CMake switch
+also compiles the actual presentation bridge and its configuration module.
+It generates non-routable .invalid endpoints for the fixture, keeps
+Release assertions enabled in the existing row-notification test, and
+exercises native snapshot ordering via a real QML property binding.
+No provider runtime or production credentials are needed.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

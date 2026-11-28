@@ -60,6 +60,8 @@ int main(int argc, char** argv)
                     QVariantMap{{"url","https://example.invalid/a"},{"width",640},{"height",480}}}}});
         const auto snapshot=ranker.snapshot.capture(rows);
         const auto token=snapshot.value("token").toString();
+        require(ranker.snapshot.capture(rows).value("token").toString()==token,
+                "Repeated reader invalidated the same snapshot");
         engine.globalObject().setProperty("source",engine.toScriptValue(snapshot.value("rows").toList()));
         engine.globalObject().setProperty("token",token);
         for (const auto& mode : {"oldest","newest"}) {

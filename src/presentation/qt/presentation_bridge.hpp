@@ -749,6 +749,7 @@ private:
     bool beginSignerRecovery(QString& recoveryWords);
     void beginIntent(QString status);
     void retryCurrent(bool allowRecoveryProbe);
+    void publishRowsChanged();
     void persistReadPreference(const QString& key, const QVariant& value);
     void resetInitialSetupProgress();
     [[nodiscard]] bool consumeRecoveryProbe() noexcept;
@@ -885,7 +886,6 @@ private:
     qulonglong m_localNextOffset{0};
     QVariantList m_rows{};
     mutable genycaster::presentation::detail::ProfileRowSnapshot m_profileRankSnapshot{};
-    void publishRowsChanged();
     QVariantList m_explorerArtRows{};
     bool m_explorerArtBusy{false};
     QVariantMap m_detail{};

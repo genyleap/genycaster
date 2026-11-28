@@ -1214,23 +1214,29 @@ Item {
 
     function popularityScore(row) {
         const value = row || ({})
-        const likes = Number(value.likeCount || 0)
-        const recasts = Number(value.recastCount || 0)
-        const replies = Number(value.replyCount || 0)
+        function countOrZero(field) {
+            const count = Number(field || 0)
+            return isFinite(count) ? count : 0
+        }
+        const likes = countOrZero(value.likeCount)
+        const recasts = countOrZero(value.recastCount)
+        const replies = countOrZero(value.replyCount)
         if (root.popularMetric === "likes")
             return likes
         if (root.popularMetric === "recasts")
             return recasts
         if (root.popularMetric === "replies")
             return replies
-        return likes + recasts * 2 + replies * 1.5
+        const score = likes + recasts * 2 + replies * 1.5
+        return isFinite(score) ? score : 0
     }
 
     function sortedRows() {
         const traceStart = typeof renderingController !== "undefined" && renderingController
                 && renderingController.stallDiagnosticsEnabled === true
                 ? renderingController.diagnosticClockMs() : -1
-        const snapshot = root.nativeRowSnapshot
+        const snapshot = root.nativeRowSnapshot && root.nativeRowSnapshot.rows
+            ? root.nativeRowSnapshot : null
         const source = snapshot ? snapshot.rows : root.rows || []
         if (snapshot && typeof root.nativeRowOrderProvider === "function") {
             const order = root.nativeRowOrderProvider(snapshot.token, root.profileFeed,

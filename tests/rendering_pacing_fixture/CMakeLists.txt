@@ -87,3 +87,71 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     endif()
   endif()
 endif()
+
+# Optional production bridge integration, without booting the app or fetching
+# dependencies. C++ modules require a compiler/generator with scan support.
+option(GENYCASTER_FIXTURE_PRESENTATION_BRIDGE "Compile the actual PresentationBridge for local snapshot regression tests" OFF)
+if(GENYCASTER_FIXTURE_PRESENTATION_BRIDGE)
+  if(CMAKE_VERSION VERSION_LESS 3.28)
+    message(FATAL_ERROR "PresentationBridge fixture requires CMake 3.28+ and C++ module scanning")
+  endif()
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  set(fixture_generated "${CMAKE_CURRENT_BINARY_DIR}/bridge-generated")
+  execute_process(COMMAND "${Python3_EXECUTABLE}" "${root}/ci/generate_deployment_config.py"
+    --out-dir "${fixture_generated}"
+    --set GENYCASTER_PUBLIC_ORIGIN=https://app.example.invalid
+    --set GENYCASTER_SIWF_ORIGIN=https://siwf.example.invalid
+    --set GENYCASTER_OPENPROOF_ISSUER=https://auth.example.invalid
+    --set GENYCASTER_OPENPROOF_BROWSER_BASE=https://auth.example.invalid/openproof
+    --set GENYCASTER_BROWSER_GATEWAY_ORIGIN=https://browser.example.invalid
+    --set GENYCASTER_MEDIA_PUBLIC_ORIGIN=https://media.example.invalid
+    --set GENYCASTER_SNAPCHAIN_ORIGIN=https://snap.example.invalid
+    --set GENYCASTER_HYPERSNAP_ORIGIN=https://hyper.example.invalid
+    --set GENYCASTER_COMPANY_ORIGIN=https://company.example.invalid
+    COMMAND_ERROR_IS_FATAL ANY)
+  foreach(feature IN ITEMS SOCIAL FEED CHANNELS MINIAPPS CHAT SEARCH NOTIFICATIONS WALLET)
+    set(FARCASTER_ENABLE_${feature}_CPP true)
+  endforeach()
+  set(FARCASTER_DEPLOYMENT_PROFILE_CPP Standard)
+  set(FARCASTER_DEFAULT_SIWF_DOMAIN siwf.example.invalid)
+  set(FARCASTER_DEFAULT_SIWF_URI https://siwf.example.invalid)
+  set(FARCASTER_DEFAULT_SNAPCHAIN_BASE_URL https://snap.example.invalid)
+  set(FARCASTER_DEFAULT_MEDIA_GATEWAY_BASE_URL https://media.example.invalid)
+  set(FARCASTER_DEFAULT_APP_FID 1)
+  set(FARCASTER_DEFAULT_APP_NAME GenycasterFixture)
+  configure_file("${root}/src/application/configured_features.cpp.in"
+    "${fixture_generated}/configured_features.cpp" @ONLY)
+  add_library(genycaster_fixture_configuration STATIC)
+  set_target_properties(genycaster_fixture_configuration PROPERTIES AUTOMOC OFF CXX_SCAN_FOR_MODULES ON)
+  target_sources(genycaster_fixture_configuration
+    PUBLIC FILE_SET CXX_MODULES FILES "${root}/src/application/configuration.cppm"
+    PRIVATE "${fixture_generated}/configured_features.cpp")
+  target_compile_features(genycaster_fixture_configuration PUBLIC cxx_std_23)
+  add_library(genycaster_fixture_bridge STATIC
+    "${root}/src/presentation/qt/presentation_bridge.cpp"
+    "${root}/src/presentation/qt/presentation_bridge.hpp")
+  set_target_properties(genycaster_fixture_bridge PROPERTIES CXX_SCAN_FOR_MODULES ON)
+  target_compile_features(genycaster_fixture_bridge PUBLIC cxx_std_23)
+  target_include_directories(genycaster_fixture_bridge PUBLIC "${root}/src/presentation/qt"
+    PRIVATE "${fixture_generated}")
+  target_link_libraries(genycaster_fixture_bridge PUBLIC genycaster_fixture_configuration
+    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)
+  foreach(name IN ITEMS profile_bridge_snapshot presentation_row_notifications)
+    if(name STREQUAL "profile_bridge_snapshot")
+      set(test_source "${root}/tests/ui/profile_bridge_snapshot_tests.cpp")
+    else()
+      set(test_source "${root}/tests/unit/presentation_row_notifications_tests.cpp")
+    endif()
+    add_executable(genycaster_${name}_fixture "${test_source}")
+    target_compile_features(genycaster_${name}_fixture PRIVATE cxx_std_23)
+    target_link_libraries(genycaster_${name}_fixture PRIVATE genycaster_fixture_bridge)
+    # Existing assertions must remain active in the cached Release fixture.
+    if(MSVC)
+      target_compile_options(genycaster_${name}_fixture PRIVATE /UNDEBUG)
+    else()
+      target_compile_options(genycaster_${name}_fixture PRIVATE -UNDEBUG)
+    endif()
+    add_test(NAME "${name}" COMMAND genycaster_${name}_fixture)
+    set_tests_properties("${name}" PROPERTIES TIMEOUT 30)
+  endforeach()
+endif()

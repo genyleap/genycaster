@@ -53,8 +53,14 @@ class ProfileRowSnapshot final {
 public:
     [[nodiscard]] QVariantMap capture(const QVariantList& source)
     {
-        m_rows = source;
-        ++m_generation;
+        // Multiple consumers of the same implicitly shared list must
+        // receive the same token. A detached buffer is a new snapshot.
+        if (!m_valid || m_rows.size() != source.size()
+            || m_rows.constData() != source.constData()) {
+            m_rows = source;
+            ++m_generation;
+            m_valid = true;
+        }
         return {{QStringLiteral("rows"), m_rows},
                 {QStringLiteral("token"), QString::number(m_generation)}};
     }
@@ -62,13 +68,14 @@ public:
     void invalidate()
     {
         m_rows.clear();
+        m_valid = false;
         ++m_generation;
     }
 
     [[nodiscard]] QVariantList order(const QString& token, const bool popular,
                                      const QString& mode, const QString& metric) const
     {
-        if (token.isEmpty() || token != QString::number(m_generation)) return {};
+        if (!m_valid || token.isEmpty() || token != QString::number(m_generation)) return {};
         struct Key { qsizetype index; double time; double score; };
         std::vector<Key> keys;
         keys.reserve(static_cast<std::size_t>(m_rows.size()));
@@ -107,6 +114,7 @@ public:
 private:
     QVariantList m_rows;
     quint64 m_generation{0};
+    bool m_valid{false};
 };
 
 } // namespace genycaster::presentation::detail
