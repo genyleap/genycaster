@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
 # Sign the *finished* macOS app after macdeployqt and bundle pruning.
 # An ad-hoc signature seals experimental CI artifacts but does not make a
-# Safari-downloaded DMG Gatekeeper-approved. Public releases MAY include
-# explicitly labeled ad-hoc/UNNOTARIZED preview DMGs (GenyConnect model);
-# Developer ID + Apple notarization remains a stronger optional mode.
+# Safari-downloaded DMG Gatekeeper-approved. New public releases require a
+# persistent self-signed or Developer ID identity; neither ad-hoc nor
+# self-signed mode implies Apple notarization or Gatekeeper approval.
 set -euo pipefail
 
 app="${1:?Pass Genycaster.app path}"
-mode="${2:?Pass ad-hoc or developer-id}"
+mode="${2:?Pass ad-hoc, self-signed or developer-id}"
 [[ -d "$app/Contents" ]] || { echo "Missing app bundle: $app" >&2; exit 1; }
-case "$mode" in ad-hoc|developer-id) ;; *) echo "Unknown signing mode: $mode" >&2; exit 1 ;; esac
+case "$mode" in ad-hoc|self-signed|developer-id) ;; *) echo "Unknown signing mode: $mode" >&2; exit 1 ;; esac
 
 umask 077
 scratch="$(mktemp -d)"
 keychain=""
+trusted_cert=""
 cleanup() {
+  if [[ -n "$trusted_cert" ]]; then
+    security remove-trusted-cert "$trusted_cert" >/dev/null 2>&1 || true
+  fi
   if [[ -n "$keychain" ]]; then
     security delete-keychain "$keychain" >/dev/null 2>&1 || true
   fi
@@ -24,20 +28,52 @@ trap cleanup EXIT
 
 identity="-"
 sign_args=(--force --sign -)
-if [[ "$mode" == developer-id ]]; then
-  : "${MACOS_DEVELOPER_ID_P12_BASE64:?Developer ID certificate required}"
-  : "${MACOS_DEVELOPER_ID_P12_PASSWORD:?Developer ID certificate password required}"
+if [[ "$mode" != ad-hoc ]]; then
+  if [[ "$mode" == self-signed ]]; then
+    : "${MACOS_SELF_SIGNED_P12_BASE64:?Self-signed certificate required}"
+    : "${MACOS_SELF_SIGNED_P12_PASSWORD:?Self-signed certificate password required}"
+    : "${MACOS_SELF_SIGNED_CERT_SHA1:?Pinned certificate fingerprint required}"
+    [[ "$MACOS_SELF_SIGNED_CERT_SHA1" =~ ^[[:xdigit:]]{40}$ ]] || exit 1
+    p12="$MACOS_SELF_SIGNED_P12_BASE64"
+    p12_password="$MACOS_SELF_SIGNED_P12_PASSWORD"
+  else
+    p12="${MACOS_DEVELOPER_ID_P12_BASE64:?Developer ID certificate required}"
+    p12_password="${MACOS_DEVELOPER_ID_P12_PASSWORD:?Developer ID certificate password required}"
+  fi
   keychain="$scratch/genycaster-signing.keychain-db"
   keychain_password="$(openssl rand -hex 24)"
-  printf '%s' "$MACOS_DEVELOPER_ID_P12_BASE64" | base64 -D > "$scratch/identity.p12"
+  printf '%s' "$p12" | base64 -D > "$scratch/identity.p12"
+  unset p12
   test -s "$scratch/identity.p12"
   security create-keychain -p "$keychain_password" "$keychain"
   security set-keychain-settings -lut 21600 "$keychain"
   security unlock-keychain -p "$keychain_password" "$keychain"
   security import "$scratch/identity.p12" -k "$keychain" \
-    -P "$MACOS_DEVELOPER_ID_P12_PASSWORD" -T /usr/bin/codesign
+    -P "$p12_password" -T /usr/bin/codesign
+  unset p12_password
   security set-key-partition-list -S apple-tool:,apple: -s \
     -k "$keychain_password" "$keychain"
+  if [[ "$mode" == self-signed ]]; then
+    identity="$(printf '%s' "$MACOS_SELF_SIGNED_CERT_SHA1" | tr '[:lower:]' '[:upper:]')"
+    # Export only the public certificate from the imported P12. Verify the
+    # pinned identity before changing trust, and only trust it for code signing.
+    security find-certificate -a -p "$keychain" > "$scratch/cert.pem"
+    [[ "$(grep -c 'BEGIN CERTIFICATE' "$scratch/cert.pem")" == 1 ]]
+    openssl x509 -in "$scratch/cert.pem" -outform DER -out "$scratch/cert.der"
+    actual="$(shasum -a 1 "$scratch/cert.der" | awk '{print toupper($1)}')"
+    [[ "$actual" == "$identity" ]] || { echo "Self-signed certificate pin mismatch" >&2; exit 1; }
+    openssl verify -CAfile "$scratch/cert.pem" "$scratch/cert.pem"
+    # This trust setting is for the ephemeral GitHub-hosted signing runner
+    # only. Never install a root or change trust on an end-user machine.
+    [[ "${GITHUB_ACTIONS:-}" == true && "${RUNNER_ENVIRONMENT:-}" == github-hosted ]] || {
+      echo "Self-signed P12 import is restricted to GitHub-hosted runners" >&2; exit 1;
+    }
+    trusted_cert="$scratch/cert.der"
+    perl -e 'alarm 30; exec @ARGV' security add-trusted-cert -r trustRoot \
+      -p codeSign -k "$keychain" "$trusted_cert"
+    security find-identity -v -p codesigning "$keychain" | grep -F "$identity"
+    sign_args=(--force --sign "$identity" --timestamp=none --keychain "$keychain")
+  else
   # Restrict the operation to the temporary keychain. There must be exactly
   # one suitable Developer ID Application signing identity in this bundle.
   matches="$(security find-identity -v -p codesigning "$keychain" |
@@ -48,13 +84,14 @@ if [[ "$mode" == developer-id ]]; then
   }
   identity="$matches"
   sign_args=(--force --sign "$identity" --options runtime --timestamp --keychain "$keychain")
+  fi
 fi
 
 # First sign standalone Mach-O payloads. Qt frameworks and embedded bundles
 # are signed as *bundles* below, not by individually changing their resources.
 while IFS= read -r -d '' binary; do
-  case "$binary" in
-    "$app/Contents/MacOS/Genycaster") continue ;;
+  case "${binary#"$app/Contents/"}" in
+    MacOS/Genycaster) continue ;;
     *.framework/*|*.app/*|*.bundle/*|*.appex/*|*.xpc/*|*.plugin/*) continue ;;
   esac
   if file -b "$binary" | grep -q 'Mach-O'; then
@@ -73,6 +110,14 @@ done < <(find "$app/Contents" -depth -type d \
 if [[ "$mode" == developer-id ]]; then
   codesign "${sign_args[@]}" \
     --entitlements properties/macOS/Genycaster.entitlements.plist "$app"
+elif [[ "$mode" == self-signed ]]; then
+  requirement="identifier \"com.genyleap.genycaster\" and certificate leaf = H\"$identity\""
+  codesign "${sign_args[@]}" --identifier com.genyleap.genycaster \
+    -r "=designated => $requirement" "$app"
+  # Remove the runner trust before verification, to model an ordinary Mac.
+  security remove-trusted-cert "$trusted_cert"
+  trusted_cert=""
+  bash ci/verify_macos_self_signed.sh "$app"
 else
   codesign "${sign_args[@]}" "$app"
 fi

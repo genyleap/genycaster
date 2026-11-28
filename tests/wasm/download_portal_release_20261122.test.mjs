@@ -155,6 +155,21 @@ test('all 7 native architecture links resolve to the exact release filenames', a
   assert.match(h.ids['download-pending'].textContent,/No iOS release/);
 });
 
+test('self-signed macOS assets require matching distribution metadata and exact filenames',async()=>{
+  const data=manifest();
+  const item=data.platforms.macos.arm64;
+  item.url=item.url.replace('-adhoc-UNNOTARIZED','-selfsigned-UNNOTARIZED');
+  item.distribution='self-signed-unnotarized';
+  const h=harness({data});await h.ready();
+  h.choose('macos');h.arch('arm64');
+  assert.equal(h.ids['download-primary'].href,item.url);
+  assert.match(h.ids['trust-text'].textContent,/self-signed.*not Apple notarized/);
+  item.distribution='developer-id-notarized';
+  const mismatch=harness({data});await mismatch.ready();
+  mismatch.choose('macos');mismatch.arch('arm64');
+  assert.equal(mismatch.ids['download-primary'].hidden,true);
+});
+
 test('browser detection and architecture controls work without language switching',async()=>{
   const h=harness({os:'Android 15; Linux'});await h.ready();
   assert.equal(h.ids['selected-name'].textContent,'Android');

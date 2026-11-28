@@ -1,12 +1,21 @@
-# macOS distribution: free ad-hoc vs. Apple Developer ID
+# macOS distribution: persistent self-signed identity or Apple Developer ID
 
 CI builds on `macos-26` for Apple Silicon and `macos-26-intel` for x86_64.
 A successful `macdeployqt` run, QML startup smoke test, and `hdiutil verify`
 do **not** prove that Safari-downloaded software will pass Gatekeeper.
 
-## Two explicitly labeled distribution modes
+## Three explicitly labeled signing modes
 
-- **Free ad-hoc mode (GenyConnect model):** The completed, pruned
+- **Persistent self-signed (free, public unnotarized preview):** The same
+  owner-controlled certificate signs both architectures and every update.
+  The app's explicit designated requirement is its stable bundle identifier
+  and the pinned leaf certificate hash. CI verifies this requirement on the
+  final bundle and the mounted DMG. Files are named
+  `GenyCaster-vVERSION-macos-ARCH-selfsigned-UNNOTARIZED.dmg`.
+  This establishes continuity, not Apple-vetted publisher trust. Apple
+  advises against shipping self-signed apps; Gatekeeper can still block them.
+  No root certificate installation is required or recommended for users.
+- **Free ad-hoc mode (diagnostic builds; historical releases only):** The completed, pruned
   `Genycaster.app` is signed inside-out with `codesign --sign -`, and both
   the original and DMG-mounted bundles pass `codesign --verify --deep --strict`
   and the Qt startup smoke tests. The public release DMG is explicitly named
@@ -20,9 +29,84 @@ do **not** prove that Safari-downloaded software will pass Gatekeeper.
   checks `Accepted`, staples the ticket, and checks `spctl --assess` on
   the mounted app. Partial Apple credentials remain a hard error.
 
-Both variants require the same architecture validation, Qt deployment audits,
-DMG integrity verification and security gate. There is no paid Apple account
-requirement for the public ad-hoc mode.
+All modes require the same architecture validation, Qt deployment audits,
+DMG integrity verification and security gate. New public releases fail
+before toolchain installation if neither persistent signing identity is
+configured; incomplete credentials also fail closed. No paid Apple account
+is required for the self-signed mode.
+
+## Provision the free persistent release identity once
+
+On the maintainer's trusted Mac, run from the checkout:
+
+```bash
+bash ci/create_macos_self_signed_identity.sh "$HOME/Genycaster-release-identity"
+```
+
+Choose strong passphrases when prompted. The script refuses to overwrite
+an existing directory or put the signing identity in the repository. It
+creates a 3072-bit RSA self-signed code-signing certificate, valid for ten
+years, and a password-protected P12. It never installs trust or uploads
+anything. Alternatively, use Keychain Access Certificate Assistant with
+Self Signed Root / Code Signing and export the identity as encrypted P12.
+Keep an offline encrypted backup of the original P12 and store the
+password separately. Losing or replacing this certificate breaks the
+designated requirement; compromise cannot be revoked by Apple.
+
+In GitHub repository Settings → Secrets and variables → Actions:
+
+| Type | Name | Value |
+| --- | --- | --- |
+| Secret | `MACOS_SELF_SIGNED_P12_BASE64` | Base64 of encrypted P12 |
+| Secret | `MACOS_SELF_SIGNED_P12_PASSWORD` | P12 export password |
+| Variable | `MACOS_SELF_SIGNED_CERT_SHA1` | Public fingerprint in certificate-sha1.txt |
+
+With authenticated GitHub CLI, avoid printing secrets or including passwords
+in arguments or shell history:
+
+```bash
+IDENTITY_DIR="$HOME/Genycaster-release-identity"
+base64 < "$IDENTITY_DIR/Genycaster-release.p12" | tr -d '\n' |
+  gh secret set MACOS_SELF_SIGNED_P12_BASE64 -R genyleap/genycaster
+gh secret set MACOS_SELF_SIGNED_P12_PASSWORD -R genyleap/genycaster
+gh variable set MACOS_SELF_SIGNED_CERT_SHA1 -R genyleap/genycaster \
+  --body "$(cat "$IDENTITY_DIR/certificate-sha1.txt")"
+```
+
+The password command prompts interactively. Do not send the private key,
+P12, or password to chat. CI uses a temporary signing keychain on a
+GitHub-hosted runner, constrains temporary certificate trust to code signing,
+and removes that trust before verifying the app. It never changes users'
+Keychain ACLs or Gatekeeper settings. All three parameters must exist
+together. Developer ID takes precedence only if all its credentials exist.
+
+### Acceptance before a public release
+
+First exercise a disposable self-signed certificate on a real Mac (not the
+release private key). Use the same certificate to sign two different builds
+with the following requirement. Sign nested code before the outer app for
+deployed bundles; the command below is for local Qt Creator bundles only.
+
+```bash
+APP="/path/to/Genycaster.app"
+PIN="<SHA-1 of the test certificate>"
+codesign --force --sign "$PIN" --timestamp=none \
+  --identifier com.genyleap.genycaster \
+  -r "=designated => identifier \"com.genyleap.genycaster\" and certificate leaf = H\"$PIN\"" "$APP"
+MACOS_SELF_SIGNED_CERT_SHA1="$PIN" bash ci/verify_macos_self_signed.sh "$APP"
+```
+
+The signing Mac must have the test identity and code-signing trust; do not
+install that trust on the clean recipient Mac. Install build A, authorize
+existing Keychain items if needed, quit/reopen twice, replace with build B,
+then quit/reopen again. Exercise account restore, cloud proof and social
+signing with an isolated test account. Verify an unrelated signer fails the
+pinned requirement. A fresh macOS user must also test Gatekeeper separately.
+A single targeted macOS CI diagnostic using the provisioned release identity
+must succeed on each architecture before publishing. The real macOS trust
+behavior is not covered by Linux static tests.
+
+## Optional Apple Developer ID configuration
 
 GitHub repository **Settings → Secrets and variables → Actions** needs the
 following five secrets **only for the optional Gatekeeper-ready mode**:
@@ -61,7 +145,7 @@ The free signing model follows the verified
 GenyCaster adds inside-out signing, mounted-DMG audit and explicit
 `UNNOTARIZED` filenames, while preserving Developer ID notarization as a
 future optional upgrade. A release note and the native download catalog must
-disclose ad-hoc signing to users. Disabling Gatekeeper or stripping quarantine
+disclose ad-hoc or self-signed signing to users. Disabling Gatekeeper or stripping quarantine
 is not an acceptable distribution workaround.
 
 References:

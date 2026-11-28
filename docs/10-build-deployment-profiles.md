@@ -166,8 +166,9 @@ transport snapshots, not installed update patches; no version-delta patch
 applicator is shipped. Linux `.zsync` is produced but is not yet consumed
 by the in-app updater.
 
-Unnotarized macOS public preview DMGs are ad-hoc signed and explicitly
-labeled `adhoc-UNNOTARIZED`; Gatekeeper may block them after download.
+New unnotarized macOS public preview DMGs use a persistent self-signed
+identity and are explicitly labeled `selfsigned-UNNOTARIZED`. Historical
+`adhoc-UNNOTARIZED` DMGs remain unchanged; Gatekeeper may block either after download.
 Windows SmartScreen can likewise warn about an unknown publisher. Neither
 mode should be described as trusted-publisher signed or Apple-approved.
 Successful CI packaging alone does not establish retail release readiness.

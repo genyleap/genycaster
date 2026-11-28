@@ -48,6 +48,8 @@
       linuxAlt:"Ubuntu / Debian (.deb)",otherFormat:"Other format:",format:"INSTALLER",processorInfo:"ARCHITECTURE",
       descWindows:"Desktop installer for Windows 64-bit.",descMac:"Desktop build for macOS 15 or later.",descLinux:"AppImage for Linux desktops, with a Debian package option.",descAndroid:"64-bit Android APK, installed directly.",descIos:"The iPhone and iPad edition is not published yet.",
       warningMac:"macOS builds use ad-hoc signing and are not Apple notarized. macOS may require approval in Privacy & Security.",
+      warningMacSelfSigned:"macOS builds use a persistent self-signed identity and are not Apple notarized. macOS may require approval in Privacy & Security.",
+      warningMacDeveloper:"macOS build uses Apple Developer ID signing and notarization.",
       warningAndroid:"Android APK installs outside the Play Store. Only install the file from the verified GitHub Release.",
       statusWait:"Checking verified public release…"
   });
@@ -74,17 +76,26 @@
   function verifiedRecord(record, os, arch) {
     if (!record || typeof record !== "object" || record.version !== version ||
         !/^[a-f0-9]{64}$/.test(record.sha256 || "")) return null;
-    const filename = names[os]?.[arch];
+    let filename = names[os]?.[arch];
     if (!filename || typeof record.url !== "string") return null;
+    if (os === "macos") {
+      // Only the three known signing modes and exact architecture filenames
+      // are accepted; never derive an asset name from the catalog URL.
+      const stem = filename.replace(/(?:-adhoc-UNNOTARIZED|-selfsigned-UNNOTARIZED)?\.dmg$/, "");
+      if (record.distribution === "ad-hoc-unnotarized") filename = stem + "-adhoc-UNNOTARIZED.dmg";
+      else if (record.distribution === "self-signed-unnotarized") filename = stem + "-selfsigned-UNNOTARIZED.dmg";
+      else if (record.distribution === "developer-id-notarized") filename = stem + ".dmg";
+      else return null;
+    }
     const exact = releasePrefix + filename;
     if (record.url !== exact) return null;
-    if (os === "macos" && record.distribution !== "ad-hoc-unnotarized") return null;
     try {
       const url = new URL(record.url);
       if (url.protocol !== "https:" || url.origin !== "https://github.com" ||
           url.username || url.password || url.hash || url.search) return null;
     } catch (_) { return null; }
-    return Object.freeze({url:exact,sha256:record.sha256,version:record.version});
+    return Object.freeze({url:exact,sha256:record.sha256,version:record.version,
+      distribution:os === "macos" ? record.distribution : null});
   }
   function preferredArch() {
     const options = supported[platform].arches;
@@ -173,7 +184,9 @@
     const trustNeeded = ready && (platform === "macos" || platform === "android");
     trust.hidden = !trustNeeded;
     if (trustNeeded) $("trust-text").textContent =
-      dict(platform === "macos" ? "warningMac" : "warningAndroid");
+      dict(platform !== "macos" ? "warningAndroid" :
+        entry.distribution === "self-signed-unnotarized" ? "warningMacSelfSigned" :
+        entry.distribution === "developer-id-notarized" ? "warningMacDeveloper" : "warningMac");
     mountShapes();
   }
 

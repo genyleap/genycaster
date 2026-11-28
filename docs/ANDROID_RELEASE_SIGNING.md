@@ -50,9 +50,10 @@ Never send these values to chat or store them in files tracked by Git.
 - **Manual CI builds** use short-lived, explicitly suffixed
   `-CI-TEST.apk` signatures instead and **cannot** publish a tagged Release.
   Never distribute CI-TEST APKs as public upgrade/install packages.
-- macOS is independent: its public DMGs may use **ad-hoc signing** with an
-  `-adhoc-UNNOTARIZED.dmg` suffix. Apple's paid Developer ID/notarization
-  account is not required for this free distribution mode.
+- macOS is independent: new public DMGs require a persistent self-signed
+  identity (`-selfsigned-UNNOTARIZED.dmg`) or Developer ID with notarization.
+  Apple's paid account is not required for the self-signed mode; historical
+  ad-hoc releases remain explicitly labeled and ad-hoc builds are diagnostic only.
 - Publishing still requires the normal platform QA, feature, integrity,
   architecture and all-platform release gates. No CI or Release is triggered
   by merely editing this policy.

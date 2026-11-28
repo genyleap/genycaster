@@ -82,6 +82,8 @@ def generate(directory: Path, tag: str) -> tuple[dict, dict]:
         if os == "macos":
             names.add(expected_name.removesuffix(".dmg")
                       + "-adhoc-UNNOTARIZED.dmg")
+            names.add(expected_name.removesuffix(".dmg")
+                      + "-selfsigned-UNNOTARIZED.dmg")
         candidates = [p for p in directory.iterdir()
                       if p.is_file() and not p.is_symlink()
                       and p.name in names]
@@ -98,6 +100,8 @@ def generate(directory: Path, tag: str) -> tuple[dict, dict]:
             record["distribution"] = (
                 "ad-hoc-unnotarized"
                 if file.name.endswith("-adhoc-UNNOTARIZED.dmg")
+                else "self-signed-unnotarized"
+                if file.name.endswith("-selfsigned-UNNOTARIZED.dmg")
                 else "developer-id-notarized"
             )
         catalog["platforms"].setdefault(os, {})[arch] = record

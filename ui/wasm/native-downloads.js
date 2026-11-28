@@ -267,10 +267,11 @@
             !url.href.startsWith(releaseBase) ||
             url.username || url.password || url.search || url.hash ||
             /%2f|%5c|\.\./i.test(url.pathname)) return null;
-        // Preserve only the two known macOS trust tiers. Without this,
+        // Preserve only the known macOS trust tiers. Without this,
         // the verified catalog's "ad-hoc-unnotarized" disclosure is lost
         // before rendering, making an unnotarized installer look certified.
         const distribution = record.distribution === "ad-hoc-unnotarized" ||
+            record.distribution === "self-signed-unnotarized" ||
             record.distribution === "developer-id-notarized"
             ? record.distribution : null;
         return {url: url.href, version: record.version, sha256: record.sha256,
@@ -293,7 +294,7 @@
                 safe[os] = Object.create(null);
                 for (const arch of Object.keys(info.arches)) {
                     const entry = verifiedRelease(data.platforms[os]?.[arch]);
-                    if (entry) safe[os][arch] = entry;
+                    if (entry && (os !== "macos" || entry.distribution)) safe[os][arch] = entry;
                 }
             }
             catalog = safe;
@@ -427,20 +428,26 @@
         if (entry) {
             const adHocMac = platform === "macos" &&
                 entry.distribution === "ad-hoc-unnotarized";
+            const selfSignedMac = platform === "macos" &&
+                entry.distribution === "self-signed-unnotarized";
             download.href = entry.url;
             downloadLabel.textContent = "Download " + info.label + " · " +
-                entry.version + (adHocMac ? " · Ad-hoc" : "");
+                entry.version + (adHocMac ? " · Ad-hoc" : selfSignedMac ? " · Self-signed" : "");
             // Keep the actual artifact architecture visible inside the green
             // button, not only in a dropdown or screen-reader description.
             downloadArchitecture.textContent = info.arches[arch];
             download.setAttribute("aria-label",
                 (adHocMac ? "Download ad-hoc signed, not notarized " :
+                    selfSignedMac ? "Download self-signed, not notarized " :
                     "Download checksum-verified ") + info.label + " " +
                 info.arches[arch] + " release " + entry.version);
             status.textContent = adHocMac
                 ? "Ad-hoc signed · NOT notarized by Apple; macOS Gatekeeper may block the download. · SHA-256 " +
                     entry.sha256.slice(0, 12) + "…"
-                : "Published build · SHA-256 " + entry.sha256.slice(0, 12) + "…";
+                : selfSignedMac
+                    ? "Self-signed · NOT notarized by Apple; macOS Gatekeeper may block the download. · SHA-256 " +
+                        entry.sha256.slice(0, 12) + "…"
+                    : "Published build · SHA-256 " + entry.sha256.slice(0, 12) + "…";
         } else {
             download.removeAttribute("href");
             download.removeAttribute("aria-label");

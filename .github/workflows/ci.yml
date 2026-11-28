@@ -170,7 +170,6 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          # macOS follows the GenyConnect free ad-hoc signing model.
           # Android MUST use a persistent owner-controlled signing key:
           # a new ephemeral key on every tag would make upgrades impossible.
           for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD \
@@ -180,6 +179,20 @@ jobs:
               exit 1
             fi
           done
+      - name: Require persistent macOS release signing before installing toolchains
+        if: steps.release.outputs.release == 'true'
+        shell: bash
+        env:
+          REQUIRE_MACOS_RELEASE_SIGNING: 'true'
+          MACOS_DEVELOPER_ID_P12_BASE64: ${{ secrets.MACOS_DEVELOPER_ID_P12_BASE64 }}
+          MACOS_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_P12_PASSWORD }}
+          MACOS_NOTARY_KEY_P8_BASE64: ${{ secrets.MACOS_NOTARY_KEY_P8_BASE64 }}
+          MACOS_NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
+          MACOS_NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
+          MACOS_SELF_SIGNED_P12_BASE64: ${{ secrets.MACOS_SELF_SIGNED_P12_BASE64 }}
+          MACOS_SELF_SIGNED_P12_PASSWORD: ${{ secrets.MACOS_SELF_SIGNED_P12_PASSWORD }}
+          MACOS_SELF_SIGNED_CERT_SHA1: ${{ vars.MACOS_SELF_SIGNED_CERT_SHA1 }}
+        run: bash ci/select_macos_signing_mode.sh
       - name: Refuse a partial cross-platform feature release
         if: steps.release.outputs.release == 'true'
         run: python3 ci/verify_release_feature_contract.py --strict
@@ -566,9 +579,14 @@ jobs:
           MACOS_NOTARY_KEY_P8_BASE64: ${{ secrets.MACOS_NOTARY_KEY_P8_BASE64 }}
           MACOS_NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
           MACOS_NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
-          REQUIRE_MACOS_NOTARIZATION: ${{ needs.gate.outputs.release }}
+          MACOS_SELF_SIGNED_P12_BASE64: ${{ secrets.MACOS_SELF_SIGNED_P12_BASE64 }}
+          MACOS_SELF_SIGNED_P12_PASSWORD: ${{ secrets.MACOS_SELF_SIGNED_P12_PASSWORD }}
+          MACOS_SELF_SIGNED_CERT_SHA1: ${{ vars.MACOS_SELF_SIGNED_CERT_SHA1 }}
+          REQUIRE_MACOS_RELEASE_SIGNING: ${{ needs.gate.outputs.release }}
         run: |
           set -euo pipefail
+          signing_mode="$(bash ci/select_macos_signing_mode.sh)"
+          echo "macOS signing mode: $signing_mode"
           export CC="$(brew --prefix llvm)/bin/clang"
           export CXX="$(brew --prefix llvm)/bin/clang++"
           cmake -S . -B build/native -G Ninja \
@@ -635,31 +653,7 @@ jobs:
           rm -f "$QML_SCAN/components/apps/AndroidWebView.qml"
           "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -qmldir="$QML_SCAN" -verbose=1
           python3 ci/prune_macos_bundle.py "$APP" --qml-source "$GITHUB_WORKSPACE/ui"
-          # Re-sign the *final* macdeployqt/pruned bundle. GenyConnect uses
-          # ad-hoc re-signing for experimental CI; it does not establish
-          # Developer ID trust for a quarantined Safari download.
-          signing_mode="ad-hoc"
-          if [[ -n "$MACOS_DEVELOPER_ID_P12_BASE64" &&
-                -n "$MACOS_DEVELOPER_ID_P12_PASSWORD" &&
-                -n "$MACOS_NOTARY_KEY_P8_BASE64" &&
-                -n "$MACOS_NOTARY_KEY_ID" &&
-                -n "$MACOS_NOTARY_ISSUER_ID" ]]; then
-            signing_mode="developer-id"
-          elif [[ -n "$MACOS_DEVELOPER_ID_P12_BASE64" ||
-                  -n "$MACOS_DEVELOPER_ID_P12_PASSWORD" ||
-                  -n "$MACOS_NOTARY_KEY_P8_BASE64" ||
-                  -n "$MACOS_NOTARY_KEY_ID" ||
-                  -n "$MACOS_NOTARY_ISSUER_ID" ]]; then
-            echo "::error::Incomplete macOS Developer ID/notarization secrets"
-            exit 1
-          fi
-          # Public GitHub Release may contain explicitly labeled ad-hoc
-          # macOS preview DMGs, as in GenyConnect. Developer ID + notarization
-          # remains the stronger optional path when all five secrets exist.
-          # Incomplete credentials still fail above rather than falling back.
-          if [[ "$REQUIRE_MACOS_NOTARIZATION" == "true" && "$signing_mode" == "ad-hoc" ]]; then
-            echo "::warning::Public macOS release will be ad-hoc signed and UNNOTARIZED. Gatekeeper approval is NOT implied."
-          fi
+          # Sign the final pruned bundle using the mode selected before compilation.
           bash ci/sign_macos_bundle.sh "$APP" "$signing_mode"
           # Save an independently signed, fully deployed Intel bundle before
           # running its GUI smoke. If a headless CI host wedges QML again,
@@ -701,7 +695,7 @@ jobs:
           if [[ "$signing_mode" == "developer-id" ]]; then
             bash ci/notarize_macos_dmg.sh "$DMG"
           else
-            echo "::warning::macOS DMG is ad-hoc signed, NOT notarized; Gatekeeper may block downloaded apps. Release asset must remain explicitly labeled."
+            echo "::warning::macOS DMG is $signing_mode signed, NOT notarized; Gatekeeper may block downloaded apps. Release asset must remain explicitly labeled."
           fi
           # Inspect and run the ACTUAL mounted DMG payload, not just the build
           # tree; this catches incomplete DMG copies and Qt SDK fallbacks.
@@ -715,11 +709,14 @@ jobs:
           if [[ "$signing_mode" == "developer-id" ]]; then
             spctl --assess --type execute --verbose=4 "$MOUNT/Genycaster.app"
             xcrun stapler validate "$DMG"
+          elif [[ "$signing_mode" == "self-signed" ]]; then
+            bash ci/verify_macos_self_signed.sh "$MOUNT/Genycaster.app"
           fi
           hdiutil detach "$MOUNT"
           trap - EXIT
           suffix=""
           if [[ "$signing_mode" == "ad-hoc" ]]; then suffix="-adhoc-UNNOTARIZED"; fi
+          if [[ "$signing_mode" == "self-signed" ]]; then suffix="-selfsigned-UNNOTARIZED"; fi
           cp "$DMG" "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}${suffix}.dmg"
           python3 ci/verify_platform_package.py macos "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}${suffix}.dmg"
           # Independent runtime snapshot for an eventual supervised updater.
@@ -1616,6 +1613,19 @@ jobs:
           project's [macOS release signing guide](https://github.com/genyleap/genycaster/blob/main/docs/MACOS_RELEASE_SIGNING.md)
           for safe user-facing guidance. Do not disable Gatekeeper globally.
           MACOS_ADHOC_NOTICE
+          fi
+          if find release -maxdepth 1 -name '*-selfsigned-UNNOTARIZED.dmg' | grep -q .; then
+            cat >> "$RUNNER_TEMP/genycaster-release-body.md" <<'MACOS_SELF_SIGNED_NOTICE'
+
+          ## macOS distribution notice
+
+          The Apple Silicon and Intel DMGs use Genycaster's persistent
+          self-signed code identity. They are **NOT Apple Developer ID signed
+          or notarized**. This provides signature continuity, not Apple trust.
+          Gatekeeper may block first launch. Existing Keychain entries may
+          require one-time reauthorization after migrating from ad-hoc signing.
+          Do not disable Gatekeeper globally or install a root certificate.
+          MACOS_SELF_SIGNED_NOTICE
           fi
       - name: Create verified Release tag as github-actions[bot]
         if: github.event_name == 'workflow_dispatch' && inputs.publish_public_beta == true
