@@ -9,15 +9,19 @@
 #include <QDebug>
 #include <QFont>
 #include <QGuiApplication>
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
+#include <QApplication>
+#include "platform/background.hpp"
+#endif
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)) \
  || (defined(Q_OS_WIN) && defined(GENYCASTER_HAS_WINDOWS_MINIAPP_HOST))
-#include <QApplication>
 #include <QtWebEngineQuick>
 #include "miniapp/browser_linux_quick.hpp"
 #endif
 #include <QIcon>
 #if defined(Q_OS_ANDROID)
 #include <QInputMethod>
+#include <QJniObject>
 #include <QKeyEvent>
 #if QT_CONFIG(vulkan)
 #include <QVulkanFunctions>
@@ -276,8 +280,15 @@ public:
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {
-        if (watched != m_window || event->type() != QEvent::KeyPress || !m_shell)
-            return false;
+        if (watched != m_window || !m_shell) return false;
+        if (event->type() == QEvent::KeyRelease && m_backgroundBack) {
+            const auto* released = static_cast<QKeyEvent*>(event);
+            if (released->key() == Qt::Key_Back) {
+                m_backgroundBack = false;
+                return true;
+            }
+        }
+        if (event->type() != QEvent::KeyPress) return false;
         const auto* key = static_cast<QKeyEvent*>(event);
         if (key->key() != Qt::Key_Back && key->key() != Qt::Key_Escape)
             return false;
@@ -288,12 +299,26 @@ protected:
         if (!QMetaObject::invokeMethod(m_shell.data(), "handlePlatformBack",
                                        Q_RETURN_ARG(QVariant, handled)))
             return false;
-        return handled.toBool();
+        if (handled.toBool()) return true;
+        if (key->key() != Qt::Key_Back) return false;
+        // Root Back backgrounds the existing task, without finishing the
+        // Activity or changing the normal overlay/navigation/keyboard policy.
+        if (!key->isAutoRepeat()) {
+            m_backgroundBack = true;
+            QNativeInterface::QAndroidApplication::runOnAndroidMainThread([] {
+                if (!QNativeInterface::QAndroidApplication::isActivityContext()) return;
+                const auto activity = QNativeInterface::QAndroidApplication::context();
+                if (activity.isValid())
+                    activity.callMethod<jboolean>("moveTaskToBack", "(Z)Z", jboolean{JNI_TRUE});
+            });
+        }
+        return true;
     }
 
 private:
     QQuickWindow* m_window{};
     QPointer<QObject> m_shell{};
+    bool m_backgroundBack{false};
 };
 #endif
 
@@ -367,8 +392,9 @@ int main(int argc, char* argv[])
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)) \
  || (defined(Q_OS_WIN) && defined(GENYCASTER_HAS_WINDOWS_MINIAPP_HOST))
     // WebEngine Quick's shared context must exist before QApplication.
-    // QWidget is still used exclusively for Separate Window presentation.
     QtWebEngineQuick::initialize();
+#endif
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
     QApplication application(argc, argv);
 #else
     QGuiApplication application(argc, argv);
@@ -1630,6 +1656,8 @@ int main(int argc, char* argv[])
     }
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
     desktopInstance.setWindow(mainWindow);
+    if (!isSmokeTest && !isVisualTest && !isRuntimeSmokeTest)
+        new genycaster::ui::DesktopBackground{*mainWindow}; // owned by the window
 #endif
     renderingController.attachWindow(mainWindow);
 #if defined(Q_OS_WASM)
