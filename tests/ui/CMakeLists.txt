@@ -1,6 +1,22 @@
 # Test targets belong to this directory so IDEs group them under tests/ui.
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
+if(NOT CMAKE_CROSSCOMPILING)
+    add_executable(genycaster_rendering_pacing_tests
+        rendering_pacing_runtime.cpp
+        "${CMAKE_SOURCE_DIR}/src/presentation/qt/rendering_controller.cpp"
+        "${CMAKE_SOURCE_DIR}/src/presentation/qt/rendering_controller.hpp")
+    set_target_properties(genycaster_rendering_pacing_tests PROPERTIES AUTOMOC ON)
+    target_include_directories(genycaster_rendering_pacing_tests PRIVATE
+        "${CMAKE_SOURCE_DIR}/src/presentation/qt")
+    target_link_libraries(genycaster_rendering_pacing_tests PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::Test)
+    target_compile_features(genycaster_rendering_pacing_tests PRIVATE cxx_std_26)
+    farcaster_enable_warnings(genycaster_rendering_pacing_tests)
+    add_test(NAME ui.rendering_pacing COMMAND genycaster_rendering_pacing_tests --synthetic)
+    set_tests_properties(ui.rendering_pacing PROPERTIES TIMEOUT 20 LABELS "ui;rendering;performance"
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QSG_RENDER_LOOP=basic")
+endif()
+
 # Exercise the same issuer/subject/FID admission policy used by the native
 # account controller. These are source-level QtCore tests, not live OPP E2E.
 if(NOT EMSCRIPTEN AND NOT ANDROID)
@@ -617,7 +633,7 @@ if(NOT CMAKE_CROSSCOMPILING)
     find_program(GENYCASTER_QML_TEST_RUNNER NAMES qmltestrunner
         HINTS "${Qt6_DIR}/../../../bin" NO_DEFAULT_PATH)
     if(GENYCASTER_QML_TEST_RUNNER)
-        foreach(fixture IN ITEMS media_gallery_zoom_runtime shared_raster_geometry_runtime)
+        foreach(fixture IN ITEMS media_gallery_zoom_runtime shared_raster_geometry_runtime drawer_backdrop_runtime)
             add_test(NAME ui.${fixture}
                 COMMAND "${CMAKE_COMMAND}" -E env
                     "QML_TEST_RUNNER=${GENYCASTER_QML_TEST_RUNNER}"

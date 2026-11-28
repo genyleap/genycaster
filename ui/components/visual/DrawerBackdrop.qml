@@ -83,13 +83,12 @@ Item {
     // Sampling a live full-screen feed into a blurred texture every frame
     // duplicates GPU work and can cause scroll hitching in browser renderers.
     readonly property bool browserRenderer: Qt.platform.os === "wasm"
-    readonly property real captureScale: renderingController.profile === "fidelity"
-                                              || renderingController.effectiveQuality === "fidelity" ? 1.0
-                                            : renderingController.profile === "efficiency"
-                                              || renderingController.effectiveQuality === "efficiency" ? 0.72
+    // Telemetry must never resize a live GPU capture or change blur strength
+    // during an interaction. Only an explicit profile choice sets the budget.
+    readonly property real captureScale: renderingController.profile === "fidelity" ? 1.0
+                                            : renderingController.profile === "efficiency" ? 0.72
                                             : 0.90
-    readonly property real blurStrength: renderingController.profile === "efficiency"
-                                         || renderingController.effectiveQuality === "efficiency" ? 0.46 : 0.58
+    readonly property real blurStrength: renderingController.profile === "efficiency" ? 0.46 : 0.58
     // Original panels retain their HiDPI snapshot. The theme inspector
     // intentionally samples at <= 48% viewport resolution: detail behind a
     // frosted sheet is intentionally obscured, so Retina-scale copies only
@@ -104,6 +103,7 @@ Item {
 
     ShaderEffectSource {
         id: capture
+        objectName: "drawerBackdropCapture"
         visible: false
         // One texture snapshot on browser search open, never a live feed
         // repaint during each WebGL scroll frame.
@@ -112,12 +112,14 @@ Item {
         live: false
         recursive: false
         hideSource: root.nativeBlurActive
-        sourceItem: root.sourceItem
+        // A closed drawer must not retain a full-window capture target.
+        sourceItem: root.active && (!root.browserRenderer || root.useBrowserSnapshot)
+                    ? root.sourceItem : null
         textureSize: Qt.size(
-            root.browserRenderer && !root.useBrowserSnapshot ? 1
+            !root.active || (root.browserRenderer && !root.useBrowserSnapshot) ? 1
                 : Math.max(1, Math.round(root.width * (root.browserRenderer
                                   ? 0.48 : root.nativeCaptureScale))),
-            root.browserRenderer && !root.useBrowserSnapshot ? 1
+            !root.active || (root.browserRenderer && !root.useBrowserSnapshot) ? 1
                 : Math.max(1, Math.round(root.height * (root.browserRenderer
                                   ? 0.48 : root.nativeCaptureScale))))
         sourceRect: {

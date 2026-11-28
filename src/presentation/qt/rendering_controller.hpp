@@ -16,16 +16,21 @@
 // .hpp file.
 #pragma once
 
-#include <QElapsedTimer>
 #include <QObject>
 #include <QPointer>
 #include <QString>
 
+#include <array>
 #include <atomic>
+#include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <memory>
+#include <optional>
 
 class QQuickWindow;
+class QScreen;
 class QSettings;
 
 /**
@@ -83,6 +88,8 @@ public:
    * @param generation Caller-owned identity used to reject stale source requests.
    */
   Q_INVOKABLE void requestMediaPresentation(QObject *requester, quint64 generation);
+  /** @brief Withdraws a queued request when its source is replaced or evicted. */
+  Q_INVOKABLE void cancelMediaPresentation(QObject *requester);
 
   /** @brief Attaches the application window used for render telemetry. */
   void attachWindow(QQuickWindow *window);
@@ -102,8 +109,11 @@ signals:
   void mediaPresentationGranted(QObject *requester, quint64 generation, quint64 presentationSequence);
 
 private:
+  void observeScreen(QScreen *screen);
   void updateStaticTelemetry();
-  void recordFrame();
+  using FrameTime = std::chrono::steady_clock::time_point;
+  void recordFrame(FrameTime timestamp);
+  void resetFramePacing();
   void tryGrantMediaPresentation();
   void acknowledgeMediaPresentationFrame(quint64 synchronizedGeneration);
   void updateAdaptiveQuality();
@@ -114,12 +124,17 @@ private:
   };
 
   QSettings &m_settings;
-  QQuickWindow *m_window{nullptr};
+  QPointer<QQuickWindow> m_window{};
+  QPointer<QScreen> m_screen{};
   QString m_profile{QStringLiteral("adaptive")};
   QString m_effectiveQuality{QStringLiteral("balanced")};
   QString m_graphicsApi{QStringLiteral("unknown")};
-  QElapsedTimer m_frameClock{};
-  QElapsedTimer m_telemetryPublishClock{};
+  std::optional<FrameTime> m_lastFrame{};
+  // A bounded diagnostic window; never a continuously running sampling timer.
+  std::array<double, 120> m_frameSamples{};
+  std::size_t m_frameSampleCount{0};
+  std::size_t m_frameSampleCursor{0};
+  std::optional<FrameTime> m_lastTelemetryPublication{};
   double m_smoothedFrameIntervalMs{0.0};
   double m_frameIntervalMs{0.0};
   double m_refreshRate{0.0};
@@ -128,8 +143,15 @@ private:
   int m_slowFrameStreak{0};
   int m_stableFrameStreak{0};
   std::deque<MediaPresentationRequest> m_mediaPresentationQueue{};
-  std::atomic<quint64> m_publishedMediaPresentationGeneration{0};
-  std::atomic<quint64> m_synchronizedMediaPresentationGeneration{0};
+  // Each attachment owns its render-thread state. An old window's queued
+  // callbacks can neither release a new window's ticket nor alter telemetry.
+  struct RenderHandshake final {
+    std::atomic<quint64> m_publishedMediaPresentationGeneration{0};
+    std::atomic<quint64> m_synchronizedMediaPresentationGeneration{0};
+    std::atomic<quint64> lastQueuedAcknowledgment{0};
+    std::atomic<quint64> observationEpoch{0};
+  };
+  std::shared_ptr<RenderHandshake> m_renderHandshake{};
   quint64 m_currentMediaPresentationGeneration{0};
   bool m_mediaPresentationGrantOutstanding{false};
 };

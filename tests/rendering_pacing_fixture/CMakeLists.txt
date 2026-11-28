@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.24)
+project(GenycasterRenderingPacingFixture LANGUAGES CXX)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Quick Test)
+set(CMAKE_AUTOMOC ON)
+set(root "${CMAKE_CURRENT_LIST_DIR}/../..")
+add_executable(genycaster_rendering_pacing_fixture
+  "${root}/tests/ui/rendering_pacing_runtime.cpp"
+  "${root}/src/presentation/qt/rendering_controller.cpp"
+  "${root}/src/presentation/qt/rendering_controller.hpp")
+target_include_directories(genycaster_rendering_pacing_fixture PRIVATE "${root}/src/presentation/qt")
+target_compile_features(genycaster_rendering_pacing_fixture PRIVATE cxx_std_23)
+target_link_libraries(genycaster_rendering_pacing_fixture PRIVATE Qt6::Core Qt6::Gui Qt6::Quick Qt6::Test)
+enable_testing()
+add_test(NAME pacing_software COMMAND genycaster_rendering_pacing_fixture --synthetic)
+set_tests_properties(pacing_software PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QSG_RENDER_LOOP=basic" TIMEOUT 20)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  find_program(XVFB_RUN xvfb-run)
+  if(XVFB_RUN)
+    add_test(NAME pacing_opengl COMMAND "${XVFB_RUN}" -a $<TARGET_FILE:genycaster_rendering_pacing_fixture>)
+    set_tests_properties(pacing_opengl PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=xcb;QSG_RHI_BACKEND=opengl;QT_QUICK_BACKEND=rhi;LIBGL_ALWAYS_SOFTWARE=1" TIMEOUT 20)
+  endif()
+endif()

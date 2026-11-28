@@ -30,7 +30,7 @@ test('WASM rendering settings identify WebGL and do not mislabel sparse redraws 
  assert.doesNotMatch(qml,/Math\.round\(1000 \/ renderingController\.frameIntervalMs\)/);
  assert.match(qml,/ \+ " FPS"/);
  assert.match(controller,/#if defined\(Q_OS_WASM\)[\s\S]*?QStringLiteral\("WebGL \(OpenGL ES\)"\)/);
- assert.match(controller,/m_frameClock\.restart\(\)/);
+ assert.match(controller,/std::chrono::steady_clock::now\(\)/);
  for(const lang of ['en_US','fa_IR']) {
   const ts=read('ui/i18n/qml_'+lang+'.ts');
   assert.match(ts,/<message id="genycaster\.rendering\.frame_target">/);

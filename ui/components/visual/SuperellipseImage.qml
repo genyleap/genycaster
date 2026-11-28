@@ -389,6 +389,10 @@ Item {
     }
 
     function invalidatePresentationAdmission() {
+        if (root.presentationAdmissionPending
+                && typeof renderingController !== "undefined" && renderingController
+                && typeof renderingController.cancelMediaPresentation === "function")
+            renderingController.cancelMediaPresentation(root)
         root.presentationGeneration += 1
         root.presentationAdmissionPending = false
         root.presentationReady = false

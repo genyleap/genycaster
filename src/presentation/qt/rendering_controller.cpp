@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include <QQuickWindow>
+#include <QLoggingCategory>
 #include <QMetaObject>
 #include <QScreen>
 #include <QSettings>
@@ -13,6 +14,7 @@
 namespace {
 
 constexpr auto kProfileSetting = "rendering/profile";
+Q_LOGGING_CATEGORY(framePacingLog, "genycaster.render.pacing", QtWarningMsg)
 
 [[nodiscard]] QString apiName(const QSGRendererInterface::GraphicsApi api) {
   using GraphicsApi = QSGRendererInterface::GraphicsApi;
@@ -31,6 +33,9 @@ constexpr auto kProfileSetting = "rendering/profile";
   }
   if (api == GraphicsApi::Direct3D11) {
     return QStringLiteral("D3D11");
+  }
+  if (api == GraphicsApi::Direct3D12) {
+    return QStringLiteral("D3D12");
   }
   if (api == GraphicsApi::Vulkan) {
     return QStringLiteral("Vulkan");
@@ -178,40 +183,78 @@ void RenderingController::requestMediaPresentation(QObject *requester, const qui
   tryGrantMediaPresentation();
 }
 
+void RenderingController::cancelMediaPresentation(QObject *requester) {
+  std::erase_if(m_mediaPresentationQueue, [requester](const MediaPresentationRequest &request) {
+    return request.requester.isNull() || request.requester == requester;
+  });
+  // An already granted ticket must still cross the render barrier. Otherwise
+  // cancellation could allow two texture presentations in a single frame.
+}
+
 void RenderingController::attachWindow(QQuickWindow *window) {
-  if (m_window == window) {
+  if (m_window == window && (window != nullptr || !m_renderHandshake)) {
     return;
   }
   if (m_window != nullptr) {
     disconnect(m_window, nullptr, this, nullptr);
   }
+  observeScreen(nullptr);
   m_window = window;
-  m_frameClock.invalidate();
-  m_telemetryPublishClock.invalidate();
-  m_smoothedFrameIntervalMs = 0.0;
-  m_frameIntervalMs = 0.0;
+  m_renderHandshake.reset();
+  m_mediaPresentationGrantOutstanding = false;
+  resetFramePacing();
   if (m_window == nullptr) {
     return;
   }
-  connect(m_window, &QQuickWindow::frameSwapped, this, &RenderingController::recordFrame,
-          Qt::QueuedConnection);
-  // The render-thread handshake acknowledges the exact presentation generation
-  // observed by scene-graph synchronization. Queued afterRendering callbacks
-  // from older frames cannot release another image because they carry an older
-  // generation.
-  connect(m_window, &QQuickWindow::beforeSynchronizing, this, [this] {
-    m_synchronizedMediaPresentationGeneration.store(
-        m_publishedMediaPresentationGeneration.load(std::memory_order_acquire),
-        std::memory_order_release);
-  }, Qt::DirectConnection);
-  connect(m_window, &QQuickWindow::afterRendering, this, [this] {
-    const quint64 synchronizedGeneration =
-        m_synchronizedMediaPresentationGeneration.load(std::memory_order_acquire);
-    QMetaObject::invokeMethod(this, [this, synchronizedGeneration] {
-      acknowledgeMediaPresentationFrame(synchronizedGeneration);
+  const auto state = std::make_shared<RenderHandshake>();
+  m_renderHandshake = state;
+  // Timestamp at the render-thread signal, not when the GUI eventually
+  // handles its queued notification. GUI congestion otherwise distorts
+  // observed intervals and introduces false quality transitions.
+  connect(window, &QQuickWindow::frameSwapped, this, [this, state] {
+    const auto epoch = state->observationEpoch.load(std::memory_order_acquire);
+    const auto timestamp = std::chrono::steady_clock::now();
+    QMetaObject::invokeMethod(this, [this, state, timestamp, epoch] {
+      if (m_renderHandshake == state
+          && state->observationEpoch.load(std::memory_order_acquire) == epoch)
+        recordFrame(timestamp);
     }, Qt::QueuedConnection);
   }, Qt::DirectConnection);
-  connect(m_window, &QQuickWindow::screenChanged, this, [this] { updateStaticTelemetry(); });
+  connect(window, &QQuickWindow::beforeSynchronizing, this, [state] {
+    state->m_synchronizedMediaPresentationGeneration.store(
+        state->m_publishedMediaPresentationGeneration.load(std::memory_order_acquire),
+        std::memory_order_release);
+  }, Qt::DirectConnection);
+  connect(window, &QQuickWindow::afterRendering, this, [this, state] {
+    const quint64 synchronizedGeneration =
+        state->m_synchronizedMediaPresentationGeneration.load(std::memory_order_acquire);
+    // No GUI event for an idle/ordinary render with no new ticket. A ticket
+    // is acknowledged once, not once per frame until the next image arrives.
+    if (synchronizedGeneration == 0 ||
+        state->lastQueuedAcknowledgment.exchange(synchronizedGeneration,
+            std::memory_order_relaxed) == synchronizedGeneration)
+      return;
+    QMetaObject::invokeMethod(this, [this, state, synchronizedGeneration] {
+      if (m_renderHandshake == state)
+        acknowledgeMediaPresentationFrame(synchronizedGeneration);
+    }, Qt::QueuedConnection);
+  }, Qt::DirectConnection);
+  connect(window, &QQuickWindow::screenChanged, this, [this](QScreen *screen) {
+    observeScreen(screen);
+    updateStaticTelemetry();
+  });
+  observeScreen(window->screen());
+  connect(window, &QQuickWindow::visibilityChanged, this, [this, state] {
+    state->observationEpoch.fetch_add(1, std::memory_order_release);
+    resetFramePacing();
+    if (m_window && m_window->isVisible() && m_window->visibility() != QWindow::Minimized) {
+      if (m_mediaPresentationGrantOutstanding)
+        m_window->update();
+      else
+        tryGrantMediaPresentation();
+    }
+  });
+  connect(window, &QObject::destroyed, this, [this] { attachWindow(nullptr); });
   updateStaticTelemetry();
   tryGrantMediaPresentation();
 }
@@ -241,6 +284,19 @@ QString RenderingController::canonicalProfile(QString profile) {
   return {};
 }
 
+void RenderingController::observeScreen(QScreen *screen) {
+  if (m_screen == screen)
+    return;
+  if (m_screen)
+    disconnect(m_screen, nullptr, this, nullptr);
+  m_screen = screen;
+  if (!screen)
+    return;
+  connect(screen, &QScreen::refreshRateChanged, this, &RenderingController::updateStaticTelemetry);
+  connect(screen, &QScreen::physicalDotsPerInchChanged, this, &RenderingController::updateStaticTelemetry);
+  connect(screen, &QScreen::logicalDotsPerInchChanged, this, &RenderingController::updateStaticTelemetry);
+}
+
 void RenderingController::updateStaticTelemetry() {
   if (m_window == nullptr) {
     return;
@@ -251,34 +307,62 @@ void RenderingController::updateStaticTelemetry() {
   const double nextDpr = std::max(1.0, m_window->devicePixelRatio());
   const double nextRefresh = m_window->screen() != nullptr ? m_window->screen()->refreshRate() : 0.0;
   const int nextSamples = std::max(0, m_window->format().samples());
-  const bool changed = nextApi != m_graphicsApi || nextDpr != m_devicePixelRatio ||
-      nextRefresh != m_refreshRate || nextSamples != m_activeSampleCount;
+  const bool budgetChanged = nextDpr != m_devicePixelRatio || nextSamples != m_activeSampleCount;
+  const bool refreshChanged = nextRefresh != m_refreshRate;
+  const bool changed = nextApi != m_graphicsApi || budgetChanged || refreshChanged;
+  if (refreshChanged)
+    resetFramePacing();
   m_graphicsApi = nextApi;
   m_devicePixelRatio = nextDpr;
   m_refreshRate = nextRefresh;
   m_activeSampleCount = nextSamples;
-  if (changed) {
+  if (changed)
     emit telemetryChanged();
+  // Backend/refresh telemetry is not a resource-size change. Avoid waking
+  // every image, vector and effect binding for diagnostics-only updates.
+  if (budgetChanged)
     emit renderingChanged();
-  }
 }
 
-void RenderingController::recordFrame() {
-  if (!m_frameClock.isValid()) {
-    m_frameClock.start();
-    m_telemetryPublishClock.start();
+void RenderingController::resetFramePacing() {
+  m_lastFrame.reset();
+  m_lastTelemetryPublication.reset();
+  m_smoothedFrameIntervalMs = 0.0;
+  m_frameSampleCount = 0;
+  m_frameSampleCursor = 0;
+  m_slowFrameStreak = 0;
+  m_stableFrameStreak = 0;
+}
+
+void RenderingController::recordFrame(const FrameTime timestamp) {
+  if (!m_window || !m_window->isVisible() || m_window->visibility() == QWindow::Minimized)
+    return;
+  if (!m_lastFrame) {
     updateStaticTelemetry();
+    m_lastFrame = timestamp;
+    m_lastTelemetryPublication = timestamp;
     return;
   }
-  const double sampleMs = static_cast<double>(m_frameClock.restart());
+  const double sampleMs = std::chrono::duration<double, std::milli>(
+      timestamp - *m_lastFrame).count();
+  m_lastFrame = timestamp;
   if (sampleMs <= 0.0 || sampleMs > 250.0) {
+    // Qt Quick is demand-driven: a long idle gap is not a slow GPU frame.
+    // Start a new observation burst and discard stale quality streaks.
+    resetFramePacing();
+    m_lastFrame = timestamp;
+    m_lastTelemetryPublication = timestamp;
     return;
   }
 
+  m_frameSamples[m_frameSampleCursor] = sampleMs;
+  m_frameSampleCursor = (m_frameSampleCursor + 1) % m_frameSamples.size();
+  m_frameSampleCount = std::min(m_frameSampleCount + 1, m_frameSamples.size());
   m_smoothedFrameIntervalMs = m_smoothedFrameIntervalMs <= 0.0
       ? sampleMs
       : m_smoothedFrameIntervalMs * 0.88 + sampleMs * 0.12;
-  updateAdaptiveQuality();
+  if (m_frameSampleCount >= 8)
+    updateAdaptiveQuality();
 
   // Never publish telemetry every frame. A QML binding to frameIntervalMs can
   // schedule another frame, which would otherwise turn frameSwapped into an
@@ -286,14 +370,28 @@ void RenderingController::recordFrame() {
   // displayed value changed meaningfully.
   constexpr qint64 telemetryIntervalMs = 750;
   constexpr double meaningfulDeltaMs = 0.15;
-  if (!m_telemetryPublishClock.isValid()) {
-    m_telemetryPublishClock.start();
+  if (!m_lastTelemetryPublication) {
+    m_lastTelemetryPublication = timestamp;
     return;
   }
-  if (m_telemetryPublishClock.elapsed() < telemetryIntervalMs) {
+  if (timestamp - *m_lastTelemetryPublication < std::chrono::milliseconds(telemetryIntervalMs))
     return;
+  m_lastTelemetryPublication = timestamp;
+  if (m_frameSampleCount < 8)
+    return;
+  if (framePacingLog().isDebugEnabled()) {
+    auto sorted = m_frameSamples;
+    const auto end = sorted.begin() + static_cast<std::ptrdiff_t>(m_frameSampleCount);
+    std::sort(sorted.begin(), end);
+    const auto p95Index = (m_frameSampleCount * 95 + 99) / 100 - 1;
+    const double budget = m_refreshRate > 1.0 ? 1000.0 / m_refreshRate : 1000.0 / 60.0;
+    const auto late = std::count_if(sorted.begin(), end,
+        [budget](double sample) { return sample > budget * 1.25; });
+    qCDebug(framePacingLog) << "backend" << m_graphicsApi << "refreshHz" << m_refreshRate
+        << "samples" << m_frameSampleCount << "budgetMs" << budget
+        << "observedP95Ms" << sorted[p95Index]
+        << "intervalsOver125PercentBudget" << late;
   }
-  m_telemetryPublishClock.restart();
   if (m_frameIntervalMs <= 0.0 ||
       std::abs(m_smoothedFrameIntervalMs - m_frameIntervalMs) >= meaningfulDeltaMs) {
     m_frameIntervalMs = m_smoothedFrameIntervalMs;
@@ -302,7 +400,8 @@ void RenderingController::recordFrame() {
 }
 
 void RenderingController::tryGrantMediaPresentation() {
-  if (m_window == nullptr || m_mediaPresentationGrantOutstanding) {
+  if (m_window == nullptr || !m_renderHandshake || m_mediaPresentationGrantOutstanding
+      || !m_window->isVisible() || m_window->visibility() == QWindow::Minimized) {
     return;
   }
   while (!m_mediaPresentationQueue.empty()) {
@@ -313,11 +412,12 @@ void RenderingController::tryGrantMediaPresentation() {
     }
     m_mediaPresentationGrantOutstanding = true;
     ++m_currentMediaPresentationGeneration;
-    m_publishedMediaPresentationGeneration.store(
+    m_renderHandshake->m_publishedMediaPresentationGeneration.store(
         m_currentMediaPresentationGeneration, std::memory_order_release);
     emit mediaPresentationGranted(
         request.requester.data(), request.generation, m_currentMediaPresentationGeneration);
-    m_window->update();
+    if (m_window)
+      m_window->update();
     return;
   }
 }

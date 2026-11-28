@@ -55,7 +55,9 @@ test('Qt appearance inspector uses opt-in optimized snapshot blur, other drawers
   assert.match(backdrop,/optimizedNativeBlur: root\.nativeBlurActive && root\.efficientNativeBlur/);
   assert.match(backdrop,/nativeCaptureScale: root\.efficientNativeBlur[\s\S]*?Math\.min\(0\.48/);
   assert.match(backdrop,/hideSource: root\.nativeBlurActive/);
-  assert.match(backdrop,/sourceItem: root\.sourceItem/);
+  assert.match(backdrop,/sourceItem: root\.active && \(!root\.browserRenderer \|\| root\.useBrowserSnapshot\)\s*\? root\.sourceItem : null/);
+  assert.doesNotMatch(backdrop,/renderingController\.effectiveQuality/);
+  assert.match(backdrop,/!root\.active \|\| \(root\.browserRenderer && !root\.useBrowserSnapshot\) \? 1/);
   assert.match(backdrop,/live: false/);
   assert.match(backdrop,/blur: root\.optimizedNativeBlur \? 0\.66 : root\.blurStrength/);
   assert.match(backdrop,/visible: root\.active && \(root\.useBrowserSnapshot \|\| root\.optimizedNativeBlur\)/);
