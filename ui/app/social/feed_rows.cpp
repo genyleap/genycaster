@@ -11,6 +11,53 @@
 
 namespace {
 Q_LOGGING_CATEGORY(masonryWorkLog, "genycaster.render.masonry", QtWarningMsg)
+Q_LOGGING_CATEGORY(feedModelWorkLog, "genycaster.render.feedmodel", QtWarningMsg)
+
+// Scope is stack-owned by a single GUI-thread reconciliation. The native
+// model transaction includes synchronous Qt/QML observers, not GPU time.
+struct FeedModelTrace final {
+    struct Phase {
+        qint64 ns{0};
+        int calls{0};
+    };
+    explicit FeedModelTrace(int previous, qsizetype requested)
+        : before(previous), input(requested)
+    {
+        if (enabled) clock.start();
+    }
+    ~FeedModelTrace()
+    {
+        if (!enabled || clock.elapsed() < 8) return;
+        const auto ms = [](const Phase& p) { return static_cast<double>(p.ns) / 1e6; };
+        qCDebug(feedModelWorkLog) << "reconcile"
+            << "before" << before << "input" << input << "after" << after
+            << "totalMs" << static_cast<double>(clock.nsecsElapsed()) / 1e6
+            << "resetMs" << ms(reset) << "resets" << reset.calls
+            << "removeMs" << ms(remove) << "removes" << remove.calls
+            << "insertMs" << ms(insert) << "inserts" << insert.calls
+            << "moveMs" << ms(move) << "moves" << move.calls
+            << "rolesMs" << ms(roles) << "roleSignals" << roles.calls
+            << "countMs" << ms(count) << "countSignals" << count.calls;
+    }
+    template<class Action>
+    void measure(Phase& phase, Action&& action)
+    {
+        if (!enabled) {
+            action();
+            return;
+        }
+        const auto start = clock.nsecsElapsed();
+        action();
+        phase.ns += clock.nsecsElapsed() - start;
+        ++phase.calls;
+    }
+    const bool enabled{feedModelWorkLog().isDebugEnabled()};
+    QElapsedTimer clock;
+    int before;
+    qsizetype input;
+    int after{0};
+    Phase reset, remove, insert, move, roles, count;
+};
 }
 
 #include <algorithm>
@@ -161,6 +208,7 @@ void FeedRowsModel::setProperty(const int index, const QString& role, const QVar
 
 bool FeedRowsModel::reconcile(const QVariantList& rows)
 {
+    FeedModelTrace trace{count(), rows.size()};
     QList<Row> incoming{};
     incoming.reserve(rows.size());
     QHash<QString, bool> seen{};
@@ -173,10 +221,30 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
         seen.insert(row.stableKey, true);
         incoming.append(std::move(row));
     }
+    trace.after = static_cast<int>(incoming.size());
+    const auto notifyCount = [this, &trace] {
+        trace.measure(trace.count, [this] { emit countChanged(); });
+    };
     if (incoming.isEmpty()) {
-        const bool structureChanged = !m_rows.isEmpty();
-        clear();
-        return structureChanged;
+        if (m_rows.isEmpty()) return false;
+        trace.measure(trace.reset, [this] {
+            beginResetModel();
+            m_rows.clear();
+            endResetModel();
+        });
+        notifyCount();
+        return true;
+    }
+    if (m_rows.isEmpty()) {
+        // Initial publication is an insertion, not a reset of an empty view.
+        // Keep the existing inline header and footer alive.
+        trace.measure(trace.insert, [this, &incoming] {
+            beginInsertRows({}, 0, static_cast<int>(incoming.size()) - 1);
+            m_rows = std::move(incoming);
+            endInsertRows();
+        });
+        notifyCount();
+        return true;
     }
 
     // When hydration or reaction updates preserve stable row order, avoid
@@ -198,16 +266,40 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
             current.mediaLayoutKind = desired.mediaLayoutKind;
             changedRoles.append(MediaLayoutKindRole);
         }
-        if (!changedRoles.isEmpty())
-            emit dataChanged(createIndex(index, 0), createIndex(index, 0), changedRoles);
+        return changedRoles;
+    };
+    const auto notifyRoles = [this, &trace](int first, int last, const QList<int>& roles) {
+        if (roles.isEmpty()) return;
+        trace.measure(trace.roles, [&] {
+            emit dataChanged(createIndex(first, 0), createIndex(last, 0), roles);
+        });
     };
     if (incoming.size() == m_rows.size()
         && std::equal(incoming.cbegin(), incoming.cend(), m_rows.cbegin(),
                       [](const Row& next, const Row& current) {
                           return next.stableKey == current.stableKey;
                       })) {
-        for (int index = 0; index < incoming.size(); ++index)
-            updateRoles(index, incoming.at(index));
+        // Batch adjacent revision-only updates. Do not combine structural
+        // media/presentation role changes: DelegateChooser can replace the
+        // delegate when a media role changes. Never signal unchanged rows.
+        int firstRevision = -1;
+        const QList<int> revisionOnly{RevisionKeyRole};
+        const auto flushRevisions = [&](int last) {
+            if (firstRevision >= 0) {
+                notifyRoles(firstRevision, last, revisionOnly);
+                firstRevision = -1;
+            }
+        };
+        for (int index = 0; index < incoming.size(); ++index) {
+            const auto roles = updateRoles(index, incoming.at(index));
+            if (roles == revisionOnly) {
+                if (firstRevision < 0) firstRevision = index;
+            } else {
+                flushRevisions(index - 1);
+                notifyRoles(index, index, roles);
+            }
+        }
+        flushRevisions(count() - 1);
         return false;
     }
 
@@ -223,13 +315,15 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
         if (i >= m_rows.size() || m_rows.at(i).stableKey != incoming.at(i).stableKey)
             ++displaced;
     }
-    if (m_rows.isEmpty()
-        || retained * 4 < std::min(m_rows.size(), incoming.size())
-        || (incoming.size() > 512 && displaced > incoming.size() * 3 / 4)) {
-        beginResetModel();
-        m_rows = std::move(incoming);
-        endResetModel();
-        emit countChanged();
+    if (static_cast<qsizetype>(retained) * 4 < std::min(m_rows.size(), incoming.size())
+        || (incoming.size() > 512 && displaced > incoming.size() - incoming.size() / 4)) {
+        const bool countWillChange = m_rows.size() != incoming.size();
+        trace.measure(trace.reset, [this, &incoming] {
+            beginResetModel();
+            m_rows = std::move(incoming);
+            endResetModel();
+        });
+        if (countWillChange) notifyCount();
         return true;
     }
 
@@ -244,9 +338,11 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
         int first = end;
         while (first > 0 && !seen.contains(m_rows.at(first - 1).stableKey))
             --first;
-        beginRemoveRows({}, first, end);
-        m_rows.remove(first, end - first + 1);
-        endRemoveRows();
+        trace.measure(trace.remove, [&] {
+            beginRemoveRows({}, first, end);
+            m_rows.remove(first, end - first + 1);
+            endRemoveRows();
+        });
         end = first - 1;
     }
     for (int i = 0; i < incoming.size(); ++i) {
@@ -262,10 +358,12 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
                 }
             }
             if (found >= 0) {
-                if (beginMoveRows({}, found, found, {}, i)) {
-                    m_rows.move(found, i);
-                    endMoveRows();
-                }
+                trace.measure(trace.move, [&] {
+                    if (beginMoveRows({}, found, found, {}, i)) {
+                        m_rows.move(found, i);
+                        endMoveRows();
+                    }
+                });
             } else {
                 // The old-key set distinguishes a contiguous run of new
                 // identities from retained rows that must be moved.
@@ -273,24 +371,28 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
                 while (end + 1 < incoming.size()
                        && !oldKeys.contains(incoming.at(end + 1).stableKey))
                     ++end;
-                beginInsertRows({}, i, end);
-                // Open the gap once instead of shifting the same suffix
-                // for every inserted row (notably a large prepend).
-                m_rows.insert(i, end - i + 1, Row{});
-                std::copy_n(incoming.cbegin() + i, end - i + 1, m_rows.begin() + i);
-                endInsertRows();
+                trace.measure(trace.insert, [&] {
+                    beginInsertRows({}, i, end);
+                    // Open the gap once instead of shifting the same suffix
+                    // for every inserted row (notably a large prepend).
+                    m_rows.insert(i, end - i + 1, Row{});
+                    std::copy_n(incoming.cbegin() + i, end - i + 1, m_rows.begin() + i);
+                    endInsertRows();
+                });
                 i = end;
                 continue;
             }
         }
-        updateRoles(i, desired);
+        notifyRoles(i, i, updateRoles(i, desired));
     }
     if (m_rows.size() > incoming.size()) {
-        beginRemoveRows({}, static_cast<int>(incoming.size()), count() - 1);
-        m_rows.resize(incoming.size());
-        endRemoveRows();
+        trace.measure(trace.remove, [&] {
+            beginRemoveRows({}, static_cast<int>(incoming.size()), count() - 1);
+            m_rows.resize(incoming.size());
+            endRemoveRows();
+        });
     }
-    if (previousCount != m_rows.size()) emit countChanged();
+    if (previousCount != m_rows.size()) notifyCount();
     return true;
 }
 

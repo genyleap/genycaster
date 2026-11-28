@@ -393,9 +393,12 @@ int main(int argc, char** argv)
                            {QStringLiteral("presentationKind"), QStringLiteral("conversation")},
                            {QStringLiteral("mediaLayoutKind"), QStringLiteral("other")}};
     };
+    QSignalSpy coldInsert{&incremental, &QAbstractItemModel::rowsInserted};
+    QSignalSpy coldReset{&incremental, &QAbstractItemModel::modelReset};
     incremental.reconcile({row(QStringLiteral("a"), QStringLiteral("r1")),
                            row(QStringLiteral("b"), QStringLiteral("r1")),
                            row(QStringLiteral("c"), QStringLiteral("r1"))});
+    require(coldInsert.size() == 1 && coldReset.isEmpty());
     QSignalSpy incrementalResets{&incremental, &QAbstractItemModel::modelReset};
     QSignalSpy incrementalMoves{&incremental, &QAbstractItemModel::rowsMoved};
     QSignalSpy incrementalChanges{&incremental, &QAbstractItemModel::dataChanged};
@@ -414,6 +417,9 @@ int main(int argc, char** argv)
     require(incrementalMoves.size() >= 1 && incrementalResets.isEmpty());
     incremental.reconcile({row(QStringLiteral("other"), QStringLiteral("r1"))});
     require(incrementalResets.size() == 1);
+    QSignalSpy sameCountReplacement{&incremental, &FeedRowsModel::countChanged};
+    incremental.reconcile({row("different", "r1")});
+    require(incrementalResets.size() == 2 && sameCountReplacement.isEmpty());
     FeedRowsModel rangeFeed;
     rangeFeed.reconcile({row("a","1"),row("b","1"),row("c","1"),row("d","1")});
     QAbstractItemModelTester rangeTester{&rangeFeed, QAbstractItemModelTester::FailureReportingMode::Fatal};
@@ -487,5 +493,18 @@ int main(int argc, char** argv)
                          FeedRowsModel::MediaLayoutKindRole}) {
         qFatal("Same-key media/presentation hydration emitted incorrect role IDs");
     }
+    // Adjacent revision-only updates publish one exact range; gaps and
+    // presentation changes never cause unchanged rows to receive role signals.
+    stableChanges.clear();
+    stableSnapshot[4] = row("stable:4", "r3");
+    stableSnapshot[5] = row("stable:5", "r3");
+    stableSnapshot[7] = row("stable:7", "r3");
+    require(!stableOrder.reconcile(stableSnapshot));
+    require(stableChanges.size() == 2);
+    require(stableChanges.at(0).at(0).value<QModelIndex>().row() == 4);
+    require(stableChanges.at(0).at(1).value<QModelIndex>().row() == 5);
+    require(stableChanges.at(1).at(0).value<QModelIndex>().row() == 7);
+    require(stableChanges.at(1).at(1).value<QModelIndex>().row() == 7);
+    require(stableChanges.at(0).at(2).value<QList<int>>() == QList<int>{FeedRowsModel::RevisionKeyRole});
     return 0;
 }

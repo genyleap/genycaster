@@ -1985,13 +1985,21 @@ Item {
         // An asynchronous delegate may still be incubating when a fast
         // flick brings its slot on screen. Show a real cast-shaped loading
         // state rather than a vacant patch of the feed.
-        CastSkeleton {
+        // Magazine owns the visible crossfading skeleton in its outer
+        // slot. The inner card has opacity zero until it is ready; a second
+        // skeleton only adds QML objects, animations and teardown work.
+        Loader {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            visible: rowDelegate.incubating && !rowDelegate.sectionRow
-            mediaPreview: rowDelegate.mediaLayoutKind !== "other"
-            animate: !readList.moving
+            active: !rowDelegate.magazineRow && !rowDelegate.sectionRow
+            visible: rowDelegate.incubating
+            sourceComponent: Component {
+                CastSkeleton {
+                    mediaPreview: rowDelegate.mediaLayoutKind !== "other"
+                    animate: !readList.moving
+                }
+            }
         }
 
         Connections {

@@ -470,6 +470,19 @@ retirement rather than executing it inside the navigation input callback.
 The existing no-time-budget API retains its contiguous-range behavior.
 Tests simulate a slow observer without wall-time thresholds.
 
+## Feed publication and duplicate placeholders
+
+v4 showed 86.5 ms inside feed.reconcile with only 8 rows. Enable
+genycaster.render.feedmodel.debug to isolate reset, insertion, removal,
+move, dataChanged and countChanged observer costs. A cold feed now uses
+one insertion instead of resetting an empty view; an equal-count reset
+does not redundantly notify countChanged. Stable-order consecutive
+revision-only changes publish a single exact range; media/presentation
+roles keep their individual signals and unchanged rows are not notified.
+Magazine already owns a crossfading placeholder: FeedRow no longer creates
+a second hidden CastSkeleton inside the transparent magazine card.
+Timeline retains the existing placeholder style and reservation.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:
