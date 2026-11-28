@@ -24,7 +24,7 @@ add_custom_command(TARGET genycaster POST_BUILD
 set(GENYCASTER_MACOS_LOCAL_SIGNING_IDENTITY "" CACHE STRING
     "Stable code-signing certificate name or SHA-1 fingerprint for local macOS builds")
 option(GENYCASTER_MACOS_AUTO_LOCAL_SIGNING
-    "Select the sole valid Apple Development identity for local builds" ON)
+    "Select and pin a valid Apple Development identity for local builds" ON)
 # An ad-hoc designated requirement is tied to the executable hash. After a
 # rebuild the login Keychain no longer recognizes the previous Always Allow
 # decision. Choose a stable *existing* development certificate when unambiguous;
@@ -35,20 +35,18 @@ if(NOT GENYCASTER_MACOS_LOCAL_SIGNING_IDENTITY AND NOT DEFINED ENV{CI})
             RESULT_VARIABLE _genycasterIdentityResult
             OUTPUT_VARIABLE _genycasterIdentities ERROR_QUIET)
         if(_genycasterIdentityResult EQUAL 0)
-            string(REGEX MATCHALL "[0-9A-Fa-f]+ \"Apple Development:[^\n\"]+\""
-                _genycasterDevelopmentMatches "${_genycasterIdentities}")
-            list(LENGTH _genycasterDevelopmentMatches _genycasterDevelopmentCount)
-            if(_genycasterDevelopmentCount EQUAL 1)
-                list(GET _genycasterDevelopmentMatches 0 _genycasterDevelopmentMatch)
-                string(REGEX MATCH "^[0-9A-Fa-f]+" _genycasterDevelopmentFingerprint
-                    "${_genycasterDevelopmentMatch}")
-                string(LENGTH "${_genycasterDevelopmentFingerprint}" _genycasterFingerprintLength)
-                if(_genycasterFingerprintLength EQUAL 40)
-                    set(GENYCASTER_MACOS_LOCAL_SIGNING_IDENTITY
-                        "${_genycasterDevelopmentFingerprint}" CACHE STRING
-                        "Stable code-signing certificate name or SHA-1 fingerprint for local macOS builds" FORCE)
-                    message(STATUS "Genycaster: selected and pinned the local Apple Development signing identity")
-                endif()
+            include("${CMAKE_SOURCE_DIR}/cmake/platform/macOS/LocalSigningIdentity.cmake")
+            genycaster_select_local_signing_identity("${_genycasterIdentities}"
+                _genycasterDevelopmentFingerprint _genycasterSigningSelection)
+            if(_genycasterSigningSelection STREQUAL "selected")
+                set(GENYCASTER_MACOS_LOCAL_SIGNING_IDENTITY
+                    "${_genycasterDevelopmentFingerprint}" CACHE STRING
+                    "Stable code-signing certificate name or SHA-1 fingerprint for local macOS builds" FORCE)
+                message(STATUS "Genycaster: selected and pinned Apple Development identity ${_genycasterDevelopmentFingerprint}")
+            elseif(_genycasterSigningSelection STREQUAL "ambiguous")
+                message(FATAL_ERROR "Genycaster: multiple different Apple Development identity names. "
+                    "Set GENYCASTER_MACOS_LOCAL_SIGNING_IDENTITY to the desired certificate fingerprint, "
+                    "or deliberately disable GENYCASTER_MACOS_AUTO_LOCAL_SIGNING for ad-hoc builds.")
             endif()
         endif()
     endif()

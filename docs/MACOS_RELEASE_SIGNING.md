@@ -95,11 +95,16 @@ codesign -d -r- --verbose=2 /path/to/Genycaster.app
 security find-identity -v -p codesigning
 ```
 
-If exactly one valid Apple Development certificate is installed, local CMake
-configuration selects and pins its fingerprint automatically (outside CI).
-If multiple certificates exist, set `GENYCASTER_MACOS_LOCAL_SIGNING_IDENTITY`
-explicitly and use the same identity and bundle identifier for successive
-local builds. Disable automatic selection with
+Local CMake configuration selects and pins a valid Apple Development
+certificate fingerprint automatically (outside CI). If multiple valid
+certificates share the same identity name, it selects the lexicographically
+first fingerprint, independent of Keychain enumeration order. Existing
+cached or explicitly configured identities always take precedence. If
+different development identity names exist, configuration requires an
+explicit `GENYCASTER_MACOS_LOCAL_SIGNING_IDENTITY` fingerprint rather than
+silently choosing a developer or falling back to ad-hoc. Keep the same
+identity and bundle identifier for successive builds; if a pinned certificate
+expires, explicitly select a replacement. Disable automatic selection with
 `GENYCASTER_MACOS_AUTO_LOCAL_SIGNING=OFF` if desired. If the login
 keychain itself is locked or its password is out of sync, that is a separate
 OS authorization condition; the application must not bypass it.
