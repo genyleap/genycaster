@@ -623,6 +623,24 @@ removed after publication. The diagnostic notification.projection measures
 this path. This is a structural optimization, not proof that the v9
 notification navigation stalls are caused by this model.
 
+## Native profile ordering without round-trip payload conversion
+
+Linux Qt 6.12.0/GCC 16.2 probe, five alternating samples per size, measured
+the actual QJSEngine call boundary. Passing complete row maps into C++ and
+back was slower. A prototype with a native-held source and primitive output
+indices measured 2.96 ms versus 6.75 ms JavaScript for 1000 rows, and
+21.28 ms versus 46.53 ms for 5000 rows. These are synthetic ranking timings,
+not whole application navigation or hardware-rendering results.
+
+The production profile now captures the bridge's native row snapshot and
+a token. Native ranking reads only the canonical numeric keys and returns
+a stable permutation; QML reuses its existing payload objects. Every row
+publication invalidates the token; topic rows and unknown numeric forms
+retain local fallback. Both paths explicitly resolve ties by original
+ordinal (the Qt JavaScript engine did not preserve every large equal-key
+group in the probe). Profile viewport anchors use the existing primitive
+native key lookup instead of building one QVariantMap per row.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

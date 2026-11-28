@@ -113,6 +113,10 @@ Item {
         onTriggered: if (root.visible) root.synchronizeActiveDetail()
     }
     property var rows
+    // Optional native snapshot: isolated previews and topic rows retain the
+    // local fallback without a round trip through the presentation bridge.
+    property var nativeRowSnapshot: null
+    property var nativeRowOrderProvider: null
     // Navigation must show the cover, even when this Loader is reused.
     property int navigationRevision: 0
     onNavigationRevisionChanged: {
@@ -1226,26 +1230,41 @@ Item {
         const traceStart = typeof renderingController !== "undefined" && renderingController
                 && renderingController.stallDiagnosticsEnabled === true
                 ? renderingController.diagnosticClockMs() : -1
-        const source = root.rows || []
+        const snapshot = root.nativeRowSnapshot
+        const source = snapshot ? snapshot.rows : root.rows || []
+        if (snapshot && typeof root.nativeRowOrderProvider === "function") {
+            const order = root.nativeRowOrderProvider(snapshot.token, root.profileFeed,
+                                                     root.profileSortMode, root.popularMetric)
+            if (order && order.length === source.length) {
+                const ranked = []
+                for (let i = 0; i < order.length; ++i)
+                    ranked.push(source[order[i]])
+                if (traceStart >= 0)
+                    renderingController.recordUiOperation("profile.sort.native", traceStart, ranked.length)
+                return ranked
+            }
+            // The snapshot can be invalidated by a newer publication, or
+            // contain a noncanonical numeric value. Sort this exact source.
+        }
         const result = []
         const popular = root.profileFeed === "user-popular"
         // Decorate once: QVariantMap field access and number conversion no
         // longer repeat in every comparison of a large profile timeline.
         for (let index = 0; index < source.length; ++index) {
             const row = source[index]
-            result.push({row: row, time: root.rowTime(row),
+            result.push({row: row, time: root.rowTime(row), ordinal: index,
                          score: popular ? root.popularityScore(row) : 0})
         }
 
         if (popular) {
             result.sort(function(left, right) {
                 const scoreDelta = right.score - left.score
-                return scoreDelta !== 0 ? scoreDelta : right.time - left.time
+                return scoreDelta || right.time - left.time || left.ordinal - right.ordinal
             })
         } else {
             const direction = root.profileSortMode === "oldest" ? 1 : -1
             result.sort(function(left, right) {
-                return (left.time - right.time) * direction
+                return (left.time - right.time) * direction || left.ordinal - right.ordinal
             })
         }
         const sorted = result.map(entry => entry.row)
@@ -1378,7 +1397,7 @@ Item {
             root.viewportAnchorKey = ""
             return
         }
-        root.viewportAnchorKey = String(profileRowsModel.get(index).stableKey || "")
+        root.viewportAnchorKey = profileRowsModel.keyAt(index)
         root.viewportAnchorOffset = item.y - root.readList.contentY
     }
 
@@ -1401,13 +1420,7 @@ Item {
     function restoreViewportAnchor(anchorKey, anchorOffset) {
         if (root.readList.moving || anchorKey.length === 0 || profileRowsModel.count === 0)
             return
-        let targetIndex = -1
-        for (let index = 0; index < profileRowsModel.count; ++index) {
-            if (String(profileRowsModel.get(index).stableKey) === anchorKey) {
-                targetIndex = index
-                break
-            }
-        }
+        const targetIndex = profileRowsModel.indexForKey(anchorKey)
         if (targetIndex < 0)
             return
         const item = root.readList.itemAtIndex(targetIndex)
@@ -1482,7 +1495,7 @@ Item {
         if (!root.profileEntryResetActive
                 && anchorIndex >= 0 && anchorIndex < profileRowsModel.count) {
             const anchorItem = root.readList.itemAtIndex(anchorIndex)
-            anchorKey = String(profileRowsModel.get(anchorIndex).stableKey)
+            anchorKey = profileRowsModel.keyAt(anchorIndex)
             anchorOffset = anchorItem ? anchorItem.y - root.readList.contentY : 0
         }
 

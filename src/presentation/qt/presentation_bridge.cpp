@@ -1125,6 +1125,22 @@ bool PresentationBridge::cachedFeedHasMore() const noexcept { return m_cachedFee
 bool PresentationBridge::hasReadActivity() const noexcept { return m_hasReadActivity; }
 bool PresentationBridge::feedStarted() const noexcept { return m_feedStarted; }
 QVariantList PresentationBridge::rows() const { return m_rows; }
+QVariantMap PresentationBridge::profileRowSnapshot() const
+{
+    if (m_activeView != QStringLiteral("profile")) return {};
+    return m_profileRankSnapshot.capture(m_rows);
+}
+QVariantList PresentationBridge::profileRowOrder(
+    const QString& token, const QString& feed, const QString& mode, const QString& metric) const
+{
+    if (m_activeView != QStringLiteral("profile") || feed != m_profileFeed) return {};
+    return m_profileRankSnapshot.order(token, feed == QStringLiteral("user-popular"), mode, metric);
+}
+void PresentationBridge::publishRowsChanged()
+{
+    m_profileRankSnapshot.invalidate();
+    emit rowsChanged();
+}
 QVariantList PresentationBridge::explorerArtRows() const { return m_explorerArtRows; }
 QVariantList PresentationBridge::followingStoryProfiles() const
 {
@@ -1949,7 +1965,7 @@ void PresentationBridge::openMyProfile()
     m_detail.clear();
     m_rows.clear();
     m_next.clear();
-    emit rowsChanged();
+    publishRowsChanged();
     // Bind the required protocol before issuing ANY profile/feed request.
     emit ownProfileReadAffinityRequested(true, nativeCustodyAccount());
     beginIntent(qtTrId("genycaster.bridge.reading_cached_profile"));
@@ -1985,7 +2001,7 @@ void PresentationBridge::openProfileUsername(const QString& username)
     m_cachedFeedHasMore = false;
     m_localNextOffset = 0;
     m_localWindowPending = false;
-    emit rowsChanged();
+    publishRowsChanged();
     beginIntent(qtTrId("genycaster.bridge.checking_local_identity"));
     emit profileUsernameRequested(canonical, consumeRecoveryProbe());
 }
@@ -2040,7 +2056,7 @@ void PresentationBridge::openProfileFid(const qulonglong fid)
         m_rows.clear();
         m_next.clear();
     }
-    emit rowsChanged();
+    publishRowsChanged();
     beginIntent(qtTrId("genycaster.bridge.reading_cached_profile"));
     const bool recoveryProbe = consumeRecoveryProbe();
     emit profileRequested(m_profileFid, recoveryProbe);
@@ -2122,7 +2138,7 @@ void PresentationBridge::selectProfileFeed(const QString& feed)
     else if (m_profileFeed == QStringLiteral("user-replies")) { message = qtTrId("genycaster.bridge.reading_cached_replies"); }
     else if (m_profileFeed == QStringLiteral("user-likes")) { message = qtTrId("genycaster.bridge.reading_cached_likes"); }
     else if (m_profileFeed == QStringLiteral("user-popular")) { message = qtTrId("genycaster.bridge.reading_cached_popular_casts"); }
-    emit rowsChanged();
+    publishRowsChanged();
     beginIntent(std::move(message));
     emit feedRequested(m_profileFeed, m_profileFid, {}, {}, consumeRecoveryProbe());
 }
@@ -2431,7 +2447,7 @@ void PresentationBridge::revealPendingPosts()
     applyViewerReactionSnapshotTo(m_rows, m_viewerReactionSnapshot);
     applyReactionOverrides(m_rows, m_reactionOverrides);
     applyFollowingOverrides(m_rows, m_followOverrides);
-    emit rowsChanged();
+    publishRowsChanged();
     emit stateChanged();
 }
 
@@ -4318,7 +4334,7 @@ void PresentationBridge::applyAuthenticationState(
     }
     emit authenticationStateChanged();
     emit setupStateChanged();
-    if (accountRowsChanged) emit rowsChanged();
+    if (accountRowsChanged) publishRowsChanged();
     emit stateChanged();
     if (accountRowsChanged && m_runtimeReady)
         selectFeed(m_isAuthenticated ? QStringLiteral("following") : QStringLiteral("trending"));
@@ -4460,7 +4476,7 @@ void PresentationBridge::applyWriteState(
             || m_writePhase == QStringLiteral("blocked")) {
             removeCastPresentation(m_writeRows, castId);
             removeCastPresentation(m_rows, castId);
-            emit rowsChanged();
+            publishRowsChanged();
             emit stateChanged();
             return;
         }
@@ -4567,7 +4583,7 @@ void PresentationBridge::applyWriteState(
         m_writePhase == QStringLiteral("queued")) {
         emit castQueued();
     }
-    if (writeRowsChanged) emit rowsChanged();
+    if (writeRowsChanged) publishRowsChanged();
     emit stateChanged();
 }
 
@@ -4612,7 +4628,7 @@ void PresentationBridge::applyCastProjections(const qulonglong accountFid, QVari
         for (const auto& value : m_rows) merged.push_back(value);
         m_rows = std::move(merged);
         deduplicateCastRows(m_rows);
-        emit rowsChanged();
+        publishRowsChanged();
     }
     emit stateChanged();
 }
@@ -4632,7 +4648,7 @@ void PresentationBridge::applyReactionProjections(QVariantList reactions)
     applyReactionOverrides(m_pendingFeedRows, m_reactionOverrides);
     applyReactionOverrides(m_writeRows, m_reactionOverrides);
     applyReactionOverrides(m_detail, m_reactionOverrides);
-    if (!m_rows.isEmpty()) emit rowsChanged();
+    if (!m_rows.isEmpty()) publishRowsChanged();
     emit stateChanged();
 }
 
@@ -4658,7 +4674,7 @@ void PresentationBridge::applyViewerReactionSnapshot(QVariantList reactions)
     applyReactionOverrides(m_pendingFeedRows, m_reactionOverrides);
     applyReactionOverrides(m_writeRows, m_reactionOverrides);
     applyReactionOverrides(m_detail, m_reactionOverrides);
-    if (!m_rows.isEmpty()) emit rowsChanged();
+    if (!m_rows.isEmpty()) publishRowsChanged();
     emit stateChanged();
 }
 
@@ -4725,7 +4741,7 @@ void PresentationBridge::applyViewerReactionDelta(QVariantList reactions)
     visibleChanged |= applyViewerReactionDeltasTo(
         m_detail, deltas, m_reactionOverrides);
     if (visibleChanged) {
-        if (changedRows) emit rowsChanged();
+        if (changedRows) publishRowsChanged();
         emit stateChanged();
     }
 }
@@ -4745,7 +4761,7 @@ void PresentationBridge::applyFollowingProjections(QVariantList following)
     applyFollowingOverride(m_detail, m_followOverrides);
     applyFollowingOverrides(m_searchResults, m_followOverrides);
     emit searchChanged();
-    if (!m_rows.isEmpty()) emit rowsChanged();
+    if (!m_rows.isEmpty()) publishRowsChanged();
     emit stateChanged();
 }
 
@@ -5079,7 +5095,7 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     }
     m_isBusy = busy;
     m_isStale = stale;
-    emit rowsChanged();
+    publishRowsChanged();
     emit stateChanged();
     if (preserveWarmTail && !m_pendingFeedRows.isEmpty()) {
         revealPendingPosts();
@@ -5213,7 +5229,7 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
         || changed;
 
     if (changed) {
-        if (changedRows) emit rowsChanged();
+        if (changedRows) publishRowsChanged();
         emit stateChanged();
     }
 }
@@ -5443,7 +5459,7 @@ void PresentationBridge::applyVerificationFixture()
         QVariantMap{{QStringLiteral("castId"), QStringLiteral("0x04")}, {QStringLiteral("author"), QStringLiteral("cinephile")}, {QStringLiteral("displayName"), QStringLiteral("Cinephile Daily")}, {QStringLiteral("text"), QStringLiteral("Direct video plays inline inside Genycaster — no external browser required.")}, {QStringLiteral("createdAtMs"), nowMs - 960'000}, {QStringLiteral("embeds"), QVariantList{QVariantMap{{QStringLiteral("kind"), QStringLiteral("video")}, {QStringLiteral("url"), QStringLiteral("https://example.com/clips/demo.mp4")}, {QStringLiteral("host"), QStringLiteral("example.com")}, {QStringLiteral("fileName"), QStringLiteral("demo.mp4")}, {QStringLiteral("imageSource"), QString{}}, {QStringLiteral("hasPreviewImage"), false}}}}},
     };
     m_next = QStringLiteral("fixture-next");
-    emit rowsChanged();
+    publishRowsChanged();
     emit runtimeStateChanged();
     emit authenticationStateChanged();
     emit setupStateChanged();

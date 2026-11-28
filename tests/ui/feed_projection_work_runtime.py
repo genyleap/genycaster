@@ -20,6 +20,8 @@ Item {
     id: root
     width: 320; height: 240
     property var rows: []
+    property var nativeRowSnapshot: null
+    property var nativeRowOrderProvider: null
     property string profileFeed: "user-popular"
     property string profileSortMode: "newest"
     property string popularMetric: "likes"
@@ -80,6 +82,35 @@ Item {
                 root.classifiedFamily({kind:"url",url:"https://example.invalid/scan/"+i},{},false)
             compare(mediaClassifier.calls-firstScan,52)
             compare(root.staticMediaFamilies.size,2048)
+        }
+        function test_profileRankingLargeTies() {
+            const source=[]
+            for(let i=0;i<5000;++i) source.push({id:i,createdAtMs:i%47,likeCount:i%3})
+            root.rows=source
+            root.profileFeed="user-popular"
+            root.popularMetric="likes"
+            const sorted=root.sortedRows()
+            compare(sorted.length,source.length)
+            for(let i=1;i<sorted.length;++i) {
+                const a=sorted[i-1], b=sorted[i]
+                verify(a.likeCount>b.likeCount || a.likeCount===b.likeCount
+                    && (a.createdAtMs>b.createdAtMs || a.createdAtMs===b.createdAtMs && a.id<b.id))
+            }
+        }
+        function test_profileNativeSnapshotFallback() {
+            root.rows=[{id:"fallback"}]
+            root.nativeRowSnapshot={token:"a",rows:[{id:"a",createdAtMs:1},{id:"b",createdAtMs:2}]}
+            root.nativeRowOrderProvider=function(token,feed,mode,metric) {
+                compare(token,"a")
+                return [1,0]
+            }
+            compare(root.sortedRows().map(r=>r.id).join(","),"b,a")
+            root.nativeRowOrderProvider=function(){return []}
+            root.profileFeed="user-casts"
+            root.profileSortMode="oldest"
+            compare(root.sortedRows().map(r=>r.id).join(","),"a,b")
+            root.nativeRowSnapshot=null
+            root.nativeRowOrderProvider=null
         }
         function test_profileRanking() {
             root.rows = [{id:"a",likeCount:1,createdAtMs:10},

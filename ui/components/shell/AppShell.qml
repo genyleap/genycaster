@@ -2968,11 +2968,19 @@ Item {
                                         }
                                         sourceComponent: Component {
                                             ProfileSurface {
+                                                id: nativeProfileSurface
                                                 bottomOverlayInset: root.readingOverlayInset(profileSurfaceLoader)
                                                 detail: presentationBridge.detail
                                                 navigationRevision: root.profileTopRevision
+                                                nativeRowSnapshot: root.topicBrowseActive && root.topicBrowseScope==="profile"
+                                                    || presentationBridge.activeView !== "profile"
+                                                    ? null : presentationBridge.profileRowSnapshot
+                                                nativeRowOrderProvider: (token, feed, mode, metric) =>
+                                                    presentationBridge.profileRowOrder(token, feed, mode, metric)
                                                 rows: root.topicBrowseActive && root.topicBrowseScope==="profile"
-                                                      ? root.topicInlineRows() : presentationBridge.rows
+                                                    ? root.topicInlineRows()
+                                                    : nativeProfileSurface.nativeRowSnapshot
+                                                        ? nativeProfileSurface.nativeRowSnapshot.rows : []
                                                 mutedProfileFids: root.mutedActorIds
                                                 muteSettingsReady: openProofConnections ? openProofConnections.mutedProfilesReady : false
                                                 muteWriteBusy: openProofConnections ? openProofConnections.mutedProfilesBusy : false

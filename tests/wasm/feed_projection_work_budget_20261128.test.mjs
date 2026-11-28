@@ -17,7 +17,7 @@ test('Profile ranking reads each score/time exactly once; preserves order and ti
         id:i,createdAtMs:(i*73)%1234,likeCount:i%17,recastCount:i%7,replyCount:i%5
     }));
     rows.push({id:5000,time:'invalid',likeCount:0},{id:5001,createdAtMs:0});
-    const root={rows};
+    const root={rows,nativeRowSnapshot:null,nativeRowOrderProvider:null};
     const context={root};
     const time=method(profile,'rowTime','\n    function popularityScore',context);
     const score=method(profile,'popularityScore','\n    function sortedRows',context);
@@ -118,4 +118,19 @@ test('Static classification caches exact inputs only; metadata, malformed and ov
         classify({...embed,url:'https://example.invalid/scan/'+i},{},false);
     assert.equal(calls-firstScan,3000-2048);
     assert.equal(root.staticMediaFamilies.size,2048);
+});
+
+test('profile native order is snapshot-scoped and stale order falls back to the same payload',()=>{
+    const root={rows:[{id:'unrelated'}],nativeRowSnapshot:{token:'a',rows:[
+        {id:'one',createdAtMs:1},{id:'two',createdAtMs:2}]},profileFeed:'user-casts',profileSortMode:'oldest'};
+    const context={root};
+    root.rowTime=method(profile,'rowTime','\n    function popularityScore',context);
+    root.popularityScore=method(profile,'popularityScore','\n    function sortedRows',context);
+    const sorted=method(profile,'sortedRows','\n    function rowKey',context);
+    root.nativeRowOrderProvider=(token,feed,mode,metric)=>{assert.equal(token,'a');return [1,0];};
+    assert.equal(Array.from(sorted(),r=>r.id).join(','),'two,one');
+    root.nativeRowOrderProvider=()=>[];
+    assert.equal(Array.from(sorted(),r=>r.id).join(','),'one,two');
+    assert.doesNotMatch(profile,/profileRowsModel\.get\(/);
+    assert.match(profile,/profileRowsModel\.indexForKey\(anchorKey\)/);
 });

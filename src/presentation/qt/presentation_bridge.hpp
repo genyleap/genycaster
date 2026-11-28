@@ -21,6 +21,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <vector>
+#include "profile_row_order.hpp"
 
 /** @brief QML presentation facade for verified-session state and feature-scoped models. */
 class QSettings;
@@ -96,6 +97,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool localDerivedRecent READ localDerivedRecent NOTIFY stateChanged)
     Q_PROPERTY(bool localDerivedFollowing READ localDerivedFollowing NOTIFY stateChanged)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY rowsChanged)
+    Q_PROPERTY(QVariantMap profileRowSnapshot READ profileRowSnapshot NOTIFY rowsChanged)
     Q_PROPERTY(QVariantList explorerArtRows READ explorerArtRows NOTIFY stateChanged)
     Q_PROPERTY(bool explorerArtBusy READ explorerArtBusy NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY stateChanged)
@@ -219,6 +221,9 @@ public:
     [[nodiscard]] bool hasReadActivity() const noexcept;
     [[nodiscard]] bool feedStarted() const noexcept;
     [[nodiscard]] QVariantList rows() const;
+    [[nodiscard]] QVariantMap profileRowSnapshot() const;
+    Q_INVOKABLE QVariantList profileRowOrder(const QString& token, const QString& feed,
+                                              const QString& mode, const QString& metric) const;
     [[nodiscard]] QVariantList explorerArtRows() const;
 
     /** @brief Actual followed identities, never inferred from public cast authors. */
@@ -879,6 +884,8 @@ private:
     bool m_localWindowPending{false};
     qulonglong m_localNextOffset{0};
     QVariantList m_rows{};
+    mutable genycaster::presentation::detail::ProfileRowSnapshot m_profileRankSnapshot{};
+    void publishRowsChanged();
     QVariantList m_explorerArtRows{};
     bool m_explorerArtBusy{false};
     QVariantMap m_detail{};

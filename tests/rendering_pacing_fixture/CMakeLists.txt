@@ -27,6 +27,12 @@ add_test(NAME pacing_software COMMAND genycaster_rendering_pacing_fixture --synt
 set_tests_properties(pacing_software PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QSG_RENDER_LOOP=basic" TIMEOUT 20)
 # Keep the standalone cache usable across source revisions. Register
 # real QML-engine and JS contract tests here as well as native C++ tests.
+add_executable(genycaster_profile_row_order_fixture "${root}/tests/ui/profile_row_order_tests.cpp")
+target_compile_features(genycaster_profile_row_order_fixture PRIVATE cxx_std_23)
+target_link_libraries(genycaster_profile_row_order_fixture PRIVATE Qt6::Core Qt6::Qml)
+add_test(NAME profile_row_order COMMAND genycaster_profile_row_order_fixture)
+set_tests_properties(profile_row_order PROPERTIES TIMEOUT 45)
+
 add_executable(genycaster_qml_shutdown_fixture "${root}/tests/ui/qml_engine_shutdown_tests.cpp")
 target_compile_features(genycaster_qml_shutdown_fixture PRIVATE cxx_std_23)
 target_link_libraries(genycaster_qml_shutdown_fixture PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)
