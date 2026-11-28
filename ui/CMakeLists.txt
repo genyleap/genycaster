@@ -510,6 +510,13 @@ target_sources(genycaster
 target_include_directories(genycaster PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/app/runtime")
 set_property(TARGET genycaster PROPERTY CXX_SCAN_FOR_MODULES ON)
+# Native desktop lifecycle owns a system tray on every desktop target,
+# independently of the optional WebEngine Mini App host.
+if(NOT ANDROID AND NOT IOS AND NOT EMSCRIPTEN)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets)
+    target_link_libraries(genycaster PRIVATE Qt6::Widgets)
+    target_sources(genycaster PRIVATE app/platform/background.hpp)
+endif()
 # Preserve the CMake target and WebAssembly/Android artifact identities.
 # Native executable and Apple bundle filenames use the product casing.
 if(NOT ANDROID AND NOT EMSCRIPTEN)
