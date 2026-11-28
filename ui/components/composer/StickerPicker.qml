@@ -617,7 +617,7 @@ Popup {
                         if (root.authorized)
                             openProofConnections.fetchStickerPacks()
                         else
-                            openProofConnections.retryAccountSession()
+                            openProofConnections.retryAccountSessionFromUser()
                     }
                 }
                 ActionButton {

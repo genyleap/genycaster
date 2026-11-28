@@ -202,7 +202,7 @@ GenyDrawer {
                 if (root.cloudReady)
                     openProofConnections.fetchProEntitlements(true)
                 else
-                    openProofConnections.retryProEntitlements()
+                    openProofConnections.retryProEntitlementsFromUser()
             }
             return
         }
@@ -215,7 +215,7 @@ GenyDrawer {
             // or the previously registered browser signer proves the FID
             // without opening the external Farcaster authorization flow.
             if (!root.restoringSession)
-                openProofConnections.retryProEntitlements()
+                openProofConnections.retryProEntitlementsFromUser()
             return
         }
         if (!root.checkoutActive) {
@@ -479,7 +479,7 @@ GenyDrawer {
                     if (root.cloudReady)
                         openProofConnections.fetchProEntitlements(true)
                     else
-                        openProofConnections.retryProEntitlements()
+                        openProofConnections.retryProEntitlementsFromUser()
                 }
             }
             ActionButton {

@@ -70,7 +70,7 @@ test('HyperSnap Streak and Pro surfaces expose safe recovery without forging ent
   assert.match(profile,/!openProofConnections\.accountProofBusy/);
   assert.match(profile,/readonly property bool signerAuthorizationNeeded:/);
   assert.match(profile,/root\.signerAuthorizationRequested\(\)/);
-  assert.match(profile,/openProofConnections\.retryAccountSession\(\)/);
+  assert.match(profile,/openProofConnections\.retryAccountSessionFromUser\(\)/);
   const owner=read('ui/components/profile/ProfileSurface.qml');
   const shell=read('ui/components/shell/AppShell.qml');
   assert.match(owner,/onSignerAuthorizationRequested:\s*\{[\s\S]*?root\.signerAuthorizationRequested\(\)/);

@@ -15,6 +15,34 @@ if(NOT EMSCRIPTEN AND NOT ANDROID)
         TIMEOUT 8 LABELS "ui;identity;security;account-session")
 endif()
 
+# Real Qt event-loop lifecycle regression; use an isolated X11 display.
+if(TARGET genycaster_desktop_instance AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_program(_genycasterXvfbRun xvfb-run)
+    if(_genycasterXvfbRun)
+        find_package(X11 QUIET)
+        if(X11_FOUND)
+            add_executable(genycaster_desktop_background_tests ../unit/desktop_background_runtime.cpp)
+            target_include_directories(genycaster_desktop_background_tests PRIVATE
+                "${CMAKE_SOURCE_DIR}/ui/app/platform")
+            target_link_libraries(genycaster_desktop_background_tests PRIVATE
+                genycaster_desktop_instance X11::X11)
+            target_compile_definitions(genycaster_desktop_background_tests PRIVATE GENYCASTER_TEST_X11)
+            target_compile_features(genycaster_desktop_background_tests PRIVATE cxx_std_26)
+            foreach(_mode IN ITEMS no-tray tray)
+                if(_mode STREQUAL "tray")
+                    set(_args --tray)
+                else()
+                    set(_args)
+                endif()
+                add_test(NAME ui.desktop_background.${_mode}
+                    COMMAND "${_genycasterXvfbRun}" -a $<TARGET_FILE:genycaster_desktop_background_tests> ${_args})
+                set_tests_properties(ui.desktop_background.${_mode} PROPERTIES
+                    TIMEOUT 12 LABELS "ui;desktop;lifecycle" ENVIRONMENT "QT_QPA_PLATFORM=xcb")
+            endforeach()
+        endif()
+    endif()
+endif()
+
 get_target_property(genycasterUiSourceDir genycaster SOURCE_DIR)
 get_target_property(genycasterUiBinaryDir genycaster BINARY_DIR)
 

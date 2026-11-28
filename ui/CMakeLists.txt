@@ -380,12 +380,13 @@ set_property(TARGET genycaster_update_install PROPERTY CXX_SCAN_FOR_MODULES ON)
 
 # Native-only Qt IPC broker. Mobile/WASM paths must not build or import it.
 if(NOT ANDROID AND NOT IOS AND NOT EMSCRIPTEN)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets)
     add_library(genycaster_desktop_instance STATIC)
     target_sources(genycaster_desktop_instance
         PUBLIC FILE_SET CXX_MODULES FILES app/platform/instance.cppm
-        PRIVATE app/platform/instance.cpp)
+        PRIVATE app/platform/instance.cpp app/platform/desktop_background.cpp)
     target_link_libraries(genycaster_desktop_instance PUBLIC
-        Qt6::Core Qt6::Network Qt6::Quick)
+        Qt6::Core Qt6::Network Qt6::Quick Qt6::Widgets)
     target_compile_features(genycaster_desktop_instance PUBLIC cxx_std_26)
     set_property(TARGET genycaster_desktop_instance PROPERTY CXX_SCAN_FOR_MODULES ON)
 endif()

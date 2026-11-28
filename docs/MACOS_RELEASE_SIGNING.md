@@ -67,3 +67,46 @@ is not an acceptable distribution workaround.
 References:
 - https://developer.apple.com/developer-id/
 - https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution
+
+## Keychain trust and repeated prompts during development
+
+The device session seal, registered social signer, and protocol-scoped cloud
+device credentials remain separate Keychain items. A signer handle derives
+its public identity during its authorized read; public-key inspection no
+longer reads the secret again. Apple device/cloud proof ceremonies use an
+opaque single-signature handle, with a 20-second validity limit, consumed
+on use or revoked by vault erasure. Cloud continuations are owned by the
+specific challenge, released on cancellation, and recheck the active
+principal and retirement marker before producing the signature. Ordinary
+social publishing re-reads the OS vault and checks the public identity.
+No plaintext storage or broad Keychain ACL is introduced.
+
+An ad-hoc signature does not provide a stable certificate-backed designated
+requirement across rebuilds. Keychain's Always Allow decision is controlled
+by macOS, and repeated prompts after a rebuild can still occur. Never add
+all applications to an item's Access Control list, unlock the login keychain
+programmatically, or delete existing credentials to silence the prompt.
+
+For local Qt Creator builds, inspect the existing app signature and available
+local signing identities (no password or private key should be shared):
+
+```sh
+codesign -d -r- --verbose=2 /path/to/Genycaster.app
+security find-identity -v -p codesigning
+```
+
+If exactly one valid Apple Development certificate is installed, local CMake
+configuration selects and pins its fingerprint automatically (outside CI).
+If multiple certificates exist, set `GENYCASTER_MACOS_LOCAL_SIGNING_IDENTITY`
+explicitly and use the same identity and bundle identifier for successive
+local builds. Disable automatic selection with
+`GENYCASTER_MACOS_AUTO_LOCAL_SIGNING=OFF` if desired. If the login
+keychain itself is locked or its password is out of sync, that is a separate
+OS authorization condition; the application must not bypass it.
+
+Acceptance on a real Mac: launch, authorize the existing entries if needed,
+quit explicitly, reopen twice without rebuilding, then rebuild using the
+same stable identity and reopen. Check account restore, cloud authorization
+and a social signature, and verify that Deny does not silently reauthorize.
+The fake-Keychain regression fixture validates access counts and Ed25519
+behavior but cannot validate Apple's actual ACL or SecurityAgent dialogs.

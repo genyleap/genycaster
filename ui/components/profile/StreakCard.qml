@@ -345,7 +345,7 @@ Item {
                 else if (root.nativeFarcasterRecoveryNeeded)
                     openProofConnections.authorizeAccount()
                 else
-                    openProofConnections.retryAccountSession()
+                    openProofConnections.retryAccountSessionFromUser()
             }
         }
         // The user explicitly initiated the existing owner-matched

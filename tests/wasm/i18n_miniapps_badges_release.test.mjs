@@ -157,7 +157,7 @@ test("verified Geny Pro admission recovers saved sessions before rejecting anoth
     assert.doesNotMatch(retry,/authorizeAccount\(|signerService->|requestFid\(|provision\(/);
 
     assert.match(apps,/pendingEntitlementLaunch/);
-    assert.match(apps,/openProofConnections\.retryProEntitlements\(\)/);
+    assert.match(apps,/openProofConnections\.retryProEntitlementsFromUser\(\)/);
     assert.match(apps,/onProEntitlementsChanged\(\)/);
     assert.match(apps,/miniAppTaskManager\.taskCount < miniAppHost\.sessionLimit/);
     assert.match(apps,/status\.eligible === true/);

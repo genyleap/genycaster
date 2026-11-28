@@ -97,10 +97,13 @@ Item {
         if (signOutConfirm.opened) { signOutConfirm.close(); return true }
         if (releaseNotice.opened) { releaseNotice.close(); return true }
         if (root.initialSetupOpen) {
-            if (root.setupReviewOpen)
+            if (root.setupReviewOpen) {
                 root.setupReviewOpen = false
-            else
-                initialSetup.previousStep()
+                return true
+            }
+            if (initialSetup.currentStep === 0)
+                return false
+            initialSetup.previousStep()
             return true
         }
         if (root.topicBrowseActive) { root.closeTopicBrowser(); return true }

@@ -9,15 +9,19 @@
 #include <QDebug>
 #include <QFont>
 #include <QGuiApplication>
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
+#include <QApplication>
+#include "platform/desktop_background.hpp"
+#endif
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)) \
  || (defined(Q_OS_WIN) && defined(GENYCASTER_HAS_WINDOWS_MINIAPP_HOST))
-#include <QApplication>
 #include <QtWebEngineQuick>
 #include "miniapp/browser_linux_quick.hpp"
 #endif
 #include <QIcon>
 #if defined(Q_OS_ANDROID)
 #include <QInputMethod>
+#include <QJniObject>
 #include <QKeyEvent>
 #if QT_CONFIG(vulkan)
 #include <QVulkanFunctions>
@@ -276,11 +280,19 @@ public:
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {
-        if (watched != m_window || event->type() != QEvent::KeyPress || !m_shell)
+        if (watched != m_window || !m_shell ||
+            (event->type() != QEvent::KeyPress && event->type() != QEvent::KeyRelease))
             return false;
         const auto* key = static_cast<QKeyEvent*>(event);
         if (key->key() != Qt::Key_Back && key->key() != Qt::Key_Escape)
             return false;
+        if (event->type() == QEvent::KeyRelease) {
+            const bool consumed = m_consumedKey == key->key();
+            if (consumed) m_consumedKey = 0;
+            return consumed;
+        }
+        if (key->isAutoRepeat() && m_consumedKey == key->key()) return true;
+        m_consumedKey = 0;
         if (QGuiApplication::inputMethod()
             && QGuiApplication::inputMethod()->isVisible())
             return false;
@@ -288,12 +300,29 @@ protected:
         if (!QMetaObject::invokeMethod(m_shell.data(), "handlePlatformBack",
                                        Q_RETURN_ARG(QVariant, handled)))
             return false;
-        return handled.toBool();
+        if (handled.toBool()) {
+            m_consumedKey = key->key();
+            return true;
+        }
+        if (key->key() != Qt::Key_Back ||
+            !QNativeInterface::QAndroidApplication::isActivityContext())
+            return false;
+        // Root Back backgrounds the task rather than finishing the Activity.
+        // Android still owns process suspension and low-memory eviction.
+        m_consumedKey = key->key();
+        (void)QNativeInterface::QAndroidApplication::runOnAndroidMainThread([] {
+            if (!QNativeInterface::QAndroidApplication::isActivityContext()) return;
+            const auto activity = QNativeInterface::QAndroidApplication::context();
+            if (activity.isValid())
+                (void)activity.callMethod<jboolean>("moveTaskToBack", "(Z)Z", JNI_TRUE);
+        });
+        return true;
     }
 
 private:
     QQuickWindow* m_window{};
     QPointer<QObject> m_shell{};
+    int m_consumedKey{0};
 };
 #endif
 
@@ -367,8 +396,10 @@ int main(int argc, char* argv[])
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)) \
  || (defined(Q_OS_WIN) && defined(GENYCASTER_HAS_WINDOWS_MINIAPP_HOST))
     // WebEngine Quick's shared context must exist before QApplication.
-    // QWidget is still used exclusively for Separate Window presentation.
+    // Desktop widgets also provide the native system tray.
     QtWebEngineQuick::initialize();
+#endif
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
     QApplication application(argc, argv);
 #else
     QGuiApplication application(argc, argv);
@@ -1248,7 +1279,17 @@ int main(int argc, char* argv[])
         });
     QObject::connect(qGuiApp, &QGuiApplication::applicationStateChanged,
         &mediaPlayback, [&mediaPlayback](const Qt::ApplicationState state) {
-            const bool foreground = state != Qt::ApplicationHidden && state != Qt::ApplicationSuspended;
+            bool foreground = state != Qt::ApplicationHidden && state != Qt::ApplicationSuspended;
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
+            const auto windows = QGuiApplication::topLevelWindows();
+            for (auto* window : windows) {
+                if (window->objectName() == QStringLiteral("rootWindow")) {
+                    foreground = foreground && window->isVisible()
+                        && window->visibility() != QWindow::Minimized;
+                    break;
+                }
+            }
+#endif
             RemoteImageProvider::setForeground(foreground);
             if (!foreground) mediaPlayback.releaseAll();
         });
@@ -1629,7 +1670,27 @@ int main(int argc, char* argv[])
         return 1;
     }
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
+    std::unique_ptr<genycaster::ui::DesktopBackgroundController> desktopBackground;
+    if (!isSmokeTest && !isVisualTest && !isRuntimeSmokeTest) {
+        desktopBackground = std::make_unique<genycaster::ui::DesktopBackgroundController>(
+            application, *mainWindow);
+        desktopInstance.setActivationHandler(
+            [controller = QPointer<genycaster::ui::DesktopBackgroundController>{desktopBackground.get()}] {
+                if (controller) controller->showMainWindow();
+            });
+    }
     desktopInstance.setWindow(mainWindow);
+    // A hidden/minimized main window must not keep decoders alive just
+    // because an auxiliary native window leaves the application active.
+    QObject::connect(mainWindow, &QWindow::visibilityChanged, &mediaPlayback,
+        [&mediaPlayback](QWindow::Visibility visibility) {
+            const bool foreground = visibility != QWindow::Hidden &&
+                visibility != QWindow::Minimized &&
+                QGuiApplication::applicationState() != Qt::ApplicationHidden &&
+                QGuiApplication::applicationState() != Qt::ApplicationSuspended;
+            RemoteImageProvider::setForeground(foreground);
+            if (!foreground) mediaPlayback.releaseAll();
+        });
 #endif
     renderingController.attachWindow(mainWindow);
 #if defined(Q_OS_WASM)

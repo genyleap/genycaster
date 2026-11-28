@@ -75,6 +75,17 @@ public:
     [[nodiscard]] virtual foundation::result::Result<std::unique_ptr<INativeSigner>> ensure(
         domain::identity::Fid fid) = 0;
 
+    /** @brief Prepare a short-lived handle for one bounded signing ceremony.
+     * Default backends retain their normal secure-store behavior. Apple can
+     * consume the authorized read once instead of prompting again for signing.
+     * Never use this handle for long-lived social publishing authority.
+     */
+    [[nodiscard]] virtual foundation::result::Result<std::unique_ptr<INativeSigner>>
+    prepareSignature(domain::identity::Fid fid, bool createIfMissing = false)
+    {
+        return createIfMissing ? ensure(fid) : load(fid);
+    }
+
     /** @brief Removes the locally held key for the FID from secure storage. */
     [[nodiscard]] virtual foundation::result::Status erase(domain::identity::Fid fid) = 0;
 };

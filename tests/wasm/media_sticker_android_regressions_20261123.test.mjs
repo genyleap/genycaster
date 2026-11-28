@@ -83,7 +83,7 @@ test('sticker library does not falsely claim zero packs while the cloud is unava
     assert.match(picker,/visible: !root\.libraryReady/);
     assert.match(picker,/onAuthorizedChanged: \{/);
     assert.doesNotMatch(picker,/function onStateChanged\(\)[\s\S]*?fetchStickerPacks\(\)/);
-    assert.match(picker,/openProofConnections\.retryAccountSession\(\)/);
+    assert.match(picker,/openProofConnections\.retryAccountSessionFromUser\(\)/);
     assert.match(picker,/openProofConnections\.fetchStickerPacks\(\)/);
     assert.match(picker,/root\.stickerDisplayUrl\(stickerTile\.modelData\.id\)/);
     assert.match(tile,/StickerCatalog\.previewForPublishedUrl\(root\.imageUrl/);

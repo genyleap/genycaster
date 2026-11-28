@@ -144,7 +144,7 @@ Item {
         root.quotaErrorKind = ""
         proLaunchTimeout.restart()
         if (openProofConnections)
-            openProofConnections.retryProEntitlements()
+            openProofConnections.retryProEntitlementsFromUser()
     }
     Timer {
         id: proLaunchTimeout

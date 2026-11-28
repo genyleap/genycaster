@@ -88,7 +88,7 @@ Popup {
             iconGlyph: Theme.iconRefresh
             text: qsTrId("genycaster.pro.check_status")
             onClicked: {
-                if (openProofConnections) openProofConnections.retryProEntitlements()
+                if (openProofConnections) openProofConnections.retryProEntitlementsFromUser()
                 root.close()
             }
         }

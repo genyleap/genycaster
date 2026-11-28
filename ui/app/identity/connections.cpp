@@ -545,6 +545,7 @@ bool OpenProofConnectionsController::beginCloudDeviceSession(
     return false;
 #else
     if (!m_cloudDeviceSigner || !m_viewerFid || m_cloudDeviceAttempted ||
+        m_accountProofAccessDenied ||
         m_accountProofSigning || m_accountProofRequest || m_sessionRequest || m_sessionRevoking ||
         !trustedHttpsEndpoint(m_cloudUrl) ||
         m_cloudUrl.adjusted(QUrl::RemovePath|QUrl::RemoveQuery|QUrl::RemoveFragment) !=
@@ -587,13 +588,20 @@ bool OpenProofConnectionsController::beginCloudDeviceSession(
     connect(prepareWatcher,&QFutureWatcher<std::optional<AccountSignerProof>>::finished,this,
       [this,prepareWatcher,current,fallback,request,signer,viewer,network,purpose,enroll,
        custody=std::move(custody),permit=std::move(permit)]() mutable {
-        const auto prepared=prepareWatcher->result();
+        auto prepared=prepareWatcher->result();
         prepareWatcher->deleteLater();
         if(!current())return;
         m_accountProofSigning=false;
+        if (prepared && prepared->authorizationDenied) {
+            m_accountProofAccessDenied=true;
+            m_accountProofError=QStringLiteral("account_signer_unavailable");
+            emit stateChanged();
+            return;
+        }
         static const QRegularExpression keyFormat{QStringLiteral("^[0-9a-f]{64}$")};
         if(!prepared||!keyFormat.match(prepared->publicKeyHex).hasMatch()){fallback();return;}
         const QString key=prepared->publicKeyHex;
+        auto completeDeviceProof=std::move(prepared->completeDeviceProof);
         const QJsonObject fields{{QStringLiteral("purpose"),purpose},{QStringLiteral("network"),network},
             {QStringLiteral("fid"),QString::number(viewer)},{QStringLiteral("public_key"),key}};
         auto* challenge=m_network.post(request(QStringLiteral("/api/v1/cloud/session/device/challenge")),
@@ -601,6 +609,7 @@ bool OpenProofConnectionsController::beginCloudDeviceSession(
         m_accountProofRequest=challenge;
         connect(challenge,&QNetworkReply::finished,this,
           [this,challenge,current,fallback,request,signer,viewer,network,enroll,key,fields,
+           completeDeviceProof=std::move(completeDeviceProof),
            custody=std::move(custody),permit=std::move(permit)]() mutable {
             if(m_accountProofRequest!=challenge){challenge->deleteLater();return;}
             m_accountProofRequest.clear();
@@ -624,7 +633,8 @@ bool OpenProofConnectionsController::beginCloudDeviceSession(
             m_accountProofSigning=true;
             emit stateChanged();
             connect(watcher,&QFutureWatcher<DeviceProof>::finished,this,
-              [this,watcher,current,fallback,request,fields,nonce,custody,enroll,network,key] {
+              [this,watcher,current,fallback,request,fields,nonce,custody,enroll,network,key,
+               preparedAuthorization=static_cast<bool>(completeDeviceProof)] {
                 const auto proof=watcher->result();
                 watcher->deleteLater();
                 if(!current())return;
@@ -633,6 +643,14 @@ bool OpenProofConnectionsController::beginCloudDeviceSession(
                 if(!proof.keyProof||proof.keyProof->publicKeyHex!=key||
                     !sigFormat.match(proof.keyProof->signatureHex).hasMatch()||
                     (enroll&&network==QStringLiteral("hypersnap")&&!proof.custodyProof)){
+                    if ((proof.keyProof && proof.keyProof->authorizationDenied) ||
+                        preparedAuthorization) {
+                        if (proof.keyProof && proof.keyProof->authorizationDenied)
+                            m_accountProofAccessDenied=true;
+                        m_accountProofError=QStringLiteral("account_signer_unavailable");
+                        emit stateChanged();
+                        return;
+                    }
                     fallback();return;
                 }
                 QJsonObject body=fields;
@@ -667,10 +685,19 @@ bool OpenProofConnectionsController::beginCloudDeviceSession(
                 });
               });
             watcher->setFuture(QtConcurrent::run(
-              [signer,viewer,network,enroll,key,nonce,permit=std::move(permit)]() mutable {
+              [signer,viewer,network,enroll,key,nonce,
+               completeDeviceProof=std::move(completeDeviceProof),permit=std::move(permit)]() mutable {
                 DeviceProof proof{};
-                proof.keyProof=signer(viewer,network,enroll,key,nonce);
-                if(proof.keyProof&&permit)proof.custodyProof=permit(key,nonce);
+                if (completeDeviceProof) {
+                    if (auto signature=completeDeviceProof(nonce))
+                        proof.keyProof=AccountSignerProof{key,std::move(*signature)};
+                    completeDeviceProof={};
+                } else {
+                    proof.keyProof=signer(viewer,network,enroll,key,nonce);
+                }
+                if(proof.keyProof && !proof.keyProof->authorizationDenied &&
+                   !proof.keyProof->signatureHex.isEmpty() && permit)
+                    proof.custodyProof=permit(key,nonce);
                 permit={};
                 return proof;
               }));
@@ -696,7 +723,7 @@ void OpenProofConnectionsController::beginSignedAccountSession()
     // A fresh one-use challenge is verified against the network's signer
     // registry by the account service before a session cookie is issued.
     if (!m_viewerFid || !m_accountProofSigner || m_accountProofRequest
-        || m_accountProofSigning || m_accountProofAttempted
+        || m_accountProofAccessDenied || m_accountProofSigning || m_accountProofAttempted
         || m_sessionRequest || m_sessionRevoking
         || m_cloudUrl.scheme() != QStringLiteral("https")
         || m_cloudUrl.adjusted(QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment)
@@ -775,7 +802,9 @@ void OpenProofConnectionsController::beginSignedAccountSession()
             QStringLiteral("^[0-9a-f]{64}$")};
         static const QRegularExpression signaturePattern{
             QStringLiteral("^[0-9a-f]{128}$")};
-        if (!proof || !publicKeyPattern.match(proof->publicKeyHex).hasMatch()
+        if (proof && proof->authorizationDenied)
+            m_accountProofAccessDenied=true;
+        if (!proof || proof->authorizationDenied || !publicKeyPattern.match(proof->publicKeyHex).hasMatch()
             || !signaturePattern.match(proof->signatureHex).hasMatch()) {
             m_accountProofError = QStringLiteral("account_signer_unavailable");
             emit stateChanged();
@@ -1006,6 +1035,7 @@ void OpenProofConnectionsController::cancelAccountSessionRequest()
 void OpenProofConnectionsController::bootstrapAccountSession()
 {
     if(!m_viewerFid || m_accountBearer.isEmpty()
+        || m_accountProofAccessDenied
         || !(m_verified || m_accountBearer.startsWith("recovery."))
         || m_sessionRevoking || m_cloudDeviceVerified
         || !trustedHttpsEndpoint(m_cloudUrl))return;
@@ -2613,8 +2643,17 @@ void OpenProofConnectionsController::revalidateAccountSession()
     else retryAccountSession();
 }
 
+void OpenProofConnectionsController::retryAccountSessionFromUser()
+{
+    m_accountProofAccessDenied=false;
+    retryAccountSession();
+}
+
 void OpenProofConnectionsController::retryAccountSession()
 {
+    // Focus changes from a system Keychain dialog, the sidebar, and periodic
+    // revalidation must not immediately request a denied credential again.
+    if (m_accountProofAccessDenied) return;
     if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl)
         || m_sessionRevoking || m_sessionRequest || m_accountProofRequest
         || m_accountProofSigning || m_cloudSessionVerified) return;
@@ -2651,8 +2690,15 @@ void OpenProofConnectionsController::retryAccountSession()
         restoreAccountSession();
 }
 
+void OpenProofConnectionsController::retryProEntitlementsFromUser()
+{
+    m_accountProofAccessDenied=false;
+    retryProEntitlements();
+}
+
 void OpenProofConnectionsController::retryProEntitlements()
 {
+    if (m_accountProofAccessDenied) return;
     if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl) || m_sessionRevoking)
         return;
     if (cloudAuthorizationReady()) {
@@ -4693,6 +4739,7 @@ void OpenProofConnectionsController::setViewerPrincipal(const qulonglong fid,con
     m_cloudDeviceAttempted=false;
     m_cloudCsrf.clear();
     m_accountProofAttempted=false;
+    m_accountProofAccessDenied=false;
     m_proSessionRepairAttempted=false;
     m_accountProofError.clear();
     m_authorization.cancel();
@@ -4832,6 +4879,7 @@ void OpenProofConnectionsController::acceptAuthenticatedGrant(
     // unless a previous authenticated grant really needs replacement.
     if (!m_accountBearer.isEmpty()) clearAccountGrant();
     m_cloudDeviceAttempted=false;
+    m_accountProofAccessDenied=false;
     m_accountBearer = std::move(bearer);
     m_accountSubject = std::move(subject);
     m_grantExpiry.start(std::clamp(expiresSeconds - 10, 1, 3'590) * 1'000);
@@ -4860,6 +4908,7 @@ void OpenProofConnectionsController::acceptRecoveryGrant(
     }
     if (!m_accountBearer.isEmpty()) clearAccountGrant();
     m_cloudDeviceAttempted=false;
+    m_accountProofAccessDenied=false;
     m_accountBearer = std::move(ticket);
     m_accountSubject = std::move(subject);
     m_grantExpiry.start(std::clamp(expiresSeconds - 10, 1, 3'590) * 1'000);

@@ -45,6 +45,9 @@ public:
     /** @brief Bind the created QML window after engine startup. */
     void setWindow(QQuickWindow* window);
 
+    /** @brief Restore through the same desktop lifecycle owner as the tray. */
+    void setActivationHandler(std::function<void()> handler);
+
     /** @brief Register navigation handoff after runtime/setup becomes ready.
      *  The callback must not outlive the referenced runtime controllers.
      */

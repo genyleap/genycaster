@@ -132,6 +132,11 @@ struct DesktopSingleInstance::Impl {
         if (m_pendingActivation) activate();
     }
 
+    void setActivationHandler(std::function<void()> handler)
+    {
+        m_activationHandler = std::move(handler);
+    }
+
     [[nodiscard]] QString errorString() const { return m_error; }
 
 private:
@@ -142,6 +147,10 @@ private:
             return;
         }
         m_pendingActivation = false;
+        if (m_activationHandler) {
+            m_activationHandler();
+            return;
+        }
         // Keep a maximized window maximized. Only restore from minimized;
         // unconditional showNormal() unexpectedly changes the user's layout.
         if (m_window->visibility() == QWindow::Minimized)
@@ -159,6 +168,7 @@ private:
     QString m_error;
     QString m_pendingUrl;
     std::function<void(const QString&)> m_openUrlHandler;
+    std::function<void()> m_activationHandler;
     bool m_pendingActivation{false};
 };
 
@@ -181,6 +191,11 @@ void DesktopSingleInstance::setWindow(QQuickWindow* window)
 void DesktopSingleInstance::setOpenUrlHandler(std::function<void(const QString&)> handler)
 {
     m_impl->setOpenUrlHandler(std::move(handler));
+}
+
+void DesktopSingleInstance::setActivationHandler(std::function<void()> handler)
+{
+    m_impl->setActivationHandler(std::move(handler));
 }
 
 QString DesktopSingleInstance::errorString() const

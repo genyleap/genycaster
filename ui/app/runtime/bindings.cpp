@@ -6863,7 +6863,7 @@ void attachRuntime(RuntimeAttachment attachment,
         auto* vault=network==QStringLiteral("hypersnap")?runtime.hypersnapCloudVault.get():
             runtime.farcasterCloudVault.get();
         if(!vault)return false;
-        auto key=vault->load(domain::identity::Fid{fid});
+        auto key=vault->prepareSignature(domain::identity::Fid{fid});
         if(!key)return false;
         if(*key) {
             const auto pub=(*key)->publicKey();
@@ -6904,13 +6904,57 @@ void attachRuntime(RuntimeAttachment attachment,
         auto* vault=network==QStringLiteral("hypersnap")?runtime->hypersnapCloudVault.get():
             runtime->farcasterCloudVault.get();
         if(!vault)return std::nullopt;
+#if defined(Q_OS_MACOS) || defined(Q_OS_IOS)
+        auto key=vault->prepareSignature(domain::identity::Fid{fid},enroll&&nonce.isEmpty());
+#else
         auto key=enroll&&nonce.isEmpty()?vault->ensure(domain::identity::Fid{fid}):
             vault->load(domain::identity::Fid{fid});
-        if(!key||!*key)return std::nullopt;
+#endif
+        if(!key) {
+            if(key.error().code==foundation::error::ErrorCode::Unauthorized)
+                return OpenProofConnectionsController::AccountSignerProof{.authorizationDenied=true};
+            return std::nullopt;
+        }
+        if(!*key)return std::nullopt;
         const auto publicKey=(*key)->publicKey();
         if(!publicKey||publicKey->hex.size()!=64U)return std::nullopt;
         const QString hex=QString::fromStdString(publicKey->hex);
-        if(nonce.isEmpty())return OpenProofConnectionsController::AccountSignerProof{hex,{}};
+        if(nonce.isEmpty()) {
+#if defined(Q_OS_MACOS) || defined(Q_OS_IOS)
+            // Keep one authorized key only inside this challenge continuation.
+            // The reply owns it for at most the request timeout; the vault
+            // separately expires and consumes it. No global private-key cache.
+            auto handle=std::shared_ptr<capability::signer::INativeSigner>{std::move(*key)};
+            return OpenProofConnectionsController::AccountSignerProof{hex,{},
+                [runtimeWeak,handle=std::move(handle),active,fid,network,enroll,hex]
+                    (const QString& challenge)->std::optional<QString> {
+                    const auto current=runtimeWeak.lock();
+                    if(!current)return std::nullopt;
+                    const std::scoped_lock proofLock{current->cloudDeviceVaultMutex};
+                    const auto samePrincipal=[&] {
+                        const auto session=current->currentSessionSnapshot();
+                        return session&&session->fid.value==fid&&
+                            session->identityIssuer==active->identityIssuer&&
+                            session->identitySubject==active->identitySubject&&
+                            session->authenticatedAt==active->authenticatedAt;
+                    };
+                    namespace retirement=genycaster::identity::cloud_retirement;
+                    auto store=retirement::settings();
+                    store.sync();
+                    if(!samePrincipal()||store.status()!=QSettings::NoError||
+                        store.contains(retirement::marker(network,fid)))return std::nullopt;
+                    const auto canonical=std::string{"genycaster-cloud-device-v2\n"}+
+                        (enroll?"enroll":"restore")+"\n"+network.toStdString()+"\n"+
+                        std::to_string(fid)+"\n"+hex.toStdString()+"\n"+challenge.toStdString();
+                    const auto proof=handle->sign(canonical);
+                    if(!proof||proof->bytes.size()!=64U||!samePrincipal())return std::nullopt;
+                    const QByteArray bytes{proof->bytes.data(),static_cast<qsizetype>(proof->bytes.size())};
+                    return QString::fromLatin1(bytes.toHex());
+                }};
+#else
+            return OpenProofConnectionsController::AccountSignerProof{hex,{}};
+#endif
+        }
         if(hex!=expectedKey)return std::nullopt;
         const auto canonical=std::string{"genycaster-cloud-device-v2\n"}+
             (enroll?"enroll":"restore")+"\n"+network.toStdString()+"\n"+
@@ -6954,16 +6998,38 @@ void attachRuntime(RuntimeAttachment attachment,
             -> std::optional<OpenProofConnectionsController::AccountSignerProof> {
         auto current = runtimeWeak.lock();
         if (!current || !current->signerVault || fid == 0) return std::nullopt;
-        auto signer = current->signerVault->load(domain::identity::Fid{
+        const auto active = current->currentSessionSnapshot();
+        if (!active || active->fid.value != fid) return std::nullopt;
+        auto signer = current->signerVault->prepareSignature(domain::identity::Fid{
             static_cast<std::uint64_t>(fid)});
-        if (!signer || !*signer) return std::nullopt;
+        if (!signer) {
+            if (signer.error().code == foundation::error::ErrorCode::Unauthorized)
+                return OpenProofConnectionsController::AccountSignerProof{.authorizationDenied=true};
+            return std::nullopt;
+        }
+        if (!*signer) return std::nullopt;
         auto publicKey = (*signer)->publicKey();
         if (!publicKey || publicKey->hex.size() != 64) return std::nullopt;
         const std::string canonical =
             std::string{"genycaster-account-session-v1\n"}
             + std::to_string(fid) + "\n" + nonce.toStdString();
+        const auto before = current->currentSessionSnapshot();
+        if (!before || before->fid.value != fid ||
+            before->identityIssuer != active->identityIssuer ||
+            before->identitySubject != active->identitySubject ||
+            before->authenticatedAt != active->authenticatedAt) return std::nullopt;
         auto signature = (*signer)->sign(canonical);
-        if (!signature || signature->bytes.size() != 64) return std::nullopt;
+        const auto after = current->currentSessionSnapshot();
+        if (!after || after->fid.value != fid ||
+            after->identityIssuer != active->identityIssuer ||
+            after->identitySubject != active->identitySubject ||
+            after->authenticatedAt != active->authenticatedAt) return std::nullopt;
+        if (!signature) {
+            if (signature.error().code == foundation::error::ErrorCode::Unauthorized)
+                return OpenProofConnectionsController::AccountSignerProof{.authorizationDenied=true};
+            return std::nullopt;
+        }
+        if (signature->bytes.size() != 64) return std::nullopt;
         const QByteArray raw{signature->bytes.data(),
             static_cast<qsizetype>(signature->bytes.size())};
         return OpenProofConnectionsController::AccountSignerProof{

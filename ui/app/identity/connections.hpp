@@ -179,6 +179,10 @@ public:
     struct AccountSignerProof final {
         QString publicKeyHex;
         QString signatureHex;
+        // Optional, one-ceremony native continuation. The challenge reply
+        // owns it; cancellation/timeout destroys it without signing.
+        std::function<std::optional<QString>(const QString& nonce)> completeDeviceProof{};
+        bool authorizationDenied{false};
     };
     using AccountProofSigner = std::function<std::optional<AccountSignerProof>(
         qulonglong fid, const QString& nonce)>;
@@ -233,6 +237,7 @@ public:
     /** Explicit retry after a protocol Signer becomes ready; keeps this
      * cloud identity distinct from OpenProof social connections. */
     Q_INVOKABLE void retryAccountSession();
+    Q_INVOKABLE void retryAccountSessionFromUser();
     void revalidateAccountSession();
     [[nodiscard]] QVariantMap proEntitlements() const {
         return m_proEntitlementsFid == m_viewerFid && m_viewerFid != 0
@@ -274,6 +279,7 @@ public:
     /** @brief Recover the existing account session, then refresh server Pro.
      * Never provisions a signer, prompts custody, or grants a local Pro tier. */
     Q_INVOKABLE void retryProEntitlements();
+    Q_INVOKABLE void retryProEntitlementsFromUser();
     [[nodiscard]] QVariantMap genyAssets() const {
         return m_genyAssetsFid == m_viewerFid && m_viewerFid != 0
             ? m_genyAssets : QVariantMap{};
@@ -643,6 +649,7 @@ private:
     QPointer<QNetworkReply> m_accountProofRequest{};
     AccountProofSigner m_accountProofSigner{};
     bool m_accountProofAttempted{};
+    bool m_accountProofAccessDenied{};
     bool m_proSessionRepairAttempted{};
     // Secure-store reads can block inside a nested QtKeychain event loop.
     // Worker completions must never outlive the active account/challenge.
