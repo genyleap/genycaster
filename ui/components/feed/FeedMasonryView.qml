@@ -122,6 +122,8 @@ Flickable {
     // Bound Repeater/Loader construction, not geometry or media quality.
     readonly property int newSlotsPerPass: 3
     readonly property int retiredSlotsPerPass: 4
+    // A single rich card may exceed this soft deadline; yield before the next.
+    readonly property int retirementTimeBudgetMs: 5
     function viewportResized() {
         if (typeof renderingController !== "undefined" && renderingController
                 && renderingController.shuttingDown === true)
@@ -211,7 +213,7 @@ Flickable {
         const more = layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer,
                                 view.visible && positioned && height > 0,
                                 view.resizeInProgress, view.newSlotsPerPass,
-                                view.retiredSlotsPerPass)
+                                view.retiredSlotsPerPass, view.retirementTimeBudgetMs)
         if (more)
             scheduleAdmission()
         if (admissionStart >= 0)
@@ -313,9 +315,9 @@ Flickable {
             admissionTimer.stop()
             layoutTimer.stop()
             resizeInProgress = false
-            // Drain hidden routes in bounded batches too; do not destroy
-            // every mounted card in the navigation event.
-            updateAdmissions()
+            // Visibility already hides the outgoing page. Start its bounded
+            // retirement on a later frame, outside the navigation input event.
+            scheduleAdmission()
         } else {
             scheduleLayout()
         }

@@ -21,6 +21,35 @@ void require(bool condition)
 int main()
 {
     using genycaster::ui::detail::evictDepartedRanges;
+    // Deterministic deadline: after a simulated expensive observer, never
+    // erase a second row in the same transaction. Real time is not a test oracle.
+    {
+        std::vector<int> items{0, 1, 2, 3, 4};
+        int simulatedNs = 0;
+        const int removed = evictDepartedRanges(5, 4,
+            [&](int index) { return items.at(static_cast<std::size_t>(index)) == 0; },
+            [&](int first, int last) {
+                require(first == last);
+                items.erase(items.begin() + first, items.begin() + last + 1);
+                simulatedNs += 7;
+            }, 1, [&] { return simulatedNs >= 5; });
+        require(removed == 1 && items == std::vector<int>({0, 1, 2, 3}));
+        int calls = 0;
+        const int fast = evictDepartedRanges(4, 2,
+            [&](int index) { return items.at(static_cast<std::size_t>(index)) == 0; },
+            [&](int first, int last) {
+                require(first == last);
+                ++calls;
+                items.erase(items.begin() + first, items.begin() + last + 1);
+            }, 1, [] { return false; });
+        require(fast == 2 && calls == 2 && items == std::vector<int>({0, 1}));
+        require(evictDepartedRanges(2, 4,
+            [&](int index) { return items.at(static_cast<std::size_t>(index)) == 0; },
+            [&](int first, int last) {
+                items.erase(items.begin() + first, items.begin() + last + 1);
+            }, 1, [] { return true; }) == 1);
+        require(items == std::vector<int>({0}));
+    }
     std::mt19937 random{0x6e79u};
     for (int iteration = 0; iteration < 20000; ++iteration) {
         const int count = static_cast<int>(random() % 256);

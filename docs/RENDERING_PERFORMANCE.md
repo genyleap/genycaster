@@ -456,6 +456,20 @@ The isolated rendering_pacing_fixture now includes the pure C++ retirement
 test and native FeedRowsModel/MasonryWindowModel test, in addition to
 render pacing. Release builds retain the retirement assertions.
 
+## v4: cooperative retirement deadline
+
+The v4 device trace shows planning below 0.022 ms, whereas eviction reached
+28 ms for four rows. Production retirement now has a cooperative 5 ms time
+budget in addition to the existing four-row cap. It checks the budget between
+single-row model removals, always permits at least one unit of progress and
+never interrupts a Qt model notification. One expensive observer can exceed
+the deadline. The time policy is independent of diagnostic logging. If fewer
+positions are freed than expected, prioritize the nearest admitted cards;
+retain the existing transient working-set cap. A hidden route schedules
+retirement rather than executing it inside the navigation input callback.
+The existing no-time-budget API retains its contiguous-range behavior.
+Tests simulate a slow observer without wall-time thresholds.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:

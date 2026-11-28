@@ -201,6 +201,19 @@ int main(int argc, char** argv)
     while (debt && drainPasses++ < 100)
         debt = retiredWall.setViewport(0, 0, 0, 0, false, false, 3, 4);
     require(!debt && retiredWall.count() == 0);
+    // A cooperative time budget uses single-row notifications, regardless
+    // of the machine speed. No hard elapsed-time assertions in this test.
+    retiredWall.setViewport(0, 1000, 1200, 1600, true);
+    retirementRemoves.clear();
+    debt = retiredWall.setViewport(distant, 1000, 1200, 1600, true, false, 3, 4, 5);
+    require(debt && !retirementRemoves.isEmpty() && retirementRemoves.size() <= 4);
+    for (const auto& signal : retirementRemoves)
+        require(signal.at(1).toInt() == signal.at(2).toInt());
+    require(retiredWall.windowIndexForSource(0) < 0);
+    drainPasses = 0;
+    while (debt && drainPasses++ < 100)
+        debt = retiredWall.setViewport(distant, 1000, 1200, 1600, true, false, 3, 4, 5);
+    require(!debt && retiredWall.windowIndexForSource(400) >= 0);
 
     // The native magazine owns geometry for the whole feed but QML objects
     // only for the viewport. Mixed measured heights never overlap lanes.

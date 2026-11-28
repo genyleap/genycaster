@@ -661,7 +661,7 @@ bool MasonryWindowModel::setViewport(const qreal top, const qreal height,
                                     const qreal enteringBuffer,
                                     const qreal retentionBuffer, const bool active,
                                     const bool retainExisting, const int admissionBudget,
-                                    const int evictionBudget)
+                                    const int evictionBudget, const int evictionTimeBudgetMs)
 {
     m_viewportTop = std::isfinite(top) ? top : 0.0;
     m_viewportHeight = std::max(0.0, std::isfinite(height) ? height : 0.0);
@@ -673,10 +673,11 @@ bool MasonryWindowModel::setViewport(const qreal top, const qreal height,
         m_resizeSampleWidth = 0;
     }
     m_retainExisting = active && retainExisting;
-    return synchronizeWindow(admissionBudget, evictionBudget);
+    return synchronizeWindow(admissionBudget, evictionBudget, evictionTimeBudgetMs);
 }
 
-bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int evictionBudget)
+bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int evictionBudget,
+                                           const int evictionTimeBudgetMs)
 {
     const bool tracing = masonryWorkLog().isDebugEnabled();
     QElapsedTimer workClock;
@@ -731,6 +732,15 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
     // for all source rows remains valid. Recompute on every pass so a fast
     // scroll never finishes admitting cards from an obsolete viewport.
     bool morePending = false;
+    const auto distance = [this](int index) {
+        const auto& slot = m_geometry.at(index);
+        return std::max({qreal{0}, m_viewportTop - (slot.y + slot.height),
+            slot.y - (m_viewportTop + m_viewportHeight)});
+    };
+    const auto nearer = [&distance](int left, int right) {
+        const auto a = distance(left), b = distance(right);
+        return a == b ? left < right : a < b;
+    };
     if (admissionBudget > 0 && !admitted.isEmpty()) {
         QSet<QString> currentKeys;
         currentKeys.reserve(m_window.size());
@@ -747,16 +757,8 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
                 newcomers.append(sourceIndex);
         }
         if (newcomers.size() > admissionBudget) {
-            const auto distance = [this](int index) {
-                const auto& slot = m_geometry.at(index);
-                return std::max({qreal{0}, m_viewportTop - (slot.y + slot.height),
-                    slot.y - (m_viewportTop + m_viewportHeight)});
-            };
             std::partial_sort(newcomers.begin(), newcomers.begin() + admissionBudget,
-                newcomers.end(), [&distance](int left, int right) {
-                    const auto a = distance(left), b = distance(right);
-                    return a == b ? left < right : a < b;
-                });
+                newcomers.end(), nearer);
             newcomers.resize(admissionBudget);
             morePending = true;
         }
@@ -777,6 +779,10 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
     // filter clear can otherwise synchronously destroy dozens of rich cards.
     // Unremoved departed slots remain in their old position, marked retiring;
     // they cannot paint, receive input or be returned by index lookup.
+    const bool pacedEviction = evictionTimeBudgetMs > 0;
+    QElapsedTimer evictionClock;
+    if (pacedEviction) evictionClock.start();
+    const qint64 deadlineNs = static_cast<qint64>(evictionTimeBudgetMs) * 1'000'000;
     removed = genycaster::ui::detail::evictDepartedRanges(
         static_cast<int>(m_window.size()), evictionBudget,
         [&](int index) { return desiredKeys.contains(m_window.at(index).key); },
@@ -786,6 +792,8 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
                 m_window.remove(first, last - first + 1);
                 endRemoveRows();
             });
+        }, pacedEviction ? 1 : 0, [&] {
+            return pacedEviction && evictionClock.nsecsElapsed() >= deadlineNs;
         });
     bool evictionPending = false;
     for (const auto& slot : std::as_const(m_window)) {
@@ -822,10 +830,17 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
         QVector<int> entering;
         // Do not grow the transient working set during a retirement backlog.
         for (const int sourceIndex : std::as_const(admitted)) {
-            if (entering.size() >= removed) break;
             if (!present.contains(m_geometry.at(sourceIndex).key))
                 entering.append(sourceIndex);
         }
+        // If the time budget freed fewer slots than the admission budget,
+        // use those positions for the closest cards, not earliest source IDs.
+        if (entering.size() > removed) {
+            std::partial_sort(entering.begin(), entering.begin() + removed,
+                entering.end(), nearer);
+            entering.resize(removed);
+        }
+        std::sort(entering.begin(), entering.end());
         if (!entering.isEmpty()) {
             const int first = static_cast<int>(m_window.size());
             measure(updateNs, [&] {

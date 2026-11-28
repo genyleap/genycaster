@@ -141,11 +141,14 @@ public:
     /** @brief Updates the visible window; true means further admission is pending.
      * Positive budgets cap new and removed slots per transaction. Retiring
      * slots are invisible and noninteractive until their bounded destruction.
+     * A positive evictionTimeBudgetMs also yields between individual removals.
+     * It is cooperative: one synchronous observer can exceed the deadline.
      * Zero preserves synchronous behavior for native callers and tests.
      */
     Q_INVOKABLE bool setViewport(qreal top, qreal height, qreal enteringBuffer,
                                  qreal retentionBuffer, bool active, bool retainExisting = false,
-                                 int admissionBudget = 0, int evictionBudget = 0);
+                                 int admissionBudget = 0, int evictionBudget = 0,
+                                 int evictionTimeBudgetMs = 0);
 
     /** @brief Records a width/revision-specific estimate or exact painted height. */
     Q_INVOKABLE bool retainHeight(const QString& key, const QString& revision,
@@ -186,7 +189,8 @@ private:
     void scheduleRelayout();
     void sourceDataChanged(const QModelIndex& first, const QModelIndex& last,
                            const QList<int>& roles);
-    bool synchronizeWindow(int admissionBudget = 0, int evictionBudget = 0);
+    bool synchronizeWindow(int admissionBudget = 0, int evictionBudget = 0,
+                           int evictionTimeBudgetMs = 0);
     void updateWindowSlot(int index, const Slot& desired);
     [[nodiscard]] QString heightKey(const QString& key, const QString& revision,
                                     qreal width) const;
