@@ -14,6 +14,10 @@ DERIVATIVES = re.compile(r"\b(?:fwidth|dFdx|dFdy)\s*\(")
 
 
 class WebglShaderCompatibilityTests(unittest.TestCase):
+    def test_gaussian_sources_are_reproducible(self) -> None:
+        subprocess.run([sys.executable, str(ROOT / "scripts/generate_gaussian_shaders.py"),
+                        "--check"], check=True)
+
     def test_wasm_generates_separate_portable_qsb(self) -> None:
         cmake = (ROOT / "ui/CMakeLists.txt").read_text()
         start = cmake.index("# WASM MUST NOT reuse")
@@ -46,11 +50,13 @@ class WebglShaderCompatibilityTests(unittest.TestCase):
         self.assertIn(needle, webgl["reflection"])
         webgl["reflection"] = webgl["reflection"].replace(needle, "1.0")
         for name in ("gaussian", "reflection-gaussian"):
-            self.assertIn("i <= 47", webgl[name])
-            webgl[name] = webgl[name].replace("i <= 47", "i <= 15").replace(
-                "544.5", "128.0")
-            self.assertIn("i <= 15", webgl[name])
-            self.assertNotIn("i <= 47", webgl[name])
+            self.assertIn("#define GENYCASTER_WEBGL_KERNEL 0", webgl[name])
+            webgl[name] = webgl[name].replace("#define GENYCASTER_WEBGL_KERNEL 0",
+                                                "#define GENYCASTER_WEBGL_KERNEL 1")
+            short, native = webgl[name].split("#if GENYCASTER_WEBGL_KERNEL\n", 1)[1].split("#else\n")
+            self.assertEqual(short.count("accumulatePair(result,"), 8)
+            self.assertEqual(native.count("accumulatePair(result,"), 24)
+            self.assertNotIn("exp(", webgl[name])
         for name, shader in webgl.items():
             with self.subTest(name=name):
                 self.assertIsNone(DERIVATIVES.search(shader))
@@ -70,9 +76,12 @@ class WebglShaderCompatibilityTests(unittest.TestCase):
             "format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F"), 3)
         self.assertIn("live: root.capturing && !root.browserRenderer", source)
         self.assertIn("running: root.browserRenderer && root.capturing", source)
-        self.assertIn("onTriggered: capture.scheduleUpdate()", source)
-        # The native source preserves its full precision and live captures.
-        self.assertEqual(source.count("live: root.capturing"), 3)
+        self.assertIn("onTriggered: root.refreshCapture()", source)
+        for stage in ("capture", "horizontalTexture", "blurredTexture"):
+            self.assertIn(f"{stage}.scheduleUpdate()", source)
+        # All three browser stages are snapshots; native retains live updates.
+        self.assertEqual(source.count("live: root.capturing && !root.browserRenderer"), 3)
+        self.assertEqual(source.count("textureSize: root.allocatedTextureExtent"), 3)
 
     def test_packaging_rejects_derivatives_dependent_wasm_binaries(self) -> None:
         packager = (ROOT / "ci/package_wasm_assets.py").read_text()

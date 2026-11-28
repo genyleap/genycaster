@@ -14,7 +14,9 @@ test('Neon Kit shaders are compiled for the Qt resource module', () => {
         assert.match(cmake, new RegExp('shaders/' + effect + '\\.frag\\.qsb'));
     for (const effect of ['gaussian', 'neon'])
         assert.ok(existsSync('ui/shaders/' + effect + '.frag.qsb'));
-    assert.match(read('ui/shaders/gaussian.frag'), /for \(int i = 1; i <= 47; i \+= 2\)/);
+    const gaussian = read('ui/shaders/gaussian.frag');
+    assert.equal(gaussian.split('#else\n')[1].match(/accumulatePair\(result,/g).length, 24);
+    assert.doesNotMatch(gaussian, /\bexp\(/);
     assert.match(read('ui/shaders/neon.frag'), /superellipseDistance/);
     assert.match(read('ui/components/visual/NeonHalo.qml'), /neon\.frag\.qsb/);
 });

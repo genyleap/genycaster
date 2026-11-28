@@ -18,5 +18,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   if(XVFB_RUN)
     add_test(NAME pacing_opengl COMMAND "${XVFB_RUN}" -a $<TARGET_FILE:genycaster_rendering_pacing_fixture>)
     set_tests_properties(pacing_opengl PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=xcb;QSG_RHI_BACKEND=opengl;QT_QUICK_BACKEND=rhi;LIBGL_ALWAYS_SOFTWARE=1" TIMEOUT 20)
+    find_package(Python3 QUIET COMPONENTS Interpreter)
+    find_program(QML_TEST_RUNNER NAMES qmltestrunner HINTS "${Qt6_DIR}/../../../bin" NO_DEFAULT_PATH)
+    find_program(QT_QSB_EXECUTABLE NAMES qsb HINTS "${Qt6_DIR}/../../../bin" NO_DEFAULT_PATH)
+    if(Python3_Interpreter_FOUND AND QML_TEST_RUNNER AND QT_QSB_EXECUTABLE)
+      foreach(fixture IN ITEMS gaussian_shader_equivalence_runtime reflection_capture_runtime drawer_backdrop_runtime)
+        add_test(NAME "${fixture}" COMMAND "${XVFB_RUN}" -a
+          "${Python3_EXECUTABLE}" "${root}/tests/ui/${fixture}.py")
+        set_tests_properties("${fixture}" PROPERTIES
+          ENVIRONMENT "QT_QPA_PLATFORM=xcb;QSG_RHI_BACKEND=opengl;QT_QUICK_BACKEND=rhi;LIBGL_ALWAYS_SOFTWARE=1;QML_TEST_RUNNER=${QML_TEST_RUNNER};QT_QSB_EXECUTABLE=${QT_QSB_EXECUTABLE}"
+          TIMEOUT 90)
+      endforeach()
+    endif()
   endif()
 endif()

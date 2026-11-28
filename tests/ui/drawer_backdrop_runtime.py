@@ -61,6 +61,39 @@ Item {
             compare(capture.textureSize, Qt.size(384,288))
             backdrop.active = false
         }
+        function test_gaussianSnapshot() {
+            if (backdrop.GraphicsInfo.api === GraphicsInfo.Software)
+                skip("Pixel comparison requires a real RHI backend")
+            renderingController.profile = "adaptive"
+            backdrop.efficientNativeBlur = false
+            backdrop.addScrim = false
+            workspace.color = "red"
+            backdrop.active = true
+            const intermediate = findChild(backdrop, "drawerBackdropIntermediate")
+            verify(intermediate && intermediate.sourceItem)
+            compare(intermediate.live, false)
+            const red = () => {
+                const image = grabImage(backdrop)
+                return image.red(400,300) > 240 && image.blue(400,300) < 15
+            }
+            const blue = () => {
+                const image = grabImage(backdrop)
+                return image.blue(400,300) > 240 && image.red(400,300) < 15
+            }
+            tryVerify(red,3000)
+            wait(400)
+            verify(red(),"opening snapshot must settle")
+            workspace.color = "blue"
+            wait(250)
+            const frozen = grabImage(backdrop)
+            console.info("Frozen pixel",frozen.red(400,300),frozen.green(400,300),frozen.blue(400,300))
+            verify(red(),"source mutation must not replace the frozen backdrop")
+            backdrop.refreshSnapshot()
+            tryVerify(blue,3000)
+            backdrop.active = false
+            compare(intermediate.sourceItem,null)
+            compare(intermediate.textureSize,Qt.size(1,1))
+        }
     }
 }
 """

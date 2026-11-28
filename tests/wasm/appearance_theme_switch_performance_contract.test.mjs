@@ -65,7 +65,8 @@ test('Qt appearance inspector uses opt-in optimized snapshot blur, other drawers
   assert.match(backdrop,/function onDarkChanged\(\)/);
   assert.match(backdrop,/function onColorThemeIdChanged\(\)/);
   assert.match(backdrop,/function onCustomAccentChanged\(\)/);
-  assert.match(shader,/for \(int i = 1; i <= 47; i \+= 2\)/);
+  assert.equal(shader.split('#else\n')[1].match(/accumulatePair\(result,/g).length, 24);
+  assert.doesNotMatch(shader, /\bexp\(/);
 });
 
 test('WebAssembly chrome and MiniApp media hosts are not updated on unrelated palette changes',()=>{

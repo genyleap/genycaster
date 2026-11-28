@@ -22,9 +22,14 @@ Item {
         }
         return true
     }
-    readonly property bool capturing: active && enabled && sourceIsSafe
-        && Theme.reflectionGain > 0 && !Theme.paletteSwitchInProgress
-        && width > 0 && height > 0
+    readonly property bool captureAvailable: active && enabled && sourceIsSafe
+        && Theme.reflectionGain > 0 && width > 0 && height > 0
+    readonly property bool capturing: captureAvailable && !Theme.paletteSwitchInProgress
+    // A disabled reflection does not own three full-size render targets.
+    // Keep the extent reserved during a short palette transition so it
+    // cannot introduce a second allocation when the theme settles.
+    readonly property size allocatedTextureExtent: captureAvailable
+        ? textureExtent : Qt.size(1, 1)
     readonly property real captureScale: root.browserRenderer
         ? Math.min(0.0625, 256 / Math.max(1, width, height))
         : Math.min(0.125, 512 / Math.max(1, width, height))
@@ -55,20 +60,22 @@ Item {
         onTriggered: {
             root.textureExtent = root.desiredTextureExtent
             root.resizingCapture = false
-            if (root.capturing) {
-                capture.scheduleUpdate()
-                horizontalTexture.scheduleUpdate()
-                blurredTexture.scheduleUpdate()
-            }
+            root.refreshCapture()
         }
     }
-    onMotionActiveChanged: {
-        if (!motionActive && capturing && !resizingCapture) {
-            capture.scheduleUpdate()
-            horizontalTexture.scheduleUpdate()
-            blurredTexture.scheduleUpdate()
-        }
+    function refreshCapture() {
+        if (!root.capturing || root.resizingCapture || root.motionActive
+                || !capture || !horizontalTexture || !blurredTexture)
+            return
+        // A snapshot is one dependency chain: schedule all three stages
+        // together rather than leaving the downstream browser passes live.
+        capture.scheduleUpdate()
+        horizontalTexture.scheduleUpdate()
+        blurredTexture.scheduleUpdate()
     }
+    onMotionActiveChanged: if (!motionActive) root.refreshCapture()
+    onCapturingChanged: if (capturing) root.refreshCapture()
+    onSourceItemChanged: root.refreshCapture()
     // Retain broad color fields without blurring saturated pixels into a
     // near-neutral average. Mobile keeps a shorter effective sampling reach.
     readonly property real effectiveBlur: Math.max(14, Math.min(160, blurRadius))
@@ -87,15 +94,16 @@ Item {
         repeat: true
         triggeredOnStart: true
         running: root.browserRenderer && root.capturing && !root.resizingCapture && !root.motionActive
-        onTriggered: capture.scheduleUpdate()
+        onTriggered: root.refreshCapture()
     }
 
     ShaderEffectSource {
         id: capture
+        objectName: "reflectionCapture"
         sourceItem: root.capturing ? root.sourceItem : null
         sourceRect: Qt.rect(0, 0, root.width, root.height)
         format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F
-        textureSize: root.textureExtent
+        textureSize: root.allocatedTextureExtent
         hideSource: false
         recursive: false
         visible: false
@@ -115,11 +123,12 @@ Item {
     }
     ShaderEffectSource {
         id: horizontalTexture
+        objectName: "reflectionHorizontal"
         sourceItem: root.capturing ? horizontalPass : null
         format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F
-        textureSize: root.textureExtent
+        textureSize: root.allocatedTextureExtent
         visible: false
-        live: root.capturing && !root.resizingCapture && !root.motionActive
+        live: root.capturing && !root.browserRenderer && !root.resizingCapture && !root.motionActive
         smooth: true
         wrapMode: ShaderEffectSource.ClampToEdge
     }
@@ -135,11 +144,12 @@ Item {
     }
     ShaderEffectSource {
         id: blurredTexture
+        objectName: "reflectionVertical"
         sourceItem: root.capturing ? verticalPass : null
         format: root.browserRenderer ? ShaderEffectSource.RGBA8 : ShaderEffectSource.RGBA16F
-        textureSize: root.textureExtent
+        textureSize: root.allocatedTextureExtent
         visible: false
-        live: root.capturing && !root.resizingCapture && !root.motionActive
+        live: root.capturing && !root.browserRenderer && !root.resizingCapture && !root.motionActive
         smooth: true
         wrapMode: ShaderEffectSource.ClampToEdge
     }

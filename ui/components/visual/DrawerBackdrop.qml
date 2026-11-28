@@ -27,8 +27,11 @@ Item {
     property bool captureUpdateQueued: false
     function performSnapshotUpdate() {
         root.captureUpdateQueued = false
-        if (root.active && root.sourceItem)
+        if (root.active && root.sourceItem) {
             capture.scheduleUpdate()
+            if (root.nativeGaussian)
+                intermediate.scheduleUpdate()
+        }
     }
     function refreshSnapshot() {
         if (!root.active || !root.sourceItem || root.captureUpdateQueued)
@@ -45,6 +48,8 @@ Item {
     onSourceItemChanged: root.refreshSnapshot()
     onWidthChanged: root.refreshSnapshot()
     onHeightChanged: root.refreshSnapshot()
+    onNativeGaussianChanged: root.refreshSnapshot()
+    onNativeCaptureScaleChanged: root.refreshSnapshot()
     // The backdrop is deliberately frozen between changes. Refresh once
     // AFTER Qt has propagated the new palette, not on each animated color
     // frame of dozens of live cards beneath the settings inspector.
@@ -145,9 +150,12 @@ Item {
     }
     ShaderEffectSource {
         id: intermediate
+        objectName: "drawerBackdropIntermediate"
         sourceItem: root.nativeGaussian ? horizontalPass : null
         visible: false
-        live: root.nativeGaussian
+        // The first pass belongs to the same frozen snapshot as capture.
+        // Only an explicit snapshot refresh updates either texture.
+        live: false
         // Skip the second full-screen offscreen render target for the
         // optimized frosted Settings backdrop.
         textureSize: root.nativeGaussian ? capture.textureSize : Qt.size(1, 1)

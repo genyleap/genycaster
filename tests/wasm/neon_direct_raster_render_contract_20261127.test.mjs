@@ -38,7 +38,9 @@ test('reflection capture and both blur stages retain their previous texture duri
  const source=read('ui/components/visual/NeonReflectionSource.qml');
  assert.match(source,/running: root\.browserRenderer && root\.capturing && !root\.resizingCapture && !root\.motionActive/);
  assert.equal((source.match(/live: root\.capturing[^\n]*!root\.motionActive/g)||[]).length,3);
- assert.match(source,/onMotionActiveChanged:\s*\{\s*if \(!motionActive && capturing && !resizingCapture\)/);
+ assert.match(source,/onMotionActiveChanged: if \(!motionActive\) root\.refreshCapture\(\)/);
+ assert.match(source,/function refreshCapture\(\) \{\s*if \(!root\.capturing \|\| root\.resizingCapture \|\| root\.motionActive/);
+ assert.match(source,/capture\.scheduleUpdate\(\)\s*horizontalTexture\.scheduleUpdate\(\)\s*blurredTexture\.scheduleUpdate\(\)/);
  const shell=read('ui/components/shell/AppShell.qml');
  assert.match(shell,/motionActive: Boolean\([\s\S]*?feedSurfaceLoader\.item\.readList\.moving[\s\S]*?profileSurfaceLoader\.item\.readList\.moving[\s\S]*?homeDashboard\.scrolling/);
 });

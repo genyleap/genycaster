@@ -1750,11 +1750,15 @@ if(EMSCRIPTEN)
                 _shaderText "${_shaderText}")
         endif()
         if(_shader STREQUAL "gaussian" OR _shader STREQUAL "reflection-gaussian")
-            # Eight bilinear pairs per axis, rather than 24. Qt WebAssembly
-            # has no spare GPU cycles for a 48-pair full-screen backdrop blur.
-            # The normalised separable kernel preserves overall intensity.
-            string(REPLACE "i <= 47" "i <= 15" _shaderText "${_shaderText}")
-            string(REPLACE "544.5" "128.0" _shaderText "${_shaderText}")
+            # Preserve the reviewed eight-pair WebGL kernel. Both variants
+            # contain offline-computed weights; neither needs exponentials
+            # in the fragment shader. Fail closed if the selector is missing.
+            string(FIND "${_shaderText}" "#define GENYCASTER_WEBGL_KERNEL 0" _hasKernel)
+            if(_hasKernel EQUAL -1)
+                message(FATAL_ERROR "WebGL Gaussian kernel selector missing: ${_shader}")
+            endif()
+            string(REPLACE "#define GENYCASTER_WEBGL_KERNEL 0"
+                "#define GENYCASTER_WEBGL_KERNEL 1" _shaderText "${_shaderText}")
         endif()
         if(_shaderText MATCHES "fwidth\\(|dFdx\\(|dFdy\\(")
             message(FATAL_ERROR "WebGL1 shader still requires derivatives: ${_shader}")

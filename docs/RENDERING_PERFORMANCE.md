@@ -26,6 +26,41 @@ without evidence from representative hardware and media playback tests.
 - Closed drawers disconnect the capture source and reduce its target to 1x1.
   Active snapshots retain the original blur and shader implementation.
 
+## Gaussian and capture pipeline
+
+The native Gaussian and chromatic Gaussian shaders retain 24 paired taps
+per axis (49 texture samples); WebGL retains eight pairs (17 samples).
+The generator computes the paired weights, offsets and normalization
+offline, avoiding per-fragment exponentials and coefficient calculation
+without reducing tap count or changing the kernel. All six existing native
+QSB variants are rebuilt from the same source. WebGL's build selects its
+short kernel before compiling the ES 100/300 variants.
+
+```sh
+python3 scripts/generate_gaussian_shaders.py --check
+python3 scripts/generate_gaussian_shaders.py --qsb /path/to/Qt/6.12/bin/qsb
+```
+
+The shared reflection still uses live native captures outside motion.
+On WebGL, the source capture and both downstream blur textures now share
+the existing 240 ms snapshot cadence. While scrolling/resizing, the last
+complete color field is retained. Disabled reflection detaches all three
+sources and requests 1x1 targets; palette transitions retain the previous
+extent reservation. Native modal Gaussian snapshots also update the
+capture and the horizontal intermediate together, rather than leaving the
+intermediate live. The final vertical shader remains a visible pass.
+These changes reduce opportunities for redundant work, but GPU drivers
+may already optimize some of the old arithmetic or snapshot work.
+
+The isolated QML RHI test compares the actual native QSB and compiled
+browser kernel against the original formula on a deterministic RGBA8
+texture, across both axes, both shaders, and two opacity levels. The
+acceptance limit is one 8-bit channel value. Reflection and modal tests
+also inspect rendered pixels, allocation requests, motion freeze and
+explicit refresh. The fixture's browser cadence is simulated on desktop
+OpenGL; it is not a real browser execution. Requested texture extents are
+not measurements of physical GPU allocation.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:
@@ -75,3 +110,20 @@ The regular UI tests also register the controller and backdrop regressions.
 `tests/ui/drawer_backdrop_runtime.py` tests capture ownership and resource
 budget stability using the production QML (with its shader URL redirected
 to the identical local QSB file for the isolated fixture).
+
+When Python, Qt host qsb/qmltestrunner and Xvfb are available, the same
+standalone CTest fixture also runs three RHI pixel/capture tests on Linux.
+To test on a real Mac, use the Qt 6.12 host tool path and run the Python
+fixtures with the normal Cocoa platform and Metal backend, for example:
+
+```sh
+export QML_TEST_RUNNER=/path/to/Qt/6.12/macos/bin/qmltestrunner
+QSG_RHI_BACKEND=metal python3 tests/ui/gaussian_shader_equivalence_runtime.py
+QSG_RHI_BACKEND=metal python3 tests/ui/reflection_capture_runtime.py
+QT_QUICK_BACKEND=rhi QT_QPA_PLATFORM=cocoa QSG_RHI_BACKEND=metal \
+  python3 tests/ui/drawer_backdrop_runtime.py
+```
+
+The Gaussian and reflection scripts require a hardware-capable RHI path;
+a software Qt Quick backend cannot validate ShaderEffect pixels.
+Compare performance separately using the application-level workload above.
