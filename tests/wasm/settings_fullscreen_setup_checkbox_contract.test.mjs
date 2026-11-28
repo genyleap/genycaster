@@ -50,7 +50,8 @@ test('Settings fills the desktop viewport and the mobile inspector remains full-
     assert.match(modal, /property bool fullScreen: false/);
     assert.match(modal, /curveDepth: control\.fullScreen \? 0 : Theme\.curveModal/);
     assert.match(modal, /neonAmbient: !control\.fullScreen/);
-    assert.match(modal, /duration: control\.fullScreen \? 0 : Theme\.motionStandard/);
+    assert.match(modal, /duration: control\.slideFromBottom \? 0\s*:\s*control\.fullScreen \? 0 : Theme\.motionStandard/);
+    assert.match(modal, /duration: control\.slideFromBottom && control\.fullScreen\s*\? Theme\.motionStandard : 0/);
     assert.match(adaptive, /GenyDrawer \{[\s\S]*?id: mobileDrawer/);
     assert.match(adaptive, /bottomSheet: true/);
     assert.match(adaptive, /fullScreen: control\.mobileFullScreen/);
