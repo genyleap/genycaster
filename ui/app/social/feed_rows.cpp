@@ -286,7 +286,7 @@ bool FeedRowsModel::reconcile(const QVariantList& rows)
         updateRoles(i, desired);
     }
     if (m_rows.size() > incoming.size()) {
-        beginRemoveRows({}, incoming.size(), m_rows.size() - 1);
+        beginRemoveRows({}, static_cast<int>(incoming.size()), count() - 1);
         m_rows.resize(incoming.size());
         endRemoveRows();
     }
@@ -841,8 +841,8 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
         }
         if (previousCount != m_window.size()) emit countChanged();
         if (tracing && workClock.elapsed() >= 8)
-            qCDebug(masonryWorkLog) << "window" << "planningMs" << planningNs / 1e6
-                << "evictionMs" << evictionNs / 1e6 << "publishMs" << updateNs / 1e6
+            qCDebug(masonryWorkLog) << "window" << "planningMs" << static_cast<double>(planningNs) / 1e6
+                << "evictionMs" << static_cast<double>(evictionNs) / 1e6 << "publishMs" << static_cast<double>(updateNs) / 1e6
                 << "removed" << removed << "inserted" << inserted
                 << "retirementPending" << true << "slots" << m_window.size();
         return true;
@@ -900,15 +900,15 @@ bool MasonryWindowModel::synchronizeWindow(const int admissionBudget, const int 
         ++index;
     }
     if (index < m_window.size()) {
-        beginRemoveRows({}, index, m_window.size() - 1);
+        beginRemoveRows({}, index, count() - 1);
         m_window.resize(index);
         endRemoveRows();
     }
     if (previousCount != m_window.size())
         emit countChanged();
     if (tracing && workClock.elapsed() >= 8)
-        qCDebug(masonryWorkLog) << "window" << "planningMs" << planningNs / 1e6
-            << "evictionMs" << evictionNs / 1e6 << "publishMs" << updateNs / 1e6
+        qCDebug(masonryWorkLog) << "window" << "planningMs" << static_cast<double>(planningNs) / 1e6
+            << "evictionMs" << static_cast<double>(evictionNs) / 1e6 << "publishMs" << static_cast<double>(updateNs) / 1e6
             << "removed" << removed << "inserted" << inserted
             << "retirementPending" << false << "slots" << m_window.size();
     return morePending;

@@ -156,9 +156,9 @@ int main(int argc, char** argv)
     const auto oldSlot = QPersistentModelIndex{pacedWall.index(pacedWall.windowIndexForSource(100), 0)};
     int passes = 0;
     while (pending && passes++ < 100) {
-        const int before = pacedWall.count();
+        const int previousSlotCount = pacedWall.count();
         pending = pacedWall.setViewport(topOf100, 1000, 1200, 1600, true, false, 3);
-        require(pacedWall.count() <= before + 3);
+        require(pacedWall.count() <= previousSlotCount + 3);
         require(oldSlot.isValid());
     }
     require(!pending && pacedWall.count() > 3);

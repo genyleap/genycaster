@@ -107,7 +107,8 @@ int main(int argc, char** argv) {
         QCoreApplication::sendEvent(&receiver, &event);
         CHECK(guiTraceMessages.size() == 1);
         CHECK(traceField(guiTraceMessages.first(), QStringLiteral("durationMs")) >= 16.0);
-        CHECK(traceField(guiTraceMessages.first(), QStringLiteral("guiEvent")) == QEvent::User);
+        CHECK(traceField(guiTraceMessages.first(), QStringLiteral("guiEvent"))
+              == static_cast<double>(QEvent::User));
         qInstallMessageHandler(oldHandler);
         QLoggingCategory::setFilterRules(QString{});
         qInfo("PASS: opt-in outermost GUI event timing");
