@@ -142,6 +142,7 @@ Window {
         targetCardWidth: 420
         maximumColumns: 3
         cacheBuffer: 400
+        property bool holdFixtureCards: false
         estimateHeight: function(key,kind,media,width) {
             return Number(key.split(":")[1]) % 2 === 0 ? 140 : 260
         }
@@ -151,6 +152,7 @@ Window {
                 implicitHeight: parent && parent.rowIndex % 2 === 0 ? 140 : 260
                 height: implicitHeight
                 property real magazinePaintHeight: implicitHeight
+                property bool incubating: wall.holdFixtureCards
                 Loader {
                     asynchronous: true
                     sourceComponent: Component {
@@ -260,6 +262,36 @@ Window {
         QObject::disconnect(observeMotion);
         require(motionAdmissions > 0);
         qInfo() << "Magazine flick motionAdmissions" << motionAdmissions;
+        jump(0);
+        require(QTest::qWaitFor([&]{return settled(0);},5000));
+        // Force a real skeleton to become ready before its card. After the
+        // card presents, its placeholder must be released, not just hidden.
+        require(wall->setProperty("holdFixtureCards",true));
+        jump(250);
+        QPointer<QQuickItem> heldSlot;
+        QPointer<QQuickItem> heldCard;
+        require(QTest::qWaitFor([&] {
+            for (auto* slot : slotItems()) {
+                if (slot->property("sourceIndex").toInt()!=250) continue;
+                auto* skeleton = slot->findChild<QQuickItem*>("masonrySkeleton");
+                auto* loader = slot->findChild<QQuickItem*>("masonryCast");
+                if (!skeleton || !loader || !skeleton->property("item").value<QObject*>()
+                    || !loader->property("item").value<QObject*>()) continue;
+                heldSlot=slot;
+                heldCard=qobject_cast<QQuickItem*>(loader->property("item").value<QObject*>());
+                return heldCard && !slot->property("cardReady").toBool();
+            }
+            return false;
+        },5000));
+        require(wall->setProperty("holdFixtureCards",false));
+        require(QTest::qWaitFor([&] {
+            if (!heldSlot || !heldCard || !heldSlot->property("cardReady").toBool()) return false;
+            auto* skeleton=heldSlot->findChild<QQuickItem*>("masonrySkeleton");
+            return skeleton && !skeleton->property("active").toBool()
+                && !skeleton->property("item").value<QObject*>();
+        },5000));
+        // Releasing the skeleton must not rebuild the already presented card.
+        require(heldCard && heldSlot);
         jump(0);
         require(QTest::qWaitFor([&]{return settled(0);},5000));
         // Exercise rapid crossings before admission has settled.

@@ -302,7 +302,10 @@ Flickable {
     onContentYChanged: scheduleAdmission()
     // Refill the idle prefetch window after movement, even if contentY
     // has already reached its final position.
-    onMovingChanged: scheduleAdmission()
+    onMovingChanged: {
+        scheduleAdmission()
+        if (!moving) schedulePlaceholderCleanup()
+    }
     onVisibleChanged: {
         if (typeof renderingController !== "undefined" && renderingController
                 && renderingController.shuttingDown === true)
@@ -311,6 +314,7 @@ Flickable {
             resizeSettleTimer.stop()
             admissionTimer.stop()
             layoutTimer.stop()
+            placeholderCleanupTimer.stop()
             resizeInProgress = false
             // Visibility already hides the outgoing page. Start its bounded
             // retirement on a later frame, outside the navigation input event.
@@ -332,6 +336,33 @@ Flickable {
     // Yield between bounded admission transactions; explicit geometry
     // commits can still admit an initial batch without waiting for a timer.
     Timer { id: admissionTimer; interval: 16; onTriggered: view.updateAdmissions() }
+
+    // A skeleton is only needed until its card has been revealed. Retain
+    // pending incubation across viewport crossings, but release completed
+    // invisible skeleton trees while idle, one per event turn.
+    function schedulePlaceholderCleanup() {
+        if (!visible || moving || placeholderCleanupTimer.running
+                || (typeof renderingController !== "undefined" && renderingController
+                    && renderingController.shuttingDown === true))
+            return
+        placeholderCleanupTimer.start()
+    }
+    Timer {
+        id: placeholderCleanupTimer
+        interval: 16
+        onTriggered: {
+            if (!view.visible || view.moving) return
+            if (typeof renderingController !== "undefined" && renderingController
+                    && renderingController.shuttingDown === true) return
+            for (let index = 0; index < slots.count; ++index) {
+                const slot = slots.itemAt(index)
+                if (slot && slot.releaseCompletedPlaceholder()) {
+                    view.schedulePlaceholderCleanup()
+                    break
+                }
+            }
+        }
+    }
 
     Loader {
         id: headerLoader
@@ -382,6 +413,15 @@ Flickable {
                 && Math.abs(Math.ceil(paintedHeight) - cardHeight) <= 1
             readonly property bool cardReady: cardLoader.status === Loader.Ready
                 && loadedCard !== null && cardPresented
+            onCardReadyChanged: if (cardReady) view.schedulePlaceholderCleanup()
+            function releaseCompletedPlaceholder() {
+                if (retiring || !cardReady || !visiblePlaceholder.requested
+                        || visiblePlaceholder.status === Loader.Loading
+                        || visiblePlaceholder.opacity > 0.01)
+                    return false
+                visiblePlaceholder.requested = false
+                return true
+            }
             // Never mutate a dependency from the binding's own NOTIFY
             // handler. Publish the presentation latch on the next event turn.
             onPresentationEligibleChanged: {
@@ -520,10 +560,9 @@ Flickable {
                 anchors.fill: parent
                 z: 2
                 enabled: false
-                // Admission is latched for this bounded slot lifetime.
-                // A viewport crossing must not cancel an in-flight incubator
-                // or recreate a skeleton for the same cast. Visibility and
-                // animation are independent of Loader ownership.
+                // Admission is latched until the card has been revealed.
+                // Viewport crossings never cancel an in-flight incubator.
+                // Idle cleanup releases only a completed, faded skeleton.
                 property bool requested: false
                 readonly property bool needed: slot.placed && slot.intersectsViewport
                     && !slot.cardReady
@@ -533,6 +572,8 @@ Flickable {
                         requested = true
                 }
                 onNeededChanged: requestIfNeeded()
+                onStatusChanged: if (slot.cardReady) view.schedulePlaceholderCleanup()
+                onOpacityChanged: if (opacity <= 0.01) view.schedulePlaceholderCleanup()
                 Component.onCompleted: requestIfNeeded()
                 active: requested
                 visible: slot.intersectsViewport && (!slot.cardReady || opacity > 0.01)

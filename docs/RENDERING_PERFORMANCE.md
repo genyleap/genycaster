@@ -767,6 +767,35 @@ Regenerate both reviewed native QSB packages with
 The browser build derives both variants from the same source and replaces
 derivatives before baking the WebGL packages.
 
+## Latest Metal trace follow-up: GUI work, no NEON migration
+
+The subsequent Metal trace reports 398 ms GUI delivery delay and a separate
+450 ms startup render frame. The measurements do not identify a single
+cause; do not reduce visual quality or change the NEON architecture in
+response to this trace.
+
+- LinkPreviewResolver caches deterministic seed metadata and normalized URL
+  keys separately from the network FIFO. The native LRU retains at most
+  1024 explicit HTTP(S) inputs of at most 2048 characters. Resolved metadata
+  always takes precedence; read-only seeds neither start requests nor emit
+  revisions. The native no-network fixture observed 8.623–11.347 ms cold
+  and 0.064–0.106 ms warm median for 512 URLs in three runs. These are
+  resolver lookup timings, not full projection or device frame timings.
+- Image predicates only invoke the canonical media classifier when other
+  already accepted image evidence is insufficient. One full feed projection
+  consumes pending preview-only synchronization; after motion, full
+  projection is queued on the existing object-owned work timer.
+- The feed.classify diagnostic records the input row count. Earlier traces
+  reported the smaller projected result count, which understated scan size.
+- Magazine releases completed, fully faded skeleton trees while idle, one
+  per timer turn; never cancel a loading skeleton on a viewport crossing.
+  The runtime fixture deliberately holds a card unready, then verifies
+  placeholder release without rebuilding the card.
+
+Cross-identity delegate recycling and attribution of long GUI stalls remain
+separate work. The host has no physical GPU; the startup Metal pipeline
+cost and actual Mac frame pacing require hardware verification.
+
 ## Measure on a real device
 
 For macOS, quit the existing process first and start the actual app binary:
