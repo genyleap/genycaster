@@ -15,9 +15,13 @@ umask 077
 scratch="$(mktemp -d)"
 keychain=""
 trusted_cert=""
+remove_runner_trust() {
+  sudo -n /usr/bin/security remove-trusted-cert -d "$trusted_cert" &&
+    sudo -n /usr/bin/security delete-certificate -Z "$identity" /Library/Keychains/System.keychain
+}
 cleanup() {
   if [[ -n "$trusted_cert" ]]; then
-    security remove-trusted-cert "$trusted_cert" >/dev/null 2>&1 || true
+    remove_runner_trust >/dev/null 2>&1 || true
   fi
   if [[ -n "$keychain" ]]; then
     security delete-keychain "$keychain" >/dev/null 2>&1 || true
@@ -91,9 +95,16 @@ if [[ "$mode" != ad-hoc ]]; then
     [[ "${GITHUB_ACTIONS:-}" == true && "${RUNNER_ENVIRONMENT:-}" == github-hosted ]] || {
       echo "Self-signed P12 import is restricted to GitHub-hosted runners" >&2; exit 1;
     }
+    # User-domain trust changes prompt for GUI authorization on macOS 26.
+    # Use the admin trust domain on the disposable hosted runner only.
+    # Refuse a pre-existing system certificate so cleanup cannot remove it.
+    if /usr/bin/security find-certificate -a -Z /Library/Keychains/System.keychain | grep -Fq "$identity"; then
+      echo "Pinned certificate already present in system keychain; refusing to modify existing trust" >&2
+      exit 1
+    fi
     trusted_cert="$scratch/cert.der"
-    perl -e 'alarm 30; exec @ARGV' security add-trusted-cert -r trustRoot \
-      -p codeSign -k "$keychain" "$trusted_cert"
+    perl -e 'alarm 30; exec @ARGV' sudo -n /usr/bin/security add-trusted-cert -d -r trustRoot \
+      -p codeSign -k /Library/Keychains/System.keychain "$trusted_cert"
     security find-identity -v -p codesigning "$keychain" | grep -F "$identity"
     sign_args=(--force --sign "$identity" --timestamp=none --keychain "$keychain")
   else
@@ -138,7 +149,7 @@ elif [[ "$mode" == self-signed ]]; then
   codesign "${sign_args[@]}" --identifier com.genyleap.genycaster \
     -r "=designated => $requirement" "$app"
   # Remove the runner trust before verification, to model an ordinary Mac.
-  security remove-trusted-cert "$trusted_cert"
+  remove_runner_trust
   trusted_cert=""
   bash ci/verify_macos_self_signed.sh "$app"
 else
